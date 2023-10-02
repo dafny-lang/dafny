@@ -324,7 +324,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
     public Command Command = null;
-    public bool Format = false;
     public bool FormatCheck = false;
 
     public string CompilerName;

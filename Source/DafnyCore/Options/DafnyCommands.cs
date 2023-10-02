@@ -8,11 +8,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public interface ICommandSpec {
+public static class DafnyCommands {
 
-  public static Argument<FileInfo> FileArgument { get; }
-
-  static ICommandSpec() {
+  static DafnyCommands() {
     FilesArgument = new("file", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
     }, true, "Dafny input files and/or a Dafny project file");
@@ -94,10 +92,4 @@ public interface ICommandSpec {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
   }).Concat(ParserOptions).ToList();
-
-  IEnumerable<Option> Options { get; }
-
-  Command Create();
-
-  void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context);
 }

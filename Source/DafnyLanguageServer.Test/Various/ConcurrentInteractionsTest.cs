@@ -55,7 +55,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source, "VerificationErrorDetectedAfterCanceledSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 

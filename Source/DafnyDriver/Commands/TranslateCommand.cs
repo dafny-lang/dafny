@@ -5,16 +5,16 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class TranslateCommand : ICommandSpec {
-  public IEnumerable<Option> Options =>
+static class TranslateCommand {
+  public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
       CommonOptionBag.IncludeRuntimeOption,
-    }.Concat(ICommandSpec.TranslationOptions).
-      Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.TranslationOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
     
     result.AddCommand(new Command("cs", "C#"));
@@ -23,16 +23,22 @@ class TranslateCommand : ICommandSpec {
     result.AddCommand(new Command("java"));
     result.AddCommand(new Command("py", "Python"));
     result.AddCommand(new Command("cpp", "C++. This back-end has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types."));
-    foreach (var subCommand in result.Subcommands) {
-      subCommand.AddArgument(ICommandSpec.FilesArgument);
+    
+    foreach (var option in Options) {
+      result.AddGlobalOption(option);   
     }
-    return result;
-  }
+    foreach (var subCommand in result.Subcommands) {
+      subCommand.AddArgument(DafnyCommands.FilesArgument);
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-    var noVerify = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.CompilerName = context.ParseResult.CommandResult.Command.Name;
-    dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
+      CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(subCommand, (options, context) => {
+        options.Compile = false;
+        var noVerify = options.Get(BoogieOptionBag.NoVerify);
+        options.CompilerName = subCommand.Name;
+        options.SpillTargetCode = noVerify ? 3U : 2U;
+        return DafnyDriver.ContinueCliWithOptions(options);
+      });
+    }
+    
+    return result;
   }
 }

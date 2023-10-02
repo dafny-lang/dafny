@@ -75,7 +75,7 @@ method Bar() {
 
   [Fact]
   public async Task OnDiskProducerVerificationErrorsChangeProject() {
-    await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject));
+    await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject));
 
     var producerSource = @"
 method Foo(x: int) 

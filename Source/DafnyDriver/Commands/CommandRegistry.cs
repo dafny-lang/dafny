@@ -13,7 +13,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
 
@@ -27,27 +26,28 @@ record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) :
 
 public static class CommandRegistry {
   private const string ToolchainDebuggingHelpName = "--help-internal";
-  private static readonly HashSet<ICommandSpec> Commands = new();
+  private static readonly HashSet<DafnyCommands> Commands = new();
+  private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
-  static void AddCommand(ICommandSpec command) {
-    Commands.Add(command);
+  private static void AddCommand(Command command) {
+    RootCommand.AddCommand(command);
   }
 
   static CommandRegistry() {
-    AddCommand(new ResolveCommand());
-    AddCommand(new VerifyCommand());
-    AddCommand(new BuildCommand());
-    AddCommand(new RunCommand());
-    AddCommand(new TranslateCommand());
-    AddCommand(new FormatCommand());
-    AddCommand(new DocCommand());
-    AddCommand(new MeasureComplexityCommand());
+    AddCommand(ResolveCommand.Create());
+    AddCommand(VerifyCommand.Create());
+    AddCommand(BuildCommand.Create());
+    AddCommand(RunCommand.Create());
+    AddCommand(TranslateCommand.Create());
+    AddCommand(FormatCommand.Create());
+    AddCommand(DocCommand.Create());
+    AddCommand(MeasureComplexityCommand.Create());
     AddCommand(ServerCommand.Instance);
-    AddCommand(new TestCommand());
-    AddCommand(new GenerateTestsCommand());
-    AddCommand(new DeadCodeCommand());
-    AddCommand(new AuditCommand());
-    AddCommand(new CoverageReportCommand());
+    AddCommand(TestCommand.Create());
+    AddCommand(GenerateTestsCommand.Create());
+    AddCommand(DeadCodeCommand.Create());
+    AddCommand(AuditCommand.Create());
+    AddCommand(CoverageReportCommand.Create());
 
     // Check that the .doo file format is aware of all options,
     // and therefore which have to be saved to safely support separate verification/compilation.
@@ -68,98 +68,50 @@ public static class CommandRegistry {
   public static Argument<FileInfo> FileArgument { get; }
 
   class WritersConsole : IConsole {
-    private readonly TextWriter errWriter;
-    private readonly TextWriter outWriter;
+    public TextReader InputWriter { get; }
+    public TextWriter ErrWriter { get; }
+    public TextWriter OutWriter { get; }
 
-    public WritersConsole(TextWriter outWriter, TextWriter errWriter) {
-      this.errWriter = errWriter;
-      this.outWriter = outWriter;
+    public WritersConsole(TextReader inputWriter, TextWriter outWriter, TextWriter errWriter) {
+      InputWriter = inputWriter;
+      this.ErrWriter = errWriter;
+      this.OutWriter = outWriter;
     }
 
-    public IStandardStreamWriter Out => StandardStreamWriter.Create(outWriter ?? TextWriter.Null);
+    public IStandardStreamWriter Out => StandardStreamWriter.Create(OutWriter ?? TextWriter.Null);
 
-    public bool IsOutputRedirected => outWriter != null;
-    public IStandardStreamWriter Error => StandardStreamWriter.Create(errWriter ?? TextWriter.Null);
-    public bool IsErrorRedirected => errWriter != null;
+    public bool IsOutputRedirected => OutWriter != null;
+    public IStandardStreamWriter Error => StandardStreamWriter.Create(ErrWriter ?? TextWriter.Null);
+    public bool IsErrorRedirected => ErrWriter != null;
     public bool IsInputRedirected => false;
   }
 
-  [CanBeNull]
-  public static ParseArgumentResult Create(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
-    var console = new WritersConsole(outputWriter, errorWriter);
-    var wasInvoked = false;
-    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
+  public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
+  public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
+    
     var optionValues = new Dictionary<Option, object>();
-    var options = new Options(optionValues, new Dictionary<Argument, object>());
-    dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
-    dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
-    dafnyOptions.Options = options;
-
-    foreach (var option in AllOptions) {
-      if (!allowHidden) {
-        option.IsHidden = false;
-      }
-      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
-        option.AllowMultipleArgumentsPerToken = true;
-      }
-    }
-
-    var commandToSpec = Commands.ToDictionary(c => {
-      var result = c.Create();
-      foreach (var option in c.Options) {
-        result.AddOption(option);
-      }
-      return result;
-    }, c => c);
-    foreach (var command in commandToSpec.Keys) {
-      command.SetHandler(CommandHandler);
-    }
-
-    if (arguments.Length != 0) {
-      var first = arguments[0];
-      var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
-        Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
-      if (!keywordForNewMode.Contains(first)) {
-        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
-          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
-            "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
-          return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-        }
-        var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
-        if (oldOptions.Parse(arguments)) {
-          return new ParseArgumentSuccess(oldOptions);
-        }
-
-        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-      }
-    }
-    dafnyOptions.UsingNewCli = true;
-
-    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-    foreach (var command in commandToSpec.Keys) {
-      rootCommand.AddCommand(command);
-    }
-
-    var errorOccurred = false;
-    async Task CommandHandler(InvocationContext context) {
-      wasInvoked = true;
-      var command = context.ParseResult.CommandResult.Command;
-      var commandSpec = commandToSpec[command];
+    async Task Handle(InvocationContext context) {
+      WritersConsole console = (WritersConsole)context.Console;
+      var dafnyOptions = new DafnyOptions(console.InputWriter, console.OutWriter, console.ErrWriter);
+      dafnyOptions.Environment =
+        "Command-line arguments: " + string.Join(" ", context.ParseResult.Tokens.Select(t => t.Value));
+      dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
+      var options = new Options(optionValues, new Dictionary<Argument, object>());
+      dafnyOptions.Options = options;
       dafnyOptions.Command = command;
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
         if (!await ProcessFile(dafnyOptions, singleFile)) {
-          errorOccurred = true;
+          context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
           return;
         }
       }
-      var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
+      var files = context.ParseResult.GetValueForArgument(Dafny.DafnyCommands.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
           if (!await ProcessFile(dafnyOptions, file)) {
-            errorOccurred = true;
+            context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
             return;
           }
         }
@@ -175,7 +127,7 @@ public static class CommandRegistry {
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, errorWriter, out projectFileValue) ?? false;
+        var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, dafnyOptions.ErrorWriter, out projectFileValue) ?? false;
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -185,7 +137,7 @@ public static class CommandRegistry {
         } else {
           // If multiple values ARE allowed, CLI options come after project file options
           var elementType = option.ValueType.GetGenericArguments()[0];
-          var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+          var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
           if (hasProjectFileValue) {
             foreach (var element in (IEnumerable)projectFileValue) {
               valueAsList.Add(element);
@@ -204,7 +156,7 @@ public static class CommandRegistry {
         try {
           dafnyOptions.ApplyBinding(option);
         } catch (Exception e) {
-          errorOccurred = true;
+          context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
           dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             $"Invalid value for option {option.Name}: {e.Message}");
           return;
@@ -213,32 +165,53 @@ public static class CommandRegistry {
 
       dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
-      commandSpec.PostProcess(dafnyOptions, options, context);
+      context.ExitCode = await continuation(dafnyOptions, context);
     }
 
-    var builder = new CommandLineBuilder(rootCommand).UseDefaults();
-    builder = AddDeveloperHelp(rootCommand, builder);
+    command.SetHandler(Handle);
+  }
 
-#pragma warning disable VSTHRD002
-    var exitCode = builder.Build().InvokeAsync(arguments, console).Result;
-#pragma warning restore VSTHRD002
+  public static Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments, 
+    Func<ParseArgumentResult, Task<int>> afterArgumentParsing) {
+    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
+      Environment = "Command-line arguments: " + string.Join(" ", arguments)
+    };
 
-    if (errorOccurred) {
-      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
-    }
+    if (arguments.Length != 0) {
+      var first = arguments[0];
+      var keywordForNewMode = RootCommand.Subcommands.Select(c => c.Name).
+        Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
+      if (!keywordForNewMode.Contains(first)) {
+        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+            "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
+          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+        }
+        var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
+        if (oldOptions.Parse(arguments)) {
+          return afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
+        }
 
-    if (!wasInvoked) {
-      if (exitCode == 0) {
-        return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
+        return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
       }
-
-      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
-    if (exitCode == 0) {
-      return new ParseArgumentSuccess(dafnyOptions);
-    }
-
-    return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+    
+    // bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    // foreach (var option in AllOptions) {
+    //   if (!allowHidden) {
+    //     option.IsHidden = false;
+    //   }
+    //   if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+    //     option.AllowMultipleArgumentsPerToken = true;
+    //   }
+    // }
+    //
+    
+    dafnyOptions.UsingNewCli = true;
+    var builder = new CommandLineBuilder(RootCommand).UseDefaults();
+    builder = AddDeveloperHelp(RootCommand, builder);
+    var console = new WritersConsole(inputReader, outputWriter, errorWriter);
+    return builder.Build().InvokeAsync(arguments, console);
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;
@@ -293,7 +266,21 @@ public static class CommandRegistry {
   }
 
   private static IEnumerable<Option> AllOptions {
-    get { return Commands.SelectMany(c => c.Options); }
+    get {
+      var result = new HashSet<Option>();
+      var commands = new Stack<Command>();
+      commands.Push(RootCommand);
+      while (commands.Any()) {
+        var current = commands.Pop();
+        foreach (var option in current.Options) {
+          result.Add(option);
+        }
+        foreach (var child in current.Subcommands) {
+          commands.Push(child);
+        }
+      }
+      return result;
+    }
   }
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {
