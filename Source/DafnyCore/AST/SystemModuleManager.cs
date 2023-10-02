@@ -80,6 +80,12 @@ public class SystemModuleManager {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
+  /// <summary>
+  /// Return a resolved type for "set<object?>".
+  /// </summary>
+  public Type ObjectSetType() {
+    return new SetType(true, ObjectQ());
+  }
 
   public SystemModuleManager(DafnyOptions options) {
     this.Options = options;
