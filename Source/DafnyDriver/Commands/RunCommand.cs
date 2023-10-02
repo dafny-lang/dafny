@@ -18,7 +18,7 @@ static class RunCommand {
   static RunCommand() {
     UserProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
     UserProgramArguments.SetDefaultValue(new List<string>());
-    
+
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
@@ -42,7 +42,7 @@ static class RunCommand {
     result.AddArgument(DafnyCli.FileArgument);
     result.AddArgument(UserProgramArguments);
     foreach (var option in Options) {
-      
+
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
@@ -51,7 +51,7 @@ static class RunCommand {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return DafnyDriver.ContinueCliWithOptions(options);
+      return DafnyPipelineDriver.ContinueCliWithOptions(options);
     });
     return result;
   }

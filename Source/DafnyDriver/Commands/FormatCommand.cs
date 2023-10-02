@@ -22,25 +22,25 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    
+
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DoFormatting(options);
       return (int)exitValue;
     });
-    
+
     return result;
   }
-  
+
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyDriver.GetDafnyFiles(options, out var dafnyFiles , out _);
+    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
     var errorWriter = options.ErrorWriter;
     var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
     string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
-    
+
     var exitValue = ExitValue.SUCCESS;
     Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
     dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => {
@@ -65,7 +65,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       string tempFileName = null;
       if (!dafnyFile.Uri.IsFile) {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        DafnyDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        DafnyPipelineDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = new DafnyFile(options, new Uri(tempFileName));
       }
 
@@ -98,7 +98,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
             }
 
             if (!doCheck && !doPrint) {
-              DafnyDriver.WriteFile(dafnyFile.FilePath, result);
+              DafnyPipelineDriver.WriteFile(dafnyFile.FilePath, result);
             }
           }
         } else {

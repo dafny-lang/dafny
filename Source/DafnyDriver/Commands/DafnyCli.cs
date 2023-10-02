@@ -8,6 +8,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,12 +21,50 @@ namespace Microsoft.Dafny;
 
 public interface IParseArgumentResult { }
 
+// TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
+public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
+
 public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : IParseArgumentResult;
 record ParseArgumentFailure(ExitValue ExitValue) : IParseArgumentResult;
 
 public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
+
+
+
+  public static int Main(string[] args) {
+    return MainWithWriters(Console.Out, Console.Error, Console.In, args);
+  }
+
+  public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+    string[] args) {
+
+    // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
+    // outputWriter = new UndisposableTextWriter(outputWriter);
+    // errorWriter = new UndisposableTextWriter(errorWriter);
+    // outputWriter = TextWriter.Synchronized(outputWriter);
+    // errorWriter = TextWriter.Synchronized(errorWriter);
+
+#pragma warning disable VSTHRD002
+    return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
+#pragma warning restore VSTHRD002
+  }
+
+  private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
+    Contract.Requires(cce.NonNullElements(args));
+    return DafnyCli.Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
+
+      switch (parseArgumentResult) {
+        case ParseArgumentSuccess success:
+          var options = success.DafnyOptions;
+          return await DafnyPipelineDriver.ContinueCliWithOptions(options);
+        case ParseArgumentFailure failure:
+          return (int)failure.ExitValue;
+        default: throw new Exception("unreachable");
+      }
+    });
+  }
 
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
@@ -86,7 +125,7 @@ public static class DafnyCli {
 
   public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
   public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
-    
+
     var optionValues = new Dictionary<Option, object>();
     async Task Handle(InvocationContext context) {
       WritersConsole console = (WritersConsole)context.Console;
@@ -169,7 +208,7 @@ public static class DafnyCli {
     command.SetHandler(Handle);
   }
 
-  public static Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments, 
+  public static Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments,
     Func<IParseArgumentResult, Task<int>> afterArgumentParsing) {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
@@ -185,26 +224,26 @@ public static class DafnyCli {
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
-        
+
         var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
         try {
           if (oldOptions.Parse(arguments)) {
             return afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
           }
-        
+
           // If requested, print version number, help, attribute help, etc. and exit.
           if (oldOptions.ProcessInfoFlags()) {
             return Task.FromResult((int)ExitValue.SUCCESS);
           }
 
           return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
-        }  catch (ProverException pe) {
+        } catch (ProverException pe) {
           new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
           return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
       }
     }
-    
+
     // bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     // foreach (var option in AllOptions) {
     //   if (!allowHidden) {
@@ -215,7 +254,7 @@ public static class DafnyCli {
     //   }
     // }
     //
-    
+
     dafnyOptions.UsingNewCli = true;
     var builder = new CommandLineBuilder(RootCommand).UseDefaults();
     builder = AddDeveloperHelp(RootCommand, builder);
@@ -304,6 +343,133 @@ public static class DafnyCli {
       }
     }, MiddlewareOrder.Configuration - 101);
     return builder;
+  }
+
+  public static ExitValue GetDafnyFiles(DafnyOptions options,
+    out List<DafnyFile> dafnyFiles,
+    out List<string> otherFiles) {
+    dafnyFiles = new List<DafnyFile>();
+    otherFiles = new List<string>();
+    var outputWriter = options.OutputWriter;
+
+    if (options.UseStdin) {
+      var uri = new Uri("stdin:///");
+      options.CliRootSourceUris.Add(uri);
+      dafnyFiles.Add(new DafnyFile(options, uri));
+    } else if (options.CliRootSourceUris.Count == 0) {
+      options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
+      return ExitValue.PREPROCESSING_ERROR;
+    }
+    if (options.XmlSink != null) {
+      string errMsg = options.XmlSink.Open();
+      if (errMsg != null) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + errMsg);
+        return ExitValue.PREPROCESSING_ERROR;
+      }
+    }
+    if (options.ShowEnv == ExecutionEngineOptions.ShowEnvironment.Always) {
+      outputWriter.WriteLine(options.Environment);
+    }
+
+    ISet<String> filesSeen = new HashSet<string>();
+    foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
+               Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
+      Contract.Assert(file != null);
+      var extension = Path.GetExtension(file);
+      if (extension != null) { extension = extension.ToLower(); }
+
+      bool isDafnyFile = false;
+      var relative = Path.GetFileName(file);
+      bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
+      var nameToShow = useRelative ? relative
+        : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
+      try {
+        var df = new DafnyFile(options, new Uri(Path.GetFullPath(file)));
+        if (options.LibraryFiles.Contains(file)) {
+          df.IsPreverified = true;
+          df.IsPrecompiled = true;
+        }
+        if (!filesSeen.Add(df.CanonicalPath)) {
+          continue; // silently ignore duplicate
+        }
+        dafnyFiles.Add(df);
+        isDafnyFile = true;
+      } catch (ArgumentException e) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: ", nameToShow, e.Message);
+        return ExitValue.PREPROCESSING_ERROR;
+      } catch (IllegalDafnyFile e) {
+        if (e.ProcessingError) {
+          return ExitValue.PREPROCESSING_ERROR;
+        }
+        // Fall through and try to handle the file as an "other file"
+      } catch (Exception e) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: {1}", nameToShow, e.Message);
+        return ExitValue.PREPROCESSING_ERROR;
+      }
+
+      var supportedExtensions = options.Backend.SupportedExtensions;
+      if (supportedExtensions.Contains(extension)) {
+        // .h files are not part of the build, they are just emitted as includes
+        // TODO: This should be delegated to the backend instead (i.e. the CppCompilerBackend)
+        if (File.Exists(file) || extension == ".h") {
+          otherFiles.Add(file);
+        } else {
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {nameToShow} not found");
+          return ExitValue.PREPROCESSING_ERROR;
+        }
+      } else if (options.AllowSourceFolders && Directory.Exists(file)) {
+        options.SourceFolders.Add(file);
+      } else if (!isDafnyFile) {
+        if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
+          options.Printer.ErrorWriteLine(options.OutputWriter,
+            "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
+            nameToShow,
+            string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
+        } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+          options.Printer.ErrorWriteLine(options.OutputWriter,
+            "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
+            nameToShow, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
+        } else {
+          options.Printer.ErrorWriteLine(options.OutputWriter,
+            "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
+            nameToShow, extension, string.Join(", ", supportedExtensions));
+        }
+        return ExitValue.PREPROCESSING_ERROR;
+      }
+    }
+
+    if (dafnyFiles.Count == 0 && options.SourceFolders.Count == 0) {
+      if (!options.AllowSourceFolders) {
+        options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+        // TODO: With the test on CliRootUris.Count above, this code is no longer reachable
+        options.Printer.ErrorWriteLine(options.OutputWriter, "*** Error: The command-line contains no .dfy files");
+        return ExitValue.PREPROCESSING_ERROR;
+      }
+
+      options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files or folders");
+      //options.Printer.ErrorWriteLine(Console.Out,
+      //  "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
+      return ExitValue.PREPROCESSING_ERROR;
+    }
+
+    return ExitValue.SUCCESS;
+  }
+
+  static IEnumerable<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
+    var result = new HashSet<string>();
+    foreach (var input in inputs) {
+      var values = input.Split(',');
+      foreach (var slice in values) {
+        var name = slice.Trim();
+        if (Directory.Exists(name)) {
+          var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+          foreach (var file in files) { result.Add(file); }
+        } else {
+          result.Add(name);
+        }
+      }
+    }
+    return result;
   }
 }
 

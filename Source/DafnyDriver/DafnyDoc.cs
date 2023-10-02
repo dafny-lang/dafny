@@ -45,16 +45,16 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = DafnyDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
     var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
     string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
 
-    string outputdir = options.DafnyPrintCompiledFile;
-    if (outputdir == null) {
-      outputdir = DefaultOutputDir;
+    string outputDir = options.DafnyPrintCompiledFile;
+    if (outputDir == null) {
+      outputDir = DefaultOutputDir;
     }
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
@@ -63,7 +63,7 @@ class DafnyDoc {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
           .Select(name => new DafnyFile(options, new Uri(Path.GetFullPath(name)))).ToList();
     })).ToList();
-    Console.Out.Write($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -76,29 +76,29 @@ class DafnyDoc {
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        Console.Out.WriteLine(e.ToString());
+        await Console.Out.WriteLineAsync(e.ToString()).ConfigureAwait(false);
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      Console.Out.WriteLine(err);
+      await Console.Out.WriteLineAsync(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
       // create the output folder if needed
-      if (!Directory.Exists(outputdir)) {
-        Directory.CreateDirectory(outputdir);
+      if (!Directory.Exists(outputDir)) {
+        Directory.CreateDirectory(outputDir);
       }
 
       // Check writable
       try {
-        File.Create(outputdir + "/index.html").Dispose();
+        await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        Console.Out.WriteLine("Insufficient permission to create output files in " + outputdir);
+        await Console.Out.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
-      exitValue = new DafnyDoc(dafnyProgram, options, outputdir).GenerateDocs(dafnyFiles);
+      exitValue = new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
     }
     return exitValue;
   }

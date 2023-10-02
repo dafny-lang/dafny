@@ -31,7 +31,7 @@ public record FilePosition(Uri Uri, Position Position);
 /// Handles migration of previously published document state
 /// </summary>
 public class ProjectManager : IDisposable {
-  
+
   public const int DefaultThrottleTime = 100;
   public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
     @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart()) {
@@ -43,7 +43,7 @@ public class ProjectManager : IDisposable {
 Determine when to automatically verify the program. Choose from: Never, OnChange (verify everything in a file when changing the file), OnChangeProject or OnSave.".TrimStart()) {
     ArgumentHelpName = "event"
   };
-  
+
   private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 

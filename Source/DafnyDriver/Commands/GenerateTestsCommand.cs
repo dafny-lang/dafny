@@ -49,7 +49,7 @@ Path - Generate tests targeting path-coverage.");
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    
+
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
       var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
         Mode.Path => TestGenerationOptions.Modes.Path,
@@ -58,29 +58,29 @@ Path - Generate tests targeting path-coverage.");
         _ => throw new ArgumentOutOfRangeException()
       };
       PostProcess(options, mode);
-      
+
       var exitCode = await GenerateTests(options);
       return (int)exitCode;
     });
-    
+
     return result;
   }
 
   public static async Task<ExitValue> GenerateTests(DafnyOptions options) {
-    var exitValue = DafnyDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var exitValue = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (exitValue != ExitValue.SUCCESS) {
       return exitValue;
     }
-    
+
     if (dafnyFiles.Count > 1 &&
         options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
       options.Printer.ErrorWriteLine(options.OutputWriter,
         "*** Error: Only one .dfy file can be specified for testing");
       return ExitValue.PREPROCESSING_ERROR;
     }
-    
+
     var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
-    
+
     var uri = new Uri(dafnyFileNames[0]);
     var source = new StreamReader(dafnyFileNames[0]);
     var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
@@ -119,10 +119,10 @@ Path - Generate tests targeting path-coverage.");
 
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.");
-  
+
   public static readonly Option<int> LoopUnroll = new("--loop-unroll", () => -1,
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.");
-  
+
   public static readonly Option<string> PrintBpl = new("--print-bpl",
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"

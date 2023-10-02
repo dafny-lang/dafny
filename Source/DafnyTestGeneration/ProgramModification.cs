@@ -199,7 +199,7 @@ namespace DafnyTestGeneration {
       copy.ProcsToCheck = proceduresToVerify.ToList();
       return copy;
     }
-    
+
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.Verbose) {
         await dafnyInfo.Options.OutputWriter.WriteLineAsync(

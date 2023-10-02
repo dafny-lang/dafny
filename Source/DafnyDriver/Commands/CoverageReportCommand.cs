@@ -29,10 +29,10 @@ static class CoverageReportCommand {
       "Merge several previously generated coverage reports together.");
     result.AddArgument(OutDirArgument);
     result.AddArgument(ReportsArgument);
-    
+
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       var coverageReporter = new CoverageReporter(options);
-      coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName), 
+      coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
         options.Get(OutDirArgument));
       return Task.FromResult(0);
     });

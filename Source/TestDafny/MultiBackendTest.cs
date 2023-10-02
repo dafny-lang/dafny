@@ -364,23 +364,22 @@ public class MultiBackendTest {
   }
 
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
+    var argumentsWithDefaults = arguments.Concat(DafnyPipelineDriver.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = DafnyCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
   }
-
 
   private static (int, string, string) RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
     if (dafnyCLIPath == null) {
       return RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
+    var argumentsWithDefaults = arguments.Concat(DafnyPipelineDriver.NewDefaultArgumentsForTesting);
+    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyPipelineDriver.ReferencedEnvironmentVariables);
 
     return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);
   }

@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
       IsHidden = true
     };
-    
+
     private readonly ILogger logger;
     private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);

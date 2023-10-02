@@ -16,16 +16,16 @@ static class TranslateCommand {
 
   public static Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
-    
+
     result.AddCommand(new Command("cs", "C#"));
     result.AddCommand(new Command("go", "GoLang"));
     result.AddCommand(new Command("js", "JavaScript"));
     result.AddCommand(new Command("java"));
     result.AddCommand(new Command("py", "Python"));
     result.AddCommand(new Command("cpp", "C++. This back-end has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types."));
-    
+
     foreach (var option in Options) {
-      result.AddGlobalOption(option);   
+      result.AddGlobalOption(option);
     }
     foreach (var subCommand in result.Subcommands) {
       subCommand.AddArgument(DafnyCommands.FilesArgument);
@@ -35,10 +35,10 @@ static class TranslateCommand {
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;
         options.SpillTargetCode = noVerify ? 3U : 2U;
-        return DafnyDriver.ContinueCliWithOptions(options);
+        return DafnyPipelineDriver.ContinueCliWithOptions(options);
       });
     }
-    
+
     return result;
   }
 }

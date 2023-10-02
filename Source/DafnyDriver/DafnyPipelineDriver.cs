@@ -28,15 +28,12 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
-  // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
-  public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
-  
-  public class DafnyDriver : IDisposable {
+  public class DafnyPipelineDriver : IDisposable {
     public DafnyOptions Options { get; }
 
     private readonly ExecutionEngine engine;
 
-    private DafnyDriver(DafnyOptions dafnyOptions) {
+    private DafnyPipelineDriver(DafnyOptions dafnyOptions) {
       Options = dafnyOptions;
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
@@ -46,7 +43,7 @@ namespace Microsoft.Dafny {
     // through separate processes.
     public static readonly string[] ReferencedEnvironmentVariables = { "PATH", "HOME", "DOTNET_NOLOGO" };
 
-    static DafnyDriver() {
+    static DafnyPipelineDriver() {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         ReferencedEnvironmentVariables = ReferencedEnvironmentVariables
           .Concat(new[] { // Careful: Keep this list in sync with the one in lit.site.cfg
@@ -100,61 +97,10 @@ namespace Microsoft.Dafny {
       "--show-snippets:false"
     };
 
-    public static int Main(string[] args) {
-      return MainWithWriters(Console.Out, Console.Error, Console.In, args);
-    }
-
-    public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
-      string[] args) {
-
-      // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
-      // outputWriter = new UndisposableTextWriter(outputWriter);
-      // errorWriter = new UndisposableTextWriter(errorWriter);
-      // outputWriter = TextWriter.Synchronized(outputWriter);
-      // errorWriter = TextWriter.Synchronized(errorWriter);
-
-#pragma warning disable VSTHRD002
-      return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
-#pragma warning restore VSTHRD002
-    }
-
-    private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
-      Contract.Requires(cce.NonNullElements(args));
-      return DafnyCli.Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
-
-        switch (parseArgumentResult) {
-          case ParseArgumentSuccess success:
-            var options = success.DafnyOptions;
-            return await ContinueCliWithOptions(options);
-          case ParseArgumentFailure failure:
-            return (int)failure.ExitValue;
-          default: throw new Exception("unreachable");
-        }
-      });
-    }
-
-    static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
-      var result = new HashSet<string>();
-      foreach (var input in inputs) {
-        var values = input.Split(',');
-        foreach (var slice in values) {
-          var name = slice.Trim();
-          if (Directory.Exists(name)) {
-            var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
-            foreach (var file in files) { result.Add(file); }
-          } else {
-            result.Add(name);
-          }
-        }
-      }
-      return result;
-    }
-
-
     public static async Task<int> ContinueCliWithOptions(DafnyOptions options) {
       options.RunningBoogieFromCommandLine = true;
-      
-      var getFilesExitCode = GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
+
+      var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
       if (getFilesExitCode != ExitValue.SUCCESS) {
         return (int)getFilesExitCode;
       }
@@ -185,8 +131,8 @@ namespace Microsoft.Dafny {
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return (int)ExitValue.PREPROCESSING_ERROR;
       }
-      
-      using var driver = new DafnyDriver(options);
+
+      using var driver = new DafnyPipelineDriver(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
 
@@ -290,117 +236,6 @@ namespace Microsoft.Dafny {
         PrintCounterexample(options, options.ModelViewFile);
       }
       return exitValue;
-    }
-
-    public static ExitValue GetDafnyFiles(DafnyOptions options, 
-      out List<DafnyFile> dafnyFiles, 
-      out List<string> otherFiles) 
-    {
-      dafnyFiles = new List<DafnyFile>();
-      otherFiles = new List<string>();
-      var outputWriter = options.OutputWriter;
-      
-      if (options.UseStdin) {
-        var uri = new Uri("stdin:///");
-        options.CliRootSourceUris.Add(uri);
-        dafnyFiles.Add(new DafnyFile(options, uri));
-      } else if (options.CliRootSourceUris.Count == 0) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
-        return ExitValue.PREPROCESSING_ERROR;
-      }
-      if (options.XmlSink != null) {
-        string errMsg = options.XmlSink.Open();
-        if (errMsg != null) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + errMsg);
-          return ExitValue.PREPROCESSING_ERROR;
-        }
-      }
-      if (options.ShowEnv == ExecutionEngineOptions.ShowEnvironment.Always) {
-        outputWriter.WriteLine(options.Environment);
-      }
-
-      ISet<String> filesSeen = new HashSet<string>();
-      foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
-                 Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
-        Contract.Assert(file != null);
-        var extension = Path.GetExtension(file);
-        if (extension != null) { extension = extension.ToLower(); }
-
-        bool isDafnyFile = false;
-        var relative = Path.GetFileName(file);
-        bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
-        var nameToShow = useRelative ? relative
-          : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
-        try {
-          var df = new DafnyFile(options, new Uri(Path.GetFullPath(file)));
-          if (options.LibraryFiles.Contains(file)) {
-            df.IsPreverified = true;
-            df.IsPrecompiled = true;
-          }
-          if (!filesSeen.Add(df.CanonicalPath)) {
-            continue; // silently ignore duplicate
-          }
-          dafnyFiles.Add(df);
-          isDafnyFile = true;
-        } catch (ArgumentException e) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: ", nameToShow, e.Message);
-          return ExitValue.PREPROCESSING_ERROR;
-        } catch (IllegalDafnyFile e) {
-          if (e.ProcessingError) {
-            return ExitValue.PREPROCESSING_ERROR;
-          }
-          // Fall through and try to handle the file as an "other file"
-        } catch (Exception e) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: {1}", nameToShow, e.Message);
-          return ExitValue.PREPROCESSING_ERROR;
-        }
-
-        var supportedExtensions = options.Backend.SupportedExtensions;
-        if (supportedExtensions.Contains(extension)) {
-          // .h files are not part of the build, they are just emitted as includes
-          // TODO: This should be delegated to the backend instead (i.e. the CppCompilerBackend)
-          if (File.Exists(file) || extension == ".h") {
-            otherFiles.Add(file);
-          } else {
-            options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {nameToShow} not found");
-            return ExitValue.PREPROCESSING_ERROR;
-          }
-        } else if (options.AllowSourceFolders && Directory.Exists(file)) {
-          options.SourceFolders.Add(file);
-        } else if (!isDafnyFile) {
-          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
-              nameToShow,
-              string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
-          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
-              nameToShow, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
-          } else {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
-              nameToShow, extension, string.Join(", ", supportedExtensions));
-          }
-          return ExitValue.PREPROCESSING_ERROR;
-        }
-      }
-
-      if (dafnyFiles.Count == 0 && options.SourceFolders.Count == 0) {
-        if (!options.AllowSourceFolders) {
-          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
-          // TODO: With the test on CliRootUris.Count above, this code is no longer reachable
-          options.Printer.ErrorWriteLine(options.OutputWriter, "*** Error: The command-line contains no .dfy files");
-          return ExitValue.PREPROCESSING_ERROR;
-        }
-
-        options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files or folders");
-        //options.Printer.ErrorWriteLine(Console.Out,
-        //  "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
-        return ExitValue.PREPROCESSING_ERROR;
-      }
-
-      return ExitValue.SUCCESS;
     }
 
     /// <summary>

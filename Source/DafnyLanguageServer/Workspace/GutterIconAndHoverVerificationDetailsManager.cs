@@ -18,7 +18,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
 (experimental, API will change)
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
-  
+
   private readonly DafnyOptions options;
   private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
   private readonly INotificationPublisher notificationPublisher;

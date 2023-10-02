@@ -30,7 +30,7 @@ static class MeasureComplexityCommand {
     $"Attempt to verify each proof n times with n random seeds, each seed derived from the previous one. {RandomSeed.Name} can be used to specify the first seed, which will otherwise be 0.") {
     ArgumentHelpName = "n"
   };
-  
+
   public static Command Create() {
     var result = new Command("measure-complexity", "(Experimental) Measure the complexity of verifying the program.");
     result.AddArgument(DafnyCommands.FilesArgument);
@@ -39,7 +39,7 @@ static class MeasureComplexityCommand {
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
-      return DafnyDriver.ContinueCliWithOptions(options);
+      return DafnyPipelineDriver.ContinueCliWithOptions(options);
     });
     return result;
   }

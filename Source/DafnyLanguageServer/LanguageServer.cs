@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer {
 ".TrimStart()) {
       ArgumentHelpName = "level"
     };
-    
+
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
       dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
 
@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer {
         "O:model_evaluator.completion=true"
       });
     }
-    
+
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);

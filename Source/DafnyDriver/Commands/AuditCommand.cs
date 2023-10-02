@@ -16,16 +16,16 @@ static class AuditCommand {
   public static Command Create() {
     var result = new Command("audit", "Report issues in the Dafny code that might limit the soundness claims of verification, emitting them as warnings or in a report document.");
     result.AddArgument(DafnyCommands.FilesArgument);
-    
+
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    
+
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
       options.AuditProgram = true;
-      return DafnyDriver.ContinueCliWithOptions(options);
+      return DafnyPipelineDriver.ContinueCliWithOptions(options);
     });
     return result;
   }

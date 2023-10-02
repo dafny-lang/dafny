@@ -30,14 +30,14 @@ static class DeadCodeCommand {
   public static Command Create() {
     var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");
     result.AddArgument(DafnyCommands.FilesArgument);
-    
+
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    
+
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
       GenerateTestsCommand.PostProcess(options, TestGenerationOptions.Modes.Block);
-      
+
       options.TestGenOptions.WarnDeadCode = true;
       var exitCode = await GenerateTestsCommand.GenerateTests(options);
       return (int)exitCode;

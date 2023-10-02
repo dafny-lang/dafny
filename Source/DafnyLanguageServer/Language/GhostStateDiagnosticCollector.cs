@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       @"
 (experimental, API will change)
 Send notifications that indicate which lines are ghost.".TrimStart());
-    
+
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly DafnyOptions options;
