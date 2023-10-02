@@ -17,4 +17,4 @@ ProofDependencyLogging.dfy(346,10): Warning: ensures clause proved using contrad
 ProofDependencyLogging.dfy(354,11): Warning: unnecessary requires clause
 ProofDependencyLogging.dfy(363,9): Warning: unnecessary assumption
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
