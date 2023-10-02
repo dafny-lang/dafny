@@ -14,28 +14,25 @@ class TranslateCommand : ICommandSpec {
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
 
-  private static readonly Argument<string> Target = new("language", @"
-cs - Translate to C#.
-go - Translate to Go.
-js - Translate to JavaScript.
-java - Translate to Java.
-py - Translate to Python.
-cpp - Translate to C++.
-
-Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
-  );
-
   public Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
-    result.AddArgument(Target);
-    result.AddArgument(ICommandSpec.FilesArgument);
+    
+    result.AddCommand(new Command("cs", "C#"));
+    result.AddCommand(new Command("go", "GoLang"));
+    result.AddCommand(new Command("js", "JavaScript"));
+    result.AddCommand(new Command("java"));
+    result.AddCommand(new Command("py", "Python"));
+    result.AddCommand(new Command("cpp", "C++. This back-end has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types."));
+    foreach (var subCommand in result.Subcommands) {
+      subCommand.AddArgument(ICommandSpec.FilesArgument);
+    }
     return result;
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Compile = false;
     var noVerify = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.CompilerName = context.ParseResult.GetValueForArgument(Target);
+    dafnyOptions.CompilerName = context.ParseResult.CommandResult.Command.Name;
     dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
   }
 }
