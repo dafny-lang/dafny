@@ -1376,8 +1376,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (options.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
-          foreach (var expr in s.ForallExpressions) {
+        if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
+          foreach (var expr in s.EffectiveEnsuresClauses) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
           if (s.Body != null) {

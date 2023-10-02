@@ -21,7 +21,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     SymbolTable? symbolTable,
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
-    IReadOnlyList<ICanVerify> verifiables,
+    IReadOnlyList<ICanVerify>? verifiables,
     LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
@@ -37,7 +37,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SymbolTable? SymbolTable { get; }
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
-  public IReadOnlyList<ICanVerify> Verifiables { get; }
+  public IReadOnlyList<ICanVerify>? Verifiables { get; }
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
   public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
 
@@ -125,7 +125,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         kv => kv.Key,
         kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
       VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
-      VerificationResults = Verifiables.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
+      VerificationResults = Verifiables == null ? previousState.VerificationResults : Verifiables.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
         k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
           l => l.Key,
           l => MergeResults(l.Select(MergeVerifiable))))
