@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code 2 "%s"
+
 
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 
@@ -112,4 +112,10 @@ method Tuples2(xs: List, ys: List)
 {
   match (xs, ys, ())
   case (Nil, Nil, ()) =>  // used to crash; now OK with unit matching
+}
+
+datatype Tree = Leaf | Node(Tree, val: int, Tree)
+
+method RegressionTest(t: Tree) {
+  var uu := var Node(nameDoesNotExist(_, xy, xright), _, xRight) := t; 2;
 }
