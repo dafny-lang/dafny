@@ -412,7 +412,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string exportSetName = null) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -463,7 +463,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies,
+        exportSetName == null ? Name : $"{Name} export {exportSetName}", exportSetName != null);
     }
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);

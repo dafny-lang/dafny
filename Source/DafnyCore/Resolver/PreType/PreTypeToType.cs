@@ -73,9 +73,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   public override void VisitField(Field field) {
-    if (field is ConstantField constField) {
-      // The type of the const might have been omitted in the program text and then inferred
-      PreType2TypeUtil.Combine(constField.Type, constField.PreType, true);
+    if (field is ConstantField ||
+        (field.EnclosingClass is IteratorDecl iteratorDecl && iteratorDecl.DecreasesFields.Contains(field))) {
+      // The type of the const might have been omitted in the program text and then inferred.
+      // Also, the automatically generated _decreases fields of an iterator have inferred types.
+      PreType2TypeUtil.Combine(field.Type, field.PreType, true);
     }
 
     base.VisitField(field);
@@ -87,8 +89,27 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
   }
 
+  protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+    if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
+      // How a DatatypeUpdateExpr desugars depends on whether or not the expression is ghost, which hasn't been determined
+      // yet. So, if there is a difference between the two, then pre-type resolution prepares two different resolved expressions.
+      // The choice between these two is done in a later phase during resolution. For now, if there are two, we visit them both.
+      // ASTVisitor arranges to visit ResolvedExpression, but we consider ResolvedCompiledExpression here.
+      if (datatypeUpdateExpr.ResolvedCompiledExpression != datatypeUpdateExpr.ResolvedExpression) {
+        VisitExpression(datatypeUpdateExpr.ResolvedCompiledExpression, context);
+      }
+    }
+    return base.VisitOneExpression(expr, context);
+  }
+
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
-    if (expr is FunctionCallExpr functionCallExpr) {
+    if (expr is LiteralExpr or ThisExpr) {
+      // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
+      // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
+      // field that gives the non-null type.
+      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      return;
+    } else if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
       functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);

@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /errorLimit:0 /print:"%t.print" /rprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --error-limit=0 --relax-definite-assignment --rprint:-
+
 
 method M() {
   var h: bv8 := 5;
