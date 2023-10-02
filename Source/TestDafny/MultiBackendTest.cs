@@ -95,7 +95,7 @@ public class MultiBackendTest {
   );
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
+    var parseResult = DafnyCli.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
 
@@ -213,7 +213,7 @@ public class MultiBackendTest {
   }
 
   public int ForEachResolver(ForEachResolverOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
+    var parseResult = DafnyCli.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
 

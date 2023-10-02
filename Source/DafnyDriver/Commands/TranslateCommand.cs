@@ -30,7 +30,7 @@ static class TranslateCommand {
     foreach (var subCommand in result.Subcommands) {
       subCommand.AddArgument(DafnyCommands.FilesArgument);
 
-      CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(subCommand, (options, context) => {
+      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, (options, context) => {
         options.Compile = false;
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;

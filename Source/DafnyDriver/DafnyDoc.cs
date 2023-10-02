@@ -45,7 +45,7 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = await DafnyDriver.GetDafnyFiles(options, out var dafnyFiles);
+    var code = DafnyDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }

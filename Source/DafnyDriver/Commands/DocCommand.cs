@@ -38,7 +38,7 @@ static class DocCommand {
   public static Command Create() {
     var result = new Command("doc", @"[Experimental] Create a description page for each module. Files are placed in the folder specified by --output (default is ./docs).");
     result.AddArgument(DafnyCommands.FilesArgument);
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DafnyDoc.DoDocumenting(options);
       return (int)exitValue;

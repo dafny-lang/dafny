@@ -45,7 +45,7 @@ public class ServerCommand {
     foreach (var option in Options) {
       result.Add(option);
     }
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
       LanguageServer.ConfigureDafnyOptionsForServer(options);
       await LanguageServer.Start(options);
       return 0;

@@ -17,7 +17,7 @@ public static class BuildCommand {
                Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = true;
       options.RunAfterCompile = false;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);

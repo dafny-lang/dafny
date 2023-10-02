@@ -50,7 +50,7 @@ Path - Generate tests targeting path-coverage.");
       result.AddOption(option);
     }
     
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
       var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
         Mode.Path => TestGenerationOptions.Modes.Path,
         Mode.Block => TestGenerationOptions.Modes.Block,
@@ -67,7 +67,7 @@ Path - Generate tests targeting path-coverage.");
   }
 
   public static async Task<ExitValue> GenerateTests(DafnyOptions options) {
-    var exitValue = await DafnyDriver.GetDafnyFiles(options, out var dafnyFiles);
+    var exitValue = DafnyDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (exitValue != ExitValue.SUCCESS) {
       return exitValue;
     }

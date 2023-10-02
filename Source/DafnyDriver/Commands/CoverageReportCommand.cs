@@ -30,7 +30,7 @@ static class CoverageReportCommand {
     result.AddArgument(OutDirArgument);
     result.AddArgument(ReportsArgument);
     
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       var coverageReporter = new CoverageReporter(options);
       coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName), 
         options.Get(OutDirArgument));

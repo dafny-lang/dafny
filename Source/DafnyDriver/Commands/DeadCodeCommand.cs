@@ -35,7 +35,7 @@ static class DeadCodeCommand {
       result.AddOption(option);
     }
     
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
       GenerateTestsCommand.PostProcess(options, TestGenerationOptions.Modes.Block);
       
       options.TestGenOptions.WarnDeadCode = true;

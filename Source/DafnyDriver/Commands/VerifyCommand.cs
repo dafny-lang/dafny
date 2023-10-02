@@ -18,7 +18,7 @@ public static class VerifyCommand {
                Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       return DafnyDriver.ContinueCliWithOptions(options);
     });
@@ -34,7 +34,7 @@ static class ResolveCommand {
     foreach (var option in DafnyCommands.ConsoleOutputOptions.Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
       return DafnyDriver.ContinueCliWithOptions(options);

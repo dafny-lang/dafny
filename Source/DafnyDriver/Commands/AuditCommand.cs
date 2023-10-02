@@ -21,7 +21,7 @@ static class AuditCommand {
       result.AddOption(option);
     }
     
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
       options.AuditProgram = true;

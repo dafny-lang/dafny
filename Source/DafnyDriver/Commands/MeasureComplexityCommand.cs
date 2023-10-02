@@ -37,7 +37,7 @@ static class MeasureComplexityCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       return DafnyDriver.ContinueCliWithOptions(options);
     });

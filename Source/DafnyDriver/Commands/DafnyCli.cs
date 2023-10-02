@@ -18,22 +18,20 @@ using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
 
-public interface ParseArgumentResult {
-}
+public interface IParseArgumentResult { }
 
-public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
-record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
+public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : IParseArgumentResult;
+record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : IParseArgumentResult;
 
-public static class CommandRegistry {
+public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
-  private static readonly HashSet<DafnyCommands> Commands = new();
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
   }
 
-  static CommandRegistry() {
+  static DafnyCli() {
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -172,7 +170,7 @@ public static class CommandRegistry {
   }
 
   public static Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments, 
-    Func<ParseArgumentResult, Task<int>> afterArgumentParsing) {
+    Func<IParseArgumentResult, Task<int>> afterArgumentParsing) {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
     };
@@ -187,12 +185,23 @@ public static class CommandRegistry {
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
         }
+        
         var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
-        if (oldOptions.Parse(arguments)) {
-          return afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
-        }
+        try {
+          if (oldOptions.Parse(arguments)) {
+            return afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
+          }
+        
+          // If requested, print version number, help, attribute help, etc. and exit.
+          if (oldOptions.ProcessInfoFlags()) {
+            return Task.FromResult((int)ExitValue.SUCCESS);
+          }
 
-        return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+        }  catch (ProverException pe) {
+          new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
+          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+        }
       }
     }
     

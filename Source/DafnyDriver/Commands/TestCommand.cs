@@ -31,7 +31,7 @@ static class TestCommand {
       result.AddOption(option);
     }
     
-    CommandRegistry.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.RunAllTests = true;
