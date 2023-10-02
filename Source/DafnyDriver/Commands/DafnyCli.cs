@@ -21,7 +21,7 @@ namespace Microsoft.Dafny;
 public interface IParseArgumentResult { }
 
 public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : IParseArgumentResult;
-record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : IParseArgumentResult;
+record ParseArgumentFailure(ExitValue ExitValue) : IParseArgumentResult;
 
 public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
@@ -183,7 +183,7 @@ public static class DafnyCli {
         if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
           dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
-          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
         
         var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
@@ -197,10 +197,10 @@ public static class DafnyCli {
             return Task.FromResult((int)ExitValue.SUCCESS);
           }
 
-          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }  catch (ProverException pe) {
           new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
-          return afterArgumentParsing(new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR));
+          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
       }
     }

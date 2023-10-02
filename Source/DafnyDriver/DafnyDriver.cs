@@ -127,27 +127,10 @@ namespace Microsoft.Dafny {
             var options = success.DafnyOptions;
             return await ContinueCliWithOptions(options);
           case ParseArgumentFailure failure:
-
-            switch (failure.ExitResult) {
-              case CommandLineArgumentsResult.PREPROCESSING_ERROR:
-                return (int)ExitValue.PREPROCESSING_ERROR;
-              case CommandLineArgumentsResult.OK_EXIT_EARLY:
-                return (int)ExitValue.SUCCESS;
-              default:
-                throw new ArgumentOutOfRangeException();
-            }
+            return (int)failure.ExitValue;
           default: throw new Exception("unreachable");
         }
       });
-    }
-
-    public enum CommandLineArgumentsResult {
-      /// Indicates that arguments were parsed successfully.
-      OK,
-      /// Indicates that arguments were not parsed successfully.
-      PREPROCESSING_ERROR,
-      /// Indicates that arguments were parsed successfully, but the program should exit without processing files.
-      OK_EXIT_EARLY
     }
 
     static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
