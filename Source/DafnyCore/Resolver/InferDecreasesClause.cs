@@ -152,7 +152,7 @@ public class InferDecreasesClause {
       if (fe.E is WildcardExpr) {
         // drop wildcards altogether
       } else {
-        Expression e = fe.E; // keep only fe.E, drop any fe.Field designation
+        Expression e = new Cloner(false, true).CloneExpr(fe.E); // keep only fe.E, drop any fe.Field designation
         Contract.Assert(e.Type != null); // should have been resolved already
         var eType = e.Type.NormalizeExpand();
         if (eType.IsRefType) {
