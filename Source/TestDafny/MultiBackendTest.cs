@@ -96,130 +96,127 @@ public class MultiBackendTest {
     int ExpectedExitCode
   );
 
-  private Task<int> ForEachCompiler(ForEachCompilerOptions options) {
-    return DafnyCli.Execute(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray(),
-      async parseArgumentResult => {
-        var dafnyOptions = ((ParsedOptions)parseArgumentResult).DafnyOptions;
+  private async Task<int> ForEachCompiler(ForEachCompilerOptions options) {
+    var pluginParseResult = CommonOptionBag.PluginOption.Parse(options.OtherArgs.ToArray());
+    var pluginArguments = pluginParseResult.GetValueForOption(CommonOptionBag.PluginOption);
+    var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
 
+    // First verify the file (and assume that verification should be successful).
+    // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
+    // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
+    // but this was never meaningful and only added maintenance burden.
+    // Here we only ensure that the exit code is 0.
 
-        // First verify the file (and assume that verification should be successful).
-        // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
-        // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
-        // but this was never meaningful and only added maintenance burden.
-        // Here we only ensure that the exit code is 0.
+    // We also use --(r|b)print to catch bugs with valid but unprintable programs.
+    string fileName = Path.GetFileName(options.TestFile!);
+    var testDir = Path.GetDirectoryName(options.TestFile!);
+    var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
+    var tmpRPrint = Path.Join(testDir, "Output", $"{fileName}.rprint");
+    var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
 
-        // We also use --(r|b)print to catch bugs with valid but unprintable programs.
-        string fileName = Path.GetFileName(options.TestFile!);
-        var testDir = Path.GetDirectoryName(options.TestFile!);
-        var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
-        var tmpRPrint = Path.Join(testDir, "Output", $"{fileName}.rprint");
-        var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
+    var dafnyArgs = new List<string>() {
+      $"verify",
+      options.TestFile!,
+      $"--print:{tmpDPrint}",
+      options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
+      $"--bprint:{tmpPrint}"
+    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
-        var dafnyArgs = new List<string>() {
-          $"verify",
-          options.TestFile!,
-          $"--print:{tmpDPrint}",
-          options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
-          $"--bprint:{tmpPrint}"
-        }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    var resolutionOptions = new List<ResolutionSetting>() {
+      new ResolutionSetting(
+        "legacy",
+        new string[] { },
+        new string[] { ".verifier.expect" },
+        0)
+    };
+    if (options.RefreshExitCode != null) {
+      resolutionOptions.Add(
+        new ResolutionSetting(
+          "refresh",
+          new string[] { "--type-system-refresh" },
+          new string[] { ".refresh.expect", ".verifier.expect" },
+          (int)options.RefreshExitCode)
+      );
+    }
 
-        var resolutionOptions = new List<ResolutionSetting>() {
-          new ResolutionSetting(
-            "legacy",
-            new string[] { },
-            new string[] { ".verifier.expect" },
-            0)
-        };
-        if (options.RefreshExitCode != null) {
-          resolutionOptions.Add(
-            new ResolutionSetting(
-              "refresh",
-              new string[] { "--type-system-refresh" },
-              new string[] { ".refresh.expect", ".verifier.expect" },
-              (int)options.RefreshExitCode)
-          );
+    foreach (var resolutionOption in resolutionOptions) {
+      await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
+
+      var (exitCode, outputString, error) =
+        RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+
+      // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
+      // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
+      var expectedOutput = "";
+      foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
+        var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
+        if (File.Exists(expectFileForVerifier)) {
+          expectedOutput = File.ReadAllText(expectFileForVerifier);
+          break;
+        }
+      }
+
+      // Chop off the "Dafny program verifier finished with..." trailer
+      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+      if (diffMessage != null) {
+        await output.WriteLineAsync(diffMessage);
+        return 1;
+      }
+
+      // We expect verification to return exit code 0.
+      if (exitCode != resolutionOption.ExpectedExitCode) {
+        await output.WriteLineAsync(
+          $"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
+        await output.WriteLineAsync(outputString);
+        await output.WriteLineAsync("Error:");
+        await output.WriteLineAsync(error);
+        return exitCode != 0 ? exitCode : 1;
+      }
+    }
+
+    // Then execute the program for each available compiler.
+
+    string expectFile = options.TestFile + ".expect";
+    var commonExpectedOutput = File.ReadAllText(expectFile);
+
+    var success = true;
+    foreach (var plugin in plugins) {
+      foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
+        if (!compiler.IsStable) {
+          // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
+          // Such as empty constructors with ensures clauses, generated from iterators
+          continue;
         }
 
-        foreach (var resolutionOption in resolutionOptions) {
-          await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
-
-          var (exitCode, outputString, error) =
-            RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
-
-          // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
-          // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
-          var expectedOutput = "";
-          foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
-            var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
-            if (File.Exists(expectFileForVerifier)) {
-              expectedOutput = File.ReadAllText(expectFileForVerifier);
-              break;
-            }
-          }
-
-          // Chop off the "Dafny program verifier finished with..." trailer
-          var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-          var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
-          var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
-          if (diffMessage != null) {
-            await output.WriteLineAsync(diffMessage);
-            return 1;
-          }
-
-          // We expect verification to return exit code 0.
-          if (exitCode != resolutionOption.ExpectedExitCode) {
-            await output.WriteLineAsync(
-              $"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
-            await output.WriteLineAsync(outputString);
-            await output.WriteLineAsync("Error:");
-            await output.WriteLineAsync(error);
-            return exitCode != 0 ? exitCode : 1;
-          }
+        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+        var expectedOutput = commonExpectedOutput;
+        string? checkFile = null;
+        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+        if (File.Exists(expectFileForBackend)) {
+          expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
         }
 
-        // Then execute the program for each available compiler.
-
-        string expectFile = options.TestFile + ".expect";
-        var commonExpectedOutput = File.ReadAllText(expectFile);
-
-        var success = true;
-        foreach (var plugin in dafnyOptions.Plugins) {
-          foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
-            if (!compiler.IsStable) {
-              // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
-              // Such as empty constructors with ensures clauses, generated from iterators
-              continue;
-            }
-
-            // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-            var expectedOutput = commonExpectedOutput;
-            string? checkFile = null;
-            var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
-            if (File.Exists(expectFileForBackend)) {
-              expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
-            }
-
-            var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
-            if (File.Exists(checkFileForBackend)) {
-              checkFile = checkFileForBackend;
-            }
-
-            var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
-            if (result != 0) {
-              success = false;
-            }
-          }
+        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+        if (File.Exists(checkFileForBackend)) {
+          checkFile = checkFileForBackend;
         }
 
-        if (success) {
-          await output.WriteLineAsync(
-            "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
-          return 0;
+        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+        if (result != 0) {
+          success = false;
         }
+      }
+    }
 
-        return -1;
-      });
+    if (success) {
+      await output.WriteLineAsync(
+        "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
+      return 0;
+    }
+
+    return -1;
   }
 
   public int ForEachResolver(ForEachResolverOptions options) {

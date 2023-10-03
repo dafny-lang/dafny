@@ -91,13 +91,20 @@ namespace IntegrationTests {
           "%dafny", (args, config) =>
             DafnyCommand(AddExtraArgs(DafnyPipelineDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%testDafnyForEachCompiler", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(args), config,
-              InvokeMainMethodsDirectly)
+          "%testDafnyForEachCompiler", (args, config) => {
+            var fullArguments = new[] { "for-each-compiler" }.Concat(args);
+            return InvokeMainMethodsDirectly
+              ? new MultiBackendLitCommand(fullArguments, config)
+              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config,
+                false);
+          }
         }, {
-          "%testDafnyForEachResolver", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-resolver" }.Concat(args), config,
-              InvokeMainMethodsDirectly)
+          "%testDafnyForEachResolver", (args, config) => {
+            var fullArguments = new[] { "for-each-resolver" }.Concat(args);
+            return InvokeMainMethodsDirectly
+              ? new MultiBackendLitCommand(fullArguments, config)
+              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config, false);
+          }
         }, {
           "%server", (args, config) =>
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
@@ -535,7 +542,7 @@ namespace IntegrationTests {
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
+      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments);
       return (exitCode, "", "");
     }
   }

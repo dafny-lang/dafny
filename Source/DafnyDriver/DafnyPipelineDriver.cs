@@ -100,6 +100,12 @@ namespace Microsoft.Dafny {
     public static async Task<int> ContinueCliWithOptions(DafnyOptions options) {
       options.RunningBoogieFromCommandLine = true;
 
+      var backend = GetBackend(options);
+      if (backend == null) {
+        return (int)ExitValue.PREPROCESSING_ERROR;
+      }
+      options.Backend = backend;
+
       var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
       if (getFilesExitCode != ExitValue.SUCCESS) {
         return (int)getFilesExitCode;
@@ -111,20 +117,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var nonOutOptions = options;
-      var compilers = options.Plugins.SelectMany(p => p.GetCompilers(nonOutOptions)).ToList();
-      var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
-      if (compiler == null) {
-        if (nonOutOptions.CompilerName != null) {
-          var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(options.ErrorWriter, $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
-          return (int)ExitValue.PREPROCESSING_ERROR;
-        }
-
-        options.Backend = new NoExecutableBackend();
-      } else {
-        options.Backend = compiler;
-      }
 
       if (options.ExtractCounterexample && options.ModelViewFile == null) {
         options.Printer.ErrorWriteLine(options.OutputWriter,
@@ -153,6 +145,22 @@ namespace Microsoft.Dafny {
       }
 
       return (int)exitValue;
+    }
+
+    private static IExecutableBackend GetBackend(DafnyOptions options) {
+      var backends = options.Plugins.SelectMany(p => p.GetCompilers(options)).ToList();
+      var backend = backends.LastOrDefault(c => c.TargetId == options.CompilerName);
+      if (backend == null) {
+        if (options.CompilerName != null) {
+          var known = String.Join(", ", backends.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
+          options.Printer.ErrorWriteLine(options.ErrorWriter,
+            $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
+        } else {
+          backend = new NoExecutableBackend();
+        }
+      }
+
+      return backend;
     }
 
     private async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,

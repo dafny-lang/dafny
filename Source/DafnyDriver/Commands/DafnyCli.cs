@@ -19,13 +19,13 @@ using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
 
-public interface IParseArgumentResult { }
+public interface ILegacyParseArguments { }
 
 // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
 public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
 
-public record ParsedOptions(DafnyOptions DafnyOptions) : IParseArgumentResult;
-record ExitImmediately(ExitValue ExitValue) : IParseArgumentResult;
+public record ParsedOptions(DafnyOptions DafnyOptions) : ILegacyParseArguments;
+record ExitImmediately(ExitValue ExitValue) : ILegacyParseArguments;
 
 public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
@@ -205,15 +205,14 @@ public static class DafnyCli {
     command.SetHandler(Handle);
   }
 
-  public static async Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments,
-    Func<IParseArgumentResult, Task<int>> afterArgumentParsing) {
+  public static async Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments, Func<ILegacyParseArguments, Task<int>> onLegacyArguments) {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
     };
 
     var legacyResult = TryLegacyArgumentParser(arguments, dafnyOptions);
     if (legacyResult != null) {
-      return await afterArgumentParsing(legacyResult);
+      return await onLegacyArguments(legacyResult);
     }
 
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
@@ -231,7 +230,7 @@ public static class DafnyCli {
     return await Parser.InvokeAsync(arguments, console);
   }
 
-  private static IParseArgumentResult TryLegacyArgumentParser(string[] arguments, DafnyOptions dafnyOptions) {
+  private static ILegacyParseArguments TryLegacyArgumentParser(string[] arguments, DafnyOptions dafnyOptions) {
     if (arguments.Length == 0) {
       return null;
     }

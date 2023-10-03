@@ -390,13 +390,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
-    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
+    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
     public List<Plugin> AdditionalPlugins = new();
     public IList<string> AdditionalPluginArguments = new List<string>();
 
-    IList<Plugin> ComputePlugins() {
-      var result = new List<Plugin>(DefaultPlugins.Concat(AdditionalPlugins));
-      foreach (var pluginAndArgument in AdditionalPluginArguments) {
+    public static IList<Plugin> ComputePlugins(List<Plugin> additionalPlugins, IList<string> allArguments) {
+      var result = new List<Plugin>(DefaultPlugins.Concat(additionalPlugins));
+      foreach (var pluginAndArgument in allArguments) {
         try {
           var pluginArray = pluginAndArgument.Split(',');
           var pluginPath = pluginArray[0];
