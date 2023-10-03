@@ -351,7 +351,7 @@ method Bar() { assert false; }";
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken, true);
     Assert.Single(preSaveDiagnostics);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
     var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -509,19 +509,6 @@ method Bar() { assert true; }";
     Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
-  private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var compilationAfterParsing = await Projects.GetLastDocumentAsync(documentId);
-    var lastDocument = (CompilationAfterResolution)compilationAfterParsing;
-    var uri = documentId.Uri.ToUri();
-    var symbols = lastDocument!.Verifiables.Where(v => v.Tok.Uri == uri).ToHashSet();
-    FileVerificationStatus beforeChangeStatus;
-    do {
-      beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
-             beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
-
-    return beforeChangeStatus;
-  }
 
   [Fact]
   public async Task StatusesOfDifferentImplementationUnderOneNamedVerifiableAreCorrectlyMerged() {

@@ -1,7 +1,10 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   /// <summary>
@@ -9,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   /// </summary>
   /// <typeparam name="TNotification">The type of the notifications sent by the language server.</typeparam>
   public class TestNotificationReceiver<TNotification> {
-    private readonly SemaphoreSlim availableNotifications = new(0);
+    private SemaphoreSlim availableNotifications = new(0);
     private readonly ConcurrentQueue<TNotification> notifications = new();
     private readonly List<TNotification> notificationHistory = new();
 
@@ -25,6 +28,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
 
     public void ClearHistory() {
       notificationHistory.Clear();
+    }
+
+    public TNotification GetLast(Func<TNotification, bool> predicate) {
+      var result = History.LastOrDefault(predicate);
+      ClearQueue();
+      return result;
+    }
+
+    public void ClearQueue() {
+      notifications.Clear();
+      availableNotifications = new(0);
     }
 
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
