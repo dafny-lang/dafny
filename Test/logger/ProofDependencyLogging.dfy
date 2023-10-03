@@ -429,3 +429,8 @@ method CalcStatementWithSideConditions(x: int) {
     (x*2) / 4;
   }
 }
+
+method DontWarnAboutVacuousAssertFalse(x: int) {
+  assume x == x + 1;
+  assert false;
+}
