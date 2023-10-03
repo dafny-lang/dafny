@@ -92,7 +92,8 @@ public class ProofDependencyWarnings {
           is MatchIsComplete
           or AlternativeIsComplete
           or ValidInRecursion
-          or TraitDecreases) {
+          or TraitDecreases
+          or WitnessCheck) {
         return false;
       }
 
