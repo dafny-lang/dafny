@@ -45,95 +45,9 @@ namespace Microsoft.Dafny {
     public Command CurrentCommand { get; set; }
 
     static DafnyOptions() {
-      RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
-cs (default) - Compile to .NET via C#.
-go - Compile to Go.
-js - Compile to JavaScript.
-java - Compile to Java.
-py - Compile to Python.
-cpp - Compile to C++.
-dfy - Compile to Dafny.
-
-Note that the C++ backend has various limitations (see
-Docs/Compilation/Cpp.md). This includes lack of support for
-BigIntegers (aka int), most higher order functions, and advanced
-features like traits or co-inductive types.".TrimStart(), "cs");
-
-      RegisterLegacyUi(CommonOptionBag.OptimizeErasableDatatypeWrapper, ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
-0 - Include all non-ghost datatype constructors in the compiled code
-1 (default) - In the compiled target code, transform any non-extern
-    datatype with a single non-ghost constructor that has a single
-    non-ghost parameter into just that parameter. For example, the type
-        datatype Record = Record(x: int)
-    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
-
-      RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
-      RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
-0 - The char type represents any UTF-16 code unit.
-1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
-      RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
-0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
-      RegisterLegacyUi(CommonOptionBag.GeneralTraits, ParseBoolean, "Language feature selection", "generalTraits", @"
-0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
-1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(), false);
-      RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
-0 (default) - Don't print type-inference debug information.
-1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
-      RegisterLegacyUi(CommonOptionBag.NewTypeInferenceDebug, ParseBoolean, "Language feature selection", "ntitrace", @"
-0 (default) - Don't print debug information for the new type system.
-1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
-      RegisterLegacyUi(CommonOptionBag.PluginOption, ParseStringElement, "Plugins", defaultValue: new List<string>());
-      RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
-
-      RegisterLegacyUi(CommonOptionBag.Libraries, ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
-      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
-      RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
-
-      RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
-0 (default) - Don't show source code snippets for Dafny messages.
-1 - Show a source code snippet for each Dafny message.".TrimStart());
-
-      RegisterLegacyUi(Microsoft.Dafny.Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
-Everything (default) - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
-NoIncludes - disable printing of {:verify false} methods
-    incorporated via the include mechanism, as well as datatypes and
-    fields included from other files.
-NoGhost - disable printing of functions, ghost methods, and proof
-    statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(),
-        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
-        defaultValue: PrintModes.Everything);
-
-      RegisterLegacyUi(CommonOptionBag.DefaultFunctionOpacity, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
-
-      void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-        if (ps.ConfirmArgumentCount(1)) {
-          if (ps.args[ps.i].Equals("Everything")) {
-            options.Set(option, PrintModes.Everything);
-          } else if (ps.args[ps.i].Equals("NoIncludes")) {
-            options.Set(option, PrintModes.NoIncludes);
-          } else if (ps.args[ps.i].Equals("NoGhost")) {
-            options.Set(option, PrintModes.NoGhost);
-          } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
-            // but it is now used by the LibraryBackend when building .doo files as well. 
-            options.Set(option, PrintModes.Serialization);
-          } else {
-            InvalidArgumentError(option.Name, ps);
-          }
-        }
-      }
-
-      RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
-
-      RegisterLegacyUi(CommonOptionBag.ReadsClausesOnMethods, ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
     }
 
-    private static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+    public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         if (ps.args[ps.i].Equals("transparent")) {
           options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Transparent);
@@ -840,7 +754,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    public static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
