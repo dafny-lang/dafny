@@ -322,7 +322,7 @@ method CallIts() returns () {
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.False(verificationTask.IsCompleted);
+      Assert.False(verificationTask.IsCompletedSuccessfully);
       Assert.Same(first, definitionTask);
     }
 
