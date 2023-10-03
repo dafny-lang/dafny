@@ -18,7 +18,7 @@ static class RunCommand {
   static RunCommand() {
     UserProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
     UserProgramArguments.SetDefaultValue(new List<string>());
-
+    
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
@@ -39,14 +39,14 @@ static class RunCommand {
 
   public static Command Create() {
     var result = new Command("run", "Run the program.");
-    result.AddArgument(DafnyCli.FileArgument);
+    result.AddArgument(DafnyCommands.FileArgument);
     result.AddArgument(UserProgramArguments);
     foreach (var option in Options) {
-
+      result.AddOption(option);
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
-      var inputFile = context.ParseResult.GetValueForArgument(DafnyCli.FileArgument);
+      var inputFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
       options.Compile = true;
       options.RunAfterCompile = true;

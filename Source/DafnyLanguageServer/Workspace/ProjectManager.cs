@@ -196,7 +196,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private static DafnyOptions DetermineProjectOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
     var result = new DafnyOptions(serverOptions);
 
-    foreach (var option in serverOptions.Command.Options) {
+    foreach (var option in LanguageServer.Options) {
       var hasProjectFileValue = projectOptions.TryGetValue(option, TextWriter.Null, out var projectFileValue);
       if (hasProjectFileValue) {
         result.Options.OptionArguments[option] = projectFileValue;

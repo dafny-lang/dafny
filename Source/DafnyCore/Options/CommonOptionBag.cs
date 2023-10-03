@@ -81,7 +81,7 @@ The value may be a comma-separated list of files and folders.".TrimStart());
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -271,7 +271,7 @@ Change the default opacity of functions.
 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => { options.QuantifierSyntax = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
+    DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
       options.FormatCheck = value;
@@ -340,7 +340,7 @@ Change the default opacity of functions.
       Check,
       Libraries,
       Output,
-      Plugin,
+      PluginOption,
       Prelude,
       Target,
       Verbose,

@@ -9,12 +9,29 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
   public class LanguageServer {
-
+    
+    public static IEnumerable<Option> Options => new Option[] {
+        BoogieOptionBag.NoVerify,
+        ProjectManager.Verification,
+        GhostStateDiagnosticCollector.GhostIndicators,
+        GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
+        LanguageServer.VerifySnapshots,
+        DafnyLangSymbolResolver.UseCaching,
+        ProjectManager.UpdateThrottling,
+        DeveloperOptionBag.BoogiePrint,
+        CommonOptionBag.EnforceDeterminism,
+        CommonOptionBag.UseJavadocLikeDocstringRewriterOption
+      }.Concat(DafnyCommands.VerificationOptions).
+      Concat(DafnyCommands.ResolverOptions);
+    
     public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
 0 - do not use any verification result caching (default)

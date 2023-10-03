@@ -30,16 +30,13 @@ record ParseArgumentFailure(ExitValue ExitValue) : IParseArgumentResult;
 public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-
-
-
+  
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
 
   public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
     string[] args) {
-
     // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
     // outputWriter = new UndisposableTextWriter(outputWriter);
     // errorWriter = new UndisposableTextWriter(errorWriter);
@@ -47,13 +44,14 @@ public static class DafnyCli {
     // errorWriter = TextWriter.Synchronized(errorWriter);
 
 #pragma warning disable VSTHRD002
-    return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
+    var exitCode = Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
+    return exitCode;
 #pragma warning restore VSTHRD002
   }
 
   private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
     Contract.Requires(cce.NonNullElements(args));
-    return DafnyCli.Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
+    return Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
 
       switch (parseArgumentResult) {
         case ParseArgumentSuccess success:
@@ -90,8 +88,6 @@ public static class DafnyCli {
     // and therefore which have to be saved to safely support separate verification/compilation.
     DooFile.CheckOptions(AllOptions);
 
-    FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
-
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
     foreach (var method in typeof(ParseResult).GetMethods()) {
@@ -100,9 +96,11 @@ public static class DafnyCli {
       }
     }
     Debug.Assert(GetValueForOptionMethod != null);
+    
+    var builder = new CommandLineBuilder(RootCommand).UseDefaults();
+    builder = AddDeveloperHelp(RootCommand, builder);
+    DafnyCli.Parser = builder.Build();
   }
-
-  public static Argument<FileInfo> FileArgument { get; }
 
   class WritersConsole : IConsole {
     public TextReader InputWriter { get; }
@@ -135,16 +133,15 @@ public static class DafnyCli {
       dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
       var options = new Options(optionValues, new Dictionary<Argument, object>());
       dafnyOptions.Options = options;
-      dafnyOptions.Command = command;
 
-      var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
+      var singleFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       if (singleFile != null) {
         if (!await ProcessFile(dafnyOptions, singleFile)) {
           context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
           return;
         }
       }
-      var files = context.ParseResult.GetValueForArgument(Dafny.DafnyCommands.FilesArgument);
+      var files = context.ParseResult.GetValueForArgument(DafnyCommands.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
           if (!await ProcessFile(dafnyOptions, file)) {
@@ -208,7 +205,7 @@ public static class DafnyCli {
     command.SetHandler(Handle);
   }
 
-  public static Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments,
+  public static async Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments,
     Func<IParseArgumentResult, Task<int>> afterArgumentParsing) {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
@@ -222,47 +219,46 @@ public static class DafnyCli {
         if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
           dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
-          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
+          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
 
         var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
         try {
           if (oldOptions.Parse(arguments)) {
-            return afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
+            // If requested, print version number, help, attribute help, etc. and exit.
+            if (oldOptions.ProcessInfoFlags()) {
+              return (int)ExitValue.SUCCESS;
+            }
+            return await afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
           }
 
-          // If requested, print version number, help, attribute help, etc. and exit.
-          if (oldOptions.ProcessInfoFlags()) {
-            return Task.FromResult((int)ExitValue.SUCCESS);
-          }
 
-          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
+          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         } catch (ProverException pe) {
           new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
-          return afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
+          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
         }
       }
     }
 
-    // bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
-    // foreach (var option in AllOptions) {
-    //   if (!allowHidden) {
-    //     option.IsHidden = false;
-    //   }
-    //   if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
-    //     option.AllowMultipleArgumentsPerToken = true;
-    //   }
-    // }
-    //
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    foreach (var option in AllOptions) {
+      if (!allowHidden) {
+        option.IsHidden = false;
+      }
+      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+        option.AllowMultipleArgumentsPerToken = true;
+      }
+    }
 
     dafnyOptions.UsingNewCli = true;
-    var builder = new CommandLineBuilder(RootCommand).UseDefaults();
-    builder = AddDeveloperHelp(RootCommand, builder);
     var console = new WritersConsole(inputReader, outputWriter, errorWriter);
-    return builder.Build().InvokeAsync(arguments, console);
+    var invokeAsync = await Parser.InvokeAsync(arguments, console);
+    return invokeAsync;
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;
+  private static readonly System.CommandLine.Parsing.Parser Parser;
 
   // This bit of reflective trickery is necessary because
   // ParseResult.GetValueForOption<T>(Option<T>) will convert tokens to T as necessary,

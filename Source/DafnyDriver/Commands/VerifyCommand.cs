@@ -11,11 +11,7 @@ public static class VerifyCommand {
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
     result.AddArgument(DafnyCommands.FilesArgument);
-    foreach (var option in new Option[] {
-                 BoogieOptionBag.BoogieFilter,
-               }.Concat(DafnyCommands.VerificationOptions).
-               Concat(DafnyCommands.ConsoleOutputOptions).
-               Concat(DafnyCommands.ResolverOptions)) {
+    foreach (var option in Options) {
       result.AddOption(option);
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
@@ -24,6 +20,13 @@ public static class VerifyCommand {
     });
     return result;
   }
+
+  private static IReadOnlyList<Option> Options =>
+    new Option[] {
+        BoogieOptionBag.BoogieFilter,
+      }.Concat(DafnyCommands.VerificationOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 }
 
 static class ResolveCommand {

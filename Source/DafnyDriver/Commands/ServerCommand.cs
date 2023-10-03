@@ -26,23 +26,9 @@ public class ServerCommand {
     );
   }
 
-  public static IEnumerable<Option> Options => new Option[] {
-    BoogieOptionBag.NoVerify,
-    ProjectManager.Verification,
-    GhostStateDiagnosticCollector.GhostIndicators,
-    GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
-    LanguageServer.VerifySnapshots,
-    DafnyLangSymbolResolver.UseCaching,
-    ProjectManager.UpdateThrottling,
-    DeveloperOptionBag.BoogiePrint,
-    CommonOptionBag.EnforceDeterminism,
-    CommonOptionBag.UseJavadocLikeDocstringRewriterOption
-  }.Concat(DafnyCommands.VerificationOptions).
-    Concat(DafnyCommands.ResolverOptions);
-
   private static Command Create() {
     var result = new Command("server", "Start the Dafny language server");
-    foreach (var option in Options) {
+    foreach (var option in LanguageServer.Options) {
       result.Add(option);
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {

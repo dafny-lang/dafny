@@ -83,7 +83,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.NewTypeInferenceDebug, ParseBoolean, "Language feature selection", "ntitrace", @"
 0 (default) - Don't print debug information for the new type system.
 1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
-      RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
+      RegisterLegacyUi(CommonOptionBag.PluginOption, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
       RegisterLegacyUi(CommonOptionBag.Libraries, ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
@@ -323,7 +323,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
-    public Command Command = null;
     public bool FormatCheck = false;
 
     public string CompilerName;

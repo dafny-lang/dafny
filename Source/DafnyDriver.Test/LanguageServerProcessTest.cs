@@ -23,7 +23,7 @@ using Xunit;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class StandaloneLanguageServerBinaryTest {
+  public class LanguageServerProcessTest {
 
     [Fact]
     public async Task InitialisationWorks() {
@@ -39,14 +39,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     private Process StartLanguageServer() {
-      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer.dll");
+      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyDriver.dll");
 
       var processInfo = new ProcessStartInfo("dotnet") {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
         UseShellExecute = false,
-        ArgumentList = { serverBinary }
+        ArgumentList = { serverBinary, "server" }
       };
 
       return Process.Start(processInfo)!;

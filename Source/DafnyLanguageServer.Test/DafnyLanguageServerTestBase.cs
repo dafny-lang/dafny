@@ -113,12 +113,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in dafnyOptions.Command.Options) {
+      foreach (var serverOption in LanguageServer.Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in dafnyOptions.Command.Options) {
+      foreach (var option in LanguageServer.Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
 

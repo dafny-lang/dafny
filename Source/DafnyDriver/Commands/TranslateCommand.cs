@@ -24,18 +24,20 @@ static class TranslateCommand {
     result.AddCommand(new Command("py", "Python"));
     result.AddCommand(new Command("cpp", "C++. This back-end has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types."));
 
-    foreach (var option in Options) {
-      result.AddGlobalOption(option);
-    }
     foreach (var subCommand in result.Subcommands) {
       subCommand.AddArgument(DafnyCommands.FilesArgument);
 
-      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, (options, context) => {
+      foreach (var option in Options) {
+        subCommand.AddGlobalOption(option);
+      }
+      
+      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
         options.Compile = false;
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;
         options.SpillTargetCode = noVerify ? 3U : 2U;
-        return DafnyPipelineDriver.ContinueCliWithOptions(options);
+        var continueCliWithOptions = await DafnyPipelineDriver.ContinueCliWithOptions(options);
+        return continueCliWithOptions;
       });
     }
 
