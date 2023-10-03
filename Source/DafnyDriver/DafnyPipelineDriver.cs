@@ -106,17 +106,16 @@ namespace Microsoft.Dafny {
       }
       options.Backend = backend;
 
-      var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
-      if (getFilesExitCode != ExitValue.SUCCESS) {
-        return (int)getFilesExitCode;
-      }
-
       if (options.DafnyProject != null) {
         foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
           options.CliRootSourceUris.Add(uri);
         }
       }
-
+      
+      var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
+      if (getFilesExitCode != ExitValue.SUCCESS) {
+        return (int)getFilesExitCode;
+      }
 
       if (options.ExtractCounterexample && options.ModelViewFile == null) {
         options.Printer.ErrorWriteLine(options.OutputWriter,

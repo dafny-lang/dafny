@@ -124,13 +124,13 @@ public static class DafnyCli {
   public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
   public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
 
-    var optionValues = new Dictionary<Option, object>();
     async Task Handle(InvocationContext context) {
       WritersConsole console = (WritersConsole)context.Console;
       var dafnyOptions = new DafnyOptions(console.InputWriter, console.OutWriter, console.ErrWriter);
       dafnyOptions.Environment =
         "Command-line arguments: " + string.Join(" ", context.ParseResult.Tokens.Select(t => t.Value));
       dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
+      var optionValues = new Dictionary<Option, object>();
       var options = new Options(optionValues, new Dictionary<Argument, object>());
       dafnyOptions.Options = options;
 
@@ -205,7 +205,11 @@ public static class DafnyCli {
     command.SetHandler(Handle);
   }
 
-  public static async Task<int> Execute(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments, Func<ILegacyParseArguments, Task<int>> onLegacyArguments) {
+  private static async Task<int> Execute(TextWriter outputWriter, 
+    TextWriter errorWriter, 
+    TextReader inputReader, string[] arguments, 
+    Func<ILegacyParseArguments, Task<int>> onLegacyArguments) 
+  {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
     };

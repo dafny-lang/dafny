@@ -475,7 +475,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return ParseBoogieOption(name, ps);
     }
 
-    protected bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
+    private bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
       return base.ParseOption(name, ps);
     }
 
