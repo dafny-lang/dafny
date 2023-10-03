@@ -117,8 +117,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     private static async Task<Process> StartLanguageServerRunnerProcess() {
-      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
-      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));
+      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyDriver.dll");
+      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(serverBinary.Replace(@"\", @"\\"));
 
       var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
@@ -167,11 +167,12 @@ using System.Threading.Tasks;
 
 public class ShortLivedProcessStarter {{
   public static async Task<int> Main(string[] args) {{
-    var processInfo = new ProcessStartInfo(""{filePathToStart}"") {{
+    var processInfo = new ProcessStartInfo(""dotnet"") {{
       // Prevents keeping stdio open after the outer process closes. 
       RedirectStandardOutput = true,
       RedirectStandardError = true,
-      UseShellExecute = false
+      UseShellExecute = false,
+      ArgumentList = {{ ""{filePathToStart}"", ""server"" }}
     }};
     using var process = Process.Start(processInfo)!;
     await Console.Out.WriteLineAsync(process.Id.ToString());

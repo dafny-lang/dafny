@@ -44,7 +44,7 @@ namespace IntegrationTests {
       // Set this to true in order to debug the execution of commands like %dafny.
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
-      InvokeMainMethodsDirectly = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_IN_PROCESS") == "true";
+      InvokeMainMethodsDirectly = false; //Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_IN_PROCESS") == "true";
 
       // Allow extra arguments to Dafny subprocesses. This can be especially
       // useful for capturing prover logs.
