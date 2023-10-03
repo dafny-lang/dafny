@@ -205,11 +205,10 @@ public static class DafnyCli {
     command.SetHandler(Handle);
   }
 
-  private static async Task<int> Execute(TextWriter outputWriter, 
-    TextWriter errorWriter, 
-    TextReader inputReader, string[] arguments, 
-    Func<ILegacyParseArguments, Task<int>> onLegacyArguments) 
-  {
+  private static async Task<int> Execute(TextWriter outputWriter,
+    TextWriter errorWriter,
+    TextReader inputReader, string[] arguments,
+    Func<ILegacyParseArguments, Task<int>> onLegacyArguments) {
     var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
     };

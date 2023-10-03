@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
           options.CliRootSourceUris.Add(uri);
         }
       }
-      
+
       var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
       if (getFilesExitCode != ExitValue.SUCCESS) {
         return (int)getFilesExitCode;
