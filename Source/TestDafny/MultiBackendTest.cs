@@ -100,7 +100,7 @@ public class MultiBackendTest {
     return DafnyCli.Execute(TextWriter.Null, TextWriter.Null, TextReader.Null,
       new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray(),
       async parseArgumentResult => {
-        var dafnyOptions = ((ParseArgumentSuccess)parseArgumentResult).DafnyOptions;
+        var dafnyOptions = ((ParsedOptions)parseArgumentResult).DafnyOptions;
 
 
         // First verify the file (and assume that verification should be successful).

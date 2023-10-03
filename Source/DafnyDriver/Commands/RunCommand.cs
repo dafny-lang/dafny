@@ -18,7 +18,7 @@ static class RunCommand {
   static RunCommand() {
     UserProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
     UserProgramArguments.SetDefaultValue(new List<string>());
-    
+
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));

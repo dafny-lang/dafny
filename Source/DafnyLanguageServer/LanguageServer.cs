@@ -17,7 +17,7 @@ using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.Langu
 
 namespace Microsoft.Dafny.LanguageServer {
   public class LanguageServer {
-    
+
     public static IEnumerable<Option> Options => new Option[] {
         BoogieOptionBag.NoVerify,
         ProjectManager.Verification,
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer {
         CommonOptionBag.UseJavadocLikeDocstringRewriterOption
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ResolverOptions);
-    
+
     public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
 (experimental)
 0 - do not use any verification result caching (default)

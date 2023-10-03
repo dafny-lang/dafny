@@ -24,13 +24,13 @@ public interface IParseArgumentResult { }
 // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
 public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
 
-public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : IParseArgumentResult;
-record ParseArgumentFailure(ExitValue ExitValue) : IParseArgumentResult;
+public record ParsedOptions(DafnyOptions DafnyOptions) : IParseArgumentResult;
+record ExitImmediately(ExitValue ExitValue) : IParseArgumentResult;
 
 public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-  
+
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
@@ -54,10 +54,10 @@ public static class DafnyCli {
     return Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
 
       switch (parseArgumentResult) {
-        case ParseArgumentSuccess success:
+        case ParsedOptions success:
           var options = success.DafnyOptions;
           return await DafnyPipelineDriver.ContinueCliWithOptions(options);
-        case ParseArgumentFailure failure:
+        case ExitImmediately failure:
           return (int)failure.ExitValue;
         default: throw new Exception("unreachable");
       }
@@ -96,7 +96,7 @@ public static class DafnyCli {
       }
     }
     Debug.Assert(GetValueForOptionMethod != null);
-    
+
     var builder = new CommandLineBuilder(RootCommand).UseDefaults();
     builder = AddDeveloperHelp(RootCommand, builder);
     DafnyCli.Parser = builder.Build();
@@ -211,34 +211,9 @@ public static class DafnyCli {
       Environment = "Command-line arguments: " + string.Join(" ", arguments)
     };
 
-    if (arguments.Length != 0) {
-      var first = arguments[0];
-      var keywordForNewMode = RootCommand.Subcommands.Select(c => c.Name).
-        Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
-      if (!keywordForNewMode.Contains(first)) {
-        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
-          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
-            "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
-          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
-        }
-
-        var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
-        try {
-          if (oldOptions.Parse(arguments)) {
-            // If requested, print version number, help, attribute help, etc. and exit.
-            if (oldOptions.ProcessInfoFlags()) {
-              return (int)ExitValue.SUCCESS;
-            }
-            return await afterArgumentParsing(new ParseArgumentSuccess(oldOptions));
-          }
-
-
-          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
-        } catch (ProverException pe) {
-          new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
-          return await afterArgumentParsing(new ParseArgumentFailure(ExitValue.PREPROCESSING_ERROR));
-        }
-      }
+    var legacyResult = TryLegacyArgumentParser(arguments, dafnyOptions);
+    if (legacyResult != null) {
+      return await afterArgumentParsing(legacyResult);
     }
 
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
@@ -253,8 +228,46 @@ public static class DafnyCli {
 
     dafnyOptions.UsingNewCli = true;
     var console = new WritersConsole(inputReader, outputWriter, errorWriter);
-    var invokeAsync = await Parser.InvokeAsync(arguments, console);
-    return invokeAsync;
+    return await Parser.InvokeAsync(arguments, console);
+  }
+
+  private static IParseArgumentResult TryLegacyArgumentParser(string[] arguments, DafnyOptions dafnyOptions) {
+    if (arguments.Length == 0) {
+      return null;
+    }
+
+    var first = arguments[0];
+    var keywordForNewMode = RootCommand.Subcommands.Select(c => c.Name).Union(new[]
+      { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
+    if (!keywordForNewMode.Contains(first)) {
+      if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) &&
+          first.IndexOf('.') == -1) {
+        dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+          "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension",
+          first);
+        return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
+      } else {
+        var oldOptions = new DafnyOptions(dafnyOptions.Input, dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+        try {
+          if (oldOptions.Parse(arguments)) {
+            // If requested, print version number, help, attribute help, etc. and exit.
+            if (oldOptions.ProcessInfoFlags()) {
+              return new ExitImmediately(ExitValue.SUCCESS);
+            }
+
+            return new ParsedOptions(oldOptions);
+          }
+
+          return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
+        } catch (ProverException pe) {
+          new DafnyConsolePrinter(dafnyOptions).ErrorWriteLine(dafnyOptions.OutputWriter,
+            "*** ProverException: {0}", pe.Message);
+          return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
+        }
+      }
+    }
+
+    return null;
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;

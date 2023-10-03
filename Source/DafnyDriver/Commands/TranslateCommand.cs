@@ -30,7 +30,7 @@ static class TranslateCommand {
       foreach (var option in Options) {
         subCommand.AddGlobalOption(option);
       }
-      
+
       DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
         options.Compile = false;
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
