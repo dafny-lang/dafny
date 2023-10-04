@@ -35,12 +35,9 @@ namespace Microsoft.Dafny {
   /// Will be replaced by CompilationManager
   /// </summary>
   public class CompilerDriver : IDisposable {
-    public DafnyOptions Options { get; }
-
     private readonly ExecutionEngine engine;
 
     private CompilerDriver(DafnyOptions dafnyOptions) {
-      Options = dafnyOptions;
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
@@ -196,8 +193,6 @@ namespace Microsoft.Dafny {
     /// Extract the counterexample corresponding to the first failing
     /// assertion and print it to the console
     /// </summary>
-    /// <param name="modelViewFile"> Name of the file from which to read
-    /// the counterexample </param> 
     private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
       var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
