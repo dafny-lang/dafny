@@ -79,7 +79,7 @@ public class AutoContractsRewriter : IRewriter {
     // Add:  ghost var Repr: set<object>
     // ...unless a field with that name is already present
     if (!cl.Members.Exists(member => member is Field && member.Name == "Repr")) {
-      Type ty = new SetType(true, systemModuleManager.ObjectQ());
+      Type ty = systemModuleManager.ObjectSetType();
       var repr = new Field(range, new Name(range, "Repr"), true, ty, null);
       cl.Members.Add(repr);
       AddHoverText(cl.tok, "{0}", Printer.FieldToString(Reporter.Options, repr));
@@ -283,7 +283,7 @@ public class AutoContractsRewriter : IRewriter {
           if (ctor.RefinementBase == null) {
             // Repr := {this};
             var e = new SetDisplayExpr(tok, true, new List<Expression>() { self });
-            e.Type = new SetType(true, systemModuleManager.ObjectQ());
+            e.Type = systemModuleManager.ObjectSetType();
             Statement s = new AssignStmt(member.RangeToken, Repr, new ExprRhs(e));
             s.IsGhost = true;
             sbs.AppendStmt(s);
@@ -355,7 +355,7 @@ public class AutoContractsRewriter : IRewriter {
     foreach (var ff in subobjects) {
       var F = CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
       Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F }) {
-        Type = new SetType(true, systemModuleManager.ObjectQ())  // resolve here
+        Type = systemModuleManager.ObjectSetType()
       };
       var rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, Repr, e) {
         ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
