@@ -90,7 +90,7 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            DafnyCommand(AddExtraArgs(DafnyPipelineDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
           "%testDafnyForEachCompiler", (args, config) => {
             var fullArguments = new[] { "for-each-compiler" }.Concat(args);
@@ -146,7 +146,7 @@ namespace IntegrationTests {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
 
-      substitutions["%args"] = DafnyPipelineDriver.NewDefaultArgumentsForTesting;
+      substitutions["%args"] = DafnyCliTests.NewDefaultArgumentsForTesting;
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
@@ -155,7 +155,7 @@ namespace IntegrationTests {
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyPipelineDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
+            AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
@@ -171,7 +171,7 @@ namespace IntegrationTests {
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}");
       }
 
-      Config = new LitTestConfiguration(substitutions, commands, features, DafnyPipelineDriver.ReferencedEnvironmentVariables);
+      Config = new LitTestConfiguration(substitutions, commands, features, DafnyCliTests.ReferencedEnvironmentVariables);
     }
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
@@ -278,10 +278,10 @@ namespace IntegrationTests {
           return true;
         }
 
-        if (DafnyPipelineDriver.NewDefaultArgumentsForTesting.Contains(arg)) {
+        if (DafnyCliTests.NewDefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
-        if (DafnyPipelineDriver.DefaultArgumentsForTesting.Contains(arg)) {
+        if (DafnyCliTests.DefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
 

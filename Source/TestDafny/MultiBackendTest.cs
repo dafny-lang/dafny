@@ -361,7 +361,7 @@ public class MultiBackendTest {
   }
 
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyPipelineDriver.NewDefaultArgumentsForTesting);
+    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
     var exitCode = DafnyCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
@@ -375,8 +375,8 @@ public class MultiBackendTest {
       return RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyPipelineDriver.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyPipelineDriver.ReferencedEnvironmentVariables);
+    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
+    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
 
     return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);
   }
