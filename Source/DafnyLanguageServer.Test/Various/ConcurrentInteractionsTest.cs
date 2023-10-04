@@ -75,36 +75,37 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       }
 
       // Add a space in the document
-      var change1 = MakeChange(documentItem.Version + 1, new Range((0, 6), (0, 6)), " ");
-      client.DidChangeTextDocument(change1);
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 6)), " ");
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
       // Remove the space, and use a non-consecutive version to test that the server doesn't drop the change
-      var change2 = MakeChange(documentItem.Version + 4, new Range((0, 6), (0, 7)), "");
+      var change2 = MakeChange(documentItem.Version + 2, new Range((0, 6), (0, 7)), "");
+      documentItem = documentItem with { Version = change2.TextDocument.Version };
       client.DidChangeTextDocument(change2);
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
       // Do the previous again a few times. This seems to be what it takes to guarantee cancelling verification.
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 5, new Range((0, 6), (0, 6)), " "));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), " ");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 6, new Range((0, 6), (0, 7)), ""));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), "");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 8, new Range((0, 6), (0, 6)), " "));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), " ");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 9, new Range((0, 6), (0, 7)), ""));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), "");
       client.SaveDocument(documentItem);
 
       // Make a verification-breaking change, and use a non-consecutive version
       // to test that the server doesn't drop the change
-      var change3 = MakeChange(documentItem.Version + 11, new Range((0, 0), (11, 1)), failSource);
+      var change3 = MakeChange(documentItem.Version + 2, new Range((0, 0), (11, 1)), failSource);
+      documentItem = documentItem with { Version = change3.TextDocument.Version };
       client.DidChangeTextDocument(change3);
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
-      Assert.Equal(documentItem.Version + 11, diagnostics.Version);
+      Assert.Equal(documentItem.Version, diagnostics.Version);
       Assert.Single(diagnostics.Diagnostics);
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }

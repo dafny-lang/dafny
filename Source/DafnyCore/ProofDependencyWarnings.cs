@@ -1,6 +1,7 @@
 using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.Dafny.ProofObligationDescription;
+using VC;
 
 namespace Microsoft.Dafny;
 
@@ -16,6 +17,10 @@ public class ProofDependencyWarnings {
   }
 
   public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
+    if (result.Outcome != ConditionGeneration.Outcome.Correct) {
+      return;
+    }
+
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(logEntry.Name);
     var usedDependencies =
       result
@@ -36,13 +41,13 @@ public class ProofDependencyWarnings {
         .Where(d => d is AssumptionDependency ad && ad.IsAssumeStatement);
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
       foreach (var dep in unusedObligations) {
-        if (ShouldWarnVacuous(logEntry.Name, dep)) {
+        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
           reporter.Warning(MessageSource.Verifier, "", dep.Range, $"proved using contradictory assumptions: {dep.Description}");
         }
       }
 
       foreach (var dep in unusedEnsures) {
-        if (ShouldWarnVacuous(logEntry.Name, dep)) {
+        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
           reporter.Warning(MessageSource.Verifier, "", dep.Range, $"ensures clause proved using contradictory assumptions");
         }
       }
@@ -72,7 +77,7 @@ public class ProofDependencyWarnings {
   /// <param name="dep">the dependency to examine</param>
   /// <returns>false to skip warning about the absence of this
   /// dependency, true otherwise</returns>
-  private static bool ShouldWarnVacuous(string verboseName, ProofDependency dep) {
+  private static bool ShouldWarnVacuous(DafnyOptions options, string verboseName, ProofDependency dep) {
     if (dep is ProofObligationDependency poDep) {
       // Dafny generates some assertions about definite assignment whose
       // proofs are always vacuous. Since these aren't written by Dafny
@@ -81,11 +86,25 @@ public class ProofDependencyWarnings {
         return false;
       }
 
-      // Similarly here
-      if (poDep.ProofObligation is MatchIsComplete or AlternativeIsComplete) {
+      // Some proof obligations occur in a context that the Dafny programmer
+      // doesn't have control of, so warning about vacuity isn't helpful.
+      if (poDep.ProofObligation
+          is MatchIsComplete
+          or AlternativeIsComplete
+          or ValidInRecursion
+          or TraitDecreases) {
         return false;
       }
 
+      // Don't warn about `assert false` being proved vacuously. If it's proved,
+      // it must be vacuous, but it's also probably an attempt to prove that a
+      // given alternative is unreachable.
+      var assertedExpr = poDep.ProofObligation.GetAssertedExpr(options);
+      if (assertedExpr is not null &&
+          Expression.IsBoolLiteral(assertedExpr, out var lit) &&
+          lit == false) {
+        return false;
+      }
     }
 
     // Ensures clauses are often proven vacuously during well-formedness checks.

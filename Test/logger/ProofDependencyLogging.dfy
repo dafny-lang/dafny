@@ -422,3 +422,15 @@ method ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
 
     return 1; // unreachable
   }
+
+method CalcStatementWithSideConditions(x: int) {
+  calc == {
+    x / 2;
+    (x*2) / 4;
+  }
+}
+
+method DontWarnAboutVacuousAssertFalse(x: int) {
+  assume x == x + 1;
+  assert false;
+}
