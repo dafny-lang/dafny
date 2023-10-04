@@ -7491,10 +7491,11 @@ namespace Microsoft.Dafny {
           || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
       } else {
         cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       }
-      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       return cmd;
     }
 
