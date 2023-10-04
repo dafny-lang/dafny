@@ -41,6 +41,19 @@ public class AdjustableType : TypeProxy {
     return ty;
   }
 
+  public static Type NormalizeSansBottom(Expression expr) {
+    return NormalizeSansBottom(expr.UnnormalizedType);
+  }
+
+  public static Type NormalizeSansBottom(IVariable variable) {
+    return NormalizeSansBottom(variable.UnnormalizedType);
+  }
+
+  public static Type NormalizeSansBottom(Type unnormalizedType) {
+    var normalizedType = AdjustableType.NormalizeSansAdjustableType(unnormalizedType);
+    return (normalizedType as AdjustableType)?.T ?? normalizedType;
+  }
+
   public static string ToStringAsAdjustableType(Type type) {
     type = NormalizeSansAdjustableType(type);
     if (type is AdjustableType utp) {

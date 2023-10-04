@@ -16,8 +16,6 @@ env:
 jobs:
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: ${{ github.base_ref }}
 
   singletons:
     needs: check-deep-tests
