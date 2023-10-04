@@ -128,7 +128,8 @@ public static class DafnyCli {
       WritersConsole console = (WritersConsole)context.Console;
       var dafnyOptions = new DafnyOptions(console.InputWriter, console.OutWriter, console.ErrWriter);
       dafnyOptions.Environment =
-        "Command-line arguments: " + string.Join(" ", context.ParseResult.Tokens.Select(t => t.Value));
+        "Command-line arguments: " + string.Join(" ", context.ParseResult.Tokens.Select(t => t.Value).
+          Where(s => !string.IsNullOrEmpty(s)));
       dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
       var optionValues = new Dictionary<Option, object>();
       var options = new Options(optionValues, new Dictionary<Argument, object>());
@@ -363,6 +364,13 @@ public static class DafnyCli {
   public static ExitValue GetDafnyFiles(DafnyOptions options,
     out List<DafnyFile> dafnyFiles,
     out List<string> otherFiles) {
+
+    if (options.DafnyProject != null) {
+      foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
+        options.CliRootSourceUris.Add(uri);
+      }
+    }
+
     dafnyFiles = new List<DafnyFile>();
     otherFiles = new List<string>();
     var outputWriter = options.OutputWriter;
