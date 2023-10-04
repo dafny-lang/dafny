@@ -37,7 +37,7 @@ static class TestCommand {
       options.RunAllTests = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       options.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
-      return DafnyPipelineDriver.ContinueCliWithOptions(options);
+      return CompilerDriver.RunCompiler(options);
     });
     return result;
   }

@@ -65,7 +65,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       string tempFileName = null;
       if (!dafnyFile.Uri.IsFile) {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        DafnyPipelineDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = new DafnyFile(options, new Uri(tempFileName));
       }
 
@@ -98,7 +98,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
             }
 
             if (!doCheck && !doPrint) {
-              DafnyPipelineDriver.WriteFile(dafnyFile.FilePath, result);
+              CompilerDriver.WriteFile(dafnyFile.FilePath, result);
             }
           }
         } else {

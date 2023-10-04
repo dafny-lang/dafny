@@ -16,7 +16,7 @@ public static class VerifyCommand {
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
-      return DafnyPipelineDriver.ContinueCliWithOptions(options);
+      return CompilerDriver.RunCompiler(options);
     });
     return result;
   }
@@ -40,7 +40,7 @@ static class ResolveCommand {
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
-      return DafnyPipelineDriver.ContinueCliWithOptions(options);
+      return CompilerDriver.RunCompiler(options);
     });
     return result;
   }

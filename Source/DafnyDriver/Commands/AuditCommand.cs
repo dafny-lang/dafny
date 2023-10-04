@@ -25,7 +25,7 @@ static class AuditCommand {
       options.Compile = false;
       options.Verify = false;
       options.AuditProgram = true;
-      return DafnyPipelineDriver.ContinueCliWithOptions(options);
+      return CompilerDriver.RunCompiler(options);
     });
     return result;
   }

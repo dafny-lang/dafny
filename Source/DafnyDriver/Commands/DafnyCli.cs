@@ -56,7 +56,7 @@ public static class DafnyCli {
       switch (parseArgumentResult) {
         case ParsedOptions success:
           var options = success.DafnyOptions;
-          return await DafnyPipelineDriver.ContinueCliWithOptions(options);
+          return await CompilerDriver.RunCompiler(options);
         case ExitImmediately failure:
           return (int)failure.ExitValue;
         default: throw new Exception("unreachable");

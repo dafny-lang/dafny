@@ -27,19 +27,24 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-
-  public class DafnyPipelineDriver : IDisposable {
+  
+  /// <summary>
+  /// Calls into different phases of Dafny's compilation pipeline,
+  /// such as parsing, resolution, verification and code generation
+  /// 
+  /// Will be replaced by CompilationManager
+  /// </summary>
+  public class CompilerDriver : IDisposable {
     public DafnyOptions Options { get; }
 
     private readonly ExecutionEngine engine;
 
-    private DafnyPipelineDriver(DafnyOptions dafnyOptions) {
+    private CompilerDriver(DafnyOptions dafnyOptions) {
       Options = dafnyOptions;
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
-
-    public static async Task<int> ContinueCliWithOptions(DafnyOptions options) {
+    public static async Task<int> RunCompiler(DafnyOptions options) {
       options.RunningBoogieFromCommandLine = true;
 
       var backend = GetBackend(options);
@@ -65,7 +70,7 @@ namespace Microsoft.Dafny {
         return (int)ExitValue.PREPROCESSING_ERROR;
       }
 
-      using var driver = new DafnyPipelineDriver(options);
+      using var driver = new CompilerDriver(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
 
