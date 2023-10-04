@@ -88,12 +88,7 @@ public class ProofDependencyWarnings {
 
       // Some proof obligations occur in a context that the Dafny programmer
       // doesn't have control of, so warning about vacuity isn't helpful.
-      if (poDep.ProofObligation
-          is MatchIsComplete
-          or AlternativeIsComplete
-          or ValidInRecursion
-          or TraitDecreases
-          or WitnessCheck) {
+      if (poDep.ProofObligation.ProvedOutsideUserCode) {
         return false;
       }
 
