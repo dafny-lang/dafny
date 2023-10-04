@@ -21,6 +21,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
+    [Fact]
+    public async Task LeastLemmaIsVerified() {
+      var source = @"
+least lemma Foo()
+  ensures false
+{}";
+      var document = await CreateOpenAndWaitForResolve(source);
+      var diagnostics = await GetLastDiagnostics(document);
+      Assert.NotEmpty(diagnostics);
+    }
+
     [Fact(Skip = "Not implemented. Requires separating diagnostics from different sources")]
     public async Task FixedParseErrorUpdatesBeforeResolution() {
       var source = @"
