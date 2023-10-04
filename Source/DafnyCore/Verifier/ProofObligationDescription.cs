@@ -224,7 +224,7 @@ public class IsInteger : ProofObligationDescription {
 
 public class NonNull : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{PluralSuccess}{what} object is never null";
+    $"{PluralSuccess}{what} is never null";
 
   public override string FailureDescription =>
     $"{PluralFailure}{what} might be null";
