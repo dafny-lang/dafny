@@ -6,6 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 class VerifyCommand : ICommandSpec {
+
   public IEnumerable<Option> Options => new Option[] {
     BoogieOptionBag.BoogieFilter,
   }.Concat(ICommandSpec.VerificationOptions).
@@ -19,6 +20,9 @@ class VerifyCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    if (dafnyOptions.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+      dafnyOptions.TrackVerificationCoverage = true;
+    }
     dafnyOptions.Compile = false;
   }
 }

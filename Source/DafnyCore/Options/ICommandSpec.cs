@@ -44,7 +44,8 @@ public interface ICommandSpec {
     BoogieOptionBag.VerificationErrorLimit,
     CommonOptionBag.DefaultFunctionOpacity,
     CommonOptionBag.WarnContradictoryAssumptions,
-    CommonOptionBag.WarnRedundantAssumptions
+    CommonOptionBag.WarnRedundantAssumptions,
+    CommonOptionBag.VerificationCoverageReport
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {

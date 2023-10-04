@@ -134,7 +134,6 @@ namespace DafnyTestGeneration {
           if (!int.TryParse(match.Groups[2].Value, out var lineNumber) || lineNumber == 0) {
             continue;
           }
-          lineNumber -= 1; // to zero-based
           Uri uri;
           try {
             uri = new Uri(
@@ -144,7 +143,7 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var rangeToken = new RangeToken(new Token(lineNumber, 0), new Token(lineNumber + 1, 0));
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 1));
           rangeToken.Uri = uri;
           coverageReport.LabelCode(rangeToken,
             coveredStates.Contains(state)

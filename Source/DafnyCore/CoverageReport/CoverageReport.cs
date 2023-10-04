@@ -43,7 +43,9 @@ public class CoverageReport {
   /// CoverageLabelExtension.Combine. 
   /// </summary>
   public void LabelCode(RangeToken span, CoverageLabel label) {
-    Contract.Assert(labelsByFile.ContainsKey(span.ActualFilename));
+    if (!labelsByFile.ContainsKey(span.ActualFilename)) {
+      Console.WriteLine($"No entry for {span.ActualFilename}");
+    }
     if (span.StartToken.CompareTo(span.EndToken) == 0) {
       return;
     }
@@ -92,7 +94,11 @@ public class CoverageReport {
     if (astNode.StartToken.ActualFilename != null) {
       labelsByFile[astNode.StartToken.ActualFilename] = new();
     }
+
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
+      RegisterFiles(declaration);
+    }
+    foreach (var declaration in astNode.Children.OfType<Declaration>()) {
       RegisterFiles(declaration);
     }
   }

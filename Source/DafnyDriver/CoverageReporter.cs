@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Dafny; 
 
@@ -86,9 +87,9 @@ public class CoverageReporter {
             int.TryParse(span.Groups[3].Value, out var startCol) &&
             int.TryParse(span.Groups[4].Value, out var endLine) &&
             int.TryParse(span.Groups[5].Value, out var endCol)) {
-          var startToken = new Token(startLine, startCol);
+          var startToken = new Token(startLine + 1, startCol + 1);
           startToken.Uri = uri;
-          var endToken = new Token(endLine, endCol);
+          var endToken = new Token(endLine + 1, endCol + 1);
           startToken.Uri = uri;
           var rangeToken = new RangeToken(startToken, endToken);
           rangeToken.Uri = uri;
@@ -239,9 +240,10 @@ public class CoverageReporter {
   private string HtmlReportForFile(CoverageReport report, string pathToSourceFile, string baseDirectory, string linksToOtherReports) {
     var source = new StreamReader(pathToSourceFile).ReadToEnd();
     var lines = source.Split("\n");
-    IToken lastToken = new Token(0, 0);
+    IToken lastToken = new Token(1, 1);
     var labeledCodeBuilder = new StringBuilder(source.Length);
     foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
+      var r = span.Span;
       AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.StartToken);
       labeledCodeBuilder.Append(OpenHtmlTag(span));
       AppendCodeBetweenTokens(labeledCodeBuilder, lines, span.Span.StartToken, span.Span.EndToken);
@@ -271,13 +273,28 @@ public class CoverageReporter {
   /// <param name="end"></param> tokens to the <param name="stringBuilder"></param>
   /// </summary>
   private static void AppendCodeBetweenTokens(StringBuilder stringBuilder, string[] lines, IToken start, IToken end) {
-    var currToken = new Token(start.line, start.col);
-    while (currToken.line < lines.Length && (end == null || currToken.line < end.line)) {
-      stringBuilder.Append(lines[currToken.line][currToken.col..] + "\n");
-      currToken.line += 1;
+    if (end is not null && start.line == end.line && start.col > end.col) {
+      // TODO: warn
+      return;
     }
-    if (end != null && currToken.line < lines.Length) {
-      stringBuilder.Append(lines[currToken.line][currToken.col..end.col]);
+    Console.WriteLine($"Filling in ({start.line}, {start.col}) - ({end?.line}, {end?.col})");
+    var startLine = start.line - 1;
+    var startCol = start.col - 1;
+    var currLine = startLine;
+    var endLine = end is null ? lines.Length - 1 : end.line - 1;
+    var endCol = end is null ? lines[endLine].Length : end.col - 1;
+    while (currLine <= endLine) {
+      var firstCol = currLine == startLine ? startCol : 0;
+      var lastCol = currLine == endLine ? endCol : lines[currLine].Length;
+      if (firstCol < lastCol) {
+        stringBuilder.Append(lines[currLine][firstCol..lastCol]);
+      } else {
+        stringBuilder.Append(lines[currLine]);
+      }
+      if (currLine < endLine) {
+        stringBuilder.Append("\n");
+      }
+      currLine += 1;
     }
   }
 
