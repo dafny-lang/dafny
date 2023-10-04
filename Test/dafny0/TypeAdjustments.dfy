@@ -519,3 +519,146 @@ module Arrows {
     case true => h := k;
   }
 }
+
+module Comprehensions {
+  class ClassA { }
+
+  predicate P(x: nat) { true }
+
+  method Sets(s: set<ClassA>) returns (aa': set<ClassA>, nn': set<nat>, ii': set<int>) {
+    var aa := set o: ClassA | o in s; // set<ClassA>
+    var nn := set n: nat | -2 <= n < 8 && P(n); // set<nat>
+    var mm := set n: nat | -2 <= n < 8 && P(n) :: (n); // set<nat>
+    var ii := set n: nat | -2 <= n < 8 && P(n) :: n + 2; // set<int>
+
+    aa, nn, mm, ii := *, *, *, *;
+    if
+    case true => aa' := aa;
+    case true => nn' := nn;
+    case true => nn' := mm;
+    case true => ii' := ii;
+    case true => nn' := ii; // error: LHS is set<nat>, RHS is set<int>
+    case true => ii' := nn;
+  }
+
+  method Maps0(s: set<ClassA>) returns (aa': map<ClassA, bool>, bb': map<ClassA, ClassA>) {
+    var aa := map o: ClassA | o in s :: true; // map<ClassA, bool>
+    var bb := map o: ClassA | o in s :: o; // map<ClassA, ClassA>
+
+    aa, bb := *, *;
+    if
+    case true => aa' := aa;
+    case true => bb' := bb;
+  }
+
+  method Maps1() returns (nn': map<nat, nat>, ii': map<nat, int>, jj': map<int, int>) {
+    var nn := map n: nat | -2 <= n < 8 && P(n) :: n; // map<nat, nat>
+    var mm := map n: nat | -2 <= n < 8 && P(n) :: (n) := (n); // map<nat, nat>
+    var ii := map n: nat | -2 <= n < 8 && P(n) :: n := n + 2; // map<nat, int>
+    var jj := map n: nat | -2 <= n < 8 && P(n) :: n + 2 := n + 2; // map<int, int>
+
+    nn, mm, ii, jj := *, *, *, *;
+    if
+    case true => nn' := nn;
+    case true => nn' := mm;
+    case true => ii' := ii;
+    case true => jj' := jj;
+    case true => ii' := jj; // error: LHS is map<nat, int>, RHS is map<int, int>
+    case true => jj' := ii;
+  }
+}
+
+module TrickyProvides0 {
+  module AAA {
+    import BBB
+
+    type T = t: BBB.U | true witness *
+  }
+
+  module BBB {
+    export
+      provides U, Empty
+
+    import CCC
+    type U = CCC.W // type synonym
+
+    function Empty(): U
+      // In the following line, the type of the RHS of the let should be recorded as U, not just as CCC.W,
+      // because importers of BBB will only be able to see U.
+      ensures var u := Empty(); true
+  }
+
+  module CCC {
+    export
+      provides W
+
+    datatype W = Leaf | Node
+  }
+}
+
+module TrickyProvides1 {
+  module AAA {
+    import BBB
+
+    type T = t: BBB.U | true witness *
+  }
+
+  module BBB {
+    export
+      provides U, Empty
+
+    import CCC
+    type U = w: CCC.W | true witness * // subset type
+
+    function Empty(): U
+      // In the following line, the type of the RHS of the let should be recorded as U, not just as CCC.W,
+      // because importers of BBB will only be able to see U.
+      ensures var u := Empty(); true
+  }
+
+  module CCC {
+    export
+      provides W
+
+    datatype W = Leaf | Node
+  }
+}
+
+module MoreTrickySynonym {
+  type Nat = int
+
+  method M0(n: Nat, b: bool) {
+    var z; // int
+    z := n + n;
+    var w; // Nat
+    w := n;
+    w := n;
+    var u; // Nat
+    u := if b then n else n;
+  }
+}
+
+module MoreTrickySubsetType {
+  type Nat = x: int | 0 <= x
+
+  method M0(n: Nat, b: bool) {
+    var z; // int
+    z := n + n;
+    var w; // Nat
+    w := n;
+    w := n;
+    var u; // Nat
+    u := if b then n else n;
+  }
+}
+
+module Let {
+  method XYZ(n: nat) {
+    var i := n; // nat
+    var j; // nat
+    j := var jj := n; jj;
+    i, j := *, *;
+    assert 0 <= i;
+    assert 0 <= j;
+  }
+}

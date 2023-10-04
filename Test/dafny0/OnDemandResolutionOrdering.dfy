@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /typeSystemRefresh:1 /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /typeSystemRefresh:1 /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Str(s: string) {
@@ -44,8 +44,10 @@ method Q0() returns (b: array<ParamSub<real>>, be: ParamSub<real>)
   var d: array := b;
   var c: ParamSub := b[0];
 
-  // The following gives a verification error, because the type for "new" comes from the pre-type inference of element type "seq<real>".
-  // Type adjustments (currently) flow only from RHSs to LHSs, so "seq<real>" is not being adjusted to "ParamSub<real>".
+  // For the type in the following RHS, note that type adjustments (currently) flow only from RHSs to LHSs, so it would
+  // not adjust "seq<real>" to "ParamSub<real>". However, the .PrintablePreType of the pre-type is recorded (from the declaration
+  // of parameter "b"), so pre-type inference retains that information. Consequently, the RHS type is inferred as
+  // "ParamSub<real>", so the assignment works out.
   b := new [20];
   var arr := new array<seq<int>>;
   var cc := new CC;
