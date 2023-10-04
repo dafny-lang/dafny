@@ -99,7 +99,7 @@ public static class DafnyCli {
 
     var builder = new CommandLineBuilder(RootCommand).UseDefaults();
     builder = AddDeveloperHelp(RootCommand, builder);
-    DafnyCli.Parser = builder.Build();
+    Parser = builder.Build();
   }
 
   class WritersConsole : IConsole {
@@ -199,6 +199,7 @@ public static class DafnyCli {
 
       dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
+      dafnyOptions.UsingNewCli = true;
       context.ExitCode = await continuation(dafnyOptions, context);
     }
 
@@ -209,11 +210,8 @@ public static class DafnyCli {
     TextWriter errorWriter,
     TextReader inputReader, string[] arguments,
     Func<ILegacyParseArguments, Task<int>> onLegacyArguments) {
-    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
-      Environment = "Command-line arguments: " + string.Join(" ", arguments)
-    };
 
-    var legacyResult = TryLegacyArgumentParser(arguments, dafnyOptions);
+    var legacyResult = TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, arguments);
     if (legacyResult != null) {
       return await onLegacyArguments(legacyResult);
     }
@@ -228,15 +226,21 @@ public static class DafnyCli {
       }
     }
 
-    dafnyOptions.UsingNewCli = true;
     var console = new WritersConsole(inputReader, outputWriter, errorWriter);
     return await Parser.InvokeAsync(arguments, console);
   }
 
-  private static ILegacyParseArguments TryLegacyArgumentParser(string[] arguments, DafnyOptions dafnyOptions) {
+  private static ILegacyParseArguments TryLegacyArgumentParser(
+    TextReader inputReader,
+    TextWriter outputWriter,
+    TextWriter errorWriter,
+    string[] arguments) {
     if (arguments.Length == 0) {
       return null;
     }
+    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
+      Environment = "Command-line arguments: " + string.Join(" ", arguments)
+    };
 
     var first = arguments[0];
     var keywordForNewMode = RootCommand.Subcommands.Select(c => c.Name).Union(new[]

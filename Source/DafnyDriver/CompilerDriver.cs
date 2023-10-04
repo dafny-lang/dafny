@@ -27,7 +27,7 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  
+
   /// <summary>
   /// Calls into different phases of Dafny's compilation pipeline,
   /// such as parsing, resolution, verification and code generation
