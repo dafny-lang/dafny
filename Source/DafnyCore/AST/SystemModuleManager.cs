@@ -80,6 +80,12 @@ public class SystemModuleManager {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
+  /// <summary>
+  /// Return a resolved type for "set<object?>".
+  /// </summary>
+  public Type ObjectSetType() {
+    return new SetType(true, ObjectQ());
+  }
 
   public SystemModuleManager(DafnyOptions options) {
     this.Options = options;
@@ -279,7 +285,7 @@ public class SystemModuleManager {
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
-        Type = new SetType(true, ObjectQ()),
+        Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
@@ -293,7 +299,7 @@ public class SystemModuleManager {
       return function;
     }
 
-    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var reads = CreateMember("reads", ObjectSetType(), null);
     var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
