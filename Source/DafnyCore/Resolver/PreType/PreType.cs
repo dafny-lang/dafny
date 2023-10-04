@@ -32,8 +32,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public PreType Normalize() {
       var t = this;
-      while (t is PreTypeProxy proxy && proxy.PT != null) {
-        t = proxy.PT;
+      while (t is PreTypeProxy { PT: { } proxyFor }) {
+        t = proxyFor;
       }
       return t;
     }
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
           dPreType = dPreType.PrintablePreType;
         }
         if (dPreType.Decl is RevealableTypeDecl rtd && !rtd.IsRevealedInScope(Type.GetScope())) {
-          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments);
+          return new DPreType(rtd.SynonymInfo.SelfSynonymDecl, dPreType.Arguments, dPreType.PrintablePreType);
         }
       }
       return t;
@@ -109,6 +109,8 @@ namespace Microsoft.Dafny {
       }
       return null;
     }
+
+    public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
 
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
@@ -194,7 +196,8 @@ namespace Microsoft.Dafny {
 
   public class PreTypeProxy : PreType {
     public readonly int UniqueId;
-    public PreType PT; // filled in by resolution
+
+    [FilledInDuringResolution] public PreType PT { get; private set; }
 
     /// <summary>
     /// There should be just one call to this constructor, namely from PreTypeResolver.CreatePreTypeProxy.
@@ -269,8 +272,12 @@ namespace Microsoft.Dafny {
         }
         s += $" ~> {Arguments.Last()}";
       } else if (IsTupleType(Decl)) {
-        // TODO: for tuple types, sometimes use prefix "ghost"
-        s = $"({Util.Comma(Arguments, arg => arg.ToString())})";
+        var tupleTypeDecl = (TupleTypeDecl)Decl;
+        Contract.Assert(Arguments.Count == tupleTypeDecl.ArgumentGhostness.Count);
+        s = Arguments.Zip(tupleTypeDecl.ArgumentGhostness).Comma(argAndGhost =>
+          (argAndGhost.Second ? "ghost " : "") + argAndGhost.First.ToString()
+        );
+        s = "(" + s + ")";
       } else {
         if (IsReferenceTypeDecl(Decl)) {
           name = name + "?";

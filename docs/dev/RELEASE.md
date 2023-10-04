@@ -13,6 +13,7 @@
    incremented since the last release, so they do not necessarily need
    to be updated. However, you may want to increment them further
    depending the types of changes that are in the release.
+
 1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>`
    (`--source-branch` is optional and defaults to 'master')
    from the root of the repository. The script will check that the repository is in a good
@@ -20,18 +21,13 @@
    `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
    and push it.
 
-1. Kick off the deep test suite by navigating to
-   <https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml>,
-   clicking the "Run workflow" dropdown, selecting the newly created branch, and
-   clicking the "Run workflow" button. The automation for releasing below will
-   check for a run of this workflow on the exact commit to release.  (TODO:
-   Run this automatically as part of the prepare-release script.)
-
-1. Once the the tests complete, run `Scripts/prepare_release.py $VER
+1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
-   current commit and push it. (TODO: Merge with the two steps above.) A
+   current commit and push it. A
    GitHub action will automatically run in reaction to the tag being
-   pushed, which will build the artifacts and reference manual and then
+   pushed, which will run the deep integration test suite,
+   build the artifacts and reference manual,
+   publish artifacts to nuget.org, and then
    create a draft GitHub release. You can find and watch the progress of
    this workflow at <https://github.com/dafny-lang/dafny/actions>.
 

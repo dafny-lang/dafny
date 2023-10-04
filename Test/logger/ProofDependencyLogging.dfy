@@ -422,3 +422,8 @@ method ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
 
     return 1; // unreachable
   }
+
+method DontWarnAboutVacuousAssertFalse(x: int) {
+  assume x == x + 1;
+  assert false;
+}
