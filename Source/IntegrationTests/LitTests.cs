@@ -143,11 +143,6 @@ namespace IntegrationTests {
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
-        commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
-        commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
@@ -167,10 +162,18 @@ namespace IntegrationTests {
     }
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      return invokeDirectly
-        ? new DafnyDriverLitCommand(arguments, config)
-        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
+      if (invokeDirectly) {
+        return new DafnyDriverLitCommand(arguments, config);
+      }
+
+      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
+      if (dafnyReleaseDir == null) {
+        return new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
           config.PassthroughEnvironmentVariables);
+      }
+
+      var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
+      return new ShellLitCommand(dafnyCliPath, arguments, config.PassthroughEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;
