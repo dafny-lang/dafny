@@ -20,6 +20,8 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     var expression = new IdentifierExpr(bvar.tok, bvar);
     return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
   }
+
+  public virtual bool ProvedOutsideUserCode => false;
 }
 
 //// Arithmetic and logical operators, conversions
@@ -222,7 +224,7 @@ public class IsInteger : ProofObligationDescription {
 
 public class NonNull : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{PluralSuccess}{what} object is never null";
+    $"{PluralSuccess}{what} is never null";
 
   public override string FailureDescription =>
     $"{PluralFailure}{what} might be null";
@@ -418,6 +420,8 @@ public class EnsuresStronger : ProofObligationDescription {
     "the method must provide an equal or more detailed postcondition than in its parent trait";
 
   public override string ShortDescription => "ensures stronger";
+
+  public override bool ProvedOutsideUserCode => true;
 }
 
 public class RequiresWeaker : ProofObligationDescription {
@@ -428,6 +432,8 @@ public class RequiresWeaker : ProofObligationDescription {
     "the method must provide an equal or more permissive precondition than in its parent trait";
 
   public override string ShortDescription => "requires weaker";
+
+  public override bool ProvedOutsideUserCode => true;
 }
 
 public class ForallPostcondition : ProofObligationDescription {
@@ -481,6 +487,8 @@ public class TraitDecreases : ProofObligationDescription {
     $"{whatKind}'s (possibly automatically generated) decreases clause must be below or equal to that in the trait";
 
   public override string ShortDescription => "trait decreases";
+
+  public override bool ProvedOutsideUserCode => true;
 
   private readonly string whatKind;
 
@@ -554,6 +562,8 @@ public class DecreasesBoundedBelow : ProofObligationDescription {
 
   public override string ShortDescription => "bounded decreases expression";
 
+  public override bool ProvedOutsideUserCode => true;
+
   private string component => N == 1 ? "expression" : $"expression at index {k}";
   private readonly string zeroStr;
   private readonly string suffix;
@@ -592,6 +602,8 @@ public class FunctionContractOverride : ProofObligationDescription {
 
   public override string ShortDescription => "contract override valid";
 
+  public override bool ProvedOutsideUserCode => true;
+
   private readonly bool isEnsures;
   private string RestrictionDesc =>
     isEnsures ? "more detailed postcondition" : "more permissive precondition";
@@ -612,6 +624,8 @@ public class MatchIsComplete : ProofObligationDescription {
 
   public override string ShortDescription => "match complete";
 
+  public override bool ProvedOutsideUserCode => true;
+
   private readonly string matchForm;
   private readonly string missing;
   public MatchIsComplete(string matchForm, string missing) {
@@ -628,6 +642,8 @@ public class AlternativeIsComplete : ProofObligationDescription {
     $"alternative cases fail to cover all possibilities";
 
   public override string ShortDescription => "alternative complete";
+
+  public override bool ProvedOutsideUserCode => true;
 }
 
 public class PatternShapeIsValid : ProofObligationDescription {
@@ -766,6 +782,8 @@ public class WitnessCheck : ProofObligationDescription {
 
   public override string ShortDescription => "witness check";
 
+  public override bool ProvedOutsideUserCode => true;
+
   private readonly string errMsg = "cannot find witness that shows type is inhabited";
   private readonly string hintMsg =
     "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
@@ -820,6 +838,8 @@ public class ValidInRecursion : ProofObligationDescription {
     $"cannot use {what} in recursive setting.{hint ?? ""}";
 
   public override string ShortDescription => "valid in recursion";
+
+  public override bool ProvedOutsideUserCode => true;
 
   private readonly string what;
   private readonly string hint;
@@ -1117,6 +1137,8 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
     $"{frameName} could not be proved to be empty ({{:concurrent}} restriction)";
 
   public override string ShortDescription => "concurrency safety";
+
+  public override bool ProvedOutsideUserCode => true;
 
   private readonly string frameName;
 
