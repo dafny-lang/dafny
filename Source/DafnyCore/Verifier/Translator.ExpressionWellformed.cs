@@ -588,7 +588,7 @@ namespace Microsoft.Dafny {
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
               // check read effects
-              Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
+              Type objset = program.SystemModuleManager.ObjectSetType();
               Expression wrap = new BoogieWrapper(
                 FunctionCall(e.tok, Reads(arity), TrType(objset), args),
                 objset);
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
 
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
-                  Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
+                  Type objset = program.SystemModuleManager.ObjectSetType();
                   Expression wrap = new BoogieWrapper(
                     FunctionCall(expr.tok, Reads(e.Args.Count()), TrType(objset), arguments),
                     objset);
