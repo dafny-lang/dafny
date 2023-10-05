@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 // Rustan Leino, Nov 2015
 
 // Module M0 gives the high-level specification of the UnionFind data structure
