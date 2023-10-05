@@ -19,8 +19,12 @@ static class TranslateCommand {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
 
     foreach (var backend in SinglePassCompiler.Plugin.GetCompilers(DafnyOptions.Default)) {
-      var notes = string.IsNullOrWhiteSpace(backend.Notes) ? "" : " " + backend.Notes;
-      result.AddCommand(new Command(backend.TargetId, backend.TargetName + notes));
+      var notes = string.IsNullOrWhiteSpace(backend.Notes) ? "" : ". " + backend.Notes;
+      var command = new Command(backend.TargetId, backend.TargetName + notes);
+      result.AddCommand(command);
+      if (!backend.IsStable) {
+        command.IsHidden = true;
+      }
     }
 
     foreach (var subCommand in result.Subcommands) {

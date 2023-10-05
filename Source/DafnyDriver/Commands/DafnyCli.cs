@@ -218,12 +218,15 @@ public static class DafnyCli {
     }
 
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
-    foreach (var option in AllOptions) {
+    foreach (var symbol in AllSymbols) {
       if (!allowHidden) {
-        option.IsHidden = false;
+        symbol.IsHidden = false;
       }
-      if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
-        option.AllowMultipleArgumentsPerToken = true;
+
+      if (symbol is Option option) {
+        if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+          option.AllowMultipleArgumentsPerToken = true;
+        }
       }
     }
 
@@ -329,13 +332,14 @@ public static class DafnyCli {
     return true;
   }
 
-  private static IEnumerable<Option> AllOptions {
+  private static IEnumerable<IdentifierSymbol> AllSymbols {
     get {
-      var result = new HashSet<Option>();
+      var result = new HashSet<IdentifierSymbol>();
       var commands = new Stack<Command>();
       commands.Push(RootCommand);
       while (commands.Any()) {
         var current = commands.Pop();
+        result.Add(current);
         foreach (var option in current.Options) {
           result.Add(option);
         }
@@ -346,6 +350,8 @@ public static class DafnyCli {
       return result;
     }
   }
+
+  private static IEnumerable<Option> AllOptions => AllSymbols.OfType<Option>();
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {
     var languageDeveloperHelp = new Option<bool>(ToolchainDebuggingHelpName,
