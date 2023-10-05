@@ -188,8 +188,6 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         case BinaryExpr.ResolvedOpcode.Mul:
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
-        case BinaryExpr.ResolvedOpcode.LeftShift:
-        case BinaryExpr.ResolvedOpcode.RightShift:
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
@@ -207,6 +205,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E1, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+        case BinaryExpr.ResolvedOpcode.RightShift:
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
