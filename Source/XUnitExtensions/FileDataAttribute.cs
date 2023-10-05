@@ -23,11 +23,11 @@ namespace XUnitExtensions {
         }
       }
 
-      // if (Excludes != null) {
-      //   foreach (var exclude in Excludes) {
-      //     matcher.AddExclude(exclude);
-      //   }
-      // }
+      if (Excludes != null) {
+        foreach (var exclude in Excludes) {
+          matcher.AddExclude(exclude);
+        }
+      }
 
       var basePath = Directory ?? Path.Combine("Test");
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(basePath)));
