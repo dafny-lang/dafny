@@ -434,3 +434,8 @@ method DontWarnAboutVacuousAssertFalse(x: int) {
   assume x == x + 1;
   assert false;
 }
+
+method DontWarnAboutUnusedAssumeTrue(x: int) {
+  assume true;
+  assert 1 + x == x + 1;
+}

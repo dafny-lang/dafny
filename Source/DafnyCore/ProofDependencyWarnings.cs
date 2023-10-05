@@ -59,7 +59,9 @@ public class ProofDependencyWarnings {
       }
 
       foreach (var dep in unusedAssumeStatements) {
-        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+        if (ShouldWarnUnused(dep)) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+        }
       }
     }
   }
@@ -110,6 +112,27 @@ public class ProofDependencyWarnings {
     // Ensures clauses are often proven vacuously during well-formedness checks.
     if (verboseName.Contains("well-formedness") && dep is EnsuresDependency) {
       return false;
+    }
+
+    return true;
+  }
+
+  /// <summary>
+  /// Some assumptions that don't show up in the dependency list
+  /// are innocuous. In particular, `assume true` is often used
+  /// as a place to attach attributes such as `{:split_here}`.
+  /// Don't warn about such assumptions.
+  /// </summary>
+  /// <param name="dep">the dependency to examine</param>
+  /// <returns>false to skip warning about the absence of this
+  /// dependency, true otherwise</returns>
+  private static bool ShouldWarnUnused(ProofDependency dep) {
+    if (dep is AssumptionDependency assumeDep) {
+      if (assumeDep.Expr is not null &&
+          Expression.IsBoolLiteral(assumeDep.Expr, out var lit) &&
+          lit == true) {
+        return false;
+      }
     }
 
     return true;
