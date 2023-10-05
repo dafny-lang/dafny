@@ -3471,7 +3471,7 @@ namespace Microsoft.Dafny {
         if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
           return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
         }
-        return node.RangeToken.ToToken();
+        return node.RangeToken.ToToken(node.Tok);
       } else {
         return node.Tok;
       }

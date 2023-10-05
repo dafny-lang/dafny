@@ -295,8 +295,8 @@ public class RangeToken : TokenWrapper {
     throw new NotImplementedException();
   }
 
-  public BoogieRangeToken ToToken() {
-    return new BoogieRangeToken(StartToken, EndToken, null);
+  public BoogieRangeToken ToToken(IToken uniquelyIdentifyingToken = null) {
+    return new BoogieRangeToken(StartToken, EndToken, uniquelyIdentifyingToken);
   }
 
   public bool Contains(int position) {
