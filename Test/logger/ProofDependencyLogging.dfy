@@ -448,3 +448,8 @@ function GetX(c: C): int
 {
   c.x
 }
+
+method DontWarnAboutUnusedAssumeTrue(x: int) {
+  assume true;
+  assert 1 + x == x + 1;
+}
