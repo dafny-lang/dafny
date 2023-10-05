@@ -20,6 +20,11 @@ public abstract class IExecutableBackend {
   public abstract IReadOnlySet<string> SupportedExtensions { get; }
 
   /// <summary>
+  /// Additional information to description this back-end.
+  /// </summary>
+  public virtual string Notes => "";
+
+  /// <summary>
   /// Human-readable string describing the target of this compiler.
   /// </summary>
   public abstract string TargetName { get; }

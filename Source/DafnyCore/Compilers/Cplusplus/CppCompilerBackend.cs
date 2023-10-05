@@ -6,6 +6,9 @@ using System.IO;
 namespace Microsoft.Dafny.Compilers;
 
 public class CppCompilerBackend : ExecutableBackend {
+  public override string Notes =>
+    "This back-end has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.";
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CppCompiler(Options, Reporter, OtherFileNames);
   }
