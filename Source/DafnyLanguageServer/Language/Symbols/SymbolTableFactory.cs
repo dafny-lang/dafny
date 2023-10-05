@@ -58,7 +58,25 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .SelectMany(r => r.GetResolvedDeclarations().Select(declaration =>
           ((IDeclarationOrUsage)r, declaration))).ToList();
 
-      return new SymbolTable(usages);
+      var relevantDafnySymbolKinds = new HashSet<DafnySymbolKind>();
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Function);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Class);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Enum);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Method);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.EnumMember);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Struct);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Interface);
+      relevantDafnySymbolKinds.Add(DafnySymbolKind.Namespace);
+      // TODO: Since these definitions are checked for whether they
+      //       contain substrings when answering workspace/resolve queries,
+      //       it would improve performance to find a data structure allowing
+      //       to compute this efficiently
+      var definitions = visited
+        .OfType<ISymbol>()
+        .Where(symb => relevantDafnySymbolKinds.Contains(symb.Kind))
+        .ToImmutableList();
+
+      return new SymbolTable(usages, definitions);
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
