@@ -160,16 +160,27 @@ public class CompilationManager : IDisposable {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
-    var verifiable = compilation.Program.FindNode<ICanVerify>(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
-    if (verifiable == null) {
-      return false;
-    }
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
+    }
+
+    var verifiable = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
+      node => {
+        if (node is not ICanVerify) {
+          return false;
+        }
+        // Sometimes traversing the AST can return different versions of a single source AST node,
+        // for example in the case of a LeastLemma, which is later also represented as a PrefixLemma.
+        // This check ensures that we consistently use the same version of an AST node. 
+        return compilation.Verifiables!.Contains(node);
+      }) as ICanVerify;
+
+    if (verifiable == null) {
+      return false;
     }
 
     var containingModule = verifiable.ContainingModule;

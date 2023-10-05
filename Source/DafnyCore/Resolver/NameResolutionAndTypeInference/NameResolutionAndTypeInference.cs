@@ -1118,7 +1118,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(true, SystemModuleManager.ObjectQ());
+        expr.Type = SystemModuleManager.ObjectSetType();
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
