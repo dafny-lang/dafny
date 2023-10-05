@@ -23,13 +23,13 @@ namespace XUnitExtensions {
         }
       }
 
-      if (Excludes != null) {
-        foreach (var exclude in Excludes) {
-          matcher.AddExclude(exclude);
-        }
-      }
+      // if (Excludes != null) {
+      //   foreach (var exclude in Excludes) {
+      //     matcher.AddExclude(exclude);
+      //   }
+      // }
 
-      var basePath = Directory ?? Path.Combine("TestFiles", testMethod.DeclaringType!.Name, testMethod.Name);
+      var basePath = Directory ?? Path.Combine("Test");
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(basePath)));
       if (!result.HasMatches) {
         throw new ArgumentException("No matching files found: " + this);
