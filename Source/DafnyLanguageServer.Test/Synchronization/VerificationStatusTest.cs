@@ -43,7 +43,7 @@ method ShouldNotBeAffectedByChange() {
   }
 
   [Fact]
-  public async Task DoNotResendAfterNoopChange() {
+  public async Task ANoopChangeWillCauseVerificationToTriggerAgain() {
     var source = @"
 method WillVerify() {
   assert false;
@@ -51,9 +51,9 @@ method WillVerify() {
 ".TrimStart();
 
     var document = await CreateOpenAndWaitForResolve(source);
-    var firstStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
     ApplyChange(ref document, new Range(3, 0, 3, 0), "//change comment\n");
-    await AssertNoVerificationStatusIsComing(document, CancellationToken);
+    await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, document);
   }
 
   [Fact]
@@ -258,6 +258,7 @@ method m1() {
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+
   }
 
   [Fact]
@@ -269,7 +270,7 @@ method m1() {
     var documentItem = CreateTestDocument(source, "NoVerificationStatusPublishedForUnresolvedDocument.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await WaitUntilAllStatusAreCompleted(documentItem);
+    var lastStatus = await WaitUntilAllStatusAreCompleted(documentItem);
     ApplyChange(ref documentItem, new Range(1, 9, 1, 10), "foo");
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
 
@@ -350,7 +351,7 @@ method Bar() { assert false; }";
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken, true);
     Assert.Single(preSaveDiagnostics);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
     var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -508,19 +509,6 @@ method Bar() { assert true; }";
     Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
-  private async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentIdentifier documentId) {
-    var compilationAfterParsing = await Projects.GetLastDocumentAsync(documentId);
-    var lastDocument = (CompilationAfterResolution)compilationAfterParsing;
-    var uri = documentId.Uri.ToUri();
-    var symbols = lastDocument!.Verifiables.Where(v => v.Tok.Uri == uri).ToHashSet();
-    FileVerificationStatus beforeChangeStatus;
-    do {
-      beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (beforeChangeStatus.NamedVerifiables.Count != symbols.Count ||
-             beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
-
-    return beforeChangeStatus;
-  }
 
   [Fact]
   public async Task StatusesOfDifferentImplementationUnderOneNamedVerifiableAreCorrectlyMerged() {

@@ -560,7 +560,7 @@ namespace Microsoft.Dafny {
         reporter = new ErrorReporterWrapper(reporter,
           $"Raised while checking export set {exportDecl.Name}: ");
         var testSig = exportView.RegisterTopLevelDecls(this, true);
-        exportView.Resolve(testSig, this, true);
+        exportView.Resolve(testSig, this, exportDecl.Name);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = (BatchErrorReporter)((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -1060,7 +1060,7 @@ namespace Microsoft.Dafny {
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
       Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
-      string moduleName, bool isAnExport = false) {
+      string moduleDescription, bool isAnExport) {
 
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
@@ -1096,7 +1096,7 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var typeAdjustor = new TypeAdjustorVisitor(SystemModuleManager);
+          var typeAdjustor = new TypeAdjustorVisitor(moduleDescription, SystemModuleManager);
           typeAdjustor.VisitDeclarations(declarations);
           typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
@@ -4141,6 +4141,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(dtd.TypeArgs.Count == udt.TypeArgs.Count);  // follows from the type previously having been successfully resolved
         var subst = TypeParameter.SubstitutionMap(dtd.TypeArgs, udt.TypeArgs);
         // recursively call ResolveCasePattern on each of the arguments
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
         var j = 0;
         if (pat.Arguments != null) {
           foreach (var arg in pat.Arguments) {
@@ -4152,7 +4153,7 @@ namespace Microsoft.Dafny {
             j++;
           }
         }
-        if (j == ctor.Formals.Count) {
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount && j == ctor.Formals.Count) {
           pat.AssembleExpr(udt.TypeArgs);
         }
       }

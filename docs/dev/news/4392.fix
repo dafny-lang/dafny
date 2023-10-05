@@ -1,1 +1,0 @@
-Fixed a bug leading to stack overflow during counterexample extraction on some programs.

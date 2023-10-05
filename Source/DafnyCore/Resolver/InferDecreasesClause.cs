@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -147,68 +148,68 @@ public class InferDecreasesClause {
     List<Expression> sets = new List<Expression>();
     List<Expression> singletons = null;
     var idGen = new FreshIdGenerator();
-    foreach (FrameExpression fe in fexprs) {
+    // drop wildcards altogether in the following iterations
+    foreach (FrameExpression fe in fexprs.Where(fe => fe.E is not WildcardExpr)) {
       Contract.Assert(fe != null);
-      if (fe.E is WildcardExpr) {
-        // drop wildcards altogether
-      } else {
-        Expression e = fe.E; // keep only fe.E, drop any fe.Field designation
-        Contract.Assert(e.Type != null); // should have been resolved already
-        var eType = e.Type.NormalizeExpand();
-        if (eType.IsRefType) {
-          // e represents a singleton set
-          if (singletons == null) {
-            singletons = new List<Expression>();
-          }
-
-          singletons.Add(e);
-        } else if (eType is SeqType || eType is MultiSetType || LiteralExpr.IsEmptySet(e)) {
-          // e represents a sequence or multiset
-          var collectionType = (CollectionType)eType;
-          var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
-          var boundedPool = collectionType.GetBoundedPool(e);
-
-          // Add:  set x :: x in e
-          var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"),
-            collectionType.Arg.NormalizeExpand());
-          var bvIE = new IdentifierExpr(e.tok, bv.Name) {
-            Var = bv,
-            Type = bv.Type
-          };
-          var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e) {
-            ResolvedOp = resolvedOpcode,
-            Type = Type.Bool
-          };
-          var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE,
-            new Attributes("trigger", new List<Expression> { sInE }, null)) {
-            Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()),
-            Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
-          };
-          sets.Add(s);
-        } else {
-          // e is already a set
-          Contract.Assert(eType is SetType);
-          sets.Add(e);
+      Expression e = new Cloner(false, true).CloneExpr(fe.E); // keep only fe.E, drop any fe.Field designation
+      Contract.Assert(e.Type != null); // fe.E should have been resolved already, and the clone should still have that type
+      var eType = e.Type.NormalizeExpand();
+      if (eType.IsRefType) {
+        // e represents a singleton set
+        if (singletons == null) {
+          singletons = new List<Expression>();
         }
+        singletons.Add(e);
+
+      } else if (eType is SeqType || eType is MultiSetType || LiteralExpr.IsEmptySet(e)) {
+        // e represents a sequence or multiset
+        var collectionType = (CollectionType)eType;
+        var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+        var boundedPool = collectionType.GetBoundedPool(e);
+
+        // Add:  set x :: x in e
+        var bvDecl = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg.NormalizeExpand());
+        var bv = new IdentifierExpr(e.tok, bvDecl.Name) {
+          Var = bvDecl,
+          Type = bvDecl.Type
+        };
+        var bvInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bv, e) {
+          ResolvedOp = resolvedOpcode,
+          Type = Type.Bool
+        };
+        var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bvDecl }, bvInE, bv,
+          new Attributes("trigger", new List<Expression> { bvInE }, null)) {
+          Type = resolver.SystemModuleManager.ObjectSetType(),
+          Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
+        };
+        sets.Add(s);
+
+      } else {
+        // e is already a set
+        Contract.Assert(eType is SetType);
+        sets.Add(e);
       }
     }
 
     if (singletons != null) {
-      Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
-      display.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
+      Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons) {
+        Type = resolver.SystemModuleManager.ObjectSetType()
+      };
       sets.Add(display);
     }
 
     if (sets.Count == 0) {
-      Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
-      emptyset.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
-      return emptyset;
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, new List<Expression>()) {
+        Type = resolver.SystemModuleManager.ObjectSetType()
+      };
+      return emptySet;
     } else {
       Expression s = sets[0];
-      for (int i = 1; i < sets.Count; i++) {
-        BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
-        union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union; // resolve here
-        union.Type = new SetType(true, resolver.SystemModuleManager.ObjectQ()); // resolve here
+      for (var i = 1; i < sets.Count; i++) {
+        var union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]) {
+          ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
+          Type = resolver.SystemModuleManager.ObjectSetType()
+        };
         s = union;
       }
 

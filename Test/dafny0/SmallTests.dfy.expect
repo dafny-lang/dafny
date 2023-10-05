@@ -58,7 +58,7 @@ SmallTests.dfy(754,13): Error: assertion might not hold
 SmallTests.dfy(757,13): Error: assertion might not hold
 
 Dafny program verifier finished with 56 verified, 50 errors
-SmallTests.dfy.tmp.dprint.dfy(123,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy.tmp.dprint.dfy(687,4): Warning: /!\ No trigger covering all quantified variables found.
+SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification
