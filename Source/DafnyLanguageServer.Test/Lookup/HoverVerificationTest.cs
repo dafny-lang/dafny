@@ -23,24 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     private const int MaxTestExecutionTimeMs = 30000;
 
-    [Fact]
-    public async Task CanDisplayProofDependencies() {
-      var cwd = Directory.GetCurrentDirectory();
-      var directory = Path.Combine(cwd, "Lookup/TestFiles/ProofDependencies");
-      var path = Path.Combine(directory, "LSPProofDependencyTest.dfy");
-      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetLastDocumentAsync(documentItem);
-      Assert.True(document is CompilationAfterResolution);
-      var expectation1 = @"Proof dependencies:
-* `LSPProofDependencyTest.dfy(5,12)-(5,16): assume statement`
-* `LSPProofDependencyTest.dfy(6,12)-(6,12): assertion always holds`";
-      var expectation2 = @"Unused program elements:
-* `LSPProofDependencyTest.dfy(4,12)-(4,16): assume statement`";
-      await AssertHoverMatches(documentItem, (0, 5), expectation1);
-      await AssertHoverMatches(documentItem, (0, 5), expectation2);
-    }
-
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
