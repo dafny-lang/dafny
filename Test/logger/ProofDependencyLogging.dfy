@@ -435,6 +435,20 @@ method DontWarnAboutVacuousAssertFalse(x: int) {
   assert false;
 }
 
+// CHECK: Results for GetX \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(449,5\)-\(449,5\): target object is never null
+
+class C {
+  var x: int
+}
+
+function GetX(c: C): int
+  reads c
+{
+  c.x
+}
+
 method DontWarnAboutUnusedAssumeTrue(x: int) {
   assume true;
   assert 1 + x == x + 1;
