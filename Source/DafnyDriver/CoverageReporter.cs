@@ -280,7 +280,7 @@ public class CoverageReporter {
     while (currLine <= endLine) {
       var firstCol = currLine == startLine ? startCol : 0;
       var lastCol = currLine == endLine ? endCol : lines[currLine].Length;
-      if (firstCol < lastCol) {
+      if (firstCol <= lastCol) {
         stringBuilder.Append(lines[currLine][firstCol..lastCol]);
       } else {
         stringBuilder.Append(lines[currLine]);
