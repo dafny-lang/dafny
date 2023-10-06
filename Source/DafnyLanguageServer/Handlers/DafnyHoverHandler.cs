@@ -233,7 +233,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               information += OverCostlyMessage;
             }
           }
-
         }
       }
 

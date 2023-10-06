@@ -412,7 +412,6 @@ public class CompilationManager : IDisposable {
       }
       gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
-
     compilationUpdates.OnNext(compilation);
   }
 
