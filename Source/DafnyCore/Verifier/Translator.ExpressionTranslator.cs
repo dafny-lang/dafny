@@ -390,6 +390,19 @@ namespace Microsoft.Dafny {
             var id = new Identifier(rName, version, label);
             return new Expr_Var(id); // TODO: Add tokens
           }
+          case UnaryOpExpr unaryExpr: {
+            var sub = TrExprAlcor(unaryExpr.E, out errorMessage);
+            if (sub == null) {
+              return null;
+            }
+
+            if (unaryExpr.ResolvedOp is UnaryOpExpr.ResolvedOpcode.BoolNot) {
+              return AlcorProofKernel.Expr.Not(sub);
+            }
+            
+            errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
+            return null;
+          }
           case BinaryExpr binaryExpr: {
             BinaryExpr e = binaryExpr;
             var left = TrExprAlcor(e.E0, out errorMessage);
@@ -441,7 +454,7 @@ namespace Microsoft.Dafny {
                   left, right
                 );
               }
-            } 
+            }
             
             errorMessage = "Alcor does not yet support " + exprToTranslate.ToString();
             return null;

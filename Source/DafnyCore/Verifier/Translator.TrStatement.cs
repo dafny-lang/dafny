@@ -569,16 +569,21 @@ namespace Microsoft.Dafny {
             proofBuilder = new BoogieStmtListBuilder(this, options);
             AddComment(proofBuilder, stmt, "assert statement proof");
           }
+          var proofState = FromDafnyString(assumptions.Environment._ToString());
           var alcorExpression = etran.TrExprAlcor(stmt.Expr, out var alcorError);
           if (alcorExpression != null) {
+            proofState = proofState + "\n|- " + FromDafnyString(alcorExpression._ToString());
             var provenByAlcor = proofAssumptions.Prove(alcorExpression, etran, reporter, out msg);
             if (provenByAlcor) {
               IgnoreAssert(assertStmt);
             }
-            reporter.Info(MessageSource.Verifier, assertStmt.tok, msg);
+            reporter.Info(MessageSource.Verifier, assertStmt.EndToken, msg);
             // And then we assume it with either a fresh "h" label or a user-provided label
             assumptions = assumptions.WithAssertedExpr(alcorExpression, assertStmt.Label?.Name);
+          } else {
+            proofState = proofState + "\n|- // Goal not supported: " + alcorError;
           }
+          reporter.Info(MessageSource.Verifier, assertStmt.StartToken, proofState);
         }
 
         var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
@@ -1141,14 +1146,21 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
-          var ensAsAlcor = etran.TrExprAlcor(ens.E, out _);
+          var ensAsAlcor = etran.TrExprAlcor(ens.E, out var alcorError);
           var provenByAlcor = false;
+          var proofState = FromDafnyString(bodyAssumptions.Environment._ToString());
           if (ensAsAlcor != null) {
+            proofState = proofState + "\n|- " + FromDafnyString(ensAsAlcor._ToString());
+
             provenByAlcor = bodyAssumptions.Prove(ensAsAlcor, etran, reporter, out var message);
-            reporter.Info(MessageSource.Verifier, ens.Tok, message);
+            reporter.Info(MessageSource.Verifier, ens.EndToken, message);
             // And then we assume it with either a fresh "h" label or a user-provided label
             bodyAssumptions = bodyAssumptions.WithAssertedExpr(ensAsAlcor, "forallensures");
+          } else {
+            proofState = proofState + "\n|- // Goal not supported: " + alcorError;
           }
+          reporter.Info(MessageSource.Verifier, ens.StartToken, proofState);
+
 
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {

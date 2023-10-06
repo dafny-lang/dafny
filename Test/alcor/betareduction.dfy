@@ -1,23 +1,31 @@
 lemma TestExampleDafny3Tactic0()
 {
-  assert forall a, b :: a && b ==> a by {
-    forall a, b ensures a && b ==> a {
-      if a && b {
-        assert a;
-      }
+  forall a, b | a || !a ensures a && b ==> a {
+    if a && b {
+      assert a;
     }
+    assert a && b ==> a;
   }
+  assert forall a, b | a || !a :: a && b ==> a;
 }
+
+
+
+
 lemma TestExampleDafny2Tactic1() {
   assert forall a, b :: a && b ==> a by {
     forall a, b ensures a && b ==> a {
       if a && b {
-        reveal cases(h, hA, hB), recall(hA);
+        reveal cases(h, hA, hB),
+               recall(hA);
         assert a;
       }
     }
   }
 }
+
+
+
 lemma TestExampleDafny1Tactic2() {
   assert forall a, b :: a && b ==> a by {
     forall a, b ensures a && b ==> a {
