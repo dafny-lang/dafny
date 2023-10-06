@@ -58,22 +58,24 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .SelectMany(r => r.GetResolvedDeclarations().Select(declaration =>
           ((IDeclarationOrUsage)r, declaration))).ToList();
 
-      var relevantDafnySymbolKinds = new HashSet<DafnySymbolKind>();
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Function);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Class);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Enum);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Method);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.EnumMember);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Struct);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Interface);
-      relevantDafnySymbolKinds.Add(DafnySymbolKind.Namespace);
-      // TODO: Since these definitions are checked for whether they
-      //       contain substrings when answering workspace/resolve queries,
-      //       it would improve performance to find a data structure allowing
-      //       to compute this efficiently
+      var relevantDafnySymbolKinds = new HashSet<DafnySymbolKind> {
+        DafnySymbolKind.Function,
+        DafnySymbolKind.Class,
+        DafnySymbolKind.Enum,
+        DafnySymbolKind.Method,
+        DafnySymbolKind.EnumMember,
+        DafnySymbolKind.Struct,
+        DafnySymbolKind.Interface,
+        DafnySymbolKind.Namespace,
+      };
+      // Since these definitions are checked for whether they
+      // contain substrings when answering workspace/resolve queries,
+      // performance can be improved by storing their names in a
+      // data structure that makes this operation cheaper, such as
+      // a suffix tree.
       var definitions = visited
         .OfType<ISymbol>()
-        .Where(symb => relevantDafnySymbolKinds.Contains(symb.Kind))
+        .Where(symbol => relevantDafnySymbolKinds.Contains(symbol.Kind))
         .ToImmutableList();
 
       return new SymbolTable(usages, definitions);
@@ -106,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         = ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty;
 
       public DesignatorVisitor(
-          ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ILegacySymbol rootScope, CancellationToken cancellationToken) {
+        ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ILegacySymbol rootScope, CancellationToken cancellationToken) {
         this.logger = logger;
         this.compilationUnit = compilationUnit;
         this.declarations = declarations;
@@ -336,7 +338,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           moduleSymbol.Declaration.tok,
           moduleSymbol.Declaration.tok.GetLspRange(),
           moduleSymbol.Declaration.RangeToken.ToLspRange()
-          );
+        );
         VisitChildren(moduleSymbol);
         return Unit.Value;
       }

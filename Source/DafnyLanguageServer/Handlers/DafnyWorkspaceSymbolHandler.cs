@@ -32,11 +32,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override async Task<Container<SymbolInformation>?> Handle(WorkspaceSymbolParams request, CancellationToken cancellationToken) {
       var queryText = request.Query.ToLower();
       Dictionary<SymbolInformation, int> result = new Dictionary<SymbolInformation, int>();
-      // Using a LINQ traversal here would be more readable, but to be as responsive
-      // to cancellations as possible, we instead use a loop:
-      foreach (var projManager in projects.Managers) {
+      foreach (var projectManager in projects.Managers) {
         cancellationToken.ThrowIfCancellationRequested();
-        var state = await projManager.GetStateAfterParsingAsync();
+        var state = await projectManager.GetStateAfterParsingAsync();
         foreach (var def in state.SymbolTable.Definitions) {
           cancellationToken.ThrowIfCancellationRequested();
           // CreateLocation called below uses the .Uri field of Tokens which
@@ -45,21 +43,23 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             logger.LogWarning($"Definition without name token in symbol table: {def}");
             continue;
           }
-          // GetDescription is not quite the right thing to use here,
-          // as it includes things like keywords and the signature of the
-          // the definitions. However, extracting just the name from
-          // an ISymbol requires explicit case splitting for each definition
-          var description = def.GetDescription(dafnyOptions);
-          if (description.ToLower().Contains(queryText)) {
+          if (def.NameToken.val == null) {
+            logger.LogWarning($"Definition without name in symbol table: {def}");
+            continue;
+          }
+
+          // This matching could be improved by using the qualified name of the symbol here.
+          var name = def.NameToken.val;
+          if (name.ToLower().Contains(queryText)) {
             // The fewer extra characters there are in the string, the
             // better the match.
-            var dist = description.Length - queryText.Length;
+            var matchDistance = name.Length - queryText.Length;
             result.TryAdd(new SymbolInformation {
-              Name = description,
+              Name = name,
               ContainerName = def.Kind.ToString(),
               Kind = FromDafnySymbolKind(def.Kind),
               Location = Workspace.Util.CreateLocation(def.NameToken)
-            }, dist);
+            }, matchDistance);
           }
         }
       }
