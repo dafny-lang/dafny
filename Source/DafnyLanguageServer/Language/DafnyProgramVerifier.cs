@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
 
-      var verifiableModules = Translator.VerifiableModules(compilation.Program);
+      var verifiableModules = BoogieGenerator.VerifiableModules(compilation.Program);
       if (!verifiableModules.Contains(moduleDefinition)) {
         throw new Exception("tried to get verification tasks for a module that is not verified");
       }
@@ -47,11 +47,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
           Type.ResetScopes();
-          var translatorFlags = new Translator.TranslatorFlags(errorReporter.Options) {
+          var translatorFlags = new BoogieGenerator.TranslatorFlags(errorReporter.Options) {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
             ReportRanges = true
           };
-          var translator = new Translator(errorReporter, new(), translatorFlags);
+          var translator = new BoogieGenerator(errorReporter, new(), translatorFlags);
           return translator.DoTranslation(compilation.Program, moduleDefinition);
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;
@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (engine.Options.PrintFile != null) {
-          var moduleCount = Translator.VerifiableModules(program).Count();
+          var moduleCount = BoogieGenerator.VerifiableModules(program).Count();
           var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }

@@ -30,7 +30,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
-  public partial class Translator {
+  public partial class BoogieGenerator {
     private DafnyOptions options;
     public const string NameSeparator = "$$";
     private bool filterOnlyMembers;
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public Translator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
+    public BoogieGenerator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
@@ -890,7 +890,7 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        var translator = new Translator(reporter, p.ProofDependencyManager, flags);
+        var translator = new BoogieGenerator(reporter, p.ProofDependencyManager, flags);
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has
@@ -1957,7 +1957,7 @@ namespace Microsoft.Dafny {
       public readonly List<Expression/*!*/> ReplacementExprs;
       public readonly List<BoundVar/*!*/> ReplacementFormals;
       public readonly Dictionary<IVariable, Expression> SubstMap;
-      readonly Translator translator;
+      readonly BoogieGenerator boogieGenerator;
       [ContractInvariantMethod]
       void ObjectInvariant() {
         Contract.Invariant(cce.NonNullElements(Formals));
@@ -1967,17 +1967,17 @@ namespace Microsoft.Dafny {
         Contract.Invariant(SubstMap != null);
       }
 
-      public Specialization(IVariable formal, MatchCase mc, Specialization prev, Translator translator) {
+      public Specialization(IVariable formal, MatchCase mc, Specialization prev, BoogieGenerator boogieGenerator) {
         Contract.Requires(formal is Formal || formal is BoundVar);
         Contract.Requires(mc != null);
         Contract.Requires(prev == null || formal is BoundVar || !prev.Formals.Contains((Formal)formal));
-        Contract.Requires(translator != null);
+        Contract.Requires(boogieGenerator != null);
 
-        this.translator = translator;
+        this.boogieGenerator = boogieGenerator;
 
         List<Expression> rArgs = new List<Expression>();
         foreach (BoundVar p in mc.Arguments) {
-          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(translator.currentDeclaration.IdGenerator));
+          IdentifierExpr ie = new IdentifierExpr(p.tok, p.AssignUniqueName(boogieGenerator.currentDeclaration.IdGenerator));
           ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
           rArgs.Add(ie);
         }
@@ -1997,7 +1997,7 @@ namespace Microsoft.Dafny {
         if (prev != null) {
           Formals.AddRange(prev.Formals);
           foreach (var e in prev.ReplacementExprs) {
-            ReplacementExprs.Add(Translator.Substitute(e, null, substMap));
+            ReplacementExprs.Add(BoogieGenerator.Substitute(e, null, substMap));
           }
           foreach (var rf in prev.ReplacementFormals) {
             if (rf != formal) {
@@ -2005,7 +2005,7 @@ namespace Microsoft.Dafny {
             }
           }
           foreach (var entry in prev.SubstMap) {
-            SubstMap.Add(entry.Key, Translator.Substitute(entry.Value, null, substMap));
+            SubstMap.Add(entry.Key, BoogieGenerator.Substitute(entry.Value, null, substMap));
           }
         }
         if (formal is Formal) {
@@ -9626,26 +9626,26 @@ namespace Microsoft.Dafny {
         UsesHeapAt = new List<Label>(usesHeapAt);
         ThisType = thisType;
       }
-      public LetSuchThatExprInfo(LetSuchThatExprInfo template, Translator translator,
+      public LetSuchThatExprInfo(LetSuchThatExprInfo template, BoogieGenerator boogieGenerator,
            Dictionary<IVariable, Expression> substMap,
            Dictionary<TypeParameter, Type> typeMap) {
         Contract.Requires(template != null);
-        Contract.Requires(translator != null);
+        Contract.Requires(boogieGenerator != null);
         Contract.Requires(substMap != null);
         Tok = template.Tok;
         LetId = template.LetId;  // reuse the ID, which ensures we get the same $let functions
         FTVs = template.FTVs;
         FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
         FVs = template.FVs;
-        FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
+        FV_Exprs = template.FV_Exprs.ConvertAll(e => BoogieGenerator.Substitute(e, null, substMap, typeMap));
         UsesHeap = template.UsesHeap;
         UsesOldHeap = template.UsesOldHeap;
         UsesHeapAt = template.UsesHeapAt;
         ThisType = template.ThisType;
       }
-      public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, Translator translator, ExpressionTranslator etran) {
+      public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, BoogieGenerator boogieGenerator, ExpressionTranslator etran) {
         Contract.Requires(bv != null);
-        Contract.Requires(translator != null);
+        Contract.Requires(boogieGenerator != null);
         Contract.Requires(etran != null);
         var args = new List<Expression>();
         if (ThisType != null) {
@@ -9660,11 +9660,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(bv != null);
         return string.Format("$let#{0}_{1}", LetId, bv.Name);
       }
-      public Bpl.Expr CanCallFunctionCall(Translator translator, ExpressionTranslator etran) {
-        Contract.Requires(translator != null);
+      public Bpl.Expr CanCallFunctionCall(BoogieGenerator boogieGenerator, ExpressionTranslator etran) {
+        Contract.Requires(boogieGenerator != null);
         Contract.Requires(etran != null);
         var gExprs = new List<Bpl.Expr>();
-        gExprs.AddRange(Map(FTV_Types, tt => translator.TypeToTy(tt)));
+        gExprs.AddRange(Map(FTV_Types, tt => boogieGenerator.TypeToTy(tt)));
         if (UsesHeap) {
           gExprs.Add(etran.HeapExpr);
         }
@@ -9673,7 +9673,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var heapAtLabel in UsesHeapAt) {
           Bpl.Expr ve;
-          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
+          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator), boogieGenerator.predef.HeapType, out ve);
           gExprs.Add(ve);
         }
         if (ThisType != null) {
@@ -9688,9 +9688,9 @@ namespace Microsoft.Dafny {
       public string CanCallFunctionName() {
         return string.Format("$let#{0}$canCall", LetId);
       }
-      public Bpl.Expr HeapExpr(Translator translator, bool old) {
-        Contract.Requires(translator != null);
-        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", translator.predef.HeapType);
+      public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
+        Contract.Requires(boogieGenerator != null);
+        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.predef.HeapType);
       }
       /// <summary>
       /// "wantFormals" means the returned list will consist of all in-parameters.
@@ -9699,56 +9699,56 @@ namespace Microsoft.Dafny {
       /// the (0, 1, or 2) heap arguments, if there is a "this" parameter at all.
       /// Note, "typeAntecedents" is meaningfully filled only if "etran" is not null.
       /// </summary>
-      public List<Variable> GAsVars(Translator translator, bool wantFormals, out Bpl.Expr typeAntecedents, ExpressionTranslator etran) {
-        Contract.Requires(translator != null);
+      public List<Variable> GAsVars(BoogieGenerator boogieGenerator, bool wantFormals, out Bpl.Expr typeAntecedents, ExpressionTranslator etran) {
+        Contract.Requires(boogieGenerator != null);
         var vv = new List<Variable>();
         // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), translator.predef.Ty, wantFormals)));
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.predef.Ty, wantFormals)));
         typeAntecedents = Bpl.Expr.True;
         if (UsesHeap) {
-          var nv = NewVar("$heap", translator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap", boogieGenerator.predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
             typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
           }
         }
         if (UsesOldHeap) {
-          var nv = NewVar("$heap$old", translator.predef.HeapType, wantFormals);
+          var nv = NewVar("$heap$old", boogieGenerator.predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
             typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
           }
         }
         foreach (var heapAtLabel in UsesHeapAt) {
-          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, wantFormals);
+          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator), boogieGenerator.predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
             // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
             // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
             // let-such-that functions will always be invoked on arguments for which these properties are known.
-            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
             typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
           }
         }
         if (ThisType != null) {
-          var nv = NewVar("this", translator.TrType(ThisType), wantFormals);
+          var nv = NewVar("this", boogieGenerator.TrType(ThisType), wantFormals);
           vv.Add(nv);
           if (etran != null) {
             var th = new Bpl.IdentifierExpr(Tok, nv);
-            typeAntecedents = BplAnd(typeAntecedents, translator.ReceiverNotNull(th));
-            var wh = translator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
+            typeAntecedents = BplAnd(typeAntecedents, boogieGenerator.ReceiverNotNull(th));
+            var wh = boogieGenerator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
             if (wh != null) {
               typeAntecedents = BplAnd(typeAntecedents, wh);
             }
           }
         }
         foreach (var v in FVs) {
-          var nv = NewVar(v.Name, translator.TrType(v.Type), wantFormals);
+          var nv = NewVar(v.Name, boogieGenerator.TrType(v.Type), wantFormals);
           vv.Add(nv);
           if (etran != null) {
-            var wh = translator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
+            var wh = boogieGenerator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
             if (wh != null) {
               typeAntecedents = BplAnd(typeAntecedents, wh);
             }
@@ -9903,55 +9903,55 @@ namespace Microsoft.Dafny {
 
       public int amount;        // Amount of fuel above that represented by start
       private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)
-      private Translator translator;
+      private BoogieGenerator boogieGenerator;
       private CustomFuelSettings customFuelSettings;
 
-      public FuelSetting(Translator translator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
-        this.translator = translator;
+      public FuelSetting(BoogieGenerator boogieGenerator, int amount, Bpl.Expr start = null, CustomFuelSettings customFuelSettings = null) {
+        this.boogieGenerator = boogieGenerator;
         this.amount = amount;
         this.start = start;
         this.customFuelSettings = customFuelSettings;
       }
 
       public FuelSetting Offset(int offset) {
-        return new FuelSetting(translator, this.amount + offset, start);
+        return new FuelSetting(boogieGenerator, this.amount + offset, start);
       }
 
       public FuelSetting Decrease(int offset) {
         Contract.Ensures(this.amount - offset >= 0);
-        return new FuelSetting(translator, this.amount - offset, start);
+        return new FuelSetting(boogieGenerator, this.amount - offset, start);
       }
 
       public FuelSetting WithLayer(Bpl.Expr layer) {
-        return new FuelSetting(translator, amount, layer);
+        return new FuelSetting(boogieGenerator, amount, layer);
       }
 
       public FuelSetting WithContext(CustomFuelSettings settings) {
-        return new FuelSetting(translator, amount, start, settings);
+        return new FuelSetting(boogieGenerator, amount, start, settings);
       }
 
       public Bpl.Expr LayerZero() {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", translator.predef.LayerType);
+        return new Bpl.IdentifierExpr(Token.NoToken, "$LZ", boogieGenerator.predef.LayerType);
       }
 
       public Bpl.Expr LayerN(int n) {
         Contract.Requires(0 <= n);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return translator.LayerSucc(LayerZero(), n);
+        return boogieGenerator.LayerSucc(LayerZero(), n);
       }
 
       public Bpl.Expr LayerN(int n, Bpl.Expr baseLayer) {
         Contract.Requires(0 <= n);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-        return translator.LayerSucc(baseLayer, n);
+        return boogieGenerator.LayerSucc(baseLayer, n);
       }
 
       private Bpl.Expr ToExpr(int amount) {
         if (start == null) {
           return LayerN(amount);
         } else {
-          return translator.LayerSucc(start, amount);
+          return boogieGenerator.LayerSucc(start, amount);
         }
       }
 
@@ -9972,13 +9972,13 @@ namespace Microsoft.Dafny {
           finalFuel = this.ToExpr();
         } else {
           FuelSettingPair setting = null;
-          var found = translator.fuelContext.TryGetValue(f, out setting);
+          var found = boogieGenerator.fuelContext.TryGetValue(f, out setting);
 
           if (!found) {  // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
             setting = FuelAttrib(f, out found);
           }
 
-          FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
+          FuelConstant fuelConstant = boogieGenerator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
             finalFuel = GetFunctionFuel(setting.low > 0 ? setting.low : this.amount, found, fuelConstant);
           } else if (this.amount >= (int)FuelAmount.HIGH) {
@@ -11002,7 +11002,7 @@ namespace Microsoft.Dafny {
       for (var i = 0; i < letExpr.LHSs.Count; i++) {
         substMap.Add(letExpr.LHSs[i].Var, letExpr.RHSs[i]);
       }
-      return Translator.Substitute(letExpr.Body, null, substMap);
+      return BoogieGenerator.Substitute(letExpr.Body, null, substMap);
     }
 
     Bpl.Expr HeapSameOrSucc(Bpl.Expr oldHeap, Bpl.Expr newHeap) {

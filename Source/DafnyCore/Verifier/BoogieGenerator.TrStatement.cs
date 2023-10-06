@@ -10,7 +10,7 @@ using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
-  public partial class Translator {
+  public partial class BoogieGenerator {
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);

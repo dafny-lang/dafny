@@ -637,10 +637,10 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
-      var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
+      var modulesCount = BoogieGenerator.VerifiableModules(dafnyProgram).Count();
 
 
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
+      foreach (var prog in BoogieGenerator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
 
         if (options.PrintFile != null) {
 
