@@ -18,7 +18,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly CreateProjectManager createProjectManager;
     private readonly ILogger<ProjectManagerDatabase> logger;
-    private readonly ExecutionEngine boogieEngine;
 
     private readonly Dictionary<Uri, ProjectManager> managersByProject = new();
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
@@ -37,7 +36,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = logger;
       this.fileSystem = fileSystem;
       this.serverOptions = serverOptions;
-      boogieEngine = new ExecutionEngine(serverOptions, verificationCache);
     }
 
     public async Task OpenDocument(TextDocumentItem document) {
@@ -163,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
-                                    createProjectManager(boogieEngine, project);
+                                    createProjectManager(verificationCache, project);
             projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
           }
         } else {
@@ -180,7 +178,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
           } else {
             if (createOnDemand) {
-              projectManagerForFile = createProjectManager(boogieEngine, project);
+              projectManagerForFile = createProjectManager(verificationCache, project);
               projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
             } else {
               return null;
@@ -249,7 +247,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
     public void Dispose() {
-      boogieEngine.Dispose();
       foreach (var manager in Managers) {
         manager.Dispose();
       }

@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
         .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
-        .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
+        .AddSingleton<CreateProjectManager>(provider => (cache, documentIdentifier) => new ProjectManager(
           provider.GetRequiredService<DafnyOptions>(),
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<IGutterIconAndHoverVerificationDetailsManager>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
-          boogieEngine,
+          cache,
           documentIdentifier))
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {
