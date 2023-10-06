@@ -243,7 +243,6 @@ public class CoverageReporter {
     IToken lastToken = new Token(1, 1);
     var labeledCodeBuilder = new StringBuilder(source.Length);
     foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
-      var r = span.Span;
       AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.StartToken);
       labeledCodeBuilder.Append(OpenHtmlTag(span));
       AppendCodeBetweenTokens(labeledCodeBuilder, lines, span.Span.StartToken, span.Span.EndToken);
@@ -273,11 +272,6 @@ public class CoverageReporter {
   /// <param name="end"></param> tokens to the <param name="stringBuilder"></param>
   /// </summary>
   private static void AppendCodeBetweenTokens(StringBuilder stringBuilder, string[] lines, IToken start, IToken end) {
-    if (end is not null && start.line == end.line && start.col > end.col) {
-      // TODO: warn
-      return;
-    }
-    Console.WriteLine($"Filling in ({start.line}, {start.col}) - ({end?.line}, {end?.col})");
     var startLine = start.line - 1;
     var startCol = start.col - 1;
     var currLine = startLine;

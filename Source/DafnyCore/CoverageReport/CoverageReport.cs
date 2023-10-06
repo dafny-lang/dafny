@@ -43,9 +43,6 @@ public class CoverageReport {
   /// CoverageLabelExtension.Combine. 
   /// </summary>
   public void LabelCode(RangeToken span, CoverageLabel label) {
-    if (!labelsByFile.ContainsKey(span.ActualFilename)) {
-      Console.WriteLine($"No entry for {span.ActualFilename}");
-    }
     if (span.StartToken.CompareTo(span.EndToken) == 0) {
       return;
     }

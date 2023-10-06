@@ -486,7 +486,6 @@ namespace Microsoft.Dafny {
               if (dep is FunctionDefinitionDependency) {
                 continue;
               }
-              Console.WriteLine(dep.RangeString());
               coverageReport.LabelCode(dep.Range,
                 usedDependencies.Contains(dep)
                   ? CoverageLabel.FullyCovered
