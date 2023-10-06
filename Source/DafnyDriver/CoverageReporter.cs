@@ -269,7 +269,8 @@ public class CoverageReporter {
 
   /// <summary>
   /// Append code from <param name="lines"></param> that lies between <param name="start"></param> and
-  /// <param name="end"></param> tokens to the <param name="stringBuilder"></param>
+  /// <param name="end"></param> tokens to the <param name="stringBuilder"></param>. The tokens use
+  /// 1-based indexing, for consistency with other parts of Dafny.
   /// </summary>
   private static void AppendCodeBetweenTokens(StringBuilder stringBuilder, string[] lines, IToken start, IToken end) {
     var startLine = start.line - 1;
