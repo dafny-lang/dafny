@@ -774,6 +774,18 @@ public abstract class Expression : TokenNode {
   }
 
   /// <summary>
+  /// If "expr" is an expression that exists only as a resolved expression, then wrap it in the usual unresolved structure.
+  /// </summary>
+  public static Expression WrapAsParsedStructureIfNecessary(Expression expr, SystemModuleManager systemModuleManager) {
+    if (expr is FunctionCallExpr functionCallExpr) {
+      return WrapResolvedCall(functionCallExpr, systemModuleManager);
+    } else if (expr is MemberSelectExpr memberSelectExpr) {
+      return WrapResolvedMemberSelect(memberSelectExpr);
+    }
+    return expr;
+  }
+
+  /// <summary>
   /// Create a resolved case expression for a match expression
   /// </summary>
   public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {

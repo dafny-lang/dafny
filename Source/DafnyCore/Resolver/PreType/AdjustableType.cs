@@ -135,18 +135,3 @@ public class BottomTypePlaceholder : TypeProxy {
     }
   }
 }
-
-public class ExactTypePlaceholder : TypeProxy {
-  public ExactTypePlaceholder(Type baseType) {
-    T = baseType;
-  }
-
-  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    var baseName = base.TypeName(options, context, parseAble);
-    if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-      return $"/*exact*/{baseName}";
-    } else {
-      return baseName;
-    }
-  }
-}

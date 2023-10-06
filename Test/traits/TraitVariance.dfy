@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /generalTraits:1 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /generalTraits:full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NoVariance {
