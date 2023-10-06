@@ -243,9 +243,15 @@ public class CoverageReporter {
     IToken lastToken = new Token(1, 1);
     var labeledCodeBuilder = new StringBuilder(source.Length);
     foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
-      AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.StartToken);
+      if (span.Span.StartToken.CompareTo(lastToken) > 0) {
+        AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.StartToken);
+      }
       labeledCodeBuilder.Append(OpenHtmlTag(span));
-      AppendCodeBetweenTokens(labeledCodeBuilder, lines, span.Span.StartToken, span.Span.EndToken);
+      if (span.Span.StartToken.CompareTo(lastToken) > 0) {
+        AppendCodeBetweenTokens(labeledCodeBuilder, lines, span.Span.StartToken, span.Span.EndToken);
+      } else if (span.Span.EndToken.CompareTo(lastToken) > 0) {
+        AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.EndToken);
+      }
       labeledCodeBuilder.Append(CloseHtmlTag(span));
       lastToken = span.Span.EndToken;
     }
