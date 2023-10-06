@@ -989,7 +989,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
           }
         }
 
-        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy || inheritsFromObject);
         traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
         return inheritsFromObject;
       }
