@@ -21,6 +21,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
+    [Fact]
+    public async Task LeastLemmaIsVerified() {
+      var source = @"
+least lemma Foo()
+  ensures false
+{}";
+      var document = await CreateOpenAndWaitForResolve(source);
+      var diagnostics = await GetLastDiagnostics(document);
+      Assert.NotEmpty(diagnostics);
+    }
+
     [Fact(Skip = "Not implemented. Requires separating diagnostics from different sources")]
     public async Task FixedParseErrorUpdatesBeforeResolution() {
       var source = @"
@@ -191,24 +202,24 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "GitIssue3062CrashOfLanguageServer.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Equal(7, diagnostics.Length);
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
+      var diagnostics1 = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri).Diagnostics.ToArray();
+      Assert.Equal(7, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
-      diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Equal(5, diagnostics.Length);
-      Assert.Equal("Parser", diagnostics[0].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      var diagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Equal(5, diagnostics2.Length);
+      Assert.Equal("Parser", diagnostics2[0].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
-      diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Equal(8, diagnostics.Length);
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
+      var diagnostics3 = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri).Diagnostics.ToArray();
+      Assert.Equal(8, diagnostics3.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -305,14 +316,14 @@ predicate {:opaque} m() {
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
       ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
       diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Empty(diagnostics);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
     [Fact]
@@ -647,7 +658,6 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
-      await Projects.GetLastDocumentAsync(newVersion); // For debug purposes.
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

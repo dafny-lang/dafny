@@ -5997,7 +5997,7 @@ namespace Microsoft.Dafny {
           // be referred to.
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(new SetType(true, program.SystemModuleManager.ObjectQ())), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
+          Bpl.Expr lhs_inner = FunctionCall(f.tok, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
 
           Bpl.Expr bx; var bxVar = BplBoundVar("$bx", predef.BoxType, out bx);
           Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
@@ -6120,7 +6120,7 @@ namespace Microsoft.Dafny {
       // [Heap, Box, ..., Box] Bool
       var requires_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Bpl.Type.Bool);
       // Set Box
-      var objset_ty = TrType(new SetType(true, program.SystemModuleManager.ObjectQ()));
+      var objset_ty = TrType(program.SystemModuleManager.ObjectSetType());
       // [Heap, Box, ..., Box] (Set Box)
       var reads_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, objset_ty);
 
@@ -7491,10 +7491,11 @@ namespace Microsoft.Dafny {
           || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
       } else {
         cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       }
-      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       return cmd;
     }
 
@@ -9246,7 +9247,7 @@ namespace Microsoft.Dafny {
       builder.Add(AssertNS(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
-        Type objset = new SetType(true, program.SystemModuleManager.ObjectQ());
+        Type objset = program.SystemModuleManager.ObjectSetType();
         Expression wrap = new BoogieWrapper(
           FunctionCall(tok, Reads(1), TrType(objset), args),
           objset);
