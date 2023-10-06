@@ -43,6 +43,7 @@ public class CoverageReport {
   /// CoverageLabelExtension.Combine. 
   /// </summary>
   public void LabelCode(RangeToken span, CoverageLabel label) {
+    Contract.Assert(labelsByFile.ContainsKey(span.ActualFilename));
     if (span.StartToken.CompareTo(span.EndToken) == 0) {
       return;
     }
