@@ -916,7 +916,7 @@ method MultipleGuardConjuncts0(N: nat) {
   // can infer `0 <= s`. Unfortunately, the condition `0 <= N` is encoded in a `where` clause
   // and Boogie's abstract interpretation doesn't look at `where` clauses (https://github.com/boogie-org/boogie/issues/786).
   //
-  // For this reason, /typeSystemRefresh:1 cause a cannot-prove-termination complaint for this
+  // For this reason, /typeSystemRefresh:1 causes a cannot-prove-termination complaint for this
   // method. The nearly identical method MultipleGuardConjuncts0' uses a Dafny precondition for
   // the condition `0 <= N`, which Boogie's abstract interpreter does pick up. So, it verifies.
   var s, b := N, *;
