@@ -15,7 +15,7 @@ public static class DafnyCommands {
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
     FilesArgument = new("file", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
-    }, true, "Dafny input files and/or a Dafny project file");
+    }, false, "Dafny input files and/or a Dafny project file");
   }
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,

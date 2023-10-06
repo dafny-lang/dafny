@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 
 namespace Microsoft.Dafny.Plugins;
@@ -18,11 +19,6 @@ public abstract class IExecutableBackend {
   /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
   /// </summary>
   public abstract IReadOnlySet<string> SupportedExtensions { get; }
-
-  /// <summary>
-  /// Additional information to description this back-end.
-  /// </summary>
-  public virtual string Notes => "";
 
   /// <summary>
   /// Human-readable string describing the target of this compiler.
@@ -174,4 +170,8 @@ public abstract class IExecutableBackend {
   /// Instruments the underlying SinglePassCompiler, if it exists.
   /// </summary>
   public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram);
+
+  public virtual Command GetCommand() {
+    return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+  }
 }
