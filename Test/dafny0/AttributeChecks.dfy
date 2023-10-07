@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny verify --print:- --show-snippets:false --bprint:"%t.print" --reads-clauses-on-methods "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify --use-basename-for-filename --print:- --show-snippets:false --bprint:"%t.print" --reads-clauses-on-methods "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module JustAboutEverything {
