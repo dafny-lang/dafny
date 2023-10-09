@@ -419,4 +419,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     });
     return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
   }
+
+  protected async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    source = source.TrimStart();
+    if (includeProjectFile) {
+      var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    }
+    var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var document = await Projects.GetLastDocumentAsync(documentItem);
+    Assert.NotNull(document);
+    return documentItem;
+  }
 }
