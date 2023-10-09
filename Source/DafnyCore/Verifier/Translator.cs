@@ -3466,10 +3466,18 @@ namespace Microsoft.Dafny {
     }
 
     internal IToken GetToken(INode node) {
-      if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
-        return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
+      if (flags.ReportRanges) {
+        // Filter against IHasUsages to only select declarations, not usages.
+        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasUsages) {
+          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
+        }
+        return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
+      } else {
+        // The commented is line what we want, but it changes what is translated.
+        // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken
+        // return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
+        return node.Tok;
       }
-      return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {

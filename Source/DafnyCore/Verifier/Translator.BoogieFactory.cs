@@ -896,7 +896,7 @@ namespace Microsoft.Dafny {
 
     public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken exprTok) {
       if (exprTok is BoogieRangeToken boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center != null) {
+        if (!reportRanges && boogieRangeToken.Center is not null) {
           return boogieRangeToken.Center;
         }
 
