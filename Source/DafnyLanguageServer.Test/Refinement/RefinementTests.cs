@@ -31,7 +31,6 @@ module B refines A {
     Assert.NotEmpty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
   }
 
-  public RefinementTests(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
-  {
+  public RefinementTests(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }
