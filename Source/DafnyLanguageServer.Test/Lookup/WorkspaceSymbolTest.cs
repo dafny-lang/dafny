@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -18,6 +17,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     [Fact]
     public async Task WorkspaceSymbolsAcrossFiles() {
       var cwd = Directory.GetCurrentDirectory();
+      // These tests are not inlined since a later test uses only "includes-foo.dfy", but not
+      // "defines-foo.dfy" but relies on the former existing. This would complicate
+      // the test setup when inlining the file contents.
       var pathA = Path.Combine(cwd, "Lookup/TestFiles/defines-foo.dfy");
       var pathB = Path.Combine(cwd, "Lookup/TestFiles/includes-foo.dfy");
       var documentItemA = CreateTestDocument(await File.ReadAllTextAsync(pathA), pathA);
@@ -32,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         }
       );
       Assert.Single(matchesFo);
-      Assert.Contains(matchesFo, si => si.Name == "method foo() returns (x: int)" &&
+      Assert.Contains(matchesFo, si => si.Name == "foo" &&
                                        si.Kind == SymbolKind.Method &&
                                        si.Location.Uri.ToString().EndsWith("defines-foo.dfy"));
 
@@ -41,33 +43,47 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
           Query = "bar"
         });
       Assert.Single(matchesBar);
-      Assert.Contains(matchesBar, si => si.Name == "method bar() returns (x: int)" &&
+      Assert.Contains(matchesBar, si => si.Name == "bar" &&
                                         si.Kind == SymbolKind.Method &&
                                         si.Location.Uri.ToString().EndsWith("includes-foo.dfy"));
     }
 
     [Fact]
     public async Task AllRelevantSymbolKindsDetected() {
-      var cwd = Directory.GetCurrentDirectory();
-      var pathA = Path.Combine(cwd, "Lookup/TestFiles/test-workspace-symbols.dfy");
-      var documentItemA = CreateTestDocument(await File.ReadAllTextAsync(pathA), pathA);
+      var documentItem = await GetDocumentItem(@"
+class TestClass {}
 
-      await client.OpenDocumentAndWaitAsync(documentItemA, CancellationToken);
+module TestModule {}
 
-      var testSymbols = new List<string>();
-      testSymbols.Add("TestClass");
-      testSymbols.Add("TestModule");
-      testSymbols.Add("TestFunction");
-      testSymbols.Add("TestDatatype");
-      testSymbols.Add("TestConstructor");
-      testSymbols.Add("TestTrait");
-      testSymbols.Add("TestPredicate");
+function TestFunction(): int { 42 }
+
+method TestMethod() returns (x: int) {
+  x := 42;
+}
+
+datatype TestDatatype = TestConstructor
+
+trait TestTrait {}
+
+predicate TestPredicate { false }", "test-workspace-symbols.dfy", false);
+
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var testSymbols = new List<string> {
+        "TestClass",
+        "TestModule",
+        "TestFunction",
+        "TestDatatype",
+        "TestConstructor",
+        "TestTrait",
+        "TestPredicate",
+      };
 
       var response = await client.RequestWorkspaceSymbols(new WorkspaceSymbolParams {
         Query = "test"
       });
       foreach (var testSymbol in testSymbols) {
-        Assert.True(response.Any(symb => symb.Name.Contains(testSymbol)),
+        Assert.True(response.Any(symbol => symbol.Name.Contains(testSymbol)),
           $"Could not find {testSymbol}");
       }
     }
@@ -84,15 +100,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         Query = "foo"
       });
       Assert.Single(response);
-      Assert.Contains(response, symb => symb.Name == "method foo() returns (x: int)" &&
-                                        symb.Location.Uri.ToString().EndsWith("defines-foo.dfy"));
+      Assert.Contains(response, symbol => symbol.Name == "foo" &&
+                                        symbol.Location.Uri.ToString().EndsWith("defines-foo.dfy"));
     }
 
     [Fact]
     public async Task TwoMatchesOrderedCorrectly() {
-      var cwd = Directory.GetCurrentDirectory();
-      var path = Path.Combine(cwd, "Lookup/TestFiles/multiple-matches.dfy");
-      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
+      var documentItem = await GetDocumentItem(@"method longerNameWithFooInIt() returns (x: int) {
+    x := 42;
+}
+
+method prefixFoo() returns (x: int) {
+    x := 23;
+}", "multiple-matches.dfy", false);
+
 
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 

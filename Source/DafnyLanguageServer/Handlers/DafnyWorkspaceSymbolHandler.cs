@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Container<SymbolInformation>?> Handle(WorkspaceSymbolParams request, CancellationToken cancellationToken) {
       var queryText = request.Query.ToLower();
-      Dictionary<SymbolInformation, int> result = new Dictionary<SymbolInformation, int>();
+      var result = new Dictionary<SymbolInformation, int>();
       foreach (var projectManager in projects.Managers) {
         cancellationToken.ThrowIfCancellationRequested();
         var state = await projectManager.GetStateAfterParsingAsync();
