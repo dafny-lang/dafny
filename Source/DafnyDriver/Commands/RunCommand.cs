@@ -21,15 +21,24 @@ class RunCommand : ICommandSpec {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       }
     });
-
+    
+    DafnyOptions.RegisterLegacyBinding(MainOverride, (options, value) => {
+      options.MainMethod = value;
+    });
+    
     DooFile.RegisterNoChecksNeeded(
-      Inputs
+      Inputs,
+      MainOverride
     );
   }
+
+  private static readonly Option<string> MainOverride =
+    new("--main-method", "Override the method called to start the program, using a fully qualified method name.");
 
   public IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
+      MainOverride,
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
