@@ -21,11 +21,11 @@ class RunCommand : ICommandSpec {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       }
     });
-    
+
     DafnyOptions.RegisterLegacyBinding(MainOverride, (options, value) => {
       options.MainMethod = value;
     });
-    
+
     DooFile.RegisterNoChecksNeeded(
       Inputs,
       MainOverride
