@@ -9779,7 +9779,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
-      
+
       public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
@@ -10186,7 +10186,7 @@ namespace Microsoft.Dafny {
     SplitExprInfo ToSplitExprInfo(SplitExprInfo.K kind, Expr e) {
       return new SplitExprInfo(flags.ReportRanges, kind, e);
     }
-    
+
     public class SplitExprInfo {
       public enum K { Free, Checked, Both }
       public K Kind;

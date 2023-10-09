@@ -313,7 +313,7 @@ public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
   public IToken StartToken { get; }
   public IToken EndToken { get; }
-  
+
   /// <summary>
   /// If only a single position is used to refer to this piece of code, this position is the best
   /// </summary>
