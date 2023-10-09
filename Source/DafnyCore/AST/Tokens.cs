@@ -313,16 +313,20 @@ public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
   public IToken StartToken { get; }
   public IToken EndToken { get; }
-  public IToken NameToken { get; }
+  
+  /// <summary>
+  /// If only a single position is used to refer to this piece of code, this position is the best
+  /// </summary>
+  public IToken Center { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
 
-  public BoogieRangeToken(IToken startTok, IToken endTok, IToken nameToken) : base(
-    nameToken ?? startTok) {
+  public BoogieRangeToken(IToken startTok, IToken endTok, IToken center) : base(
+    center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;
-    NameToken = nameToken;
+    Center = center;
   }
 
   public override IToken WithVal(string newVal) {

@@ -894,10 +894,10 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(Bpl.IToken exprTok) {
+    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken exprTok) {
       if (exprTok is BoogieRangeToken boogieRangeToken) {
-        if (boogieRangeToken.NameToken != null) {
-          return boogieRangeToken.NameToken;
+        if (!reportRanges && boogieRangeToken.Center != null) {
+          return boogieRangeToken.Center;
         }
 
         return boogieRangeToken;

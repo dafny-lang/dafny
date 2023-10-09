@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public static Range GetLspRange(this Boogie.IToken startToken, bool nameRange = false) {
       if (startToken is BoogieRangeToken boogieRangeToken) {
         return nameRange
-          ? (boogieRangeToken.NameToken ?? boogieRangeToken.StartToken).GetLspRange()
+          ? (boogieRangeToken.Center ?? boogieRangeToken.StartToken).GetLspRange()
           : GetLspRangeGeneric(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
       var endToken = startToken;
