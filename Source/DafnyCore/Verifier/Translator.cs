@@ -3473,8 +3473,12 @@ namespace Microsoft.Dafny {
         }
         return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
       } else {
-        // The commented is line what we want, but it changes what is translated.
+        // The commented line is what we want, but it changes what is translated.
         // Seems to relate to refinement and possibly RefinementToken.IsInherited and or ForceCheckToken
+        // It might be better to remove calls to RefinementToken.IsInherited from this file, and instead
+        // add generic attributes like {:verify false} in the refinement phases, so that refinement does not complicate
+        // translation,
+        //
         // return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);
         return node.Tok;
       }
