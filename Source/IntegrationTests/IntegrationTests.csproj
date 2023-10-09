@@ -5,7 +5,7 @@
         <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
-        <DefaultItemExcludes>$(DefaultItemExcludes);Test\**\*.*</DefaultItemExcludes>
+        <DefaultItemExcludes>$(DefaultItemExcludes);TestFiles\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -49,6 +49,10 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="TestFiles\LitTests\" />
     </ItemGroup>
     
 </Project>
