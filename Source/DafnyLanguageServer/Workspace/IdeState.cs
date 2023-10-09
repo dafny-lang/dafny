@@ -122,7 +122,7 @@ public static class Util {
     };
   }
 
-  private static Location CreateLocation(IToken token) {
+  public static Location CreateLocation(IToken token) {
     var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),
