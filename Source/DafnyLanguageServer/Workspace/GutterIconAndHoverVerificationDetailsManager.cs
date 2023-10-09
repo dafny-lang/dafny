@@ -327,19 +327,10 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
       return;
     }
 
-    var vcResults = verificationResult.VCResults.Select(r =>
-      new DafnyConsolePrinter.VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
-        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
-        r.resourceCount)
-    ).ToList();
-    var res = new DafnyConsolePrinter.VerificationResultLogEntry(
-      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
-      verificationResult.ResourceCount, vcResults);
-
     ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
       compilation.Program.ProofDependencyManager,
-      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok)
-      , res);
+      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
+      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
     compilation.RefreshDiagnosticsFromProgramReporter();
   }
 
