@@ -26,7 +26,7 @@ namespace DafnyTestGeneration {
     private const string BlockVarNamePrefix = "block";
     // Dafny will try to generate tests for paths through the program of increasingly greater length,
     // PathLengthStep determines the increments by which Dafny should increase maximum path length in-between attempts
-    private const int PathLengthStep = 5;
+    private const int PathLengthStep = 20;
 
     public PathBasedModifier(Modifications modifications) {
       this.modifications = modifications;

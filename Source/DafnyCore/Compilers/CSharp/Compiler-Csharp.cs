@@ -2809,7 +2809,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || from.IsRefType == to.IsRefType);
+      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || from.IsRefType == to.IsRefType);
 
       var w = new ConcreteSyntaxTree();
       if (from.IsTraitType && to.AsNewtype != null) {
