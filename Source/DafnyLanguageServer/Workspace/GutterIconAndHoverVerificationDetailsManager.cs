@@ -309,29 +309,11 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
           targetMethodNode.StatusVerification = finalOutcome;
         }
 
-        var options = compilation.Program.Reporter.Options;
-        ReportVacuityAndRedundantAssumptionsChecks(compilation, implementation, verificationResult, options);
-
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
         PublishGutterIcons(compilation, uri, true);
       }
     }
-  }
-
-  private static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
-    Implementation implementation, VerificationResult verificationResult, DafnyOptions options) {
-    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
-        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
-       ) {
-      return;
-    }
-
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
-      compilation.Program.ProofDependencyManager,
-      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
-      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
-    compilation.RefreshDiagnosticsFromProgramReporter();
   }
 
   private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {

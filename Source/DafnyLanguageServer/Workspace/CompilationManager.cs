@@ -273,6 +273,7 @@ public class CompilationManager : IDisposable {
                   new AssertionBatchResult(task.Implementation, result));
               }
 
+              ReportVacuityAndRedundantAssumptionsChecks(compilation, task.Implementation, completedCache.Result);
               gutterIconManager.ReportEndVerifyImplementation(compilation, task.Implementation,
                 completedCache.Result);
             }
@@ -410,12 +411,29 @@ public class CompilationManager : IDisposable {
         gutterIconManager.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
+      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
       gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
     compilationUpdates.OnNext(compilation);
   }
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+
+  public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+    Implementation implementation, VerificationResult verificationResult) {
+    var options = compilation.Program.Reporter.Options;
+    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
+       ) {
+      return;
+    }
+
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
+      compilation.Program.ProofDependencyManager,
+      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
+      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
+    compilation.RefreshDiagnosticsFromProgramReporter();
+  }
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
