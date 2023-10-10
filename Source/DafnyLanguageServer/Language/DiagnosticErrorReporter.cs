@@ -77,18 +77,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
 
-    public static string FormatRelated(string related) {
+    private static string FormatRelated(string related) {
       return $"Could not prove: {related}";
     }
 
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      if (tokenForMessage is BoogieRangeToken range) {
+      var dafnyToken = Translator.ToDafnyToken(true, tokenForMessage);
+      if (dafnyToken is RangeToken rangeToken) {
         if (message == PostConditionFailingMessage) {
-          var postcondition = range.PrintOriginal();
+          var postcondition = rangeToken.PrintOriginal();
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          message = FormatRelated(range.PrintOriginal());
+          message = FormatRelated(rangeToken.PrintOriginal());
         }
       }
 
