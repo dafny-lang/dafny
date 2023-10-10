@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using Dafny;
-using DCOMPR;
+using DCOMPD;
 
 namespace Microsoft.Dafny.Compilers {
 
-  class RustCompiler : DafnyWrittenCompiler {
+  class FDafnyCompiler : DafnyWrittenCompiler {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
       return COMP.Compile(program);
