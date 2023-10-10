@@ -20,13 +20,14 @@ module {:extern ""DCOMPD""} DCOMP {
     static method Compile(p: seq<Module>) returns (s: string)
       decreases p
     {
+      print p;
       s := ""Hello"";
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string)
       decreases fullName
     {
-      s := ""World"";
+      s := ""Emit Main"";
     }
   }
 }
@@ -119,13 +120,14 @@ namespace DCOMPD {
     public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p)
     {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
+      Dafny.Helpers.Print((p));
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Hello");
       return s;
     }
     public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName)
     {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("World");
+      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Emit Main");
       return s;
     }
   }
