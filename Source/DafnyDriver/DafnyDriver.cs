@@ -472,27 +472,10 @@ namespace Microsoft.Dafny {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
           var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
           if (coverageReportDir != null) {
-            var allDependencies =
-              depManager
-                .GetAllPotentialDependencies()
-                .OrderBy(dep => dep.Range.StartToken);
-            var usedDependencies =
-              boogiePrograms
-                .SelectMany(tp => tp.Item2.AllCoveredElements)
-                .Select(depManager.GetFullIdDependency)
-                .ToHashSet();
-            var coverageReport = new CoverageReport("Verification coverage", "Lines", "_verification", dafnyProgram);
-            foreach (var dep in allDependencies) {
-              if (dep is FunctionDefinitionDependency) {
-                continue;
-              }
-              coverageReport.LabelCode(dep.Range,
-                usedDependencies.Contains(dep)
-                  ? CoverageLabel.FullyCovered
-                  : CoverageLabel.NotCovered);
-            }
-
-            new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
+            CoverageReporter.SerializeVerificationCoverageReport(
+              depManager, dafnyProgram, options,
+              boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
+              coverageReportDir);
           }
         }
 

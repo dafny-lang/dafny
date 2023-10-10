@@ -115,6 +115,17 @@ namespace DafnyTestGeneration {
       if (coverageReport == null) {
         return;
       }
+
+      var source = new StreamReader(program.GetStartOfFirstFileToken().ActualFilename).ReadToEnd();
+      var lines = source.Split("\n");
+      var pos = 0;
+      var line = 0;
+      var linePositions = new int[lines.Length];
+      while (pos < source.Length) {
+        linePositions[line] = pos;
+        pos += lines[line].Length + 1;
+        line++;
+      }
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
@@ -142,8 +153,10 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 1));
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber, lines[lineNumber].Length));
           rangeToken.Uri = uri;
+          rangeToken.StartToken.pos = linePositions[lineNumber];
+          rangeToken.EndToken.pos = linePositions[lineNumber] + lines[lineNumber].Length;
           coverageReport.LabelCode(rangeToken,
             coveredStates.Contains(state)
               ? CoverageLabel.FullyCovered
