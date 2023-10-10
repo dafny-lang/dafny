@@ -444,7 +444,7 @@ of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
 ### 11.2.16. `{:tailrecursion}`
-This attribute is used on method declarations. It has a boolean argument.
+This attribute is used on method or function declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
 requested no tail recursion, so none is done.
@@ -458,6 +458,79 @@ recursion was explicitly requested.
 * Only direct recursion is supported, not mutually recursive methods.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
+
+If you have a stack overflow, it might be that you have
+a function on which automatic attempts of tail recursion
+failed, but it should still be doable in theory. In which case,
+use a [function by method](#sec-function-by-method) and
+define the loop in the method yourself,
+proving that it implements the function.
+
+Implementing a function by method to implement recursion can
+be tricky. It usually helps to look at the result of the function
+on two to three iterations, without simplification,
+and see what should be the first computation. For example,
+consider the following tail-recursion implementation:
+
+<!-- %check-verify -->
+```dafny
+function f(x: int): Option<int>
+
+datatype Option<A> = Some(value: A) | None
+
+//  {:tailrecursion true}  Not possible here
+function MakeTailRec(
+  obj: seq<int>
+): Option<seq<int>>
+{
+  if |obj| == 0 then Some([])
+  else
+    var r := f(obj[0]);
+    if r.None? then None else
+    var tail := MakeTailRec(obj[1..]);
+    if tail.None? then None else
+    Some([r.value] + tail.value)
+} by method {
+  var i: nat := |obj|;
+  var result: seq<int> := []; // Base case
+  while i != 0
+    decreases i
+    invariant Some(result) == MakeTailRec(obj[i..])
+  {
+    var x := obj[i-1];
+    var r := f(x);
+    if r.None? {
+      ghost var j := i - 1;
+      while j != 0 decreases j invariant j >= 0
+        invariant None == MakeTailRec(obj[j..])
+      {
+        j := j - 1;
+      }
+      return None;
+    }
+    i := i - 1;
+    result := [r.value] + result;
+  }
+  return Some(result);
+}
+```
+
+Here Dafny proves everything because, if you
+unrolled the function on `[1, 2, 3]`, assuming
+the intermediate states succeeded, you'd end up
+with the result `Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
+If you had to compute this expression manually, you'd start with
+`([f(3).value] + [])`, then add `[f(2).value]` to the left, then 
+`[f(1).value]`.
+This is why the method loop iterates with the objects
+from the end, and why the intermediate invariants are
+all about proving `result == MakeTailRec(obj[i..])`, which
+makes verification succeed easily because we replicate
+exactly the behavior of `MakeTailRec`.
+Early exit of the function can be modelled via a ghost
+while loop that will just "finish" all the remaining iterations,
+as if it was returning from all different stack frames,
+but it won't have any performance penalty.
 
 ### 11.2.17. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
