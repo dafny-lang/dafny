@@ -20,6 +20,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
+  CustomStackSizePoolTaskScheduler scheduler,
   VerificationResultCache verificationCache,
   DafnyProject project);
 
@@ -71,6 +72,7 @@ public class ProjectManager : IDisposable {
     IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
+    CustomStackSizePoolTaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
@@ -84,7 +86,7 @@ public class ProjectManager : IDisposable {
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
-    this.boogieEngine = new ExecutionEngine(options, cache);
+    this.boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var initialCompilation = CreateInitialCompilation();
     var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
     latestIdeState = new Lazy<IdeState>(initialIdeState);
