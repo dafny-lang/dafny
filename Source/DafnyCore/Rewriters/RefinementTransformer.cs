@@ -58,7 +58,8 @@ namespace Microsoft.Dafny {
       }
 
       var rtok = tok as RefinementToken;
-      return rtok != null && rtok.InheritingModule == m;
+      var result = rtok != null && rtok.InheritingModule == m;
+      return result;
     }
 
     public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
