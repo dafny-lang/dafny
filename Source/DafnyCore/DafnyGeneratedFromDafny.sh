@@ -21,6 +21,7 @@ fi
 
 ../../Scripts/dafny translate cs --output $output.cs AST/Formatting.dfy
 ../../Scripts/dafny translate cs --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
+../../Scripts/dafny translate cs --output "${output}FDafny.cs" Compilers/FDafny/Dafny-compiler-fdafny.dfy
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:
