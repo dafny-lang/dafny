@@ -356,7 +356,7 @@ function Id<T>(t: T): T { t }
 ", "testfile2.dfy", true);
       await AssertHoverMatches(documentItem, (9, 20),
         @"**Error:**???assertion might not hold???
-Could not prove: `i > 0`  "
+      Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
       @"**Error:**???assertion might not hold???

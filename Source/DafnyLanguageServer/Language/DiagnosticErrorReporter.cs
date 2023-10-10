@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public void ReportBoogieError(ErrorInformation error) {
+    public void ReportBoogieError(ErrorInformation error, bool useRange = true) {
       var relatedInformation = new List<DafnyRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
       }
 
-      var dafnyToken = Translator.ToDafnyToken(true, error.Tok);
+      var dafnyToken = Translator.ToDafnyToken(useRange, error.Tok);
       var uri = GetUriOrDefault(dafnyToken);
       var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
         VerifierMessageSource, ErrorLevel.Error, relatedInformation);

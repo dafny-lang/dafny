@@ -198,14 +198,6 @@ public abstract class TokenWrapper : IToken {
 
 public static class TokenExtensions {
 
-  public static string TokenToString(this Boogie.IToken tok, DafnyOptions options) {
-    if (tok is IToken dafnyToken) {
-      return dafnyToken.TokenToString(options);
-    }
-
-    return $"{tok.filename}({tok.line},{tok.col - 1})";
-  }
-
   public static string TokenToString(this IToken tok, DafnyOptions options) {
     if (tok.Uri == null) {
       return $"({tok.line},{tok.col - 1})";

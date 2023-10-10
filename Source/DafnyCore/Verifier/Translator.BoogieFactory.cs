@@ -900,7 +900,7 @@ namespace Microsoft.Dafny {
           return boogieRangeToken.Center;
         }
 
-        return boogieRangeToken;
+        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
       if (exprTok == null) {
         return null;
@@ -912,7 +912,7 @@ namespace Microsoft.Dafny {
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
-          col = exprTok.col,
+          col = exprTok.col - 1,
           Uri = new Uri("untitled:" + exprTok.filename),
           kind = exprTok.kind,
           LeadingTrivia = "",

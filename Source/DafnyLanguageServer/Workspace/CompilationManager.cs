@@ -370,7 +370,7 @@ public class CompilationManager : IDisposable {
   private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify verifiable, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var status = StatusFromBoogieStatus(boogieStatus);
 
-    var tokenString = implementationTask.Implementation.tok.TokenToString(options);
+    var tokenString = Translator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
     var implementations = compilation.ImplementationsPerVerifiable[verifiable];
 
     var implementationName = GetImplementationName(implementationTask.Implementation);
@@ -425,7 +425,7 @@ public class CompilationManager : IDisposable {
     }
 
     var implementation = task.Implementation;
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);
 
