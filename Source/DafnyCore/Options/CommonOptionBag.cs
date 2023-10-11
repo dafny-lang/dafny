@@ -76,6 +76,12 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+    "Specify the filepath that determines where to place and how to name build files.") {
+    ArgumentHelpName = "file",
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
@@ -343,6 +349,9 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
+
+    DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
+
     DafnyOptions.RegisterLegacyBinding(Libraries,
       (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });

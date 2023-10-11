@@ -28,7 +28,8 @@ public class RunCommand : ICommandSpec {
 
     DooFile.RegisterNoChecksNeeded(
       Inputs,
-      MainOverride
+      MainOverride,
+      CommonOptionBag.BuildFile
     );
   }
 
@@ -39,6 +40,7 @@ public class RunCommand : ICommandSpec {
     new Option[] {
       Inputs,
       MainOverride,
+      CommonOptionBag.BuildFile,
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
@@ -57,8 +59,6 @@ public class RunCommand : ICommandSpec {
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
-    var inputFile = context.ParseResult.GetValueForArgument(CommandRegistry.FileArgument);
-    dafnyOptions.CliRootSourceUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
