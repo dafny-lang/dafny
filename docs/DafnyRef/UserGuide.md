@@ -1460,43 +1460,47 @@ There are many great options that control various aspects of verifying dafny pro
 
 You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
-### 13.6.5. Debugging variable verification
+### 13.6.5. Debugging brittle verification
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
-potential error after minor, valid changes. This is ultimately due to
-decidability limitations in the form of automated reasoning that Dafny
-uses. The Z3 SMT solver that Dafny depends on attempts to efficiently
-search for proofs, but does so using both incomplete heuristics and a
-degree of randomness, with the result that it can sometimes fail to find
-a proof even when one exists (or continue searching forever).
+potential error after minor, valid changes. We refer to such a proof
+obligation as _brittle_. This is ultimately due to decidability
+limitations in the form of automated reasoning that Dafny uses. The Z3
+SMT solver that Dafny depends on attempts to efficiently search for
+proofs, but does so using both incomplete heuristics and a degree of
+randomness, with the result that it can sometimes fail to find a proof
+even when one exists (or continue searching forever).
 
 Dafny provides some features to mitigate this issue, primarily focused
 on early detection. The philosophy is that, if Dafny programmers are
-alerted to proofs that show early signs of variability, before they are
-obviously so, they can refactor the proofs to make them less variable
+alerted to proofs that show early signs of brittleness, before they are
+obviously so, they can refactor the proofs to make them less brittle
 before further development becomes difficult.
 
 The mechanism for early detection focuses on measuring the resources
-used to complete a proof (either using duration or a more deterministic
-"resource count" metric available from Z3). Dafny can re-run a given
-proof attempt multiple times after automatically making minor changes to
-the structure of the input or to the random choices made by the solver.
-If the resources used during these attempts (or the ability to find a
-proof at all) vary widely, we say that the verification of the relevant
-properties is _highly variable_.
+used to discharge a proof obligation (either using duration or a more
+deterministic "resource count" metric available from Z3). Dafny can
+re-run a given proof attempt multiple times after automatically making
+minor changes to the structure of the input or to the random choices
+made by the solver.  If the resources used during these attempts (or the
+ability to find a proof at all) vary widely, we use this as a proxy
+metric indicating that the proof may be brittle.
 
-#### 13.6.5.1. Measuring proof variability
+#### 13.6.5.1. Measuring proof brittleness
 
-To measure the variability of your proofs, start by using the
-`-randomSeedIterations:N` flag to instruct Dafny to attempt each proof
-goal `N` times, using a different random seed each time. The random seed
-used for each attempt is derived from the global random seed `S`
-specified with `-randomSeed:S`, which defaults to `0` (which means use
-an arbitrary -- e.g. clock-based -- seed).
+To measure the brittleness of your proofs, start by using the `dafny
+measure-complexity` command with the `--iterations N` flag to instruct
+Dafny to attempt each proof goal `N` times, using a different random
+seed each time. The random seed used for each attempt is derived from
+the global random seed `S` specified with `-randomSeed:S`, which
+defaults to `0`. The random seed affects the structure of the SMT
+queries sent to the solver, changing the ordering of SMT commands, the
+variable names used, and the random seed the solver itself uses when
+making decisions that can be arbitary.
 
 For most use cases, it also makes sense to specify the
-`-verificationLogger:csv` flag, to log verification cost statistics to a
+`--log-format csv` flag, to log verification cost statistics to a
 CSV file. By default, the resulting CSV files will be created in the
 `TestResults` folder of the current directory.
 
@@ -1524,20 +1528,20 @@ than 20%, perhaps even as low as 5%. However, when beginning to analyze
 a new project, it may be necessary to set limits as high as a few
 hundred percent and incrementally ratchet down the limit over time.
 
-When first analyzing proof variability, you may also find that certain proof
+When first analyzing proof brittleness, you may also find that certain proof
 goals succeed on some iterations and fail on others. If your aim is
-first to ensure that variability doesn't worsen and then to start
-improving it, integrating `dafny-reportgenerator` into CI and using the
+first to ensure that brittleness doesn't worsen and then to start
+reducing it, integrating `dafny-reportgenerator` into CI and using the
 `--allow-different-outcomes` flag may be appropriate. Then, once you've
-improved variability sufficiently, you can likely remove that flag (and
-likely have significantly lower limits on other variability metrics).
+improved brittleness sufficiently, you can likely remove that flag (and
+likely have significantly lower limits on other metrics).
 
-#### 13.6.5.2. Improving proof variability
+#### 13.6.5.2. Reducing proof brittleness
 
-Improving proof variability is typically closely related to improving
+Reducing proof brittleness is typically closely related to improving
 performance overall. As such, [techniques for debugging slow
 verification](#sec-verification-debugging-slow) are typically useful for
-debugging highly variable verification, as well. See also the
+debugging brittle proofs, as well. See also the
 [verification optimization
 guide](../VerificationOptimization/VerificationOptimization).
 
