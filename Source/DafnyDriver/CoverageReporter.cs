@@ -43,7 +43,7 @@ public class CoverageReporter {
   }
 
 
-  public static void SerializeVerificationCoverageReport(ProofDependencyManager depManager, Program dafnyProgram, DafnyOptions options, IEnumerable<TrackedNodeComponent> usedComponents, string coverageReportDir) {
+  public void SerializeVerificationCoverageReport(ProofDependencyManager depManager, Program dafnyProgram, IEnumerable<TrackedNodeComponent> usedComponents, string coverageReportDir) {
     var usedDependencies =
       usedComponents.Select(depManager.GetFullIdDependency).ToHashSet();
     var allDependencies =
@@ -61,7 +61,7 @@ public class CoverageReporter {
           : CoverageLabel.NotCovered);
     }
 
-    new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
+    SerializeCoverageReports(coverageReport, coverageReportDir);
   }
 
   public void Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {

@@ -472,8 +472,8 @@ namespace Microsoft.Dafny {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
           var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
           if (coverageReportDir != null) {
-            CoverageReporter.SerializeVerificationCoverageReport(
-              depManager, dafnyProgram, options,
+            new CoverageReporter(options).SerializeVerificationCoverageReport(
+              depManager, dafnyProgram,
               boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
               coverageReportDir);
           }
