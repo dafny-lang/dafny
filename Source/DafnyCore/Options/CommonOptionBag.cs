@@ -32,8 +32,7 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.") {
-  };
+    "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
     "Warn about the use of deprecated features (default true).") {
@@ -44,8 +43,7 @@ true - In the compiled target code, transform any non-extern
 (experimental, will be replaced in the future)
 Reduce Dafny's knowledge of non-linear arithmetic (*,/,%).
   
-Results in more manual work, but also produces more predictable behavior.".TrimStart()) {
-  };
+Results in more manual work, but also produces more predictable behavior.".TrimStart());
 
   public static readonly Option<bool> EnforceDeterminism = new("--enforce-determinism",
     "Check that only deterministic statements are used, so that values seen during execution will be the same in every run of the program.") {
@@ -76,6 +74,12 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+    "Specify the filepath that determines where to place and how to name build files.") {
+    ArgumentHelpName = "file",
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
@@ -90,7 +94,8 @@ receive arguments. More information about what plugins do and how
 to define them:
 
 https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins") {
-    ArgumentHelpName = "path-to-one-assembly[,argument]*"
+    ArgumentHelpName = "path-to-one-assembly[,argument]*",
+    IsHidden = true
   };
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
@@ -150,10 +155,17 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
-  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
+  public enum GeneralTraitsOptions {
+    Legacy,
+    Datatype,
+    Full
+  }
+
+  public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
     @"
-false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
-true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
   };
 
@@ -263,9 +275,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
     DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseBoolean, "Language feature selection", "generalTraits", @"
+    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
 0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
-1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(), false);
+1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -377,6 +389,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
+
+    DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
+
     DafnyOptions.RegisterLegacyBinding(Libraries,
       (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });

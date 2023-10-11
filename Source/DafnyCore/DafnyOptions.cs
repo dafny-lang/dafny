@@ -44,9 +44,6 @@ namespace Microsoft.Dafny {
     public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
-    static DafnyOptions() {
-    }
-
     public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         if (ps.args[ps.i].Equals("transparent")) {
@@ -128,6 +125,25 @@ namespace Microsoft.Dafny {
       int result = 0;
       if (ps.GetIntArgument(ref result, 2)) {
         options.Set(option, result == 1);
+      }
+    }
+
+    public static void ParseGeneralTraitsOption(Option<CommonOptionBag.GeneralTraitsOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        switch (ps.args[ps.i]) {
+          case "legacy":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Legacy);
+            break;
+          case "datatype":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Datatype);
+            break;
+          case "full":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Full);
+            break;
+          default:
+            InvalidArgumentError(option.Name, ps);
+            break;
+        }
       }
     }
 

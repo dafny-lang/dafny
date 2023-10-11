@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using DafnyCore;
@@ -26,13 +25,15 @@ static class RunCommand {
     });
 
     DooFile.RegisterNoChecksNeeded(
-      Inputs
+      Inputs,
+      CommonOptionBag.BuildFile
     );
   }
 
   public static IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
+      CommonOptionBag.BuildFile,
     }.Concat(DafnyCommands.ExecutionOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

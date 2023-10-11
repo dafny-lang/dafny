@@ -22,6 +22,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task RedundantAssumptionsGetWarnings() {
+      var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
+      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.Equal(3, diagnostics.Length);
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(3, 11, 3, 12) &&
+        diagnostic.Message == "unnecessary assumption"
+        );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(13, 11, 13, 17) &&
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+      );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(12, 11, 12, 12) &&
+        diagnostic.Message == "unnecessary assumption"
+      );
+    }
+
+    [Fact]
     public async Task LeastLemmaIsVerified() {
       var source = @"
 least lemma Foo()

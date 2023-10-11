@@ -21,7 +21,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
-  ExecutionEngine boogieEngine,
+  CustomStackSizePoolTaskScheduler scheduler,
+  VerificationResultCache verificationCache,
   DafnyProject project);
 
 public record FilePosition(Uri Uri, Position Position);
@@ -85,7 +86,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
-    ExecutionEngine boogieEngine,
+    CustomStackSizePoolTaskScheduler scheduler,
+    VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
     this.gutterIconManager = gutterIconManager;
@@ -95,10 +97,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     this.createCompilationManager = createCompilationManager;
     this.createMigrator = createMigrator;
     this.logger = logger;
-    this.boogieEngine = boogieEngine;
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
+    this.boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var initialCompilation = CreateInitialCompilation();
     var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
     latestIdeState = new Lazy<IdeState>(initialIdeState);
@@ -374,6 +376,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public void Dispose() {
+    boogieEngine.Dispose();
     observerSubscription.Dispose();
     CompilationManager.Dispose();
   }

@@ -633,7 +633,7 @@ namespace DafnyTestGeneration {
         returnParNames.Add("r" + i);
       }
 
-      lines.Add($"method {{:test}} test{id}() {{");
+      lines.Add($"method {{:test}} Test{id}() {{");
 
       lines.AddRange(TestInputConstructionLines());
 
