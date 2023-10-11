@@ -27,19 +27,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return userDefinedType.ResolvedClass switch {
         NonNullTypeDecl nonNullTypeDeclaration => GetSymbolByDeclaration(nonNullTypeDeclaration.Class),
         IndDatatypeDecl dataTypeDeclaration => GetSymbolByDeclaration(dataTypeDeclaration),
-        TypeSynonymDecl typeSynonymDecl => GetTypeSynonymSymbol(userDefinedType, typeSynonymDecl),
+        TypeSynonymDecl typeSynonymDeclaration => GetTypeSynonymSymbol(userDefinedType, typeSynonymDeclaration),
         _ => null
       };
     }
 
-    private ILegacySymbol? GetTypeSynonymSymbol(UserDefinedType userDefinedType, TypeSynonymDecl typeSynonymDecl) {
+    private ILegacySymbol? GetTypeSynonymSymbol(UserDefinedType userDefinedType, TypeSynonymDecl typeSynonymDeclaration) {
       ILegacySymbol? symbol = null;
       // It would probably be less brittle to reuse Dafny's type resolution logic here
-      var typeArgDict = typeSynonymDecl.TypeArgs
+      var typeSubstitutions = typeSynonymDeclaration.TypeArgs
         .Zip(userDefinedType.TypeArgs)
         .ToDictionary(pair => pair.First, pair => pair.Second);
-      var rhsWithTypeArgsApplied = typeSynonymDecl.Rhs.Subst(typeArgDict);
-      TryGetTypeSymbol(rhsWithTypeArgsApplied, out symbol);
+      var rhsAfterSubstitution = typeSynonymDeclaration.Rhs.Subst(typeSubstitutions);
+      TryGetTypeSymbol(rhsAfterSubstitution, out symbol);
       return symbol;
     }
 
