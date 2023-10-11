@@ -70,3 +70,4 @@ package-lock.json
 docs/dev/*.fix
 docs/dev/*.feat
 docs/dev/*.break
+/Source/DafnyStandardLibraries/build

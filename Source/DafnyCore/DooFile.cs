@@ -119,12 +119,12 @@ public class DooFile {
     }
 
     var success = true;
-    var revelantOptions = currentCommand.Options.ToHashSet();
+    var relevantOptions = currentCommand.Options.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
-      if (!revelantOptions.Contains(option)) {
+      if (!relevantOptions.Contains(option)) {
         continue;
       }
 
