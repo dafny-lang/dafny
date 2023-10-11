@@ -103,9 +103,9 @@ public abstract class MemberDecl : Declaration {
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (Name == "requires") {
-        return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
       } else if (Name == "reads") {
-        return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
       } else {
         return EnclosingClass.FullSanitizedName + "." + SanitizedName;
       }

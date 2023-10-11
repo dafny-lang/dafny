@@ -198,7 +198,7 @@ namespace Microsoft.Dafny.Triggers {
         var le = (LetExpr)expr;
         if (le.LHSs.All(p => p.Var != null) && le.Exact) {
           // Inline the let expression before doing trigger selection.
-          annotation = Annotate(Translator.InlineLet(le));
+          annotation = Annotate(BoogieGenerator.InlineLet(le));
         }
       }
 
@@ -252,7 +252,7 @@ namespace Microsoft.Dafny.Triggers {
         return true;
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !Translator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
+        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !BoogieGenerator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
           return true;
         } else if (CandidateCollectionOperation(e)) {
           return true;
