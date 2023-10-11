@@ -139,7 +139,7 @@ namespace DafnyTestGeneration {
       string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
       return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
     }
-    
+
     /// <summary>
     /// Given a file URI and a one-based line number, return the position of the character at the start of the line.
     /// Use a cache to prevent reading the same file twice.
