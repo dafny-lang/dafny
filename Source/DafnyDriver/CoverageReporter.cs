@@ -266,6 +266,7 @@ public class CoverageReporter {
     var source = new StreamReader(pathToSourceFile).ReadToEnd();
     var lines = source.Split("\n");
     var characterLabels = new CoverageLabel[source.Length];
+    Array.Fill(characterLabels, CoverageLabel.None);
     IToken lastToken = new Token(1, 1);
     var labeledCodeBuilder = new StringBuilder(source.Length);
     foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
