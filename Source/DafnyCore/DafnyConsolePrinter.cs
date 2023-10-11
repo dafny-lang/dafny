@@ -38,6 +38,18 @@ public class DafnyConsolePrinter : ConsolePrinter {
     List<VCResultLogEntry> VCResults);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
+  public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+    return new VerificationResultLogEntry(
+      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
+  }
+
+  private static VCResultLogEntry DistillVCResult(VCResult r) {
+    return new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
+        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
+        r.resourceCount);
+  }
+
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
@@ -135,10 +147,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
-    var vcResults = result.VCResults.Select(r =>
-      new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome, r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements, r.resourceCount)
-    ).ToList();
-    var res = new VerificationResultLogEntry(result.Outcome, result.End - result.Start, result.ResourceCount, vcResults);
-    VerificationResults.Add(new ConsoleLogEntry(impl, res));
+    VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }
 }

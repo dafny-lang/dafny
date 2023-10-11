@@ -10,3 +10,7 @@ method Foo() {
 ghost function Bar(): int {
   3
 } 
+
+method Main() {
+  print "hello";
+}
