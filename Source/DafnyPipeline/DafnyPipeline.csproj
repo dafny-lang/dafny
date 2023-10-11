@@ -32,6 +32,9 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\build\stdlib.doo">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\**\*.java">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
