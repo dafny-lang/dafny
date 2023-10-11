@@ -8,7 +8,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-class RunCommand : ICommandSpec {
+public class RunCommand : ICommandSpec {
   private readonly Argument<IEnumerable<string>> userProgramArguments;
 
   public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
@@ -32,7 +32,7 @@ class RunCommand : ICommandSpec {
     );
   }
 
-  private static readonly Option<string> MainOverride =
+  public static readonly Option<string> MainOverride =
     new("--main-method", "Override the method called to start the program, using a fully qualified method name.");
 
   public IEnumerable<Option> Options =>

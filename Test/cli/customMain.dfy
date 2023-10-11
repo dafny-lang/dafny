@@ -1,5 +1,4 @@
-// RUN: %baredafny run %args "%s" --main-method=HappyModule.NewMain > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --main-method:HappyModule.NewMain
 
 method Main() {
   print "not printed";

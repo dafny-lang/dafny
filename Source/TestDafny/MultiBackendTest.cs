@@ -96,7 +96,7 @@ public class MultiBackendTest {
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
     var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
+      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
 
     // First verify the file (and assume that verification should be successful).
@@ -288,7 +288,8 @@ public class MultiBackendTest {
     var compileOptions = new List<Option> {
       CommonOptionBag.SpillTranslation,
       CommonOptionBag.OptimizeErasableDatatypeWrapper,
-      CommonOptionBag.AddCompileSuffix
+      CommonOptionBag.AddCompileSuffix,
+      RunCommand.MainOverride,
     }.Select(o => o.Name);
 
     return !compileOptions.Contains(name);
