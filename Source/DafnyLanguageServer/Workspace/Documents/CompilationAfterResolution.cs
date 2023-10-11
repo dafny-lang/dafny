@@ -136,4 +136,9 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
     return new[] { first, second }.Min();
   }
+
+  public void RefreshDiagnosticsFromProgramReporter() {
+    ResolutionDiagnostics =
+      ((DiagnosticErrorReporter)Program.Reporter).AllDiagnosticsCopy;
+  }
 }
