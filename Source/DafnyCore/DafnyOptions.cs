@@ -44,54 +44,7 @@ namespace Microsoft.Dafny {
     public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
 
-    static DafnyOptions() {
-      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
-      RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
-
-      RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
-0 (default) - Don't show source code snippets for Dafny messages.
-1 - Show a source code snippet for each Dafny message.".TrimStart());
-
-      RegisterLegacyUi(Microsoft.Dafny.Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
-Everything (default) - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
-NoIncludes - disable printing of {:verify false} methods
-    incorporated via the include mechanism, as well as datatypes and
-    fields included from other files.
-NoGhost - disable printing of functions, ghost methods, and proof
-    statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(),
-        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
-        defaultValue: PrintModes.Everything);
-
-      RegisterLegacyUi(CommonOptionBag.DefaultFunctionOpacity, ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
-
-      void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-        if (ps.ConfirmArgumentCount(1)) {
-          if (ps.args[ps.i].Equals("Everything")) {
-            options.Set(option, PrintModes.Everything);
-          } else if (ps.args[ps.i].Equals("NoIncludes")) {
-            options.Set(option, PrintModes.NoIncludes);
-          } else if (ps.args[ps.i].Equals("NoGhost")) {
-            options.Set(option, PrintModes.NoGhost);
-          } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
-            // but it is now used by the LibraryBackend when building .doo files as well. 
-            options.Set(option, PrintModes.Serialization);
-          } else {
-            InvalidArgumentError(option.Name, ps);
-          }
-        }
-      }
-
-      RegisterLegacyUi(CommonOptionBag.AddCompileSuffix, ParseBoolean, "Compilation options", "compileSuffix");
-
-      RegisterLegacyUi(CommonOptionBag.ReadsClausesOnMethods, ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-    }
-
-    private static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+    public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         if (ps.args[ps.i].Equals("transparent")) {
           options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Transparent);
@@ -819,7 +772,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    public static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 

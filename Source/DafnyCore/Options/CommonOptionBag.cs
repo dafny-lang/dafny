@@ -248,6 +248,14 @@ Change the default opacity of functions.
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
+
+    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
+
+    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
 go - Compile to Go.

@@ -36,6 +36,8 @@ enabling necessary special handling.".TrimStart()) {
   };
 
   static DeveloperOptionBag() {
+    DafnyOptions.RegisterLegacyUi(ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
+    DafnyOptions.RegisterLegacyUi(Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
 
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
       options.DafnyPrintResolvedFile = value;
