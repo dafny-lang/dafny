@@ -644,10 +644,10 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
-      var modulesCount = Translator.VerifiableModules(dafnyProgram).Count();
+      var modulesCount = BoogieGenerator.VerifiableModules(dafnyProgram).Count();
 
 
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
+      foreach (var prog in BoogieGenerator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
 
         if (options.PrintFile != null) {
 
@@ -958,11 +958,11 @@ namespace Microsoft.Dafny {
       compiler.OnPostCompile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
-      var paths = GenerateTargetPaths(options, dafnyProgramName);
+      var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (options.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
           (invokeCompiler && compiler.TextualTargetIsExecutable && !options.RunAfterCompile)) {
-        compiler.CleanSourceDirectory(paths.SourceDirectory);
-        WriteDafnyProgramToFiles(options, paths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
+        compiler.CleanSourceDirectory(targetPaths.SourceDirectory);
+        WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
       if (targetProgramHasErrors) {
@@ -974,7 +974,7 @@ namespace Microsoft.Dafny {
       }
 
       // compile the program into an assembly
-      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, paths.Filename, otherFileNames,
+      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
         hasMain && options.RunAfterCompile, outputWriter, out var compilationResult);
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
@@ -984,7 +984,7 @@ namespace Microsoft.Dafny {
           }
 
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
-            paths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
+            targetPaths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
         } else {
           // make sure to give some feedback to the user
           if (options.Verbose) {
@@ -1022,7 +1022,7 @@ namespace Microsoft.Dafny {
       throw new NotSupportedException();
     }
 
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
       ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       throw new NotSupportedException();
     }

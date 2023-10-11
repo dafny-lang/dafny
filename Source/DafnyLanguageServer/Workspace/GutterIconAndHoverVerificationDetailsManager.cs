@@ -17,8 +17,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   private readonly INotificationPublisher notificationPublisher;
 
   public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
-    INotificationPublisher notificationPublisher,
-    DafnyOptions options) {
+    INotificationPublisher notificationPublisher, DafnyOptions options) {
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
     this.options = options;
@@ -30,7 +29,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// </summary>
   public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
     foreach (var uri in compilation.VerificationTrees.Keys) {
-      compilation.VerificationTrees[uri] = UpdateTree(options, compilation, compilation.VerificationTrees[uri]);
+      compilation.VerificationTrees[uri] = UpdateTree(compilation.Program.Reporter.Options, compilation, compilation.VerificationTrees[uri]);
     }
   }
 
@@ -207,6 +206,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
                            implementation.Name;
       newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
+        implementation.VerboseName,
         implementation.Name,
         targetMethodNode.Filename,
         targetMethodNode.Uri,
@@ -239,7 +239,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
     if (options.Get(ServerCommand.LineVerificationStatus)) {
       lock (LockProcessing) {
-        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
+        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, compilation.Program.Reporter.Options), verificationStarted);
       }
     }
   }
@@ -354,7 +354,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
 
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount);
+        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.coveredElements.ToList());
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -409,15 +409,15 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = BoogieGenerator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
             null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();
