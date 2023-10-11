@@ -290,7 +290,7 @@ class A {
 type T1 = array<int>
 type T2<R, S> = S
 class A {
-  var x: T2<int, array<int>>
+  var x: T2<int, T1>
 
   method DoIt() {
 
