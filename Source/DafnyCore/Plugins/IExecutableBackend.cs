@@ -149,7 +149,7 @@ public abstract class IExecutableBackend {
   /// Returns <c>true</c> on success. Then, <c>compilationResult</c> is a value that can be passed in to
   /// the instance's <c>RunTargetProgram</c> method.
   /// </summary>
-  public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+  public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult);
 
   /// <summary>

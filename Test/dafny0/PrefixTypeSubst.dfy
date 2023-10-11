@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /rprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --rprint:-
+
 
 class MyClass<A,B> {
   greatest predicate P<X,Y>(x: X, y: Y)

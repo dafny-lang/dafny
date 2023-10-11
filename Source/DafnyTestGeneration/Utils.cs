@@ -169,7 +169,7 @@ namespace DafnyTestGeneration {
     public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
       HashSet<MemberDecl> allInlinedDeclarations = new();
       if (decl is LiteralModuleDecl moduleDecl) {
-        foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {
+        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
           allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
         }
       }

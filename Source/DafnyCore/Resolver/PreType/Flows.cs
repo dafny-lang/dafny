@@ -386,12 +386,10 @@ abstract class FlowIntoExpr : Flow {
   }
 
   public override void DebugPrint(TextWriter output) {
-    if (sink is AdjustableType adjustableType) {
-      var sourceType = GetSourceType();
-      var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(adjustableType)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
-      var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(adjustableType), 20);
-      output.WriteLine($"    {bound}  {value}    {TokDescription()}");
-    }
+    var sourceType = GetSourceType();
+    var bound = PreTypeConstraints.Pad($"{AdjustableType.ToStringAsAdjustableType(sink)} :> {AdjustableType.ToStringAsAdjustableType(sourceType)}", 27);
+    var value = PreTypeConstraints.Pad(AdjustableType.ToStringAsBottom(sink), 20);
+    output.WriteLine($"    {bound}  {value}    {TokDescription()}");
   }
 }
 
