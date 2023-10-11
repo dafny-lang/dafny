@@ -42,6 +42,10 @@
       <LogicalName>DafnyRuntime.cs</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyStdLib.cs">
+      <LogicalName>DafnyStdLib.cs</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
