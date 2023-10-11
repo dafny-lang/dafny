@@ -151,7 +151,7 @@ public class CoverageReporter {
         .TakeWhile((c, i) => allFiles.All(s => s[i] == c)).ToArray()).Length;
     Dictionary<string, string> sourceFileToCoverageReport = new Dictionary<string, string>();
     foreach (var fileName in allFiles) {
-      var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..] ?? "");
+      var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..].TrimStart('/') ?? "");
       var pathToRoot = Path.GetRelativePath(directoryForFile, sessionDirectory);
       Directory.CreateDirectory(directoryForFile);
       for (int i = 0; i < reports.Count; i++) {
