@@ -96,7 +96,8 @@ receive arguments. More information about what plugins do and how
 to define them:
 
 https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins") {
-    ArgumentHelpName = "path-to-one-assembly[,argument]*"
+    ArgumentHelpName = "path-to-one-assembly[,argument]*",
+    IsHidden = true
   };
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {

@@ -27,10 +27,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.logger = logger;
     }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine boogieEngine,
       CompilationAfterResolution compilation,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
+      var engine = boogieEngine;
 
       var verifiableModules = Translator.VerifiableModules(compilation.Program);
       if (!verifiableModules.Contains(moduleDefinition)) {
@@ -51,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
             ReportRanges = true
           };
-          var translator = new Translator(errorReporter, new(), translatorFlags);
+          var translator = new Translator(errorReporter, compilation.Program.ProofDependencyManager, translatorFlags);
           return translator.DoTranslation(compilation.Program, moduleDefinition);
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;
