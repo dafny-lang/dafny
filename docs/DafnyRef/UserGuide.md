@@ -1460,6 +1460,61 @@ There are many great options that control various aspects of verifying dafny pro
 
 You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
+### 13.6.5. Analyzing proof dependencies {#sec-proof-dependencies}
+
+When Dafny successfully verifies a particular definition, it can ask the
+solver for information about what parts of the program were actually
+used in completing the proof. The program components that can
+potentially form part of  a proof include:
+
+* `assert` statements (and the implicit assumption that they hold in subsequent code),
+* implicit assertions (such as array or sequence bounds checks),
+* `assume` statements,
+* `ensures` clauses,
+* `requires` clauses,
+* function definitions,
+* method calls, and
+* assignment statements.
+
+Understanding what portions of the program the proof depended on can
+help identify mistakes, and to better understand the structure of your
+proof (which can help when optimizing it, among other things). In
+particular, there are two key dependency structures that tend to
+indicate mistakes, both focused on what parts of the program were _not_
+included in the proof.
+
+* Redundant assumptions. In some cases, a proof can be completed without
+  the need of certain `assume` statements or `requires` clauses. This
+  situation might represent a mistake, and when the mistake is corrected
+  those program elements may become required. However, they may also
+  simply be redundant, and the program will become simpler if they're
+  removed. Dafny will report assumptions of this form when verifying
+  with the flag `--warn-redundant-assumptions`. Note that `assert`
+  statements may be warned about, as well, indicating that the fact
+  proved by the assertion wasn't needed to prove anything else in the
+  program.
+
+* Contradictory assumptions. If the combination of all assumptions in
+  scope at a particular program point is contradictory, anything can be
+  proved at that point. This indicates the serious situation that your
+  proof may be entirely vacuous, and not say what you intended, giving
+  you a false sense of confidence. The
+  `--warn-contradictory-assumptions` flag instructs Dafny to warn about
+  any assertion that was proved through the use of contradictions
+  between assumptions.
+
+These options can be specified in `dfyconfig.toml`, and this is typically the most convenient way to use them with the IDE.
+
+More detailed information is available using either the `--log-format
+text` or `--coverage-report` option to `dafny verify`. The former will
+include a list of proof dependencies (including source location and
+description) alongside every assertion batch in the generated log
+whenever one of the two warning options above is also included. The
+latter will produce a highlighted HTML version of your source code, in
+the same format used by `dafny generate-tests --coverage-report`,
+indicating which parts of the program were used, not used, or partly
+used in the verification of the entire program.
+
 ### 13.6.5. Debugging variable verification
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
