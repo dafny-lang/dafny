@@ -242,6 +242,51 @@ Change the default opacity of functions.
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
+cs (default) - Compile to .NET via C#.
+go - Compile to Go.
+js - Compile to JavaScript.
+java - Compile to Java.
+py - Compile to Python.
+cpp - Compile to C++.
+dfy - Compile to Dafny.
+
+Note that the C++ backend has various limitations (see
+Docs/Compilation/Cpp.md). This includes lack of support for
+BigIntegers (aka int), most higher order functions, and advanced
+features like traits or co-inductive types.".TrimStart(), "cs");
+
+    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
+0 - Include all non-ghost datatype constructors in the compiled code
+1 (default) - In the compiled target code, transform any non-extern
+  datatype with a single non-ghost constructor that has a single
+  non-ghost parameter into just that parameter. For example, the type
+      datatype Record = Record(x: int)
+  is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+
+    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
+    DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
+0 - The char type represents any UTF-16 code unit.
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
+    DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
+0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
+legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(),
+      GeneralTraitsOptions.Legacy);
+    DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
+0 (default) - Don't print type-inference debug information.
+1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
+0 (default) - Don't print debug information for the new type system.
+1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
+    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
+
+    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
+
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
