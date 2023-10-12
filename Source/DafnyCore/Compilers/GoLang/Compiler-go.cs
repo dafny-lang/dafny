@@ -65,13 +65,6 @@ namespace Microsoft.Dafny.Compilers {
 
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
-        
-        // var rt = wr.NewFile("dafny/dafny.go");
-        // ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
-        // rt = wr.NewFile("dafny/dafnyFromDafny.go");
-        // ReadRuntimeSystem(program, "DafnyRuntimeFromDafny.go", rt);
-        // rt = wr.NewFile("System_/SystemFromRuntime.go");
-        // ReadRuntimeSystem(program, "_System.go", rt);
       }
     }
 

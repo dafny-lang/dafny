@@ -41,7 +41,7 @@
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\**\*.cs">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
       <LinkBase>DafnyRuntimeCsharp</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

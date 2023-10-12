@@ -1608,7 +1608,7 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
     
-    protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr) {
+    protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var files = assembly.GetManifestResourceNames();
       // An original source file at <root>/A/B/C.ext will become a manifest resource
@@ -1617,12 +1617,11 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var file in files.Where(f => f.StartsWith(header))) {
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
-        var fileNode = wr.NewFile(realName);
-        ReadRuntimeSystem(file, fileNode);
+        ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);
       }
     }
 
-    protected void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
+    private void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
