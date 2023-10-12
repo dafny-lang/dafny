@@ -98,7 +98,7 @@ jobs:
       - name: Install dotnet-reportgenerator and coverage
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
-          dotnet tool install --global dotnet-coverage --version 17.8.6
+          dotnet tool install --global dotnet-coverage
 
       - name: Install and run Coco
         run: |
