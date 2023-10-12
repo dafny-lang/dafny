@@ -461,7 +461,7 @@ an error message is given.
 
 If you have a stack overflow, it might be that you have
 a function on which automatic attempts of tail recursion
-failed, but it should still be doable in theory. In which case,
+failed, but for which efficient iteration can be implemented by hand. To do this,
 use a [function by method](#sec-function-by-method) and
 define the loop in the method yourself,
 proving that it implements the function.
