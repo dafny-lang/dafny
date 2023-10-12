@@ -15,6 +15,7 @@ using System.Numerics;
 using System.Linq;
 using DafnyCore;
 using JetBrains.Annotations;
+using static Microsoft.Dafny.Printer;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny {
   public class Printer {
     private DafnyOptions options;
     static Printer() {
-      DafnyOptions.RegisterLegacyUi(Microsoft.Dafny.Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
 Everything (default) - Print everything listed below.
 DllEmbed - print the source that will be included in a compiled dll.
 NoIncludes - disable printing of {:verify false} methods
