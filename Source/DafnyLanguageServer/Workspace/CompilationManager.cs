@@ -417,7 +417,7 @@ public class CompilationManager : IDisposable {
     compilationUpdates.OnNext(compilation);
   }
 
-  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+  private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
 
   public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
     Implementation implementation, VerificationResult verificationResult) {
