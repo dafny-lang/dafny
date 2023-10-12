@@ -56,4 +56,12 @@ module ConsumerModule {
     var TwoN := TimesTwo(n);
     print "Two times ", n, " is ", TwoN, "\n";
   }
+
+  method PickANat() returns (n: nat) {
+    n := PickSomething();
+  }
+
+  method PickSomething<T(0)>() returns (t: T) {
+    t := *;
+  }
 }
