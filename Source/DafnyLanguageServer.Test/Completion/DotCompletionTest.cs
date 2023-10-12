@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -268,7 +267,7 @@ class A {
       var source = @"
 type T<R, S> = S
 class A {
-  var f: T<int, array<int>>
+  var x: T<int, array<int>>
 
   method DoIt() {
 
@@ -276,7 +275,7 @@ class A {
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.f.");
+      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var x := this.f.");
 
       var completionList = await RequestCompletionAsync(documentItem, (5, 16));
       Assert.Single(completionList);
