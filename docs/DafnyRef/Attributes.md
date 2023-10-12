@@ -528,7 +528,6 @@ exactly the behavior of `MakeTailRec`.
 If we were not interested in the first error but the last one,
 a possible optimization would be, on the first error, to finish
 iterate with a ghost loop that is not executed.
-Note that in the example above, if you changed the order
 
 Note that the function definition can be changed by computing
 the tail closer to where it's used or switching the order of computing
