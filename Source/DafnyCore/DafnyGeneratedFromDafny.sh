@@ -20,4 +20,12 @@ else
 fi
 
 ../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs
+python3 -c "
+import re
+with open ('$output.cs', 'r' ) as f:
+  content = f.read()
+  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
+with open('$output.cs', 'w') as w:
+  w.write(content_new)
+"
 dotnet tool run dotnet-format -w --include $output.cs 
