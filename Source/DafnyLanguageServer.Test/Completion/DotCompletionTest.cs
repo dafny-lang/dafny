@@ -268,7 +268,7 @@ class A {
       var source = @"
 type T<R, S> = S
 class A {
-  var x: T<int, array<int>>
+  var f: T<int, array<int>>
 
   method DoIt() {
 
@@ -276,7 +276,7 @@ class A {
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.x.");
+      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.f.");
 
       var completionList = await RequestCompletionAsync(documentItem, (5, 16));
       Assert.Single(completionList);
