@@ -3,7 +3,7 @@
 // CHECK: Results for RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(177,12\)-\(177,16\): assume statement
-// CHECK:       ProofDependencyLogging.dfy\(178,14\)-\(178,14\): assertion always holds
+// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,16\): assertion always holds
 //
 // CHECK: Results for ContradictoryAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
