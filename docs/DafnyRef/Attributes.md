@@ -531,7 +531,7 @@ iterate with a ghost loop that is not executed.
 
 Note that the function definition can be changed by computing
 the tail closer to where it's used or switching the order of computing
-`r` and `tail`, the `by method` body stays the same.
+`r` and `tail`, but the `by method` body can stay the same.
 
 ### 11.2.17. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
