@@ -19,5 +19,5 @@ else
   output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs dfyconfig.toml --output GeneratedFromDafny.cs
+../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs
 dotnet tool run dotnet-format -w --include $output.cs 
