@@ -117,10 +117,8 @@ namespace Microsoft.Dafny.Compilers {
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
 
-      var rt = wr.NewFile("DafnyRuntime.h");
-
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+        EmitRuntimeSource("DafnyRuntimeCpp", wr);
       }
 
     }

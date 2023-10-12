@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitDafnySourceAttribute(program, wr);
 
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
+        ReadRuntimeSystem("DafnyRuntimeCsharp", wr);
       }
 
     }
