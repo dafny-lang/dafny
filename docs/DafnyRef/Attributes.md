@@ -474,63 +474,65 @@ consider the following tail-recursion implementation:
 
 <!-- %check-verify -->
 ```dafny
-function f(x: int): Option<int>
+datatype Result<V,E> = Success(value: V) | Failure(error: E)
 
-datatype Option<A> = Some(value: A) | None
+function f(x: int): Result<int, string>
 
 //  {:tailrecursion true}  Not possible here
 function MakeTailRec(
   obj: seq<int>
-): Option<seq<int>>
+): Result<seq<int>, string>
 {
-  if |obj| == 0 then Some([])
+  if |obj| == 0 then Success([])
   else
-    var r := f(obj[0]);
-    if r.None? then None else
     var tail := MakeTailRec(obj[1..]);
-    if tail.None? then None else
-    Some([r.value] + tail.value)
+    var r := f(obj[0]);
+    if r.Failure? then
+      Failure(r.error)
+    else if tail.Failure? then
+      tail
+    else
+      Success([r.value] + tail.value)
 } by method {
   var i: nat := |obj|;
-  var result: seq<int> := []; // Base case
+  var tail := Success([]); // Base case
   while i != 0
     decreases i
-    invariant Some(result) == MakeTailRec(obj[i..])
+    invariant tail == MakeTailRec(obj[i..])
   {
-    var x := obj[i-1];
-    var r := f(x);
-    if r.None? {
-      ghost var j := i - 1;
-      while j != 0 decreases j invariant j >= 0
-        invariant None == MakeTailRec(obj[j..])
-      {
-        j := j - 1;
-      }
-      return None;
-    }
     i := i - 1;
-    result := [r.value] + result;
+    var r := f(obj[i]);
+    if r.Failure? {
+      tail := Failure(r.error);
+    } else if tail.Success? {
+      tail := Success([r.value] + tail.value);
+    } else {
+    }
   }
-  return Some(result);
+  return tail;
 }
 ```
 
-Here Dafny proves everything because, if you
-unrolled the function on `[1, 2, 3]`, assuming
-the intermediate states succeeded, you'd end up
-with the result `Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
+The rule of thumb to unroll a recursive call into a sequential one
+is to loop at home the result would be computed if the operations were not
+simplified. For example, unrolling the function on `[1, 2, 3]` yields the result
+`Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
 If you had to compute this expression manually, you'd start with
 `([f(3).value] + [])`, then add `[f(2).value]` to the left, then 
 `[f(1).value]`.
 This is why the method loop iterates with the objects
 from the end, and why the intermediate invariants are
-all about proving `result == MakeTailRec(obj[i..])`, which
+all about proving `tail == MakeTailRec(obj[i..])`, which
 makes verification succeed easily because we replicate
 exactly the behavior of `MakeTailRec`.
-Early exit of the function can be modelled via a ghost
-while loop that will just "finish" all the remaining iterations,
-as if it was returning from all different stack frames,
-but it won't have any performance penalty.
+If we were not interested in the first error but the last one,
+a possible optimization would be, on the first error, to finish
+iterate with a ghost loop that is not executed.
+Note that in the example above, if you changed the order
+
+Note that the function definition can be changed by computing
+the tail closer to where it's used or switching the order of computing
+`r` and `tail`, the `by method` body stays the same.
 
 ### 11.2.17. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
