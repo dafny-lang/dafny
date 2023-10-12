@@ -1515,7 +1515,7 @@ the same format used by `dafny generate-tests --coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
-### 13.6.5. Debugging variable verification
+### 13.6.6. Debugging variable verification
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
@@ -1541,7 +1541,7 @@ If the resources used during these attempts (or the ability to find a
 proof at all) vary widely, we say that the verification of the relevant
 properties is _highly variable_.
 
-#### 13.6.5.1. Measuring proof variability
+#### 13.6.6.1. Measuring proof variability
 
 To measure the variability of your proofs, start by using the
 `-randomSeedIterations:N` flag to instruct Dafny to attempt each proof
@@ -1587,7 +1587,7 @@ improving it, integrating `dafny-reportgenerator` into CI and using the
 improved variability sufficiently, you can likely remove that flag (and
 likely have significantly lower limits on other variability metrics).
 
-#### 13.6.5.2. Improving proof variability
+#### 13.6.6.2. Improving proof variability
 
 Improving proof variability is typically closely related to improving
 performance overall. As such, [techniques for debugging slow
