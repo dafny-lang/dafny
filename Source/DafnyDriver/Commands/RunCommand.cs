@@ -7,7 +7,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-static class RunCommand {
+public static class RunCommand {
   private static readonly Argument<IEnumerable<string>> UserProgramArguments;
 
   public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
