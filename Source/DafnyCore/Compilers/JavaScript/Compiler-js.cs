@@ -1250,8 +1250,11 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       start = start ?? "0";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewNamedBlock("for (let {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
@@ -1285,7 +1288,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree preconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree preconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -1304,7 +1307,9 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         typeTest = "true";
       }
-      return typeTest == "true" ? null : typeTest;
+
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
@@ -1771,14 +1776,18 @@ namespace Microsoft.Dafny.Compilers {
       return wr.ForkInParens();
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {
-        wr.Write("[{0}]", indices[0]);
+        wr.Write("[");
+        indices[0](wr);
+        wr.Write("]");
       } else {
         wr.Write(".elmts");
         foreach (var index in indices) {
-          wr.Write("[{0}]", index);
+          wr.Write("[");
+          index(wr);
+          wr.Write("]");
         }
       }
       return w;

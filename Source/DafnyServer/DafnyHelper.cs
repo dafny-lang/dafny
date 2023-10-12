@@ -61,8 +61,8 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
+      boogiePrograms = BoogieGenerator.Translate(dafnyProgram, reporter,
+          new BoogieGenerator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
       return true;
     }
 

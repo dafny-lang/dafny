@@ -1,0 +1,1 @@
+Ensures that computing the set of values or items of map can only be done if the type of the range supports equality.

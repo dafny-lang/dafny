@@ -1,7 +1,7 @@
 import sys
 import _dafny
 
-assert "Nested.Library" == __name__
+# Module: Nested.Library
 
 class default__:
     def  __init__(self):

@@ -1,12 +1,12 @@
-Processing command (at Snapshots4.v0.dfy(9,14)) assert LitInt(0) == LitInt(0);
+Processing command (at Snapshots4.v0.dfy(9,14)) assert {:id "id0"} LitInt(0) == LitInt(0);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
-Processing command (at Snapshots4.v1.dfy(5,14)) assert Lit(1 != 1);
+Processing command (at Snapshots4.v1.dfy(5,14)) assert {:id "id1"} Lit(1 != 1);
   >>> DoNothingToAssert
-Processing command (at Snapshots4.v1.dfy(9,14)) assert LitInt(0) == LitInt(0);
+Processing command (at Snapshots4.v1.dfy(9,14)) assert {:id "id2"} LitInt(0) == LitInt(0);
   >>> MarkAsFullyVerified
-Processing command (at Snapshots4.v1.dfy(10,14)) assert Lit(2 != 2);
+Processing command (at Snapshots4.v1.dfy(10,14)) assert {:id "id3"} Lit(2 != 2);
   >>> DoNothingToAssert
 Snapshots4.v1.dfy(5,13): Error: assertion might not hold
 Snapshots4.v1.dfy(10,13): Error: assertion might not hold

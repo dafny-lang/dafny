@@ -61,6 +61,7 @@ namespace DafnyTestGeneration {
     private Program/*?*/ program;
     private string/*?*/ counterexampleLog;
     internal TestMethod TestMethod;
+    private static HashSet<int> preprocessedPrograms = new();
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<string> capturedStates,
@@ -68,7 +69,7 @@ namespace DafnyTestGeneration {
       Options = options;
       Implementation = impl;
       CounterexampleStatus = Status.Untested;
-      this.program = Utils.DeepCloneProgram(options, program);
+      this.program = program;
       this.testEntryNames = testEntryNames;
       CapturedStates = capturedStates;
       this.uniqueId = uniqueId;
@@ -105,6 +106,7 @@ namespace DafnyTestGeneration {
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
       options.Prune = options.TestGenOptions.ForcePrune;
+      options.PruneInfeasibleEdges = false;  // because same implementation object is reused to generate multiple tests
     }
 
     /// <summary>
@@ -117,13 +119,16 @@ namespace DafnyTestGeneration {
           (CapturedStates.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
-      var options = GenerateTestsCommand.CopyForProcedure(Options, testEntryNames);
+      var options = CopyForProcedure(Options, testEntryNames);
       SetupForCounterexamples(options);
       var writer = new StringWriter();
+      if (preprocessedPrograms.Contains(program.UniqueId)) {
+        options.UseAbstractInterpretation = false; // running abs. inter. twice on the same program leads to errors
+      } else {
+        preprocessedPrograms.Add(program.UniqueId);
+      }
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         var guid = Guid.NewGuid().ToString();
-        program.Resolve(options);
-        program.Typecheck(options);
         var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),
@@ -186,6 +191,19 @@ namespace DafnyTestGeneration {
         }
       }
       return counterexampleLog;
+    }
+
+    /// <summary>
+    /// Return a copy of the given DafnyOption instance that (for the purposes
+    /// of test generation) is identical to the <param name="options"></param>
+    /// parameter in everything except the value of the ProcsToCheck field that
+    /// determines the procedures to be verified and should be set to the value of
+    /// the <param name="proceduresToVerify"></param> parameter.
+    /// </summary>
+    internal static DafnyOptions CopyForProcedure(DafnyOptions options, HashSet<string> proceduresToVerify) {
+      var copy = new DafnyOptions(options);
+      copy.ProcsToCheck = proceduresToVerify.ToList();
+      return copy;
     }
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {

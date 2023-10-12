@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -56,6 +56,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+
+  public CallRedirector CallRedirector { get; set; }
+
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
@@ -409,7 +412,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string exportSetName = null) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -460,7 +463,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies,
+        exportSetName == null ? Name : $"{Name} export {exportSetName}", exportSetName != null);
     }
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
@@ -646,8 +650,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subDecl.tok.val, out var prevDecl);
-        Contract.Assert(yes);
+        var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
+        Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
           resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
@@ -678,7 +682,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    ISet<string> toplevels = new HashSet<string>();
+    Dictionary<string, INode> toplevels = new();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -702,8 +706,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.Contains(d.Name)) {
-        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
+        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+          "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
@@ -716,7 +721,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels.Add(registerUnderThisName);
+        toplevels[registerUnderThisName] = d;
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -750,10 +755,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.Contains(m.Name)) {
+          if (toplevels.ContainsKey(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
           } else {
-            toplevels.Add(m.Name);
+            toplevels.Add(m.Name, m);
           }
         }
 
@@ -877,13 +882,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        if (toplevels.Contains(name)) {
+        if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
-          toplevels.Add(name);
-          toplevels.Add(d.Name);
+          toplevels[name] = d;
+          toplevels[d.Name] = d;
           // change the mapping of d.Name to d.NonNullTypeDecl
           sig.TopLevels[d.Name] = nntd;
           sig.TopLevels[name] = d;
@@ -984,7 +989,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           }
         }
 
-        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy || inheritsFromObject);
         traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
         return inheritsFromObject;
       }

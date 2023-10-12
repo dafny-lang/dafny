@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// this resolver serializes all invocations.
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
+
+    public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
+      "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
+      IsHidden = true
+    };
+
     private readonly ILogger logger;
     private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
@@ -55,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
-        var resolver = program.Options.Get(ServerCommand.UseCaching)
+        var resolver = program.Options.Get(UseCaching)
           ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
           : new ProgramResolver(program);
         resolver.Resolve(cancellationToken);
@@ -182,7 +189,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         functionSymbol.Body = ExpressionHandler(function.Body);
         functionSymbol.Ensures.AddRange(ProcessListAttributedExpressions(function.Ens, ExpressionHandler));
         functionSymbol.Requires.AddRange(ProcessListAttributedExpressions(function.Req, ExpressionHandler));
-        functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads, ExpressionHandler));
+        functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads.Expressions, ExpressionHandler));
         functionSymbol.Decreases.AddRange(ProcessListExpressions(function.Decreases.Expressions, ExpressionHandler));
         functionSymbol.ByMethodBody = function.ByMethodBody == null ? null : ProcessFunctionByMethodBody(functionSymbol, function.ByMethodBody);
         return functionSymbol;
@@ -233,7 +240,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         methodSymbol.Ensures.AddRange(ProcessListAttributedExpressions(method.Ens, ExpressionHandler));
         methodSymbol.Requires.AddRange(ProcessListAttributedExpressions(method.Req, ExpressionHandler));
         methodSymbol.Reads.AddRange(ProcessListExpressions(
-          method.Reads.Select(frameExpression => frameExpression.E), ExpressionHandler));
+          method.Reads.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Modifies.AddRange(ProcessListExpressions(
           method.Mod.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
         methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler));

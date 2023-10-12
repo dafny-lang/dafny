@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:1 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
@@ -146,5 +146,48 @@ module MemberLookups {
     method Reals(r: real) returns (x: int) {
       x := r.Floor;
     }
+  }
+}
+
+module NewtypeBuiltinMembers0 {
+  trait MyTrait {
+    function K(): int { 8 }
+  }
+
+  newtype SmallReal extends MyTrait = r | -4.0 <= r < 300.0 {
+    function G(): int { 2 }
+    const Floor: string // error: this ought not be allowed
+  }
+
+  newtype AnotherReal = s: SmallReal | s.K() == 8 {
+    function H(): int { 3 }
+    const Floor: string // error: this ought not be allowed
+  }
+}
+
+module NewtypeBuiltinMembers1 {
+  trait MyTrait {
+    function K(): int { 8 }
+  }
+
+  newtype SmallReal extends MyTrait = r | -4.0 <= r < 300.0 {
+    function G(): int { 2 }
+  }
+
+  newtype AnotherReal = s: SmallReal | s.K() == 8 {
+    function H(): int { 3 }
+  }
+
+  method M0() returns (x: int, r: real, small: SmallReal, ano: AnotherReal)
+  {
+    x := r.Floor;
+
+    x := small.Floor;
+    x := small.G();
+    x := small.K();
+
+    x := ano.Floor;
+    x := ano.G(); // error: G is not a member of AnotherReal
+    x := ano.H();
   }
 }

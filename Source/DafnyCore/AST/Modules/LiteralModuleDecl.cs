@@ -107,7 +107,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
       module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in compilation.Rewriters) {
+    var rewriters = RewriterCollection.GetRewriters(resolver.Reporter, resolver.ProgramResolver.Program);
+    foreach (var rewriter in rewriters) {
       rewriter.PreResolve(module);
     }
 
@@ -131,7 +132,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     tempVis.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
@@ -150,20 +151,20 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     }
 
     Type.PushScope(tempVis);
-    resolver.ComputeIsRecursiveBit(compilation, module);
+    resolver.ComputeIsRecursiveBit(compilation, module, rewriters);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 
     resolver.FillInAdditionalInformation(module);
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
-    foreach (var rewriter in compilation.Rewriters) {
+    foreach (var rewriter in rewriters) {
       rewriter.PostResolve(module);
     }
 

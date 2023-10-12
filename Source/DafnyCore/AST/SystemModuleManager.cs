@@ -6,7 +6,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Policy;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -21,6 +20,13 @@ public class SystemModuleManager {
   readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
+
+  /// <summary>
+  /// PreTypeBuiltins is stored here once for the entire program, so that its ToplevelDecl's are unique across the program.
+  /// It is used by the pre-type resolver, and its entries are filled in lazily by the pre-type resolver. There may be overlap
+  /// between the values of PreTypeBuiltins and the values in the dictionaries above.
+  /// </summary>
+  public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = new();
 
   public ModuleSignature systemNameInfo;
 
@@ -73,6 +79,12 @@ public class SystemModuleManager {
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
+  }
+  /// <summary>
+  /// Return a resolved type for "set<object?>".
+  /// </summary>
+  public Type ObjectSetType() {
+    return new SetType(true, ObjectQ());
   }
 
   public SystemModuleManager(DafnyOptions options) {
@@ -181,7 +193,7 @@ public class SystemModuleManager {
     var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
     var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
       new List<TypeParameter>(), formals, resultType,
-      new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+      new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null), null, null, null);
     rotateMember.EnclosingClass = enclosingType;
     rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
@@ -273,12 +285,12 @@ public class SystemModuleManager {
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
-        Type = new SetType(true, ObjectQ()),
+        Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
         new List<TypeParameter>(), args, null, resultType,
-        new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
+        new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
       readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved
@@ -287,7 +299,7 @@ public class SystemModuleManager {
       return function;
     }
 
-    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var reads = CreateMember("reads", ObjectSetType(), null);
     var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());

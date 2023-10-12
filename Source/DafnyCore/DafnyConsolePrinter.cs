@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using DafnyCore;
 using Microsoft.Boogie;
+using VC;
 
 namespace Microsoft.Dafny;
 
@@ -20,7 +21,36 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
-  public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
+
+  public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
+  public record VCResultLogEntry(
+    int VCNum,
+    DateTime StartTime,
+    TimeSpan RunTime,
+    ProverInterface.Outcome Outcome,
+    List<(Boogie.IToken Tok, string Description)> Asserts,
+    IEnumerable<TrackedNodeComponent> CoveredElements,
+    int ResourceCount);
+  public record VerificationResultLogEntry(
+    ConditionGeneration.Outcome Outcome,
+    TimeSpan RunTime,
+    int ResourceCount,
+    List<VCResultLogEntry> VCResults);
+  public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
+
+  public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+    return new VerificationResultLogEntry(
+      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
+  }
+
+  private static VCResultLogEntry DistillVCResult(VCResult r) {
+    return new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
+        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
+        r.resourceCount);
+  }
+
+  public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
@@ -115,7 +145,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-    VerificationResults.Add((implementation, result));
+  public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
+    var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
+    VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }
 }

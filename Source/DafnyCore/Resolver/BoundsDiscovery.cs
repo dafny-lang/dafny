@@ -7,7 +7,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
@@ -170,7 +169,7 @@ namespace Microsoft.Dafny {
 
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
-          lambdaExpr.Reads.ForEach(DesugarFunctionsInFrameClause);
+          lambdaExpr.Reads.Expressions.ForEach(DesugarFunctionsInFrameClause);
 
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
@@ -772,7 +771,7 @@ namespace Microsoft.Dafny {
               u = whereIsBv == 0 ? jBounds.LowerBound : jBounds.UpperBound;
             }
             if (u != null && !FreeVariables(u).Contains(bv) && IsMonotonic(u, boundVars[j], true)) {
-              thatSide = Translator.Substitute(thatSide, boundVars[j], u);
+              thatSide = BoogieGenerator.Substitute(thatSide, boundVars[j], u);
               fvThatSide = FreeVariables(thatSide);
               continue;
             }

@@ -34,18 +34,18 @@ public delegate CompilationManager CreateCompilationManager(
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
-public class CompilationManager {
+public class CompilationManager : IDisposable {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
-  private readonly IVerificationProgressReporter verificationProgressReporter;
+  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private TaskCompletionSource started = new();
-  private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
+  private readonly EventLoopScheduler verificationUpdateScheduler = new();
   private readonly CancellationTokenSource cancellationSource;
 
   private TaskCompletionSource verificationCompleted = new();
@@ -63,7 +63,7 @@ public class CompilationManager {
     ILogger<CompilationManager> logger,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    IVerificationProgressReporter verificationProgressReporter,
+    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
@@ -77,7 +77,7 @@ public class CompilationManager {
     this.documentLoader = documentLoader;
     this.logger = logger;
     this.verifier = verifier;
-    this.verificationProgressReporter = verificationProgressReporter;
+    this.gutterIconManager = gutterIconManager;
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
@@ -97,9 +97,10 @@ public class CompilationManager {
       await started.Task;
       var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
-      verificationProgressReporter.RecomputeVerificationTrees(parsedCompilation);
+
+      gutterIconManager.RecomputeVerificationTrees(parsedCompilation);
       foreach (var root in parsedCompilation.RootUris) {
-        verificationProgressReporter.ReportRealtimeDiagnostics(parsedCompilation, root, false);
+        gutterIconManager.PublishGutterIcons(parsedCompilation, root, false);
       }
 
       compilationUpdates.OnNext(parsedCompilation);
@@ -118,12 +119,12 @@ public class CompilationManager {
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
       var parsedCompilation = await ParsedCompilation;
-      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, migratedVerificationTrees, cancellationSource.Token);
+      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       if (!resolvedCompilation.Program.Reporter.HasErrors) {
-        verificationProgressReporter.RecomputeVerificationTrees(resolvedCompilation);
+        gutterIconManager.RecomputeVerificationTrees(resolvedCompilation);
         foreach (var root in resolvedCompilation.RootUris) {
-          verificationProgressReporter.ReportRealtimeDiagnostics(resolvedCompilation, root, true);
+          gutterIconManager.PublishGutterIcons(resolvedCompilation, root, true);
         }
       }
 
@@ -140,7 +141,7 @@ public class CompilationManager {
   }
 
   private static string GetImplementationName(Implementation implementation) {
-    var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
+    var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
@@ -159,16 +160,27 @@ public class CompilationManager {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
-    var verifiable = compilation.Program.FindNode<ICanVerify>(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition());
-    if (verifiable == null) {
-      return false;
-    }
 
     if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
+    }
+
+    var verifiable = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
+      node => {
+        if (node is not ICanVerify) {
+          return false;
+        }
+        // Sometimes traversing the AST can return different versions of a single source AST node,
+        // for example in the case of a LeastLemma, which is later also represented as a PrefixLemma.
+        // This check ensures that we consistently use the same version of an AST node. 
+        return compilation.Verifiables!.Contains(node);
+      }) as ICanVerify;
+
+    if (verifiable == null) {
+      return false;
     }
 
     var containingModule = verifiable.ContainingModule;
@@ -237,10 +249,10 @@ public class CompilationManager {
           t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
       });
       if (updated) {
-        verificationProgressReporter.ReportImplementationsBeforeVerification(compilation,
+        gutterIconManager.ReportImplementationsBeforeVerification(compilation,
           verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
 
-        verificationProgressReporter.ReportRealtimeDiagnostics(compilation, verifiable.Tok.Uri, true);
+        gutterIconManager.PublishGutterIcons(compilation, verifiable.Tok.Uri, true);
         compilationUpdates.OnNext(compilation);
       }
 
@@ -255,13 +267,14 @@ public class CompilationManager {
           if (statusUpdates == null) {
             if (task.CacheStatus is Completed completedCache) {
               foreach (var result in completedCache.Result.VCResults) {
-                verificationProgressReporter.ReportVerifyImplementationRunning(compilation,
+                gutterIconManager.ReportVerifyImplementationRunning(compilation,
                   task.Implementation);
-                verificationProgressReporter.ReportAssertionBatchResult(compilation,
+                gutterIconManager.ReportAssertionBatchResult(compilation,
                   new AssertionBatchResult(task.Implementation, result));
               }
 
-              verificationProgressReporter.ReportEndVerifyImplementation(compilation, task.Implementation,
+              ReportVacuityAndRedundantAssumptionsChecks(compilation, task.Implementation, completedCache.Result);
+              gutterIconManager.ReportEndVerifyImplementation(compilation, task.Implementation,
                 completedCache.Result);
             }
 
@@ -346,10 +359,10 @@ public class CompilationManager {
     if (ReportGutterStatus) {
       if (!cancellationSource.IsCancellationRequested) {
         // All unvisited trees need to set them as "verified"
-        verificationProgressReporter.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
+        gutterIconManager.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
       }
 
-      verificationProgressReporter.ReportRealtimeDiagnostics(compilation, canVerify.Tok.Uri, true);
+      gutterIconManager.PublishGutterIcons(compilation, canVerify.Tok.Uri, true);
     }
 
     MarkVerificationFinished();
@@ -364,12 +377,12 @@ public class CompilationManager {
     var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
     if (boogieStatus is Running) {
-      verificationProgressReporter.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
+      gutterIconManager.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
     }
 
     DafnyDiagnostic[] newDiagnostics;
     if (boogieStatus is BatchCompleted batchCompleted) {
-      verificationProgressReporter.ReportAssertionBatchResult(compilation,
+      gutterIconManager.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
 
       foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
@@ -395,15 +408,32 @@ public class CompilationManager {
       // before we report that the verification of the implementation is finished 
       foreach (var result in completed.Result.VCResults) {
         logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {compilation.Version}");
-        verificationProgressReporter.ReportAssertionBatchResult(compilation,
+        gutterIconManager.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
-      verificationProgressReporter.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
+      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
+      gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
     compilationUpdates.OnNext(compilation);
   }
 
-  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+  private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
+
+  public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+    Implementation implementation, VerificationResult verificationResult) {
+    var options = compilation.Program.Reporter.Options;
+    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
+       ) {
+      return;
+    }
+
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
+      compilation.Program.ProofDependencyManager,
+      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
+      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
+    compilation.RefreshDiagnosticsFromProgramReporter();
+  }
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
@@ -524,5 +554,16 @@ public class CompilationManager {
       new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
+  }
+
+  private bool disposed = false;
+  public void Dispose() {
+    if (disposed) {
+      return;
+    }
+
+    disposed = true;
+    CancelPendingUpdates();
+    verificationUpdateScheduler.Dispose();
   }
 }

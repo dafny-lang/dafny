@@ -1,5 +1,7 @@
-// RUN: %exits-with 2 %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
+// RUN: %exits-with 2 %dafny /env:0 /dprint:- /noVerify "%s" > "%t"
+// RUN: %exits-with 2 %dafny /env:0 /dprint:- /noVerify /typeSystemRefresh:1 "%s" > "%t.refresh"
 // RUN: %diff "%s.expect" "%t"
+// RUN: %diff "%s.expect" "%t.refresh"
 
 module A {
   method M()

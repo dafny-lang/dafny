@@ -29,7 +29,7 @@ namespace DafnyTestGeneration {
         () => {
           var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
           program.Reporter.Options.PrintInstrumented = true;
-          ret = Translator
+          ret = BoogieGenerator
             .Translate(program, program.Reporter)
             .ToList().ConvertAll(tuple => tuple.Item2);
           program.Reporter.Options.PrintInstrumented = oldPrintInstrumented;
@@ -169,7 +169,7 @@ namespace DafnyTestGeneration {
     public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
       HashSet<MemberDecl> allInlinedDeclarations = new();
       if (decl is LiteralModuleDecl moduleDecl) {
-        foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {
+        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
           allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
         }
       }
