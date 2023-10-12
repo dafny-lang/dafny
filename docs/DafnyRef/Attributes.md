@@ -466,7 +466,7 @@ use a [function by method](#sec-function-by-method) and
 define the loop in the method yourself,
 proving that it implements the function.
 
-Implementing a function by method to implement recursion can
+Using a function by method to implement recursion can
 be tricky. It usually helps to look at the result of the function
 on two to three iterations, without simplification,
 and see what should be the first computation. For example,
