@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-class RunCommand : ICommandSpec {
-  private readonly Argument<IEnumerable<string>> userProgramArguments;
+static class RunCommand {
+  private static readonly Argument<IEnumerable<string>> UserProgramArguments;
 
   public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
     ArgumentHelpName = "file"
   };
 
   static RunCommand() {
+    UserProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
+    UserProgramArguments.SetDefaultValue(new List<string>());
+
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
         options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
@@ -28,30 +30,28 @@ class RunCommand : ICommandSpec {
     );
   }
 
-  public IEnumerable<Option> Options =>
+  public static IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
       CommonOptionBag.BuildFile,
-    }.Concat(ICommandSpec.ExecutionOptions).
-      Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.ExecutionOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
-  public RunCommand() {
-    userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");
-    userProgramArguments.SetDefaultValue(new List<string>());
-  }
-
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("run", "Run the program.");
-    result.AddArgument(CommandRegistry.FileArgument);
-    result.AddArgument(userProgramArguments);
+    result.AddArgument(DafnyCommands.FileArgument);
+    result.AddArgument(UserProgramArguments);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
+      options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
+      options.Compile = true;
+      options.RunAfterCompile = true;
+      options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
+      return CompilerDriver.RunCompiler(options);
+    });
     return result;
-  }
-
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
-    dafnyOptions.Compile = true;
-    dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
   }
 }

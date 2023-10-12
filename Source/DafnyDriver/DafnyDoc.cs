@@ -6,7 +6,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Text;
-
+using System.Threading.Tasks;
 using static Microsoft.Dafny.DafnyDocHtml;
 
 namespace Microsoft.Dafny;
@@ -42,21 +42,28 @@ class Info {
   }
 }
 class DafnyDoc {
-  public static DafnyDriver.ExitValue DoDocumenting(IReadOnlyList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
-    string programName, DafnyOptions options) {
+  public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
-    string outputdir = options.DafnyPrintCompiledFile;
-    if (outputdir == null) {
-      outputdir = DefaultOutputDir;
+    var dafnyFolders = options.SourceFolders;
+    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    if (code != 0) {
+      return code;
+    }
+    var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
+    string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
+
+    string outputDir = options.DafnyPrintCompiledFile;
+    if (outputDir == null) {
+      outputDir = DefaultOutputDir;
     }
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
-    var exitValue = DafnyDriver.ExitValue.SUCCESS;
+    var exitValue = ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
           .Select(name => new DafnyFile(options, new Uri(Path.GetFullPath(name)))).ToList();
     })).ToList();
-    Console.Out.Write($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -69,29 +76,29 @@ class DafnyDoc {
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        Console.Out.WriteLine(e.ToString());
+        await Console.Out.WriteLineAsync(e.ToString()).ConfigureAwait(false);
       }
     }
     if (err != null) {
-      exitValue = DafnyDriver.ExitValue.DAFNY_ERROR;
-      Console.Out.WriteLine(err);
+      exitValue = ExitValue.DAFNY_ERROR;
+      await Console.Out.WriteLineAsync(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
       // create the output folder if needed
-      if (!Directory.Exists(outputdir)) {
-        Directory.CreateDirectory(outputdir);
+      if (!Directory.Exists(outputDir)) {
+        Directory.CreateDirectory(outputDir);
       }
 
       // Check writable
       try {
-        File.Create(outputdir + "/index.html").Dispose();
+        await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        Console.Out.WriteLine("Insufficient permission to create output files in " + outputdir);
-        return DafnyDriver.ExitValue.DAFNY_ERROR;
+        await Console.Out.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
-      exitValue = new DafnyDoc(dafnyProgram, options, outputdir).GenerateDocs(dafnyFiles);
+      exitValue = new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
     }
     return exitValue;
   }
@@ -117,7 +124,7 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
-  public DafnyDriver.ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
+  public ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
@@ -130,11 +137,11 @@ class DafnyDoc {
       WriteTOC();
       WritePages();
       WriteStyle();
-      return DafnyDriver.ExitValue.SUCCESS;
+      return ExitValue.SUCCESS;
     } catch (Exception e) {
       // This is a fail-safe backstop so that dafny itself does not crash
       Reporter.Error(MessageSource.Documentation, DafnyProgram.DefaultModule, $"Unexpected exception while generating documentation: {e.Message}\n{e.StackTrace}");
-      return DafnyDriver.ExitValue.DAFNY_ERROR;
+      return ExitValue.DAFNY_ERROR;
     }
   }
 
