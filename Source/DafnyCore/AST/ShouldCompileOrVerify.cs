@@ -13,7 +13,7 @@ public static class ShouldCompileOrVerify {
     }
 
     if (module.FullName == "_System") {
-      return true;
+      return program.Options.Get(CommonOptionBag.IncludeSystemModuleOption);
     }
 
     if (module is DefaultModuleDefinition) {

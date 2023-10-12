@@ -54,6 +54,7 @@ public interface ICommandSpec {
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
+    CommonOptionBag.IncludeSystemModuleOption
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {

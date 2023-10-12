@@ -58,6 +58,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
         ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
+        ReadRuntimeSystem(program, "DafnyRuntimePythonSystem_.py", wr.NewFile($"System_.py"));
       }
 
       Imports.Add(DafnyRuntimeModule);
@@ -95,6 +96,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+      moduleName = IdProtect(moduleName);
       Imports.Add(moduleName);
     }
 

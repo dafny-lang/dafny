@@ -214,6 +214,11 @@ May produce spurious warnings.") {
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
+  
+  public static readonly Option<bool> IncludeSystemModuleOption = new("--include-system-module", () => false,
+    "Include the built-in _System module as source in the target language.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
@@ -384,7 +389,8 @@ Change the default opacity of functions.
       IncludeRuntimeOption,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
-      DefaultFunctionOpacity
+      DefaultFunctionOpacity,
+      IncludeSystemModuleOption
     );
   }
 
