@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 
 namespace Microsoft.Dafny.Plugins;
@@ -149,7 +150,7 @@ public abstract class IExecutableBackend {
   /// Returns <c>true</c> on success. Then, <c>compilationResult</c> is a value that can be passed in to
   /// the instance's <c>RunTargetProgram</c> method.
   /// </summary>
-  public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+  public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult);
 
   /// <summary>
@@ -169,4 +170,8 @@ public abstract class IExecutableBackend {
   /// Instruments the underlying SinglePassCompiler, if it exists.
   /// </summary>
   public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram);
+
+  public virtual Command GetCommand() {
+    return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+  }
 }

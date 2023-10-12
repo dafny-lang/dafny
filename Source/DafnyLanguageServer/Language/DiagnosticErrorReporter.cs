@@ -52,13 +52,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var relatedInformation = new List<DafnyRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg));
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(VerifierMessageSource, Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
           }
         }
       }
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
       }
 
-      var dafnyToken = Translator.ToDafnyToken(error.Tok);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
       var uri = GetUriOrDefault(dafnyToken);
       var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
         VerifierMessageSource, ErrorLevel.Error, relatedInformation);

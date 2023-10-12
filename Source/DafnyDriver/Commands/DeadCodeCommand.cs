@@ -10,8 +10,8 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class DeadCodeCommand : ICommandSpec {
-  public IEnumerable<Option> Options =>
+static class DeadCodeCommand {
+  public static IEnumerable<Option> Options =>
     new Option[] {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
@@ -24,17 +24,24 @@ public class DeadCodeCommand : ICommandSpec {
       BoogieOptionBag.SolverPath,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit
-    }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");
-    result.AddArgument(ICommandSpec.FilesArgument);
-    return result;
-  }
+    result.AddArgument(DafnyCommands.FilesArgument);
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    GenerateTestsCommand.PostProcess(dafnyOptions, options, context, TestGenerationOptions.Modes.Block);
-    dafnyOptions.TestGenOptions.WarnDeadCode = true;
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+      GenerateTestsCommand.PostProcess(options, TestGenerationOptions.Modes.Block);
+
+      options.TestGenOptions.WarnDeadCode = true;
+      var exitCode = await GenerateTestsCommand.GenerateTests(options);
+      return (int)exitCode;
+    });
+    return result;
   }
 }
