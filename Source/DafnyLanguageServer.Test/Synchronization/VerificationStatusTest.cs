@@ -655,8 +655,10 @@ module Refinement2 refines BaseModule {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
-    Assert.Equal(1, status.NamedVerifiables.Count);
+    Assert.Equal(3, status.NamedVerifiables.Count);
     Assert.Equal(new Range(1, 9, 1, 12), status.NamedVerifiables[0].NameRange);
+    Assert.Equal(new Range(5, 9, 5, 12), status.NamedVerifiables[1].NameRange);
+    Assert.Equal(new Range(11, 9, 11, 12), status.NamedVerifiables[2].NameRange);
   }
 
   [Fact]

@@ -2885,9 +2885,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-      } else if (expr is Translator.BoogieWrapper) {
+      } else if (expr is BoogieGenerator.BoogieWrapper) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
-      } else if (expr is Translator.BoogieFunctionCall) {
+      } else if (expr is BoogieGenerator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
