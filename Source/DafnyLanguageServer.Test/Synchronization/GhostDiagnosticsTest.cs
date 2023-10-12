@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,7 +28,7 @@ method Bar()
   BarLemma(); // this is ghost
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
 
       var directory = Path.GetRandomFileName();
@@ -70,7 +71,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, false);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, false);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -94,7 +95,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -122,7 +123,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostIfStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -148,7 +149,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostAssignments.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -174,7 +175,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostCalls.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -208,7 +209,7 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksAllGhostStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

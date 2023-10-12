@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -12,6 +13,12 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
+
+  public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
+(experimental, API will change)
+Send notifications about the verification status of each line in the program.
+".TrimStart());
+
   private readonly DafnyOptions options;
   private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
   private readonly INotificationPublisher notificationPublisher;
@@ -237,7 +244,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    if (options.Get(ServerCommand.LineVerificationStatus)) {
+    if (options.Get(LineVerificationStatus)) {
       lock (LockProcessing) {
         notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, compilation.Program.Reporter.Options), verificationStarted);
       }

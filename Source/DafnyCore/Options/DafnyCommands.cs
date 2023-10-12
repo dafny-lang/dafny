@@ -1,25 +1,22 @@
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public interface ICommandSpec {
+public static class DafnyCommands {
 
   public static Argument<FileInfo> FileArgument { get; }
-
-  static ICommandSpec() {
-    FilesArgument = new("file", r => {
-      return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
-    }, true, "Dafny input files and/or a Dafny project file");
-  }
-
   public static Argument<List<FileInfo>> FilesArgument { get; }
 
+  static DafnyCommands() {
+
+    FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
+    FilesArgument = new("file", r => {
+      return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
+    }, false, "Dafny input files and/or a Dafny project file");
+  }
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
     CommonOptionBag.FormatPrint,
@@ -76,7 +73,7 @@ public interface ICommandSpec {
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
     CommonOptionBag.WarnDeprecation,
-    CommonOptionBag.Plugin,
+    CommonOptionBag.PluginOption,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
@@ -94,10 +91,4 @@ public interface ICommandSpec {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
   }).Concat(ParserOptions).ToList();
-
-  IEnumerable<Option> Options { get; }
-
-  Command Create();
-
-  void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context);
 }

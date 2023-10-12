@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// this resolver serializes all invocations.
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
+
+    public static readonly Option<bool> UseCaching = new("--use-caching", () => true,
+      "Use caching to speed up analysis done by the Dafny IDE after each text edit.") {
+      IsHidden = true
+    };
+
     private readonly ILogger logger;
     private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
@@ -55,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
-        var resolver = program.Options.Get(ServerCommand.UseCaching)
+        var resolver = program.Options.Get(UseCaching)
           ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
           : new ProgramResolver(program);
         resolver.Resolve(cancellationToken);
