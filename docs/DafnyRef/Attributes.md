@@ -514,7 +514,7 @@ function MakeTailRec(
 ```
 
 The rule of thumb to unroll a recursive call into a sequential one
-is to loop at home the result would be computed if the operations were not
+is to look at how the result would be computed if the operations were not
 simplified. For example, unrolling the function on `[1, 2, 3]` yields the result
 `Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
 If you had to compute this expression manually, you'd start with
