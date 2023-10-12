@@ -47,6 +47,10 @@
       <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\_System.go">
+      <LogicalName>_System.go</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
       <LogicalName>DafnyRuntime.h</LogicalName>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

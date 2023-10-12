@@ -1947,6 +1947,13 @@ namespace Dafny {
 
 namespace @_System {
 
+  public partial class nat {
+    private static readonly Dafny.TypeDescriptor<BigInteger> _TYPE = new Dafny.TypeDescriptor<BigInteger>(BigInteger.Zero);
+    public static Dafny.TypeDescriptor<BigInteger> _TypeDescriptor() {
+      return _TYPE;
+    }
+  }
+
   public interface _ITuple0 {
     _ITuple0 DowncastClone();
   }

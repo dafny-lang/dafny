@@ -1417,6 +1417,10 @@ namespace Microsoft.Dafny.Compilers {
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
             continue;
           }
+          // This is added to the System module and already in the runtime
+          if (d.FullName == "_System.nat") {
+            continue;
+          }
           var newLineWriter = wr.Fork();
           if (d is AbstractTypeDecl) {
             var at = (AbstractTypeDecl)d;
