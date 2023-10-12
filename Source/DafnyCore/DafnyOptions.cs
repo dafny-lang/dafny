@@ -11,6 +11,7 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -43,6 +44,14 @@ namespace Microsoft.Dafny {
 
     public DafnyProject DafnyProject { get; set; }
     public Command CurrentCommand { get; set; }
+
+    static DafnyOptions() {
+      RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
+
+      DooFile.RegisterNoChecksNeeded(DafnyConsolePrinter.ShowSnippets);
+    }
 
     public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
