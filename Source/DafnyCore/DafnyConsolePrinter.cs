@@ -96,10 +96,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
     tw.WriteLine("");
   }
 
-  public static readonly Option<bool> ShowSnippets = new("--show-snippets", () => true,
-    "Show a source code snippet for each Dafny message.");
+  public static readonly Option<bool> ShowSnippets;
 
   static DafnyConsolePrinter() {
+    ShowSnippets = new("--show-snippets", () => true,
+      "Show a source code snippet for each Dafny message.");
     DafnyOptions.RegisterLegacyUi(ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
 1 - Show a source code snippet for each Dafny message.".TrimStart());
