@@ -4,8 +4,6 @@ ComputationsNeg.dfy(10,16): Related location: this is the postcondition that cou
 ComputationsNeg.dfy(23,0): Error: a postcondition could not be proved on this return path
 ComputationsNeg.dfy(22,10): Related location: this is the postcondition that could not be proved
 ComputationsNeg.dfy(19,28): Related location
-ComputationsNeg.dfy(19,62): Related location
-ComputationsNeg.dfy(19,65): Related location
 ComputationsNeg.dfy(36,12): Error: assertion might not hold
 ComputationsNeg.dfy(45,12): Error: assertion might not hold
 

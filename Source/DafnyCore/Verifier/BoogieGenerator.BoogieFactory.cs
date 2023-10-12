@@ -8,7 +8,7 @@ using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
-  partial class Translator {
+  partial class BoogieGenerator {
     public Bpl.Type BplBvType(int width) {
       Contract.Requires(0 <= width);
       if (width == 0) {
@@ -823,8 +823,8 @@ namespace Microsoft.Dafny {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
 
-    static Bpl.Trigger BplTriggerHeap(Translator translator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
-      Contract.Requires(translator != null);
+    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
+      Contract.Requires(boogieGenerator != null);
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
 
@@ -833,7 +833,7 @@ namespace Microsoft.Dafny {
         exprs.Add(ePrime);
       }
       if (optionalHeap != null) {
-        exprs.Add(translator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
+        exprs.Add(boogieGenerator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
       }
       return new Bpl.Trigger(tok, true, exprs);
     }

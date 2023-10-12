@@ -16,7 +16,7 @@ using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
-  public partial class Translator {
+  public partial class BoogieGenerator {
     /// <summary>
     /// Instances of WFOptions are used as an argument to CheckWellformed, supplying options for the
     /// checks to be performed.
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
           Locals, Asserts, lValueContext, AssertKv);
       }
 
-      public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
+      public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
         return (t, e, d, qk) => {
           if (Locals != null) {
             var b = BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);

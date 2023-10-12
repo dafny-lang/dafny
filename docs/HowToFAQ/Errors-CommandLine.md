@@ -14,7 +14,7 @@ The `-t` or `--target` options specifies which backend compiler to use for
 those dafny commands that compile dafny to other programming languages. 
 This error message says that the named language is not supported.
 
-## **Error: No input files were specified in command-line _command_** {#cli_no_files}
+## **Error: No input files were specified in command-line. Command-line arguments: _command_** {#cli_no_files}
 
 <!-- %check-cli  %err-->
 ```bash
