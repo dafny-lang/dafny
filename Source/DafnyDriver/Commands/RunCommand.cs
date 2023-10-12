@@ -47,8 +47,6 @@ static class RunCommand {
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
-      var inputFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
-      options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
