@@ -23,7 +23,7 @@ using Xunit;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
   [Collection("Sequential Collection")] // Let slow tests run sequentially
-  public class StandaloneLanguageServerBinaryTest {
+  public class LanguageServerProcessTest {
 
     [Fact]
     public async Task InitialisationWorks() {
@@ -39,14 +39,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     private Process StartLanguageServer() {
-      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer.dll");
+      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyDriver.dll");
 
       var processInfo = new ProcessStartInfo("dotnet") {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
         UseShellExecute = false,
-        ArgumentList = { serverBinary }
+        ArgumentList = { serverBinary, "server" }
       };
 
       return Process.Start(processInfo)!;
@@ -117,8 +117,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     private static async Task<Process> StartLanguageServerRunnerProcess() {
-      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
-      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));
+      var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyDriver.dll");
+      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(serverBinary.Replace(@"\", @"\\"));
 
       var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
@@ -167,11 +167,12 @@ using System.Threading.Tasks;
 
 public class ShortLivedProcessStarter {{
   public static async Task<int> Main(string[] args) {{
-    var processInfo = new ProcessStartInfo(""{filePathToStart}"") {{
+    var processInfo = new ProcessStartInfo(""dotnet"") {{
       // Prevents keeping stdio open after the outer process closes. 
       RedirectStandardOutput = true,
       RedirectStandardError = true,
-      UseShellExecute = false
+      UseShellExecute = false,
+      ArgumentList = {{ ""{filePathToStart}"", ""server"" }}
     }};
     using var process = Process.Start(processInfo)!;
     await Console.Out.WriteLineAsync(process.Id.ToString());

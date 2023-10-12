@@ -141,7 +141,7 @@ public class CompilationManager : IDisposable {
   }
 
   private static string GetImplementationName(Implementation implementation) {
-    var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
+    var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
@@ -417,7 +417,7 @@ public class CompilationManager : IDisposable {
     compilationUpdates.OnNext(compilation);
   }
 
-  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+  private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
 
   public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
     Implementation implementation, VerificationResult verificationResult) {

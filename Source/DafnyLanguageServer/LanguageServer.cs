@@ -3,15 +3,64 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using System;
+using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
-  public class Server {
+  public class LanguageServer {
+
+    public static IEnumerable<Option> Options => new Option[] {
+        BoogieOptionBag.NoVerify,
+        ProjectManager.Verification,
+        GhostStateDiagnosticCollector.GhostIndicators,
+        GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
+        LanguageServer.VerifySnapshots,
+        DafnyLangSymbolResolver.UseCaching,
+        ProjectManager.UpdateThrottling,
+        DeveloperOptionBag.BoogiePrint,
+        CommonOptionBag.EnforceDeterminism,
+        CommonOptionBag.UseJavadocLikeDocstringRewriterOption
+      }.Concat(DafnyCommands.VerificationOptions).
+      Concat(DafnyCommands.ResolverOptions);
+
+    public static readonly Option<uint> VerifySnapshots = new("--cache-verification", @"
+(experimental)
+0 - do not use any verification result caching (default)
+1 - use the basic verification result caching
+2 - use the more advanced verification result caching
+3 - use the more advanced caching and report errors according
+  to the new source locations for errors and their
+  related locations
+".TrimStart()) {
+      ArgumentHelpName = "level"
+    };
+
+    public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
+      dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
+
+      dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+
+      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
+      //      A dash means write to the textwriter instead of a file.
+      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
+      dafnyOptions.ModelViewFile = "-";
+
+      dafnyOptions.ProverOptions.AddRange(new List<string>()
+      {
+        "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6
+        "O:model.completion=true",
+        "O:model_evaluator.completion=true"
+      });
+    }
 
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();

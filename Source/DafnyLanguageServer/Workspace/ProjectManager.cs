@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -31,6 +32,19 @@ public record FilePosition(Uri Uri, Position Position);
 /// Handles migration of previously published document state
 /// </summary>
 public class ProjectManager : IDisposable {
+
+  public const int DefaultThrottleTime = 100;
+  public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
+    @"How many milliseconds the server will wait before sending new document updates to the client. Higher values reduce bandwidth at the cost of responsiveness".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<VerifyOnMode> Verification = new("--verify-on", () => VerifyOnMode.Change, @"
+(experimental)
+Determine when to automatically verify the program. Choose from: Never, OnChange (verify everything in a file when changing the file), OnChangeProject or OnSave.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
   private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 
@@ -51,9 +65,9 @@ public class ProjectManager : IDisposable {
 
   private int openFileCount;
 
-  private VerifyOnMode AutomaticVerificationMode => options.Get(ServerCommand.Verification);
+  private VerifyOnMode AutomaticVerificationMode => options.Get(Verification);
 
-  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
+  private bool VerifyOnSave => options.Get(Verification) == VerifyOnMode.Save;
   public List<Location> RecentChanges { get; set; } = new();
 
   private readonly DafnyOptions options;
@@ -165,7 +179,7 @@ public class ProjectManager : IDisposable {
 
       return latestIdeState;
     });
-    var throttleTime = options.Get(ServerCommand.UpdateThrottling);
+    var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.
       Select(x => x.Value).Subscribe(observer);
@@ -184,7 +198,7 @@ public class ProjectManager : IDisposable {
   private static DafnyOptions DetermineProjectOptions(DafnyProject projectOptions, DafnyOptions serverOptions) {
     var result = new DafnyOptions(serverOptions);
 
-    foreach (var option in ServerCommand.Instance.Options) {
+    foreach (var option in LanguageServer.Options) {
       var hasProjectFileValue = projectOptions.TryGetValue(option, TextWriter.Null, out var projectFileValue);
       if (hasProjectFileValue) {
         result.Options.OptionArguments[option] = projectFileValue;

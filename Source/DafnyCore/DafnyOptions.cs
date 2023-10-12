@@ -253,8 +253,6 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
-    public Command Command = null;
-    public bool Format = false;
     public bool FormatCheck = false;
 
     public string CompilerName;
@@ -322,13 +320,13 @@ namespace Microsoft.Dafny {
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
-    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
+    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
     public List<Plugin> AdditionalPlugins = new();
     public IList<string> AdditionalPluginArguments = new List<string>();
 
-    IList<Plugin> ComputePlugins() {
-      var result = new List<Plugin>(DefaultPlugins.Concat(AdditionalPlugins));
-      foreach (var pluginAndArgument in AdditionalPluginArguments) {
+    public static IList<Plugin> ComputePlugins(List<Plugin> additionalPlugins, IList<string> allArguments) {
+      var result = new List<Plugin>(DefaultPlugins.Concat(additionalPlugins));
+      foreach (var pluginAndArgument in allArguments) {
         try {
           var pluginArray = pluginAndArgument.Split(',');
           var pluginPath = pluginArray[0];
@@ -407,7 +405,7 @@ namespace Microsoft.Dafny {
       return ParseBoogieOption(name, ps);
     }
 
-    protected bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
+    private bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
       return base.ParseOption(name, ps);
     }
 

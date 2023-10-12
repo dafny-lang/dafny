@@ -1,21 +1,19 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Linq;
 using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class TestCommand : ICommandSpec {
-  public IEnumerable<Option> Options =>
+static class TestCommand {
+  public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
       MethodsToTest,
-    }.Concat(ICommandSpec.ExecutionOptions).
-      Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.ExecutionOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
-  public static readonly Option<string> MethodsToTest = new("--methods-to-test",
+  private static readonly Option<string> MethodsToTest = new("--methods-to-test",
     "A regex (over fully qualified names) selecting which methods or functions to test") {
   };
 
@@ -26,17 +24,21 @@ public class TestCommand : ICommandSpec {
   }
 
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("test", "(Experimental) Execute every method in the program that's annotated with the {:test} attribute.");
-    result.AddArgument(ICommandSpec.FilesArgument);
-    return result;
-  }
+    result.AddArgument(DafnyCommands.FilesArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = true;
-    dafnyOptions.RunAfterCompile = true;
-    dafnyOptions.RunAllTests = true;
-    dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      options.Compile = true;
+      options.RunAfterCompile = true;
+      options.RunAllTests = true;
+      options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
+      options.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
+      return CompilerDriver.RunCompiler(options);
+    });
+    return result;
   }
 }

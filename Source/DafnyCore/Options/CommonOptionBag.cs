@@ -32,8 +32,7 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.") {
-  };
+    "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
     "Warn about the use of deprecated features (default true).") {
@@ -44,8 +43,7 @@ true - In the compiled target code, transform any non-extern
 (experimental, will be replaced in the future)
 Reduce Dafny's knowledge of non-linear arithmetic (*,/,%).
   
-Results in more manual work, but also produces more predictable behavior.".TrimStart()) {
-  };
+Results in more manual work, but also produces more predictable behavior.".TrimStart());
 
   public static readonly Option<bool> EnforceDeterminism = new("--enforce-determinism",
     "Check that only deterministic statements are used, so that values seen during execution will be the same in every run of the program.") {
@@ -87,7 +85,7 @@ The value may be a comma-separated list of files and folders.".TrimStart());
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -248,14 +246,6 @@ Change the default opacity of functions.
   };
 
   static CommonOptionBag() {
-    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
-
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-
-    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
-
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
 go - Compile to Go.
@@ -273,10 +263,10 @@ features like traits or co-inductive types.".TrimStart(), "cs");
     DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
 0 - Include all non-ghost datatype constructors in the compiled code
 1 (default) - In the compiled target code, transform any non-extern
-  datatype with a single non-ghost constructor that has a single
-  non-ghost parameter into just that parameter. For example, the type
-      datatype Record = Record(x: int)
-  is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
     DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
@@ -296,10 +286,54 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
     DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
 0 (default) - Don't print debug information for the new type system.
 1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(Plugin, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
+    DafnyOptions.RegisterLegacyUi(PluginOption, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
 
     DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
+
+    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
+
+    DafnyOptions.RegisterLegacyUi(Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart(),
+      argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
+      defaultValue: PrintModes.Everything);
+
+    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("Everything")) {
+          options.Set(option, PrintModes.Everything);
+        } else if (ps.args[ps.i].Equals("NoIncludes")) {
+          options.Set(option, PrintModes.NoIncludes);
+        } else if (ps.args[ps.i].Equals("NoGhost")) {
+          options.Set(option, PrintModes.NoGhost);
+        } else if (ps.args[ps.i].Equals("DllEmbed")) {
+          // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+          // but it is now used by the LibraryBackend when building .doo files as well. 
+          options.Set(option, PrintModes.Serialization);
+        } else {
+          DafnyOptions.InvalidArgumentError(option.Name, ps);
+        }
+      }
+    }
+
+    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
+
+    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
 
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
@@ -338,7 +372,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => { options.QuantifierSyntax = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
+    DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
       options.FormatCheck = value;
@@ -410,7 +444,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
       Check,
       Libraries,
       Output,
-      Plugin,
+      PluginOption,
       Prelude,
       Target,
       Verbose,
