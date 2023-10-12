@@ -14,10 +14,10 @@ splitting-triggers-recovers-expressivity.dfy(44,10): Info: For expression "P(i +
    Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 0 ==> P(j)":
    Selected triggers:
-     {Q(j)}, {P(j)} in subexpression at splitting-triggers-recovers-expressivity.dfy(49,59) [Related location] splitting-triggers-recovers-expressivity.dfy(49,64)
+     {Q(j)}, {P(j)}
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 0 ==> Q(j) ==> P(j + 1)":
    Selected triggers: {Q(j)}
-   Rejected triggers: {P(j)} (may loop with "P(j + 1)") in subexpression at splitting-triggers-recovers-expressivity.dfy(49,59) [Related location] splitting-triggers-recovers-expressivity.dfy(49,78)
+   Rejected triggers: {P(j)} (may loop with "P(j + 1)")
 splitting-triggers-recovers-expressivity.dfy(58,11): Info: Selected triggers:
    {P(i)}, {Q(i)}
 splitting-triggers-recovers-expressivity.dfy(12,63): Error: a postcondition could not be proved on this return path

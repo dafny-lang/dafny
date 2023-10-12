@@ -121,7 +121,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       message = $"{category}: {message}";
     }
 
-    var dafnyToken = Translator.ToDafnyToken(options.Get(ShowSnippets), tok);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(ShowSnippets), tok);
     message = $"{dafnyToken.TokenToString(Options)}: {message}";
 
     if (error) {

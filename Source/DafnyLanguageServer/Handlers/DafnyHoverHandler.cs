@@ -302,7 +302,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
-          var dafnyToken = Translator.ToDafnyToken(true, errorToken);
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed

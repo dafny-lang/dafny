@@ -49,13 +49,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var relatedInformation = new List<DafnyRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(Translator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg));
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(VerifierMessageSource, Translator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
           }
         }
       }
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
       }
 
-      var dafnyToken = Translator.ToDafnyToken(useRange, error.Tok);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
       var uri = GetUriOrDefault(dafnyToken);
       var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
         VerifierMessageSource, ErrorLevel.Error, relatedInformation);
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      var dafnyToken = Translator.ToDafnyToken(true, tokenForMessage);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
       if (dafnyToken is RangeToken rangeToken) {
         if (message == PostConditionFailingMessage) {
           var postcondition = rangeToken.PrintOriginal();

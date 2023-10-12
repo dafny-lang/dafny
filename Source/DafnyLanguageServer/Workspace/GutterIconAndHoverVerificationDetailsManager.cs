@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -12,6 +13,12 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
+
+  public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
+(experimental, API will change)
+Send notifications about the verification status of each line in the program.
+".TrimStart());
+
   private readonly DafnyOptions options;
   private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
   private readonly INotificationPublisher notificationPublisher;
@@ -237,7 +244,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    if (options.Get(ServerCommand.LineVerificationStatus)) {
+    if (options.Get(LineVerificationStatus)) {
       lock (LockProcessing) {
         notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, compilation.Program.Reporter.Options), verificationStarted);
       }
@@ -409,15 +416,15 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = Translator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
             null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(true, assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(true, assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(true, assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();

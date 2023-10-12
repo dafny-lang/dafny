@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [MemberData(nameof(OptionSettings))]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0

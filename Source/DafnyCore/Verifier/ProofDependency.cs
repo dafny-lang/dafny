@@ -61,7 +61,7 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
-    Range = Translator.ToDafnyToken(true, tok).ToRange();
+    Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
     ProofObligation = proofObligation;
   }
 }
