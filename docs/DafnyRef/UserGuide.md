@@ -1496,7 +1496,7 @@ included in the proof.
 
 * Contradictory assumptions. If the combination of all assumptions in
   scope at a particular program point is contradictory, anything can be
-  proved at that point. This indicates the serious situation that your
+  proved at that point. This indicates the serious situation that, unless done on purpose like in a proof by contradiction, your
   proof may be entirely vacuous, and not say what you intended, giving
   you a false sense of confidence. The
   `--warn-contradictory-assumptions` flag instructs Dafny to warn about
