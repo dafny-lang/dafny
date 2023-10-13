@@ -33,18 +33,6 @@ namespace Microsoft.Dafny {
   public class Printer {
     private DafnyOptions options;
     static Printer() {
-      DafnyOptions.RegisterLegacyUi(PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
-Everything (default) - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
-NoIncludes - disable printing of {:verify false} methods
-    incorporated via the include mechanism, as well as datatypes and
-    fields included from other files.
-NoGhost - disable printing of functions, ghost methods, and proof
-    statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(),
-        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
-        defaultValue: PrintModes.Everything);
-
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
       });
@@ -65,24 +53,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     NoIncludes disables.".TrimStart()) {
       IsHidden = true
     };
-
-    private static void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      if (ps.ConfirmArgumentCount(1)) {
-        if (ps.args[ps.i].Equals("Everything")) {
-          options.Set(option, PrintModes.Everything);
-        } else if (ps.args[ps.i].Equals("NoIncludes")) {
-          options.Set(option, PrintModes.NoIncludes);
-        } else if (ps.args[ps.i].Equals("NoGhost")) {
-          options.Set(option, PrintModes.NoGhost);
-        } else if (ps.args[ps.i].Equals("DllEmbed")) {
-          // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
-          // but it is now used by the LibraryBackend when building .doo files as well. 
-          options.Set(option, PrintModes.Serialization);
-        } else {
-          DafnyOptions.InvalidArgumentError(option.Name, ps);
-        }
-      }
-    }
 
     TextWriter wr;
     PrintModes printMode;

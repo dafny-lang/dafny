@@ -99,6 +99,10 @@ public class DafnyConsolePrinter : ConsolePrinter {
   public static readonly Option<bool> ShowSnippets = new("--show-snippets", () => true,
     "Show a source code snippet for each Dafny message.");
 
+  static DafnyConsolePrinter() {
+    DooFile.RegisterNoChecksNeeded(ShowSnippets);
+  }
+
   public DafnyConsolePrinter(DafnyOptions options) {
     Options = options;
   }
