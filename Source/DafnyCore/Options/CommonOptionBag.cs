@@ -241,6 +241,8 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
+  public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries");
+  
   static CommonOptionBag() {
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {

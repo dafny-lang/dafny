@@ -1,5 +1,5 @@
 module {:options "--function-syntax:4"} Demo {
-  import opened Dafny.Wrappers
+  import opened DafnyStdLibs.Wrappers
 
   // ------ Demo for Option ----------------------------
   // We use Option when we don't need to pass around a reason for the failure,

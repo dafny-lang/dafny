@@ -14,7 +14,7 @@ All three of these may be used with `:-` as Dafny failure-compatible types
 The module also defines two forms of `Need`, that check the truth of a predicate and
 return a failure value if false.
  */
-module {:options "--function-syntax:4"} Dafny.Wrappers {
+module {:options "--function-syntax:4"} DafnyStdLibs.Wrappers {
 
   /** This datatype is the conventional Some/None datatype that is often used
       in place of a reference or null.
@@ -210,7 +210,7 @@ module {:options "--function-syntax:4"} Dafny.Wrappers {
   /** In verification, this method functions as an `assert` of the given condition;
       at run-time functions as an `expect`. The arguments may not be ghost.
    */
-  method AssertAndExpect(condition: bool, maybeMsg: Option<string> := None)
+  method AssertAndExpect<T>(condition: bool, maybeMsg: Option<T> := None)
     requires condition
   {
     match maybeMsg {
