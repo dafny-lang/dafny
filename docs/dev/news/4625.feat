@@ -1,0 +1,1 @@
+The new `--coverage-report` flag to `dafny verify` creates an HTML report highlighting which portions of the program were and were not necessary for verification. The format is the same as for `dafny generate-tests --coverage-report` and files from the two commands can be merged.

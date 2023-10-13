@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html
+        xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <link rel="stylesheet" href="./.resources/coverage.css" type="text/css"/>
+    <title>ProofDependencyLogging.dfy, Verification coverage</title>
+</head>
+<body onload="window['PR_TAB_WIDTH']=4">
+<div class="menu" id="menu">
+    <a href="./index_verification.html">Index</a>
+    
+</div>
+<h1>ProofDependencyLogging.dfy, Verification coverage</h1>
+
+<pre class="source lang-java linenums">
+<span class="none" id="pos0">// RUN: %baredafny verify --log-format:text --boogie -trackVerificationCoverage "%s" > "%t"
+// RUN: %OutputCheck --file-to-check "%t" "%s"
+// CHECK: Results for RedundantAssumeMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(177,12\)-\(177,16\): assume statement
+// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,12\): assertion always holds
+//
+// CHECK: Results for ContradictoryAssumeMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(183,12\)-\(183,16\): assume statement
+// CHECK:       ProofDependencyLogging.dfy\(184,12\)-\(184,16\): assume statement
+//
+// CHECK: Results for AssumeFalseMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(192,12\)-\(192,12\): assume statement
+//
+// CHECK: Results for ObviouslyContradictoryRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(198,12\)-\(198,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(199,12\)-\(199,16\): requires clause
+//
+// CHECK: Results for ObviouslyContradictoryRequiresMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(207,12\)-\(207,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(208,12\)-\(208,16\): requires clause
+//
+// CHECK: Results for ObviouslyRedundantRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(216,1\)-\(222,1\): function definition for ObviouslyRedundantRequiresFunc
+// CHECK:       ProofDependencyLogging.dfy\(217,12\)-\(217,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(219,11\)-\(219,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(221,3\)-\(221,7\): function call result
+// CHECK:       ProofDependencyLogging.dfy\(221,5\)-\(221,5\): value always satisfies the subset constraints of 'nat'
+//
+// CHECK: Results for ObviouslyRedundantRequiresMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(225,12\)-\(225,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(227,11\)-\(227,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(229,12\)-\(229,12\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencyLogging.dfy\(229,3\)-\(229,15\): assignment \(or return\)
+//
+// CHECK: Results for ObviouslyUnnecessaryRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(237,21\)-\(237,21\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencyLogging.dfy\(237,32\)-\(237,32\): value always satisfies the subset constraints of 'nat'
+//
+// CHECK: Results for ObviouslyUnnecessaryRequiresMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(244,25\)-\(244,25\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencyLogging.dfy\(244,48\)-\(244,48\): value always satisfies the subset constraints of 'nat'
+//
+// CHECK: Results for ObviouslyUnconstrainedCodeFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(248,1\)-\(256,1\): function definition for ObviouslyUnconstrainedCodeFunc
+// CHECK:       ProofDependencyLogging.dfy\(249,12\)-\(249,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(250,11\)-\(250,17\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(252,12\)-\(252,16\): let expression binding RHS well-formed
+// CHECK:       ProofDependencyLogging.dfy\(252,7\)-\(252,7\): let expression binding
+// CHECK:       ProofDependencyLogging.dfy\(254,3\)-\(254,3\): let expression result
+//
+// CHECK: Results for ObviouslyUnconstrainedCodeMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(259,12\)-\(259,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(260,11\)-\(260,17\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(262,9\)-\(262,17\): assignment \(or return\)
+// CHECK:       ProofDependencyLogging.dfy\(264,3\)-\(266,8\): assignment \(or return\)
+//
+// CHECK: Results for PartiallyRedundantRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(270,1\)-\(275,1\): function definition for PartiallyRedundantRequiresFunc
+// CHECK:       ProofDependencyLogging.dfy\(271,23\)-\(271,27\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(272,11\)-\(272,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(274,3\)-\(274,7\): function call result
+// CHECK:       ProofDependencyLogging.dfy\(274,5\)-\(274,5\): value always satisfies the subset constraints of 'nat'
+//
+// CHECK: Results for PartiallyUnnecessaryRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(279,22\)-\(279,26\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(282,21\)-\(282,21\): value always satisfies the subset constraints of 'nat'
+// CHECK:       ProofDependencyLogging.dfy\(282,32\)-\(282,32\): value always satisfies the subset constraints of 'nat'
+//
+// CHECK: Results for MultiPartRedundantRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(288,1\)-\(295,1\): function definition for MultiPartRedundantRequiresFunc
+// CHECK:       ProofDependencyLogging.dfy\(291,12\)-\(291,17\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(292,11\)-\(292,16\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(294,3\)-\(294,3\): function call result
+//
+// CHECK: Results for MultiPartRedundantRequiresMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(300,12\)-\(300,17\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(301,11\)-\(301,16\): ensures clause
+//
+// CHECK: Results for MultiPartContradictoryRequiresFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(309,1\)-\(316,1\): function definition for MultiPartContradictoryRequiresFunc
+// CHECK:       ProofDependencyLogging.dfy\(310,12\)-\(310,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(311,12\)-\(311,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(313,11\)-\(313,16\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(315,3\)-\(315,3\): function call result
+//
+// CHECK: Results for MultiPartContradictoryRequiresMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(319,12\)-\(319,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(320,12\)-\(320,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(322,11\)-\(322,16\): ensures clause
+//
+// CHECK: Results for CallContradictoryFunctionFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(336,1\)-\(342,1\): function definition for CallContradictoryFunctionFunc
+// CHECK:       ProofDependencyLogging.dfy\(337,12\)-\(337,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(338,11\)-\(338,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,3\): function precondition satisfied
+// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,39\): function call result
+//
+// CHECK: Results for CallContradictoryMethodMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(345,12\)-\(345,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,12\)-\(333,25\) from call
+// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,12\)-\(333,25\) from call
+// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): requires clause at ProofDependencyLogging.dfy\(332,12\)-\(332,16\) from call
+//
+// CHECK: Results for FalseAntecedentRequiresClauseMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(357,3\)-\(357,15\): assignment \(or return\)
+//
+// CHECK: Results for FalseAntecedentAssertStatementMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(362,9\)-\(362,15\): assignment \(or return\)
+// CHECK:       ProofDependencyLogging.dfy\(363,20\)-\(363,20\): assertion always holds
+//
+// CHECK: Results for FalseAntecedentEnsuresClauseMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(368,11\)-\(368,25\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(370,3\)-\(370,13\): assignment \(or return\)
+//
+// CHECK: Results for ObviouslyUnreachableIfExpressionBranchFunc \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(373,1\)-\(380,1\): function definition for ObviouslyUnreachableIfExpressionBranchFunc
+// CHECK:       ProofDependencyLogging.dfy\(374,12\)-\(374,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(375,11\)-\(375,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(379,8\)-\(379,12\): if expression else branch
+//
+// CHECK: Results for ObviouslyUnreachableIfStatementBranchMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(383,12\)-\(383,16\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(384,11\)-\(384,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(389,5\)-\(389,17\): assignment \(or return\)
+//
+// CHECK: Results for ObviouslyUnreachableMatchExpressionCaseFunction \(well-formedness\)
+//
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(395,1\)-\(403,1\): function definition for ObviouslyUnreachableMatchExpressionCaseFunction
+// CHECK:       ProofDependencyLogging.dfy\(396,12\)-\(396,17\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(397,11\)-\(397,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(401,15\)-\(401,15\): match expression branch result
+//
+// CHECK: Results for ObviouslyUnreachableMatchStatementCaseMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(406,12\)-\(406,17\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(407,11\)-\(407,15\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(411,15\)-\(411,23\): assignment \(or return\)
+//
+// CHECK: Results for ObviouslyUnreachableReturnStatementMethod \(correctness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(416,12\)-\(416,17\): requires clause
+// CHECK:       ProofDependencyLogging.dfy\(417,13\)-\(417,17\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(420,7\)-\(420,15\): assignment \(or return\)
+
+
+
+
+method RedundantAssumeMethod(n: int)
+{
+    // either one or the other assumption shouldn't be covered
+    assume </span><span class="nc" id="pos11147">n > 4</span><span class="none" id="pos11152">;
+    assume </span><span class="fc" id="pos11165">n > 3</span><span class="none" id="pos11170">;
+    assert n </span><span class="fc" id="pos11185">></span><span class="none" id="pos11186"> 1;
+}
+
+method ContradictoryAssumeMethod(n: int)
+{
+    assume </span><span class="fc" id="pos11247">n > 0</span><span class="none" id="pos11252">;
+    assume </span><span class="fc" id="pos11265">n < 0</span><span class="none" id="pos11270">;
+    assume </span><span class="nc" id="pos11283">n == 5</span><span class="none" id="pos11289">; // shouldn't be covered
+    assert n </span><span class="nc" id="pos11328"><</span><span class="none" id="pos11329"> 10; // shouldn't be covered
+}
+
+method AssumeFalseMethod(n: int)
+{
+    assume </span><span class="nc" id="pos11407">n == 1</span><span class="none" id="pos11413">5; // shouldn't be covered
+    assume </span><span class="fc" id="pos11451">f</span><span class="none" id="pos11452">alse;
+    assert n </span><span class="nc" id="pos11471"><</span><span class="none" id="pos11472"> 10; // shouldn't be covered
+}
+
+// Obvious contradiction in requires clauses.
+function ObviouslyContradictoryRequiresFunc(x: nat): (r: nat)
+  requires </span><span class="fc" id="pos11623">x > 1</span><span class="none" id="pos11628">0
+  requires </span><span class="fc" id="pos11641">x < 1</span><span class="none" id="pos11646">0
+  ensures </span><span class="nc" id="pos11658">r < x</span><span class="none" id="pos11663"> // only provable vacuously 
+{
+  assert x </span><span class="nc" id="pos11705">=</span><span class="none" id="pos11706">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="pos11751">x - 1</span><span class="none" id="pos11756"> // not necessarily a valid nat
+}
+
+method ObviouslyContradictoryRequiresMethod(x: nat) returns (r: nat)
+  requires </span><span class="pc" id="pos11871">x > 1</span><span class="none" id="pos11876">0
+  requires </span><span class="pc" id="pos11889">x < 1</span><span class="none" id="pos11894">0
+  ensures </span><span class="nc" id="pos11906">r < x</span><span class="none" id="pos11911"> // only provable vacuously
+{
+  assert x </span><span class="nc" id="pos11952">=</span><span class="none" id="pos11953">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="pos11998">return x - 1;</span><span class="none" id="pos12011"> // not necessarily a valid nat
+</span><span class="nc" id="pos12043">}</span><span class="none" id="pos12044">
+
+// Obvious redundancy in requires clauses.
+function ObviouslyRedundantRequiresFunc(x: nat): (r: nat)
+  requires </span><span class="fc" id="pos12158">x < 1</span><span class="none" id="pos12163">0
+  requires </span><span class="nc" id="pos12176">x < 1</span><span class="none" id="pos12181">00 // implied by previous requires clause
+  ensures </span><span class="pc" id="pos12233">r < 1</span><span class="none" id="pos12238">1 // should cause body and first requires clause to be covered
+{
+  </span><span class="fc" id="pos12305">x + 1</span><span class="none" id="pos12310">
+}
+
+method ObviouslyRedundantRequiresMethod(x: nat) returns (r: nat)
+  requires </span><span class="pc" id="pos12390">x < 1</span><span class="none" id="pos12395">0
+  requires </span><span class="nc" id="pos12408">x < 1</span><span class="none" id="pos12413">00 // implied by previous requires clause
+  ensures </span><span class="pc" id="pos12465">r < 1</span><span class="none" id="pos12470">1 // should cause body and first requires clause to be covered
+{
+  </span><span class="fc" id="pos12537">return x + 1;</span><span class="none" id="pos12550">
+</span><span class="nc" id="pos12551">}</span><span class="none" id="pos12552">
+
+// Obviously unnecessary requires clauses.
+function ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
+  requires </span><span class="nc" id="pos12668">x < 1</span><span class="none" id="pos12673">0 // not required for the proof
+{
+  // cause at least a little proof work to be necessary, for nat bounds
+  if (x > 5) then </span><span class="nc" id="pos12797">x </span><span class="pc" id="pos12799">+</span><span class="nc" id="pos12800"> 2</span><span class="none" id="pos12802"> else </span><span class="nc" id="pos12808">x </span><span class="pc" id="pos12810">+</span><span class="nc" id="pos12811"> 1</span><span class="none" id="pos12813">
+}
+
+method ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
+  requires </span><span class="nc" id="pos12895">x < 1</span><span class="none" id="pos12900">0 // not required for the proof
+{
+  // cause at least a little proof work to be necessary, for nat bounds
+  if (x > 5) { </span><span class="pc" id="pos13021">r</span><span class="nc" id="pos13022">eturn x </span><span class="pc" id="pos13030">+</span><span class="nc" id="pos13031"> 2;</span><span class="none" id="pos13034"> } else { </span><span class="pc" id="pos13044">r</span><span class="nc" id="pos13045">eturn x </span><span class="pc" id="pos13053">+</span><span class="nc" id="pos13054"> 1;</span><span class="none" id="pos13057"> }
+</span><span class="nc" id="pos13060">}</span><span class="none" id="pos13061">
+
+// Code obviously not constrained by ensures clause.
+function ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
+  requires </span><span class="fc" id="pos13192">x > 1</span><span class="none" id="pos13197">0
+  ensures </span><span class="pc" id="pos13209">r.0 > 1</span><span class="none" id="pos13216">0
+{
+  var </span><span class="fc" id="pos13226">a</span><span class="none" id="pos13227"> := </span><span class="fc" id="pos13231">x + 1</span><span class="none" id="pos13236">; // constrained by ensures clause
+  var </span><span class="nc" id="pos13277">b</span><span class="none" id="pos13278"> := </span><span class="nc" id="pos13282">x - 1</span><span class="none" id="pos13287">; // not constrained by ensures clause 
+  </span><span class="fc" id="pos13329">(</span><span class="none" id="pos13330">a,
+   b)
+}
+
+method ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
+  requires </span><span class="pc" id="pos13425">x > 1</span><span class="none" id="pos13430">0
+  ensures </span><span class="pc" id="pos13442">r.0 > 1</span><span class="none" id="pos13449">0
+{
+  var a </span><span class="fc" id="pos13461">:= x + 1;</span><span class="none" id="pos13470"> // constrained by ensures clause
+  var b </span><span class="nc" id="pos13512">:= x - 1;</span><span class="none" id="pos13521"> // not constrained by ensures clause
+  </span><span class="fc" id="pos13561">return
+    (a,
+     b);</span><span class="none" id="pos13584">
+</span><span class="nc" id="pos13585">}</span><span class="none" id="pos13586">
+
+// Partial redundancy in requires clauses.
+function PartiallyRedundantRequiresFunc(x: nat): (r: nat)
+  requires </span><span class="nc" id="pos13700">x < 1</span><span class="none" id="pos13705">00 && </span><span class="fc" id="pos13711">x < 1</span><span class="none" id="pos13716">0 // LHS implied by RHS
+  ensures </span><span class="pc" id="pos13750">r < 1</span><span class="none" id="pos13755">1 // should cause body and RHS clause to be covered
+{
+  </span><span class="fc" id="pos13811">x + 1</span><span class="none" id="pos13816">
+}
+
+// Partly unnecessary requires clause.
+function PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
+  requires </span><span class="nc" id="pos13930">x < 1</span><span class="none" id="pos13935">0 && </span><span class="fc" id="pos13940">x > 0</span><span class="none" id="pos13945"> // RHS required for proof, but not LHS
+{
+  // cause at least a little proof work to be necessary, for nat bounds
+  if (x > 5) then </span><span class="nc" id="pos14077">x </span><span class="pc" id="pos14079">-</span><span class="nc" id="pos14080"> 1</span><span class="none" id="pos14082"> else </span><span class="nc" id="pos14088">x </span><span class="pc" id="pos14090">+</span><span class="nc" id="pos14091"> 1</span><span class="none" id="pos14093">
+}
+
+
+// Redundancy of one requires clause due to at least two others, with at least
+// one of the three being partly in a separately-defined function.
+function MultiPartRedundantRequiresFunc(x: int): (r: int)
+  requires </span><span class="nc" id="pos14313">x > 1</span><span class="none" id="pos14318">0
+  requires </span><span class="nc" id="pos14331">x < 1</span><span class="none" id="pos14336">2
+  requires </span><span class="fc" id="pos14349">x == 1</span><span class="none" id="pos14355">1 // implied by the previous two, but neither individually
+  ensures </span><span class="pc" id="pos14424">r == 1</span><span class="none" id="pos14430">1
+{
+  </span><span class="fc" id="pos14436">x</span><span class="none" id="pos14437">
+}
+
+method MultiPartRedundantRequiresMethod(x: int) returns (r: int)
+  requires </span><span class="nc" id="pos14517">x > 1</span><span class="none" id="pos14522">0
+  requires </span><span class="nc" id="pos14535">x < 1</span><span class="none" id="pos14540">2
+  requires </span><span class="pc" id="pos14553">x == 1</span><span class="none" id="pos14559">1 // implied by the previous two, but neither individually
+  ensures </span><span class="pc" id="pos14628">r == 1</span><span class="none" id="pos14634">1
+{
+  </span><span class="pc" id="pos14640">r</span><span class="nc" id="pos14641">eturn x;</span><span class="none" id="pos14649">
+</span><span class="nc" id="pos14650">}</span><span class="none" id="pos14651">
+
+// Contradiction between three different requires clauses, with at least one of
+// the three being partly in a separately-defined function (function and
+// method).
+function MultiPartContradictoryRequiresFunc(x: int, y: int): (r: int)
+  requires </span><span class="fc" id="pos14899">x > 1</span><span class="none" id="pos14904">0
+  requires </span><span class="fc" id="pos14917">x < 1</span><span class="none" id="pos14922">2
+  requires </span><span class="nc" id="pos14935">y != 1</span><span class="none" id="pos14941">1 // contradicts the previous two
+  ensures </span><span class="pc" id="pos14985">r == 1</span><span class="none" id="pos14991">1 // provable from first two preconditions, but shouldn't be covered
+{
+  </span><span class="fc" id="pos15064">x</span><span class="none" id="pos15065">
+}
+
+method MultiPartContradictoryRequiresMethod(x: int, y: int) returns (r: int)
+  requires </span><span class="pc" id="pos15157">x > 1</span><span class="none" id="pos15162">0
+  requires </span><span class="pc" id="pos15175">x < 1</span><span class="none" id="pos15180">2
+  requires </span><span class="nc" id="pos15193">y != 1</span><span class="none" id="pos15199">1 // contradicts the previous two
+  ensures </span><span class="pc" id="pos15243">r == 1</span><span class="none" id="pos15249">1 // provable from first two preconditions, but shouldn't be covered
+{
+  </span><span class="pc" id="pos15322">r</span><span class="nc" id="pos15323">eturn x;</span><span class="none" id="pos15331">
+</span><span class="nc" id="pos15332">}</span><span class="none" id="pos15333">
+
+function ContradictoryEnsuresClauseFunc(x: int): (r: int)
+  requires </span><span class="nc" id="pos15404">x > 1</span><span class="none" id="pos15409">
+  ensures  </span><span class="nc" id="pos15421">r > x && r < 0</span><span class="none" id="pos15435">
+
+method ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
+  requires </span><span class="nc" id="pos15513">x > 1</span><span class="none" id="pos15518">
+  ensures  </span><span class="nc" id="pos15530">r > x && r < 0</span><span class="none" id="pos15544">
+
+// Call function that has contradictory ensures clauses.
+function CallContradictoryFunctionFunc(x: int): (r: int)
+  requires </span><span class="fc" id="pos15671">x > 1</span><span class="none" id="pos15676">
+  ensures </span><span class="pc" id="pos15687">r < 0</span><span class="none" id="pos15692">
+{
+  // TODO: Dafny doesn't generate sufficient Boogie code to make the contradiction detectable
+  </span><span class="fc" id="pos15791">ContradictoryEnsuresClauseFunc(x) - 1</span><span class="none" id="pos15828">
+}
+
+method CallContradictoryMethodMethod(x: int) returns (r: int)
+  requires </span><span class="pc" id="pos15905">x > 1</span><span class="none" id="pos15910">
+  ensures </span><span class="nc" id="pos15921">r < 0</span><span class="none" id="pos15926">
+{
+  var y </span><span class="nc" id="pos15937">:= ContradictoryEnsuresClauseMethod(x);</span><span class="none" id="pos15976">
+  </span><span class="nc" id="pos15979">return y - 1;</span><span class="none" id="pos15992">
+</span><span class="nc" id="pos15993">}</span><span class="none" id="pos15994">
+
+// False antecedent requires clause
+method FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
+  requires </span><span class="nc" id="pos16111">x*x < 0 ==> x == x + 1</span><span class="none" id="pos16133">
+  ensures </span><span class="pc" id="pos16144">r > x</span><span class="none" id="pos16149">
+{
+  </span><span class="fc" id="pos16154">return x + 1;</span><span class="none" id="pos16167">
+</span><span class="nc" id="pos16168">}</span><span class="none" id="pos16169">
+
+// False antecedent assert statement.
+method FalseAntecedentAssertStatementMethod(x: int) {
+  var y </span><span class="fc" id="pos16271">:= x*x;</span><span class="none" id="pos16278">
+  assert </span><span class="nc" id="pos16288">y < 0 ==> x </span><span class="pc" id="pos16300"><</span><span class="nc" id="pos16301"> 0</span><span class="none" id="pos16303">;
+}
+
+// False antecedent ensures clause.
+method FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
+  ensures </span><span class="pc" id="pos16421">r < 0 ==> x < 0</span><span class="none" id="pos16436">
+{
+  </span><span class="fc" id="pos16441">return x*x;</span><span class="none" id="pos16452">
+</span><span class="nc" id="pos16453">}</span><span class="none" id="pos16454">
+
+function ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int)
+  requires </span><span class="fc" id="pos16536">x > 0</span><span class="none" id="pos16541">
+  ensures </span><span class="pc" id="pos16552">r > 0</span><span class="none" id="pos16557">
+{
+  if x < 0
+  then </span><span class="nc" id="pos16578">x - 1</span><span class="none" id="pos16583"> // unreachable
+  else </span><span class="fc" id="pos16606">x + 1</span><span class="none" id="pos16611">
+}
+
+method ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
+  requires </span><span class="pc" id="pos16701">x > 0</span><span class="none" id="pos16706">
+  ensures </span><span class="pc" id="pos16717">r > 0</span><span class="none" id="pos16722">
+{
+  if x < 0 {
+    </span><span class="nc" id="pos16742">return x - 1;</span><span class="none" id="pos16755"> // unreachable
+  } else {
+    </span><span class="fc" id="pos16786">return x + 1;</span><span class="none" id="pos16799">
+  }
+</span><span class="nc" id="pos16804">}</span><span class="none" id="pos16805">
+
+datatype T = A | B
+
+function ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:int)
+  requires </span><span class="fc" id="pos16910">t != A</span><span class="none" id="pos16916">
+  ensures </span><span class="pc" id="pos16927">r > 1</span><span class="none" id="pos16932"> // alt: r > 0
+{
+  match t {
+    case A => </span><span class="nc" id="pos16975">1</span><span class="none" id="pos16976"> // unreachable
+    case B => </span><span class="fc" id="pos17006">2</span><span class="none" id="pos17007">
+  }
+}
+
+method ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (r:int)
+  requires </span><span class="pc" id="pos17100">t != A</span><span class="none" id="pos17106">
+  ensures </span><span class="pc" id="pos17117">r > 1</span><span class="none" id="pos17122"> // alt: r > 0
+{
+  match t {
+    case A => </span><span class="nc" id="pos17165">return 1;</span><span class="none" id="pos17174"> // unreachable
+    case B => </span><span class="fc" id="pos17204">return 2;</span><span class="none" id="pos17213">
+  }
+</span><span class="nc" id="pos17218">}</span><span class="none" id="pos17219">
+
+method ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
+  requires </span><span class="pc" id="pos17303">t != A</span><span class="none" id="pos17309">
+    ensures </span><span class="pc" id="pos17322">r > 1</span><span class="none" id="pos17327"> // alt: r > 0
+  {
+    if !t.A? {
+      </span><span class="fc" id="pos17367">return 2;</span><span class="none" id="pos17376">
+    }
+
+    </span><span class="nc" id="pos17388">return 1;</span><span class="none" id="pos17397"> // unreachable
+  </span><span class="nc" id="pos17415">}</span><span class="none" id="pos17416">
+
+method CalcStatementWithSideConditions(x: int) {
+  calc == {
+    </span><span class="nc" id="pos17483">x </span><span class="pc" id="pos17485">/</span><span class="nc" id="pos17486"> 2;
+    (x*2) </span><span class="pc" id="pos17500">/</span><span class="nc" id="pos17501"> 4</span><span class="none" id="pos17503">;
+  }
+}
+
+method DontWarnAboutVacuousAssertFalse(x: int) {
+  assume </span><span class="fc" id="pos17570">x == x + 1</span><span class="none" id="pos17580">;
+  assert </span><span class="nc" id="pos17591">f</span><span class="none" id="pos17592">alse;
+}
+
+// CHECK: Results for GetX \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(449,5\)-\(449,5\): target object is never null
+
+class C {
+  var x: int
+}
+
+function GetX(c: C): int
+  reads c
+{
+  </span><span class="nc" id="pos17839">c.</span><span class="pc" id="pos17841">x</span><span class="none" id="pos17842">
+}
+
+method DontWarnAboutUnusedAssumeTrue(x: int) {
+  assume </span><span class="nc" id="pos17902">t</span><span class="none" id="pos17903">rue;
+  assert 1 + x </span><span class="fc" id="pos17923">=</span><span class="none" id="pos17924">= x + 1;
+}
+</span></pre>
+<div class="footer">
+    <span class="right">
+        Created with 
+        <a href="https://github.com/dafny-lang/dafny">Dafny</a>
+    </span>
+</div>
+</body>
+</html>
