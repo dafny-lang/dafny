@@ -6,7 +6,12 @@ build:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:build/stdlib.doo
 
 test:
-	$(DAFNY) test examples/dfyconfig.toml
+	$(DAFNY) test -t:cs examples/dfyconfig.toml
+	$(DAFNY) test -t:java examples/dfyconfig.toml
+	$(DAFNY) test -t:go examples/dfyconfig.toml
+	$(DAFNY) test -t:py examples/dfyconfig.toml
+	$(DAFNY) test -t:js examples/dfyconfig.toml
+#	$(DAFNY) test -t:rs examples/dfyconfig.toml
 
 clean:
 	rm -rf build

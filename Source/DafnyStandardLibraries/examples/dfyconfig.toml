@@ -1,4 +1,2 @@
 
-
-[options]
-library = "build/stdlib.doo"
+includes = ["**/*.dfy", "../build/stdlib.doo"]
