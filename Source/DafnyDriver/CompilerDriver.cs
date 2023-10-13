@@ -155,6 +155,13 @@ namespace Microsoft.Dafny {
 
         if (options.TrackVerificationCoverage) {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+          var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+          if (coverageReportDir != null) {
+            new CoverageReporter(options).SerializeVerificationCoverageReport(
+              depManager, dafnyProgram,
+              boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
+              coverageReportDir);
+          }
         }
 
         bool compiled;

@@ -11,7 +11,6 @@ public class CoverageReport {
 
   private static int nextUniqueId = 0;
 
-  // INVARIANT: CoverageSpans are sorted within each list by the position of the StartToken
   private readonly Dictionary<string, List<CoverageSpan>> labelsByFile;
   public readonly string Name; // the name to assign to this coverage report
   public readonly string Units; // the units of coverage (plural). This will be written in the coverage report table.
@@ -39,37 +38,12 @@ public class CoverageReport {
 
   /// <summary>
   /// Assign a coverage label to the code indicated by the <param name="span"></param> range token.
-  /// If the span intersects with existing coverage information, it will be merged according to
-  /// CoverageLabelExtension.Combine. 
   /// </summary>
   public void LabelCode(RangeToken span, CoverageLabel label) {
     Contract.Assert(labelsByFile.ContainsKey(span.ActualFilename));
-    if (span.StartToken.CompareTo(span.EndToken) == 0) {
-      return;
-    }
     var labeledFile = labelsByFile[span.ActualFilename];
     var coverageSpan = new CoverageSpan(span, label);
-    int index = labeledFile.BinarySearch(0, labeledFile.Count, coverageSpan, null);
-    if (index < 0) {
-      labeledFile.Insert(~index, coverageSpan);
-      return;
-    }
-    var overlappingSpan = labeledFile[index];
-    labeledFile.RemoveAt(index);
-    var combinedLabel = CoverageLabelExtension.Combine(label, overlappingSpan.Label);
-    switch (overlappingSpan.Span.EndToken.CompareTo(span.EndToken)) {
-      case 0:
-        labeledFile.Insert(index, new CoverageSpan(span, combinedLabel));
-        break;
-      case > 0:
-        labeledFile.Insert(index, new CoverageSpan(span, combinedLabel));
-        labeledFile.Insert(index + 1, new CoverageSpan(new RangeToken(span.EndToken, overlappingSpan.Span.EndToken), overlappingSpan.Label));
-        break;
-      default:
-        labeledFile.Insert(index, new CoverageSpan(overlappingSpan.Span, combinedLabel));
-        LabelCode(new RangeToken(overlappingSpan.Span.EndToken, span.EndToken), label);
-        break;
-    }
+    labeledFile.Add(coverageSpan);
   }
 
   public IEnumerable<CoverageSpan> CoverageSpansForFile(string fileName) {
@@ -92,7 +66,11 @@ public class CoverageReport {
     if (astNode.StartToken.ActualFilename != null) {
       labelsByFile[astNode.StartToken.ActualFilename] = new();
     }
+
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
+      RegisterFiles(declaration);
+    }
+    foreach (var declaration in astNode.Children.OfType<Declaration>()) {
       RegisterFiles(declaration);
     }
   }
