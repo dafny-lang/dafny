@@ -351,7 +351,7 @@ namespace Microsoft.Dafny.Compilers {
       var dt = ctor.EnclosingDatatype;
 
       // Dt.Ctor
-      var fString = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+      var fString = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                 dt.Name + "." + ctor.Name;
 
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}

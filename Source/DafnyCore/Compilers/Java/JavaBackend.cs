@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,9 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny.Compilers;
 
 public class JavaBackend : ExecutableBackend {
+
+  public static readonly Option<string> OuterPackage =
+    new("--outer-package", "All generated code and packages will be nested inside this package. Can be be nested like org.foocorp.barproduct");
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
@@ -133,6 +137,16 @@ public class JavaBackend : ExecutableBackend {
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
     return 0 == RunProcess(psi, outputWriter, errorWriter);
+  }
+
+  public override IEnumerable<string> GetOuterModules() {
+    return Options.Get(OuterPackage)?.Split(".") ?? Enumerable.Empty<string>(); ;
+  }
+
+  public override Command GetCommand() {
+    var result = base.GetCommand();
+    result.AddOption(OuterPackage);
+    return result;
   }
 
   private string GetClassPath(string targetFilename) {

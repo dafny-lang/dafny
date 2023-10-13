@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +14,10 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
+
+  public static readonly Option<string> OuterNamespace =
+    new("--outer-namespace", "All generated code and namespaces will be nested inside the outer namespace. Can be nested like FooCorp.BarProduct");
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CsharpCompiler(Options, Reporter);
   }
@@ -157,6 +162,16 @@ public class CsharpBackend : ExecutableBackend {
     }
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter, errorWriter) == 0;
+  }
+
+  public override IEnumerable<string> GetOuterModules() {
+    return Options.Get(OuterNamespace)?.Split(".") ?? Enumerable.Empty<string>();
+  }
+
+  public override Command GetCommand() {
+    var result = base.GetCommand();
+    result.AddOption(OuterNamespace);
+    return result;
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {

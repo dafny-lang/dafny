@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -28,7 +29,26 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override bool SupportsDatatypeWrapperErasure =>
     CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
+  public override string ModuleSeparator => compiler.ModuleSeparator;
+
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    var outerModules = GetOuterModules();
+    ModuleDefinition rootUserModule = null;
+    foreach (var outerModule in outerModules) {
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), false, false,
+        null, null, null);
+      newRoot.EnclosingModule = rootUserModule;
+      rootUserModule = newRoot;
+    }
+
+    if (rootUserModule != null) {
+      dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
+      dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
+    }
+
+    foreach (var module in dafnyProgram.CompileModules) {
+      module.ClearNameCache();
+    }
     compiler.Compile(dafnyProgram, output);
   }
 

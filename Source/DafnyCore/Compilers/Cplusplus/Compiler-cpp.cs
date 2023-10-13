@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    protected override string ModuleSeparator => "::";
+    public override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {

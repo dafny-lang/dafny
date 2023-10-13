@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -470,7 +471,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       IncludeRuntimeOption,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
-      DefaultFunctionOpacity
+      DefaultFunctionOpacity,
+      JavaBackend.OuterPackage,
+      CsharpBackend.OuterNamespace
     );
   }
 

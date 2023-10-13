@@ -1,10 +1,12 @@
 ﻿// SPDX-License-Identifier: MIT
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Dafny.Plugins;
 
@@ -59,6 +61,7 @@ public abstract class IExecutableBackend {
   /// Change <c>name</c> into a valid identifier in the target language.
   /// </summary>
   public abstract string PublicIdProtect(string name);
+
   /// <summary>
   /// Qualify the name <c>compileName</c> in module <c>moduleName</c>.
   /// </summary>
@@ -96,6 +99,8 @@ public abstract class IExecutableBackend {
   /// Marks backends that should not be documented in the reference manual.
   /// </summary>
   public virtual bool IsInternal => false;
+
+  public abstract string ModuleSeparator { get; }
 
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;
@@ -170,6 +175,10 @@ public abstract class IExecutableBackend {
   /// Instruments the underlying SinglePassCompiler, if it exists.
   /// </summary>
   public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram);
+
+  public virtual IEnumerable<string> GetOuterModules() {
+    return Enumerable.Empty<string>();
+  }
 
   public virtual Command GetCommand() {
     return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");

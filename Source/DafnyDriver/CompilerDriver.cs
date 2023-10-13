@@ -500,6 +500,7 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
+        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
@@ -579,6 +580,8 @@ namespace Microsoft.Dafny {
     public override bool TextualTargetIsExecutable => throw new NotSupportedException();
 
     public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
+    public override string ModuleSeparator => throw new NotSupportedException();
+
     public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
       throw new NotSupportedException();
     }

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Linq;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
