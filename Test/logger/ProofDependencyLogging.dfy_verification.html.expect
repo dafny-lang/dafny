@@ -15,7 +15,7 @@
 <h1>ProofDependencyLogging.dfy, Verification coverage</h1>
 
 <pre class="source lang-java linenums">
-<span class="none" id="line1-col1">// RUN: %baredafny verify --log-format:text --boogie -trackVerificationCoverage "%s" > "%t"
+<span class="none" id="pos0">// RUN: %baredafny verify --log-format:text --boogie -trackVerificationCoverage "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Results for RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -190,266 +190,266 @@
 method RedundantAssumeMethod(n: int)
 {
     // either one or the other assumption shouldn't be covered
-    assume </span><span class="nc" id="line176-col12">n > 4</span><span class="none" id="line176-col17">;
-    assume </span><span class="fc" id="line177-col12">n > 3</span><span class="none" id="line177-col17">;
-    assert n </span><span class="fc" id="line178-col14">></span><span class="none" id="line178-col15"> 1;
+    assume </span><span class="nc" id="pos11147">n > 4</span><span class="none" id="pos11152">;
+    assume </span><span class="fc" id="pos11165">n > 3</span><span class="none" id="pos11170">;
+    assert n </span><span class="fc" id="pos11185">></span><span class="none" id="pos11186"> 1;
 }
 
 method ContradictoryAssumeMethod(n: int)
 {
-    assume </span><span class="fc" id="line183-col12">n > 0</span><span class="none" id="line183-col17">;
-    assume </span><span class="fc" id="line184-col12">n < 0</span><span class="none" id="line184-col17">;
-    assume </span><span class="nc" id="line185-col12">n == 5</span><span class="none" id="line185-col18">; // shouldn't be covered
-    assert n </span><span class="nc" id="line186-col14"><</span><span class="none" id="line186-col15"> 10; // shouldn't be covered
+    assume </span><span class="fc" id="pos11247">n > 0</span><span class="none" id="pos11252">;
+    assume </span><span class="fc" id="pos11265">n < 0</span><span class="none" id="pos11270">;
+    assume </span><span class="nc" id="pos11283">n == 5</span><span class="none" id="pos11289">; // shouldn't be covered
+    assert n </span><span class="nc" id="pos11328"><</span><span class="none" id="pos11329"> 10; // shouldn't be covered
 }
 
 method AssumeFalseMethod(n: int)
 {
-    assume </span><span class="nc" id="line191-col12">n == 1</span><span class="none" id="line191-col18">5; // shouldn't be covered
-    assume </span><span class="fc" id="line192-col12">f</span><span class="none" id="line192-col13">alse;
-    assert n </span><span class="nc" id="line193-col14"><</span><span class="none" id="line193-col15"> 10; // shouldn't be covered
+    assume </span><span class="nc" id="pos11407">n == 1</span><span class="none" id="pos11413">5; // shouldn't be covered
+    assume </span><span class="fc" id="pos11451">f</span><span class="none" id="pos11452">alse;
+    assert n </span><span class="nc" id="pos11471"><</span><span class="none" id="pos11472"> 10; // shouldn't be covered
 }
 
 // Obvious contradiction in requires clauses.
 function ObviouslyContradictoryRequiresFunc(x: nat): (r: nat)
-  requires </span><span class="fc" id="line198-col12">x > 1</span><span class="none" id="line198-col17">0
-  requires </span><span class="fc" id="line199-col12">x < 1</span><span class="none" id="line199-col17">0
-  ensures </span><span class="nc" id="line200-col11">r < x</span><span class="none" id="line200-col16"> // only provable vacuously 
+  requires </span><span class="fc" id="pos11623">x > 1</span><span class="none" id="pos11628">0
+  requires </span><span class="fc" id="pos11641">x < 1</span><span class="none" id="pos11646">0
+  ensures </span><span class="nc" id="pos11658">r < x</span><span class="none" id="pos11663"> // only provable vacuously 
 {
-  assert x </span><span class="nc" id="line202-col12">=</span><span class="none" id="line202-col13">= 10; // contradicts both requires clauses
-  </span><span class="nc" id="line203-col3">x - 1</span><span class="none" id="line203-col8"> // not necessarily a valid nat
+  assert x </span><span class="nc" id="pos11705">=</span><span class="none" id="pos11706">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="pos11751">x - 1</span><span class="none" id="pos11756"> // not necessarily a valid nat
 }
 
 method ObviouslyContradictoryRequiresMethod(x: nat) returns (r: nat)
-  requires </span><span class="pc" id="line207-col12">x > 1</span><span class="none" id="line207-col17">0
-  requires </span><span class="pc" id="line208-col12">x < 1</span><span class="none" id="line208-col17">0
-  ensures </span><span class="nc" id="line209-col11">r < x</span><span class="none" id="line209-col16"> // only provable vacuously
+  requires </span><span class="pc" id="pos11871">x > 1</span><span class="none" id="pos11876">0
+  requires </span><span class="pc" id="pos11889">x < 1</span><span class="none" id="pos11894">0
+  ensures </span><span class="nc" id="pos11906">r < x</span><span class="none" id="pos11911"> // only provable vacuously
 {
-  assert x </span><span class="nc" id="line211-col12">=</span><span class="none" id="line211-col13">= 10; // contradicts both requires clauses
-  </span><span class="nc" id="line212-col3">return x - 1;</span><span class="none" id="line212-col16"> // not necessarily a valid nat
-</span><span class="nc" id="line213-col1">}
+  assert x </span><span class="nc" id="pos11952">=</span><span class="none" id="pos11953">= 10; // contradicts both requires clauses
+  </span><span class="nc" id="pos11998">return x - 1;</span><span class="none" id="pos12011"> // not necessarily a valid nat
+</span><span class="nc" id="pos12043">}</span><span class="none" id="pos12044">
 
-</span><span class="none" id="line215-col1">// Obvious redundancy in requires clauses.
+// Obvious redundancy in requires clauses.
 function ObviouslyRedundantRequiresFunc(x: nat): (r: nat)
-  requires </span><span class="fc" id="line217-col12">x < 1</span><span class="none" id="line217-col17">0
-  requires </span><span class="nc" id="line218-col12">x < 1</span><span class="none" id="line218-col17">00 // implied by previous requires clause
-  ensures </span><span class="pc" id="line219-col11">r < 1</span><span class="none" id="line219-col16">1 // should cause body and first requires clause to be covered
+  requires </span><span class="fc" id="pos12158">x < 1</span><span class="none" id="pos12163">0
+  requires </span><span class="nc" id="pos12176">x < 1</span><span class="none" id="pos12181">00 // implied by previous requires clause
+  ensures </span><span class="pc" id="pos12233">r < 1</span><span class="none" id="pos12238">1 // should cause body and first requires clause to be covered
 {
-  </span><span class="fc" id="line221-col3">x + 1
-</span><span class="none" id="line222-col1">}
+  </span><span class="fc" id="pos12305">x + 1</span><span class="none" id="pos12310">
+}
 
 method ObviouslyRedundantRequiresMethod(x: nat) returns (r: nat)
-  requires </span><span class="pc" id="line225-col12">x < 1</span><span class="none" id="line225-col17">0
-  requires </span><span class="nc" id="line226-col12">x < 1</span><span class="none" id="line226-col17">00 // implied by previous requires clause
-  ensures </span><span class="pc" id="line227-col11">r < 1</span><span class="none" id="line227-col16">1 // should cause body and first requires clause to be covered
+  requires </span><span class="pc" id="pos12390">x < 1</span><span class="none" id="pos12395">0
+  requires </span><span class="nc" id="pos12408">x < 1</span><span class="none" id="pos12413">00 // implied by previous requires clause
+  ensures </span><span class="pc" id="pos12465">r < 1</span><span class="none" id="pos12470">1 // should cause body and first requires clause to be covered
 {
-  </span><span class="fc" id="line229-col3">return x + 1;
-</span><span class="nc" id="line230-col1">}
+  </span><span class="fc" id="pos12537">return x + 1;</span><span class="none" id="pos12550">
+</span><span class="nc" id="pos12551">}</span><span class="none" id="pos12552">
 
-</span><span class="none" id="line232-col1">// Obviously unnecessary requires clauses.
+// Obviously unnecessary requires clauses.
 function ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
-  requires </span><span class="nc" id="line234-col12">x < 1</span><span class="none" id="line234-col17">0 // not required for the proof
+  requires </span><span class="nc" id="pos12668">x < 1</span><span class="none" id="pos12673">0 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="line237-col19">x </span><span class="pc" id="line237-col21">+</span><span class="nc" id="line237-col22"> 2</span><span class="none" id="line237-col24"> else </span><span class="nc" id="line237-col30">x </span><span class="pc" id="line237-col32">+</span><span class="nc" id="line237-col33"> 1
-</span><span class="none" id="line238-col1">}
+  if (x > 5) then </span><span class="nc" id="pos12797">x </span><span class="pc" id="pos12799">+</span><span class="nc" id="pos12800"> 2</span><span class="none" id="pos12802"> else </span><span class="nc" id="pos12808">x </span><span class="pc" id="pos12810">+</span><span class="nc" id="pos12811"> 1</span><span class="none" id="pos12813">
+}
 
 method ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
-  requires </span><span class="nc" id="line241-col12">x < 1</span><span class="none" id="line241-col17">0 // not required for the proof
+  requires </span><span class="nc" id="pos12895">x < 1</span><span class="none" id="pos12900">0 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) { </span><span class="pc" id="line244-col16">r</span><span class="nc" id="line244-col17">eturn x </span><span class="pc" id="line244-col25">+</span><span class="nc" id="line244-col26"> 2;</span><span class="none" id="line244-col29"> } else { </span><span class="pc" id="line244-col39">r</span><span class="nc" id="line244-col40">eturn x </span><span class="pc" id="line244-col48">+</span><span class="nc" id="line244-col49"> 1;</span><span class="none" id="line244-col52"> }
-</span><span class="nc" id="line245-col1">}
+  if (x > 5) { </span><span class="pc" id="pos13021">r</span><span class="nc" id="pos13022">eturn x </span><span class="pc" id="pos13030">+</span><span class="nc" id="pos13031"> 2;</span><span class="none" id="pos13034"> } else { </span><span class="pc" id="pos13044">r</span><span class="nc" id="pos13045">eturn x </span><span class="pc" id="pos13053">+</span><span class="nc" id="pos13054"> 1;</span><span class="none" id="pos13057"> }
+</span><span class="nc" id="pos13060">}</span><span class="none" id="pos13061">
 
-</span><span class="none" id="line247-col1">// Code obviously not constrained by ensures clause.
+// Code obviously not constrained by ensures clause.
 function ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
-  requires </span><span class="fc" id="line249-col12">x > 1</span><span class="none" id="line249-col17">0
-  ensures </span><span class="pc" id="line250-col11">r.0 > 1</span><span class="none" id="line250-col18">0
+  requires </span><span class="fc" id="pos13192">x > 1</span><span class="none" id="pos13197">0
+  ensures </span><span class="pc" id="pos13209">r.0 > 1</span><span class="none" id="pos13216">0
 {
-  var </span><span class="fc" id="line252-col7">a</span><span class="none" id="line252-col8"> := </span><span class="fc" id="line252-col12">x + 1</span><span class="none" id="line252-col17">; // constrained by ensures clause
-  var </span><span class="nc" id="line253-col7">b</span><span class="none" id="line253-col8"> := </span><span class="nc" id="line253-col12">x - 1</span><span class="none" id="line253-col17">; // not constrained by ensures clause 
-  </span><span class="fc" id="line254-col3">(</span><span class="none" id="line254-col4">a,
+  var </span><span class="fc" id="pos13226">a</span><span class="none" id="pos13227"> := </span><span class="fc" id="pos13231">x + 1</span><span class="none" id="pos13236">; // constrained by ensures clause
+  var </span><span class="nc" id="pos13277">b</span><span class="none" id="pos13278"> := </span><span class="nc" id="pos13282">x - 1</span><span class="none" id="pos13287">; // not constrained by ensures clause 
+  </span><span class="fc" id="pos13329">(</span><span class="none" id="pos13330">a,
    b)
 }
 
 method ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
-  requires </span><span class="pc" id="line259-col12">x > 1</span><span class="none" id="line259-col17">0
-  ensures </span><span class="pc" id="line260-col11">r.0 > 1</span><span class="none" id="line260-col18">0
+  requires </span><span class="pc" id="pos13425">x > 1</span><span class="none" id="pos13430">0
+  ensures </span><span class="pc" id="pos13442">r.0 > 1</span><span class="none" id="pos13449">0
 {
-  var a </span><span class="fc" id="line262-col9">:= x + 1;</span><span class="none" id="line262-col18"> // constrained by ensures clause
-  var b </span><span class="nc" id="line263-col9">:= x - 1;</span><span class="none" id="line263-col18"> // not constrained by ensures clause
-  </span><span class="fc" id="line264-col3">return
-</span><span class="none" id="line265-col1">    (a,
-     b);
-</span><span class="nc" id="line267-col1">}
+  var a </span><span class="fc" id="pos13461">:= x + 1;</span><span class="none" id="pos13470"> // constrained by ensures clause
+  var b </span><span class="nc" id="pos13512">:= x - 1;</span><span class="none" id="pos13521"> // not constrained by ensures clause
+  </span><span class="fc" id="pos13561">return
+    (a,
+     b);</span><span class="none" id="pos13584">
+</span><span class="nc" id="pos13585">}</span><span class="none" id="pos13586">
 
-</span><span class="none" id="line269-col1">// Partial redundancy in requires clauses.
+// Partial redundancy in requires clauses.
 function PartiallyRedundantRequiresFunc(x: nat): (r: nat)
-  requires </span><span class="nc" id="line271-col12">x < 1</span><span class="none" id="line271-col17">00 && </span><span class="fc" id="line271-col23">x < 1</span><span class="none" id="line271-col28">0 // LHS implied by RHS
-  ensures </span><span class="pc" id="line272-col11">r < 1</span><span class="none" id="line272-col16">1 // should cause body and RHS clause to be covered
+  requires </span><span class="nc" id="pos13700">x < 1</span><span class="none" id="pos13705">00 && </span><span class="fc" id="pos13711">x < 1</span><span class="none" id="pos13716">0 // LHS implied by RHS
+  ensures </span><span class="pc" id="pos13750">r < 1</span><span class="none" id="pos13755">1 // should cause body and RHS clause to be covered
 {
-  </span><span class="fc" id="line274-col3">x + 1
-</span><span class="none" id="line275-col1">}
+  </span><span class="fc" id="pos13811">x + 1</span><span class="none" id="pos13816">
+}
 
 // Partly unnecessary requires clause.
 function PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
-  requires </span><span class="nc" id="line279-col12">x < 1</span><span class="none" id="line279-col17">0 && </span><span class="fc" id="line279-col22">x > 0</span><span class="none" id="line279-col27"> // RHS required for proof, but not LHS
+  requires </span><span class="nc" id="pos13930">x < 1</span><span class="none" id="pos13935">0 && </span><span class="fc" id="pos13940">x > 0</span><span class="none" id="pos13945"> // RHS required for proof, but not LHS
 {
   // cause at least a little proof work to be necessary, for nat bounds
-  if (x > 5) then </span><span class="nc" id="line282-col19">x </span><span class="pc" id="line282-col21">-</span><span class="nc" id="line282-col22"> 1</span><span class="none" id="line282-col24"> else </span><span class="nc" id="line282-col30">x </span><span class="pc" id="line282-col32">+</span><span class="nc" id="line282-col33"> 1
-</span><span class="none" id="line283-col1">}
+  if (x > 5) then </span><span class="nc" id="pos14077">x </span><span class="pc" id="pos14079">-</span><span class="nc" id="pos14080"> 1</span><span class="none" id="pos14082"> else </span><span class="nc" id="pos14088">x </span><span class="pc" id="pos14090">+</span><span class="nc" id="pos14091"> 1</span><span class="none" id="pos14093">
+}
 
 
 // Redundancy of one requires clause due to at least two others, with at least
 // one of the three being partly in a separately-defined function.
 function MultiPartRedundantRequiresFunc(x: int): (r: int)
-  requires </span><span class="nc" id="line289-col12">x > 1</span><span class="none" id="line289-col17">0
-  requires </span><span class="nc" id="line290-col12">x < 1</span><span class="none" id="line290-col17">2
-  requires </span><span class="fc" id="line291-col12">x == 1</span><span class="none" id="line291-col18">1 // implied by the previous two, but neither individually
-  ensures </span><span class="pc" id="line292-col11">r == 1</span><span class="none" id="line292-col17">1
+  requires </span><span class="nc" id="pos14313">x > 1</span><span class="none" id="pos14318">0
+  requires </span><span class="nc" id="pos14331">x < 1</span><span class="none" id="pos14336">2
+  requires </span><span class="fc" id="pos14349">x == 1</span><span class="none" id="pos14355">1 // implied by the previous two, but neither individually
+  ensures </span><span class="pc" id="pos14424">r == 1</span><span class="none" id="pos14430">1
 {
-  </span><span class="fc" id="line294-col3">x
-</span><span class="none" id="line295-col1">}
-
-method MultiPartRedundantRequiresMethod(x: int) returns (r: int)
-  requires </span><span class="nc" id="line298-col12">x > 1</span><span class="none" id="line298-col17">0
-  requires </span><span class="nc" id="line299-col12">x < 1</span><span class="none" id="line299-col17">2
-  requires </span><span class="pc" id="line300-col12">x == 1</span><span class="none" id="line300-col18">1 // implied by the previous two, but neither individually
-  ensures </span><span class="pc" id="line301-col11">r == 1</span><span class="none" id="line301-col17">1
-{
-  </span><span class="pc" id="line303-col3">r</span><span class="nc" id="line303-col4">eturn x;
+  </span><span class="fc" id="pos14436">x</span><span class="none" id="pos14437">
 }
 
-</span><span class="none" id="line306-col1">// Contradiction between three different requires clauses, with at least one of
+method MultiPartRedundantRequiresMethod(x: int) returns (r: int)
+  requires </span><span class="nc" id="pos14517">x > 1</span><span class="none" id="pos14522">0
+  requires </span><span class="nc" id="pos14535">x < 1</span><span class="none" id="pos14540">2
+  requires </span><span class="pc" id="pos14553">x == 1</span><span class="none" id="pos14559">1 // implied by the previous two, but neither individually
+  ensures </span><span class="pc" id="pos14628">r == 1</span><span class="none" id="pos14634">1
+{
+  </span><span class="pc" id="pos14640">r</span><span class="nc" id="pos14641">eturn x;</span><span class="none" id="pos14649">
+</span><span class="nc" id="pos14650">}</span><span class="none" id="pos14651">
+
+// Contradiction between three different requires clauses, with at least one of
 // the three being partly in a separately-defined function (function and
 // method).
 function MultiPartContradictoryRequiresFunc(x: int, y: int): (r: int)
-  requires </span><span class="fc" id="line310-col12">x > 1</span><span class="none" id="line310-col17">0
-  requires </span><span class="fc" id="line311-col12">x < 1</span><span class="none" id="line311-col17">2
-  requires </span><span class="nc" id="line312-col12">y != 1</span><span class="none" id="line312-col18">1 // contradicts the previous two
-  ensures </span><span class="pc" id="line313-col11">r == 1</span><span class="none" id="line313-col17">1 // provable from first two preconditions, but shouldn't be covered
+  requires </span><span class="fc" id="pos14899">x > 1</span><span class="none" id="pos14904">0
+  requires </span><span class="fc" id="pos14917">x < 1</span><span class="none" id="pos14922">2
+  requires </span><span class="nc" id="pos14935">y != 1</span><span class="none" id="pos14941">1 // contradicts the previous two
+  ensures </span><span class="pc" id="pos14985">r == 1</span><span class="none" id="pos14991">1 // provable from first two preconditions, but shouldn't be covered
 {
-  </span><span class="fc" id="line315-col3">x
-</span><span class="none" id="line316-col1">}
+  </span><span class="fc" id="pos15064">x</span><span class="none" id="pos15065">
+}
 
 method MultiPartContradictoryRequiresMethod(x: int, y: int) returns (r: int)
-  requires </span><span class="pc" id="line319-col12">x > 1</span><span class="none" id="line319-col17">0
-  requires </span><span class="pc" id="line320-col12">x < 1</span><span class="none" id="line320-col17">2
-  requires </span><span class="nc" id="line321-col12">y != 1</span><span class="none" id="line321-col18">1 // contradicts the previous two
-  ensures </span><span class="pc" id="line322-col11">r == 1</span><span class="none" id="line322-col17">1 // provable from first two preconditions, but shouldn't be covered
+  requires </span><span class="pc" id="pos15157">x > 1</span><span class="none" id="pos15162">0
+  requires </span><span class="pc" id="pos15175">x < 1</span><span class="none" id="pos15180">2
+  requires </span><span class="nc" id="pos15193">y != 1</span><span class="none" id="pos15199">1 // contradicts the previous two
+  ensures </span><span class="pc" id="pos15243">r == 1</span><span class="none" id="pos15249">1 // provable from first two preconditions, but shouldn't be covered
 {
-  </span><span class="pc" id="line324-col3">r</span><span class="nc" id="line324-col4">eturn x;
-}
+  </span><span class="pc" id="pos15322">r</span><span class="nc" id="pos15323">eturn x;</span><span class="none" id="pos15331">
+</span><span class="nc" id="pos15332">}</span><span class="none" id="pos15333">
 
-</span><span class="none" id="line327-col1">function ContradictoryEnsuresClauseFunc(x: int): (r: int)
-  requires </span><span class="nc" id="line328-col12">x > 1
-</span><span class="none" id="line329-col1">  ensures  </span><span class="nc" id="line329-col12">r > x && r < 0
+function ContradictoryEnsuresClauseFunc(x: int): (r: int)
+  requires </span><span class="nc" id="pos15404">x > 1</span><span class="none" id="pos15409">
+  ensures  </span><span class="nc" id="pos15421">r > x && r < 0</span><span class="none" id="pos15435">
 
-</span><span class="none" id="line331-col1">method ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
-  requires </span><span class="nc" id="line332-col12">x > 1
-</span><span class="none" id="line333-col1">  ensures  </span><span class="nc" id="line333-col12">r > x && r < 0
+method ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
+  requires </span><span class="nc" id="pos15513">x > 1</span><span class="none" id="pos15518">
+  ensures  </span><span class="nc" id="pos15530">r > x && r < 0</span><span class="none" id="pos15544">
 
-</span><span class="none" id="line335-col1">// Call function that has contradictory ensures clauses.
+// Call function that has contradictory ensures clauses.
 function CallContradictoryFunctionFunc(x: int): (r: int)
-  requires </span><span class="fc" id="line337-col12">x > 1
-</span><span class="none" id="line338-col1">  ensures </span><span class="pc" id="line338-col11">r < 0
-</span><span class="none" id="line339-col1">{
+  requires </span><span class="fc" id="pos15671">x > 1</span><span class="none" id="pos15676">
+  ensures </span><span class="pc" id="pos15687">r < 0</span><span class="none" id="pos15692">
+{
   // TODO: Dafny doesn't generate sufficient Boogie code to make the contradiction detectable
-  </span><span class="fc" id="line341-col3">ContradictoryEnsuresClauseFunc(x) - 1
-</span><span class="none" id="line342-col1">}
+  </span><span class="fc" id="pos15791">ContradictoryEnsuresClauseFunc(x) - 1</span><span class="none" id="pos15828">
+}
 
 method CallContradictoryMethodMethod(x: int) returns (r: int)
-  requires </span><span class="pc" id="line345-col12">x > 1
-</span><span class="none" id="line346-col1">  ensures </span><span class="nc" id="line346-col11">r < 0
-</span><span class="none" id="line347-col1">{
-  var y </span><span class="nc" id="line348-col9">:= ContradictoryEnsuresClauseMethod(x);
-</span><span class="none" id="line349-col1">  </span><span class="nc" id="line349-col3">return y - 1;
-}
+  requires </span><span class="pc" id="pos15905">x > 1</span><span class="none" id="pos15910">
+  ensures </span><span class="nc" id="pos15921">r < 0</span><span class="none" id="pos15926">
+{
+  var y </span><span class="nc" id="pos15937">:= ContradictoryEnsuresClauseMethod(x);</span><span class="none" id="pos15976">
+  </span><span class="nc" id="pos15979">return y - 1;</span><span class="none" id="pos15992">
+</span><span class="nc" id="pos15993">}</span><span class="none" id="pos15994">
 
-</span><span class="none" id="line352-col1">// False antecedent requires clause
+// False antecedent requires clause
 method FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
-  requires </span><span class="nc" id="line354-col12">x*x < 0 ==> x == x + 1
-</span><span class="none" id="line355-col1">  ensures </span><span class="pc" id="line355-col11">r > x
-</span><span class="none" id="line356-col1">{
-  </span><span class="fc" id="line357-col3">return x + 1;
-</span><span class="nc" id="line358-col1">}
+  requires </span><span class="nc" id="pos16111">x*x < 0 ==> x == x + 1</span><span class="none" id="pos16133">
+  ensures </span><span class="pc" id="pos16144">r > x</span><span class="none" id="pos16149">
+{
+  </span><span class="fc" id="pos16154">return x + 1;</span><span class="none" id="pos16167">
+</span><span class="nc" id="pos16168">}</span><span class="none" id="pos16169">
 
-</span><span class="none" id="line360-col1">// False antecedent assert statement.
+// False antecedent assert statement.
 method FalseAntecedentAssertStatementMethod(x: int) {
-  var y </span><span class="fc" id="line362-col9">:= x*x;
-</span><span class="none" id="line363-col1">  assert </span><span class="nc" id="line363-col10">y < 0 ==> x </span><span class="pc" id="line363-col22"><</span><span class="nc" id="line363-col23"> 0</span><span class="none" id="line363-col25">;
+  var y </span><span class="fc" id="pos16271">:= x*x;</span><span class="none" id="pos16278">
+  assert </span><span class="nc" id="pos16288">y < 0 ==> x </span><span class="pc" id="pos16300"><</span><span class="nc" id="pos16301"> 0</span><span class="none" id="pos16303">;
 }
 
 // False antecedent ensures clause.
 method FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
-  ensures </span><span class="pc" id="line368-col11">r < 0 ==> x < 0
-</span><span class="none" id="line369-col1">{
-  </span><span class="fc" id="line370-col3">return x*x;
-</span><span class="nc" id="line371-col1">}
+  ensures </span><span class="pc" id="pos16421">r < 0 ==> x < 0</span><span class="none" id="pos16436">
+{
+  </span><span class="fc" id="pos16441">return x*x;</span><span class="none" id="pos16452">
+</span><span class="nc" id="pos16453">}</span><span class="none" id="pos16454">
 
-</span><span class="none" id="line373-col1">function ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int)
-  requires </span><span class="fc" id="line374-col12">x > 0
-</span><span class="none" id="line375-col1">  ensures </span><span class="pc" id="line375-col11">r > 0
-</span><span class="none" id="line376-col1">{
+function ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int)
+  requires </span><span class="fc" id="pos16536">x > 0</span><span class="none" id="pos16541">
+  ensures </span><span class="pc" id="pos16552">r > 0</span><span class="none" id="pos16557">
+{
   if x < 0
-  then </span><span class="nc" id="line378-col8">x - 1</span><span class="none" id="line378-col13"> // unreachable
-  else </span><span class="fc" id="line379-col8">x + 1
-</span><span class="none" id="line380-col1">}
+  then </span><span class="nc" id="pos16578">x - 1</span><span class="none" id="pos16583"> // unreachable
+  else </span><span class="fc" id="pos16606">x + 1</span><span class="none" id="pos16611">
+}
 
 method ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
-  requires </span><span class="pc" id="line383-col12">x > 0
-</span><span class="none" id="line384-col1">  ensures </span><span class="pc" id="line384-col11">r > 0
-</span><span class="none" id="line385-col1">{
+  requires </span><span class="pc" id="pos16701">x > 0</span><span class="none" id="pos16706">
+  ensures </span><span class="pc" id="pos16717">r > 0</span><span class="none" id="pos16722">
+{
   if x < 0 {
-    </span><span class="nc" id="line387-col5">return x - 1;</span><span class="none" id="line387-col18"> // unreachable
+    </span><span class="nc" id="pos16742">return x - 1;</span><span class="none" id="pos16755"> // unreachable
   } else {
-    </span><span class="fc" id="line389-col5">return x + 1;
-</span><span class="none" id="line390-col1">  }
-</span><span class="nc" id="line391-col1">}
+    </span><span class="fc" id="pos16786">return x + 1;</span><span class="none" id="pos16799">
+  }
+</span><span class="nc" id="pos16804">}</span><span class="none" id="pos16805">
 
-</span><span class="none" id="line393-col1">datatype T = A | B
+datatype T = A | B
 
 function ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:int)
-  requires </span><span class="fc" id="line396-col12">t != A
-</span><span class="none" id="line397-col1">  ensures </span><span class="pc" id="line397-col11">r > 1</span><span class="none" id="line397-col16"> // alt: r > 0
+  requires </span><span class="fc" id="pos16910">t != A</span><span class="none" id="pos16916">
+  ensures </span><span class="pc" id="pos16927">r > 1</span><span class="none" id="pos16932"> // alt: r > 0
 {
   match t {
-    case A => </span><span class="nc" id="line400-col15">1</span><span class="none" id="line400-col16"> // unreachable
-    case B => </span><span class="fc" id="line401-col15">2
-</span><span class="none" id="line402-col1">  }
+    case A => </span><span class="nc" id="pos16975">1</span><span class="none" id="pos16976"> // unreachable
+    case B => </span><span class="fc" id="pos17006">2</span><span class="none" id="pos17007">
+  }
 }
 
 method ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (r:int)
-  requires </span><span class="pc" id="line406-col12">t != A
-</span><span class="none" id="line407-col1">  ensures </span><span class="pc" id="line407-col11">r > 1</span><span class="none" id="line407-col16"> // alt: r > 0
+  requires </span><span class="pc" id="pos17100">t != A</span><span class="none" id="pos17106">
+  ensures </span><span class="pc" id="pos17117">r > 1</span><span class="none" id="pos17122"> // alt: r > 0
 {
   match t {
-    case A => </span><span class="nc" id="line410-col15">return 1;</span><span class="none" id="line410-col24"> // unreachable
-    case B => </span><span class="fc" id="line411-col15">return 2;
-</span><span class="none" id="line412-col1">  }
-</span><span class="nc" id="line413-col1">}
+    case A => </span><span class="nc" id="pos17165">return 1;</span><span class="none" id="pos17174"> // unreachable
+    case B => </span><span class="fc" id="pos17204">return 2;</span><span class="none" id="pos17213">
+  }
+</span><span class="nc" id="pos17218">}</span><span class="none" id="pos17219">
 
-</span><span class="none" id="line415-col1">method ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
-  requires </span><span class="pc" id="line416-col12">t != A
-</span><span class="none" id="line417-col1">    ensures </span><span class="pc" id="line417-col13">r > 1</span><span class="none" id="line417-col18"> // alt: r > 0
+method ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
+  requires </span><span class="pc" id="pos17303">t != A</span><span class="none" id="pos17309">
+    ensures </span><span class="pc" id="pos17322">r > 1</span><span class="none" id="pos17327"> // alt: r > 0
   {
     if !t.A? {
-      </span><span class="fc" id="line420-col7">return 2;
-</span><span class="none" id="line421-col1">    }
+      </span><span class="fc" id="pos17367">return 2;</span><span class="none" id="pos17376">
+    }
 
-    </span><span class="nc" id="line423-col5">return 1;</span><span class="none" id="line423-col14"> // unreachable
-  </span><span class="nc" id="line424-col3">}
+    </span><span class="nc" id="pos17388">return 1;</span><span class="none" id="pos17397"> // unreachable
+  </span><span class="nc" id="pos17415">}</span><span class="none" id="pos17416">
 
-</span><span class="none" id="line426-col1">method CalcStatementWithSideConditions(x: int) {
+method CalcStatementWithSideConditions(x: int) {
   calc == {
-    </span><span class="nc" id="line428-col5">x </span><span class="pc" id="line428-col7">/</span><span class="nc" id="line428-col8"> 2;
-    (x*2) </span><span class="pc" id="line429-col11">/</span><span class="nc" id="line429-col12"> 4</span><span class="none" id="line429-col14">;
+    </span><span class="nc" id="pos17483">x </span><span class="pc" id="pos17485">/</span><span class="nc" id="pos17486"> 2;
+    (x*2) </span><span class="pc" id="pos17500">/</span><span class="nc" id="pos17501"> 4</span><span class="none" id="pos17503">;
   }
 }
 
 method DontWarnAboutVacuousAssertFalse(x: int) {
-  assume </span><span class="fc" id="line434-col10">x == x + 1</span><span class="none" id="line434-col20">;
-  assert </span><span class="nc" id="line435-col10">f</span><span class="none" id="line435-col11">alse;
+  assume </span><span class="fc" id="pos17570">x == x + 1</span><span class="none" id="pos17580">;
+  assert </span><span class="nc" id="pos17591">f</span><span class="none" id="pos17592">alse;
 }
 
 // CHECK: Results for GetX \(well-formedness\)
@@ -463,14 +463,13 @@ class C {
 function GetX(c: C): int
   reads c
 {
-  </span><span class="nc" id="line449-col3">c.</span><span class="pc" id="line449-col5">x
-</span><span class="none" id="line450-col1">}
-
-method DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="nc" id="line453-col10">t</span><span class="none" id="line453-col11">rue;
-  assert 1 + x </span><span class="fc" id="line454-col16">=</span><span class="none" id="line454-col17">= x + 1;
+  </span><span class="nc" id="pos17839">c.</span><span class="pc" id="pos17841">x</span><span class="none" id="pos17842">
 }
 
+method DontWarnAboutUnusedAssumeTrue(x: int) {
+  assume </span><span class="nc" id="pos17902">t</span><span class="none" id="pos17903">rue;
+  assert 1 + x </span><span class="fc" id="pos17923">=</span><span class="none" id="pos17924">= x + 1;
+}
 </span></pre>
 <div class="footer">
     <span class="right">
