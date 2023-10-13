@@ -104,7 +104,7 @@ public class SystemModuleManager {
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null);
     SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -200,11 +200,6 @@ public class SystemModuleManager {
     enclosingType.Members.Add(rotateMember);
   }
 
-  private Attributes DontCompile() {
-    var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
-    return new Attributes("compile", new List<Expression>() { flse }, null);
-  }
-
   public static Attributes AxiomAttribute() {
     return new Attributes("axiom", new List<Expression>(), null);
   }
@@ -236,7 +231,7 @@ public class SystemModuleManager {
         return;
       }
 
-      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
+      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, null);
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
         Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
@@ -302,7 +297,7 @@ public class SystemModuleManager {
     var reads = CreateMember("reads", ObjectSetType(), null);
     var req = CreateMember("requires", Type.Bool, reads);
 
-    var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
+    var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, null);
     ArrowTypeDecls.Add(arity, arrowDecl);
     SystemModule.SourceDecls.Add(arrowDecl);
 
@@ -315,7 +310,7 @@ public class SystemModuleManager {
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
     var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, null);
     PartialArrowTypeDecls.Add(arity, partialArrow);
     SystemModule.SourceDecls.Add(partialArrow);
 
@@ -329,7 +324,7 @@ public class SystemModuleManager {
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
     var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, null);
     TotalArrowTypeDecls.Add(arity, totalArrow);
     SystemModule.SourceDecls.Add(totalArrow);
   }
@@ -415,7 +410,7 @@ public class SystemModuleManager {
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }
 
-      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, DontCompile());
+      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, null);
       if (tt.NonGhostDims > MaxNonGhostTupleSizeUsed) {
         MaxNonGhostTupleSizeToken = tok;
         MaxNonGhostTupleSizeUsed = tt.NonGhostDims;
