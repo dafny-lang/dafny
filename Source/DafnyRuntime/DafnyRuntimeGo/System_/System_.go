@@ -12,6 +12,7 @@ var _ = os.Args
 
 type Dummy__ struct{}
 
+
 // Definition of class Nat
 type Nat struct {
 }
