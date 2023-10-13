@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -218,6 +217,92 @@ class X {
       Assert.Single(completionList);
       Assert.Equal(CompletionItemKind.Method, completionList[0].Kind);
       Assert.Equal("GetConstant", completionList[0].Label);
+    }
+
+    [Fact]
+    public async Task CompleteOnTypeAliasReturnsAliasedTypesOptions() {
+      var source = @"
+type T = array<int>
+class A {
+  var x: T
+
+  method DoIt() {
+
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.x.");
+
+      var completionList = await RequestCompletionAsync(documentItem, (5, 16));
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
+    }
+
+    [Fact]
+    public async Task CompleteOnChainedTypeAliases() {
+      var source = @"
+type T = array<int>
+type S = T
+class A {
+  var x: S
+
+  method DoIt() {
+
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      ApplyChange(ref documentItem, new Range((6, 0), (6, 0)), @"var y := this.x.");
+
+      var completionList = await RequestCompletionAsync(documentItem, (6, 16));
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
+    }
+
+    [Fact]
+    public async Task CompleteOnParametricTypeAlias() {
+      var source = @"
+type T<R, S> = S
+class A {
+  var x: T<int, array<int>>
+
+  method DoIt() {
+
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.x.");
+
+      var completionList = await RequestCompletionAsync(documentItem, (5, 16));
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
+    }
+
+    [Fact]
+    public async Task CompleteOnParametricTypeAliasReturningSynonym() {
+      var source = @"
+type T1 = array<int>
+type T2<R, S> = S
+class A {
+  var x: T2<int, T1>
+
+  method DoIt() {
+
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      ApplyChange(ref documentItem, new Range((6, 0), (6, 0)), @"var y := this.x.");
+
+      var completionList = await RequestCompletionAsync(documentItem, (6, 16));
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
     }
 
     public DotCompletionTest(ITestOutputHelper output) : base(output) {
