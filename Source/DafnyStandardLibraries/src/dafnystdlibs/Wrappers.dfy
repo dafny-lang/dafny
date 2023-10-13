@@ -210,7 +210,7 @@ module {:options "--function-syntax:4"} DafnyStdLibs.Wrappers {
   /** In verification, this method functions as an `assert` of the given condition;
       at run-time functions as an `expect`. The arguments may not be ghost.
    */
-  method AssertAndExpect<T>(condition: bool, maybeMsg: Option<T> := None)
+  method AssertAndExpect(condition: bool, maybeMsg: Option<string> := None)
     requires condition
   {
     match maybeMsg {
