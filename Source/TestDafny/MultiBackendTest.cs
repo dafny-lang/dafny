@@ -291,7 +291,8 @@ public class MultiBackendTest {
     var compileOptions = new List<Option> {
       CommonOptionBag.SpillTranslation,
       CommonOptionBag.OptimizeErasableDatatypeWrapper,
-      CommonOptionBag.AddCompileSuffix
+      CommonOptionBag.AddCompileSuffix,
+      RunCommand.MainOverride,
     }.Select(o => o.Name);
 
     return !compileOptions.Contains(name);

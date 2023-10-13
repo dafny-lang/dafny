@@ -7,7 +7,7 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
-  public abstract class RunCommand {
+  public abstract class LitRunCommand {
     public static ILitCommand Parse(string line, LitTestConfiguration config) {
       return ParseArguments(ILitCommand.Tokenize(line), config);
     }
