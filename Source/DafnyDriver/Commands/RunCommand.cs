@@ -7,7 +7,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-static class RunCommand {
+public static class RunCommand {
   private static readonly Argument<IEnumerable<string>> UserProgramArguments;
 
   public static readonly Option<IEnumerable<string>> Inputs = new("--input", "Specify an additional input file.") {
@@ -24,15 +24,24 @@ static class RunCommand {
       }
     });
 
+    DafnyOptions.RegisterLegacyBinding(MainOverride, (options, value) => {
+      options.MainMethod = value;
+    });
+
     DooFile.RegisterNoChecksNeeded(
       Inputs,
+      MainOverride,
       CommonOptionBag.BuildFile
     );
   }
 
+  public static readonly Option<string> MainOverride =
+    new("--main-method", "Override the method called to start the program, using a fully qualified method name.");
+
   public static IEnumerable<Option> Options =>
     new Option[] {
       Inputs,
+      MainOverride,
       CommonOptionBag.BuildFile,
     }.Concat(DafnyCommands.ExecutionOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
