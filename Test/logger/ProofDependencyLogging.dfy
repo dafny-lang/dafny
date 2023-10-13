@@ -166,9 +166,9 @@
 // CHECK:       ProofDependencyLogging.dfy\(416,12\)-\(416,17\): requires clause
 // CHECK:       ProofDependencyLogging.dfy\(417,13\)-\(417,17\): ensures clause
 // CHECK:       ProofDependencyLogging.dfy\(420,7\)-\(420,15\): assignment \(or return\)
-
-
-
+// CHECK:     Unused by proof:
+// CHECK:       ProofDependencyLogging.dfy\(428,5\)-\(428,5\): assumption that divisor is always non-zero.
+// CHECK:       ProofDependencyLogging.dfy\(428,5\)-\(429,13\): calc statement result
 
 method RedundantAssumeMethod(n: int)
 {
