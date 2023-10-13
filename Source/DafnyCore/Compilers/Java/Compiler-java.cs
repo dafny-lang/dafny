@@ -2991,11 +2991,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
+      if (!program.Options.Get(CommonOptionBag.IncludeSystemModule)) {
+        return;
+      }
+      
       // Emit tuples
       foreach (int i in tuples) {
-        if (i <= 20) {
-          continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
-        }
         CreateTuple(i, wr);
       }
 
