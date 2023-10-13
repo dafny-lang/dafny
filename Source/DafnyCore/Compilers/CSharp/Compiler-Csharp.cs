@@ -82,7 +82,6 @@ namespace Microsoft.Dafny.Compilers {
 
       if (Options.IncludeRuntime) {
         ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
-        ReadRuntimeSystem(program, "DafnyStdLib.cs", wr);
       }
 
     }
