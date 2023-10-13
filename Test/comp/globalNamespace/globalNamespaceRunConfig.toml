@@ -1,5 +1,0 @@
-includes=["./globalNamespaceRun.dfy"]
-
-[options]
-outer-namespace=["my","happy"]
-spill-translation=true
