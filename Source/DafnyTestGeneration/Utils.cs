@@ -140,6 +140,28 @@ namespace DafnyTestGeneration {
       return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
     }
 
+    /// <summary>
+    /// Given a file URI and a one-based line number, return the position of the character at the start of the line.
+    /// Use a cache to prevent reading the same file twice.
+    /// </summary>
+    public static int GetPosFromLine(Uri fileUri, int lineNum, Dictionary<Uri, int[]> cache) {
+      if (!cache.ContainsKey(fileUri)) {
+        var source = new StreamReader(fileUri.LocalPath).ReadToEnd();
+        var lines = source.Split("\n");
+        var pos = 0;
+        var line = 0;
+        var linePositions = new int[lines.Length + 1];
+        while (pos < source.Length) {
+          linePositions[line] = pos;
+          pos += lines[line].Length + 1;
+          line++;
+        }
+        linePositions[^1] = pos;
+        cache[fileUri] = linePositions;
+      }
+      return cache[fileUri][lineNum - 1]; // subtract one because lineNum is one-based
+    }
+
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
       var attributes = implementation.Attributes;
       while (attributes != null) {
