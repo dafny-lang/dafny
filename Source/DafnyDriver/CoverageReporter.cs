@@ -25,7 +25,7 @@ public class CoverageReporter {
   private static readonly Regex TableFooterRegex = new(@"\{\{TABLE_FOOTER\}\}");
   private static readonly Regex TableBodyRegex = new(@"\{\{TABLE_BODY\}\}");
   private static readonly Regex IndexFileNameRegex = new(@"index(.*)\.html");
-  private static readonly Regex PosRegexInverse = new("class=\"([a-z]+)\" id=\"pos([0-9]+)\">");
+  private static readonly Regex PosRegexInverse = new("class=\"([a-z]+)\" id=\"line([0-9]+)-col([0-9]+)\"");
   private const string CoverageReportTemplatePath = "coverage_report_template.html";
   private const string CoverageReportIndexTemplatePath = "coverage_report_index_template.html";
   private const string CoverageReportSupportingFilesPath = ".resources";
@@ -108,17 +108,15 @@ public class CoverageReporter {
       var lastEndToken = new Token(1, 1);
       report.RegisterFile(uri);
       foreach (var span in PosRegexInverse.Matches(source).Where(match => match.Success)) {
-        if (int.TryParse(span.Groups[2].Value, out var pos)) {
-          var startToken = new Token(1, 1);
+        if (int.TryParse(span.Groups[2].Value, out var startLine) &&
+            int.TryParse(span.Groups[3].Value, out var startCol)) {
+          var startToken = new Token(startLine, startCol);
           startToken.Uri = uri;
-          startToken.pos = pos;
-          lastEndToken.pos = pos;
-          var endToken = new Token(1, 1);
-          endToken.Uri = uri;
-          lastEndToken = endToken;
-          var rangeToken = new RangeToken(startToken, endToken);
+          lastEndToken.Uri = uri;
+          var rangeToken = new RangeToken(lastEndToken, startToken);
           rangeToken.Uri = uri;
           report.LabelCode(rangeToken, FromHtmlClass(span.Groups[1].Value));
+          lastEndToken = startToken;
         }
       }
     }
@@ -264,29 +262,49 @@ public class CoverageReporter {
 
   private string HtmlReportForFile(CoverageReport report, string pathToSourceFile, string baseDirectory, string linksToOtherReports) {
     var source = new StreamReader(pathToSourceFile).ReadToEnd();
-    var lines = source.Split("\n");
-    var characterLabels = new CoverageLabel[source.Length];
-    Array.Fill(characterLabels, CoverageLabel.None);
-    IToken lastToken = new Token(1, 1);
+    var lines = source.Split(
+      new string[] { Environment.NewLine },
+      StringSplitOptions.None);
+    var characterLabels = new CoverageLabel[lines.Length][];
+    for (int i = 0; i < lines.Length; i++) {
+      characterLabels[i] = new CoverageLabel[lines[i].Length];
+      Array.Fill(characterLabels[i], CoverageLabel.None);
+    }
     var labeledCodeBuilder = new StringBuilder(source.Length);
     foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
-      for (var pos = span.Span.StartToken.pos; pos <= span.Span.EndToken.pos; pos++) {
-        characterLabels[pos] = CoverageLabelExtension.Combine(characterLabels[pos], span.Label);
+      var line = span.Span.StartToken.line - 1;
+      var column = span.Span.StartToken.col - 1;
+      while (line <= span.Span.EndToken.line - 1 && column <= span.Span.EndToken.col - 1) {
+        if (characterLabels[line].Length <= column) {
+          line++;
+          while (line < characterLabels.Length && characterLabels[line].Length == 0) {
+            line++;
+          }
+          column = 0;
+          if (characterLabels.Length == line) {
+            break;
+          }
+        }
+        characterLabels[line][column] = CoverageLabelExtension.Combine(characterLabels[line][column], span.Label);
+        column++;
       }
     }
 
     CoverageLabel lastLabel = CoverageLabel.None;
-    labeledCodeBuilder.Append(OpenHtmlTag(0, CoverageLabel.None));
-    for (var pos = 0; pos < source.Length; pos++) {
-      var thisLabel = characterLabels[pos];
-      if (thisLabel != lastLabel) {
-        labeledCodeBuilder.Append(CloseHtmlTag());
-        labeledCodeBuilder.Append(OpenHtmlTag(pos, thisLabel));
+    labeledCodeBuilder.Append(OpenHtmlTag(1, 1, CoverageLabel.None));
+    for (var line = 0; line < lines.Length; line++) {
+      for (var col = 0; col < lines[line].Length; col++) {
+        var thisLabel = characterLabels[line][col];
+        if (thisLabel != lastLabel) {
+          labeledCodeBuilder.Append(CloseHtmlTag());
+          labeledCodeBuilder.Append(OpenHtmlTag(line + 1, col + 1, thisLabel));
+        }
+
+        labeledCodeBuilder.Append(lines[line][col]);
+
+        lastLabel = thisLabel;
       }
-
-      labeledCodeBuilder.Append(source[pos]);
-
-      lastLabel = thisLabel;
+      labeledCodeBuilder.Append(Environment.NewLine);
     }
     labeledCodeBuilder.Append(CloseHtmlTag());
 
@@ -331,8 +349,9 @@ public class CoverageReporter {
     return CoverageLabel.NotCovered; // this is a fallback in case the HTML has invalid classes
   }
 
-  private string OpenHtmlTag(int pos, CoverageLabel label) {
-    var id = $"id=\"pos{pos}\"";
+  private string OpenHtmlTag(int line, int col, CoverageLabel label) {
+    var id =
+      $"id=\"line{line}-col{col}\"";
     var classLabel = ToHtmlClass(label);
     return $"<span class=\"{classLabel}\" {id}>";
   }
