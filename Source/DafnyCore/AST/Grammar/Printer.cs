@@ -15,7 +15,6 @@ using System.Numerics;
 using System.Linq;
 using DafnyCore;
 using JetBrains.Annotations;
-using static Microsoft.Dafny.Printer;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {

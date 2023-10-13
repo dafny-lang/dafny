@@ -11,7 +11,6 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
