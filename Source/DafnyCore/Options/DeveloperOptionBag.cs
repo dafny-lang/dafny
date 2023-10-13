@@ -36,7 +36,6 @@ enabling necessary special handling.".TrimStart()) {
   };
 
   static DeveloperOptionBag() {
-
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
       options.DafnyPrintResolvedFile = value;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
