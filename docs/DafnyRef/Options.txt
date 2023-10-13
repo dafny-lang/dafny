@@ -366,10 +366,10 @@ Usage: dafny [ option ... ] [ filename ... ]
   /optimizeErasableDatatypeWrapper:<value>
       0 - Include all non-ghost datatype constructors in the compiled code
       1 (default) - In the compiled target code, transform any non-extern
-        datatype with a single non-ghost constructor that has a single
-        non-ghost parameter into just that parameter. For example, the type
-            datatype Record = Record(x: int)
-        is transformed into just 'int' in the target code.
+          datatype with a single non-ghost constructor that has a single
+          non-ghost parameter into just that parameter. For example, the type
+              datatype Record = Record(x: int)
+          is transformed into just 'int' in the target code.
 
   /out:<file>
       Specify the filename and location for the generated target language files.
