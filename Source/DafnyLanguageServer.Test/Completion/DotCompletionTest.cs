@@ -275,7 +275,7 @@ class A {
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "CompleteOnTypeAlias.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var x := this.f.");
+      ApplyChange(ref documentItem, new Range((5, 0), (5, 0)), @"var y := this.x.");
 
       var completionList = await RequestCompletionAsync(documentItem, (5, 16));
       Assert.Single(completionList);
