@@ -29,7 +29,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override bool SupportsDatatypeWrapperErasure =>
     CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
-  public override string ModuleSeparator => compiler.ModuleSeparator;
+  public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     var outerModules = GetOuterModules();
@@ -49,27 +49,32 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
-    compiler.Compile(dafnyProgram, output);
+    Compiler.Compile(dafnyProgram, output);
   }
 
-  public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-    base.OnPreCompile(reporter, otherFileNames);
-    compiler = CreateCompiler();
+  SinglePassCompiler Compiler {
+    get {
+      if (compiler == null) {
+        compiler = CreateCompiler();
+      }
+
+      return compiler;
+    }
   }
 
   public override void OnPostCompile() {
     base.OnPostCompile();
-    compiler.Coverage.WriteLegendFile();
+    Compiler.Coverage.WriteLegendFile();
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
 
   public override string PublicIdProtect(string name) {
-    return compiler.PublicIdProtect(name);
+    return Compiler.PublicIdProtect(name);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
-    compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+    Compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
   }
 
   public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
@@ -160,11 +165,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
-    if (compiler == null) {
+    if (Compiler == null) {
       return;
     }
 
-    instrumenter.Instrument(this, compiler, dafnyProgram);
+    instrumenter.Instrument(this, Compiler, dafnyProgram);
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
