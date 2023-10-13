@@ -49,6 +49,9 @@ public class TupleTypeDecl : IndDatatypeDecl {
       }
     }
     this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
+    
+    // TODO: Correct?
+    ParentTypeInformation = new InheritanceInformationClass();
   }
   private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
     Contract.Requires(0 <= dims);

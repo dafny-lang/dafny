@@ -45,6 +45,10 @@
       <LinkBase>DafnyRuntimeCsharp</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeSystemModule.cs">
+      <LinkBase>DafnyRuntimeCsharp</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\**\*.go" Exclude="..\DafnyRuntime\DafnyRuntimeGo\**\*_test.go">
       <LinkBase>DafnyRuntimeGo</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

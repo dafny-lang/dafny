@@ -104,7 +104,7 @@ public class SystemModuleManager {
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null);
+    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
     SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -200,6 +200,11 @@ public class SystemModuleManager {
     enclosingType.Members.Add(rotateMember);
   }
 
+  private Attributes DontCompile() {
+    var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
+    return new Attributes("compile", new List<Expression>() { flse }, null);
+  }
+
   public static Attributes AxiomAttribute() {
     return new Attributes("axiom", new List<Expression>(), null);
   }
@@ -231,7 +236,7 @@ public class SystemModuleManager {
         return;
       }
 
-      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, null);
+      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
         Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
