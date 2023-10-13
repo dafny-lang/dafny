@@ -494,9 +494,10 @@ namespace Microsoft.Dafny {
         AddFuelZeroSynonymAxiom(f);
       }
       // add frame axiom
-      if (f.ReadsHeap) {
-        AddFrameAxiom(f);
-      }
+      //experiment don't generate frame axiom for function
+      // if (f.ReadsHeap) {
+      //   AddFrameAxiom(f);
+      // }
       // add consequence axiom
       AddFunctionConsequenceAxiom(boogieFunction, f, f.Ens);
       // add definition axioms, suitably specialized for literals
