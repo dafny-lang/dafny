@@ -1,4 +1,5 @@
 // NONUNIFORM: Not a compiler test
+// UNSUPPORTED: windows
 // Verification coverage:
 // RUN: rm -rf "%t"/coverage_verificaion
 // RUN: %baredafny verify --use-basename-for-filename --show-snippets false --verify-included-files --coverage-report "%t/coverage_verificaion" %s
