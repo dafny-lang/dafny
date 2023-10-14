@@ -12,6 +12,11 @@ namespace Microsoft.Dafny;
 
 static class CoverageReportCommand {
 
+  public static IEnumerable<Option> Options =>
+    new Option[] {
+      CommonOptionBag.NoTimeStampForCoverageReport,
+    };
+
   static CoverageReportCommand() {
     ReportsArgument = new("reports", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
@@ -28,6 +33,9 @@ static class CoverageReportCommand {
       "Merge several previously generated coverage reports together.");
     result.AddArgument(OutDirArgument);
     result.AddArgument(ReportsArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
 
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       var coverageReporter = new CoverageReporter(options);

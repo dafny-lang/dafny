@@ -150,8 +150,11 @@ public class CoverageReporter {
   /// will have links to each other to make comparison easier
   /// </summary>
   private void SerializeCoverageReports(List<CoverageReport> reports, string reportsDirectory) {
-    var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
-    var sessionDirectory = Path.Combine(reportsDirectory, sessionName);
+    var sessionDirectory = reportsDirectory;
+    if (!options.Get(CommonOptionBag.NoTimeStampForCoverageReport)) {
+      var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
+      sessionDirectory = Path.Combine(reportsDirectory, sessionName);
+    }
     Directory.CreateDirectory(sessionDirectory);
     HashSet<string> allFiles = new();
     reports.ForEach(report => allFiles.UnionWith(report.AllFiles()));
