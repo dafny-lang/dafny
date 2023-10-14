@@ -59,11 +59,13 @@ public class CoverageReport {
   }
 
   public void RegisterFile(Uri uri) {
-    labelsByFile[uri.LocalPath] = new List<CoverageSpan>();
+    if (!labelsByFile.ContainsKey(uri.LocalPath)) {
+      labelsByFile[uri.LocalPath] = new List<CoverageSpan>();
+    }
   }
 
   private void RegisterFiles(Node astNode) {
-    if (astNode.StartToken.ActualFilename != null) {
+    if (astNode.StartToken.ActualFilename != null && !labelsByFile.ContainsKey(astNode.StartToken.ActualFilename)) {
       labelsByFile[astNode.StartToken.ActualFilename] = new();
     }
 
