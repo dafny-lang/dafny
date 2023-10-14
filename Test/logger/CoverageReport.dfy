@@ -1,10 +1,10 @@
 // NONUNIFORM: Not a compiler test
 // UNSUPPORTED: windows
 // Verification coverage:
-// RUN: rm -rf "%t"/coverage_verificaion
-// RUN: %baredafny verify --use-basename-for-filename --show-snippets false --verify-included-files --coverage-report "%t/coverage_verificaion" %s
-// RUN: mv "%t"/coverage_verificaion/* "%t"/coverage_verificaion/report/
-// RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_verificaion/report/ProofDependencyLogging.dfy_verification.html > "%t"/coverage_verification_actual.html
+// RUN: rm -rf "%t"/coverage_verification
+// RUN: %baredafny verify --use-basename-for-filename --show-snippets false --verify-included-files --coverage-report "%t/coverage_verification" %s
+// RUN: mv "%t"/coverage_verification/* "%t"/coverage_verification/report/
+// RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_verification/report/ProofDependencyLogging.dfy_verification.html > "%t"/coverage_verification_actual.html
 // RUN: %diff "%S/ProofDependencyLogging.dfy_verification.html.expect" "%t/coverage_verification_actual.html"
 // Test coverage:
 // RUN: rm -rf "%t"/coverage_testing

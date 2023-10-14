@@ -10,7 +10,7 @@
 <body onload="window['PR_TAB_WIDTH']=4">
 <div class="menu" id="menu">
     <a href="./index_combined.html">Index</a>
-    <a href="ProofDependencyLogging.dfy_tests_expected_2.html" class="el_report">Expected Test Coverage (report)</a>
+    <a href="ProofDependencyLogging.dfy_tests_expected_2.html" class="el_report">Expected Test Coverage (report)</a><a href="ProofDependencyLogging.dfy_verification_3.html" class="el_report">Verification coverage (report)</a>
 </div>
 <h1>ProofDependencyLogging.dfy, Combined Coverage Report</h1>
 
@@ -188,31 +188,31 @@
 module M {
 
 method {:testEntry} RedundantAssumeMethod(n: int)
-</span><span class="fc" id="174:1">{
-</span><span class="na" id="175:1">    // either one or the other assumption shouldn't be covered
+{
+    // either one or the other assumption shouldn't be covered
     assume n > 4;
     assume n > 3;
     assert n > 1;
 }
 
 method {:testEntry} ContradictoryAssumeMethod(n: int)
-</span><span class="nc" id="182:1">{
-</span><span class="na" id="183:1">    assume n > 0;
+{
+    assume n > 0;
     assume n < 0;
     assume n == 5; // shouldn't be covered
     assert n < 10; // shouldn't be covered
 }
 
 method {:testEntry} AssumeFalseMethod(n: int)
-</span><span class="nc" id="190:1">{
-</span><span class="na" id="191:1">    assume n == 15; // shouldn't be covered
+{
+    assume n == 15; // shouldn't be covered
     assume false;
     assert n < 10; // shouldn't be covered
 }
 
 // Obvious contradiction in requires clauses.
-</span><span class="nc" id="197:1">function {:testEntry} ObviouslyContradictoryRequiresFunc(x: nat): (r: nat)
-</span><span class="na" id="198:1">  requires x > 10
+function {:testEntry} ObviouslyContradictoryRequiresFunc(x: nat): (r: nat)
+  requires x > 10
   requires x < 10
   ensures r < x // only provable vacuously 
 {
@@ -224,14 +224,14 @@ method {:testEntry} ObviouslyContradictoryRequiresMethod(x: nat) returns (r: nat
   requires x > 10
   requires x < 10
   ensures r < x // only provable vacuously
-</span><span class="nc" id="210:1">{
-</span><span class="na" id="211:1">  assert x == 10; // contradicts both requires clauses
+{
+  assert x == 10; // contradicts both requires clauses
   return x - 1; // not necessarily a valid nat
 }
 
 // Obvious redundancy in requires clauses.
-</span><span class="fc" id="216:1">function {:testEntry} ObviouslyRedundantRequiresFunc(x: nat): (r: nat)
-</span><span class="na" id="217:1">  requires x < 10
+function {:testEntry} ObviouslyRedundantRequiresFunc(x: nat): (r: nat)
+  requires x < 10
   requires x < 100 // implied by previous requires clause
   ensures r < 11 // should cause body and first requires clause to be covered
 {
@@ -242,28 +242,28 @@ method {:testEntry} ObviouslyRedundantRequiresMethod(x: nat) returns (r: nat)
   requires x < 10
   requires x < 100 // implied by previous requires clause
   ensures r < 11 // should cause body and first requires clause to be covered
-</span><span class="fc" id="228:1">{
-</span><span class="na" id="229:1">  return x + 1;
+{
+  return x + 1;
 }
 
 // Obviously unnecessary requires clauses.
-</span><span class="fc" id="233:1">function {:testEntry} ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
-</span><span class="na" id="234:1">  requires x < 10 // not required for the proof
+function {:testEntry} ObviouslyUnnecessaryRequiresFunc(x: nat): (r: nat)
+  requires x < 10 // not required for the proof
 {
   // cause at least a little proof work to be necessary, for nat bounds
-</span><span class="fc" id="237:1">  if (x > 5) then x + 2 else x + 1
+  if (x > 5) then </span><span class="pc" id="237:19">x + 2</span><span class="na" id="237:24"> else </span><span class="pc" id="237:30">x + 1
 </span><span class="na" id="238:1">}
 
 method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
   requires x < 10 // not required for the proof
-</span><span class="fc" id="242:1">{
-</span><span class="na" id="243:1">  // cause at least a little proof work to be necessary, for nat bounds
-</span><span class="fc" id="244:1">  if (x > 5) { return x + 2; } else { return x + 1; }
-</span><span class="na" id="245:1">}
+{
+  // cause at least a little proof work to be necessary, for nat bounds
+  if (x > 5) { </span><span class="pc" id="244:16">return x + 2;</span><span class="na" id="244:29"> } else { </span><span class="pc" id="244:39">return x + 1;</span><span class="na" id="244:52"> }
+}
 
 // Code obviously not constrained by ensures clause.
-</span><span class="fc" id="248:1">function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
-</span><span class="na" id="249:1">  requires x > 10
+function {:testEntry} ObviouslyUnconstrainedCodeFunc(x: int): (r: (int, int))
+  requires x > 10
   ensures r.0 > 10
 {
   var a := x + 1; // constrained by ensures clause
@@ -275,8 +275,8 @@ method {:testEntry} ObviouslyUnnecessaryRequiresMethod(x: nat) returns (r: nat)
 method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, int))
   requires x > 10
   ensures r.0 > 10
-</span><span class="fc" id="261:1">{
-</span><span class="na" id="262:1">  var a := x + 1; // constrained by ensures clause
+{
+  var a := x + 1; // constrained by ensures clause
   var b := x - 1; // not constrained by ensures clause
   return
     (a,
@@ -284,26 +284,26 @@ method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, i
 }
 
 // Partial redundancy in requires clauses.
-</span><span class="fc" id="270:1">function {:testEntry} PartiallyRedundantRequiresFunc(x: nat): (r: nat)
-</span><span class="na" id="271:1">  requires x < 100 && x < 10 // LHS implied by RHS
+function {:testEntry} PartiallyRedundantRequiresFunc(x: nat): (r: nat)
+  requires x < 100 && x < 10 // LHS implied by RHS
   ensures r < 11 // should cause body and RHS clause to be covered
 {
   x + 1
 }
 
 // Partly unnecessary requires clause.
-</span><span class="fc" id="278:1">function {:testEntry} PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
-</span><span class="na" id="279:1">  requires x < 10 && x > 0 // RHS required for proof, but not LHS
+function {:testEntry} PartiallyUnnecessaryRequiresFunc(x: int): (r: nat)
+  requires x < 10 && x > 0 // RHS required for proof, but not LHS
 {
   // cause at least a little proof work to be necessary, for nat bounds
-</span><span class="fc" id="282:1">  if (x > 5) then x - 1 else x + 1
+  if (x > 5) then </span><span class="pc" id="282:19">x - 1</span><span class="na" id="282:24"> else </span><span class="pc" id="282:30">x + 1
 </span><span class="na" id="283:1">}
 
 
 // Redundancy of one requires clause due to at least two others, with at least
 // one of the three being partly in a separately-defined function.
-</span><span class="fc" id="288:1">function {:testEntry} MultiPartRedundantRequiresFunc(x: int): (r: int)
-</span><span class="na" id="289:1">  requires x > 10
+function {:testEntry} MultiPartRedundantRequiresFunc(x: int): (r: int)
+  requires x > 10
   requires x < 12
   requires x == 11 // implied by the previous two, but neither individually
   ensures r == 11
@@ -316,15 +316,15 @@ method {:testEntry} MultiPartRedundantRequiresMethod(x: int) returns (r: int)
   requires x < 12
   requires x == 11 // implied by the previous two, but neither individually
   ensures r == 11
-</span><span class="fc" id="302:1">{
-</span><span class="na" id="303:1">  return x;
+{
+  return x;
 }
 
 // Contradiction between three different requires clauses, with at least one of
 // the three being partly in a separately-defined function (function and
 // method).
-</span><span class="fc" id="309:1">function {:testEntry} MultiPartContradictoryRequiresFunc(x: int, y: int): (r: int)
-</span><span class="na" id="310:1">  requires x > 10
+function {:testEntry} MultiPartContradictoryRequiresFunc(x: int, y: int): (r: int)
+  requires x > 10
   requires x < 12
   requires y != 11 // contradicts the previous two
   ensures r == 11 // provable from first two preconditions, but shouldn't be covered
@@ -337,8 +337,8 @@ method {:testEntry} MultiPartContradictoryRequiresMethod(x: int, y: int) returns
   requires x < 12
   requires y != 11 // contradicts the previous two
   ensures r == 11 // provable from first two preconditions, but shouldn't be covered
-</span><span class="fc" id="323:1">{
-</span><span class="na" id="324:1">  return x;
+{
+  return x;
 }
 
 function {:testEntry} ContradictoryEnsuresClauseFunc(x: int): (r: int)
@@ -350,8 +350,8 @@ method {:testEntry} ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
   ensures  r > x && r < 0
 
 // Call function that has contradictory ensures clauses.
-</span><span class="nc" id="336:1">function {:testEntry} CallContradictoryFunctionFunc(x: int): (r: int)
-</span><span class="na" id="337:1">  requires x > 1
+function {:testEntry} CallContradictoryFunctionFunc(x: int): (r: int)
+  requires x > 1
   ensures r < 0
 {
   // TODO: Dafny doesn't generate sufficient Boogie code to make the contradiction detectable
@@ -361,8 +361,8 @@ method {:testEntry} ContradictoryEnsuresClauseMethod(x: int) returns (r: int)
 method {:testEntry} CallContradictoryMethodMethod(x: int) returns (r: int)
   requires x > 1
   ensures r < 0
-</span><span class="nc" id="347:1">{
-</span><span class="na" id="348:1">  var y := ContradictoryEnsuresClauseMethod(x);
+{
+  var y := ContradictoryEnsuresClauseMethod(x);
   return y - 1;
 }
 
@@ -370,85 +370,85 @@ method {:testEntry} CallContradictoryMethodMethod(x: int) returns (r: int)
 method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
   requires x*x < 0 ==> x == x + 1
   ensures r > x
-</span><span class="fc" id="356:1">{
-</span><span class="na" id="357:1">  return x + 1;
+{
+  return x + 1;
 }
 
 // False antecedent assert statement.
-</span><span class="fc" id="361:1">method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
-</span><span class="na" id="362:1">  var y := x*x;
+method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
+  var y := x*x;
   assert y < 0 ==> x < 0;
 }
 
 // False antecedent ensures clause.
 method {:testEntry} FalseAntecedentEnsuresClauseMethod(x: int) returns (r: int)
   ensures r < 0 ==> x < 0
-</span><span class="fc" id="369:1">{
-</span><span class="na" id="370:1">  return x*x;
+{
+  return x*x;
 }
 
-</span><span class="fc" id="373:1">function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int)
-</span><span class="na" id="374:1">  requires x > 0
+function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int)
+  requires x > 0
   ensures r > 0
 {
   if x < 0
-</span><span class="nc" id="378:1">  then x - 1 // unreachable
-</span><span class="fc" id="379:1">  else x + 1
+  then </span><span class="nc" id="378:8">x - 1</span><span class="na" id="378:13"> // unreachable
+  else </span><span class="fc" id="379:8">x + 1
 </span><span class="na" id="380:1">}
 
 method {:testEntry} ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
   requires x > 0
   ensures r > 0
-</span><span class="fc" id="385:1">{
-</span><span class="na" id="386:1">  if x < 0 {
-</span><span class="nc" id="387:1">    return x - 1; // unreachable
-</span><span class="na" id="388:1">  } else {
-</span><span class="fc" id="389:1">    return x + 1;
+{
+  if x < 0 {
+    </span><span class="nc" id="387:5">return x - 1;</span><span class="na" id="387:18"> // unreachable
+  } else {
+    </span><span class="fc" id="389:5">return x + 1;
 </span><span class="na" id="390:1">  }
 }
 
 datatype T = A | B
 
-</span><span class="fc" id="395:1">function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:int)
-</span><span class="na" id="396:1">  requires t != A
+function {:testEntry} ObviouslyUnreachableMatchExpressionCaseFunction(t: T): (r:int)
+  requires t != A
   ensures r > 1 // alt: r > 0
 {
   match t {
-</span><span class="nc" id="400:1">    case A => 1 // unreachable
-</span><span class="fc" id="401:1">    case B => 2
-  }
-</span><span class="na" id="403:1">}
+    case A => </span><span class="nc" id="400:15">1</span><span class="na" id="400:16"> // unreachable
+    case B => </span><span class="fc" id="401:15">2
+</span><span class="na" id="402:1">  }
+}
 
 method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (r:int)
   requires t != A
   ensures r > 1 // alt: r > 0
-</span><span class="fc" id="408:1">{
-</span><span class="na" id="409:1">  match t {
-</span><span class="nc" id="410:1">    case A => return 1; // unreachable
-</span><span class="fc" id="411:1">    case B => return 2;
+{
+  match t {
+    case A => </span><span class="nc" id="410:15">return 1;</span><span class="na" id="410:24"> // unreachable
+    case B => </span><span class="fc" id="411:15">return 2;
 </span><span class="na" id="412:1">  }
 }
 
 method {:testEntry} ObviouslyUnreachableReturnStatementMethod(t: T) returns (r:int)
   requires t != A
     ensures r > 1 // alt: r > 0
-</span><span class="fc" id="418:1">  {
-</span><span class="na" id="419:1">    if !t.A? {
-</span><span class="fc" id="420:1">      return 2;
+  {
+    if !t.A? {
+      </span><span class="fc" id="420:7">return 2;
 </span><span class="na" id="421:1">    }
 
-</span><span class="nc" id="423:1">    return 1; // unreachable
-</span><span class="na" id="424:1">  }
+    </span><span class="nc" id="423:5">return 1;</span><span class="na" id="423:14"> // unreachable
+  }
 
-</span><span class="fc" id="426:1">method {:testEntry} CalcStatementWithSideConditions(x: int) {
-</span><span class="na" id="427:1">  calc == {
+method {:testEntry} CalcStatementWithSideConditions(x: int) {
+  calc == {
     x / 2;
     (x*2) / 4;
   }
 }
 
-</span><span class="nc" id="433:1">method {:testEntry} DontWarnAboutVacuousAssertFalse(x: int) {
-</span><span class="na" id="434:1">  assume x == x + 1;
+method {:testEntry} DontWarnAboutVacuousAssertFalse(x: int) {
+  assume x == x + 1;
   assert false;
 }
 
@@ -460,14 +460,14 @@ class C {
   var x: int
 }
 
-</span><span class="fc" id="446:1">function {:testEntry} GetX(c: C): int
-</span><span class="na" id="447:1">  reads c
+function {:testEntry} GetX(c: C): int
+  reads c
 {
   c.x
 }
 
-</span><span class="fc" id="452:1">method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-</span><span class="na" id="453:1">  assume true;
+method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
+  assume true;
   assert 1 + x == x + 1;
 }
 
