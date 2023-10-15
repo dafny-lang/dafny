@@ -258,7 +258,7 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
-  public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries");
+  public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries", () => true);
   
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
@@ -487,7 +487,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       WarnRedundantAssumptions,
       VerificationCoverageReport,
       NoTimeStampForCoverageReport,
-      DefaultFunctionOpacity
+      DefaultFunctionOpacity,
+      AllowStdLibs
     );
   }
 

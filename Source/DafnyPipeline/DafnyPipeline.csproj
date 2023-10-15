@@ -33,6 +33,7 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="..\DafnyStandardLibraries\build\stdlib.doo">
+      <LogicalName>stdlib.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\**\*.java">
