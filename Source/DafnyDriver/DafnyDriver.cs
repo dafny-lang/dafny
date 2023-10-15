@@ -265,6 +265,21 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
       }
 
+      if (options.Get(CommonOptionBag.AllowStdLibs)) {
+        var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+        var stream = assembly.GetManifestResourceStream("stdlib.doo");
+        if (stream is null) {
+          throw new Exception($"Cannot find embedded resource: stdlib.doo");
+        }
+        
+        var tempFileName = Path.GetTempFileName() + ".doo";
+        using var tempStream = new FileStream(tempFileName, FileMode.Create);
+        stream.CopyTo(tempStream);
+        
+        var uri = new Uri(tempFileName);
+        options.CliRootSourceUris.Add(uri);
+      }
+
       if (options.UseStdin) {
         var uri = new Uri("stdin:///");
         options.CliRootSourceUris.Add(uri);
@@ -515,6 +530,7 @@ namespace Microsoft.Dafny {
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
         if (!dafnyFile.Uri.IsFile && !doCheck && !doPrint) {
+          // TODO: Generalize message better
           errorWriter.WriteLine("Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.");
           exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;

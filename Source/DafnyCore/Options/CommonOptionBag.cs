@@ -241,7 +241,7 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
-  public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries");
+  public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries", () => true);
   
   static CommonOptionBag() {
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
@@ -377,7 +377,8 @@ Change the default opacity of functions.
       IncludeRuntimeOption,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
-      DefaultFunctionOpacity
+      DefaultFunctionOpacity,
+      AllowStdLibs
     );
   }
 
