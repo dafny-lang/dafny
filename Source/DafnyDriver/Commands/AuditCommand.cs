@@ -5,23 +5,28 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class AuditCommand : ICommandSpec {
+static class AuditCommand {
 
-  public IEnumerable<Option> Options => new Option[] {
+  public static IEnumerable<Option> Options => new Option[] {
     Auditor.Auditor.ReportFileOption,
     Auditor.Auditor.ReportFormatOption,
     Auditor.Auditor.CompareReportOption
-  }.Concat(ICommandSpec.ResolverOptions);
+  }.Concat(DafnyCommands.ResolverOptions);
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("audit", "Report issues in the Dafny code that might limit the soundness claims of verification, emitting them as warnings or in a report document.");
-    result.AddArgument(ICommandSpec.FilesArgument);
-    return result;
-  }
+    result.AddArgument(DafnyCommands.FilesArgument);
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-    dafnyOptions.Verify = false;
-    dafnyOptions.AuditProgram = true;
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      options.Compile = false;
+      options.Verify = false;
+      options.AuditProgram = true;
+      return CompilerDriver.RunCompiler(options);
+    });
+    return result;
   }
 }

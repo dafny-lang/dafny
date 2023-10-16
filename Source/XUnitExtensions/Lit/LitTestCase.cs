@@ -99,7 +99,7 @@ namespace XUnitExtensions.Lit {
             $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
         }
 
-        results.Add((output, error));
+        results.Add((output + outputWriter, error + errorWriter));
       }
 
       if (ExpectFailure) {

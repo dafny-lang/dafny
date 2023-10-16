@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 namespace Microsoft.Dafny.Compilers;
 
-public abstract class ExecutableBackend : Plugins.IExecutableBackend {
+public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
   protected SinglePassCompiler compiler;
 

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Linq;
+using System.IO;
+using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Boogie;
 
@@ -12,8 +12,8 @@ using Microsoft.Boogie;
 #nullable disable
 namespace Microsoft.Dafny;
 
-public class GenerateTestsCommand : ICommandSpec {
-  public IEnumerable<Option> Options =>
+static class GenerateTestsCommand {
+  public static IEnumerable<Option> Options =>
     new Option[] {
       LoopUnroll,
       SequenceLengthLimit,
@@ -27,8 +27,8 @@ public class GenerateTestsCommand : ICommandSpec {
       PrintBpl,
       CoverageReport,
       ForcePrune
-    }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
   private enum Mode {
     Path,
@@ -36,42 +36,73 @@ public class GenerateTestsCommand : ICommandSpec {
     InlinedBlock
   }
 
-  /// <summary>
-  /// Return a copy of the given DafnyOption instance that (for the purposes
-  /// of test generation) is identical to the <param name="options"></param>
-  /// parameter in everything except the value of the ProcsToCheck field that
-  /// determines the procedures to be verified and should be set to the value of
-  /// the <param name="proceduresToVerify"></param> parameter.
-  /// </summary>
-  internal static DafnyOptions CopyForProcedure(DafnyOptions options, HashSet<string> proceduresToVerify) {
-    var copy = new DafnyOptions(options);
-    copy.ProcsToCheck = proceduresToVerify.ToList();
-    return copy;
-  }
-
-  private readonly Argument<Mode> modeArgument = new("mode", @"
+  private static readonly Argument<Mode> modeArgument = new("mode", @"
 Block - Generate tests targeting block-coverage.
 InlinedBlock - Generate tests targeting block coverage after inlining (call-graph sensitive block coverage).
 Path - Generate tests targeting path-coverage.");
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("generate-tests", "(Experimental) Generate Dafny tests that ensure block or path coverage of a particular Dafny program.");
     result.AddArgument(modeArgument);
-    result.AddArgument(ICommandSpec.FilesArgument);
+    result.AddArgument(DafnyCommands.FilesArgument);
+
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+      var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
+        Mode.Path => TestGenerationOptions.Modes.Path,
+        Mode.Block => TestGenerationOptions.Modes.Block,
+        Mode.InlinedBlock => TestGenerationOptions.Modes.InlinedBlock,
+        _ => throw new ArgumentOutOfRangeException()
+      };
+      PostProcess(options, mode);
+
+      var exitCode = await GenerateTests(options);
+      return (int)exitCode;
+    });
+
     return result;
   }
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    var mode = context.ParseResult.GetValueForArgument(modeArgument) switch {
-      Mode.Path => TestGenerationOptions.Modes.Path,
-      Mode.Block => TestGenerationOptions.Modes.Block,
-      Mode.InlinedBlock => TestGenerationOptions.Modes.InlinedBlock,
-      _ => throw new ArgumentOutOfRangeException()
-    };
-    PostProcess(dafnyOptions, options, context, mode);
+  public static async Task<ExitValue> GenerateTests(DafnyOptions options) {
+    var exitValue = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    if (exitValue != ExitValue.SUCCESS) {
+      return exitValue;
+    }
+
+    if (dafnyFiles.Count > 1 &&
+        options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+      options.Printer.ErrorWriteLine(options.OutputWriter,
+        "*** Error: Only one .dfy file can be specified for testing");
+      return ExitValue.PREPROCESSING_ERROR;
+    }
+
+    var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
+
+    var uri = new Uri(dafnyFileNames[0]);
+    var source = new StreamReader(dafnyFileNames[0]);
+    var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
+    if (options.TestGenOptions.WarnDeadCode) {
+      await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
+        await options.OutputWriter.WriteLineAsync(line);
+      }
+    } else {
+      await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(source, uri, options, coverageReport)) {
+        await options.OutputWriter.WriteLineAsync(line);
+      }
+    }
+    if (options.TestGenOptions.CoverageReport != null) {
+      new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
+    }
+    if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
+      exitValue = ExitValue.DAFNY_ERROR;
+    }
+    return exitValue;
   }
 
-  internal static void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context, TestGenerationOptions.Modes mode) {
+  internal static void PostProcess(DafnyOptions dafnyOptions, TestGenerationOptions.Modes mode) {
     dafnyOptions.CompilerName = "cs";
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
@@ -87,11 +118,11 @@ Path - Generate tests targeting path-coverage.");
   }
 
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
-    "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
-  };
+    "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.");
+
   public static readonly Option<int> LoopUnroll = new("--loop-unroll", () => -1,
-    "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
-  };
+    "Higher values can improve accuracy of the analysis at the cost of taking longer to run.");
+
   public static readonly Option<string> PrintBpl = new("--print-bpl",
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
@@ -101,8 +132,7 @@ Path - Generate tests targeting path-coverage.");
     ArgumentHelpName = "directory"
   };
   public static readonly Option<bool> ForcePrune = new("--force-prune",
-    "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.") {
-  };
+    "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.");
   static GenerateTestsCommand() {
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;

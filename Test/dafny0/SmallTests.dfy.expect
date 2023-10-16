@@ -8,7 +8,6 @@ SmallTests.dfy(920,10): Error: assertion might not hold
 SmallTests.dfy(926,10): Error: assertion might not hold
 SmallTests.dfy(338,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proved
-SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion might not hold
 SmallTests.dfy(386,9): Error: assertion might not hold
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
