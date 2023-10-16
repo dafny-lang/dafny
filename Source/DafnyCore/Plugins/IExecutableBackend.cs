@@ -187,7 +187,7 @@ public abstract class IExecutableBackend {
     new("--outer-module", "Nest all code in this module. Can be used to customize generated code. Use dots as separators (foo.baz.zoo) for deeper nesting. The first specified module will be the outermost one.");
 
   public virtual IEnumerable<string> GetOuterModules() {
-    return Options.Get(OuterModule).Split(".");
+    return Options.Get(OuterModule)?.Split(".") ?? Enumerable.Empty<string>();
   }
 
   static IExecutableBackend() {
