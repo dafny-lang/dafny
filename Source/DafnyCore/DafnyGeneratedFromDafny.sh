@@ -29,4 +29,3 @@ with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
 dotnet tool run dotnet-format -w --include $output.cs 
-
