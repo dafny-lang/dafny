@@ -1131,6 +1131,7 @@ namespace Microsoft.Dafny {
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
       // * desugar functions used in reads clauses
+      // * fills in "reads *" clauses on methods, when --reads-clauses-on-methods is used
       // * compute .BodySurrogate for body-less loops
       // * discovers bounds
       // * builds the module's call graph.
@@ -1149,6 +1150,19 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(this);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+        // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
+        // Note that `reads *` is the right default for backwards-compatibility,
+        // but we may want to infer a sensible default like decreases clauses instead in the future.
+        foreach (var declaration in ModuleDefinition.AllCallables(declarations)) {
+          if (declaration is Method { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
+              !readsExpressions.Any()) {
+            var star = new FrameExpression(method.tok, new WildcardExpr(method.tok) { Type = SystemModuleManager.ObjectSetType() }, null);
+            readsExpressions.Add(star);
+          }
+        }
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {

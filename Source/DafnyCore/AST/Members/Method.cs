@@ -282,13 +282,6 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       }
 
       var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
-      // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
-      // Doing it before resolution is a bit easier than adding resolved frame expressions afterwards.
-      // Note that `reads *` is the right default for backwards-compatibility,
-      // but we may want to infer a sensible default like decreases clauses instead in the future.
-      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Expressions.Any()) {
-        Reads.Expressions.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
-      }
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
         if (IsLemmaLike) {
