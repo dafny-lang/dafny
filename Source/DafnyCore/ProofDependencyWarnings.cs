@@ -40,9 +40,9 @@ public class ProofDependencyWarnings {
         .OfType<AssumptionDependency>()
         .Where(d => d is AssumptionDependency ad && ad.IsAssumeStatement);
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
-      foreach (var dep in unusedObligations) {
-        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"proved using contradictory assumptions: {dep.Description}");
+      foreach (var dependency in unusedObligations) {
+        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
+          reporter.Warning(MessageSource.Verifier, "", dependency.Range, $"proved using contradictory assumptions: {dependency.Description}");
         }
       }
 

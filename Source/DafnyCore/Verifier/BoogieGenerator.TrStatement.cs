@@ -560,7 +560,7 @@ namespace Microsoft.Dafny {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
               var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
-              (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(tok), split.E, desc, stmt.Tok,
+              (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
@@ -612,6 +612,9 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
           stmtContext = StmtType.NONE;
         }
+        if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+          builder.AddCaptureState(stmt);
+        }
       } else if (stmt is ExpectStmt) {
         AddComment(builder, stmt, "expect statement");
         var s = (ExpectStmt)stmt;
@@ -639,6 +642,9 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
         builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", true, etran.TrAttributes(stmt.Attributes, null)));
         stmtContext = StmtType.NONE; // done with translating assume stmt.
+        if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+          builder.AddCaptureState(s);
+        }
       }
       this.fuelContext = FuelSetting.PopFuelContext();
     }
@@ -1840,7 +1846,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(CondApplyBox(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+        ins.Add(CondApplyBox(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
