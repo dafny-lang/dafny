@@ -10,9 +10,13 @@ module TriesToUseWrappers {
   function SafeDiv(a: int, b: int): Option<int> {
     if b == 0 then None else Some(a/b)
   }
+<<<<<<< HEAD
 }
 
 
 // TODO:
 // * Big ol README, especially regarding todos, standards, and brittleness
 // * remove libraries submodule (confusing!)
+=======
+}
+>>>>>>> fad95b0b9 (Off by default in tests)
