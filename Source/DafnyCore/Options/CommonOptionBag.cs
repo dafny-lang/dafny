@@ -476,9 +476,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
       VerificationCoverageReport,
-      DefaultFunctionOpacity,
-      JavaBackend.OuterPackage,
-      CsharpBackend.OuterNamespace
+      DefaultFunctionOpacity
     );
   }
 

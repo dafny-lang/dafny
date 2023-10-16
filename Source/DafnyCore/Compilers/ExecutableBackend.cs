@@ -18,11 +18,8 @@ public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
   protected SinglePassCompiler compiler;
 
-  protected ExecutableBackend(DafnyOptions options) {
-    Options = options;
+  protected ExecutableBackend(DafnyOptions options) : base(options) {
   }
-
-  public DafnyOptions Options { get; }
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 

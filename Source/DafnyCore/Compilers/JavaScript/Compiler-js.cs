@@ -29,6 +29,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SeparateCompilation
     };
 
+    public override string ModuleSeparator => "_";
+
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";

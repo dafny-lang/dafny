@@ -1,8 +1,10 @@
 // RUN: echo 'lit should ignore this file'
 
+
 method Main() {
   InDefaultModule();
-  print "hello";
+  var x := new SomeModule.ClassInSomeModule();
+  print x.x;
 }
 
 method InDefaultModule() {
@@ -19,5 +21,7 @@ module SomeModule { // Extern does not work in JS  {:extern "SomeModuleCustomNam
   } 
   class ClassInSomeModule { // Extern does not work in JS {:extern "ClassInSomeModuleCustomName" } 
     const x := 3
+    
+    constructor() { }
   }
 }

@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
@@ -93,7 +94,7 @@ namespace Microsoft.Dafny {
           options.Printer.ErrorWriteLine(options.ErrorWriter,
             $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
         } else {
-          backend = new NoExecutableBackend();
+          backend = new NoExecutableBackend(options);
         }
       }
 
@@ -611,6 +612,10 @@ namespace Microsoft.Dafny {
 
     public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
+    }
+
+    public NoExecutableBackend([NotNull] DafnyOptions options) : base(options)
+    {
     }
   }
 }
