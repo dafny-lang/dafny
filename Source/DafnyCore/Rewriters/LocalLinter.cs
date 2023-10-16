@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
   class UselessOldLinterVisitor : TopDownVisitor<Unit> {
     private readonly ErrorReporter reporter;
 
-    public UselessOldLinterVisitor(ErrorReporter reporter) {
+    public UselessOldLinterVisitor(ErrorReporter reporter) : base(false) {
       this.reporter = reporter;
     }
 

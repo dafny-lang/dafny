@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (inlineLets && expr is LetExpr && ((LetExpr)expr).IsInlineable()) {
         var le = (LetExpr)expr;
-        foreach (var subexpr in AllSubExpressions(Translator.InlineLet(le), wrapOld, strict, inlineLets)) {
+        foreach (var subexpr in AllSubExpressions(BoogieGenerator.InlineLet(le), wrapOld, strict, inlineLets)) {
           yield return subexpr;
         }
         // If strict is false, then the recursive call will already yield a copy of (the inlined version) of expr,

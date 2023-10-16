@@ -668,6 +668,10 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Without pruning, due to the unstable nature of SMT solvers,
                 a change to any part of a Boogie program has the potential 
                 to affect the verification of any other part of the program.
+
+                Only use this if your program contains uses clauses
+                where required, otherwise pruning will break your program.
+                More information can be found here: https://github.com/boogie-org/boogie/blob/afe8eb0ffbb48d593de1ae3bf89712246444daa8/Source/ExecutionEngine/CommandLineOptions.cs#L160
   /printPruned:<file>
                 After pruning, print the Boogie program to the specified file.
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates
