@@ -8,7 +8,6 @@ SmallTests.dfy(920,10): Error: assertion might not hold
 SmallTests.dfy(926,10): Error: assertion might not hold
 SmallTests.dfy(338,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proved
-SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion might not hold
 SmallTests.dfy(386,9): Error: assertion might not hold
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
@@ -58,7 +57,7 @@ SmallTests.dfy(754,13): Error: assertion might not hold
 SmallTests.dfy(757,13): Error: assertion might not hold
 
 Dafny program verifier finished with 56 verified, 50 errors
-SmallTests.dfy.tmp.dprint.dfy(123,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy.tmp.dprint.dfy(687,4): Warning: /!\ No trigger covering all quantified variables found.
+SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification

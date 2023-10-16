@@ -177,7 +177,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
 
       type = type.Normalize(); // keep type synonyms
-      if (type.AsTypeSynonym is { } typeSynonymDecl and not SubsetTypeDecl && option != Type2PreTypeOption.GoodForInference &&
+      if (type.AsTypeSynonym is { } typeSynonymDecl && option != Type2PreTypeOption.GoodForInference &&
           typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
         // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
         // formal type parameters of the type-synonym declaration).
@@ -224,7 +224,7 @@ namespace Microsoft.Dafny {
       return new DPreType(decl, arguments);
     }
 
-    TopLevelDecl Type2Decl(Type type) {
+    public TopLevelDecl Type2Decl(Type type) {
       Contract.Requires(type != null);
       Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
     }
 
     [CanBeNull]
-    public static string/*?*/ AncestorName(PreType preType) {
+    public static string AncestorName(PreType preType) {
       var dp = preType.Normalize() as DPreType;
       return dp == null ? null : AncestorDecl(dp.Decl).Name;
     }
@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
     /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method ends the traversal
     /// early (and returns the last ancestor traversed). This method does not return any error; that's assumed to be done elsewhere.
     /// </summary>
-    public DPreType NewTypeAncestor(DPreType preType) {
+    public static DPreType NewTypeAncestor(DPreType preType) {
       Contract.Requires(preType != null);
       ISet<NewtypeDecl> visited = null;
       while (preType.Decl is NewtypeDecl newtypeDecl) {
@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
       if (assignPreType) {
         Contract.Assert(v.PreType == null);
         v.PreType = Type2PreType(v.Type, $"type of identifier '{v.Name}'");
-        Contract.Assert(v.PreType is not DPreType dp || dp.Decl != null); // sanity check that the .Decl field was set
+        Contract.Assert(v.PreType is not DPreType { Decl: null }); // sanity check that the .Decl field was set
       } else {
         Contract.Assert(v.PreType != null);
       }
@@ -721,6 +721,19 @@ namespace Microsoft.Dafny {
           nd.Var.PreType = nd.BasePreType;
         }
         ResolveConstraintAndWitness(nd, true);
+
+        // fill in the members inherited from the ancestor built-in type (but be careful, since there may still be cycles among these declarations)
+        if (nd.BasePreType.Normalize() is DPreType basePreType && NewTypeAncestor(basePreType).Decl is ValuetypeDecl valuetypeAncestorDecl) {
+          var memberDictionary = resolver.GetClassMembers(nd);
+          foreach (var member in valuetypeAncestorDecl.Members) {
+            if (memberDictionary.TryGetValue(member.Name, out var previousMember)) {
+              ReportError(previousMember, $"type '{nd.Name}' already inherits a member '{member.Name}' from the built-in ancestor type '{valuetypeAncestorDecl.Name}'");
+            } else {
+              memberDictionary.Add(member.Name, member);
+            }
+          }
+        }
+
       } else if (declaration is IteratorDecl iter) {
         // Note, iter.Ins are reused with the parameters of the iterator's automatically generated _ctor, and
         // the iter.OutsFields are shared with the automatically generated fields of the iterator class. To avoid

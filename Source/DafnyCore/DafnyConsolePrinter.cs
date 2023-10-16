@@ -38,6 +38,18 @@ public class DafnyConsolePrinter : ConsolePrinter {
     List<VCResultLogEntry> VCResults);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
+  public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+    return new VerificationResultLogEntry(
+      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
+  }
+
+  private static VCResultLogEntry DistillVCResult(VCResult r) {
+    return new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
+        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
+        r.resourceCount);
+  }
+
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
 
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
@@ -75,7 +87,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
     string columnSpaces = new string(' ', tok.col - 1);
     var lineStartPos = tok.pos - tok.col + 1;
     var lineEndPos = lineStartPos + line.Length;
+
     var tokEndPos = tok.pos + tok.val.Length;
+    if (tok is RangeToken rangeToken) {
+      tokEndPos = rangeToken.EndToken.pos + rangeToken.EndToken.val.Length;
+    }
     var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
     string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
@@ -96,12 +112,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
-    // Dafny has 0-indexed columns, but Boogie counts from 1
-    var realigned_tok = new Boogie.Token(tok.line, tok.col - 1);
-    realigned_tok.kind = tok.kind;
-    realigned_tok.pos = tok.pos;
-    realigned_tok.val = tok.val;
-    realigned_tok.filename = tok.filename;
 
     if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
       return;
@@ -111,7 +121,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
       message = $"{category}: {message}";
     }
 
-    message = $"{tok.TokenToString(Options)}: {message}";
+    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(ShowSnippets), tok);
+    message = $"{dafnyToken.TokenToString(Options)}: {message}";
 
     if (error) {
       ErrorWriteLine(tw, message);
@@ -127,18 +138,13 @@ public class DafnyConsolePrinter : ConsolePrinter {
       }
     }
 
-    if (tok is Dafny.NestedToken) {
-      var nt = (Dafny.NestedToken)tok;
-      ReportBplError(nt.Inner, "Related location", false, tw);
+    if (tok is NestedToken nestedToken) {
+      ReportBplError(nestedToken.Inner, "Related location", false, tw);
     }
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
-    var vcResults = result.VCResults.Select(r =>
-      new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome, r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements, r.resourceCount)
-    ).ToList();
-    var res = new VerificationResultLogEntry(result.Outcome, result.End - result.Start, result.ResourceCount, vcResults);
-    VerificationResults.Add(new ConsoleLogEntry(impl, res));
+    VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }
 }

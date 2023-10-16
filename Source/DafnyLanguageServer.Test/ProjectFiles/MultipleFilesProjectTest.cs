@@ -75,7 +75,7 @@ method Bar() {
 
   [Fact]
   public async Task OnDiskProducerVerificationErrorsChangeProject() {
-    await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject));
+    await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject));
 
     var producerSource = @"
 method Foo(x: int) 
@@ -287,7 +287,8 @@ includes = [""src/**/*.dfy""]
     Assert.Contains("int", consumerDiagnostics1[0].Message);
 
     ApplyChange(ref producerItem, new Range(0, 14, 0, 17), "bool");
-    var consumerDiagnostics2 = await GetLastDiagnostics(consumer);
+    await WaitUntilAllStatusAreCompleted(producerItem);
+    var consumerDiagnostics2 = await GetLastDiagnostics(consumer, allowStale: true);
     Assert.Empty(consumerDiagnostics2);
   }
 

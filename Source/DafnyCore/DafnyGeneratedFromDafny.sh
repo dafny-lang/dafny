@@ -19,8 +19,7 @@ else
   output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs --output $output.cs AST/Formatting.dfy
-../../Scripts/dafny translate cs --output "${output}Rust.cs" Compilers/Rust/Dafny-compiler-rust.dfy
+../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:
@@ -28,11 +27,5 @@ with open ('$output.cs', 'r' ) as f:
   content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
 with open('$output.cs', 'w') as w:
   w.write(content_new)
-
-with open ('${output}Rust.cs', 'r' ) as f:
-  content = f.read()
-  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace DAST)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
-with open('${output}Rust.cs', 'w') as w:
-  w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include $output.cs ${output}Rust.cs
+dotnet tool run dotnet-format -w --include $output.cs 

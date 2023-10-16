@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --unicode-char=false
+
 
 class Termination {
   method A(N: int)
@@ -903,6 +903,32 @@ method Negation1(S: set) {
 // ------------------ multiple conjuncts in the guard -----------------------
 
 method MultipleGuardConjuncts0(N: nat) {
+  // The old resolver (/typeSystemRefresh:0) infers the type of `s` to be `nat`. That doesn't
+  // seem justifiable in general, but happens to work for this example. In fact, it's helpful
+  // for this example, because this type then provides the loop invariant `0 <= s`, which is
+  // needed to prove termination.
+  //
+  // The new resolver (/typeSystemRefresh:1) infers the type of `s` to be `int`. That is more
+  // justifiable in general. Unfortunately, this means that the type of `s` does not contribute
+  // the loop invariant that's necessary to prove termination of this loop. Fortunately, Dafny
+  // asks Boogie to do a little abstract interpretation (/infer:j). From the fact that `N`
+  // satisfies `0 <= N` on entry and the assignment `s := s - 1;` is guarded by `s != 0, one
+  // can infer `0 <= s`. Unfortunately, the condition `0 <= N` is encoded in a `where` clause
+  // and Boogie's abstract interpretation doesn't look at `where` clauses (https://github.com/boogie-org/boogie/issues/786).
+  //
+  // For this reason, /typeSystemRefresh:1 causes a cannot-prove-termination complaint for this
+  // method. The nearly identical method MultipleGuardConjuncts0' uses a Dafny precondition for
+  // the condition `0 <= N`, which Boogie's abstract interpreter does pick up. So, it verifies.
+  var s, b := N, *;
+  while b && s != 0 {
+    s, b := s - 1, *;
+  }
+}
+
+method MultipleGuardConjuncts0'(N: int)
+  requires 0 <= N
+{
+  // See comment in MultipleGuardConjuncts0 above.
   var s, b := N, *;
   while b && s != 0 {
     s, b := s - 1, *;
