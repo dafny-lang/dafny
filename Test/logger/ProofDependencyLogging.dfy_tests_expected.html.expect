@@ -20,7 +20,7 @@
 // CHECK: Results for M.RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(177,12\)-\(177,16\): assume statement
-// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,12\): assertion always holds
+// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,16\): assertion always holds
 //
 // CHECK: Results for M.ContradictoryAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -144,7 +144,7 @@
 // CHECK: Results for M.FalseAntecedentAssertStatementMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(362,9\)-\(362,15\): assignment \(or return\)
-// CHECK:       ProofDependencyLogging.dfy\(363,20\)-\(363,20\): assertion always holds
+// CHECK:       ProofDependencyLogging.dfy\(363,20\)-\(363,24\): assertion always holds
 //
 // CHECK: Results for M.FalseAntecedentEnsuresClauseMethod \(correctness\)
 // CHECK:     Proof dependencies:
