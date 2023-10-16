@@ -281,18 +281,8 @@ public class Method : MemberDecl, TypeParameter.ParentType,
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
-        if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)",
-            WhatKind);
-        } else if (!readsClausesOnMethodsEnabled) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok,
-            "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
-        } else if (IsGhost) {
-          resolver.DisallowNonGhostFieldSpecifiers(fe);
-        }
       }
 
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));

@@ -1138,6 +1138,7 @@ namespace Microsoft.Dafny {
       // * compute and checks ghosts (this makes use of bounds discovery, as done above)
       // * for newtypes, figure out native types
       // * for datatypes, check that shared destructors are in agreement in ghost matters
+      // * for methods, check that any reads clause is used correctly
       // * for functions and methods, determine tail recursion
       // ----------------------------------------------------------------------------
 
@@ -1948,6 +1949,20 @@ namespace Microsoft.Dafny {
               ComputeGhostInterest(method.Body, method.IsGhost, method.IsLemmaLike ? "a " + method.WhatKind : null, method);
               CheckExpression(method.Body, this, method);
               new TailRecursion(reporter).DetermineTailRecursion(method);
+            }
+
+            // check that any reads clause is used correctly
+            var readsClausesOnMethodsEnabled = Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+            foreach (FrameExpression fe in method.Reads.Expressions) {
+              if (method.IsLemmaLike) {
+                reporter.Error(MessageSource.Resolver, fe.tok,
+                  "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)", method.WhatKind);
+              } else if (!readsClausesOnMethodsEnabled) {
+                reporter.Error(MessageSource.Resolver, fe.tok,
+                  "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
+              } else if (method.IsGhost) {
+                DisallowNonGhostFieldSpecifiers(fe);
+              }
             }
 
           } else if (member is Function function) {
