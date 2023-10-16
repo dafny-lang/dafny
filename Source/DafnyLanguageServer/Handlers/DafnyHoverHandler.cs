@@ -302,10 +302,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
-          if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
+
+          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
