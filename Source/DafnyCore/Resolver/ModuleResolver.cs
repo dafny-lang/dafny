@@ -1965,6 +1965,15 @@ namespace Microsoft.Dafny {
               }
             }
 
+            // check that any modifies clause is used correctly
+            foreach (FrameExpression fe in method.Mod.Expressions) {
+              if (method.IsLemmaLike) {
+                reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", method.WhatKind);
+              } else if (method.IsGhost) {
+                DisallowNonGhostFieldSpecifiers(fe);
+              }
+            }
+
           } else if (member is Function function) {
             CheckForUnnecessaryEqualitySupportDeclarations(function, function.TypeArgs);
             CheckParameterDefaultValuesAreCompilable(function.Formals, function);

@@ -1228,14 +1228,8 @@ namespace Microsoft.Dafny {
         ResolveAttributes(m.Mod, new ResolutionContext(m, false), false);
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, m);
-          if (m.IsLemmaLike) {
-            ReportError(fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
-          } else if (m.IsGhost) {
-#if TODO
-            DisallowNonGhostFieldSpecifiers(fe);
-#endif
-          }
         }
+
         ResolveAttributes(m.Decreases, new ResolutionContext(m, false), false);
         foreach (Expression e in m.Decreases.Expressions) {
           ResolveExpression(e, new ResolutionContext(m, m is TwoStateLemma));

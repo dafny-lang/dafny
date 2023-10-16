@@ -189,8 +189,8 @@ module JustAboutEverything {
 
   twostate lemma M2Attr(x: int) returns (y: int)
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
-    reads {:myAttr false + 3} {} // error (x2): false + 3 is ill-typed, and twostate lemma cannot have reads clause
-    modifies {:myAttr false + 3} {} // error (x2): false + 3 is ill-typed, and twostate lemma cannot have modifies clause
+    reads {:myAttr false + 3} {} // error: false + 3 is ill-typed
+    modifies {:myAttr false + 3} {} // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
   {
@@ -198,8 +198,8 @@ module JustAboutEverything {
 
   twostate lemma N2Attr(x: int) returns (y: int)
     requires {:myAttr old(3)} true
-    reads {:myAttr old(3)} {} // error (x2): old is not allowed here, and twostate lemma cannot have reads clause
-    modifies {:myAttr old(3)} {} // error (x2): old is not allowed here, and twostate lemma cannot have modifies clause
+    reads {:myAttr old(3)} {} // error: old is not allowed here
+    modifies {:myAttr old(3)} {} // error: old is not allowed here
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x // error: old is not allowed here
   {
@@ -207,8 +207,8 @@ module JustAboutEverything {
 
   twostate lemma O2Attr(x: int) returns (y: int)
     requires {:myAttr x, y} true // error: y is not in scope here
-    reads {:myAttr x, y} {} // error (x2): y is not in scope here, and twostate lemma cannot have reads clause
-    modifies {:myAttr x, y} {} // error (x2): y is not in scope here, and twostate lemma cannot have modifies clause
+    reads {:myAttr x, y} {} // error: y is not in scope here
+    modifies {:myAttr x, y} {} // error: y is not in scope here
     ensures {:myAttr x, y} true
     decreases {:myAttr x, y} x // error: y is not in scope here
   {
@@ -507,5 +507,31 @@ module TopLevelAttributesModule {
   // ---- module
 
   module {:myAttr this} Module { // error: "this" is not allowed here
+  }
+}
+
+module MethodFrameClausesNotAllowed {
+  lemma Lemma(x: int)
+    reads {} // error: lemma cannot have reads clause
+    modifies {} // error: lemma cannot have modifies clause
+  {
+  }
+
+  twostate lemma TwoStateLemma(x: int)
+    reads {} // error: twostate lemma cannot have reads clause
+    modifies {} // error: twostate lemma cannot have modifies clause
+  {
+  }
+
+  least lemma LeastLemma(x: int)
+    reads {} // error: least lemma cannot have reads clause
+    modifies {} // error: least lemma cannot have modifies clause
+  {
+  }
+
+  greatest lemma GreatestLemma(x: int)
+    reads {} // error: greatest lemma cannot have reads clause
+    modifies {} // error: greatest lemma cannot have modifies clause
+  {
   }
 }

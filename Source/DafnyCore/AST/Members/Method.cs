@@ -288,11 +288,6 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Mod.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);
-        if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", WhatKind);
-        } else if (IsGhost) {
-          resolver.DisallowNonGhostFieldSpecifiers(fe);
-        }
       }
 
       resolver.ResolveAttributes(Decreases, new ResolutionContext(this, false));
