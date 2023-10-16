@@ -13,7 +13,6 @@ public class CoverageSpan : IComparable<CoverageSpan> {
     Contract.Assert(span.Uri != null);
     Contract.Assert(span.StartToken != null);
     Contract.Assert(span.EndToken != null);
-    Contract.Assert(span.StartToken.CompareTo(span.EndToken) != 0);
     Span = span;
     Label = label;
   }

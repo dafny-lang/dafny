@@ -8,7 +8,7 @@ using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
-  partial class Translator {
+  partial class BoogieGenerator {
     public Bpl.Type BplBvType(int width) {
       Contract.Requires(0 <= width);
       if (width == 0) {
@@ -823,8 +823,8 @@ namespace Microsoft.Dafny {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
 
-    static Bpl.Trigger BplTriggerHeap(Translator translator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
-      Contract.Requires(translator != null);
+    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
+      Contract.Requires(boogieGenerator != null);
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
 
@@ -833,7 +833,7 @@ namespace Microsoft.Dafny {
         exprs.Add(ePrime);
       }
       if (optionalHeap != null) {
-        exprs.Add(translator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
+        exprs.Add(boogieGenerator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
       }
       return new Bpl.Trigger(tok, true, exprs);
     }
@@ -894,33 +894,33 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(Bpl.IToken exprTok) {
-      if (exprTok is BoogieRangeToken boogieRangeToken) {
-        if (boogieRangeToken.NameToken != null) {
-          return boogieRangeToken.NameToken;
+    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
+      if (boogieToken is BoogieRangeToken boogieRangeToken) {
+        if (!reportRanges && boogieRangeToken.Center is not null) {
+          return boogieRangeToken.Center;
         }
 
-        return boogieRangeToken;
+        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
-      if (exprTok == null) {
+      if (boogieToken == null) {
         return null;
-      } else if (exprTok is IToken t) {
-        return t;
-      } else if (exprTok == Boogie.Token.NoToken) {
+      } else if (boogieToken is IToken dafnyToken) {
+        return dafnyToken;
+      } else if (boogieToken == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
-          col = exprTok.col,
-          Uri = new Uri("untitled:" + exprTok.filename),
-          kind = exprTok.kind,
+          col = boogieToken.col - 1,
+          Uri = new Uri("untitled:" + boogieToken.filename),
+          kind = boogieToken.kind,
           LeadingTrivia = "",
-          line = exprTok.line,
+          line = boogieToken.line,
           Next = null,
-          pos = exprTok.pos,
+          pos = boogieToken.pos,
           TrailingTrivia = "",
-          val = exprTok.val
+          val = boogieToken.val
         };
       }
     }

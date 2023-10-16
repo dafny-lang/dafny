@@ -18,7 +18,7 @@ public class VerificationOrderTest : ClientBasedLanguageServerTest {
   public async Task MigrationOfRecentlyRelatedChanges() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"
@@ -53,7 +53,7 @@ method Foo() {
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"

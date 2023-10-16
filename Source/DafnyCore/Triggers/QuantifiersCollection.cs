@@ -264,6 +264,7 @@ namespace Microsoft.Dafny.Triggers {
           list.Add(q);
           splits.Add(q.quantifier);
         }
+
         this.quantifiers = list;
         Contract.Assert(this.expr is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
         ((QuantifierExpr)this.expr).SplitQuantifier = splits;

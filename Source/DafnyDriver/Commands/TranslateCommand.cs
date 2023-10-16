@@ -2,40 +2,47 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
-class TranslateCommand : ICommandSpec {
-  public IEnumerable<Option> Options =>
+static class TranslateCommand {
+  public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
       CommonOptionBag.IncludeRuntimeOption,
-    }.Concat(ICommandSpec.TranslationOptions).
-      Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.ResolverOptions);
+    }.Concat(DafnyCommands.TranslationOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 
-  private static readonly Argument<string> Target = new("language", @"
-cs - Translate to C#.
-go - Translate to Go.
-js - Translate to JavaScript.
-java - Translate to Java.
-py - Translate to Python.
-cpp - Translate to C++.
-
-Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
-  );
-
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
-    result.AddArgument(Target);
-    result.AddArgument(ICommandSpec.FilesArgument);
-    return result;
-  }
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-    var noVerify = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.CompilerName = context.ParseResult.GetValueForArgument(Target);
-    dafnyOptions.SpillTargetCode = noVerify ? 3U : 2U;
+    foreach (var backend in SinglePassCompiler.Plugin.GetCompilers(DafnyOptions.Default)) {
+      var command = backend.GetCommand();
+      result.AddCommand(command);
+      if (!backend.IsStable) {
+        command.IsHidden = true;
+      }
+    }
+
+    foreach (var subCommand in result.Subcommands) {
+      subCommand.AddArgument(DafnyCommands.FilesArgument);
+
+      foreach (var option in Options) {
+        subCommand.AddGlobalOption(option);
+      }
+
+      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
+        options.Compile = false;
+        var noVerify = options.Get(BoogieOptionBag.NoVerify);
+        options.CompilerName = subCommand.Name;
+        options.SpillTargetCode = noVerify ? 3U : 2U;
+        var continueCliWithOptions = await CompilerDriver.RunCompiler(options);
+        return continueCliWithOptions;
+      });
+    }
+
+    return result;
   }
 }
