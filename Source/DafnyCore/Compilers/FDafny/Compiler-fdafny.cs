@@ -1,15 +1,22 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Dafny;
-using DCOMPD;
+using DCOMP;
 
 namespace Microsoft.Dafny.Compilers {
 
   class FDafnyCompiler : DafnyWrittenCompiler {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
-      return COMP.Compile(program);
+      using var writer = new StreamWriter("TEST.dfy");
+      {
+        Console.SetOut(writer);
+        Console.WriteLine("include \"Source/DafnyCore/Compilers/Dafny/AST.dfy\"");
+        Console.WriteLine("const program := ");
+        return COMP.Compile(program);
+      }
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {

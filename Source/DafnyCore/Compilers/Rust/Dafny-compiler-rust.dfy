@@ -1,6 +1,6 @@
 include "../Dafny/AST.dfy"
 
-module {:extern "DCOMPR"} DCOMP {
+module {:extern "DCOMPR"} DCOMPR {
   import opened DAST
 
   // https://stackoverflow.com/questions/62722832/convert-numbers-to-strings
