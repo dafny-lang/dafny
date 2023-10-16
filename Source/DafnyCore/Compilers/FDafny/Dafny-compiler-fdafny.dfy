@@ -1,6 +1,6 @@
 include "../Dafny/AST.dfy"
 
-module {:extern "DCOMP"} DCOMP {
+module {:extern "FDafnyPlugin"} FDafnyPlugin {
   import opened DAST
 
   class COMP {

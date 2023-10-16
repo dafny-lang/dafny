@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Dafny;
-using DCOMP;
+using FDafnyPlugin;
 
 namespace Microsoft.Dafny.Compilers {
 

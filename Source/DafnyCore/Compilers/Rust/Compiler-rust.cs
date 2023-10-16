@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Dafny;
-using DCOMPR;
+using DCOMP;
 
 namespace Microsoft.Dafny.Compilers {
 
