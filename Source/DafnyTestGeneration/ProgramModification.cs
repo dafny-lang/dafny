@@ -16,6 +16,7 @@ using Program = Microsoft.Boogie.Program;
 namespace DafnyTestGeneration {
   public class Modifications {
     private readonly DafnyOptions options;
+    internal HashSet<int> preprocessedPrograms = new();
     public Modifications(DafnyOptions options) {
       this.options = options;
     }
@@ -61,7 +62,6 @@ namespace DafnyTestGeneration {
     private Program/*?*/ program;
     private string/*?*/ counterexampleLog;
     internal TestMethod TestMethod;
-    private static HashSet<int> preprocessedPrograms = new();
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<string> capturedStates,
@@ -122,10 +122,10 @@ namespace DafnyTestGeneration {
       var options = CopyForProcedure(Options, testEntryNames);
       SetupForCounterexamples(options);
       var writer = new StringWriter();
-      if (preprocessedPrograms.Contains(program.UniqueId)) {
+      if (cache.preprocessedPrograms.Contains(program.UniqueId)) {
         options.UseAbstractInterpretation = false; // running abs. inter. twice on the same program leads to errors
       } else {
-        preprocessedPrograms.Add(program.UniqueId);
+        cache.preprocessedPrograms.Add(program.UniqueId);
       }
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         var guid = Guid.NewGuid().ToString();
