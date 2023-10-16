@@ -281,6 +281,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
+      resolver.ResolveAttributes(Reads, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
       }
