@@ -612,6 +612,9 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
           stmtContext = StmtType.NONE;
         }
+        if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+          builder.AddCaptureState(stmt);
+        }
       } else if (stmt is ExpectStmt) {
         AddComment(builder, stmt, "expect statement");
         var s = (ExpectStmt)stmt;
@@ -639,6 +642,9 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
         builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, s.Expr, "assume statement", true, etran.TrAttributes(stmt.Attributes, null)));
         stmtContext = StmtType.NONE; // done with translating assume stmt.
+        if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+          builder.AddCaptureState(s);
+        }
       }
       this.fuelContext = FuelSetting.PopFuelContext();
     }

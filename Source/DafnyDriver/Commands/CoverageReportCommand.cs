@@ -4,7 +4,6 @@
 #nullable disable
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +11,11 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny; 
 
 static class CoverageReportCommand {
+
+  public static IEnumerable<Option> Options =>
+    new Option[] {
+      CommonOptionBag.NoTimeStampForCoverageReport,
+    };
 
   static CoverageReportCommand() {
     ReportsArgument = new("reports", r => {
@@ -29,6 +33,9 @@ static class CoverageReportCommand {
       "Merge several previously generated coverage reports together.");
     result.AddArgument(OutDirArgument);
     result.AddArgument(ReportsArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
 
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       var coverageReporter = new CoverageReporter(options);
