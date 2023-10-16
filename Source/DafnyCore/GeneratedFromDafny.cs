@@ -5406,6 +5406,32 @@ namespace DAST {
     }
   }
 } // end of namespace DAST
+namespace D2DPrettyPrinter {
+
+  public partial class __default {
+    public static Dafny.ISequence<Dafny.Rune> PrettyPrint(Dafny.ISequence<DAST._IModule> d) {
+      return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Not Implemented Yet");
+    }
+  }
+} // end of namespace D2DPrettyPrinter
+namespace FDafnyPlugin {
+
+
+  public partial class COMP {
+    public COMP() {
+    }
+    public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p) {
+      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
+      s = D2DPrettyPrinter.__default.PrettyPrint(p);
+      return s;
+    }
+    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
+      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
+      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Emit Main");
+      return s;
+    }
+  }
+} // end of namespace FDafnyPlugin
 namespace DCOMP {
 
   public partial class __default {
@@ -17737,23 +17763,4 @@ namespace DCOMP {
     }
   }
 } // end of namespace DCOMP
-namespace FDafnyPlugin {
-
-
-  public partial class COMP {
-    public COMP() {
-    }
-    public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p) {
-      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      Dafny.Helpers.Print((p));
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Hello");
-      return s;
-    }
-    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
-      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Emit Main");
-      return s;
-    }
-  }
-} // end of namespace FDafnyPlugin
 
