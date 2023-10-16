@@ -614,8 +614,7 @@ namespace Microsoft.Dafny {
       throw new NotSupportedException();
     }
 
-    public NoExecutableBackend([NotNull] DafnyOptions options) : base(options)
-    {
+    public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {
     }
   }
 }
