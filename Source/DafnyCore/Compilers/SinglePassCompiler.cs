@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.Compilers {
     public virtual bool SupportsDatatypeWrapperErasure => true;
     public static string DefaultNameMain = "Main";
 
-    public virtual string ModuleSeparator { get => "."; }
+    public virtual string ModuleSeparator => ".";
     protected virtual string ClassAccessor { get => "."; }
 
     protected ErrorReporter Reporter;

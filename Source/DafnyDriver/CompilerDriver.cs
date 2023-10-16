@@ -587,7 +587,7 @@ namespace Microsoft.Dafny {
     public override bool TextualTargetIsExecutable => throw new NotSupportedException();
 
     public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
-    public override string ModuleSeparator => throw new NotSupportedException();
+    public override string ModuleSeparator => ".";
 
     public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
       throw new NotSupportedException();
