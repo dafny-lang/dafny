@@ -1,0 +1,4 @@
+StdLibsOffByDefaultInTests.dfy(8,29): Error: module DafnyStdLibs does not exist (position 0 in path DafnyStdLibs.Wrappers)
+1 resolution/type errors detected in StdLibsOffByDefaultInTests.dfy
+
+Dafny program verifier finished with 1 verified, 0 errors
