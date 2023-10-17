@@ -2,6 +2,8 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --
 
+all: build test check-format check-examples
+
 build:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:build/stdlib.doo
 
