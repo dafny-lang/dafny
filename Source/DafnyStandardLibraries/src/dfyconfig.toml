@@ -1,0 +1,8 @@
+
+[options]
+# TODO: This isn't getting applied for some reason?
+# I'd like to use this to set a hard upper limit on brittleness
+# and avoid having to use measure-complexity or dafny-reportgenerator.
+# Leaving this set ludicrously low to show the option is broken,
+# but hoping to set this to 1000 or even 100 once it's working.
+resource-limit = 1

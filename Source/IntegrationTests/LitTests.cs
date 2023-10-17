@@ -56,6 +56,9 @@ namespace IntegrationTests {
 
       // Note we disallow standard libraries by default in tests,
       // to discourage the language itself from depending on them.
+      // These explicit defaults are here, and should remain here independent of the user-facing defaults.
+      // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
+      
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--allow-standard-libraries:false" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--allow-standard-libraries:false", "--cores:2", "--verification-time-limit:300" };
       //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--allow-standard-libraries:false", "--verification-time-limit:300" };

@@ -1,4 +1,5 @@
 module {:options "--function-syntax:4"} Demo {
+
   import opened DafnyStdLibs.Wrappers
 
   // ------ Demo for Option ----------------------------
