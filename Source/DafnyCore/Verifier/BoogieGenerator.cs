@@ -8008,9 +8008,9 @@ namespace Microsoft.Dafny {
       }
 
       if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None && description.IsImplicit) {
-        reporter.Info(MessageSource.Translator, tok, "Implicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
       } else if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All) {
-        reporter.Info(MessageSource.Translator, tok, "Explicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
       }
     }
 

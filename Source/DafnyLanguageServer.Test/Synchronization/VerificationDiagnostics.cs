@@ -45,12 +45,13 @@ method ImplicitAssertions(x: int) {
 }".TrimStart();
     var document = CreateAndOpenTestDocument(source, "ErrorLimitReached.dfy");
     var diagnostics = await GetLastDiagnostics(document, DiagnosticSeverity.Hint);
-    Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor"));
+    Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor")
+                                      && d.Range == new Range(4, 15, 4, 16));
     Assert.DoesNotContain(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement"));
   }
 
   [Fact]
-  public async Task ShowAssertions() {
+  public async Task ShowAllAssertions() {
     await SetUp(o => o.Set(CommonOptionBag.ShowAssertions, CommonOptionBag.AssertionShowMode.All));
 
     var source = @"
@@ -64,7 +65,7 @@ method ImplicitAssertions(x: int) {
     var document = CreateAndOpenTestDocument(source, "ErrorLimitReached.dfy");
     var diagnostics = await GetLastDiagnostics(document, DiagnosticSeverity.Hint);
     Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor"));
-    Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement"));
+    Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement") && d.Range == new Range(2, 11, 2, 16));
   }
 
   public VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
