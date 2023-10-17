@@ -61,8 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved: false);
     }
 
-    // This code is ugly, but LegacySignatureAndCompletionTable is going away anyways
-    private static readonly Option<SystemModuleManager> managerOption = new("fake");
+    private static readonly ConditionalWeakTable<DafnyOptions, SystemModuleManager> systemModuleManagers = new();
     
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
@@ -71,9 +70,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         Sets.Empty<Uri>());
 
       SystemModuleManager manager;
-      lock (options.Options.OptionArguments) {
-        manager = options.Get(managerOption) ?? new SystemModuleManager(options);
-        options.Set(managerOption, manager);
+      lock (options) {
+        if (!systemModuleManagers.TryGetValue(options, out manager!)) {
+          manager = new SystemModuleManager(options);
+          systemModuleManagers.Add(options, manager);
+        }
       }
       
       var emptyProgram = new Program(
