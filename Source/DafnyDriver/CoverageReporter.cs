@@ -85,11 +85,15 @@ public class CoverageReporter {
         reports.Add(ParseCoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));
       }
     }
+
+    var onlyLabel = options.Get(CoverageReportCommand.OnlyLabelOption);
     foreach (var report in reports) {
       foreach (var fileName in report.AllFiles()) {
         foreach (var span in report.CoverageSpansForFile(fileName)) {
           mergedReport.RegisterFile(span.Span.Uri);
-          mergedReport.LabelCode(span.Span, span.Label);
+          if ((onlyLabel ?? span.Label) == span.Label) {
+            mergedReport.LabelCode(span.Span, span.Label);
+          }
         }
       }
     }
