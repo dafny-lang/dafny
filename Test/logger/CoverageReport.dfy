@@ -14,6 +14,11 @@
 // RUN: %baredafny merge-coverage-reports --no-timestamp-for-coverage-report "%t"/coverage_combined "%t"/coverage_testing "%t"/coverage_verification
 // RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_combined/ProofDependencyLogging.dfy_combined.html > "%t"/coverage_combined.html
 // RUN: %diff "%S/ProofDependencyLogging.dfy_combined.html.expect" "%t/coverage_combined.html"
+// Combined, limited coverage:
+// RUN: rm -rf "%t"/coverage_combined
+// RUN: %baredafny merge-coverage-reports --only-label NotCovered --no-timestamp-for-coverage-report "%t"/coverage_combined_limited "%t"/coverage_testing "%t"/coverage_verification
+// RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_combined_limited/ProofDependencyLogging.dfy_combined.html > "%t"/coverage_combined_limited.html
+// RUN: %diff "%S/ProofDependencyLogging.dfy_combined_limited.html.expect" "%t/coverage_combined_limited.html"
 
 
 include "ProofDependencyLogging.dfy"
