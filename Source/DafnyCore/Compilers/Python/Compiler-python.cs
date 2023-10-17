@@ -30,6 +30,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public override string ModuleSeparator => "_";
+
     private readonly List<string> Imports = new() { DafnyDefaultModule };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
