@@ -1,2 +1,4 @@
 
-includes = ["**/*.dfy", "../build/stdlib.doo"]
+
+[options]
+allow-standard-libraries = true
