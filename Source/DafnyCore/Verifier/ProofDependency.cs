@@ -60,8 +60,8 @@ public class ProofObligationDependency : ProofDependency {
   public override string Description =>
       $"{ProofObligation.SuccessDescription}";
 
-  public ProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
-    Range = tok as RangeToken ?? new RangeToken(tok, tok);
+  public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
+    Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
     ProofObligation = proofObligation;
   }
 }
