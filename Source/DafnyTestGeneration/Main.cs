@@ -119,14 +119,21 @@ namespace DafnyTestGeneration {
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
-        foreach (var state in modification.CapturedStates) {
+        foreach (var preciseState in modification.CapturedStates) {
           if (modification.CounterexampleStatus == ProgramModification.Status.Success) {
-            coveredStates.Add(state);
+            coveredStates.Add(preciseState.Split("#")[0]);
           }
         }
       }
+
+      HashSet<string> statesAddedToCoverageReport = new();
       foreach (var modification in cache.Values) {
-        foreach (var state in modification.CapturedStates) {
+        foreach (var preciseState in modification.CapturedStates) {
+          var state = preciseState.Split("#")[0];
+          if (statesAddedToCoverageReport.Contains(state)) {
+            continue;
+          }
+          statesAddedToCoverageReport.Add(state);
           var match = lineRegex.Match(state);
           if (!match.Success) {
             continue;
