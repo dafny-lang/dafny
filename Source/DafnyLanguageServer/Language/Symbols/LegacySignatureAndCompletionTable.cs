@@ -18,11 +18,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents the symbol table
   /// </summary>
   public class LegacySignatureAndCompletionTable {
-    
+
     public static readonly Option<bool> MigrateSignatureAndCompletionTable = new("--migrate-signature-and-completion-table", () => true) {
       IsHidden = true
     };
-    
+
     private readonly ILogger<LegacySignatureAndCompletionTable> logger;
 
     // TODO Guard the properties from changes
@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private static readonly ConditionalWeakTable<DafnyOptions, SystemModuleManager> systemModuleManagers = new();
-    
+
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
       var errorReporter = new DiagnosticErrorReporter(options, uri);
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           systemModuleManagers.Add(options, manager);
         }
       }
-      
+
       var emptyProgram = new Program(
                            uri.ToString(),
         new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),

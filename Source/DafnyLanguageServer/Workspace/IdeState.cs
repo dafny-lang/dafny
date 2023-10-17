@@ -45,7 +45,7 @@ public record IdeState(
     return this with {
       Version = version,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
-      SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable) 
+      SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(Compilation.Options, Compilation.Project),
       VerificationTrees = migratedVerificationTrees
     };
