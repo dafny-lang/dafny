@@ -85,16 +85,11 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
-    private ISet<string> packages = new HashSet<string>();
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
       var modulePath = moduleName.Replace(ModuleSeparator.Single(), Path.DirectorySeparatorChar);
-      var directory = Path.GetDirectoryName(modulePath);
-      if (directory != null && packages.Add(directory)) {
-        wr.NewFile($"{directory}/__init__.py");
-      }
-      var file = wr.NewFile($"{modulePath}.py");
+      var file = wr.NewFile($"{modulePath}/__init__.py");
       EmitImports(moduleName, file);
       return file;
     }
