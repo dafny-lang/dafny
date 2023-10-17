@@ -30,8 +30,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override string ModuleSeparator => "_";
-
     private readonly List<string> Imports = new() { DafnyDefaultModule };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -87,10 +85,15 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
+    private ISet<string> packages = new HashSet<string>();
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
+      var modulePath = moduleName.Replace(ModuleSeparator.Single(), Path.DirectorySeparatorChar);
+      var directory = Path.GetDirectoryName(modulePath);
+      if (directory != null && packages.Add(directory)) {
+        wr.NewFile($"{directory}/__init__.py");
+      }
       var file = wr.NewFile($"{modulePath}.py");
       EmitImports(moduleName, file);
       return file;
