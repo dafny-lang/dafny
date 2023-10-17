@@ -4756,7 +4756,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(s.Receiver, false, wReceiver, wStmts);
           wr.Write($"){InstanceClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
-          wr.Write("{0}{1}", qual, ModuleSeparator);
+          wr.Write("{0}{1}", qual, StaticClassAccessor);
           protectedName = compileName;
         } else {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
