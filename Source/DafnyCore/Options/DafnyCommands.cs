@@ -52,7 +52,7 @@ public static class DafnyCommands {
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
-    CommonOptionBag.AddCompileSuffix,
+    CommonOptionBag.AddCompileSuffix
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
