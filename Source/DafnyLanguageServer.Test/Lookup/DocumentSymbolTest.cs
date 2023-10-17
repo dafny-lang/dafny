@@ -12,6 +12,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task NoCrashOnJustFunction() {
+      var source = "function";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
+      Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
+    }
+    
+    [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
       var temp = Path.GetTempPath();
       await CreateOpenAndWaitForResolve("", Path.Combine(temp, DafnyProject.FileName));
