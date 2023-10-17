@@ -894,33 +894,33 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(Bpl.IToken exprTok) {
-      if (exprTok is BoogieRangeToken boogieRangeToken) {
-        if (boogieRangeToken.NameToken != null) {
-          return boogieRangeToken.NameToken;
+    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
+      if (boogieToken is BoogieRangeToken boogieRangeToken) {
+        if (!reportRanges && boogieRangeToken.Center is not null) {
+          return boogieRangeToken.Center;
         }
 
-        return boogieRangeToken;
+        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
       }
-      if (exprTok == null) {
+      if (boogieToken == null) {
         return null;
-      } else if (exprTok is IToken t) {
-        return t;
-      } else if (exprTok == Boogie.Token.NoToken) {
+      } else if (boogieToken is IToken dafnyToken) {
+        return dafnyToken;
+      } else if (boogieToken == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
-          col = exprTok.col,
-          Uri = new Uri("untitled:" + exprTok.filename),
-          kind = exprTok.kind,
+          col = boogieToken.col - 1,
+          Uri = new Uri("untitled:" + boogieToken.filename),
+          kind = boogieToken.kind,
           LeadingTrivia = "",
-          line = exprTok.line,
+          line = boogieToken.line,
           Next = null,
-          pos = exprTok.pos,
+          pos = boogieToken.pos,
           TrailingTrivia = "",
-          val = exprTok.val
+          val = boogieToken.val
         };
       }
     }
