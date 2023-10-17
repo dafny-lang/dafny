@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
+using DafnyCore.Verifier;
 using MediatR;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -198,7 +199,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Resources allocated at the end of the computation.
     public long ResourceCount { get; set; } = 0;
 
-
+    public List<TrackedNodeComponent> CoveredIds { get; set; } = new();
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
@@ -434,6 +435,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
           result[new AssertionBatchIndex(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
             $"Assertion batch #{result.Count + 1}",
+            implementationNode.VerboseName,
             $"assertion-batch-{implementationNumber}-{vcNum}",
             Filename,
             Uri,
@@ -441,6 +443,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           ) {
             Children = children,
             ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
+            CoveredIds = implementationNode.AssertionBatchMetrics[vcNum].CoveredIds,
             RelativeNumber = result.Count + 1,
           }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time);
         }
@@ -469,6 +472,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   // Invariant: There is at least 1 child for every assertion batch
   public record AssertionBatchVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
@@ -496,11 +500,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public record AssertionBatchMetrics(
     int Time,
-    int ResourceCount
+    int ResourceCount,
+    List<TrackedNodeComponent> CoveredIds
   );
 
   public record ImplementationVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
@@ -526,8 +532,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     private Implementation? implementation = null;
 
-    public void AddAssertionBatchMetrics(int vcNum, int milliseconds, int resourceCount) {
-      NewAssertionBatchMetrics[vcNum] = new AssertionBatchMetrics(milliseconds, resourceCount);
+    public void AddAssertionBatchMetrics(int vcNum, int milliseconds, int resourceCount, List<TrackedNodeComponent> coveredIds) {
+      NewAssertionBatchMetrics[vcNum] = new AssertionBatchMetrics(milliseconds, resourceCount, coveredIds);
     }
 
     public override bool Start() {

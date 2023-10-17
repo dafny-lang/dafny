@@ -22,6 +22,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task RedundantAssumptionsGetWarnings() {
+      var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
+      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.Equal(3, diagnostics.Length);
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(3, 11, 3, 16) &&
+        diagnostic.Message == "unnecessary assumption"
+        );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(13, 11, 13, 17) &&
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+      );
+      Assert.Contains(diagnostics, diagnostic =>
+        diagnostic.Severity == DiagnosticSeverity.Warning &&
+        diagnostic.Range == new Range(12, 11, 12, 17) &&
+        diagnostic.Message == "unnecessary assumption"
+      );
+    }
+
+    [Fact]
     public async Task LeastLemmaIsVerified() {
       var source = @"
 least lemma Foo()
@@ -473,7 +498,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithVerificationErrorDoesNotReportDiagnosticsWithVerificationErrorsIfNotVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -551,7 +576,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source, "ChangingCorrectDocumentToOneWithSyntaxErrorsReportsTheSyntaxErrorsIfNotVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -607,7 +632,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source, "ChangingCorrectDocumentToOneWithVerificationErrorsDoesNotReportVerificationErrorsIfNotVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -782,7 +807,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source, "SavingDocumentWithVerificationErrorReportsDiagnosticsWithVerificationErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);

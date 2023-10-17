@@ -3259,7 +3259,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
           var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
-          EmitExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, guardWriter, wStmts);
+          EmitExpr(s.IsBindingGuard ? BoogieGenerator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, guardWriter, wStmts);
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
@@ -3287,7 +3287,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         foreach (var alternative in s.Alternatives) {
           var thn = EmitIf(out var guardWriter, true, wr);
-          EmitExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, false, guardWriter, wStmts);
+          EmitExpr(alternative.IsBindingGuard ? BoogieGenerator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, false, guardWriter, wStmts);
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
@@ -5208,7 +5208,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || e.ToType.IsRefType == e.E.Type.IsRefType);
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || e.ToType.IsRefType == e.E.Type.IsRefType);
         if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);

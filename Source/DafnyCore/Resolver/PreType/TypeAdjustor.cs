@@ -179,24 +179,86 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+        case BinaryExpr.ResolvedOpcode.Imp:
+        case BinaryExpr.ResolvedOpcode.And:
+        case BinaryExpr.ResolvedOpcode.Or:
+        case BinaryExpr.ResolvedOpcode.Add:
+        case BinaryExpr.ResolvedOpcode.Sub:
+        case BinaryExpr.ResolvedOpcode.Mul:
+        case BinaryExpr.ResolvedOpcode.Div:
+        case BinaryExpr.ResolvedOpcode.Mod:
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
         case BinaryExpr.ResolvedOpcode.Union:
+        case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
         case BinaryExpr.ResolvedOpcode.Concat:
         case BinaryExpr.ResolvedOpcode.MapMerge:
-        case BinaryExpr.ResolvedOpcode.Intersection:
-        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          // For these operators, the result type is the same as that of E0 and E1.
+          //
           // Note about intersection: In general, let set<C> be the result of combining the operands set<A> and set<B>
           // of intersection. To be precise, we would need C to be a type that conjoins the constraints of A and B.
           // We don't have such a time, so we instead (approximate the other direction and) let C be the join of A and B.
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E1, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+        case BinaryExpr.ResolvedOpcode.RightShift:
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          // For these operators, the result type is determined by E0.
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+        case BinaryExpr.ResolvedOpcode.SetEq:
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+        case BinaryExpr.ResolvedOpcode.ProperSubset:
+        case BinaryExpr.ResolvedOpcode.Subset:
+        case BinaryExpr.ResolvedOpcode.Superset:
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+        case BinaryExpr.ResolvedOpcode.Disjoint:
+        case BinaryExpr.ResolvedOpcode.InSet:
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+        case BinaryExpr.ResolvedOpcode.MultiSetEq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSubset:
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+        case BinaryExpr.ResolvedOpcode.InMultiSet:
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+        case BinaryExpr.ResolvedOpcode.Prefix:
+        case BinaryExpr.ResolvedOpcode.InSeq:
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+        case BinaryExpr.ResolvedOpcode.MapEq:
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+        case BinaryExpr.ResolvedOpcode.InMap:
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+        case BinaryExpr.ResolvedOpcode.RankLt:
+        case BinaryExpr.ResolvedOpcode.RankGt:
+          // For these operators, the result type is fixed (to be bool), so there is no flow.
+          break;
+        case BinaryExpr.ResolvedOpcode.YetUndetermined:
+        case BinaryExpr.ResolvedOpcode.LessThanLimit:
         default:
+          Contract.Assert(false); // unexpected operator
           break;
       }
 

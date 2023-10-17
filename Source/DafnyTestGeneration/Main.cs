@@ -115,7 +115,8 @@ namespace DafnyTestGeneration {
       if (coverageReport == null) {
         return;
       }
-      coverageReport.RegisterFiles(program);
+
+      var lineNumToPosCache = new Dictionary<Uri, int[]>();
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
@@ -134,7 +135,6 @@ namespace DafnyTestGeneration {
           if (!int.TryParse(match.Groups[2].Value, out var lineNumber) || lineNumber == 0) {
             continue;
           }
-          lineNumber -= 1; // to zero-based
           Uri uri;
           try {
             uri = new Uri(
@@ -144,8 +144,12 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var rangeToken = new RangeToken(new Token(lineNumber, 0), new Token(lineNumber + 1, 0));
+          var linePos = Utils.GetPosFromLine(uri, lineNumber, lineNumToPosCache);
+          var lineLength = Utils.GetPosFromLine(uri, lineNumber + 1, lineNumToPosCache) - linePos - 1;
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber, lineLength));
           rangeToken.Uri = uri;
+          rangeToken.StartToken.pos = linePos;
+          rangeToken.EndToken.pos = linePos + lineLength;
           coverageReport.LabelCode(rangeToken,
             coveredStates.Contains(state)
               ? CoverageLabel.FullyCovered
@@ -210,6 +214,9 @@ namespace DafnyTestGeneration {
       var cache = new Modifications(options);
       var methodsGenerated = 0;
       DafnyInfo dafnyInfo = null;
+      if (report != null) {
+        report.RegisterFiles(program); // do this here prior to modifying the program
+      }
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         if (methodsGenerated == 0) {
           dafnyInfo = new DafnyInfo(program);

@@ -3,7 +3,7 @@
 // CHECK: Results for RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(177,12\)-\(177,16\): assume statement
-// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,12\): assertion always holds
+// CHECK:       ProofDependencyLogging.dfy\(178,12\)-\(178,16\): assertion always holds
 //
 // CHECK: Results for ContradictoryAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -127,7 +127,7 @@
 // CHECK: Results for FalseAntecedentAssertStatementMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(362,9\)-\(362,15\): assignment \(or return\)
-// CHECK:       ProofDependencyLogging.dfy\(363,20\)-\(363,20\): assertion always holds
+// CHECK:       ProofDependencyLogging.dfy\(363,20\)-\(363,24\): assertion always holds
 //
 // CHECK: Results for FalseAntecedentEnsuresClauseMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -433,6 +433,20 @@ method CalcStatementWithSideConditions(x: int) {
 method DontWarnAboutVacuousAssertFalse(x: int) {
   assume x == x + 1;
   assert false;
+}
+
+// CHECK: Results for GetX \(well-formedness\)
+// CHECK:     Proof dependencies:
+// CHECK:       ProofDependencyLogging.dfy\(449,5\)-\(449,5\): target object is never null
+
+class C {
+  var x: int
+}
+
+function GetX(c: C): int
+  reads c
+{
+  c.x
 }
 
 method DontWarnAboutUnusedAssumeTrue(x: int) {
