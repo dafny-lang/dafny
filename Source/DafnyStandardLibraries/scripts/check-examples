@@ -66,10 +66,13 @@
 ##   %check-error
 ##   check
 
+<<<<<<< HEAD
 
 # See also the feature request to make this a proper Dafny ecosystem feature:
 # https://github.com/dafny-lang/dafny/issues/4680
 
+=======
+>>>>>>> 3ee79eaa9 (Add documentation and hook up check-examples)
 dir=$(dirname "${BASH_SOURCE[0]}")
 ## Root of libraries repo
 lib=$(cd $dir/..; pwd)
