@@ -217,6 +217,10 @@ May produce spurious warnings.") {
     "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
   };
+  public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
+    "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
@@ -479,6 +483,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
       VerificationCoverageReport,
+      NoTimeStampForCoverageReport,
       DefaultFunctionOpacity
     );
   }

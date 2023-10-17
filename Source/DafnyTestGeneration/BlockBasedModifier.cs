@@ -72,7 +72,7 @@ namespace DafnyTestGeneration {
           twinBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
         }
         var record = modifications.GetProgramModification(program, implementation,
-          new HashSet<string>() { state },
+          Utils.AllBlockIds(block, DafnyInfo.Options).ToHashSet(),
           testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
         if (record.IsCovered(modifications)) {
           foreach (var twinBlock in stateToBlocksMap[state]) {
