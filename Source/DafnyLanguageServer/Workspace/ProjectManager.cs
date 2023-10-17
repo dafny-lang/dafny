@@ -231,7 +231,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
     try {
       await CompilationManager.LastDocument;
       observer.OnCompleted();

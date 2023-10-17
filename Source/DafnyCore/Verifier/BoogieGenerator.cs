@@ -7547,8 +7547,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      ens.Description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      var unwrappedToken = ForceCheckToken.Unwrap(tok);
+      Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
+      var description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      ens.Description = description;
+      if (!free) {
+        ReportAssertion(unwrappedToken, description);
+      }
       return ens;
     }
 
@@ -7992,7 +7997,21 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
+      ReportAssertion(tok, description);
       return new Bpl.AssertCmd(tok, expr, description, attributes);
+    }
+
+    private ISet<(Uri, int)> reportedAssertions = new HashSet<(Uri, int)>();
+    private void ReportAssertion(IToken tok, PODesc.ProofObligationDescription description) {
+      if (!reportedAssertions.Add((tok.Uri, tok.pos))) {
+        return;
+      }
+
+      if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None && description.IsImplicit) {
+        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
+      } else if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All) {
+        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
+      }
     }
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
