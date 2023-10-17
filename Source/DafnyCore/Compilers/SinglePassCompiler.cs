@@ -45,7 +45,8 @@ namespace Microsoft.Dafny.Compilers {
     public static string DefaultNameMain = "Main";
 
     public virtual string ModuleSeparator => ".";
-    protected virtual string ClassAccessor { get => "."; }
+    protected virtual string StaticClassAccessor => ".";
+    protected virtual string InstanceClassAccessor => ".";
 
     protected ErrorReporter Reporter;
 
@@ -2247,7 +2248,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
 
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
-      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), StaticClassAccessor);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
@@ -2288,7 +2289,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
-      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), StaticClassAccessor);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
@@ -2372,7 +2373,7 @@ namespace Microsoft.Dafny.Compilers {
       var companionName = CompanionMemberIdName(method);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       EmitTypeName_Companion(calleeReceiverType, wr, wr, method.tok, method);
-      wr.Write(ClassAccessor);
+      wr.Write(StaticClassAccessor);
 
       var typeArgs = CombineAllTypeArguments(method, thisContext);
       EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
@@ -4742,10 +4743,10 @@ namespace Microsoft.Dafny.Compilers {
         var protectedName = receiverReplacement == null && customReceiver ? CompanionMemberIdName(s.Method) : IdName(s.Method);
         if (receiverReplacement != null) {
           EmitIdentifier(IdProtect(receiverReplacement), wr);
-          wr.Write(ClassAccessor);
+          wr.Write(InstanceClassAccessor);
         } else if (customReceiver) {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
-          wr.Write(ClassAccessor);
+          wr.Write(StaticClassAccessor);
         } else if (!s.Method.IsStatic) {
           wr.Write("(");
           var wReceiver = wr;
@@ -4753,13 +4754,13 @@ namespace Microsoft.Dafny.Compilers {
             wReceiver = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
           }
           EmitExpr(s.Receiver, false, wReceiver, wStmts);
-          wr.Write($"){ClassAccessor}");
+          wr.Write($"){InstanceClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
           wr.Write("{0}{1}", qual, ModuleSeparator);
           protectedName = compileName;
         } else {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
-          wr.Write(ModuleSeparator);
+          wr.Write(StaticClassAccessor);
         }
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
@@ -5868,7 +5869,7 @@ namespace Microsoft.Dafny.Compilers {
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
         wr.Write("{0}{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
-        wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);
+        wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), StaticClassAccessor);
         compileName = customReceiver ? CompanionMemberIdName(f) : IdName(f);
       } else {
         wr.Write("(");
@@ -5877,7 +5878,7 @@ namespace Microsoft.Dafny.Compilers {
           wReceiver = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, f), e.tok, wr);
         }
         tr(e.Receiver, wReceiver, inLetExprBody, wStmts);
-        wr.Write($"){ClassAccessor}");
+        wr.Write($"){InstanceClassAccessor}");
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);

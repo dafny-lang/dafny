@@ -86,7 +86,8 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = "DafnyMap";
 
     public override string ModuleSeparator => "::";
-    protected override string ClassAccessor => "->";
+    protected override string StaticClassAccessor => "::";
+    protected override string InstanceClassAccessor => "->";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       // This seems to be a good place to check for unsupported options
