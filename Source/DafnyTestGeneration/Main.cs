@@ -121,7 +121,9 @@ namespace DafnyTestGeneration {
       foreach (var modification in cache.Values) {
         foreach (var preciseState in modification.CapturedStates) {
           if (modification.CounterexampleStatus == ProgramModification.Status.Success) {
-            coveredStates.Add(preciseState.Split("#")[0]);
+            var index = preciseState.LastIndexOf('#');
+            var state = index == -1 ? preciseState : preciseState[..index];
+            coveredStates.Add(state);
           }
         }
       }
@@ -129,7 +131,8 @@ namespace DafnyTestGeneration {
       HashSet<string> statesAddedToCoverageReport = new();
       foreach (var modification in cache.Values) {
         foreach (var preciseState in modification.CapturedStates) {
-          var state = preciseState.Split("#")[0];
+          var index = preciseState.LastIndexOf('#');
+          var state = index == -1 ? preciseState : preciseState[..index];
           if (statesAddedToCoverageReport.Contains(state)) {
             continue;
           }
