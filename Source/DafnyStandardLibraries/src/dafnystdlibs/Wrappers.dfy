@@ -12,7 +12,7 @@ All three of these may be used with `:-` as Dafny failure-compatible types
 The module also defines two forms of `Need`, that check the truth of a predicate and
 return a failure value if false.
  */
-module {:options "--function-syntax:4"} DafnyStdLibs.Wrappers {
+module DafnyStdLibs.Wrappers {
 
   /** This datatype is the conventional Some/None datatype that is often used
       in place of a reference or null.
@@ -201,23 +201,5 @@ module {:options "--function-syntax:4"} DafnyStdLibs.Wrappers {
   function Need<E>(condition: bool, error: E): (result: OutcomeResult<E>)
   {
     if condition then Pass' else Fail'(error)
-  }
-
-  // TODO: This doesn't really belong in Wrappers
-
-  /** In verification, this method functions as an `assert` of the given condition;
-      at run-time functions as an `expect`. The arguments may not be ghost.
-   */
-  method AssertAndExpect(condition: bool, maybeMsg: Option<string> := None)
-    requires condition
-  {
-    match maybeMsg {
-      case None => {
-        expect condition;
-      }
-      case Some(message) => {
-        expect condition, message;
-      }
-    }
   }
 }

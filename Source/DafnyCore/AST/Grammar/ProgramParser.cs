@@ -35,11 +35,12 @@ public class ProgramParser {
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new SystemModuleManager(options);
-    var defaultModule = new DefaultModuleDefinition(files.Select(f => f.Uri).ToList());
+    var defaultModule = new DefaultModuleDefinition();
 
+    var rootSourceUris = files.Select(f => f.Uri).ToList();
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-    var compilation = new CompilationData(errorReporter, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+    var compilation = new CompilationData(errorReporter, defaultModule.Includes, rootSourceUris, verifiedRoots,
       compiledRoots);
     var program = new Program(
       programName,
