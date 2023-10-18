@@ -70,8 +70,6 @@
 # https://github.com/dafny-lang/dafny/issues/4680
 
 dir=$(dirname "${BASH_SOURCE[0]}")
-## Root of libraries repo
-lib=$(cd $dir/..; pwd)
 
 dafny="dafny"
 

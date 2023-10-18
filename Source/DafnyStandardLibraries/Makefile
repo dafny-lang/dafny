@@ -12,12 +12,12 @@ build:
 # with deeper coverage of module functionality.
 test:
 	$(DAFNY) build -t:lib examples/dfyconfig.toml --output:build/stdlibexamples.doo
-	$(DAFNY) test -t:cs build/stdlibexamples.doo
-	$(DAFNY) test -t:java build/stdlibexamples.doo
-	$(DAFNY) test -t:go build/stdlibexamples.doo
-	$(DAFNY) test -t:py build/stdlibexamples.doo
-	$(DAFNY) test -t:js build/stdlibexamples.doo
-
+	$(DAFNY) test -t:cs build/stdlibexamples.doo --output:build/stdlibexamples
+	$(DAFNY) test -t:java build/stdlibexamples.doo --output:build/stdlibexamples
+	$(DAFNY) test -t:go build/stdlibexamples.doo --output:build/stdlibexamples
+	$(DAFNY) test -t:py build/stdlibexamples.doo --output:build/stdlibexamples
+	$(DAFNY) test -t:js build/stdlibexamples.doo --output:build/stdlibexamples
+ 
 format:
 	$(DAFNY) format .
 
@@ -25,7 +25,7 @@ check-format:
 	$(DAFNY) format . --check
 
 check-examples:
-	scripts/check-examples `find . -name '*.md'`
+	cd build && ../scripts/check-examples `find .. -name '*.md'`
 
 clean:
 	rm -rf build
