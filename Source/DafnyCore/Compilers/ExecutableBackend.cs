@@ -29,24 +29,54 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    InstantiatePlaceholders(dafnyProgram);
+    ProcessOuterModules(dafnyProgram);
+    Compiler.Compile(dafnyProgram, output);
+  }
+
+  private void InstantiatePlaceholders(Program dafnyProgram)
+  {
+    foreach (var compiledModule in dafnyProgram.CompileModules)
+    {
+      if (compiledModule.Refinement.Kind == RefinementKind.Instantiation)
+      {
+        compiledModule.Refinement.Target.Def.InstantiatingModule = compiledModule;
+      }
+    }
+
+    foreach (var compiledModule in dafnyProgram.CompileModules)
+    {
+      if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.InstantiatingModule == null)
+      {
+        Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          "Placeholder module must be instantiated somewhere in the program");
+      }
+    }
+  }
+
+  private void ProcessOuterModules(Program dafnyProgram)
+  {
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
-    foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), ModuleKindEnum.Concrete, false,
+    foreach (var outerModule in outerModules)
+    {
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
         null, null, null);
       newRoot.EnclosingModule = rootUserModule;
       rootUserModule = newRoot;
     }
 
-    if (rootUserModule != null) {
+    if (rootUserModule != null)
+    {
       dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
       dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
 
-    foreach (var module in dafnyProgram.CompileModules) {
+    foreach (var module in dafnyProgram.CompileModules)
+    {
       module.ClearNameCache();
     }
-    Compiler.Compile(dafnyProgram, output);
   }
 
   SinglePassCompiler Compiler {

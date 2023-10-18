@@ -17,7 +17,7 @@ public enum ModuleKindEnum {
 
 public enum RefinementKind {
   Regular,
-  Placeholder
+  Instantiation
 }
 
 public record Refinement(RefinementKind Kind, ModuleQualifiedId Target);

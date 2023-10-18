@@ -330,7 +330,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined> (. refinementKind = RefinementKind.Regular; .)
-   | "instantiates" ModuleQualifiedName<out idRefined> (. refinementKind = RefinementKind.Placeholder; .)
+   | "instantiates" ModuleQualifiedName<out idRefined> (. refinementKind = RefinementKind.Instantiation; .)
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, GetModuleKind(dmod), false,
