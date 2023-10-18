@@ -1106,8 +1106,13 @@ namespace Microsoft.Dafny {
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
 
+      // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = false;
+      // take care of the warnShadowing attribute
+      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
+        resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
+      }
 
       scope.PushMarker();
       if (f.IsStatic) {
@@ -1126,10 +1131,6 @@ namespace Microsoft.Dafny {
 
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(p, "parameter", false);
-      }
-      // take care of the warnShadowing attribute
-      if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
-        resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
       ResolveParameterDefaultValues(f.Formals, f);
 
