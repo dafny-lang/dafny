@@ -2,10 +2,19 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --
 
-all: build test check-format check-examples
+DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
+DOO_FILE_TARGET=DafnyStandardLibraries.doo
 
-build:
-	$(DAFNY) build -t:lib src/dfyconfig.toml --output:build/stdlib.doo
+all: check-binary test check-format check-examples
+
+build-binary:
+	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+
+check-binary: build-binary
+	zdiff ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
+
+update-binary: build-binary
+	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
