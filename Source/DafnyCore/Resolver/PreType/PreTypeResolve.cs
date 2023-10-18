@@ -958,13 +958,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(currentClass != null);
 
-      ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
-
       if (member is ConstantField cfield) {
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
         ResolveConstRHS(cfield, false);
 
       } else if (member is Field) {
-        // nothing else to do
+        ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
 
       } else if (member is Function f) {
         var ec = ErrorCount;
@@ -1017,6 +1016,9 @@ namespace Microsoft.Dafny {
       iter.Ins.ForEach(p => ScopePushAndReport(p, "in-parameter", false));
       ResolveParameterDefaultValues(iter.Ins, iter);
 
+      // In-parameters (but not "this" and yield parameters) are in scope for the iterator's attributes.
+      ResolveAttributes(iter, new ResolutionContext(iter, false), true);
+
       // Start resolving specification...
       // we start with the decreases clause, because the _decreases<n> fields were only given type proxies before; we'll know
       // the types only after resolving the decreases clause (and it may be that some of resolution has already seen uses of
@@ -1068,8 +1070,6 @@ namespace Microsoft.Dafny {
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
       Constraints.SolveAllTypeConstraints($"specification of iterator '{iter.Name}'");
-
-      ResolveAttributes(iter, new ResolutionContext(iter, false), true);
 
       var postSpecErrorCount = ErrorCount;
 
@@ -1127,7 +1127,6 @@ namespace Microsoft.Dafny {
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(p, "parameter", false);
       }
-      ResolveAttributes(f, new ResolutionContext(f, false), true);
       // take care of the warnShadowing attribute
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
@@ -1153,6 +1152,8 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
       }
+      // resolve attributes on the function itself, now that in-parameters and any result name are part of the scope
+      ResolveAttributes(f, new ResolutionContext(f, f is TwoStateFunction), true);
       scope.PopMarker(); // function result name
 
       ResolveAttributes(f.Decreases, new ResolutionContext(f, f is TwoStateFunction), false);
