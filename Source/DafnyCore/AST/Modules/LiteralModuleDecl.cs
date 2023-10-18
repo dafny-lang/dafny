@@ -102,9 +102,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     var module = ModuleDef;
 
     var errorCount = resolver.reporter.ErrorCount;
-    if (module.RefinementQId != null) {
-      var md = module.RefinementQId.ResolveTarget(resolver.reporter);
-      module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
+    if (module.Refinement != null) {
+      var md = module.Refinement.Target.ResolveTarget(resolver.reporter);
+      module.Refinement.Target.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
     var rewriters = RewriterCollection.GetRewriters(resolver.Reporter, resolver.ProgramResolver.Program);
@@ -113,7 +113,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     }
 
     Signature = module.RegisterTopLevelDecls(resolver, true);
-    Signature.Refines = module.RefinementQId?.Sig;
+    Signature.Refines = module.Refinement?.Target.Sig;
 
     var sig = Signature;
     // set up environment

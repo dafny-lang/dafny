@@ -225,17 +225,18 @@ public class ProgramResolver {
   private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     var module = literalDecl.ModuleDef;
-    if (module.RefinementQId != null) {
-      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, module.RefinementQId, out var other);
-      module.RefinementQId.Root = other;
+    if (module.Refinement != null) {
+      var refinementTarget = module.Refinement.Target;
+      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, refinementTarget, out var other);
+      refinementTarget.Root = other;
       if (!res) {
-        Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(),
-          $"module {module.RefinementQId} named as refinement base does not exist");
+        Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
+          $"module {module.Refinement} named as refinement base does not exist");
       } else {
-        declarationPointers.AddOrUpdate(other, v => module.RefinementQId.Root = v, Util.Concat);
+        declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
-          Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(), "module cannot refine itself: {0}",
-            module.RefinementQId.ToString());
+          Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(), "module cannot refine itself: {0}",
+            module.Refinement.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(literalDecl, other);

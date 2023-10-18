@@ -582,8 +582,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Refinement != null) {
+        wr.Write("refines {0} ", module.Refinement);
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");

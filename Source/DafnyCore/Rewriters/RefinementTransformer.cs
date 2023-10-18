@@ -184,34 +184,30 @@ namespace Microsoft.Dafny {
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.RefinementQId?.Decl != null) { // There is a refinement parent and it resolved OK
-        RefinedSig = m.RefinementQId.Sig;
+      if (m.Refinement?.Target.Decl != null) { // There is a refinement parent and it resolved OK
+        var moduleQualifiedId = m.Refinement.Target;
+        RefinedSig = moduleQualifiedId.Sig;
 
         Contract.Assert(RefinedSig.ModuleDef != null);
-        Contract.Assert(m.RefinementQId.Def == RefinedSig.ModuleDef);
+        Contract.Assert(moduleQualifiedId.Def == RefinedSig.ModuleDef);
         // check that the openness in the imports between refinement and its base matches
         var declarations = m.TopLevelDecls;
-        var baseDeclarations = m.RefinementQId.Def.TopLevelDecls.ToList();
+        var baseDeclarations = moduleQualifiedId.Def.TopLevelDecls.ToList();
         foreach (var im in declarations) {
           // TODO: this is a terribly slow algorithm; use the symbol table instead
-          foreach (var bim in baseDeclarations) {
-            if (bim.Name.Equals(im.Name)) {
-              if (im is ModuleDecl mdecl) {
-                if (bim is ModuleDecl mbim) {
-                  if (mdecl.Opened != mbim.Opened) {
-                    if (mdecl.Opened) {
-                      Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
-                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                        im.Name, m.Name, m.RefinementQId.ToString());
-                    } else {
-                      Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
-                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                        im.Name, m.Name, m.RefinementQId.ToString());
-                    }
-                  }
-                }
+          var bim = baseDeclarations.FirstOrDefault(bim => bim.Name.Equals(im.Name));
+          if (bim != null)
+          {
+            if (im is ModuleDecl mdecl && bim is ModuleDecl mbim && mdecl.Opened != mbim.Opened) {
+              if (mdecl.Opened) {
+                Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
+                  "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
+                  im.Name, m.Name, m.Refinement.ToString());
+              } else {
+                Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
+                  "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
+                  im.Name, m.Name, m.Refinement.ToString());
               }
-              break;
             }
           }
         }
@@ -231,11 +227,12 @@ namespace Microsoft.Dafny {
       }
       moduleUnderConstruction = module;
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
-      var prev = module.RefinementQId.Def;
+      var refinementTarget = module.Refinement.Target;
+      var prev = refinementTarget.Def;
 
       //copy the signature, including its opened imports
       refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      ModuleResolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, Reporter, null);
+      ModuleResolver.ResolveOpenedImports(refinedSigOpened, refinementTarget.Def, Reporter, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
@@ -257,10 +254,10 @@ namespace Microsoft.Dafny {
           if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
-            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Refinement}), even if it denotes the same type";
             Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
           } else if (!(originalDeclaration is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.RefinementQId}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Refinement}', you must use the refining (`...`) notation");
           }
         }
       }
@@ -275,7 +272,7 @@ namespace Microsoft.Dafny {
           MergeTopLevelDecls(module, pointer, d);
         }
       }
-      module.RefinementQId.Sig = RefinedSig;
+      refinementTarget.Sig = RefinedSig;
 
       Contract.Assert(moduleUnderConstruction == module);  // this should be as it was set earlier in this method
     }
@@ -474,7 +471,7 @@ namespace Microsoft.Dafny {
           var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
           return oexports.IsSubsetOf(exports);
         }
-        derivedPointer = derivedPointer.RefinementQId.Def;
+        derivedPointer = derivedPointer.Refinement.Target.Def;
       }
       return false;
     }

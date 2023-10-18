@@ -235,8 +235,9 @@ class DafnyDoc {
     };
 
     string refineText = "";
-    if (moduleDef.RefinementQId != null) {
-      refineText = (" refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName));
+    if (moduleDef.Refinement != null) {
+      var kind = moduleDef.Refinement.Kind == RefinementKind.Placeholder ? "placeholder" : "refines";
+      refineText = ($" {kind} {QualifiedNameWithLinks(moduleDef.Refinement.Target.Decl.FullDafnyName)}");
     }
     details.Append(MainStart("full"));
 

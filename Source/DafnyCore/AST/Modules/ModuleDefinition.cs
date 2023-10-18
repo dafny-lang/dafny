@@ -9,12 +9,18 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-
 public enum ModuleKindEnum {
   Concrete,
   Abstract,
   Placeholder
 }
+
+public enum RefinementKind {
+  Regular,
+  Placeholder
+}
+
+public record Refinement(RefinementKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
   
@@ -57,7 +63,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
+  public Refinement Refinement; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
@@ -142,7 +148,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
-    RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
+    Refinement = original.Refinement == null ? null : original.Refinement with { Target = new ModuleQualifiedId(cloner, original.Refinement.Target) };
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -168,14 +174,14 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes) : base(tok) {
+    Refinement refinement, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;
-    this.RefinementQId = refinementQId;
+    this.Refinement = refinement;
     this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
 
@@ -415,7 +421,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Concat(DefaultClasses).
     Concat(SourceDecls).
     Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
-    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+    Concat(Refinement == null ? Enumerable.Empty<Node>() : new Node[] { Refinement.Target });
 
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
