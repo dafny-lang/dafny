@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
       Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
     }
-    
+
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
       var temp = Path.GetTempPath();
