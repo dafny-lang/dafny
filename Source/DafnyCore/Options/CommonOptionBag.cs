@@ -259,7 +259,7 @@ Change the default opacity of functions.
   };
 
   public static readonly Option<bool> AllowStdLibs = new("--allow-standard-libraries");
-  
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
