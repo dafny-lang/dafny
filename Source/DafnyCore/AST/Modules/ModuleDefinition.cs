@@ -17,7 +17,14 @@ public enum ModuleKindEnum {
 }
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
-
+  
+  /// <summary>
+  /// If this is a placeholder module, resolution will look for a unique module that instantiates this one in the same
+  /// containing module, and then set this field. 
+  /// </summary>
+  [FilledInDuringResolution]
+  public ModuleDefinition InstantiatingModule { get; set;  }
+  
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -214,29 +221,35 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   string compileName;
 
   public string GetCompileName(DafnyOptions options) {
-    if (compileName == null) {
-      var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
-      var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
-      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-        compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
-      } else if (externArgs != null) {
-        compileName = Name + nonExternSuffix;
+    if (compileName != null) {
+      return compileName;
+    }
+
+    if (InstantiatingModule != null) {
+      return InstantiatingModule.GetCompileName(options);
+    }
+    
+    var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+    var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
+    if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+      compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+    } else if (externArgs != null) {
+      compileName = Name + nonExternSuffix;
+    } else {
+
+      if (IsBuiltinName) {
+        compileName = Name;
+      } else if (EnclosingModule is { TryToAvoidName: false }) {
+        // Include all names in the module tree path, to disambiguate when compiling
+        // a flat list of modules.
+        // Use an "underscore-escaped" character as a module name separator, since
+        // underscores are already used as escape characters in SanitizeName()
+        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
       } else {
-
-        if (IsBuiltinName) {
-          compileName = Name;
-        } else if (EnclosingModule is { TryToAvoidName: false }) {
-          // Include all names in the module tree path, to disambiguate when compiling
-          // a flat list of modules.
-          // Use an "underscore-escaped" character as a module name separator, since
-          // underscores are already used as escape characters in SanitizeName()
-          compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
-        } else {
-          compileName = NonglobalVariable.SanitizeName(Name);
-        }
-
-        compileName += nonExternSuffix;
+        compileName = NonglobalVariable.SanitizeName(Name);
       }
+
+      compileName += nonExternSuffix;
     }
 
     return compileName;
