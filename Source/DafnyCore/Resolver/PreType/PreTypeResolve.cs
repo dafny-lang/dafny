@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
 
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
+      bool warnShadowing = true;
       // take care of the warnShadowing attribute
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
@@ -1192,7 +1192,7 @@ namespace Microsoft.Dafny {
         currentMethod = m;
 
         bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
-        bool warnShadowing = false;
+        bool warnShadowing = true;
         // take care of the warnShadowing attribute
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
           resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute

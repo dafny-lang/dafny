@@ -375,7 +375,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
-    bool warnShadowing = false;
+    bool warnShadowing = true;
     if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
       resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
     }
