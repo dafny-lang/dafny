@@ -1857,7 +1857,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            BoogieGenerator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
+            prefixLemma.RecursiveCallParameters(com.tok, prefixLemma.TypeArgs, prefixLemma.Ins, null,
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
