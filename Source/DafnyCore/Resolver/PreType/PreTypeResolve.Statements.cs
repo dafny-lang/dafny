@@ -783,6 +783,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
+      if (s.AssumeToken != null) {
+        ResolveAttributes(s.AssumeToken, resolutionContext, false);
+      }
+
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
         if (lhs.Resolved != null) {
