@@ -48,7 +48,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     Assert.True(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
-    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Empty(recoveredDiagnostics);
   }
 
@@ -65,7 +65,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     Assert.True(crashDiagnostics[0].Message.Contains("internal error"), crashDiagnostics[0].Message);
     CrashOnLoad = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
-    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Empty(recoveredDiagnostics);
   }
 
@@ -81,7 +81,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     Assert.True(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
     CrashOnPrepareVerification = false;
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
-    var recoveredDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var recoveredDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(recoveredDiagnostics);
     Assert.True(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
   }

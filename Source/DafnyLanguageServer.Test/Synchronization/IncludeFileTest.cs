@@ -137,7 +137,7 @@ ensures Foo(x) {{
     await File.WriteAllTextAsync(temp, producer);
     var documentItem2 = CreateTestDocument(consumer, "MethodWhosePostConditionFailsAndDependsOnIncludedFile.dfy");
     client.OpenDocument(documentItem2);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem2);
     Assert.Single(verificationDiagnostics);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }

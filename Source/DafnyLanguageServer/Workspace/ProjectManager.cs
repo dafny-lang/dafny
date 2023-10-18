@@ -115,7 +115,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private Compilation CreateInitialCompilation() {
     var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
-    return new Compilation(version, Project, rootUris);
+    return new Compilation(options, version, Project, rootUris);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -231,7 +231,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public async Task CloseAsync() {
-    CompilationManager.CancelPendingUpdates();
+    CompilationManager.Dispose();
     try {
       await CompilationManager.LastDocument;
       observer.OnCompleted();

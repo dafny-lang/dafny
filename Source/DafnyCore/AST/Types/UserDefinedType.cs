@@ -22,7 +22,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
 
   public string FullName {
     get {
-      if (ResolvedClass?.EnclosingModuleDefinition?.IsDefaultModule == false) {
+      if (ResolvedClass?.EnclosingModuleDefinition?.TryToAvoidName == false) {
         return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
       } else {
         return Name;
@@ -36,7 +36,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
     var m = ResolvedClass.EnclosingModuleDefinition;
-    var s = m.IsDefaultModule ? "" : m.GetCompileName(options) + ".";
+    var s = m.TryToAvoidName ? "" : m.GetCompileName(options) + ".";
     return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }
 
