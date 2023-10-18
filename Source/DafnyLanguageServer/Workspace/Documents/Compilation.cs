@@ -28,11 +28,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
+    public DafnyOptions Options { get; }
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
+    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
       this.RootUris = rootUris;
+      Options = options;
       Version = version;
       Project = project;
     }
