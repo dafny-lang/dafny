@@ -31,6 +31,8 @@ public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
+  private const String StandardLibrariesDooFile = "stdlib.doo";
+  
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
@@ -381,6 +383,21 @@ public static class DafnyCli {
     otherFiles = new List<string>();
     var outputWriter = options.OutputWriter;
 
+    if (options.Get(CommonOptionBag.AllowStdLibs)) {
+      var assembly = Assembly.Load("DafnyPipeline");
+      var stream = assembly.GetManifestResourceStream(StandardLibrariesDooFile);
+      if (stream is null) {
+        throw new Exception($"Cannot find embedded resource: {StandardLibrariesDooFile}");
+      }
+      
+      var tempFileName = Path.GetTempFileName() + ".doo";
+      using var fileWriter = new FileStream(tempFileName, FileMode.Create);
+      stream.CopyTo(fileWriter);
+      
+      var uri = new Uri(tempFileName);
+      options.CliRootSourceUris.Add(uri);
+    }
+    
     if (options.UseStdin) {
       var uri = new Uri("stdin:///");
       options.CliRootSourceUris.Add(uri);
