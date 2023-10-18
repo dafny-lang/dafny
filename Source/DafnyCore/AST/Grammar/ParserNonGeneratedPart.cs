@@ -20,7 +20,7 @@ public partial class Parser {
     dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
     var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
     dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
-    
+
     theModule = new FileModuleDefinition(scanner.FirstToken);
     theOptions = new DafnyOptions(options);
   }
@@ -64,7 +64,7 @@ public partial class Parser {
     scanner.ResetPeek();
     IToken x = scanner.Peek();
     return la.kind == _openAngleBracket && x.kind == _minus
-      && la.line == x.line && la.col == x.col - 1; 
+      && la.line == x.line && la.col == x.col - 1;
   }
 
   bool IsLabel(bool allowLabel) {
@@ -102,12 +102,12 @@ public partial class Parser {
 
   bool IsParenIdentsColon() {
     IToken x = la;
-    if(x.kind != _openparen) {
+    if (x.kind != _openparen) {
       return false;
     }
     x = scanner.Peek();
     var oneOrMoreIdentifiers = false;
-    while(IsIdentifier(x.kind) || x.kind == _ghost) { /* ghost is illegal here, but checking for it allows better error messages and recovery */
+    while (IsIdentifier(x.kind) || x.kind == _ghost) { /* ghost is illegal here, but checking for it allows better error messages and recovery */
       x = scanner.Peek();
       oneOrMoreIdentifiers = true;
     }
@@ -290,8 +290,7 @@ public partial class Parser {
     return x.val;
   }
 
-  bool IsLambda(bool allowLambda)
-  {
+  bool IsLambda(bool allowLambda) {
     if (!allowLambda) {
       return false;
     }
@@ -371,7 +370,7 @@ public partial class Parser {
     }
     if (!inExpressionContext) {
       return true;
-    }  
+    }
     /* There are ambiguities in the parsing.  For example:
      *     F( a < b , c > (d) )
      * can either be a unary function F whose argument is a function "a" with type arguments "<b,c>" and
@@ -582,7 +581,7 @@ public partial class Parser {
       }
     } catch (System.OverflowException) {
       SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large
-                                         : ErrorId.p_bitvector_too_large, 
+                                         : ErrorId.p_bitvector_too_large,
         tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
     }
     return defaultValue;
@@ -618,7 +617,7 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
-    
+
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
@@ -635,22 +634,20 @@ public partial class Parser {
 
     return ModuleKindEnum.Concrete;
   }
-  
+
   // Check that token has not been set, then set it.
-  public void CheckAndSetToken(ref IToken token)
-  {
-      if (token != null) {
-        SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
-      }
-      token = t;
+  public void CheckAndSetToken(ref IToken token) {
+    if (token != null) {
+      SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
+    }
+    token = t;
   }
 
   // Check that token has not been set, then set it, but just ignores if it was set already
-  public void CheckAndSetTokenOnce(ref IToken token)
-  {
-      if (token == null) {
-        token = t;
-      }
+  public void CheckAndSetTokenOnce(ref IToken token) {
+    if (token == null) {
+      token = t;
+    }
   }
 
   /// <summary>
@@ -673,7 +670,7 @@ public partial class Parser {
     // attr is the identifier of the Attribute
     // range is from opening brace to closing brace
     if (attr.val == "ignore") {
-      errors.Warning(ErrorId.p_deprecated_attribute, 
+      errors.Warning(ErrorId.p_deprecated_attribute,
         range,
         $"attribute :{attr.val} is deprecated");
       return false;
@@ -690,7 +687,7 @@ public partial class Parser {
       .Reverse().Select(a =>
         (token: (a as UserSuppliedAttributes)?.tok,
          options: a.Args.Select(arg => {
-           if (arg is not LiteralExpr {Value: string optStr}) {
+           if (arg is not LiteralExpr { Value: string optStr }) {
              SemErr(ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
              return null;
            }
@@ -731,8 +728,7 @@ public partial class Parser {
   /// It is used in error messages.
   /// Any declaration modifiers that are present but not allowed are cleared.
   ///</summary>
-  void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
-  {
+  void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed) {
     declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
     if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
       SemErr(ErrorId.p_abstract_not_allowed, dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
@@ -767,5 +763,5 @@ public partial class Parser {
       dmod.IsOpaque = false;
     }
   }
-  
+
 }

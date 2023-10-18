@@ -23,14 +23,14 @@ public enum RefinementKind {
 public record Refinement(RefinementKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
-  
+
   /// <summary>
   /// If this is a placeholder module, resolution will look for a unique module that instantiates this one in the same
   /// containing module, and then set this field. 
   /// </summary>
   [FilledInDuringResolution]
-  public ModuleDefinition InstantiatingModule { get; set;  }
-  
+  public ModuleDefinition InstantiatingModule { get; set; }
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -234,7 +234,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     if (InstantiatingModule != null) {
       return InstantiatingModule.GetCompileName(options);
     }
-    
+
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
     var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
     if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {

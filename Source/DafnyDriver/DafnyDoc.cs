@@ -227,8 +227,7 @@ class DafnyDoc {
       info.HtmlSummary = Row(Link(module.FullName, module.Name), DashShortDocstring(module));
     }
     var details = new StringBuilder();
-    var modifier = moduleDef.ModuleKind switch
-    {
+    var modifier = moduleDef.ModuleKind switch {
       ModuleKindEnum.Abstract => "abstract ",
       ModuleKindEnum.Placeholder => "placeholder ",
       _ => ""

@@ -184,20 +184,31 @@ namespace Microsoft.Dafny {
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.Refinement?.Target.Decl != null) { // There is a refinement parent and it resolved OK
-        var moduleQualifiedId = m.Refinement.Target;
-        RefinedSig = moduleQualifiedId.Sig;
+      if (m.Refinement?.Target.Decl == null) {
+        // do this also for non-refining modules
+        CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
+        AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
+      } else {
+        // There is a refinement parent and it resolved OK
+        var refinementTarget = m.Refinement.Target;
+        if (m.Refinement.Kind == RefinementKind.Regular && refinementTarget.Def.ModuleKind == ModuleKindEnum.Placeholder) {
+          Reporter.Error(MessageSource.RefinementTransformer, "refinePlaceholder", refinementTarget.Tok,
+            "It is not possible to refine a placeholder module");
+
+          return;
+        }
+        RefinedSig = refinementTarget.Sig;
+
 
         Contract.Assert(RefinedSig.ModuleDef != null);
-        Contract.Assert(moduleQualifiedId.Def == RefinedSig.ModuleDef);
+        Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
         // check that the openness in the imports between refinement and its base matches
         var declarations = m.TopLevelDecls;
-        var baseDeclarations = moduleQualifiedId.Def.TopLevelDecls.ToList();
+        var baseDeclarations = refinementTarget.Def.TopLevelDecls.ToList();
         foreach (var im in declarations) {
           // TODO: this is a terribly slow algorithm; use the symbol table instead
           var bim = baseDeclarations.FirstOrDefault(bim => bim.Name.Equals(im.Name));
-          if (bim != null)
-          {
+          if (bim != null) {
             if (im is ModuleDecl mdecl && bim is ModuleDecl mbim && mdecl.Opened != mbim.Opened) {
               if (mdecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
@@ -211,11 +222,8 @@ namespace Microsoft.Dafny {
             }
           }
         }
+
         PreResolveWorker(m);
-      } else {
-        // do this also for non-refining modules
-        CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
-        AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
       }
     }
 
@@ -229,10 +237,11 @@ namespace Microsoft.Dafny {
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
       var refinementTarget = module.Refinement.Target;
       var prev = refinementTarget.Def;
+      prev = prev.InstantiatingModule ?? prev;
 
       //copy the signature, including its opened imports
       refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      ModuleResolver.ResolveOpenedImports(refinedSigOpened, refinementTarget.Def, Reporter, null);
+      ModuleResolver.ResolveOpenedImports(refinedSigOpened, prev, Reporter, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();

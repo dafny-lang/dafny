@@ -84,7 +84,6 @@ public class ProgramResolver {
     }
   }
 
-
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
     classMembers[topLevelDeclWithMembers] = memberDictionary;
   }
@@ -198,7 +197,7 @@ public class ProgramResolver {
     foreach (ModuleDefinition m in program.CompileModules) {
       var compileIt = true;
       Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (m.CanCompile() || !compileIt) {
+      if (!m.CanCompile() || !compileIt) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
