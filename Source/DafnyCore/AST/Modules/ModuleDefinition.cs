@@ -9,6 +9,13 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
+
+public enum ModuleKindEnum {
+  Concrete,
+  Abstract,
+  Placeholder
+}
+
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
@@ -45,7 +52,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
-  public readonly bool IsAbstract;
+  public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
 
@@ -127,7 +134,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
-    IsAbstract = original.IsAbstract;
+    ModuleKind = original.ModuleKind;
     RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
@@ -153,7 +160,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
+  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -162,7 +169,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     this.Attributes = attributes;
     this.EnclosingModule = parent;
     this.RefinementQId = refinementQId;
-    this.IsAbstract = isAbstract;
+    this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
 
     if (Name != "_System") {
@@ -617,7 +624,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), ModuleKindEnum.Concrete,
         false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
@@ -693,7 +700,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;
-    sig.IsAbstract = IsAbstract;
+    sig.IsAbstract = ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(VisibilityScope);
 

@@ -821,7 +821,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mods != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), true, true, null, null, null);
+      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), ModuleKindEnum.Abstract, true, null, null, null);
       mod.Height = height;
       foreach (var kv in p.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
@@ -985,7 +985,7 @@ namespace Microsoft.Dafny {
           ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
-          if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
+          if (def.ModuleKind == ModuleKindEnum.Concrete && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
             reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(),
               "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
@@ -1547,7 +1547,7 @@ namespace Microsoft.Dafny {
           }
 
           if (cl is not ClassLikeDecl) {
-            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // non-reference, non-trait types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1558,7 +1558,7 @@ namespace Microsoft.Dafny {
             continue;
           }
           if (cl is TraitDecl traitDecl) {
-            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // check for static consts, and check for instance fields in non-reference traits
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1584,7 +1584,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+              if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                 CheckIsOkayWithoutRHS(f, false);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {

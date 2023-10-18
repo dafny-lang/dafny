@@ -231,7 +231,7 @@ Dafny
                                }
                             .)
   }
-  { TopDecl<theModule, /* isTopLevel */ true, /* isAbstract */ false> }
+  { TopDecl<theModule, /* isTopLevel */ true> }
   (. 
     theModule.RangeToken = new RangeToken(fileStartToken.Next, t);
   .)
@@ -242,6 +242,7 @@ Dafny
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "placeholder"                                (. dmod.IsPlaceholder = true;  CheckAndSetToken(ref dmod.PlaceholderToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -249,7 +250,7 @@ DeclModifier<ref DeclModifierData dmod>
   .
 
 /*------------------------------------------------------------------------*/
-TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
+TopDecl<. ModuleDefinition module, bool isTopLevel .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
@@ -318,9 +319,8 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      List<Name> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
-     bool isAbstract = dmod.IsAbstract;
      var dafnyOptionsBackup = theOptions;
-     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
+     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Placeholder);
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ModuleQualifiedName<out var names>
@@ -331,12 +331,12 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    [ "refines" ModuleQualifiedName<out idRefined>
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
-   (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
+   (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, GetModuleKind(dmod), false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
-     { TopDecl<module, /* isTopLevel */ false, isAbstract>}
+     { TopDecl<module, /* isTopLevel */ false>}
    "}"
     (.
       module.RangeToken = new RangeToken(dmod.FirstToken, t);

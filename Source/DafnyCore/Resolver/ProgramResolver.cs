@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -197,7 +198,7 @@ public class ProgramResolver {
     foreach (ModuleDefinition m in program.CompileModules) {
       var compileIt = true;
       Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (m.IsAbstract || !compileIt) {
+      if (m.CanCompile() || !compileIt) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
@@ -267,9 +268,9 @@ public class ProgramResolver {
 
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
+      if (module.ModuleKind == ModuleKindEnum.Concrete && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
-          "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+          "The abstract import named {0} (using :) may only be used in an abstract or placeholder module declaration",
           moduleDecl.Name);
       }
     }

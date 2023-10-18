@@ -32,7 +32,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
     foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), false, false,
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), ModuleKindEnum.Concrete, false,
         null, null, null);
       newRoot.EnclosingModule = rootUserModule;
       rootUserModule = newRoot;

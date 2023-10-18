@@ -227,7 +227,12 @@ class DafnyDoc {
       info.HtmlSummary = Row(Link(module.FullName, module.Name), DashShortDocstring(module));
     }
     var details = new StringBuilder();
-    var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
+    var modifier = moduleDef.ModuleKind switch
+    {
+      ModuleKindEnum.Abstract => "abstract ",
+      ModuleKindEnum.Placeholder => "placeholder ",
+      _ => ""
+    };
 
     string refineText = "";
     if (moduleDef.RefinementQId != null) {
@@ -237,7 +242,7 @@ class DafnyDoc {
 
     if (module != null) {
       details.Append(AttrString(moduleDef.Attributes));
-      details.Append(Code(abs + "module " + moduleDef.Name + refineText));
+      details.Append(Code(modifier + "module " + moduleDef.Name + refineText));
       details.Append(br);
       details.Append(eol);
     } else {

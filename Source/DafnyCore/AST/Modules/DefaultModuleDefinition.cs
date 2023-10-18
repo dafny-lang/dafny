@@ -13,7 +13,7 @@ public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModul
   }
 
   public DefaultModuleDefinition(IList<Uri> rootSourceUris)
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false,
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), ModuleKindEnum.Concrete, false,
       null, null, null) {
     RootSourceUris = rootSourceUris;
   }
