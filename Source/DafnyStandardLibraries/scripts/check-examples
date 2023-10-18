@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+set -x
+
 ## This file accepts a couple options (before any files)
 ## and then iterates over the remaining command-line arguments as files.
 ## The options are
