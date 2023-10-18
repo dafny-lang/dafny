@@ -1464,5 +1464,88 @@ namespace Microsoft.Dafny {
       }
     }
 
+
+    /// <summary>
+    /// Check that all indices are in the domain of the given function.  That is, for an array ("forArray"):
+    ///     assert (forall i0,i1,i2,... :: 0 <= i0 < dims[0] && ... ==> init.requires(i0,i1,i2,...));
+    /// and for a sequence ("!forArray"):
+    ///     assert (forall i0 :: 0 <= i0 < dims[0] && ... ==> init.requires(i0));
+    /// </summary>
+    private void CheckElementInit(IToken tok, bool forArray, List<Expression> dims, Type elementType, Expression init,
+      Bpl.IdentifierExpr/*?*/ nw, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions options) {
+      Contract.Requires(tok != null);
+      Contract.Requires(dims != null && dims.Count != 0);
+      Contract.Requires(elementType != null);
+      Contract.Requires(init != null);
+      Contract.Requires(!forArray || nw != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      Bpl.Expr ante = Bpl.Expr.True;
+      var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator(forArray ? "arrayinit#" : "seqinit#");
+      var bvs = new List<Bpl.Variable>();
+      var indices = new List<Bpl.Expr>();
+      for (var i = 0; i < dims.Count; i++) {
+        var nm = varNameGen.FreshId(string.Format("#i{0}#", i));
+        var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
+        bvs.Add(bv);
+        var ie = new Bpl.IdentifierExpr(tok, bv);
+        indices.Add(ie);
+        ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(dims[i]))));
+      }
+
+      var sourceType = init.Type.AsArrowType;
+      Contract.Assert(sourceType.Args.Count == dims.Count);
+      var args = Concat(
+        Map(Enumerable.Range(0, dims.Count), ii => TypeToTy(sourceType.Args[ii])),
+        Cons(TypeToTy(sourceType.Result),
+          Cons(etran.HeapExpr,
+            Cons(etran.TrExpr(init),
+              indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+      // check precond
+      var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
+      var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
+      var desc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence");
+      builder.Add(AssertNS(tok, q, desc));
+      if (!forArray && options.DoReadsChecks) {
+        // check read effects
+        Type objset = program.SystemModuleManager.ObjectSetType();
+        Expression wrap = new BoogieWrapper(
+          FunctionCall(tok, Reads(1), TrType(objset), args),
+          objset);
+        var reads = new FrameExpression(tok, wrap, null);
+        Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
+          var qe = new Bpl.ForallExpr(t, bvs, Bpl.Expr.Imp(ante, e));
+          options.AssertSink(this, builder)(t, qe, d, qk);
+        };
+        CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
+          etran, etran.ReadsFrame(tok), maker,
+          new PODesc.FrameSubset("invoke the function passed as an argument to the sequence constructor", false),
+          options.AssertKv);
+      }
+      // Check that the values coming out of the function satisfy any appropriate subset-type constraints
+      var apply = UnboxIfBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);
+      var cre = GetSubrangeCheck(apply, sourceType.Result, elementType, out var subrangeDesc);
+      if (cre != null) {
+        // assert (forall i0,i1,i2,... ::
+        //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
+        q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
+        builder.Add(AssertNS(init.tok, q, subrangeDesc));
+      }
+
+      if (forArray) {
+        // Assume that array elements have initial values according to the given initialization function.  That is:
+        // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
+        //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
+        var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
+        var ai_prime = UnboxIfBoxed(ai, elementType);
+        var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
+        q = new Bpl.ForallExpr(tok, bvs, tr,
+          Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
+        builder.Add(new Bpl.AssumeCmd(tok, q));
+      }
+    }
+
+
   }
 }

@@ -1,0 +1,1021 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using Bpl = Microsoft.Boogie;
+using BplParser = Microsoft.Boogie.Parser;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using Microsoft.Boogie;
+using static Microsoft.Dafny.Util;
+using Core;
+using DafnyCore.Verifier;
+using Microsoft.BaseTypes;
+using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Triggers;
+using Action = System.Action;
+using PODesc = Microsoft.Dafny.ProofObligationDescription;
+using static Microsoft.Dafny.GenericErrors;
+
+namespace Microsoft.Dafny; 
+
+public partial class BoogieGenerator {
+
+
+  private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
+    Contract.Requires(ad != null);
+    var arity = ad.Arity;
+    var tok = ad.tok;
+
+    // [Heap, Box, ..., Box]
+    var map_args = Cons(predef.HeapType, Map(Enumerable.Range(0, arity), i => predef.BoxType));
+    // [Heap, Box, ..., Box] Box
+    var apply_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, predef.BoxType);
+    // [Heap, Box, ..., Box] Bool
+    var requires_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, Bpl.Type.Bool);
+    // Set Box
+    var objset_ty = TrType(program.SystemModuleManager.ObjectSetType());
+    // [Heap, Box, ..., Box] (Set Box)
+    var reads_ty = new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), map_args, objset_ty);
+
+    {
+      // function HandleN([Heap, Box, ..., Box] Box, [Heap, Box, ..., Box] Bool) : HandleType
+      var res = BplFormalVar(null, predef.HandleType, true);
+      var arg = new List<Bpl.Variable> {
+          BplFormalVar(null, apply_ty, true),
+          BplFormalVar(null, requires_ty, true),
+          BplFormalVar(null, reads_ty, true)
+        };
+      sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
+    }
+
+    Action<Function, string, Bpl.Type> SelectorFunction = (dafnyFunction, name, t) => {
+      var args = new List<Bpl.Variable>();
+      MapM(Enumerable.Range(0, arity + 1), i => args.Add(BplFormalVar(null, predef.Ty, true)));
+      args.Add(BplFormalVar(null, predef.HeapType, true));
+      args.Add(BplFormalVar(null, predef.HandleType, true));
+      MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
+      var boogieFunction = new Bpl.Function(Token.NoToken, name, args, BplFormalVar(null, t, false));
+      if (dafnyFunction != null) {
+        declarationMapping[dafnyFunction] = boogieFunction;
+      }
+      sink.AddTopLevelDeclaration(boogieFunction);
+    };
+
+    // function ApplyN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Box
+    if (arity != 1) {  // Apply1 is already declared in DafnyPrelude.bpl
+      SelectorFunction(null, Apply(arity), predef.BoxType);
+    }
+    // function RequiresN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Bool
+    SelectorFunction(ad.Requires, Requires(arity), Bpl.Type.Bool);
+    // function ReadsN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Set Box
+    SelectorFunction(ad.Reads, Reads(arity), objset_ty);
+
+    {
+      // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
+      //      :: ApplyN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == h[heap, b1, ..., bN]
+      //      :: RequiresN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) <== r[heap, b1, ..., bN]
+      //      :: ReadsN(t1, .. tN+1, heap, HandleN(h, r, rd), b1, ..., bN) == rd[heap, b1, ..., bN]
+      Action<string, Bpl.Type, string, Bpl.Type, string, Bpl.Type> SelectorSemantics = (selector, selectorTy, selectorVar, selectorVarTy, precond, precondTy) => {
+        Contract.Assert((precond == null) == (precondTy == null));
+        var bvars = new List<Bpl.Variable>();
+
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+
+        var heap = BplBoundVar("heap", predef.HeapType, bvars);
+
+        var handleargs = new List<Bpl.Expr> {
+            BplBoundVar("h", apply_ty, bvars),
+            BplBoundVar("r", requires_ty, bvars),
+            BplBoundVar("rd", reads_ty, bvars)
+          };
+
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+        var lhsargs = Concat(types, Cons(heap, Cons(FunctionCall(tok, Handle(arity), predef.HandleType, handleargs), boxes)));
+        Bpl.Expr lhs = FunctionCall(tok, selector, selectorTy, lhsargs);
+        Func<Bpl.Expr, Bpl.Expr> pre = x => x;
+        if (precond != null) {
+          pre = x => FunctionCall(tok, precond, precondTy, lhsargs);
+        }
+
+        Bpl.Expr rhs = new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, arity + 1),
+          Cons(new Bpl.IdentifierExpr(tok, selectorVar, selectorVarTy), Cons(heap, boxes)));
+        Func<Bpl.Expr, Bpl.Expr, Bpl.Expr> op = Bpl.Expr.Eq;
+        if (selectorVar == "rd") {
+          var bx = BplBoundVar("bx", predef.BoxType, bvars);
+          lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
+          rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
+          // op = Bpl.Expr.Imp;
+        }
+        if (selectorVar == "r") {
+          op = (u, v) => Bpl.Expr.Imp(v, u);
+        }
+        AddOtherDefinition(GetOrCreateTypeConstructor(ad), new Axiom(tok,
+          BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
+      };
+      SelectorSemantics(Apply(arity), predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
+      SelectorSemantics(Requires(arity), Bpl.Type.Bool, "r", requires_ty, null, null);
+      SelectorSemantics(Reads(arity), objset_ty, "rd", reads_ty, null, null);
+
+      // function {:inline true}
+      //   FuncN._requires#canCall(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
+      //   { true }
+      // + similar for Reads
+      Action<string, Function> UserSelectorFunction = (fname, f) => {
+        var formals = new List<Bpl.Variable>();
+        var rhsargs = new List<Bpl.Expr>();
+
+        MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, predef.Ty, true, formals)));
+
+        var heap = BplFormalVar("heap", predef.HeapType, true, formals);
+        rhsargs.Add(heap);
+        rhsargs.Add(BplFormalVar("f", predef.HandleType, true, formals));
+
+        MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, predef.BoxType, true, formals)));
+
+        sink.AddTopLevelDeclaration(
+          new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
+            BplFormalVar(null, Bpl.Type.Bool, false), null,
+            InlineAttribute(f.tok)) {
+            Body = Bpl.Expr.True
+          });
+      };
+
+      UserSelectorFunction(Requires(ad.Arity), ad.Requires);
+      UserSelectorFunction(Reads(ad.Arity), ad.Reads);
+
+      // frame axiom
+      /*
+
+        forall t0..tN+1 : Ty, h0, h1 : Heap, f : Handle, bx1 .. bxN : Box,
+          HeapSucc(h0, h1) && GoodHeap(h0) && GoodHeap(h1)
+          && Is[&IsAllocBox](bxI, tI, h0)              // in h0, not hN
+          && Is[&IsAlloc](f, Func(t1,..,tN, tN+1), h0) // in h0, not hN
+          &&
+          (forall o : ref::
+               o != null [&& h0[o, alloc] && h1[o, alloc] &&]
+               Reads(h,hN,bxs)[Box(o)]             // for hN in h0 and h1
+            ==> h0[o,field] == h1[o,field])
+        ==>  Reads(..h0..) == Reads(..h1..)
+         AND Requires(f,h0,bxs) == Requires(f,h1,bxs) // which is needed for the next
+         AND  Apply(f,h0,bxs) == Apply(f,h0,bxs)
+
+         The [...] expressions are omitted for /allocated:0 and /allocated:1:
+           - in these modes, functions are pure values and IsAlloc of a function is trivially true
+           - o may be unallocated even if f reads it, so we require a stronger condition that
+             even fields of *unallocated* objects o are unchanged from h0 to h1
+           - given this stronger condition, we can say that f(bx1...bxN) does not change from h0 to h1
+             even if some of bx1...bxN are unallocated
+           - it's harder to satisfy the stronger condition, but two cases are nevertheless useful:
+             1) f has an empty reads clause
+             2) f explictly states that everything is its reads clause is allocated
+       */
+      {
+        var bvars = new List<Bpl.Variable>();
+
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+
+        var h0 = BplBoundVar("h0", predef.HeapType, bvars);
+        var h1 = BplBoundVar("h1", predef.HeapType, bvars);
+        var heapSucc = HeapSucc(h0, h1);
+        var goodHeaps = BplAnd(
+          FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h0),
+          FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h1));
+
+        var f = BplBoundVar("f", predef.HandleType, bvars);
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+        var isness = BplAnd(
+          Snoc(Map(Enumerable.Range(0, arity), i =>
+            BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
+          BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+
+        Action<Bpl.Expr, string> AddFrameForFunction = (hN, fname) => {
+
+          // inner forall vars
+          var ivars = new List<Bpl.Variable>();
+          var o = BplBoundVar("o", predef.RefType, ivars);
+          var a = new TypeVariable(tok, "a");
+          var fld = BplBoundVar("fld", predef.FieldName(tok, a), ivars);
+
+          var inner_forall = new Bpl.ForallExpr(tok, Singleton(a), ivars, BplImp(
+            BplAnd(
+              Bpl.Expr.Neq(o, predef.Null),
+              // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
+              new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
+                  FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
+                  FunctionCall(tok, BuiltinFunction.Box, null, o)
+              })
+            ),
+            Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld, a), ReadHeap(tok, h1, o, fld, a))));
+
+          Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+
+          sink.AddTopLevelDeclaration(new Axiom(tok,
+            BplForall(bvars,
+              new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
+              BplImp(
+                BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), inner_forall),
+                Bpl.Expr.Eq(fn(h0), fn(h1)))), "frame axiom for " + fname));
+        };
+
+        AddFrameForFunction(h0, Reads(ad.Arity));
+        AddFrameForFunction(h1, Reads(ad.Arity));
+        AddFrameForFunction(h0, Requires(ad.Arity));
+        AddFrameForFunction(h1, Requires(ad.Arity));
+        AddFrameForFunction(h0, Apply(ad.Arity));
+        AddFrameForFunction(h1, Apply(ad.Arity));
+      }
+
+      /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+       *   { ReadsN(T.., $OneHeap, f, bx..), $IsGoodHeap(heap) }
+       *   { ReadsN(T.., heap, f, bx..) }
+       *   $IsGoodHeap(heap) && Is...(f...bx...) ==>
+       *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet) == Set#Equal(ReadsN(T.., heap, f, bx..), EmptySet));
+       */
+      {
+        var bvars = new List<Bpl.Variable>();
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+        var oneheap = NewOneHeapExpr(tok);
+        var h = BplBoundVar("heap", predef.HeapType, bvars);
+        var f = BplBoundVar("f", predef.HandleType, bvars);
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+        var isness = BplAnd(
+          Snoc(Map(Enumerable.Range(0, arity), i =>
+            BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
+          BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var readsH = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(h, Cons(f, boxes))));
+        var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+        var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+        var readsNothingH = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsH, empty);
+
+        sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
+          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
+          BplImp(
+            BplAnd(goodHeap, isness),
+            BplIff(readsNothingOne, readsNothingH))),
+          string.Format("empty-reads property for {0} ", Reads(arity))));
+      }
+
+      /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
+       *   { RequiresN(T.., OneHeap, f, bx..), $IsGoodHeap(heap) }
+       *   { RequiresN(T.., heap, f, bx..) }
+       *   $IsGoodHeap(heap) && Is...(f...bx...) &&
+       *   Set#Equal(ReadsN(T.., OneHeap, f, bx..), EmptySet)
+       *   ==>
+       *   RequiresN(T.., OneHeap, f, bx..) == RequiresN(T.., heap, f, bx..));
+       */
+      {
+        var bvars = new List<Bpl.Variable>();
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
+        var oneheap = NewOneHeapExpr(tok);
+        var h = BplBoundVar("heap", predef.HeapType, bvars);
+        var f = BplBoundVar("f", predef.HandleType, bvars);
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
+
+        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+
+        var isness = BplAnd(
+          Snoc(Map(Enumerable.Range(0, arity), i =>
+            BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
+          BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, predef.BoxType);
+        var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
+
+        var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
+
+        sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
+          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresOne, goodHeap },
+          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
+          BplImp(
+            BplAnd(BplAnd(goodHeap, isness), readsNothingOne),
+            Bpl.Expr.Eq(requiresOne, requiresH))),
+          string.Format("empty-reads property for {0}", Requires(arity))));
+      }
+
+      // $Is and $IsAlloc axioms
+      /*
+        axiom (forall f: HandleType, t0: Ty, t1: Ty ::
+          { $Is(f, Tclass._System.___hFunc1(t0, t1)) }
+          $Is(f, Tclass._System.___hFunc1(t0, t1))
+             <==> (forall h: Heap, bx0: Box ::
+               { Apply1(t0, t1, f, h, bx0) }
+               $IsGoodHeap(h) && $IsBox(bx0, t0)
+               && precondition of f(bx0) holds in h
+               ==> $IsBox(Apply1(t0, t1, f, h, bx0), t1)));
+      */
+      {
+        var bvarsOuter = new List<Bpl.Variable>();
+        var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+        var Is = MkIs(f, ClassTyCon(ad, types));
+
+        var bvarsInner = new List<Bpl.Variable>();
+        var h = BplBoundVar("h", predef.HeapType, bvarsInner);
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
+        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+        var isBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIs(boxes[i], types[i], true)));
+        var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var applied_is = MkIs(applied, types[ad.Arity], true);
+
+        sink.AddTopLevelDeclaration(new Axiom(tok,
+          BplForall(bvarsOuter, BplTrigger(Is),
+            BplIff(Is,
+              BplForall(bvarsInner, BplTrigger(applied),
+                BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
+      }
+      /*
+         axiom (forall f: HandleType, t0: Ty, t1: Ty, u0: Ty, u1: Ty ::
+           { $Is(f, Tclass._System.___hFunc1(t0, t1)), $Is(f, Tclass._System.___hFunc1(u0, u1)) }
+           $Is(f, Tclass._System.___hFunc1(t0, t1)) &&
+           (forall bx: Box :: { $IsBox(bx, u0), $IsBox(bx, t0) }
+               $IsBox(bx, u0) ==> $IsBox(bx, t0)) &&  // contravariant arguments
+           (forall bx: Box :: { $IsBox(bx, t1), $IsBox(bx, u1) }
+               $IsBox(bx, t1) ==> $IsBox(bx, u1))     // covariant result
+           ==>
+           $Is(f, Tclass._System.___hFunc1(u0, u1)));
+      */
+      {
+        var bvarsOuter = new List<Bpl.Variable>();
+        var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+        var typesT = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+        var IsT = MkIs(f, ClassTyCon(ad, typesT));
+        var typesU = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("u" + i, predef.Ty, bvarsOuter));
+        var IsU = MkIs(f, ClassTyCon(ad, typesU));
+
+        Func<Expr, Expr, Expr> Inner = (a, b) => {
+          var bvarsInner = new List<Bpl.Variable>();
+          var bx = BplBoundVar("bx", predef.BoxType, bvarsInner);
+          var isBoxA = MkIs(bx, a, true);
+          var isBoxB = MkIs(bx, b, true);
+          var tr = new Bpl.Trigger(tok, true, new[] { isBoxA }, new Bpl.Trigger(tok, true, new[] { isBoxB }));
+          var imp = BplImp(isBoxA, isBoxB);
+          return BplForall(bvarsInner, tr, imp);
+        };
+
+        var body = IsT;
+        for (int i = 0; i < arity; i++) {
+          body = BplAnd(body, Inner(typesU[i], typesT[i]));
+        }
+        body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
+        body = BplImp(body, IsU);
+        sink.AddTopLevelDeclaration(new Axiom(tok,
+          BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
+      }
+      /*  This is the definition of $IsAlloc function the arrow type:
+        axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+          { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+          $IsGoodHeap(h)
+          ==>
+          (
+            $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+              <==>
+              (forall bx0: Box ::
+                { Apply1(t0, t1, f, h, bx0) } { Reads1(t0, t1, f, h, bx0) }
+                $IsBox(bx0, t0) && $IsAllocBox(bx0, t0, h)
+                && precondition of f(bx0) holds in h
+                ==>
+                  (everything in reads set of f(bx0) is allocated in h)
+          ));
+        However, for /allocated:0 and /allocated:1, IsAlloc for arrow types is trivially true
+        and implies nothing about the reads set.
+      */
+      {
+        var bvarsOuter = new List<Bpl.Variable>();
+        var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+        var h = BplBoundVar("h", predef.HeapType, bvarsOuter);
+        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+        var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+
+        var bvarsInner = new List<Bpl.Variable>();
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
+        var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
+          BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
+        var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+
+        // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
+        var bvarsR = new List<Bpl.Variable>();
+        var r = BplBoundVar("r", predef.RefType, bvarsR);
+        var rNonNull = Bpl.Expr.Neq(r, predef.Null);
+        var reads = FunctionCall(tok, Reads(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var rInReads = Bpl.Expr.Select(reads, FunctionCall(tok, BuiltinFunction.Box, null, r));
+        var rAlloc = IsAlloced(tok, h, r);
+        var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
+
+        sink.AddTopLevelDeclaration(new Axiom(tok,
+          BplForall(bvarsOuter, BplTrigger(isAlloc),
+            BplImp(goodHeap,
+              BplIff(isAlloc,
+                BplForall(bvarsInner,
+                  new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
+                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
+      }
+      /*  This is the allocatedness consequence axiom of arrow types:
+        axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+          { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+          $IsGoodHeap(h) &&
+          $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+          ==>
+              (forall bx0: Box ::
+                { Apply1(t0, t1, f, h, bx0) }
+                $IsAllocBox(bx0, t0, h)
+                && precondition of f(bx0) holds in h
+                ==>
+                  $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
+          ));
+      */
+      {
+        var bvarsOuter = new List<Bpl.Variable>();
+        var f = BplBoundVar("f", predef.HandleType, bvarsOuter);
+        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvarsOuter));
+        var h = BplBoundVar("h", predef.HeapType, bvarsOuter);
+        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+        var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+
+        var bvarsInner = new List<Bpl.Variable>();
+        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvarsInner));
+        var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
+        var pre = FunctionCall(tok, Requires(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+        var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
+
+        sink.AddTopLevelDeclaration(new Axiom(tok,
+          BplForall(bvarsOuter, BplTrigger(isAlloc),
+            BplImp(BplAnd(goodHeap, isAlloc),
+              BplForall(bvarsInner, BplTrigger(applied),
+                BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
+      }
+    }
+  }
+
+  private string AddTyAxioms(TopLevelDecl td) {
+    Contract.Requires(td != null);
+    IToken tok = td.tok;
+
+    // use the internal type synonym, if any
+    if (!RevealedInScope(td) && td is RevealableTypeDecl revealableTypeDecl) {
+      td = revealableTypeDecl.SelfSynonymDecl();
+    }
+    Contract.Assume(td is SubsetTypeDecl or not TypeSynonymDecl); // this is expected of the caller
+
+    var func = GetOrCreateTypeConstructor(td);
+    var name = func.Name;
+
+    // Produce uniqueness or injectivity axioms, unless the type is one that may (non-uniquely) stand for another type.
+    if (td is not AbstractTypeDecl and not InternalTypeSynonymDecl) {
+      var tagAxiom = CreateTagAndCallingForTypeConstructor(td);
+      AddOtherDefinition(func, tagAxiom);
+
+      // Create the injectivity axiom and its function
+      /*
+         function List_0(Ty) : Ty;
+         axiom (forall t0: Ty :: { List(t0) } List_0(List(t0)) == t0);
+      */
+      for (int i = 0; i < func.InParams.Count; i++) {
+        var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+        var inner = FunctionCall(tok, name, predef.Ty, argExprs);
+        Bpl.Variable tyVarIn = BplFormalVar(null, predef.Ty, true);
+        Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
+        var injname = name + "_" + i;
+        var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
+        sink.AddTopLevelDeclaration(injfunc);
+        var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
+        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
+        var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
+        AddOtherDefinition(injfunc, injectivityAxiom);
+      }
+    }
+
+    // Boxing axiom (important for the properties of unbox)
+    /*
+       axiom (forall T: Ty, bx: Box ::
+         { $IsBox(bx, List(T)) }
+         $IsBox(bx, List(T))
+            ==> $Box($Unbox(bx): DatatypeType) == bx
+             && $Is($Unbox(bx): DatatypeType, List(T)));
+    */
+    if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
+      var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
+      var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
+      AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
+    }
+
+    return name;
+  }
+
+  /* Create the Tag and calling Tag on this type constructor
+   *
+   * The common case:
+   *     const unique TagList: TyTag;
+   *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+   *     axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList && TagFamily(List(t0)) == tytagFamily$List);
+   * For types obtained via an abstract import, just do:
+   *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+   *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
+   */
+  private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td) {
+    IToken tok = td.tok;
+    var inner_name = GetClass(td).TypedIdent.Name;
+    string name = "T" + inner_name;
+
+    var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+    var inner = FunctionCall(tok, name, predef.Ty, argExprs);
+    Bpl.Expr body = Bpl.Expr.True;
+
+    if (!td.EnclosingModuleDefinition.IsFacade) {
+      var tagName = "Tag" + inner_name;
+      var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
+      sink.AddTopLevelDeclaration(tag);
+      body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
+    }
+
+    if (!tytagConstants.TryGetValue(td.Name, out var tagFamily)) {
+      tagFamily = new Bpl.Constant(Token.NoToken,
+        new Bpl.TypedIdent(Token.NoToken, "tytagFamily$" + td.Name, predef.TyTagFamily), true);
+      tytagConstants.Add(td.Name, tagFamily);
+    }
+
+    body = BplAnd(body,
+      Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
+
+    var qq = BplForall(args, BplTrigger(inner), body);
+    var tagAxiom = new Axiom(tok, qq, name + " Tag");
+    return tagAxiom;
+  }
+
+  private void AddBitvectorTypeAxioms(int w) {
+    Contract.Requires(0 <= w);
+
+    if (w == 0) {
+      // the axioms for bv0 are already in DafnyPrelude.bpl
+      return;
+    }
+
+    // box/unbox axiom
+    var tok = Token.NoToken;
+    var printableName = "bv" + w;
+    var dafnyType = new BitvectorType(options, w);
+    var boogieType = BplBvType(w);
+    var typeTerm = TypeToTy(dafnyType);
+    AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
+
+    // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
+    var vVar = BplBoundVar("v", boogieType, out var v);
+    var bvs = new List<Variable>() { vVar };
+    var isBv = MkIs(v, typeTerm);
+    var tr = BplTrigger(isBv);
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
+
+    // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
+    vVar = BplBoundVar("v", boogieType, out v);
+    var heapVar = BplBoundVar("heap", predef.HeapType, out var heap);
+    bvs = new List<Variable>() { vVar, heapVar };
+    var isAllocBv = MkIsAlloc(v, typeTerm, heap);
+    tr = BplTrigger(isAllocBv);
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
+  }
+
+  /// <summary>
+  /// Generate:
+  ///     axiom (forall args: Ty, bx: Box ::
+  ///       { $IsBox(bx, name(argExprs)) }
+  ///       $IsBox(bx, name(argExprs)) ==>
+  ///         $Box($Unbox(bx): tyRepr) == bx &&
+  ///         $Is($Unbox(bx): tyRepr, name(argExprs)));
+  /// </summary>
+  private void AddBoxUnboxAxiom(IToken tok, string printableName, Bpl.Expr typeTerm, Bpl.Type tyRepr, List<Variable> args) {
+    Contract.Requires(tok != null);
+    Contract.Requires(printableName != null);
+    Contract.Requires(typeTerm != null);
+    Contract.Requires(tyRepr != null);
+    Contract.Requires(args != null);
+
+    var bxVar = BplBoundVar("bx", predef.BoxType, out var bx);
+    var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
+    var box_is = MkIs(bx, typeTerm, true);
+    var unbox_is = MkIs(unbox, typeTerm, false);
+    var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+    sink.AddTopLevelDeclaration(
+      new Axiom(tok,
+        BplForall(Snoc(args, bxVar), BplTrigger(box_is),
+          BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
+        "Box/unbox axiom for " + printableName));
+  }
+
+
+  private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<ComprehensionExpr.BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    Contract.Requires(tok != null);
+    Contract.Requires(bvars != null);
+    Contract.Requires(bounds != null);
+    Contract.Requires(expr != null);
+    Contract.Requires(builder != null);
+    Contract.Requires(etran != null);
+
+    List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> partialGuesses = GeneratePartialGuesses(bvars, expr);
+    Bpl.Expr w = Bpl.Expr.False;
+    foreach (var tup in partialGuesses) {
+      var body = etran.TrExpr(tup.Item2);
+      Bpl.Expr typeConstraints = Bpl.Expr.True;
+      var undetermined = new List<BoundVar>();
+      foreach (var be in tup.Item1) {
+        if (be.Item2 == null) {
+          undetermined.Add(be.Item1);
+        } else {
+          typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
+        }
+      }
+      body = BplAnd(typeConstraints, body);
+      if (undetermined.Count != 0) {
+        List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+        var bvs = new List<Variable>();
+        var typeAntecedent = etran.TrBoundVariables(undetermined, bvs, false, freeOfAlloc);
+        body = new Bpl.ExistsExpr(tok, bvs, triggers, BplAnd(typeAntecedent, body));
+      }
+      w = BplOr(body, w);
+    }
+    builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists(bvars, expr)));
+  }
+
+  List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>> GeneratePartialGuesses(List<BoundVar> bvars, Expression expression) {
+    if (bvars.Count == 0) {
+      var tup = new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(new List<Tuple<BoundVar, Expression>>(), expression);
+      return new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>() { tup };
+    }
+    var result = new List<Tuple<List<Tuple<BoundVar, Expression>>, Expression>>();
+    var x = bvars[0];
+    var otherBvars = bvars.GetRange(1, bvars.Count - 1);
+    foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
+      // in the special case that x does not even occur in expression (and we know the type has a value for x), we can just ignore x
+      if (!FreeVariablesUtil.ContainsFreeVariable(tup.Item2, false, x) && x.Type.KnownToHaveToAValue(x.IsGhost)) {
+        result.Add(tup);
+        continue;
+      }
+      // one possible result is to quantify over all the variables
+      var vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, null) };
+      vs.AddRange(tup.Item1);
+      result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, tup.Item2));
+      // other possibilities involve guessing a value for x
+      foreach (var guess in GuessWitnesses(x, tup.Item2)) {
+        var g = Substitute(tup.Item2, x, guess);
+        vs = new List<Tuple<BoundVar, Expression>>() { new Tuple<BoundVar, Expression>(x, guess) };
+        AddRangeSubst(vs, tup.Item1, x, guess);
+        result.Add(new Tuple<List<Tuple<BoundVar, Expression>>, Expression>(vs, g));
+      }
+    }
+    return result;
+  }
+
+  private void AddRangeSubst(List<Tuple<BoundVar, Expression>> vs, List<Tuple<BoundVar, Expression>> aa, IVariable v, Expression e) {
+    Contract.Requires(vs != null);
+    Contract.Requires(aa != null);
+    Contract.Requires(v != null);
+    Contract.Requires(e != null);
+    foreach (var be in aa) {
+      if (be.Item2 == null) {
+        vs.Add(be);
+      } else {
+        vs.Add(new Tuple<BoundVar, Expression>(be.Item1, Substitute(be.Item2, v, e)));
+      }
+    }
+  }
+
+  IEnumerable<Expression> GuessWitnesses(BoundVar x, Expression expr) {
+    Contract.Requires(x != null);
+    Contract.Requires(expr != null);
+    var xType = x.Type.NormalizeExpand();
+    if (xType is BoolType) {
+      var lit = new LiteralExpr(x.tok, false);
+      lit.Type = Type.Bool;  // resolve here
+      yield return lit;
+      lit = new LiteralExpr(x.tok, true);
+      lit.Type = Type.Bool;  // resolve here
+      yield return lit;
+      yield break;  // there are no more possible witnesses for booleans
+    } else if (xType is CharType) {
+      // TODO: something could be done for character literals
+    } else if (xType.IsBitVectorType) {
+      // TODO: something could be done for bitvectors
+    } else if (xType.IsRefType) {
+      var lit = new LiteralExpr(x.tok);  // null
+      lit.Type = xType;
+      yield return lit;
+    } else if (xType.IsDatatype) {
+      var dt = xType.AsDatatype;
+      Expression zero = Zero(x.tok, xType);
+      if (zero != null) {
+        yield return zero;
+      }
+      foreach (var ctor in dt.Ctors) {
+        if (ctor.Formals.Count == 0) {
+          var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
+          v.Ctor = ctor;  // resolve here
+          v.InferredTypeArgs = xType.TypeArgs; // resolved here.
+          v.Type = xType;  // resolve here
+          yield return v;
+        }
+      }
+    } else if (xType is SetType) {
+      var empty = new SetDisplayExpr(x.tok, ((SetType)xType).Finite, new List<Expression>());
+      empty.Type = xType;
+      yield return empty;
+    } else if (xType is MultiSetType) {
+      var empty = new MultiSetDisplayExpr(x.tok, new List<Expression>());
+      empty.Type = xType;
+      yield return empty;
+    } else if (xType is SeqType) {
+      var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
+      empty.Type = xType;
+      yield return empty;
+    } else if (xType.IsNumericBased(Type.NumericPersuasion.Int)) {
+      var lit = new LiteralExpr(x.tok, 0);
+      lit.Type = xType;  // resolve here
+      yield return lit;
+    } else if (xType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      var lit = new LiteralExpr(x.tok, BaseTypes.BigDec.ZERO);
+      lit.Type = xType;  // resolve here
+      yield return lit;
+    }
+
+    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr);
+    foreach (var bound in bounds) {
+      if (bound is ComprehensionExpr.IntBoundedPool) {
+        var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+        if (bnd.LowerBound != null) {
+          yield return bnd.LowerBound;
+        }
+
+        if (bnd.UpperBound != null) {
+          yield return Expression.CreateDecrement(bnd.UpperBound, 1);
+        }
+      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+        var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
+        yield return bnd.UpperBound;
+      } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
+        var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+        yield return bnd.LowerBound;
+      } else if (bound is ComprehensionExpr.SetBoundedPool) {
+        var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
+        if (st is DisplayExpression) {
+          var display = (DisplayExpression)st;
+          foreach (var el in display.Elements) {
+            yield return el;
+          }
+        } else if (st is MapDisplayExpr) {
+          var display = (MapDisplayExpr)st;
+          foreach (var maplet in display.Elements) {
+            yield return maplet.A;
+          }
+        }
+      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+        var st = ((ComprehensionExpr.MultiSetBoundedPool)bound).MultiSet.Resolved;
+        if (st is DisplayExpression) {
+          var display = (DisplayExpression)st;
+          foreach (var el in display.Elements) {
+            yield return el;
+          }
+        } else if (st is MapDisplayExpr) {
+          var display = (MapDisplayExpr)st;
+          foreach (var maplet in display.Elements) {
+            yield return maplet.A;
+          }
+        }
+      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+        var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
+        var display = sq as DisplayExpression;
+        if (display != null) {
+          foreach (var el in display.Elements) {
+            yield return el;
+          }
+        }
+      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+        yield return ((ComprehensionExpr.ExactBoundedPool)bound).E;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Return a zero-equivalent value for "typ", or return null (for any reason whatsoever).
+  /// </summary>
+  Expression Zero(IToken tok, Type typ) {
+    Contract.Requires(tok != null);
+    Contract.Requires(typ != null);
+    typ = typ.NormalizeExpand();
+    if (typ is BoolType) {
+      return Expression.CreateBoolLiteral(tok, false);
+    } else if (typ is CharType) {
+      var z = new CharLiteralExpr(tok, CharType.DefaultValue.ToString());
+      z.Type = Type.Char;  // resolve here
+      return z;
+    } else if (typ.IsNumericBased(Type.NumericPersuasion.Int)) {
+      return Expression.CreateIntLiteral(tok, 0);
+    } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
+      return Expression.CreateRealLiteral(tok, BaseTypes.BigDec.ZERO);
+    } else if (typ.IsBigOrdinalType) {
+      return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
+    } else if (typ.IsBitVectorType) {
+      var z = new LiteralExpr(tok, 0);
+      z.Type = typ;
+      return z;
+    } else if (typ.IsRefType) {
+      var z = new LiteralExpr(tok);  // null
+      z.Type = typ;
+      return z;
+    } else if (typ.IsDatatype) {
+      return null;  // this can be improved
+    } else if (typ is SetType) {
+      var empty = new SetDisplayExpr(tok, ((SetType)typ).Finite, new List<Expression>());
+      empty.Type = typ;
+      return empty;
+    } else if (typ is MultiSetType) {
+      var empty = new MultiSetDisplayExpr(tok, new List<Expression>());
+      empty.Type = typ;
+      return empty;
+    } else if (typ is SeqType) {
+      var empty = new SeqDisplayExpr(tok, new List<Expression>());
+      empty.Type = typ;
+      return empty;
+    } else if (typ is MapType) {
+      var empty = new MapDisplayExpr(tok, ((MapType)typ).Finite, new List<ExpressionPair>());
+      empty.Type = typ;
+      return empty;
+    } else if (typ is ArrowType) {
+      // TODO: do better than just returning null
+      return null;
+    } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
+      return null;
+    } else {
+      Contract.Assume(false);  // unexpected type
+      return null;
+    }
+  }
+
+  void AddRevealableTypeDecl(RevealableTypeDecl d) {
+    Contract.Requires(d != null);
+    if (RevealedInScope(d)) {
+      if (d is NewtypeDecl) {
+        var dd = (NewtypeDecl)d;
+        AddTypeDecl(dd);
+        AddClassMembers(dd, true, true);
+      } else if (d is DefaultClassDecl defaultClassDecl) {
+        AddClassMembers(defaultClassDecl, options.OptimizeResolution < 1, true);
+      } else if (d is ClassLikeDecl) {
+        var cl = (ClassLikeDecl)d;
+        AddClassMembers(cl, options.OptimizeResolution < 1, true);
+        if (cl.NonNullTypeDecl != null) {
+          AddTypeDecl(cl.NonNullTypeDecl);
+        }
+        if (d is IteratorDecl) {
+          AddIteratorSpecAndBody((IteratorDecl)d);
+        }
+      } else if (d is DatatypeDecl) {
+        var dd = (DatatypeDecl)d;
+        AddDatatype(dd);
+        AddClassMembers(dd, true, true);
+      } else if (d is SubsetTypeDecl) {
+        AddTypeDecl((SubsetTypeDecl)d);
+      } else if (d is TypeSynonymDecl) {
+        //do nothing, this type will be transparent to translation
+      } else {
+        Contract.Assert(false);
+      }
+    } else {
+      // Create a type constructor for the export-provided type. But note:
+      //   -- A DefaultClassDecl does not need a type constructor.
+      //   -- Reference types give rise to two type declarations, the nullable version and the non-null version.
+      //      For a type that is only export-provided, the type that is exported is an abstract-type version
+      //      of the non-null type. Thus, for a class declaration and reference-type trait declaration, we
+      //      do not create a type constructor.
+      if (d is not DefaultClassDecl && d is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
+        GetOrCreateTypeConstructor(d.SelfSynonymDecl());
+      }
+
+      if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        AddClassMembers(topLevelDeclWithMembers, true, false);
+      }
+    }
+  }
+
+  void AddTypeDecl(NewtypeDecl dd) {
+    Contract.Requires(dd != null);
+    Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+
+    FuelContext oldFuelContext = this.fuelContext;
+    this.fuelContext = FuelSetting.NewFuelContext(dd);
+
+    if (dd.Var != null) {
+      AddWellformednessCheck(dd);
+    }
+
+    // Add $Is and $IsAlloc axioms for the newtype
+    currentModule = dd.EnclosingModuleDefinition;
+    AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+    AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
+    currentModule = null;
+
+    this.fuelContext = oldFuelContext;
+  }
+
+  void AddTypeDecl(SubsetTypeDecl dd) {
+    Contract.Requires(dd != null);
+    Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
+
+    FuelContext oldFuelContext = this.fuelContext;
+    this.fuelContext = FuelSetting.NewFuelContext(dd);
+
+    if (!Attributes.Contains(dd.Attributes, "axiom")) {
+      AddWellformednessCheck(dd);
+    }
+    currentModule = dd.EnclosingModuleDefinition;
+    // Add $Is and $IsAlloc axioms for the subset type
+    AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+    AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
+    currentModule = null;
+    this.fuelContext = oldFuelContext;
+  }
+
+  /**
+   * Example:
+    // _System.object: subset type $Is
+    axiom (forall c#0: ref :: 
+      { $Is(c#0, Tclass._System.object()) } 
+      $Is(c#0, Tclass._System.object())
+         <==> $Is(c#0, Tclass._System.object?()) && c#0 != null);
+
+    // _System.object: subset type $IsAlloc
+    axiom (forall c#0: ref, $h: Heap :: 
+      { $IsAlloc(c#0, Tclass._System.object(), $h) } 
+      $IsAlloc(c#0, Tclass._System.object(), $h)
+         <==> $IsAlloc(c#0, Tclass._System.object?(), $h));
+   */
+  void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
+    where T : TopLevelDecl, RedirectingTypeDecl {
+    Contract.Requires(dd != null);
+    Contract.Requires((dd.Var != null && dd.Constraint != null) || dd is NewtypeDecl);
+    Contract.Requires(fullName != null);
+
+    List<Bpl.Expr> typeArgs;
+    var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
+    var o_ty = ClassTyCon(dd, typeArgs);
+
+    var baseType = dd.Var != null ? dd.Var.Type : ((NewtypeDecl)(object)dd).BaseType;
+    var oBplType = TrType(baseType);
+    var c = new BoundVar(dd.tok, CurrentIdGenerator.FreshId("c"), baseType);
+    var o = BplBoundVar((dd.Var ?? c).AssignUniqueName((dd.IdGenerator)), oBplType, vars);
+
+    Bpl.Expr body, is_o;
+    string comment;
+
+    if (is_alloc) {
+      comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
+      var h = BplBoundVar("$h", predef.HeapType, vars);
+      // $IsAlloc(o, ..)
+      is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
+      if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
+        body = is_o;
+      } else {
+        Bpl.Expr rhs = MkIsAlloc(o, baseType, h);
+        body = BplIff(is_o, rhs);
+      }
+    } else {
+      comment = $"$Is axiom for {dd.WhatKind} {fullName}";
+      // $Is(o, ..)
+      is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
+      var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
+      Bpl.Expr parentConstraint, constraint;
+      if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
+        // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
+        parentConstraint = Bpl.Expr.True;
+        var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
+        var substitutee = Expression.CreateIdentExpr(dd.Var ?? c);
+        constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
+      } else {
+        parentConstraint = MkIs(o, baseType);
+        // conjoin the constraint
+        constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
+      }
+      body = BplIff(is_o, BplAnd(parentConstraint, constraint));
+    }
+
+    var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), comment);
+    AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
+  }
+}
