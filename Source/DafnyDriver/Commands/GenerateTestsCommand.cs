@@ -26,6 +26,7 @@ static class GenerateTestsCommand {
       BoogieOptionBag.VerificationTimeLimit,
       PrintBpl,
       CoverageReport,
+      CommonOptionBag.NoTimeStampForCoverageReport,
       ForcePrune
     }.Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

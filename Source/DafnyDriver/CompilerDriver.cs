@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
@@ -93,7 +94,7 @@ namespace Microsoft.Dafny {
           options.Printer.ErrorWriteLine(options.ErrorWriter,
             $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
         } else {
-          backend = new NoExecutableBackend();
+          backend = new NoExecutableBackend(options);
         }
       }
 
@@ -155,6 +156,13 @@ namespace Microsoft.Dafny {
 
         if (options.TrackVerificationCoverage) {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
+          var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+          if (coverageReportDir != null) {
+            new CoverageReporter(options).SerializeVerificationCoverageReport(
+              depManager, dafnyProgram,
+              boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
+              coverageReportDir);
+          }
         }
 
         bool compiled;
@@ -500,6 +508,7 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
+        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
@@ -579,6 +588,8 @@ namespace Microsoft.Dafny {
     public override bool TextualTargetIsExecutable => throw new NotSupportedException();
 
     public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
+    public override string ModuleSeparator => ".";
+
     public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
       throw new NotSupportedException();
     }
@@ -601,6 +612,9 @@ namespace Microsoft.Dafny {
 
     public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
+    }
+
+    public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {
     }
   }
 }

@@ -15,6 +15,11 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     return result.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
   }
 
+  public Diagnostic[] GetLast(TextDocumentIdentifier document, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+    var last = GetLast(d => d.Uri == document.Uri);
+    return last.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
+  }
+
   public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken,
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);

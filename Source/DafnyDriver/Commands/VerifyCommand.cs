@@ -15,6 +15,9 @@ public static class VerifyCommand {
       result.AddOption(option);
     }
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+        options.TrackVerificationCoverage = true;
+      }
       options.Compile = false;
       return CompilerDriver.RunCompiler(options);
     });

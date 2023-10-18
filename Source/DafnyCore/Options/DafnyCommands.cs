@@ -41,7 +41,9 @@ public static class DafnyCommands {
     BoogieOptionBag.VerificationErrorLimit,
     CommonOptionBag.DefaultFunctionOpacity,
     CommonOptionBag.WarnContradictoryAssumptions,
-    CommonOptionBag.WarnRedundantAssumptions
+    CommonOptionBag.WarnRedundantAssumptions,
+    CommonOptionBag.NoTimeStampForCoverageReport,
+    CommonOptionBag.VerificationCoverageReport
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -50,7 +52,7 @@ public static class DafnyCommands {
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
-    CommonOptionBag.AddCompileSuffix,
+    CommonOptionBag.AddCompileSuffix
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {

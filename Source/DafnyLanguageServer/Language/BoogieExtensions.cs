@@ -54,17 +54,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
-    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="token">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this Boogie.IToken startToken, bool nameRange = false) {
-      if (startToken is BoogieRangeToken boogieRangeToken) {
-        return nameRange
-          ? (boogieRangeToken.NameToken ?? boogieRangeToken.StartToken).GetLspRange()
-          : GetLspRangeGeneric(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    public static Range GetLspRange(this Boogie.IToken token, bool nameRange = false) {
+      if (token is NestedToken nestedToken) {
+        return GetLspRange(nestedToken.Outer, nameRange);
       }
-      var endToken = startToken;
-      return GetLspRangeGeneric(startToken, endToken);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
+      if (dafnyToken is RangeToken rangeToken) {
+        return GetLspRangeGeneric(rangeToken.StartToken, rangeToken.EndToken);
+      }
+      return GetLspRangeGeneric(token, token);
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {

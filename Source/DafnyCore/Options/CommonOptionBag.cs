@@ -3,10 +3,15 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
+    "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
@@ -207,6 +212,14 @@ May produce spurious warnings.") {
 (experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
 May slow down verification slightly.
 May produce spurious warnings.") {
+    IsHidden = true
+  };
+  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
+    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+    ArgumentHelpName = "directory"
+  };
+  public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
+    "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
     IsHidden = true
   };
 
@@ -470,6 +483,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       IncludeRuntimeOption,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
+      VerificationCoverageReport,
+      NoTimeStampForCoverageReport,
       DefaultFunctionOpacity
     );
   }

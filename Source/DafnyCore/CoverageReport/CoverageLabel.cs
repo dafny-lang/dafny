@@ -3,9 +3,11 @@
 namespace Microsoft.Dafny;
 
 public enum CoverageLabel {
+  None,
+  NotApplicable,
   FullyCovered,
   NotCovered,
-  PartiallyCovered
+  PartiallyCovered,
 }
 
 public static class CoverageLabelExtension {
@@ -14,6 +16,15 @@ public static class CoverageLabelExtension {
   /// Combine coverage labels. E.g. FullyCovered + NotCovered = PartiallyCovered
   /// </summary>
   public static CoverageLabel Combine(CoverageLabel one, CoverageLabel two) {
+    if (one == CoverageLabel.NotApplicable || two == CoverageLabel.NotApplicable) {
+      return CoverageLabel.NotApplicable;
+    }
+    if (one == CoverageLabel.None) {
+      return two;
+    }
+    if (two == CoverageLabel.None) {
+      return one;
+    }
     if (one == CoverageLabel.PartiallyCovered || two == CoverageLabel.PartiallyCovered || one != two) {
       return CoverageLabel.PartiallyCovered;
     }
