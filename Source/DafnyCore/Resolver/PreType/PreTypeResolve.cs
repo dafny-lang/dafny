@@ -806,7 +806,11 @@ namespace Microsoft.Dafny {
     private void ResolveTopLevelDeclaration(TopLevelDecl d) {
       if (d is not IteratorDecl) {
         // Note, attributes of iterators are resolved by ResolveIterator, after registering any names in the iterator signature
+        scope.PushMarker();
+        Contract.Assert(currentClass == null);
+        scope.AllowInstance = false;
         ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
+        scope.PopMarker();
       }
 
       if (d is NewtypeDecl newtypeDecl) {
