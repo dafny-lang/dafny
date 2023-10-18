@@ -1232,7 +1232,7 @@ namespace Microsoft.Dafny {
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e),
           resultDescription));
-        builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
+        builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
@@ -1427,9 +1427,9 @@ namespace Microsoft.Dafny {
           }
           var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
           var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
-          builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
+          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(rhs_prime)));
           builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint"));
-          builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
+          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(letBody_prime)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
             new PODesc.LetSuchThatUnique(e.RHSs[0], e.BoundVars.ToList())));
@@ -1444,7 +1444,7 @@ namespace Microsoft.Dafny {
           var bResult = etran.TrExpr(letBody);
           CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
           builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
-          builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
+          builder.Add(TrAssumeCmd(letBody.tok, etran.CanCallAssumption(letBody)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
         }

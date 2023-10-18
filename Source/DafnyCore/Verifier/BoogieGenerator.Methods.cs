@@ -682,7 +682,7 @@ namespace Microsoft.Dafny {
           foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
             var e = formal.DefaultValue;
             CheckWellformed(e, wfo, localVariables, builder, etran);
-            builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+            builder.Add(new Boogie.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
             CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
             if (formal.IsOld) {
@@ -870,6 +870,20 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
+    private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables) {
+      Contract.Requires(m != null);
+      Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
+
+      // play havoc with the heap according to the modifies clause
+      builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      // assume the usual two-state boilerplate information
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
+        if (tri.IsFree) {
+          builder.Add(TrAssumeCmd(m.tok, tri.Expr));
+        }
+      }
+    }
+
     private void AddFunctionOverrideCheckImpl(Function f) {
       Contract.Requires(f != null);
       Contract.Requires(f.EnclosingClass is TopLevelDeclWithMembers);
@@ -1028,6 +1042,61 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
+
+    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap,
+      List<Bpl.Variable> implInParams,
+      Bpl.Variable/*?*/ resultVariable) {
+      Contract.Requires(f.Formals.Count <= implInParams.Count);
+
+      //generating class post-conditions
+      foreach (var en in f.Ens) {
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, en.E, "overridden function ensures clause"));
+      }
+
+      //generating assume C.F(ins) == out, if a result variable was given
+      if (resultVariable != null) {
+        var funcIdC = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        var argsC = new List<Bpl.Expr>();
+
+        // add type arguments
+        argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+
+        // add fuel arguments
+        if (f.IsFuelAware()) {
+          argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+          argsC.Add(GetRevealConstant(f));
+        }
+
+        // add heap arguments
+        if (f is TwoStateFunction) {
+          argsC.Add(etran.Old.HeapExpr);
+        }
+        if (f.ReadsHeap) {
+          argsC.Add(etran.HeapExpr);
+        }
+
+        argsC.AddRange(implInParams.Select(var => new Bpl.IdentifierExpr(f.tok, var)));
+
+        var funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
+        var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
+        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
+      }
+
+      //generating trait post-conditions with class variables
+      FunctionCallSubstituter sub = null;
+      foreach (var en in f.OverriddenFunction.Ens) {
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
+        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
+        }
+      }
+    }
+
     private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, List<Variable> localVariables) {
       Contract.Requires(member is Function || member is Method);
       Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
@@ -1051,6 +1120,70 @@ namespace Microsoft.Dafny {
         localVariables.Add(local);
         var rhs = TypeToTy(typeMap[tp]);
         builder.Add(new Boogie.AssumeCmd(tp.tok, Boogie.Expr.Eq(lhs, rhs)));
+      }
+    }
+
+
+    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
+      //getting framePrime
+      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      FunctionCallSubstituter sub = null;
+      foreach (var e in func.OverriddenFunction.Reads.Expressions) {
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassLikeDecl)func.EnclosingClass);
+        var newE = sub.Substitute(e.E);
+        FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
+        traitFrameExps.Add(fe);
+      }
+
+      QKeyValue kv = etran.TrAttributes(func.Attributes, null);
+
+      IToken tok = func.tok;
+      // Declare a local variable $_ReadsFrame: <alpha>[ref, Field alpha]bool
+      Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_ReadsFrame variable
+      traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
+      Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
+      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
+      localVariables.Add(frame);
+      // $_ReadsFrame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
+      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+                                           Bpl.Expr.Imp(ante, consequent));
+
+      //to initialize $_ReadsFrame variable to Frame'
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
+
+      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
+      Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
+      Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+                                      Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
+    }
+
+    private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      Dictionary<IVariable, Expression> substMap,
+      Dictionary<TypeParameter, Type> typeMap) {
+      Contract.Requires(f != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(substMap != null);
+      //generating trait pre-conditions with class variables
+      FunctionCallSubstituter sub = null;
+      foreach (var req in f.OverriddenFunction.Req) {
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E), "overridden function requires clause"));
+      }
+      //generating class pre-conditions
+      foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
+        builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false)));
       }
     }
 
@@ -1564,7 +1697,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, successMessage, comment));
+          AddEnsures(ens, Ensures(p.E.tok, true, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;

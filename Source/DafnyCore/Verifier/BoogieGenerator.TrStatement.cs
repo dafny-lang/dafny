@@ -1420,7 +1420,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.tok, loopInv.E, "loop invariant"));
 
-        invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
+        invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(loopInv.E))));
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
@@ -1560,7 +1560,7 @@ namespace Microsoft.Dafny {
       // declarations as one big conjunction, because then CanCallAssumption will add the needed antecedents.
       if (s.Invariants.Any()) {
         var allInvariants = s.Invariants.Select(inv => inv.E).Aggregate((a, b) => Expression.CreateAnd(a, b));
-        loopBodyBuilder.Add(TrAssumeCmd(s.Tok, CanCallAssumption(allInvariants, etran)));
+        loopBodyBuilder.Add(TrAssumeCmd(s.Tok, etran.CanCallAssumption(allInvariants)));
       }
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
@@ -1599,7 +1599,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr noGuard = Bpl.Expr.True;
       var b = new BoogieStmtListBuilder(this, options);
       foreach (var g in guards) {
-        b.Add(TrAssumeCmd(g.tok, CanCallAssumption(g, etran)));
+        b.Add(TrAssumeCmd(g.tok, etran.CanCallAssumption(g)));
         noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
       }
 
@@ -2767,6 +2767,35 @@ namespace Microsoft.Dafny {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
+    }
+
+    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool subsumption, bool lValueContext = false) {
+      Contract.Requires(expr != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+
+      Bpl.QKeyValue kv;
+      if (subsumption) {
+        kv = null;  // this is the default behavior of Boogie's assert
+      } else {
+        List<object> args = new List<object>();
+        // {:subsumption 0}
+        args.Add(Bpl.Expr.Literal(0));
+        kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
+      }
+      var options = new WFOptions(kv);
+      // Only do reads checks if reads clauses on methods are enabled and the reads clause is not *.
+      // The latter is important to avoid any extra verification cost for backwards compatibility.
+      if (etran.readsFrame != null) {
+        options = options.WithReadsChecks(true);
+      }
+      if (lValueContext) {
+        options = options.WithLValueContext(true);
+      }
+      CheckWellformed(expr, options, locals, builder, etran);
+      builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
   }
 }

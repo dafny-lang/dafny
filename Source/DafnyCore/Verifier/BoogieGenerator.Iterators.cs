@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
