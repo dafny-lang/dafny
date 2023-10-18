@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 using XunitAssertMessages;
@@ -22,11 +23,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): nat { -1 }");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(documentItem.Uri, resolutionReport.Uri);
-    var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(documentItem.Uri, verificationReport.Uri);
-    var diagnostics = verificationReport.Diagnostics.ToArray();
+    var diagnostics = await GetLastDiagnostics(documentItem);
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message);
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);

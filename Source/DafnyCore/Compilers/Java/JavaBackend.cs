@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;

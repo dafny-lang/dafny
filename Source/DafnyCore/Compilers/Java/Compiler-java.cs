@@ -815,7 +815,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
-      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
@@ -2159,7 +2159,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
