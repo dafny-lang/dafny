@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 /readsClausesOnMethods:1 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print=- --reads-clauses-on-methods
+
 
 module JustAboutEverything {
   method If(n: int) returns (k: int)
