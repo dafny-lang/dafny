@@ -1119,16 +1119,6 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
       }
 
-      if (f.IsGhost) {
-        // TODO: the following could be done in a different resolver pass
-        foreach (TypeParameter p in f.TypeArgs) {
-          if (p.SupportsEquality) {
-            ReportWarning(p.tok,
-              $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn't contain any compiled code");
-          }
-        }
-      }
-
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(p, "parameter", false);
       }
@@ -1206,15 +1196,6 @@ namespace Microsoft.Dafny {
         // take care of the warnShadowing attribute
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
           resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
-        }
-
-        if (m.IsGhost) {
-          foreach (TypeParameter p in m.TypeArgs) {
-            if (p.SupportsEquality) {
-              ReportWarning(p.tok,
-                $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn't contain any compiled code");
-            }
-          }
         }
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
