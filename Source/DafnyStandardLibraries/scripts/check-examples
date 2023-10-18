@@ -71,7 +71,7 @@
 
 dir=$(dirname "${BASH_SOURCE[0]}")
 
-dafny="dafny"
+dafny="$dir/../../../Scripts/dafny"
 
 defaultCommand=
 defaultExit=
