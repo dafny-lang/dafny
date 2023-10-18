@@ -31,6 +31,6 @@ jobs:
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
         run: make z3-ubuntu
-      - name: Test DafnyStandarLibraries
-        run: make all
+      - name: Test DafnyStandardLibraries
+        run: make -C dafny/Source/DafnyStandardLibraries all
       
