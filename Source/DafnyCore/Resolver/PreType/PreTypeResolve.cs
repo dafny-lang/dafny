@@ -1132,23 +1132,26 @@ namespace Microsoft.Dafny {
         resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
       ResolveParameterDefaultValues(f.Formals, f);
-      foreach (AttributedExpression e in f.Req) {
-        ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction), false);
-        Expression r = e.E;
+
+      foreach (var req in f.Req) {
+        ResolveAttributes(req, new ResolutionContext(f, f is TwoStateFunction), false);
+        Expression r = req.E;
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
       }
+
       ResolveAttributes(f.Reads, new ResolutionContext(f, f is TwoStateFunction), false);
       foreach (FrameExpression fr in f.Reads.Expressions) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
+
       scope.PushMarker();
       if (f.Result != null) {
         ScopePushAndReport(f.Result, "function result", false); // function return only visible in post-conditions
       }
-      foreach (AttributedExpression e in f.Ens) {
-        ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction), false);
-        Expression r = e.E;
+      foreach (var ens in f.Ens) {
+        ResolveAttributes(ens, new ResolutionContext(f, f is TwoStateFunction), false);
+        Expression r = ens.E;
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
       }
@@ -1161,6 +1164,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
         // any type is fine
       }
+
       Constraints.SolveAllTypeConstraints($"specification of {f.WhatKind} '{f.Name}'");
 
       if (f.ByMethodBody != null) {
@@ -1275,8 +1279,7 @@ namespace Microsoft.Dafny {
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null) {
+          if (m is ExtremeLemma { PrefixLemma: { } } com) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
             var k = com.PrefixLemma.Ins[0];
