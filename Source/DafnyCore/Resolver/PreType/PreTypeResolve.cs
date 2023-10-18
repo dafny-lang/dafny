@@ -1143,19 +1143,18 @@ namespace Microsoft.Dafny {
       foreach (FrameExpression fr in f.Reads.Expressions) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
+      scope.PushMarker();
+      if (f.Result != null) {
+        ScopePushAndReport(f.Result, "function result", false); // function return only visible in post-conditions
+      }
       foreach (AttributedExpression e in f.Ens) {
         ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction), false);
         Expression r = e.E;
-        if (f.Result != null) {
-          scope.PushMarker();
-          ScopePushAndReport(f.Result, "function result", false); // function return only visible in post-conditions
-        }
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction) with { InFunctionPostcondition = true });
         ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
-        if (f.Result != null) {
-          scope.PopMarker();
-        }
       }
+      scope.PopMarker(); // function result name
+
       ResolveAttributes(f.Decreases, new ResolutionContext(f, f is TwoStateFunction), false);
       foreach (Expression r in f.Decreases.Expressions) {
         ResolveExpression(r, new ResolutionContext(f, f is TwoStateFunction));
