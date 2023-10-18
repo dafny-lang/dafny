@@ -154,10 +154,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(resolutionDiagnostics);
 
-      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var verificationDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationToken);

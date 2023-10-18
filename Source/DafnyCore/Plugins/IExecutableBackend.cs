@@ -1,10 +1,13 @@
 ﻿// SPDX-License-Identifier: MIT
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny.Plugins;
 
@@ -15,6 +18,8 @@ namespace Microsoft.Dafny.Plugins;
 /// of IExecutableBackend from the plugin.
 /// </summary>
 public abstract class IExecutableBackend {
+  protected DafnyOptions Options { get; }
+
   /// <summary>
   /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
   /// </summary>
@@ -59,6 +64,7 @@ public abstract class IExecutableBackend {
   /// Change <c>name</c> into a valid identifier in the target language.
   /// </summary>
   public abstract string PublicIdProtect(string name);
+
   /// <summary>
   /// Qualify the name <c>compileName</c> in module <c>moduleName</c>.
   /// </summary>
@@ -97,9 +103,15 @@ public abstract class IExecutableBackend {
   /// </summary>
   public virtual bool IsInternal => false;
 
+  public abstract string ModuleSeparator { get; }
+
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;
+
+  protected IExecutableBackend(DafnyOptions options) {
+    Options = options;
+  }
 
   /// <summary>
   /// Initialize <c>Reporter</c> and <c>OtherFileNames</c>.
@@ -170,6 +182,17 @@ public abstract class IExecutableBackend {
   /// Instruments the underlying SinglePassCompiler, if it exists.
   /// </summary>
   public abstract void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram);
+
+  public static readonly Option<string> OuterModule =
+    new("--outer-module", "Nest all code in this module. Can be used to customize generated code. Use dots as separators (foo.baz.zoo) for deeper nesting. The first specified module will be the outermost one.");
+
+  public virtual IEnumerable<string> GetOuterModules() {
+    return Options.Get(OuterModule)?.Split(".") ?? Enumerable.Empty<string>();
+  }
+
+  static IExecutableBackend() {
+    DooFile.RegisterNoChecksNeeded(OuterModule);
+  }
 
   public virtual Command GetCommand() {
     return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -42,7 +43,8 @@ public class TextLogger {
           tw.WriteLine(
             $"      {cmd.Tok.filename}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
         }
-        if (vcResult.CoveredElements.Any()) {
+
+        if (vcResult.CoveredElements.Any() && vcResult.Outcome == ProverInterface.Outcome.Valid) {
           tw.WriteLine("");
           tw.WriteLine("    Proof dependencies:");
           var fullDependencies =
@@ -51,6 +53,14 @@ public class TextLogger {
             .Select(depManager.GetFullIdDependency)
             .OrderBy(dep => (dep.RangeString(), dep.Description));
           foreach (var dep in fullDependencies) {
+            tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
+          }
+          var allPotentialDependencies = depManager.GetPotentialDependenciesForDefinition(implementation.Name);
+          var fullDependencySet = fullDependencies.ToHashSet();
+          var unusedDependencies = allPotentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
+          tw.WriteLine("");
+          tw.WriteLine("    Unused by proof:");
+          foreach (var dep in unusedDependencies) {
             tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
           }
         }

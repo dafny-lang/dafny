@@ -3,10 +3,15 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
+    "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
