@@ -440,18 +440,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionMatches },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
-        // Ideally this feature shouldn't affect separate compilation,
-        // because it's automatically disabled on {:extern} signatures.
-        // Realistically though, we don't have enough strong mechanisms to stop
-        // target language code from referencing compiled internal code,
-        // so to be conservative we flag this as not compatible in general.
-        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
-        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
-        // but in practice it does.
-        { AddCompileSuffix, DooFile.CheckOptionMatches },
-        { ReadsClausesOnMethods, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
+        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -488,7 +479,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       VerificationCoverageReport,
       NoTimeStampForCoverageReport,
       DefaultFunctionOpacity,
-      AllowStdLibs
+      AllowStdLibs,
+      OptimizeErasableDatatypeWrapper,
+      AddCompileSuffix
     );
   }
 

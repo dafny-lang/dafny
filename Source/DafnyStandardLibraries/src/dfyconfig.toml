@@ -1,3 +1,7 @@
 
 [options]
+track-print-effects = true
+enforce-determinism = true
+reads-clauses-on-methods = true
+
 resource-limit = 1000

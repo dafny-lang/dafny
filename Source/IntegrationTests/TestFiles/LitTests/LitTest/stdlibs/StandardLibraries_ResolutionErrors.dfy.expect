@@ -1,0 +1,7 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier finished with 1 verified, 0 errors
+StandardLibraries_ResolutionErrors.dfy(19,29): Error: module DafnyStdLibs does not exist (position 0 in path DafnyStdLibs.Wrappers)
+1 resolution/type errors detected in StandardLibraries_ResolutionErrors.dfy
+*** Error: Cannot load tmpYt3upF.tmp.doo: --unicode-char is set locally to False, but the library was built with True
