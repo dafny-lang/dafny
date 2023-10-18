@@ -11,7 +11,9 @@ build-binary:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
-	zdiff ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
+	unzip -o ${DOO_FILE_SOURCE} -d build/current
+	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
+	diff build/current build/rebuilt
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
