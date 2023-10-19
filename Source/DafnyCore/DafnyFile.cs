@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using DafnyCore;
@@ -10,6 +11,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public string FilePath { get; private set; }
+  // TODO: Can we use Uri for this instead now?
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
@@ -27,17 +29,23 @@ public class DafnyFile {
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = Path.GetFileName(uri.LocalPath);
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Canonicalize(filePath).LocalPath;
     }
     if (uri.Scheme == "stdin") {
       getContentOverride = () => options.Input;
       BaseName = "<stdin>";
+      CanonicalPath = "<stdin>";
+    }
+    if (uri.Scheme == "stdlibs") {
+      extension = Path.GetExtension(uri.LocalPath).ToLower();
+      BaseName = uri.LocalPath;
+      CanonicalPath = uri.ToString();
     }
 
-    // Normalizing symbolic links appears to be not
-    // supported in .Net APIs, because it is very difficult in general
-    // So we will just use the absolute path, lowercased for all file systems.
-    // cf. IncludeComparer.CompareTo
-    CanonicalPath = getContentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
     FilePath = CanonicalPath;
 
     var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
@@ -65,11 +73,26 @@ public class DafnyFile {
       IsPreverified = true;
       IsPrecompiled = false;
 
-      if (!File.Exists(filePath)) {
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
-        throw new IllegalDafnyFile(true);
+      DooFile dooFile;
+      if (uri.Scheme == "stdlibs") {
+        var assembly = Assembly.Load("DafnyPipeline");
+        // Skip the leading "/"
+        var resourceName = uri.LocalPath[1..];
+        var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null) {
+          throw new Exception($"Cannot find embedded resource: {resourceName}");
+        }
+        
+        dooFile = DooFile.Read(stream);
+      } else {
+        if (!File.Exists(filePath)) {
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
+          throw new IllegalDafnyFile(true);
+        }
+
+        dooFile = DooFile.Read(filePath);
       }
-      var dooFile = DooFile.Read(filePath);
+
       if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
         throw new IllegalDafnyFile(true);
       }

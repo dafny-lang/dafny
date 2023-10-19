@@ -69,9 +69,18 @@ public class DooFile {
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
   public static DooFile Read(string path) {
-    var result = new DooFile();
-
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    return Read(archive);
+  }
+  
+  public static DooFile Read(Stream stream) {
+    using var archive = new ZipArchive(stream);
+    return Read(archive);
+  }
+
+  private static DooFile Read(ZipArchive archive) {
+    var result = new DooFile();
+    
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
