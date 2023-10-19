@@ -3,7 +3,7 @@
 DAFNY = dotnet run --project ../Dafny --no-build --
 
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
-DOO_FILE_TARGET=DafnyStandardLibraries.doo
+DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
 all: check-binary test check-format check-examples
 
