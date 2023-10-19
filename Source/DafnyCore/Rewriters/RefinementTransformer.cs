@@ -214,11 +214,11 @@ namespace Microsoft.Dafny {
               if (mdecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
                   "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                  im.Name, m.Name, m.Implements.ToString());
+                  im.Name, m.Name, m.Implements.Target.ToString());
               } else {
                 Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
                   "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                  im.Name, m.Name, m.Implements.ToString());
+                  im.Name, m.Name, m.Implements.Target.ToString());
               }
             }
           }
@@ -263,10 +263,10 @@ namespace Microsoft.Dafny {
           if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
-            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Implements}), even if it denotes the same type";
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Implements.Target}), even if it denotes the same type";
             Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
           } else if (!(originalDeclaration is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements.Target}', you must use the refining (`...`) notation");
           }
         }
       }

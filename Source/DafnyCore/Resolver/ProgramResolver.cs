@@ -235,7 +235,7 @@ public class ProgramResolver {
         declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
           Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(), "module cannot refine itself: {0}",
-            module.Implements.ToString());
+            module.Implements.Target.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(literalDecl, other);
