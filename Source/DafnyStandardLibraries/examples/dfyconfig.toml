@@ -3,3 +3,4 @@
 [options]
 standard-libraries = true
 resource-limit = 1000
+warn-as-errors = true
