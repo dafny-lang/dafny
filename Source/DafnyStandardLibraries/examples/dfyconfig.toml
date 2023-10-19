@@ -1,4 +1,5 @@
 
 
 [options]
-allow-standard-libraries = true
+standard-libraries = true
+resource-limit = 1000

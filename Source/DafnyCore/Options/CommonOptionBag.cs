@@ -261,7 +261,8 @@ Change the default opacity of functions.
   public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
     @"
 Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
-
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+Not compatible with the --unicode-char:false option.
 ");
 
   static CommonOptionBag() {
