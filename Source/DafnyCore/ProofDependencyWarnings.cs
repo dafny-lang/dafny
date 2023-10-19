@@ -40,9 +40,9 @@ public class ProofDependencyWarnings {
         .OfType<AssumptionDependency>()
         .Where(d => d is AssumptionDependency ad && ad.IsAssumeStatement);
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
-      foreach (var dep in unusedObligations) {
-        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"proved using contradictory assumptions: {dep.Description}");
+      foreach (var dependency in unusedObligations) {
+        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
+          reporter.Warning(MessageSource.Verifier, "", dependency.Range, $"proved using contradictory assumptions: {dependency.Description}");
         }
       }
 
@@ -107,7 +107,10 @@ public class ProofDependencyWarnings {
 
     // Ensures clauses are often proven vacuously during well-formedness checks.
     // There's unfortunately no way to identify these checks once Dafny has
-    // been translated to Boogie other than looking at the name.
+    // been translated to Boogie other than looking at the name. This is a significant
+    // limitation, because it means that function ensures clauses that are satisfied
+    // only vacuously won't be reported. It would great if we could change the Boogie
+    // encoding so that these unreachable-by-construction checks don't exist.
     if (verboseName.Contains("well-formedness") && dep is EnsuresDependency) {
       return false;
     }

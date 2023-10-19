@@ -821,8 +821,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mods != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false);
+      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), true, true, null, null, null);
       mod.Height = height;
       foreach (var kv in p.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
@@ -1858,7 +1857,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            BoogieGenerator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
+            prefixLemma.RecursiveCallParameters(com.tok, prefixLemma.TypeArgs, prefixLemma.Ins, null,
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here

@@ -1,0 +1,1 @@
+The new `--only-label` option to `merge-coverage-reports` includes only one category of highlighting in the output. For example, merging coverage reports from test generation and verification using the option `--only-label NotCovered` will highlight only the regions not covered by either testing or verification.

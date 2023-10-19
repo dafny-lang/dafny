@@ -4,8 +4,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Loader;
-using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CsharpCompiler(Options, Reporter);
   }
