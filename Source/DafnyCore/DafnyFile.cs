@@ -11,7 +11,6 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public string FilePath { get; private set; }
-  // TODO: Can we use Uri for this instead now?
   public string Extension { get; private set; }
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
@@ -26,6 +25,7 @@ public class DafnyFile {
     Origin = origin;
     var filePath = uri.LocalPath;
 
+    Extension = ".dfy";
     if (uri.IsFile) {
       Extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = Path.GetFileName(uri.LocalPath);
@@ -36,15 +36,12 @@ public class DafnyFile {
       CanonicalPath = Canonicalize(filePath).LocalPath;
     } else if (uri.Scheme == "stdin") {
       getContentOverride = () => options.Input;
-      Extension = ".dfy";
       BaseName = "<stdin>";
       CanonicalPath = "<stdin>";
     } else if (uri.Scheme == "dllresource") {
       Extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = uri.LocalPath;
       CanonicalPath = uri.ToString();
-    } else {
-      throw new ArgumentException($"Unsupported URI scheme: {uri}");
     }
 
     FilePath = CanonicalPath;

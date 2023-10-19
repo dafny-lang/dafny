@@ -1,6 +1,6 @@
 
 // RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %verify --standard-libraries "%s" >> "%t"
+// RUN: %verify --standard-libraries:true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t" 
 
 module TriesToUseWrappers {
