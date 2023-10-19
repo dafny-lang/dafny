@@ -81,6 +81,10 @@ class Recur {
     else
       var r := match o {
         case A =>
+          // Note: The following mensions "_this", but instead the code uses "th". This
+          // can be changed back to saying "_this" (and not using "th" at all) after the fix of
+          // https://github.com/dafny-lang/dafny/issues/4684
+          //
           // Because this call is tail recursive, the "this" on the next line
           // is compiled into a local variable "_this" and in-parameter "n" becomes
           // mutable in the target code. Since the whole body of this "match o" is
