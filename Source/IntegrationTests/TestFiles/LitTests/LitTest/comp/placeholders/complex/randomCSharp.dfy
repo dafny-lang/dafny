@@ -7,6 +7,7 @@ module RandomCSharp replaces DfyRandom {
     var random := new Random();
     
     var ceilingInt32 := IntToInt32(ceiling).GetOr(Int32.MaxValue);
+    Int32.MaxValueValue();
     var resultInt32 := random.Next(IntToInt32(0).Extract(), ceilingInt32);
     var resultInt := Int32ToInt(resultInt32);
     return resultInt as nat;
@@ -17,14 +18,11 @@ module Interop {
   import opened CSharpSystem
   import opened DafnyStdLibs.Wrappers
   
-  const int32MaxValue := 2147483647
-  
   function {:extern} IntToInt32(value: int): Option<Int32>
-    ensures match IntToInt32(value) {
-      case None        => value > Int32ToInt(Int32.MaxValue)
-      case Some(int32) => int32.value == value
-    }
-    ensures value <= int32MaxValue ==> IntToInt32(value).Some?
+    ensures var r := IntToInt32(value); 
+      if value <= Int32.MaxValue.value 
+        then r.Some? && r.Extract().value == value
+        else r.None?
     
   function {:extern} Int32ToInt(value: Int32): int
     ensures Int32ToInt(value) == value.value
@@ -34,9 +32,9 @@ module {:extern "System"} CSharpSystem {
   
   class {:extern "Int32" } Int32 {
     ghost var value: int
-    // Would be nice to have an ensures here that equates it to 2147483647
-    // So we would not need Interop.int32MaxValue
     static const {:extern} MaxValue: Int32
+    
+    static lemma {:axiom} MaxValueValue() ensures MaxValue.value == 2147483647
   }
   
   class {:extern "Random" } Random {
