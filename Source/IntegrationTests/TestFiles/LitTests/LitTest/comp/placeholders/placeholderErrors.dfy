@@ -7,7 +7,7 @@ placeholder module FooModule {
 }
 
 module Nesting {
-  module ConcreteFoo instantiates FooModule {
+  module ConcreteFoo replaces FooModule {
     method Foo() returns (i: int) {
       return 2;
     }

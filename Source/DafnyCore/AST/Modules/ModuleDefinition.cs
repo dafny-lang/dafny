@@ -15,21 +15,21 @@ public enum ModuleKindEnum {
   Placeholder
 }
 
-public enum RefinementKind {
-  Regular,
-  Instantiation
+public enum ImplementationKind {
+  Refinement,
+  Replacement
 }
 
-public record Refinement(RefinementKind Kind, ModuleQualifiedId Target);
+public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   /// <summary>
-  /// If this is a placeholder module, resolution will look for a unique module that instantiates this one in the same
-  /// containing module, and then set this field. 
+  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
+  /// and use it to set this field. 
   /// </summary>
   [FilledInDuringResolution]
-  public ModuleDefinition InstantiatingModule { get; set; }
+  public ModuleDefinition Replacement { get; set; }
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -63,7 +63,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public Refinement Refinement; // full qualified ID of the refinement parent, null if no refinement base
+  public Implements Implements; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
@@ -148,7 +148,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
-    Refinement = original.Refinement == null ? null : original.Refinement with { Target = new ModuleQualifiedId(cloner, original.Refinement.Target) };
+    Implements = original.Implements == null ? null : original.Implements with { Target = new ModuleQualifiedId(cloner, original.Implements.Target) };
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -174,14 +174,14 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Refinement refinement, ModuleDefinition parent, Attributes attributes) : base(tok) {
+    Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;
-    this.Refinement = refinement;
+    this.Implements = implements;
     this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
 
@@ -231,8 +231,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       return compileName;
     }
 
-    if (InstantiatingModule != null) {
-      return InstantiatingModule.GetCompileName(options);
+    if (Replacement != null) {
+      return Replacement.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
@@ -421,7 +421,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Concat(DefaultClasses).
     Concat(SourceDecls).
     Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
-    Concat(Refinement == null ? Enumerable.Empty<Node>() : new Node[] { Refinement.Target });
+    Concat(Implements == null ? Enumerable.Empty<Node>() : new Node[] { Implements.Target });
 
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;

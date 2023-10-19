@@ -36,15 +36,15 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   private void InstantiatePlaceholders(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.CompileModules) {
-      if (compiledModule.Refinement is { Kind: RefinementKind.Instantiation }) {
-        compiledModule.Refinement.Target.Def.InstantiatingModule = compiledModule;
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        compiledModule.Implements.Target.Def.Replacement = compiledModule;
       }
     }
 
     foreach (var compiledModule in dafnyProgram.CompileModules) {
-      if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.InstantiatingModule == null) {
+      if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.Replacement == null) {
         Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-          "Placeholder module must be instantiated somewhere in the program");
+          "Placeholder module must be replaced somewhere in the program");
       }
     }
   }

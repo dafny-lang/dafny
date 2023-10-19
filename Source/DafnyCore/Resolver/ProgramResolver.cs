@@ -224,18 +224,18 @@ public class ProgramResolver {
   private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     var module = literalDecl.ModuleDef;
-    if (module.Refinement != null) {
-      var refinementTarget = module.Refinement.Target;
+    if (module.Implements != null) {
+      var refinementTarget = module.Implements.Target;
       bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, refinementTarget, out var other);
       refinementTarget.Root = other;
       if (!res) {
         Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
-          $"module {module.Refinement} named as refinement base does not exist");
+          $"module {module.Implements} named as refinement base does not exist");
       } else {
         declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
           Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(), "module cannot refine itself: {0}",
-            module.Refinement.ToString());
+            module.Implements.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(literalDecl, other);

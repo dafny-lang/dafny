@@ -329,8 +329,8 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
       prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
    .)
 
-   [ "refines" ModuleQualifiedName<out idRefined> (. refinementKind = RefinementKind.Regular; .)
-   | "instantiates" ModuleQualifiedName<out idRefined> (. refinementKind = RefinementKind.Instantiation; .)
+   [ "refines" ModuleQualifiedName<out idRefined> (. refinementKind = ImplementationKind.Extension; .)
+   | "replaces" ModuleQualifiedName<out idRefined> (. refinementKind = ImplementationKind.Replacement; .)
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, GetModuleKind(dmod), false,

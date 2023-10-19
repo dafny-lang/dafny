@@ -184,14 +184,15 @@ namespace Microsoft.Dafny {
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.Refinement?.Target.Decl == null) {
+      
+      if (m.Implements?.Target.Decl == null) {
         // do this also for non-refining modules
         CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
         AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
       } else {
         // There is a refinement parent and it resolved OK
-        var refinementTarget = m.Refinement.Target;
-        if (m.Refinement.Kind == RefinementKind.Regular && refinementTarget.Def.ModuleKind == ModuleKindEnum.Placeholder) {
+        var refinementTarget = m.Implements.Target;
+        if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Placeholder) {
           Reporter.Error(MessageSource.RefinementTransformer, "refinePlaceholder", refinementTarget.Tok,
             "It is not possible to refine a placeholder module");
 
@@ -213,11 +214,11 @@ namespace Microsoft.Dafny {
               if (mdecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
                   "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                  im.Name, m.Name, m.Refinement.ToString());
+                  im.Name, m.Name, m.Implements.ToString());
               } else {
                 Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
                   "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                  im.Name, m.Name, m.Refinement.ToString());
+                  im.Name, m.Name, m.Implements.ToString());
               }
             }
           }
@@ -235,9 +236,8 @@ namespace Microsoft.Dafny {
       }
       moduleUnderConstruction = module;
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
-      var refinementTarget = module.Refinement.Target;
+      var refinementTarget = module.Implements.Target;
       var prev = refinementTarget.Def;
-      prev = prev.InstantiatingModule ?? prev;
 
       //copy the signature, including its opened imports
       refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
@@ -263,10 +263,10 @@ namespace Microsoft.Dafny {
           if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
-            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Refinement}), even if it denotes the same type";
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Implements}), even if it denotes the same type";
             Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
           } else if (!(originalDeclaration is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Refinement}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements}', you must use the refining (`...`) notation");
           }
         }
       }
@@ -480,7 +480,7 @@ namespace Microsoft.Dafny {
           var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
           return oexports.IsSubsetOf(exports);
         }
-        derivedPointer = derivedPointer.Refinement.Target.Def;
+        derivedPointer = derivedPointer.Implements.Target.Def;
       }
       return false;
     }
