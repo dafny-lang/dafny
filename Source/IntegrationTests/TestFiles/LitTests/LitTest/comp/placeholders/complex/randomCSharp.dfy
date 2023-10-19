@@ -34,6 +34,8 @@ module Interop {
 
 module {:extern "System"} CSharpSystemTypes {
   class {:extern "Int32" } Int32 {
+    // Would be nice to have an ensures here that equates it to 2147483647
+    // So we would not need Interop.int32MaxValue
     static const {:extern} MaxValue: Int32 
   }
 }
