@@ -88,7 +88,7 @@ public class CsharpBackend : ExecutableBackend {
     var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
     compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, null, "source"));
     foreach (var sourceFile in otherSourceFiles) {
-      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile),null, sourceFile));
+      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), null, sourceFile));
     }
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     Directory.CreateDirectory(outputDir);

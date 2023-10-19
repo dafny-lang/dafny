@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      
+
       if (m.Implements?.Target.Decl == null) {
         // do this also for non-refining modules
         CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());

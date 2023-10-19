@@ -35,13 +35,17 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   private void InstantiatePlaceholders(Program dafnyProgram) {
-    foreach (var compiledModule in dafnyProgram.CompileModules) {
+    foreach (var compiledModule in dafnyProgram.Modules().Reverse()) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
-        compiledModule.Implements.Target.Def.Replacement = compiledModule;
+        var target = compiledModule.Implements.Target.Def;
+        if (target.Replacement != null) {
+          Reporter!.Error(MessageSource.Compiler, new NestedToken(target.Replacement.Tok, compiledModule.Tok, "Other replacing module:"),
+            "A placeholder module may only be replaced once.");
+        } else {
+          target.Replacement = compiledModule.Replacement ?? compiledModule;
+        }
       }
-    }
 
-    foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.Replacement == null) {
         Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
           "Placeholder module must be replaced somewhere in the program");
