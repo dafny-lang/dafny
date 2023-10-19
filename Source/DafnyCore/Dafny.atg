@@ -318,7 +318,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      var prefixIds = new List<IToken>();
      List<Name> idRefined = null;
      ModuleDefinition module;
-     RefinementKind refinementKind = RefinementKind.Regular;
+     ImplementationKind implementationKind = ImplementationKind.Refinement;
      submodule = null; // appease compiler
      var dafnyOptionsBackup = theOptions;
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Placeholder);
@@ -329,12 +329,12 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
       prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
    .)
 
-   [ "refines" ModuleQualifiedName<out idRefined> (. refinementKind = ImplementationKind.Extension; .)
-   | "replaces" ModuleQualifiedName<out idRefined> (. refinementKind = ImplementationKind.Replacement; .)
+   [ "refines" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Refinement; .)
+   | "replaces" ModuleQualifiedName<out idRefined> (. implementationKind = ImplementationKind.Replacement; .)
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, GetModuleKind(dmod), false,
-                                        idRefined == null ? null : new Refinement(refinementKind, new ModuleQualifiedId(idRefined)), parent, attrs);
+                                        idRefined == null ? null : new Implements(implementationKind, new ModuleQualifiedId(idRefined)), parent, attrs);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
