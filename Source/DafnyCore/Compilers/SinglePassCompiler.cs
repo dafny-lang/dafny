@@ -5403,7 +5403,7 @@ namespace Microsoft.Dafny.Compilers {
           var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
           foreach (MatchCaseExpr mc in e.Cases) {
             var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-            EmitReturnExpr(mc.Body, mc.Body.Type, inLetExprBody, wCase);
+            TrExprOpt(mc.Body, mc.Body.Type, wCase, inLetExprBody: true, accumulatorVar: null);
             i++;
           }
         }
