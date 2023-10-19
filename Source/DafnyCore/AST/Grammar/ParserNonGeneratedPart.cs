@@ -629,7 +629,7 @@ public partial class Parser {
       return ModuleKindEnum.Placeholder;
     }
     if (mods.IsAbstract) {
-      return ModuleKindEnum.Placeholder;
+      return ModuleKindEnum.Abstract;
     }
 
     return ModuleKindEnum.Concrete;
