@@ -16981,14 +16981,16 @@ namespace DCOMP {
           s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[")), ((System.Func<DAST._IOptional<Dafny.ISequence<Dafny.Rune>>, Dafny.ISequence<Dafny.Rune>>)((_source83) => {
             if (_source83.is_Some) {
               Dafny.ISequence<Dafny.Rune> _2792___mcc_h1197 = _source83.dtor_Some_a0;
-              return Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_2792___mcc_h1197, _pat_let0_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_pat_let0_0, _2793_l => Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<usize as ::dafny_runtime::NumCast>::from("), _2793_l), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()"))));
+              Dafny.ISequence<Dafny.Rune> _2793_l = _2792___mcc_h1197;
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<usize as ::dafny_runtime::NumCast>::from("), _2793_l), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()"));
             } else {
               return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
             }
           }))(_2778_lowString)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("..")), ((System.Func<DAST._IOptional<Dafny.ISequence<Dafny.Rune>>, Dafny.ISequence<Dafny.Rune>>)((_source84) => {
             if (_source84.is_Some) {
               Dafny.ISequence<Dafny.Rune> _2794___mcc_h1198 = _source84.dtor_Some_a0;
-              return Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_2794___mcc_h1198, _pat_let1_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_pat_let1_0, _2795_h => Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<usize as ::dafny_runtime::NumCast>::from("), _2795_h), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()"))));
+              Dafny.ISequence<Dafny.Rune> _2795_h = _2794___mcc_h1198;
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<usize as ::dafny_runtime::NumCast>::from("), _2795_h), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()"));
             } else {
               return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
             }
