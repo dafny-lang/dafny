@@ -1,17 +1,17 @@
 
 module RandomCSharp replaces DfyRandom {
-  import CSharpSystem
-  import CSharpSystemTypes
-  import Interop
+  import opened CSharpSystem
+  import opened CSharpSystemTypes
+  import opened Interop
   
   method GetRandomNat ... {
     // Ignore the ceiling parameter for now
-    var random := new CSharpSystem.Random();
+    var random := new Random();
     
-    var ceilingInt32 := Interop.IntToInt32(ceiling).GetOr(CSharpSystemTypes.Int32.MaxValue);
-    assert Interop.Int32ToInt(ceilingInt32) <= ceiling;
-    var resultInt32 := random.Next(Interop.IntToInt32(0).Extract(), ceilingInt32);
-    var resultInt := Interop.Int32ToInt(resultInt32);
+    var ceilingInt32 := IntToInt32(ceiling).GetOr(Int32.MaxValue);
+    assert Int32ToInt(ceilingInt32) <= ceiling;
+    var resultInt32 := random.Next(IntToInt32(0).Extract(), ceilingInt32);
+    var resultInt := Int32ToInt(resultInt32);
     return resultInt as nat;
   }
 }
@@ -39,13 +39,13 @@ module {:extern "System"} CSharpSystemTypes {
 }
 
 module {:extern "System"} CSharpSystem {
-  import Interop
+  import opened Interop
   import opened CSharpSystemTypes
   
   class {:extern "Random" } Random {
     constructor {:extern} () { }
     
     method {:extern} Next(minValue: Int32, maxValue: Int32) returns (r: Int32)
-      ensures var i := Interop.Int32ToInt(r); Interop.Int32ToInt(minValue) <= i && i < Interop.Int32ToInt(maxValue) 
+      ensures var i := Int32ToInt(r); Int32ToInt(minValue) <= i && i < Int32ToInt(maxValue) 
   }
 }
