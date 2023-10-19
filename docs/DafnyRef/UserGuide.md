@@ -1723,7 +1723,31 @@ Detailed description of the `dafny build` and `dafny run` commands and
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
-### 13.7.2. C\#
+### 13.7.2. Placeholder modules
+To allow defining behavior that depending on which target language Dafny is translated to, requires different Dafny code to be implemented, Dafny has placeholder modules. Here follows an example:
+
+```dafny
+// Target-agnostic
+placeholder module Foo {
+  method Bar() returns (i: int) 
+    ensures i >= 2
+}
+
+module ConcreteFoo replaces Foo {
+  method Bar() returns (i: int) {
+    return 3;
+  }
+}
+
+method Main() {
+  var x := Foo.Bar();
+  print x; // Prints 3
+}
+```
+
+Placeholder modules behave like abstract modules in the sense that they can contain methods and functions without a body. However, from the outside, placeholder modules can be used just like any other non-abstract module, and even their bodyless methods and function can ben referred to. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
+
+### 13.7.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (run using `dotnet A.dll`).
@@ -1744,7 +1768,7 @@ which is then compiled by `dotnet` to a `.dll`.
 Examples of how to integrate C# libraries and source code with Dafny source code
 are contained in [this separate document](integration-cs/IntegrationCS).
 
-### 13.7.3. Java
+### 13.7.4. Java
 
 The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. 
@@ -1766,7 +1790,7 @@ but not if dafny is only doing translation.
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
 
-### 13.7.4. Javascript
+### 13.7.5. Javascript
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, 
 which can then be run using `node`. (Javascript has no compilation step). 
@@ -1780,7 +1804,7 @@ Or, in one step,
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJS).
 
-### 13.7.5. Go
+### 13.7.6. Go
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
@@ -1804,7 +1828,7 @@ change, though the `./A` alternative will still be supported.
 Examples of how to integrate Go source code and libraries with Dafny source
 are contained in [this separate document](integration-go/IntegrationGo).
 
-### 13.7.6. Python
+### 13.7.7. Python
 
 The Dafny-to-Python compiler is still under development. However, simple
 Dafny programs can be built and run as follows. The Dafny-to-Python
@@ -1822,7 +1846,7 @@ In one step:
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).
 
-### 13.7.7. C++
+### 13.7.8. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
@@ -1842,7 +1866,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 13.7.8. Supported features by target language {#sec-supported-features-by-target-language}
+### 13.7.9. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.

@@ -5,11 +5,9 @@ module RandomCSharp replaces DfyRandom {
   import opened Interop
   
   method GetRandomNat ... {
-    // Ignore the ceiling parameter for now
     var random := new Random();
     
     var ceilingInt32 := IntToInt32(ceiling).GetOr(Int32.MaxValue);
-    assert Int32ToInt(ceilingInt32) <= ceiling;
     var resultInt32 := random.Next(IntToInt32(0).Extract(), ceilingInt32);
     var resultInt := Int32ToInt(resultInt32);
     return resultInt as nat;
