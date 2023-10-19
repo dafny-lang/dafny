@@ -355,7 +355,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (maybeBuilt is List<object> rec) {
           RecursivelyBuild(rec, builtStatements);
         } else {
-          throw new InvalidOperationException("Unknown buildable type");
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
     }
@@ -457,7 +457,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -465,7 +465,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddLhs(DAST.AssignLhs lhs) {
       if (this.lhs != null && this.lhs != lhs) {
-        throw new InvalidOperationException("Cannot change name of variable in assignment: " + this.lhs + " -> " + lhs);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.lhs = lhs;
       }
@@ -496,7 +496,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableLhs lhs) {
       if (this.lhs != null && this.lhs != lhs) {
-        throw new InvalidOperationException("Cannot change name of variable in assignment: " + this.lhs + " -> " + lhs);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.lhs = lhs;
       }
@@ -504,7 +504,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -512,7 +512,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -520,7 +520,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Statement Build() {
       if (this.value == null) {
-        throw new InvalidOperationException("Cannot assign null value to variable: " + lhs);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         var builtValue = new List<DAST.Expression>();
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
@@ -541,7 +541,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         condition = value;
       }
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (condition != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         condition = value;
       }
@@ -631,7 +631,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (condition != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         condition = value;
       }
@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (condition != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         condition = value;
       }
@@ -686,7 +686,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (over != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         over = value;
       }
@@ -694,7 +694,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (over != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         over = value;
       }
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetName(string name) {
       if (this.name != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.name = name;
       }
@@ -778,7 +778,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetTypeArgs(List<DAST.Type> typeArgs) {
       if (this.typeArgs != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.typeArgs = typeArgs;
       }
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetOuts(List<ISequence<Rune>> outs) {
       if (this.outs != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.outs = outs;
       }
@@ -832,7 +832,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -840,7 +840,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr value) {
       if (this.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.value = value;
       }
@@ -934,7 +934,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public List<DAST.Expression> PopN(int n) {
       if (exprs.Count < n) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         var result = new List<object>();
         for (int i = 0; i < n; i++) {
@@ -954,7 +954,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
-        throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         return PopN(1)[0];
       }
@@ -1021,7 +1021,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (maybeBuilt is BuildableExpr buildable) {
           builtExprs.Add(buildable.Build());
         } else {
-          throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
     }
@@ -1044,7 +1044,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (maybeBuilt is BuildableLhs buildable) {
         return buildable.Build();
       } else {
-        throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
   }
@@ -1064,7 +1064,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression item) {
       if (arrayExpr != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         arrayExpr = item;
       }
@@ -1072,7 +1072,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr item) {
       if (arrayExpr != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         arrayExpr = item;
       }
@@ -1111,7 +1111,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       if (operands.Count != 2) {
-        throw new InvalidOperationException("Expected exactly two operands, got " + operands.Comma(o => o.ToString()));
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
 
       var builtOperands = new List<DAST.Expression>();
@@ -1131,7 +1131,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetName(string name) {
       if (this.name != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.name = name;
       }
@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetTypeArgs(List<DAST.Type> typeArgs) {
       if (this.typeArgs != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.typeArgs = typeArgs;
       }
@@ -1163,7 +1163,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void SetOuts(List<ISequence<Rune>> outs) {
       if (this.outs != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         this.outs = outs;
       }
@@ -1275,7 +1275,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression item) {
       if (body != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         body = item;
       }
@@ -1283,7 +1283,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr item) {
       if (body != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         body = item;
       }
@@ -1314,7 +1314,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression item) {
       if (parent.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         parent.value = item;
       }
@@ -1322,7 +1322,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr item) {
       if (parent.value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         parent.value = item;
       }
@@ -1371,7 +1371,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression item) {
       if (value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         value = item;
       }
@@ -1379,7 +1379,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr item) {
       if (value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         value = item;
       }
@@ -1409,7 +1409,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddExpr(DAST.Expression item) {
       if (value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         value = item;
       }
@@ -1417,7 +1417,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableExpr item) {
       if (value != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         value = item;
       }

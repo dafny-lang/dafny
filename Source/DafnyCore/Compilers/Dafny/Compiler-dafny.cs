@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Builder is StatementContainer statementContainer) {
         return new BuilderSyntaxTree<StatementContainer>(statementContainer.Fork());
       } else {
-        throw new InvalidOperationException("Cannot fork builder of type " + Builder.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public void Start() {
       if (items != null) {
-        throw new InvalidOperationException("");
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
 
       items = new ProgramBuilder();
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, builder.Class(name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList()));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -193,7 +193,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, builder.Trait(name, typeParams));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -231,7 +231,7 @@ namespace Microsoft.Dafny.Compilers {
           dt is CoDatatypeDecl
         ));
       } else {
-        throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -253,7 +253,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, builder.Newtype(nt.GetCompileName(Options), new(), GenType(nt.BaseType), witnessStmts, witness));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -289,7 +289,7 @@ namespace Microsoft.Dafny.Compilers {
           NativeType.Selection.UInt => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u32")),
           NativeType.Selection.Long => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64")),
           NativeType.Selection.ULong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u64")),
-          _ => throw new InvalidOperationException(),
+          _ => throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests),
         });
       } else if (xType is SeqType seq) {
         var argType = seq.Arg;
@@ -340,7 +340,7 @@ namespace Microsoft.Dafny.Compilers {
 
         builder.Newtype(sst.GetCompileName(Options), typeParams, GenType(erasedType), witnessStmts, witness).Finish();
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -483,7 +483,7 @@ namespace Microsoft.Dafny.Compilers {
           compiler.bufferedInitializationValue = null;
 
           if (rhsExpr == null) {
-            throw new InvalidOperationException();
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
           }
         } else {
           rhsExpr = Optional<DAST._IExpression>.create_None();
@@ -514,14 +514,14 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         return new BuilderSyntaxTree<ExprContainer>(stmtContainer.Builder.Return());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
     protected override void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {
       if (returnExpr == "BUFFERED") {
         if (bufferedInitializationValue == null) {
-          throw new InvalidOperationException("Expected a buffered value to have been populated because rhs != null");
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
 
         var rhsValue = bufferedInitializationValue;
@@ -531,7 +531,7 @@ namespace Microsoft.Dafny.Compilers {
           var returnBuilder = stmtContainer.Builder.Return();
           returnBuilder.AddExpr((DAST.Expression)rhsValue.dtor_Some_a0);
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       } else {
         // TODO(shadaj): this may not be robust, we should use the writer version directly
@@ -555,7 +555,7 @@ namespace Microsoft.Dafny.Compilers {
         var recBuilder = stmtContainer.Builder.TailRecursive();
         return new BuilderSyntaxTree<StatementContainer>(recBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -563,7 +563,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_JumpTailCallStart());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -578,7 +578,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       if (bufferedInitializationValue != null) {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       } else {
         type = type.NormalizeExpandKeepConstraints();
         if (usePlaceboValue) {
@@ -629,7 +629,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> st) {
         actualBuilder = st.Builder;
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
 
       EmitTypeName_Companion(type, new BuilderSyntaxTree<ExprContainer>(actualBuilder), wr, tok, member);
@@ -647,7 +647,7 @@ namespace Microsoft.Dafny.Compilers {
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
         }
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
         callStmt.SetName(protectedName);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
 
       base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, wr);
@@ -682,11 +682,11 @@ namespace Microsoft.Dafny.Compilers {
           var variable = stmtContainer.Builder.DeclareAndAssign(typ, name);
 
           if (leaveRoomForRhs) {
-            throw new InvalidOperationException();
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
           }
         } else if (rhs == "BUFFERED") {
           if (bufferedInitializationValue == null) {
-            throw new InvalidOperationException("Expected a buffered value to have been populated because rhs != null");
+            throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
           }
 
           var rhsValue = bufferedInitializationValue;
@@ -700,10 +700,10 @@ namespace Microsoft.Dafny.Compilers {
             )
           );
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       } else {
-        throw new InvalidOperationException("Cannot declare local var outside of a statement container: " + wr);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -712,7 +712,7 @@ namespace Microsoft.Dafny.Compilers {
         var variable = stmtContainer.Builder.DeclareAndAssign(GenType(type), name);
         return new BuilderSyntaxTree<ExprContainer>(variable);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -728,7 +728,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> builder && builder.Builder is CallStmtBuilder call) {
         call.SetOuts(outTmps.Select(i => Sequence<Rune>.UnicodeFromString(i)).ToList());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -741,7 +741,7 @@ namespace Microsoft.Dafny.Compilers {
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder), wrStmts, wrStmtsAfterCall);
         }
       } else {
-        throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -750,7 +750,7 @@ namespace Microsoft.Dafny.Compilers {
         var callBuilder = stmtContainer.Builder.Call();
         base.EmitCallToInheritedMethod(method, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder), wStmts, wStmtsAfterCall);
       } else {
-        throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -767,7 +767,7 @@ namespace Microsoft.Dafny.Compilers {
         var callBuilder = builder.Builder.Call();
         base.CompileFunctionCallExpr(e, new BuilderSyntaxTree<ExprContainer>(callBuilder), inLetExprBody, wStmts, tr, true);
       } else {
-        throw new InvalidOperationException("Cannot call function in this context: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -777,7 +777,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
         callStmt.SetTypeArgs(typeArgs.Select(GenType).ToList());
       } else {
-        throw new InvalidOperationException("Cannot emit actual type args in this context: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -798,7 +798,7 @@ namespace Microsoft.Dafny.Compilers {
           assign.AddLhs((DAST.AssignLhs)DAST.AssignLhs.create_Ident(Sequence<Rune>.UnicodeFromString(name)));
           return new BuilderSyntaxTree<ExprContainer>(assign);
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
     }
@@ -816,7 +816,7 @@ namespace Microsoft.Dafny.Compilers {
         if (wr is BuilderSyntaxTree<ExprContainer> exprContainer) {
           exprContainer.Builder.AddExpr(expr);
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
 
@@ -830,13 +830,13 @@ namespace Microsoft.Dafny.Compilers {
           assign.AddLhs(assignExpr);
           return new BuilderSyntaxTree<ExprContainer>(assign);
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
     }
 
     protected override void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
-      throw new InvalidOperationException("Cannot use stringified version of assignment");
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override ILvalue IdentLvalue(string var) {
@@ -887,7 +887,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitExpr(arg, false, new BuilderSyntaxTree<ExprContainer>(buffer), wr);
         stmtContainer.Builder.Print(buffer.Finish());
       } else {
-        throw new InvalidOperationException("Cannot print outside of a statement container: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -895,7 +895,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_EarlyReturn());
       } else {
-        throw new InvalidOperationException("Cannot return outside of a statement container: " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -904,7 +904,7 @@ namespace Microsoft.Dafny.Compilers {
         var labelBuilder = stmtContainer.Builder.Labeled((createContinueLabel ? "continue_" : "goto_") + label);
         return new BuilderSyntaxTree<StatementContainer>(labelBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -914,7 +914,7 @@ namespace Microsoft.Dafny.Compilers {
           label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("goto_" + label))
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -924,7 +924,7 @@ namespace Microsoft.Dafny.Compilers {
           Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("continue_" + label))
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -937,7 +937,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<StatementContainer> container) {
         container.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Halt());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -945,7 +945,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<StatementContainer> container) {
         container.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Halt());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -968,7 +968,7 @@ namespace Microsoft.Dafny.Compilers {
         guardWriter = new BuilderSyntaxTree<ExprContainer>(ifBuilder);
         return new BuilderSyntaxTree<StatementContainer>(ifBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -980,7 +980,7 @@ namespace Microsoft.Dafny.Compilers {
           return wr.Fork();
         }
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -995,7 +995,7 @@ namespace Microsoft.Dafny.Compilers {
         guardWriter = new BuilderSyntaxTree<ExprContainer>(whileBuilder);
         return new BuilderSyntaxTree<StatementContainer>(whileBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1025,12 +1025,12 @@ namespace Microsoft.Dafny.Compilers {
 
         return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
     protected override string GetQuantifierName(string bvType) {
-      throw new InvalidOperationException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny.Compilers {
         collectionWriter = new BuilderSyntaxTree<ExprContainer>(foreachBuilder);
         return new BuilderSyntaxTree<StatementContainer>(foreachBuilder);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1092,13 +1092,13 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<DAST.Expression>.FromArray(arguments.ToArray())
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
     protected override void EmitNewArray(Type elementType, IToken tok, List<string> dimensions,
       bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new InvalidOperationException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override void EmitNewArray(Type elementType, IToken tok, List<Expression> dimensions, bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -1115,7 +1115,7 @@ namespace Microsoft.Dafny.Compilers {
           GenType(elementType)
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1125,7 +1125,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(ident)
         ));
       } else {
-        throw new InvalidOperationException("Expected ExprContainer, got " + wr.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1210,7 +1210,7 @@ namespace Microsoft.Dafny.Compilers {
 
         builder.Builder.AddExpr(baseExpr);
       } else {
-        throw new InvalidOperationException("Cannot emit literal expression outside of expression context: " + wr.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1317,7 +1317,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (topLevel is SubsetTypeDecl subsetType) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else {
-        throw new InvalidOperationException(topLevel.GetType().ToString());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
 
       DAST.Type baseType = (DAST.Type)DAST.Type.create_Path(
@@ -1392,7 +1392,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitExpr(expr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(container), wStmts);
         return new ConcreteSyntaxTree();
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1429,7 +1429,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_This());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1456,7 +1456,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         if (argI != contents.Count) {
-          throw new InvalidOperationException("Datatype constructor " + dtv.Ctor.Name + " expects " + dtv.Ctor.Formals.Count + " arguments, but " + contents.Count + " were provided");
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
 
         if (dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleDecl) {
@@ -1475,7 +1475,7 @@ namespace Microsoft.Dafny.Compilers {
           ));
         }
       } else {
-        throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + wr.GetType() + ", " + currentBuilder);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1609,7 +1609,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, DAST.CollKind.create_Array()));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1625,7 +1625,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Index(indicesAST, DAST.CollKind.create_Array()));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1642,7 +1642,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return (new BuilderSyntaxTree<ExprContainer>(((LhsContainer)assign).Array(indicesAST)), new BuilderSyntaxTree<ExprContainer>(assign));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1675,7 +1675,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<DAST.Expression>.FromElements(indexBuf.Finish())
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1721,7 +1721,7 @@ namespace Microsoft.Dafny.Compilers {
           hiExpr != null ? Optional<DAST._IExpression>.create_Some(hiExpr) : Optional<DAST._IExpression>.create_None()
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1738,7 +1738,7 @@ namespace Microsoft.Dafny.Compilers {
           elem.Finish()
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1763,7 +1763,7 @@ namespace Microsoft.Dafny.Compilers {
 
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Apply(funcAST, Sequence<DAST.Expression>.FromArray(argsAST.ToArray())));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1790,7 +1790,7 @@ namespace Microsoft.Dafny.Compilers {
           argsAST, retType
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new BuilderSyntaxTree<StatementContainer>(builder.Builder.Lambda(formals, retType));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1848,7 +1848,7 @@ namespace Microsoft.Dafny.Compilers {
         wLambda = new BuilderSyntaxTree<ExprContainer>(lambda);
         wArg = new BuilderSyntaxTree<ExprContainer>(lambda);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1861,7 +1861,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new BuilderSyntaxTree<ExprContainer>(binOp);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1869,7 +1869,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> exprBuilder) {
         exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_BoolBoundedPool());
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1890,7 +1890,7 @@ namespace Microsoft.Dafny.Compilers {
           buf.Finish()
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1916,7 +1916,7 @@ namespace Microsoft.Dafny.Compilers {
           includeDuplicates
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1931,7 +1931,7 @@ namespace Microsoft.Dafny.Compilers {
         wrRhs = new BuilderSyntaxTree<ExprContainer>(iife.RhsBuilder());
         wrBody = new BuilderSyntaxTree<ExprContainer>(iife);
       } else {
-        throw new InvalidOperationException("Invalid context for IIFE: " + wr.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny.Compilers {
             }
         }
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2083,7 +2083,7 @@ namespace Microsoft.Dafny.Compilers {
         currentBuilder = builder.Builder.BinOp((DAST.BinOp)opAst);
         // cleaned up by EmitExpr
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2101,7 +2101,7 @@ namespace Microsoft.Dafny.Compilers {
           elsBuffer.Finish()
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2120,7 +2120,7 @@ namespace Microsoft.Dafny.Compilers {
           )), wStmts);
         }
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2132,7 +2132,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options))
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2162,10 +2162,10 @@ namespace Microsoft.Dafny.Compilers {
             GenType(ct.TypeArgs[0])
           ));
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2188,7 +2188,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<_System.Tuple2<DAST.Expression, DAST.Expression>>.FromArray(elementsAST.ToArray())
         ));
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
     }
 
@@ -2235,7 +2235,7 @@ namespace Microsoft.Dafny.Compilers {
                 baseExpr
               ));
             } else {
-              throw new InvalidOperationException();
+              throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
             }
           };
         } else {
@@ -2251,7 +2251,7 @@ namespace Microsoft.Dafny.Compilers {
                 baseExpr
               ));
             } else {
-              throw new InvalidOperationException();
+              throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
             }
           };
         }
@@ -2288,7 +2288,7 @@ namespace Microsoft.Dafny.Compilers {
             hiBuf.Finish()
           ));
         } else {
-          throw new InvalidOperationException();
+          throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
         }
       }
       );
