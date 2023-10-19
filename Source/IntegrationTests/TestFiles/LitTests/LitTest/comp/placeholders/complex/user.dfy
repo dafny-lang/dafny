@@ -3,8 +3,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-  var x := DfyRandom.GetRandomNat(10);
-  var y := DfyRandom.GetRandomNat(10);
+  var x := DfyRandom.GetRandomNat(1000000);
+  var y := DfyRandom.GetRandomNat(1000000);
   var areEqual := x == y;
   print "areEqual: ", areEqual;
 }
