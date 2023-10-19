@@ -1,8 +1,9 @@
-include "../Dafny/AST.dfy"
+//include "../Dafny/AST.dfy"
 
 module {:extern "FDafnyPlugin"} FDafnyPlugin {
   import opened DAST
   import PrettyPrinter
+  import UnsupportedFeature
 
   class COMP {
 
@@ -11,6 +12,7 @@ module {:extern "FDafnyPlugin"} FDafnyPlugin {
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
+      UnsupportedFeature.Throw();
       s := "Emit Main";
     }
   }

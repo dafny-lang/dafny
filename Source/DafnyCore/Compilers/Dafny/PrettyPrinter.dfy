@@ -1,9 +1,11 @@
 module {:extern "D2DPrettyPrinter"} PrettyPrinter {
 
   import DAST
+  import UnsupportedFeature
 
-  function PrettyPrint(d: seq<DAST.Module>): string {
-    "Not Implemented Yet"
+  method PrettyPrint(d: seq<DAST.Module>) returns (s: string) {
+    UnsupportedFeature.Throw();
+    s := "Not Implemented Yet";
   }
 
 }

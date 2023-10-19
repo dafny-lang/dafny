@@ -14,7 +14,7 @@ public class FDafnyBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
   public override string TargetName => "Dafny";
-  public override bool IsStable => false;
+  public override bool IsStable => true;
   public override bool IsInternal => true;
   public override string TargetExtension => "dfy";
   public override int TargetIndentSize => 4;
