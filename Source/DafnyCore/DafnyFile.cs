@@ -40,7 +40,7 @@ public class DafnyFile {
       BaseName = "<stdin>";
       CanonicalPath = "<stdin>";
     }
-    if (uri.Scheme == "stdlibs") {
+    if (uri.Scheme == "dllresource") {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = uri.LocalPath;
       CanonicalPath = uri.ToString();
@@ -74,11 +74,11 @@ public class DafnyFile {
       IsPrecompiled = false;
 
       DooFile dooFile;
-      if (uri.Scheme == "stdlibs") {
-        var assembly = Assembly.Load("DafnyPipeline");
+      if (uri.Scheme == "dllresource") {
+        var assembly = Assembly.Load(uri.Host);
         // Skip the leading "/"
         var resourceName = uri.LocalPath[1..];
-        var stream = assembly.GetManifestResourceStream(resourceName);
+        using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream is null) {
           throw new Exception($"Cannot find embedded resource: {resourceName}");
         }

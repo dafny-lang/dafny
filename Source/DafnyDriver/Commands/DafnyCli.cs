@@ -31,7 +31,7 @@ public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
-  private static readonly Uri StandardLibrariesDooUri = new("stdlibs:///DafnyStandardLibraries.doo");
+  private static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
 
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
