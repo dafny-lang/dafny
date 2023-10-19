@@ -41,7 +41,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       }
     }
 
-    foreach (var compiledModule in dafnyProgram.CompileModules) {
+    foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.Replacement == null) {
         Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
           "Placeholder module must be replaced somewhere in the program");
