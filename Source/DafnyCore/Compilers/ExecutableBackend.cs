@@ -74,6 +74,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
+  public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+    base.OnPreCompile(reporter, otherFileNames);
+    compiler = CreateCompiler();
+  }
+
   SinglePassCompiler Compiler {
     get {
       if (compiler == null) {
