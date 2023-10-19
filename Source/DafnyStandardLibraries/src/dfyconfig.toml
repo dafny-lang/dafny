@@ -10,3 +10,5 @@ reads-clauses-on-methods = true
 # of the libraries themselves.
 resource-limit = 1000
 warn-as-errors = true
+warn-redundant-assumptions = true
+warn-contradictory-assumptions = true

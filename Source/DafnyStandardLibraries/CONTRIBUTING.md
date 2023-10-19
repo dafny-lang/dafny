@@ -63,6 +63,22 @@ which generates LIT-style Dafny integration tests instead.
 As much as possible, follow the [Dafny Style Guide](https://dafny.org/dafny/StyleGuide/Style-Guide).
 The build process applies `dafny format` to all source.
 
+### Packaging
+
+For now all standard libraries are built together into a single `DafnyStandardLibraries.doo` file,
+which is included as an embedded resource in `DafnyPipeline.dll`.
+That will likely need to change as more libraries are imported,
+in particular https://github.com/dafny-lang/libraries/tree/master/src/NonlinearArithmetic
+which needs to build with `--disable-nonlinear-arithmetic`.
+It will be fairly straightforward to build multiple `.doo` files that are all added
+with the `--standard-libraries` option, but the build process will need to be tweaked to support that.
+
+### External code
+
+Several standard libraries will need to depend on `{:extern}`-ally implemented functionality.
+The plan is to include such code in each backend's runtime,
+but adding this to the build process is currently blocked on https://github.com/dafny-lang/dafny/issues/511.
+
 ### On brittleness
 
 There are two sides to brittleness relevant to this project:
