@@ -51,4 +51,12 @@
         </Content>
     </ItemGroup>
     
+    <ItemGroup>
+      <None Include="TestFiles\LitTests\LitTest\comp\placeholders\complex\Interop.cs" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="TestFiles\LitTests\LitTest\comp\placeholders\complex\Build\" />
+    </ItemGroup>
+    
 </Project>

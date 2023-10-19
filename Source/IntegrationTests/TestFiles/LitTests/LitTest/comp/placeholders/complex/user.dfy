@@ -1,9 +1,9 @@
-// RUN: %baredafny run %args --input %s %S/random.dfy --input %S/randomCSharp.dfy > "%t"
+// RUN: %baredafny run %args %s --build=%S/Build/build --input %S/random.dfy --input %S/randomCSharp.dfy --input %S/Interop.cs --spill-target-code > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-import Random
-
 method Main() {
-  var x := Random.GetRandomNat(10);
-  print x;
+  var x := DfyRandom.GetRandomNat(10);
+  var y := DfyRandom.GetRandomNat(10);
+  var areEqual := x == y;
+  print "areEqual: ", areEqual;
 }

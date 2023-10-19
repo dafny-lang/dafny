@@ -1,4 +1,4 @@
 
-placeholder module Random {
+placeholder module DfyRandom {
   method GetRandomNat(ceiling: nat) returns (r: nat)
 }
