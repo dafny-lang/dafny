@@ -1,4 +1,5 @@
 
 placeholder module DfyRandom {
-  method GetRandomNat(ceiling: nat) returns (r: nat)
+  method GetRandomNat(ceiling: nat) returns (r: nat) 
+    ensures r < ceiling
 }
