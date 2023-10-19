@@ -482,7 +482,7 @@ public static class DafnyCli {
       //  "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
       return ExitValue.PREPROCESSING_ERROR;
     }
-    
+
     // Add standard library .doo files after explicitly provided source files,
     // only because if they are added first, one might be used as the program name,
     // which is not handled well.

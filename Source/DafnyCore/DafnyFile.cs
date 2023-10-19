@@ -83,7 +83,7 @@ public class DafnyFile {
         if (stream is null) {
           throw new Exception($"Cannot find embedded resource: {resourceName}");
         }
-        
+
         dooFile = DooFile.Read(stream);
       } else {
         if (!File.Exists(filePath)) {
