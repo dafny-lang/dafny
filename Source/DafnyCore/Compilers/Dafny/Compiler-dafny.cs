@@ -1423,7 +1423,8 @@ namespace Microsoft.Dafny.Compilers {
         // we don't need to create a copy of the identifier, that's language specific
         base.EmitExpr(expr, false, actualWr, wStmts);
       } else {
-        base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // warning: the following code craches on multiple examples
+        //base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
       }
     }
 
