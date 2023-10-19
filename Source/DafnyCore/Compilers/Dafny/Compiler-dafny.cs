@@ -1344,6 +1344,7 @@ namespace Microsoft.Dafny.Compilers {
           topLevelType = rhs;
           if (rhs is UserDefinedType udt) {
             if (topLevelType != null) {
+              throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: internal invariant error
               topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
             } else {
               topLevelType = udt;
