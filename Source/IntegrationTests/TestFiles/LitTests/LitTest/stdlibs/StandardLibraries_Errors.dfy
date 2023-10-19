@@ -5,14 +5,14 @@
 
 // Valid:
 
-// RUN: %verify --allow-standard-libraries:true "%s" > "%t"
-// RUN: %verify --allow-standard-libraries:true --track-print-effects "%s" >> "%t"
+// RUN: %verify --standard-libraries "%s" > "%t"
+// RUN: %verify --standard-libraries --track-print-effects "%s" >> "%t"
 
 // Invalid:
 
 // RUN: %exits-with 2 %verify "%s" >> "%t"
-// RUN: %exits-with 1 %verify --allow-standard-libraries:true --unicode-char:false "%s" >> "%t"
-// RUN: %exits-with 1 %baredafny format --allow-standard-libraries:true "%s" 2>> "%t"
+// RUN: %exits-with 1 %verify --standard-libraries --unicode-char:false "%s" >> "%t"
+// RUN: %exits-with 1 %baredafny format --standard-libraries "%s" 2>> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module UsesWrappers {

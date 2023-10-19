@@ -486,7 +486,7 @@ public static class DafnyCli {
     // Add standard library .doo files after explicitly provided source files,
     // only because if they are added first, one might be used as the program name,
     // which is not handled well.
-    if (options.Get(CommonOptionBag.AllowStdLibs)) {
+    if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       options.CliRootSourceUris.Add(StandardLibrariesDooUri);
       dafnyFiles.Add(new DafnyFile(options, StandardLibrariesDooUri));
     }

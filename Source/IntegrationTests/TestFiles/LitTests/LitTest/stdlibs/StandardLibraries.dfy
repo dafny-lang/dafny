@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --allow-standard-libraries
+// RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries
 
 // This is just a basic test of the mechanism to make the standard libraries
 // available to user code in general.
