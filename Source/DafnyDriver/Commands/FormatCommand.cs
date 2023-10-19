@@ -56,14 +56,19 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     var neededFormatting = 0;
     foreach (var file in dafnyFiles) {
       var dafnyFile = file;
-      if (!dafnyFile.Uri.IsFile && !doCheck && !doPrint) {
+      if (dafnyFile.Uri.Scheme == "stdin" && !doCheck && !doPrint) {
         await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.");
+        exitValue = ExitValue.PREPROCESSING_ERROR;
+        continue;
+      }
+      if (dafnyFile.Extension  == ".doo" && !doCheck && !doPrint) {
+        await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;
       }
 
       string tempFileName = null;
-      if (!dafnyFile.Uri.IsFile) {
+      if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = new DafnyFile(options, new Uri(tempFileName));

@@ -1,7 +1,7 @@
 // This test asserts the current behavior for trying to use
 // standard libraries in contexts that aren't supported:
 // not providing the option, providing incompatible options,
-// etc.
+// commands like formatting, etc.
 
 // Valid:
 
@@ -12,7 +12,8 @@
 
 // RUN: %exits-with 2 %verify "%s" >> "%t"
 // RUN: %exits-with 1 %verify --allow-standard-libraries:true --unicode-char:false "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t" 
+// RUN: %exits-with 1 %baredafny format --allow-standard-libraries:true "%s" 2>> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 module UsesWrappers {
 

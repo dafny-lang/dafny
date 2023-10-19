@@ -12,6 +12,7 @@ namespace Microsoft.Dafny;
 public class DafnyFile {
   public string FilePath { get; private set; }
   // TODO: Can we use Uri for this instead now?
+  public string Extension { get; private set; }
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
@@ -25,25 +26,25 @@ public class DafnyFile {
     Origin = origin;
     var filePath = uri.LocalPath;
 
-    var extension = ".dfy";
     if (uri.IsFile) {
-      extension = Path.GetExtension(uri.LocalPath).ToLower();
+      Extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = Path.GetFileName(uri.LocalPath);
       // Normalizing symbolic links appears to be not
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
       CanonicalPath = Canonicalize(filePath).LocalPath;
-    }
-    if (uri.Scheme == "stdin") {
+    } else if (uri.Scheme == "stdin") {
       getContentOverride = () => options.Input;
+      Extension = ".dfy";
       BaseName = "<stdin>";
       CanonicalPath = "<stdin>";
-    }
-    if (uri.Scheme == "dllresource") {
-      extension = Path.GetExtension(uri.LocalPath).ToLower();
+    } else if (uri.Scheme == "dllresource") {
+      Extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = uri.LocalPath;
       CanonicalPath = uri.ToString();
+    } else {
+      throw new ArgumentException($"Unsupported URI scheme: {uri}");
     }
 
     FilePath = CanonicalPath;
@@ -53,7 +54,7 @@ public class DafnyFile {
       IsPreverified = false;
       IsPrecompiled = false;
       GetContent = getContentOverride;
-    } else if (extension == ".dfy" || extension == ".dfyi") {
+    } else if (Extension == ".dfy" || Extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
       if (!File.Exists(filePath)) {
@@ -69,7 +70,7 @@ public class DafnyFile {
       } else {
         GetContent = () => new StreamReader(filePath);
       }
-    } else if (extension == ".doo") {
+    } else if (Extension == ".doo") {
       IsPreverified = true;
       IsPrecompiled = false;
 
@@ -104,7 +105,7 @@ public class DafnyFile {
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
       GetContent = () => new StringReader(dooFile.ProgramText);
-    } else if (extension == ".dll") {
+    } else if (Extension == ".dll") {
       IsPreverified = true;
       // Technically only for C#, this is for backwards compatability
       IsPrecompiled = true;
