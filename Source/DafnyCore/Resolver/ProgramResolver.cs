@@ -268,7 +268,7 @@ public class ProgramResolver {
 
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (module.ModuleKind == ModuleKindEnum.Concrete && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
+      if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
           "The abstract import named {0} (using :) may only be used in an abstract or placeholder module declaration",
           moduleDecl.Name);

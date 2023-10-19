@@ -185,9 +185,7 @@ namespace Microsoft.Dafny {
         signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
         if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out var p, reporter)) {
-          if (alias.Signature == null) {
-            alias.Signature = p;
-          }
+          alias.Signature ??= p;
         } else {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
