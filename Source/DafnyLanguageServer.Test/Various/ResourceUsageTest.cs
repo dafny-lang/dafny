@@ -23,11 +23,11 @@ method Foo()
     var documentItem = CreateTestDocument(source, "SolverProcessCountDoesNotIncreaseOnEachVerification.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     var processes2 = Process.GetProcessesByName(solverProcessName);
     Assert.Equal(processes1.Length, processes2.Length - 1);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     var processes3 = Process.GetProcessesByName(solverProcessName);
     Assert.Equal(processes2.Length, processes3.Length);
   }

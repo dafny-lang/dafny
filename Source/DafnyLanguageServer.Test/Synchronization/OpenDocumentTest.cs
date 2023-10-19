@@ -47,7 +47,7 @@ function GetConstant() int {
 }".Trim();
       var documentItem = CreateTestDocument(source, "ParseErrorsOfDocumentAreCaptured.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.GetDiagnosticUris());
       var message = document.GetDiagnosticsForUri(documentItem.Uri.ToUri()).ElementAt(0);
@@ -100,7 +100,7 @@ method Recurse(x: int) returns (r: int) {
         r := Recurse(x - 1);
     }
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source, "VerificationErrorsOfDocumentAreNotCapturedIfAutoVerificationIsNotOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);

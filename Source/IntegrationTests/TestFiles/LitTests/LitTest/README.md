@@ -1,0 +1,1 @@
+The folder Test has been moved to Source/IntegrationTests/TestFiles/LitTests/LitTest

@@ -103,9 +103,9 @@ public abstract class MemberDecl : Declaration {
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (Name == "requires") {
-        return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
       } else if (Name == "reads") {
-        return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
       } else {
         return EnclosingClass.FullSanitizedName + "." + SanitizedName;
       }
@@ -120,6 +120,42 @@ public abstract class MemberDecl : Declaration {
     }
     if (this.HasUserAttribute("only", out _)) {
       yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+    }
+  }
+
+  public void RecursiveCallParameters(IToken tok, List<TypeParameter> typeParams, List<Formal> ins,
+    Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
+    out Expression receiver, out List<Expression> arguments) {
+    Contract.Requires(tok != null);
+    Contract.Requires(this != null);
+    Contract.Requires(EnclosingClass is TopLevelDeclWithMembers);
+    Contract.Requires(typeParams != null);
+    Contract.Requires(ins != null);
+    // receiverSubst is allowed to be null
+    Contract.Requires(substMap != null);
+    Contract.Ensures(Contract.ValueAtReturn(out receiver) != null);
+    Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
+
+    if (IsStatic) {
+      receiver = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)EnclosingClass, true); // this also resolves it
+    } else if (receiverSubst != null) {
+      receiver = receiverSubst;
+    } else {
+      receiver = new ImplicitThisExpr(tok);
+      receiver.Type = ModuleResolver.GetReceiverType(tok, this);  // resolve here
+    }
+
+    arguments = new List<Expression>();
+    foreach (var inFormal in ins) {
+      Expression inE;
+      if (substMap.TryGetValue(inFormal, out inE)) {
+        arguments.Add(inE);
+      } else {
+        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        ie.Var = inFormal;  // resolve here
+        ie.Type = inFormal.Type;  // resolve here
+        arguments.Add(ie);
+      }
     }
   }
 }

@@ -48,7 +48,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     : base(output, dafnyLogLevel) {
   }
 
-  protected async Task<TextDocumentItem> CreateAndOpenTestDocument(string source, string filePath = null,
+  protected TextDocumentItem CreateAndOpenTestDocument(string source, string filePath = null,
+    int version = 1) {
+    var document = CreateTestDocument(source, filePath, version);
+    client.OpenDocument(document);
+    return document;
+  }
+
+  protected async Task<TextDocumentItem> CreateOpenAndWaitForResolve(string source, string filePath = null,
     int version = 1, CancellationToken? cancellationToken = null) {
     var document = CreateTestDocument(source, filePath, version);
     await client.OpenDocumentAndWaitAsync(document, cancellationToken ?? CancellationToken);
@@ -97,10 +104,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task<NamedVerifiableStatus> WaitForStatus([CanBeNull] Range nameRange, PublishedVerificationStatus statusToFind,
-    CancellationToken cancellationToken, [CanBeNull] TextDocumentIdentifier documentIdentifier = null) {
+    CancellationToken? cancellationToken = null, [CanBeNull] TextDocumentIdentifier documentIdentifier = null) {
+    cancellationToken ??= CancellationToken;
     while (true) {
       try {
-        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+        var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
         var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => nameRange == null || n.NameRange == nameRange);
         if (namedVerifiableStatus?.Status == statusToFind) {
           if (documentIdentifier != null) {
@@ -191,28 +199,42 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result;
   }
 
-  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var compilation = (await Projects.GetLastDocumentAsync(documentItem).WaitAsync(cancellationToken))!;
-    Assert.NotNull(compilation);
-    var expectedDiagnostics = compilation.GetDiagnostics(documentItem.Uri.ToUri()).
-      Select(d => d.ToLspDiagnostic()).
-      OrderBy(d => d.Range.Start).ToList();
-    PublishDiagnosticsParams result;
-    while (true) {
-      result = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-      if (result.Uri == documentItem.Uri && result.Diagnostics.OrderBy(d => d.Range.Start).
-            SequenceEqual(expectedDiagnostics)) {
-        break;
+  protected async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentItem documentId,
+    CancellationToken? cancellationToken = null,
+    bool allowStale = false) {
+    cancellationToken ??= CancellationToken;
+
+    CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
+    while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
+           compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
+      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
+    }
+
+    if (compilationStatusParams.Status != CompilationStatus.ResolutionSucceeded) {
+      return null;
+    }
+    var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
+    if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
+      while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
+        fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
+
       }
     }
 
+    return fileVerificationStatus;
+  }
+
+  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
+    var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
+    await Task.Delay(10);
+    var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
+    diagnosticsReceiver.ClearQueue();
     return result;
   }
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken? cancellationToken = null) {
-    var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken);
-    return paramsResult.Diagnostics.ToArray();
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning, CancellationToken? cancellationToken = null, bool allowStale = false) {
+    var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
+    return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
   public virtual Task InitializeAsync() {
@@ -220,7 +242,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public Task DisposeAsync() {
-    return Task.CompletedTask;
+    return client.Shutdown();
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
@@ -285,13 +307,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     foreach (var entry in Projects.Managers) {
       try {
-        await entry.GetLastDocumentAsync();
+        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
       } catch (TaskCanceledException) {
 
       }
     }
     var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     try {
       Assert.Equal(verificationDocumentItem.Uri, statusReport.Uri);
@@ -326,16 +348,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
-  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, bool waitFirst = true) {
-    if (waitFirst) {
-      foreach (var entry in Projects.Managers) {
-        try {
-          await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
-        } catch (TaskCanceledException) {
+  protected async Task<Diagnostic[]> GetNextDiagnostics(TextDocumentItem documentItem, CancellationToken? cancellationToken = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+    cancellationToken ??= CancellationToken;
+    var result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken.Value, documentItem);
+    return result.Where(d => d.Severity <= minimumSeverity).ToArray();
+  }
 
-        }
-      }
-    }
+  protected async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken, TextDocumentItem forDocument = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
 
@@ -349,6 +369,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         continue;
       }
 
+      if (!resolutionReport.Diagnostics.Any(d => d.Severity <= minimumSeverity)) {
+        continue;
+      }
+
       AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
         "1) Unexpected diagnostics were received whereas none were expected:\n" +
         string.Join(",", resolutionReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
@@ -356,10 +380,25 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
-      "2) Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+
+    while (true) {
+      var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
+      if (verificationDocumentItem.Uri.Equals(hideReport.Uri)) {
+        break;
+      }
+
+      if (forDocument != null && !forDocument.Uri.Equals(hideReport.Uri)) {
+        continue;
+      }
+
+      if (!hideReport.Diagnostics.Any(d => d.Severity <= minimumSeverity)) {
+        continue;
+      }
+
+      AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
+        "2) Unexpected diagnostics were received whereas none were expected:\n" +
+        string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
+    }
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
@@ -405,5 +444,19 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       ContentChanges = changes
     });
     return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+  }
+
+  protected async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    source = source.TrimStart();
+    if (includeProjectFile) {
+      var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
+      await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
+    }
+    var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var document = await Projects.GetLastDocumentAsync(documentItem);
+    Assert.NotNull(document);
+    return documentItem;
   }
 }

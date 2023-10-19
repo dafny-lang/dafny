@@ -1,1 +1,0 @@
-Old command line interface for test generation is no longer supported, all calls should use dafny generate-tests

@@ -2,39 +2,49 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-class VerifyCommand : ICommandSpec {
-  public IEnumerable<Option> Options => new Option[] {
-    BoogieOptionBag.BoogieFilter,
-  }.Concat(ICommandSpec.VerificationOptions).
-    Concat(ICommandSpec.ConsoleOutputOptions).
-    Concat(ICommandSpec.ResolverOptions);
+public static class VerifyCommand {
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("verify", "Verify the program.");
-    result.AddArgument(ICommandSpec.FilesArgument);
+    result.AddArgument(DafnyCommands.FilesArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+        options.TrackVerificationCoverage = true;
+      }
+      options.Compile = false;
+      return CompilerDriver.RunCompiler(options);
+    });
     return result;
   }
 
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-  }
+  private static IReadOnlyList<Option> Options =>
+    new Option[] {
+        BoogieOptionBag.BoogieFilter,
+      }.Concat(DafnyCommands.VerificationOptions).
+      Concat(DafnyCommands.ConsoleOutputOptions).
+      Concat(DafnyCommands.ResolverOptions);
 }
 
-class ResolveCommand : ICommandSpec {
-  public IEnumerable<Option> Options => ICommandSpec.ConsoleOutputOptions.
-    Concat(ICommandSpec.ResolverOptions);
+static class ResolveCommand {
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("resolve", "Only check for parse and type resolution errors.");
-    result.AddArgument(ICommandSpec.FilesArgument);
+    result.AddArgument(DafnyCommands.FilesArgument);
+    foreach (var option in DafnyCommands.ConsoleOutputOptions.Concat(DafnyCommands.ResolverOptions)) {
+      result.AddOption(option);
+    }
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      options.Compile = false;
+      options.Verify = false;
+      return CompilerDriver.RunCompiler(options);
+    });
     return result;
-  }
-
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-    dafnyOptions.Verify = false;
   }
 }

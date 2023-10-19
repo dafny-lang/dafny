@@ -248,14 +248,14 @@ module N refines M { datatype D = ... Y | Z }
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:1 to engage** {#p_general_traits_beta}
+## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_beta}
 
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
 ```
 
-Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:1.
+Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:datatype.
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
 

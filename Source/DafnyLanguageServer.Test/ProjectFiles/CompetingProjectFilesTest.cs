@@ -28,7 +28,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, "source.dfy"), "hasErrorInSyntax");
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, DafnyProject.FileName), "");
 
-    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
 
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
@@ -65,7 +65,7 @@ warn-shadowing = true
     var sourceFile = CreateTestDocument(hasShadowingSource, sourceFilePath);
     await client.OpenDocumentAndWaitAsync(sourceFile, CancellationToken);
 
-    var diagnostics0 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics0 = await GetLastDiagnostics(sourceFile);
     Assert.Single(diagnostics0);
     Assert.Contains("Shadowed", diagnostics0[0].Message);
 
@@ -73,7 +73,7 @@ warn-shadowing = true
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     ApplyChange(ref sourceFile, new Range(0, 0, 0, 0), "//comment\n");
-    var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics1);
   }
 

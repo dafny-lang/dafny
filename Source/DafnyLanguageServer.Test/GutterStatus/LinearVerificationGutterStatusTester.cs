@@ -24,7 +24,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     verificationStatusGutterReceiver = new();
 
     void ModifyOptions(DafnyOptions options) {
-      options.Set(ServerCommand.LineVerificationStatus, true);
+      options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, true);
       modifyOptions?.Invoke(options);
     }
     await base.SetUp(ModifyOptions);
@@ -275,7 +275,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     var documentItem = CreateTestDocument(code.Trim(), fileName, 1);
     if (explicitProject) {
-      await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+      await CreateOpenAndWaitForResolve("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
     }
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();

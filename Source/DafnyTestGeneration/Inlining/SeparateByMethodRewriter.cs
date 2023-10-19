@@ -28,7 +28,7 @@ public class SeparateByMethodRewriter : IRewriter {
 
   private void SeparateByMethod(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(SeparateByMethod);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(SeparateByMethod);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       methodsToAdd.Clear();
       withMembers.Members.OfType<Function>().ForEach(SeparateByMethod);

@@ -1376,8 +1376,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (options.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
-          foreach (var expr in s.ForallExpressions) {
+        if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
+          foreach (var expr in s.EffectiveEnsuresClauses) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
           if (s.Body != null) {
@@ -2226,8 +2226,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
@@ -2252,8 +2252,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
@@ -2885,9 +2885,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-      } else if (expr is Translator.BoogieWrapper) {
+      } else if (expr is BoogieGenerator.BoogieWrapper) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
-      } else if (expr is Translator.BoogieFunctionCall) {
+      } else if (expr is BoogieGenerator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
@@ -3039,6 +3039,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print arguments after incorporating default parameters
         for (; i < bindings.Arguments.Count; i++) {
           var arg = bindings.Arguments[i];
+          if (arg is DefaultValueExpression { Resolved: null }) {
+            // An error was detected during resolution, so this argument was not filled in. Omit printing it.
+            continue;
+          }
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);

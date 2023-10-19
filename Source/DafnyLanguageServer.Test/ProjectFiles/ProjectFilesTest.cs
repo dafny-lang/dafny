@@ -18,7 +18,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileErrorIsShown() {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
-    await CreateAndOpenTestDocument(projectFileSource, DafnyProject.FileName);
+    await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
@@ -32,7 +32,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);
-    await CreateAndOpenTestDocument("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
+    await CreateOpenAndWaitForResolve("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
     var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
     Assert.Equal(2, diagnostics.Diagnostics.Count());
@@ -53,7 +53,7 @@ module [>Producer<]Oops {
   const x := 3
 }".TrimStart();
     MarkupTestFile.GetPositionsAndRanges(producerMarkup, out var producerSource, out _, out var ranges);
-    var producer = await CreateAndOpenTestDocument(producerSource, Path.Combine(tempDirectory, "producer.dfy"));
+    var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(tempDirectory, "producer.dfy"));
     var consumerSourceMarkup = @"
 include ""producer.dfy""
 module Consumer {
@@ -61,8 +61,8 @@ module Consumer {
   const y := x + 2
 }".TrimStart();
     MarkupTestFile.GetPositionAndRanges(consumerSourceMarkup, out var consumerSource, out var gotoPosition, out _);
-    var consumer = await CreateAndOpenTestDocument(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
-    await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     // Let consumer.dfy realize it has a new project file 
     var definition1 = await RequestDefinition(consumer, gotoPosition);
@@ -77,8 +77,8 @@ module Consumer {
   [Fact]
   public async Task ProjectFileByItselfDiagnostics() {
     var tempDirectory = Path.GetRandomFileName();
-    var projectFile = await CreateAndOpenTestDocument("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    var diagnostics = await GetLastDiagnostics(projectFile);
+    var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
     Assert.Equal("Project references no files", diagnostics.First().Message);
   }
@@ -110,7 +110,7 @@ warn-shadowing = true";
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, warnShadowingOn);
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics = await GetLastDiagnostics(documentItem);
 
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
@@ -122,7 +122,7 @@ warn-shadowing = true";
     var source = await File.ReadAllTextAsync(filePath);
     var documentItem = CreateTestDocument(source, filePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics = await GetLastDiagnostics(documentItem);
 
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
@@ -160,13 +160,13 @@ function-syntax = 4";
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(directory);
 
-    var noProjectFile = await CreateAndOpenTestDocument(source, "orphaned.dfy");
-    var diagnostics1 = await GetLastDiagnostics(noProjectFile, CancellationToken);
+    var noProjectFile = await CreateOpenAndWaitForResolve(source, "orphaned.dfy");
+    var diagnostics1 = await GetLastDiagnostics(noProjectFile);
     Assert.Single(diagnostics1); // Stops after parsing
 
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectFileSource);
-    var sourceFile = await CreateAndOpenTestDocument(source, Path.Combine(directory, "source.dfy"));
-    var diagnostics2 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var sourceFile = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "source.dfy"));
+    var diagnostics2 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
   }
 
@@ -196,7 +196,7 @@ method Foo() {
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics);
     Assert.Contains("Shadowed", diagnostics[0].Message);
   }
@@ -217,7 +217,7 @@ warn-shadowing = true
     var source = await File.ReadAllTextAsync(filePath);
     var documentItem = CreateTestDocument(source, Path.Combine(directory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics);
     Assert.Contains("Shadowed", diagnostics[0].Message);
   }
