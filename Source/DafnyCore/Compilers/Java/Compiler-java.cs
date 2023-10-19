@@ -1882,6 +1882,10 @@ namespace Microsoft.Dafny.Compilers {
         EmitTypeDescriptorsForClass(dt.TypeArgs, dt, wTypeFields, wCtorParams, null, wCtorBody);
       }
 
+      // type descriptor needs to be initialized before default value is generated (issue 3766)
+      EmitTypeDescriptorMethod(dt, dt.TypeArgs, null, null, wr);
+
+      // default value
       var wDefaultTypeArguments = new ConcreteSyntaxTree();
       var defaultMethodTypeDescriptorCount = 0;
       var usedTypeArgs = UsedTypeParameters(dt);
@@ -1916,8 +1920,6 @@ namespace Microsoft.Dafny.Compilers {
           dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
           dt is CoDatatypeDecl, $"{wDefaultTypeArguments}", args, wDefault);
       }
-
-      EmitTypeDescriptorMethod(dt, dt.TypeArgs, null, null, wr);
 
       // create methods
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
