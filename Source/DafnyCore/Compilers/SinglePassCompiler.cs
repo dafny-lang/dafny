@@ -2740,7 +2740,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, bool inLetExprBody, IVariable accumulatorVar /*?*/) {
+    void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(resultType != null);
@@ -2877,8 +2877,8 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is BinaryExpr bin
                  && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
-                 && enclosingFunction is { IsAccumulatorTailRecursive: true }) {
-        Contract.Assert(accumulatorVar != null);
+                 && enclosingFunction is { IsAccumulatorTailRecursive: true }
+                 && accumulatorVar != null) {
         Expression tailTerm;
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
@@ -2910,9 +2910,8 @@ namespace Microsoft.Dafny.Compilers {
 
       } else {
         // We haven't optimized any other cases, so fallback to normal compilation
-        if (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive) {
-          // Remember to include the accumulator
-          Contract.Assert(accumulatorVar != null);
+        if (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive && accumulatorVar != null) {
+          // Include the accumulator
           var acc = new IdentifierExpr(expr.tok, accumulatorVar);
           switch (enclosingFunction.TailRecursion) {
             case Function.TailStatus.Accumulate_Add:
@@ -2953,7 +2952,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void CompileReturnBody(Expression body, Type originalResultType, ConcreteSyntaxTree wr, IVariable/*?*/ accumulatorVar) {
+    void CompileReturnBody(Expression body, Type originalResultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(body != null);
       Contract.Requires(originalResultType != null);
       Contract.Requires(wr != null);
