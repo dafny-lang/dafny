@@ -25,7 +25,8 @@ namespace Microsoft.Dafny.Compilers {
       if (Builder is StatementContainer statementContainer) {
         return new BuilderSyntaxTree<StatementContainer>(statementContainer.Fork());
       } else {
-        throw new InvalidOperationException("Cannot fork builder of type " + Builder.GetType());
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: this is an invalid operation
+        // throw new InvalidOperationException("Cannot fork builder of type " + Builder.GetType());
       }
     }
 
@@ -83,6 +84,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExternalConstructors,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
+      Feature.ForLoops
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -657,7 +659,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
         callStmt.SetName(protectedName);
       } else {
-        throw new InvalidOperationException();
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: this is actually an invalid operation
       }
 
       base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, wr);

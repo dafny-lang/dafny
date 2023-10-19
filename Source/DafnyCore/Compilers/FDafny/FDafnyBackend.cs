@@ -31,28 +31,28 @@ public class FDafnyBackend : DafnyExecutableBackend {
     return new FDafnyCompiler();
   }
 
-  private string ComputeExeName(string targetFilename) {
-    var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-      return Path.Combine(targetDirectory, "target", "debug", Path.GetFileNameWithoutExtension(targetFilename) + ".exe");
-    } else {
-      return Path.Combine(targetDirectory, "target", "debug", Path.GetFileNameWithoutExtension(targetFilename));
-    }
-  }
-
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
-      string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    compilationResult = null;
-    return true;
-  }
-
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
-    Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-    var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
-  }
+  // private string ComputeExeName(string targetFilename) {
+  //   var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
+  //   if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+  //     return Path.Combine(targetDirectory, "target", "debug", Path.GetFileNameWithoutExtension(targetFilename) + ".exe");
+  //   } else {
+  //     return Path.Combine(targetDirectory, "target", "debug", Path.GetFileNameWithoutExtension(targetFilename));
+  //   }
+  // }
+  //
+  // public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
+  //     string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  //     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+  //   compilationResult = null;
+  //   return true;
+  // }
+  //
+  // public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
+  //   string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+  //   Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
+  //   var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
+  //   return 0 == RunProcess(psi, outputWriter, errorWriter);
+  // }
 
   public FDafnyBackend(DafnyOptions options) : base(options) {
   }
