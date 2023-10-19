@@ -2753,13 +2753,13 @@ namespace Microsoft.Dafny.Compilers {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-              TrCasePatternOpt(lhs, e.RHSs[i], wr, false);
+              TrCasePatternOpt(lhs, e.RHSs[i], wr, inLetExprBody);
             }
           }
           TrExprOpt(e.Body, resultType, wr, inLetExprBody, accumulatorVar);
         } else {
           // We haven't optimized the other cases, so fallback to normal compilation
-          EmitReturnExpr(e, resultType, false, wr);
+          EmitReturnExpr(e, resultType, inLetExprBody, wr);
         }
 
       } else if (expr is ITEExpr) {
@@ -2774,7 +2774,7 @@ namespace Microsoft.Dafny.Compilers {
           case ITEExpr.ITECompilation.CompileBothBranches:
             var wStmts = wr.Fork();
             var thn = EmitIf(out var guardWriter, true, wr);
-            EmitExpr(e.Test, false, guardWriter, wStmts);
+            EmitExpr(e.Test, inLetExprBody, guardWriter, wStmts);
             Coverage.Instrument(e.Thn.tok, "then branch", thn);
             TrExprOpt(e.Thn, resultType, thn, inLetExprBody, accumulatorVar);
             ConcreteSyntaxTree els = wr;
@@ -2801,7 +2801,7 @@ namespace Microsoft.Dafny.Compilers {
         //     ...
         //   }
         string source = ProtectedFreshId("_source");
-        DeclareLocalVar(source, e.Source.Type, e.Source.tok, e.Source, false, wr);
+        DeclareLocalVar(source, e.Source.Type, e.Source.tok, e.Source, inLetExprBody, wr);
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -2831,7 +2831,7 @@ namespace Microsoft.Dafny.Compilers {
           string inTmp = ProtectedFreshId("_in");
           inTmps.Add(inTmp);
           inTypes.Add(null);
-          DeclareLocalVar(inTmp, null, null, e.Receiver, false, wr);
+          DeclareLocalVar(inTmp, null, null, e.Receiver, inLetExprBody, wr);
         }
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
@@ -2839,7 +2839,7 @@ namespace Microsoft.Dafny.Compilers {
             string inTmp = ProtectedFreshId("_in");
             inTmps.Add(inTmp);
             inTypes.Add(e.Args[i].Type);
-            DeclareLocalVar(inTmp, e.Args[i].Type, p.tok, e.Args[i], false, wr);
+            DeclareLocalVar(inTmp, e.Args[i].Type, p.tok, e.Args[i], inLetExprBody, wr);
           }
         }
         // Now, assign to the formals
@@ -2949,7 +2949,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(accumulatorVar == null);
         }
-        EmitReturnExpr(expr, resultType, false, wr);
+        EmitReturnExpr(expr, resultType, inLetExprBody, wr);
       }
     }
 
