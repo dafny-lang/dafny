@@ -76,7 +76,7 @@ public class ProgramResolver {
 
     Type.DisableScopes();
 
-    // CheckDuplicateModuleNames(Program);
+    CheckDuplicateModuleNames(Program);
 
     foreach (var rewriter in rewriters) {
       cancellationToken.ThrowIfCancellationRequested();
