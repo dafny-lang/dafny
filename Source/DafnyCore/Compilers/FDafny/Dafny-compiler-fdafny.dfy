@@ -1,5 +1,3 @@
-//include "../Dafny/AST.dfy"
-
 module {:extern "FDafnyPlugin"} FDafnyPlugin {
   import opened DAST
   import PrettyPrinter
