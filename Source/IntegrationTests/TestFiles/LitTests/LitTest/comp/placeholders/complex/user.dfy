@@ -13,6 +13,5 @@ method Main() {
     y := DfyRandom.GetRandomNat(1000000);
     i := i - 1;
   }
-  var areEqual := x == y;
-  print "areEqual: ", areEqual;
+  expect x != y;
 }
