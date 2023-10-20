@@ -6,18 +6,24 @@ placeholder module NeverReplaced {
     ensures i >= 2
 }
 
-placeholder module ReplacedTwice {
+placeholder module ReplacedThrice {
   method Foo() returns (i: int) 
     ensures i >= 2
 }
 
-module Replace1 replaces ReplacedTwice {
+module Replace1 replaces ReplacedThrice {
   method Foo() returns (i: int) {
     return 3;
   }
 }
 
-module Replace2 replaces ReplacedTwice {
+module Replace2 replaces ReplacedThrice {
+  method Foo() returns (i: int) {
+    return 3;
+  }
+}
+
+module Replace3 replaces ReplacedThrice {
   method Foo() returns (i: int) {
     return 3;
   }
@@ -26,6 +32,6 @@ module Replace2 replaces ReplacedTwice {
 method Main() {
   var x := NeverReplaced.Foo();
   print x, "\n";
-  var y := ReplacedTwice.Foo();
+  var y := ReplacedThrice.Foo();
   print y, "\n";
 }

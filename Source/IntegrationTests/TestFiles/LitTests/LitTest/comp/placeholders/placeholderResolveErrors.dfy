@@ -6,12 +6,6 @@ placeholder module FooModule {
     ensures i >= 2
 }
 
-placeholder module Cycle1 replaces Cycle2 {
-}
-
-placeholder module Cycle2 replaces Cycle1 {
-}
-
 module Nesting {
   module ConcreteFoo replaces FooModule {
     method Foo() returns (i: int) {
