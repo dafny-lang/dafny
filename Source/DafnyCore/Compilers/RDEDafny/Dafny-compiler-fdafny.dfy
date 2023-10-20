@@ -10,8 +10,7 @@ module {:extern "FDafnyPlugin"} FDafnyPlugin {
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
-      UnsupportedFeature.Throw();
-      s := "Emit Main";
+      s := "";
     }
   }
 }

@@ -6,7 +6,7 @@ using FDafnyPlugin;
 
 namespace Microsoft.Dafny.Compilers;
 
-class FDafnyCompiler : DafnyWrittenCompiler {
+class RDEDafnyCompiler : DafnyWrittenCompiler {
 
   public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
     return COMP.Compile(program);

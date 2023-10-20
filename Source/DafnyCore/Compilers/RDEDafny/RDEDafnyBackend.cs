@@ -4,27 +4,23 @@ using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class FDafnyBackend : DafnyExecutableBackend {
+public class RDEDafnyBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
-  public override string TargetName => "Dafny";
+  public override string TargetName => "RDEDafny";
   public override bool IsStable => true;
   public override bool IsInternal => true;
   public override string TargetExtension => "dfy";
-  public override int TargetIndentSize => 4;
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
-  public override string TargetBasename(string dafnyProgramName) =>
-    Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
-
   public override string TargetBaseDir(string dafnyProgramName) =>
-    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-dafny/src";
+    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rdedafny/src";
 
   protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
-    return new FDafnyCompiler();
+    return new RDEDafnyCompiler();
   }
 
-  public FDafnyBackend(DafnyOptions options) : base(options) {
+  public RDEDafnyBackend(DafnyOptions options) : base(options) {
   }
 }
