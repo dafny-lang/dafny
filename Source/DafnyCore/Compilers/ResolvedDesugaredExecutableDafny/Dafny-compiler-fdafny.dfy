@@ -1,4 +1,4 @@
-module {:extern "FDafnyPlugin"} FDafnyPlugin {
+module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecutableDafnyPlugin {
   import opened DAST
   import PrettyPrinter
   import UnsupportedFeature

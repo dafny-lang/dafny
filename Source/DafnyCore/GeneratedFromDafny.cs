@@ -5418,7 +5418,7 @@ namespace D2DPrettyPrinter {
     }
   }
 } // end of namespace D2DPrettyPrinter
-namespace FDafnyPlugin {
+namespace ResolvedDesugaredExecutableDafnyPlugin {
 
 
   public partial class COMP {
@@ -5437,7 +5437,7 @@ namespace FDafnyPlugin {
       return s;
     }
   }
-} // end of namespace FDafnyPlugin
+} // end of namespace ResolvedDesugaredExecutableDafnyPlugin
 namespace DCOMP {
 
   public partial class __default {

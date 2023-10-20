@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using Dafny;
-using FDafnyPlugin;
+using ResolvedDesugaredExecutableDafnyPlugin;
 
 namespace Microsoft.Dafny.Compilers;
 
-class RDEDafnyCompiler : DafnyWrittenCompiler {
+class ResolvedDesugaredExecutableDafnyCompiler : DafnyWrittenCompiler {
 
   public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
     return COMP.Compile(program);
