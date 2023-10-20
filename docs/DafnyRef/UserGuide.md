@@ -1728,28 +1728,31 @@ the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
 ### 13.7.2. Placeholder modules
-To allow defining behavior that depending on which target language Dafny is translated to, requires different Dafny code to be implemented, Dafny has placeholder modules. Here follows an example:
+To enable easily customising runtime behavior across an entire Dafny program, Dafny has placeholder modules. Here follows an example:
 
 ```dafny
-// Target-agnostic
 placeholder module Foo {
   method Bar() returns (i: int) 
     ensures i >= 2
 }
 
-module ConcreteFoo replaces Foo {
-  method Bar() returns (i: int) {
-    return 3;
-  }
-}
-
 method Main() {
   var x := Foo.Bar();
-  print x; // Prints 3
+  print x;
 }
+// At this point, the program can be verified but not run.
+
+module ConcreteFoo replaces Foo {
+  method Bar() returns (i: int) {
+    return 3; // Main will print 3.
+  }
+}
+// ConcreteFoo can be swapped out for different replacements of Foo, to customize runtime behavior.
 ```
 
-Placeholder modules behave like abstract modules in the sense that they can contain methods and functions without a body. However, from the outside, placeholder modules can be used just like any other non-abstract module, and even their bodyless methods and function can ben referred to. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
+When replacing a placeholder module, the same rules apply as when refining an abstract module. However, unlike an abstract module, a placeholder module can be used as if it is a concrete module. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
+
+Placeholder modules are particularly useful for defining behavior that depends on which target language Dafny is translated to.
 
 ### 13.7.3. C\#
 
