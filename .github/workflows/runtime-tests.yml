@@ -41,15 +41,12 @@ jobs:
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
-          make test
-          make check-format
+          make all
       - name: Test DafnyRuntimeGo
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo
-          make test
-      # This isn't strictly necessary since the Java runtime has to be built into a jar,
-      # which also runs the tests.
-      # But I prefer the simplicity of testing every testable runtime in this workflow
+          make all
       - name: Test DafnyRuntimeJava
-        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
-      
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJava
+          make all
