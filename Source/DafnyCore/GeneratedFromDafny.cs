@@ -5431,11 +5431,6 @@ namespace ResolvedDesugaredExecutableDafnyPlugin {
       s = _out1;
       return s;
     }
-    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
-      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
-      return s;
-    }
   }
 } // end of namespace ResolvedDesugaredExecutableDafnyPlugin
 namespace DCOMP {
@@ -17750,21 +17745,6 @@ namespace DCOMP {
         s = Dafny.Sequence<Dafny.Rune>.Concat(s, _3008_generated);
         _3007_i = (_3007_i) + (BigInteger.One);
       }
-      return s;
-    }
-    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
-      Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\nfn main() {\n");
-      BigInteger _3009_i;
-      _3009_i = BigInteger.Zero;
-      while ((_3009_i) < (new BigInteger((fullName).Count))) {
-        if ((_3009_i).Sign == 1) {
-          s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::"));
-        }
-        s = Dafny.Sequence<Dafny.Rune>.Concat(s, (fullName).Select(_3009_i));
-        _3009_i = (_3009_i) + (BigInteger.One);
-      }
-      s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("();\n}"));
       return s;
     }
   }
