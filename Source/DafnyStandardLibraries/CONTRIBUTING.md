@@ -88,7 +88,7 @@ There are two sides to brittleness relevant to this project:
 enforcing a tight upper-bound on the resources needed to verify each batch of assertions.
 For simplicitly, this project just sets a direct `--resource-limit`,
 rather than relying on the second-pass approach of the `dafny-reportgenerator`.
-I have set this limit aggressively low in the hopes that we can maintain it
+This limit is set aggressively low in the hopes that we can maintain it
 even as new libraries are added, which means some existing code
 will need to be refactored somewhat to be added here.
 

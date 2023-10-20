@@ -221,9 +221,9 @@ public class DooFile {
     return false;
   }
 
-  // Checks that the library option ==> the local option.
-  // E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
-  // Generally the right check for options that weaken guarantees.
+  /// Checks that the library option ==> the local option.
+  /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
+  /// Generally the right check for options that weaken guarantees.
   public static bool CheckOptionLibraryImpliesLocal(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
     if (OptionValuesImplied(option, libraryValue, localValue)) {
       return true;
@@ -233,9 +233,9 @@ public class DooFile {
     return false;
   }
 
-  // Checks that the local option ==> the library option.
-  // E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
-  // Generally the right check for options that strengthen guarantees.
+  /// Checks that the local option ==> the library option.
+  /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
+  /// Generally the right check for options that strengthen guarantees.
   public static bool CheckOptionLocalImpliesLibrary(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
     if (OptionValuesImplied(option, localValue, libraryValue)) {
       return true;
