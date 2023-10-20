@@ -15,7 +15,7 @@ using System.Collections;
 method HasTuples()
 {
   var has0 := ();
-  var has1 := 1;
+  var has1 := (1, ghost 1.5);
   var has2 := (1, 2);
   var has3 := (1, 2, 3);
   var has4 := (1, 2, 3, 4);
@@ -44,6 +44,22 @@ method HasArrows()
   var has2 := (x1: int, x2: int) => 42;
   var has3 := (x1: int, x2: int, x3: int) => 42;
   var has4 := (x1: int, x2: int, x3: int, x4: int) => 42;
+  var has5 := (x1: int, x2: int, x3: int, x4: int, x5: int) => 42;
+  var has6 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int) => 42;
+  var has7 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int) => 42;
+  var has8 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int) => 42;
+  var has9 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int) => 42;
+  var has10 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int) => 42;
+  var has11 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int) => 42;
+  var has12 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int) => 42;
+  var has13 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int) => 42;
+  var has14 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int) => 42;
+  var has15 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int) => 42;
+  var has16 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int) => 42;
+  var has17 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int) => 42;
+  var has18 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int) => 42;
+  var has19 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int) => 42;
+  var has20 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int, x20: int) => 42;
 }
 
 method HasArrays()
@@ -52,6 +68,22 @@ method HasArrays()
   var has2 := new int[1, 2];
   var has3 := new int[1, 2, 3];
   var has4 := new int[1, 2, 3, 4];
+  var has5 := new int[1, 2, 3, 4, 5];
+  var has6 := new int[1, 2, 3, 4, 5, 6];
+  var has7 := new int[1, 2, 3, 4, 5, 6, 7];
+  var has8 := new int[1, 2, 3, 4, 5, 6, 7, 8];
+  var has9 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9];
+  var has10 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  var has11 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  var has12 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  var has13 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+  var has14 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+  var has15 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+  var has16 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+  var has17 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+  var has18 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+  var has19 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+  var has20 := new int[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 }
 ")]
 
@@ -107,6 +139,686 @@ namespace Dafny {
       }
       return a;
     }
+    public static T[,,,,] InitNewArray5<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      T[,,,,] a = new T[s0,s1,s2,s3,s4];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                a[i0,i1,i2,i3,i4] = z;
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,] InitNewArray6<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      T[,,,,,] a = new T[s0,s1,s2,s3,s4,s5];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  a[i0,i1,i2,i3,i4,i5] = z;
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,] InitNewArray7<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      T[,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    a[i0,i1,i2,i3,i4,i5,i6] = z;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,] InitNewArray8<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      T[,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      a[i0,i1,i2,i3,i4,i5,i6,i7] = z;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,] InitNewArray9<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      T[,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        a[i0,i1,i2,i3,i4,i5,i6,i7,i8] = z;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,] InitNewArray10<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      T[,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9] = z;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,] InitNewArray11<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      T[,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10] = z;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,] InitNewArray12<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      T[,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11] = z;
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,] InitNewArray13<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      T[,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12] = z;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,] InitNewArray14<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      T[,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13] = z;
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,] InitNewArray15<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      T[,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14] = z;
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,,] InitNewArray16<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14, BigInteger size15) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      int s15 = (int)size15;
+      T[,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    for (int i15 = 0; i15 < s15; i15++) {
+                                      a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15] = z;
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,,,] InitNewArray17<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14, BigInteger size15, BigInteger size16) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      int s15 = (int)size15;
+      int s16 = (int)size16;
+      T[,,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    for (int i15 = 0; i15 < s15; i15++) {
+                                      for (int i16 = 0; i16 < s16; i16++) {
+                                        a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16] = z;
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,,,,] InitNewArray18<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14, BigInteger size15, BigInteger size16, BigInteger size17) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      int s15 = (int)size15;
+      int s16 = (int)size16;
+      int s17 = (int)size17;
+      T[,,,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    for (int i15 = 0; i15 < s15; i15++) {
+                                      for (int i16 = 0; i16 < s16; i16++) {
+                                        for (int i17 = 0; i17 < s17; i17++) {
+                                          a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17] = z;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,,,,,] InitNewArray19<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14, BigInteger size15, BigInteger size16, BigInteger size17, BigInteger size18) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      int s15 = (int)size15;
+      int s16 = (int)size16;
+      int s17 = (int)size17;
+      int s18 = (int)size18;
+      T[,,,,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    for (int i15 = 0; i15 < s15; i15++) {
+                                      for (int i16 = 0; i16 < s16; i16++) {
+                                        for (int i17 = 0; i17 < s17; i17++) {
+                                          for (int i18 = 0; i18 < s18; i18++) {
+                                            a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17,i18] = z;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
+    public static T[,,,,,,,,,,,,,,,,,,,] InitNewArray20<T>(T z, BigInteger size0, BigInteger size1, BigInteger size2, BigInteger size3, BigInteger size4, BigInteger size5, BigInteger size6, BigInteger size7, BigInteger size8, BigInteger size9, BigInteger size10, BigInteger size11, BigInteger size12, BigInteger size13, BigInteger size14, BigInteger size15, BigInteger size16, BigInteger size17, BigInteger size18, BigInteger size19) {
+      int s0 = (int)size0;
+      int s1 = (int)size1;
+      int s2 = (int)size2;
+      int s3 = (int)size3;
+      int s4 = (int)size4;
+      int s5 = (int)size5;
+      int s6 = (int)size6;
+      int s7 = (int)size7;
+      int s8 = (int)size8;
+      int s9 = (int)size9;
+      int s10 = (int)size10;
+      int s11 = (int)size11;
+      int s12 = (int)size12;
+      int s13 = (int)size13;
+      int s14 = (int)size14;
+      int s15 = (int)size15;
+      int s16 = (int)size16;
+      int s17 = (int)size17;
+      int s18 = (int)size18;
+      int s19 = (int)size19;
+      T[,,,,,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19];
+      for (int i0 = 0; i0 < s0; i0++) {
+        for (int i1 = 0; i1 < s1; i1++) {
+          for (int i2 = 0; i2 < s2; i2++) {
+            for (int i3 = 0; i3 < s3; i3++) {
+              for (int i4 = 0; i4 < s4; i4++) {
+                for (int i5 = 0; i5 < s5; i5++) {
+                  for (int i6 = 0; i6 < s6; i6++) {
+                    for (int i7 = 0; i7 < s7; i7++) {
+                      for (int i8 = 0; i8 < s8; i8++) {
+                        for (int i9 = 0; i9 < s9; i9++) {
+                          for (int i10 = 0; i10 < s10; i10++) {
+                            for (int i11 = 0; i11 < s11; i11++) {
+                              for (int i12 = 0; i12 < s12; i12++) {
+                                for (int i13 = 0; i13 < s13; i13++) {
+                                  for (int i14 = 0; i14 < s14; i14++) {
+                                    for (int i15 = 0; i15 < s15; i15++) {
+                                      for (int i16 = 0; i16 < s16; i16++) {
+                                        for (int i17 = 0; i17 < s17; i17++) {
+                                          for (int i18 = 0; i18 < s18; i18++) {
+                                            for (int i19 = 0; i19 < s19; i19++) {
+                                              a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17,i18,i19] = z;
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return a;
+    }
   }
 } // end of namespace Dafny
 internal static class FuncExtensions {
@@ -124,6 +836,54 @@ internal static class FuncExtensions {
   }
   public static Func<U1, U2, U3, U4, UResult> DowncastClone<T1, T2, T3, T4, TResult, U1, U2, U3, U4, UResult>(this Func<T1, T2, T3, T4, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<TResult, UResult> ResConv) {
     return (arg1, arg2, arg3, arg4) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4)));
+  }
+  public static Func<U1, U2, U3, U4, U5, UResult> DowncastClone<T1, T2, T3, T4, T5, TResult, U1, U2, U3, U4, U5, UResult>(this Func<T1, T2, T3, T4, T5, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, TResult, U1, U2, U3, U4, U5, U6, UResult>(this Func<T1, T2, T3, T4, T5, T6, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, TResult, U1, U2, U3, U4, U5, U6, U7, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, TResult, U1, U2, U3, U4, U5, U6, U7, U8, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<U16, T16> ArgConv16, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<U16, T16> ArgConv16, Func<U17, T17> ArgConv17, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16), ArgConv17(arg17)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<U16, T16> ArgConv16, Func<U17, T17> ArgConv17, Func<U18, T18> ArgConv18, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17, arg18) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16), ArgConv17(arg17), ArgConv18(arg18)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<U16, T16> ArgConv16, Func<U17, T17> ArgConv17, Func<U18, T18> ArgConv18, Func<U19, T19> ArgConv19, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17, arg18, arg19) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16), ArgConv17(arg17), ArgConv18(arg18), ArgConv19(arg19)));
+  }
+  public static Func<U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, UResult> DowncastClone<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, TResult, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, UResult>(this Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<U3, T3> ArgConv3, Func<U4, T4> ArgConv4, Func<U5, T5> ArgConv5, Func<U6, T6> ArgConv6, Func<U7, T7> ArgConv7, Func<U8, T8> ArgConv8, Func<U9, T9> ArgConv9, Func<U10, T10> ArgConv10, Func<U11, T11> ArgConv11, Func<U12, T12> ArgConv12, Func<U13, T13> ArgConv13, Func<U14, T14> ArgConv14, Func<U15, T15> ArgConv15, Func<U16, T16> ArgConv16, Func<U17, T17> ArgConv17, Func<U18, T18> ArgConv18, Func<U19, T19> ArgConv19, Func<U20, T20> ArgConv20, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17, arg18, arg19, arg20) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16), ArgConv17(arg17), ArgConv18(arg18), ArgConv19(arg19), ArgConv20(arg20)));
   }
 }
 namespace _System {
@@ -261,6 +1021,7 @@ namespace _System {
       }
     }
   }
+
 
   public interface _ITuple3<out T0, out T1, out T2> {
     T0 dtor__0 { get; }
@@ -3258,6 +4019,198 @@ namespace _System {
       return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, R>>(((T0 x0, T1 x1, T2 x2, T3 x3) => _td_R.Default()));
     }
   }
+
+  public partial class ___hPartialFunc5<T0, T1, T2, T3, T4, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, R>>(((Func<T0, T1, T2, T3, T4, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc5<T0, T1, T2, T3, T4, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc6<T0, T1, T2, T3, T4, T5, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, R>>(((Func<T0, T1, T2, T3, T4, T5, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc6<T0, T1, T2, T3, T4, T5, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc7<T0, T1, T2, T3, T4, T5, T6, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc7<T0, T1, T2, T3, T4, T5, T6, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc8<T0, T1, T2, T3, T4, T5, T6, T7, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc8<T0, T1, T2, T3, T4, T5, T6, T7, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc9<T0, T1, T2, T3, T4, T5, T6, T7, T8, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc9<T0, T1, T2, T3, T4, T5, T6, T7, T8, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14, T15 x15) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14, T15 x15, T16 x16) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14, T15 x15, T16 x16, T17 x17) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<T18> _td_T18, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<T18> _td_T18, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14, T15 x15, T16 x16, T17 x17, T18 x18) => _td_R.Default()));
+    }
+  }
+
+  public partial class ___hPartialFunc20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<T18> _td_T18, Dafny.TypeDescriptor<T19> _td_T19, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R>>(((Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R>)null));
+    }
+  }
+
+  public partial class ___hTotalFunc20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R> {
+    public static Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2, Dafny.TypeDescriptor<T3> _td_T3, Dafny.TypeDescriptor<T4> _td_T4, Dafny.TypeDescriptor<T5> _td_T5, Dafny.TypeDescriptor<T6> _td_T6, Dafny.TypeDescriptor<T7> _td_T7, Dafny.TypeDescriptor<T8> _td_T8, Dafny.TypeDescriptor<T9> _td_T9, Dafny.TypeDescriptor<T10> _td_T10, Dafny.TypeDescriptor<T11> _td_T11, Dafny.TypeDescriptor<T12> _td_T12, Dafny.TypeDescriptor<T13> _td_T13, Dafny.TypeDescriptor<T14> _td_T14, Dafny.TypeDescriptor<T15> _td_T15, Dafny.TypeDescriptor<T16> _td_T16, Dafny.TypeDescriptor<T17> _td_T17, Dafny.TypeDescriptor<T18> _td_T18, Dafny.TypeDescriptor<T19> _td_T19, Dafny.TypeDescriptor<R> _td_R) {
+      return new Dafny.TypeDescriptor<Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, R>>(((T0 x0, T1 x1, T2 x2, T3 x3, T4 x4, T5 x5, T6 x6, T7 x7, T8 x8, T9 x9, T10 x10, T11 x11, T12 x12, T13 x13, T14 x14, T15 x15, T16 x16, T17 x17, T18 x18, T19 x19) => _td_R.Default()));
+    }
+  }
 } // end of namespace _System
 namespace _module {
 
@@ -3329,21 +4282,133 @@ namespace _module {
       _31_has4 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_32_x1, _33_x2, _34_x3, _35_x4) => {
         return new BigInteger(42);
       }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _36_has5;
+      _36_has5 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_37_x1, _38_x2, _39_x3, _40_x4, _41_x5) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _42_has6;
+      _42_has6 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_43_x1, _44_x2, _45_x3, _46_x4, _47_x5, _48_x6) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _49_has7;
+      _49_has7 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_50_x1, _51_x2, _52_x3, _53_x4, _54_x5, _55_x6, _56_x7) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _57_has8;
+      _57_has8 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_58_x1, _59_x2, _60_x3, _61_x4, _62_x5, _63_x6, _64_x7, _65_x8) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _66_has9;
+      _66_has9 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_67_x1, _68_x2, _69_x3, _70_x4, _71_x5, _72_x6, _73_x7, _74_x8, _75_x9) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _76_has10;
+      _76_has10 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_77_x1, _78_x2, _79_x3, _80_x4, _81_x5, _82_x6, _83_x7, _84_x8, _85_x9, _86_x10) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _87_has11;
+      _87_has11 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_88_x1, _89_x2, _90_x3, _91_x4, _92_x5, _93_x6, _94_x7, _95_x8, _96_x9, _97_x10, _98_x11) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _99_has12;
+      _99_has12 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_100_x1, _101_x2, _102_x3, _103_x4, _104_x5, _105_x6, _106_x7, _107_x8, _108_x9, _109_x10, _110_x11, _111_x12) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _112_has13;
+      _112_has13 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_113_x1, _114_x2, _115_x3, _116_x4, _117_x5, _118_x6, _119_x7, _120_x8, _121_x9, _122_x10, _123_x11, _124_x12, _125_x13) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _126_has14;
+      _126_has14 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_127_x1, _128_x2, _129_x3, _130_x4, _131_x5, _132_x6, _133_x7, _134_x8, _135_x9, _136_x10, _137_x11, _138_x12, _139_x13, _140_x14) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _141_has15;
+      _141_has15 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_142_x1, _143_x2, _144_x3, _145_x4, _146_x5, _147_x6, _148_x7, _149_x8, _150_x9, _151_x10, _152_x11, _153_x12, _154_x13, _155_x14, _156_x15) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _157_has16;
+      _157_has16 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_158_x1, _159_x2, _160_x3, _161_x4, _162_x5, _163_x6, _164_x7, _165_x8, _166_x9, _167_x10, _168_x11, _169_x12, _170_x13, _171_x14, _172_x15, _173_x16) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _174_has17;
+      _174_has17 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_175_x1, _176_x2, _177_x3, _178_x4, _179_x5, _180_x6, _181_x7, _182_x8, _183_x9, _184_x10, _185_x11, _186_x12, _187_x13, _188_x14, _189_x15, _190_x16, _191_x17) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _192_has18;
+      _192_has18 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_193_x1, _194_x2, _195_x3, _196_x4, _197_x5, _198_x6, _199_x7, _200_x8, _201_x9, _202_x10, _203_x11, _204_x12, _205_x13, _206_x14, _207_x15, _208_x16, _209_x17, _210_x18) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _211_has19;
+      _211_has19 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_212_x1, _213_x2, _214_x3, _215_x4, _216_x5, _217_x6, _218_x7, _219_x8, _220_x9, _221_x10, _222_x11, _223_x12, _224_x13, _225_x14, _226_x15, _227_x16, _228_x17, _229_x18, _230_x19) => {
+        return new BigInteger(42);
+      }));
+      Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger> _231_has20;
+      _231_has20 = ((System.Func<BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger>)((_232_x1, _233_x2, _234_x3, _235_x4, _236_x5, _237_x6, _238_x7, _239_x8, _240_x9, _241_x10, _242_x11, _243_x12, _244_x13, _245_x14, _246_x15, _247_x16, _248_x17, _249_x18, _250_x19, _251_x20) => {
+        return new BigInteger(42);
+      }));
     }
     public static void HasArrays()
     {
-      BigInteger[] _36_has1;
+      BigInteger[] _252_has1;
       BigInteger[] _nw0 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit")];
-      _36_has1 = _nw0;
-      BigInteger[,] _37_has2;
+      _252_has1 = _nw0;
+      BigInteger[,] _253_has2;
       BigInteger[,] _nw1 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit")];
-      _37_has2 = _nw1;
-      BigInteger[,,] _38_has3;
+      _253_has2 = _nw1;
+      BigInteger[,,] _254_has3;
       BigInteger[,,] _nw2 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit")];
-      _38_has3 = _nw2;
-      BigInteger[,,,] _39_has4;
+      _254_has3 = _nw2;
+      BigInteger[,,,] _255_has4;
       BigInteger[,,,] _nw3 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit")];
-      _39_has4 = _nw3;
+      _255_has4 = _nw3;
+      BigInteger[,,,,] _256_has5;
+      BigInteger[,,,,] _nw4 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit")];
+      _256_has5 = _nw4;
+      BigInteger[,,,,,] _257_has6;
+      BigInteger[,,,,,] _nw5 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit")];
+      _257_has6 = _nw5;
+      BigInteger[,,,,,,] _258_has7;
+      BigInteger[,,,,,,] _nw6 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit")];
+      _258_has7 = _nw6;
+      BigInteger[,,,,,,,] _259_has8;
+      BigInteger[,,,,,,,] _nw7 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit")];
+      _259_has8 = _nw7;
+      BigInteger[,,,,,,,,] _260_has9;
+      BigInteger[,,,,,,,,] _nw8 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit")];
+      _260_has9 = _nw8;
+      BigInteger[,,,,,,,,,] _261_has10;
+      BigInteger[,,,,,,,,,] _nw9 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit")];
+      _261_has10 = _nw9;
+      BigInteger[,,,,,,,,,,] _262_has11;
+      BigInteger[,,,,,,,,,,] _nw10 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit")];
+      _262_has11 = _nw10;
+      BigInteger[,,,,,,,,,,,] _263_has12;
+      BigInteger[,,,,,,,,,,,] _nw11 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit")];
+      _263_has12 = _nw11;
+      BigInteger[,,,,,,,,,,,,] _264_has13;
+      BigInteger[,,,,,,,,,,,,] _nw12 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit")];
+      _264_has13 = _nw12;
+      BigInteger[,,,,,,,,,,,,,] _265_has14;
+      BigInteger[,,,,,,,,,,,,,] _nw13 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit")];
+      _265_has14 = _nw13;
+      BigInteger[,,,,,,,,,,,,,,] _266_has15;
+      BigInteger[,,,,,,,,,,,,,,] _nw14 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit")];
+      _266_has15 = _nw14;
+      BigInteger[,,,,,,,,,,,,,,,] _267_has16;
+      BigInteger[,,,,,,,,,,,,,,,] _nw15 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(16), "array size exceeds memory limit")];
+      _267_has16 = _nw15;
+      BigInteger[,,,,,,,,,,,,,,,,] _268_has17;
+      BigInteger[,,,,,,,,,,,,,,,,] _nw16 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(16), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(17), "array size exceeds memory limit")];
+      _268_has17 = _nw16;
+      BigInteger[,,,,,,,,,,,,,,,,,] _269_has18;
+      BigInteger[,,,,,,,,,,,,,,,,,] _nw17 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(16), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(17), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(18), "array size exceeds memory limit")];
+      _269_has18 = _nw17;
+      BigInteger[,,,,,,,,,,,,,,,,,,] _270_has19;
+      BigInteger[,,,,,,,,,,,,,,,,,,] _nw18 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(16), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(17), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(18), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(19), "array size exceeds memory limit")];
+      _270_has19 = _nw18;
+      BigInteger[,,,,,,,,,,,,,,,,,,,] _271_has20;
+      BigInteger[,,,,,,,,,,,,,,,,,,,] _nw19 = new BigInteger[Dafny.Helpers.ToIntChecked(BigInteger.One, "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(2), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(3), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(4), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(5), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(6), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(7), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(8), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(9), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(10), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(11), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(12), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(13), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(14), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(15), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(16), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(17), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(18), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(19), "array size exceeds memory limit"), Dafny.Helpers.ToIntChecked(new BigInteger(20), "array size exceeds memory limit")];
+      _271_has20 = _nw19;
     }
   }
 } // end of namespace _module
