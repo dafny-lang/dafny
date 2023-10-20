@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Linq;
 using Dafny;
 using ResolvedDesugaredExecutableDafnyPlugin;
@@ -8,7 +6,9 @@ namespace Microsoft.Dafny.Compilers;
 
 class ResolvedDesugaredExecutableDafnyCompiler : DafnyWrittenCompiler {
 
+  public Sequence<DAST.Module> Program;
   public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
+    Program = program;
     return COMP.Compile(program);
   }
 

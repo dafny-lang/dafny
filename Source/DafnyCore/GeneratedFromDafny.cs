@@ -5407,7 +5407,18 @@ namespace DAST {
   }
 } // end of namespace DAST
 
-namespace D2DPrettyPrinter {
+namespace D2DInterpreter {
+
+
+  public partial class Interpreter {
+    public Interpreter() {
+    }
+    public static void Run(Dafny.ISequence<DAST._IModule> d) {
+      Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Hello, world!\n")).ToVerbatimString(false));
+    }
+  }
+} // end of namespace D2DInterpreter
+namespace PrettyPrinter {
 
   public partial class __default {
     public static Dafny.ISequence<Dafny.Rune> PrettyPrint(Dafny.ISequence<DAST._IModule> d) {
@@ -5417,7 +5428,7 @@ namespace D2DPrettyPrinter {
       return s;
     }
   }
-} // end of namespace D2DPrettyPrinter
+} // end of namespace PrettyPrinter
 namespace ResolvedDesugaredExecutableDafnyPlugin {
 
 
@@ -5427,7 +5438,7 @@ namespace ResolvedDesugaredExecutableDafnyPlugin {
     public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       Dafny.ISequence<Dafny.Rune> _out1;
-      _out1 = D2DPrettyPrinter.__default.PrettyPrint(p);
+      _out1 = PrettyPrinter.__default.PrettyPrint(p);
       s = _out1;
       return s;
     }
