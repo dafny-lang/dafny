@@ -5,11 +5,10 @@ module RandomJava replaces DfyRandom {
   import opened JavaRest
   
   method GetRandomNat ... {
-    // Ignore the ceiling parameter for now
     var random := new JavaRandom();
     
     var ceilingInt32 := IntToInt32(ceiling).GetOr(IntegerMaxValue());
-    assert Int32ToInt(ceilingInt32) <= ceiling;
+    assert ceilingInt32.value <= ceiling;
     var resultInt32 := random.Next(ceilingInt32);
     var resultInt := Int32ToInt(resultInt32);
     return resultInt as nat;
@@ -23,20 +22,22 @@ module Interop {
   const int32MaxValue := 2147483647
   
   function {:extern} IntToInt32(value: int): Option<Integer>
-    ensures match IntToInt32(value) {
-      case None        => value > Int32ToInt(IntegerMaxValue())
-      case Some(int32) => Int32ToInt(int32) == value
-    }
-    ensures value <= int32MaxValue ==> IntToInt32(value).Some?
+    ensures var r := IntToInt32(value); 
+      if value <= int32MaxValue 
+        then r.Some? && r.Extract().value == value
+        else r.None?
     
   function {:extern} Int32ToInt(value: Integer): int
+    ensures Int32ToInt(value) == value.value
   
   function {:extern} IntegerMaxValue(): Integer
+    ensures IntegerMaxValue().value == int32MaxValue
 }
   
 module {:extern "java.lang"} JavaLang {
 
   class {:extern "Integer" } Integer {
+    ghost var value: int
     // Would be nice to have an ensures here that equates it to 2147483647
     // So we would not need Interop.int32MaxValue
     // Sadly this maps to MAX_VALUE() (note the incorrect parenthesis)
@@ -52,6 +53,6 @@ module {:extern "java.util"} JavaRest {
     constructor {:extern} () { }
     
     method {:extern "nextInt"} Next(bound: Integer) returns (r: Integer)
-      ensures var i := Int32ToInt(r); 0 <= i && i < Int32ToInt(bound) 
+      ensures 0 <= r.value && r.value < bound.value
   }
 }
