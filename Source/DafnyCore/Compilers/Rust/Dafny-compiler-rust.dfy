@@ -2112,17 +2112,5 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
-      s := "\nfn main() {\n";
-      var i := 0;
-      while i < |fullName| {
-        if i > 0 {
-          s := s + "::";
-        }
-        s := s + fullName[i];
-        i := i + 1;
-      }
-      s := s + "();\n}";
-    }
   }
 }

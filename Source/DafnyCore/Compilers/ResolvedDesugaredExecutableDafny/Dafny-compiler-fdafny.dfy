@@ -8,9 +8,5 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
     static method Compile(p: seq<Module>) returns (s: string) {
       s := PrettyPrinter.PrettyPrint(p);
     }
-
-    static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
-      s := "";
-    }
   }
 }
