@@ -1548,11 +1548,7 @@ made by the solver.  If the resources used during these attempts (or the
 ability to find a proof at all) vary widely, we use this as a proxy
 metric indicating that the proof may be brittle.
 
-<<<<<<< HEAD
-#### 13.7.6.1. Measuring proof variability
-=======
-#### 13.6.6.1. Measuring proof brittleness
->>>>>>> d3c2ea63aaeeb26bbcffa67d970a16d49c24d596
+#### 13.7.6.1. Measuring proof brittleness
 
 To measure the brittleness of your proofs, start by using the `dafny
 measure-complexity` command with the `--iterations N` flag to instruct
@@ -1601,11 +1597,7 @@ reducing it, integrating `dafny-reportgenerator` into CI and using the
 improved brittleness sufficiently, you can likely remove that flag (and
 likely have significantly lower limits on other metrics).
 
-<<<<<<< HEAD
-#### 13.7.6.2. Improving proof variability
-=======
-#### 13.6.6.2. Improving proof brittleness
->>>>>>> d3c2ea63aaeeb26bbcffa67d970a16d49c24d596
+#### 13.7.6.2. Improving proof brittleness
 
 Reducing proof brittleness is typically closely related to improving
 performance overall. As such, [techniques for debugging slow
