@@ -4,10 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class RDEDafnyBackend : DafnyExecutableBackend {
+public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
-  public override string TargetName => "RDEDafny";
+  public override string TargetName => "ResolvedDesugaredExecutableDafny";
   public override bool IsStable => true;
   public override bool IsInternal => true;
   public override string TargetExtension => "dfy";
@@ -15,12 +15,12 @@ public class RDEDafnyBackend : DafnyExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   public override string TargetBaseDir(string dafnyProgramName) =>
-    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rdedafny/src";
+    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-ResolvedDesugaredExecutableDafny/src";
 
   protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
     return new RDEDafnyCompiler();
   }
 
-  public RDEDafnyBackend(DafnyOptions options) : base(options) {
+  public ResolvedDesugaredExecutableDafnyBackend(DafnyOptions options) : base(options) {
   }
 }

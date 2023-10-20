@@ -15,7 +15,7 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new CppCompilerBackend(options),
       new LibraryBackend(options),
       new RustBackend(options),
-      new RDEDafnyBackend(options)
+      new ResolvedDesugaredExecutableDafnyBackend(options)
     };
   }
 }
