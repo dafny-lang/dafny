@@ -1730,6 +1730,7 @@ is contained [in the section on command-line structure](#command-line).
 ### 13.7.2. Placeholder modules
 To enable easily customising runtime behavior across an entire Dafny program, Dafny has placeholder modules. Here follows an example:
 
+<!-- %check-run -->
 ```dafny
 placeholder module Foo {
   method Bar() returns (i: int) 
