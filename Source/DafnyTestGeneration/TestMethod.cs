@@ -93,7 +93,7 @@ namespace DafnyTestGeneration {
     /// Returns a string that contains all the {:synthesize} annotated methods
     /// necessary to compile the tests
     /// </summary>
-    public string EmitSynthesizeMethods(DafnyInfo dafnyInfo) {
+    public static string EmitSynthesizeMethods(DafnyInfo dafnyInfo, Modifications cache) {
       var result = "";
       // ensures that duplicate types in TypesToSynthesize are skipped:
       HashSet<string> emittedTypes = new();

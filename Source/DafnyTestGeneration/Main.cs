@@ -226,7 +226,7 @@ namespace DafnyTestGeneration {
         methodsGenerated++;
       }
 
-      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
       yield return "}";
 
       PopulateCoverageReport(report, program, cache);
