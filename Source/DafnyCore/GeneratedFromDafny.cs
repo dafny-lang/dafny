@@ -5433,8 +5433,7 @@ namespace FDafnyPlugin {
     }
     public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> fullName) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
-      Microsoft.Dafny.Compilers.WrapException.Throw();
-      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Emit Main");
+      s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
       return s;
     }
   }
