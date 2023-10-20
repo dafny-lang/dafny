@@ -2,11 +2,13 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../../Dafny --no-build --
 
-test:
-	GO111MODULE=auto go test
-
 GENERATED_SYSTEM_MODULE_SOURCE=systemModulePopulator-go/src/System_/System_.go
 GENERATED_SYSTEM_MODULE_TARGET=System_/System_.go
+
+all: check-system-module test
+
+test:
+	GO111MODULE=auto go test
 
 build-system-module:
 	$(DAFNY) translate go --no-verify --use-basename-for-filename --include-system-module ../systemModulePopulator.dfy --output:systemModulePopulator

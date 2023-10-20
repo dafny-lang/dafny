@@ -1,7 +1,7 @@
 
 method HasTuples() {
   var has0 := ();
-  var has1 := (1);
+  var has1 := (1, ghost 1.5);  // Just (1) is an int in parentheses instead
   var has2 := (1,2);
   var has3 := (1,2,3);
   var has4 := (1,2,3,4);

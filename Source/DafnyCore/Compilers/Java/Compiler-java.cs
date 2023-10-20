@@ -357,7 +357,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
-        moduleName = "_System";
+        return wr;
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
@@ -1827,6 +1827,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
+      if (dt is TupleTypeDecl) {
+        // Handled by CreateTuple() from EmitFooter() instead (which produces somewhat different code)
+        return null;
+      }
+
       var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
       return w;
