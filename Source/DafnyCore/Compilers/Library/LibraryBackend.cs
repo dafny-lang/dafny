@@ -31,6 +31,9 @@ public class LibraryBackend : ExecutableBackend {
     Feature.LegacyCLI
   };
 
+  // Necessary since Compiler is null
+  public override string ModuleSeparator => ".";
+
   protected override SinglePassCompiler CreateCompiler() {
     return null;
   }

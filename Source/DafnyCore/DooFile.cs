@@ -69,9 +69,18 @@ public class DooFile {
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
   public static DooFile Read(string path) {
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    return Read(archive);
+  }
+
+  public static DooFile Read(Stream stream) {
+    using var archive = new ZipArchive(stream);
+    return Read(archive);
+  }
+
+  private static DooFile Read(ZipArchive archive) {
     var result = new DooFile();
 
-    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
@@ -119,12 +128,12 @@ public class DooFile {
     }
 
     var success = true;
-    var revelantOptions = currentCommand.Options.ToHashSet();
+    var relevantOptions = currentCommand.Options.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
-      if (!revelantOptions.Contains(option)) {
+      if (!relevantOptions.Contains(option)) {
         continue;
       }
 
@@ -208,7 +217,31 @@ public class DooFile {
       return true;
     }
 
-    options.Printer.ErrorWriteLine(Console.Out, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    return false;
+  }
+
+  /// Checks that the library option ==> the local option.
+  /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
+  /// Generally the right check for options that weaken guarantees.
+  public static bool CheckOptionLibraryImpliesLocal(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+    if (OptionValuesImplied(option, libraryValue, localValue)) {
+      return true;
+    }
+
+    options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    return false;
+  }
+
+  /// Checks that the local option ==> the library option.
+  /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
+  /// Generally the right check for options that strengthen guarantees.
+  public static bool CheckOptionLocalImpliesLibrary(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+    if (OptionValuesImplied(option, localValue, libraryValue)) {
+      return true;
+    }
+
+    options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -222,6 +255,12 @@ public class DooFile {
     }
 
     return false;
+  }
+
+  private static bool OptionValuesImplied(Option option, object first, object second) {
+    var lhs = (bool)first;
+    var rhs = (bool)second;
+    return !lhs || rhs;
   }
 
   private static string OptionValueToString(Option option, object value) {

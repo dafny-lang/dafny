@@ -37,6 +37,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis
     };
 
+    public override string ModuleSeparator => "_";
+
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
@@ -88,8 +90,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
-      var file = wr.NewFile($"{modulePath}.py");
+      var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
     }
@@ -351,7 +352,7 @@ namespace Microsoft.Dafny.Compilers {
       var dt = ctor.EnclosingDatatype;
 
       // Dt.Ctor
-      var fString = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+      var fString = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                 dt.Name + "." + ctor.Name;
 
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}

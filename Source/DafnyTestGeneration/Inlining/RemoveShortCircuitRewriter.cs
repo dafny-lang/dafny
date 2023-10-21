@@ -9,6 +9,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
 using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
+using LambdaExpr = Microsoft.Boogie.LambdaExpr;
 using LetExpr = Microsoft.Dafny.LetExpr;
 using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using LocalVariable = Microsoft.Dafny.LocalVariable;
@@ -54,7 +55,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
 
   private void Visit(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(Visit);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(Visit);
       withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().ForEach(Visit);
@@ -141,7 +142,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
         return CloneForLoopStmt(forLoopStmt);
       case CallStmt callStmt:
         return CloneCallStmt(callStmt);
-      case PredicateStmt or ForallStmt or RevealStmt: // always ghost
+      case PredicateStmt or ForallStmt or RevealStmt: // always ghost?
         return statement;
       default:
         return base.CloneStmt(statement);
@@ -433,6 +434,9 @@ public class RemoveShortCircuitingRewriter : Cloner {
     }
     nextVariableId--; // the new variable was not used in the end
     foundShortCircuit = false;
+    if (expr is SetComprehension or Microsoft.Dafny.LambdaExpr) {
+      return expr;
+    }
     return base.CloneExpr(expr);
   }
 

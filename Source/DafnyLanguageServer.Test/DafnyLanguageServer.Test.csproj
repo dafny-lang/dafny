@@ -46,6 +46,18 @@
     <None Update="Lookup\TestFiles\find-refs-b.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Lookup\TestFiles\ProofDependencies\LSPProofDependencyTest.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Lookup\TestFiles\ProofDependencies\dfyconfig.toml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Lookup\TestFiles\defines-foo.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Lookup\TestFiles\includes-foo.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Synchronization\TestFiles\semanticError.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -106,13 +118,19 @@
     <None Update="Synchronization\TestFiles\multi2.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Synchronization\TestFiles\ProofDependencies\LSPProofDependencyTest.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Synchronization\TestFiles\ProofDependencies\dfyconfig.toml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\Test\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
+    <None Include="..\IntegrationTests\TestFiles\LitTests\LitTest\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\Test\dafny4\GHC-MergeSort.dfy" Link="Various\TestFiles\GHC-MergeSort.dfy">
+    <None Include="..\IntegrationTests\TestFiles\LitTests\LitTest\dafny4\GHC-MergeSort.dfy" Link="Various\TestFiles\GHC-MergeSort.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

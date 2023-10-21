@@ -72,10 +72,10 @@ module Importer {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var imported = await CreateAndOpenTestDocument(importedSource, Path.Combine(directory, "imported.dfy"));
-    await CreateAndOpenTestDocument(exporter, Path.Combine(directory, "exporter.dfy"));
-    var importer = await CreateAndOpenTestDocument(importerSource, Path.Combine(directory, "importer.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var imported = await CreateOpenAndWaitForResolve(importedSource, Path.Combine(directory, "imported.dfy"));
+    await CreateOpenAndWaitForResolve(exporter, Path.Combine(directory, "exporter.dfy"));
+    var importer = await CreateOpenAndWaitForResolve(importerSource, Path.Combine(directory, "importer.dfy"));
 
     // Make a change to imported, which could trigger a bug where some dependants of it are not marked dirty
     ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
@@ -100,10 +100,10 @@ const tuple2 := (3,2)
 
     await AssertNoDiagnosticsAreComing(CancellationToken);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple3: (int, int, bool) := (1,2,3) \n");
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics2);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
-    var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics3 = await GetLastDiagnostics(documentItem);
     Assert.Equal(2, diagnostics3.Length);
   }
 
@@ -141,9 +141,9 @@ module ModC {
 
 
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var noCachingProject = await CreateAndOpenTestDocument(@"[options]
+    var noCachingProject = await CreateOpenAndWaitForResolve(@"[options]
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
-    var noCaching = await CreateAndOpenTestDocument(source, Path.Combine(temp, "noCaching.dfy"));
+    var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCountForNoCaching = await WaitAndCountHits(noCaching);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
@@ -330,7 +330,7 @@ module ChangedClonedId {
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "notCached.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
-    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(documentItem1);
     Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
 
     ApplyChange(ref documentItem1, new Range(2, 0, 2, 0), "//comment\n");

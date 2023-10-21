@@ -164,7 +164,7 @@ public class ProgramResolver {
 
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name);
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name, false);
 
     return systemModuleResolver.moduleClassMembers;
   }
@@ -186,7 +186,7 @@ public class ProgramResolver {
   }
 
   /// <summary>
-  /// Check that now two modules that are being compiled have the same CompileName.
+  /// Check that no two modules that are being compiled have the same CompileName.
   ///
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>

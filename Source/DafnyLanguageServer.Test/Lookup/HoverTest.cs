@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var hovers = hoverRegex.Matches(sourceWithHovers);
       var documentItem = CreateTestDocument(source, "AssertHover.dfy");
       if (useProjectFile) {
-        await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+        await CreateOpenAndWaitForResolve("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
       }
       client.OpenDocument(documentItem);
       var lineDelta = 0;
@@ -106,7 +106,7 @@ method Foo() {
 
     [Fact]
     public async Task RecoverableParseError() {
-      var document = await CreateAndOpenTestDocument(@"
+      var document = await CreateOpenAndWaitForResolve(@"
 class Foo {
   const x := '\U2345'
 //      ^[```dafny\nconst x: ?\n```]
@@ -177,7 +177,7 @@ function F2(dt: DT): int {
       var documentItem = CreateTestDocument(NeverVerifies, "HoverReturnsBeforeVerificationIsComplete.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.False(verificationTask.IsCompleted);

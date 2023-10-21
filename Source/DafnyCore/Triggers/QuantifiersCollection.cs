@@ -264,6 +264,7 @@ namespace Microsoft.Dafny.Triggers {
           list.Add(q);
           splits.Add(q.quantifier);
         }
+
         this.quantifiers = list;
         Contract.Assert(this.expr is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
         ((QuantifierExpr)this.expr).SplitQuantifier = splits;
@@ -286,7 +287,7 @@ namespace Microsoft.Dafny.Triggers {
       return expr;
     }
 
-    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader) {
+    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader, SystemModuleManager systemModuleManager) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
@@ -313,7 +314,9 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         foreach (var candidate in q.Candidates) {
-          q.quantifier.Attributes = new Attributes("trigger", candidate.Terms.Select(t => t.Expr).ToList(), q.quantifier.Attributes);
+          q.quantifier.Attributes = new Attributes("trigger",
+            candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),
+            q.quantifier.Attributes);
         }
 
         AddTriggersToMessage("Selected triggers:", q.Candidates, msg, indent);
@@ -363,9 +366,9 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal void CommitTriggers(DafnyOptions options) {
+    internal void CommitTriggers(DafnyOptions options, SystemModuleManager systemModuleManager) {
       foreach (var q in quantifiers) {
-        CommitOne(options, q, quantifiers.Count > 1);
+        CommitOne(options, q, quantifiers.Count > 1, systemModuleManager);
       }
     }
   }

@@ -1051,8 +1051,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
-                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false);
+                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
@@ -1264,9 +1263,12 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
 = (. Type parentTrait;
   .)
-  "extends"                   (. if (requiresNonReferenceTraitsFor != null && !theOptions.Get(CommonOptionBag.GeneralTraits)) {
+  "extends"                   (. if (requiresNonReferenceTraitsFor == "newtype" && theOptions.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Full) {
                                    SemErr(ErrorId.p_general_traits_beta, t,
-                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:1 to engage");
+                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:full to engage");
+                                 } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
+                                   SemErr(ErrorId.p_general_traits_beta, t,
+                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:datatype to engage");
                                  }
                               .)
   Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)

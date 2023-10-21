@@ -1,2 +1,0 @@
-// CHECK-L:  ---> System.NotImplementedException: The method or operation is not implemented.
-// CHECK-NEXT:    at Microsoft\.Dafny\.Compilers\.NewtypeBuilder\.AddMethod\(Method item\) in .*

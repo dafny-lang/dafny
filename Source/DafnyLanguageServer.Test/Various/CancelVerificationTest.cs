@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
-        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+        options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsOnSaveVerification.dfy");
       client.OpenDocument(documentItem);
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsManualVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
-        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+        options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       client.OpenDocument(documentItem);

@@ -17,24 +17,39 @@ namespace Microsoft.Dafny;
 /// pre-type inference. The visitor collects constraints, which are solved by the Solve() method.
 /// </summary>
 public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
+  private string moduleDescription;
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
   }
 
   private readonly SystemModuleManager systemModuleManager;
 
-  public TypeAdjustorVisitor(SystemModuleManager systemModuleManager) {
+  public TypeAdjustorVisitor(string moduleDescription, SystemModuleManager systemModuleManager) {
+    this.moduleDescription = moduleDescription;
     this.systemModuleManager = systemModuleManager;
   }
 
   private readonly List<Flow> flows = new();
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows:");
+    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows, {moduleDescription}:");
     foreach (var flow in flows) {
       flow.DebugPrint(systemModuleManager.Options.OutputWriter);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine("------------------- (end of type-adjustment flows)");
+    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-adjustment flows, {moduleDescription})");
+  }
+
+  protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
+    if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
+      // How a DatatypeUpdateExpr desugars depends on whether or not the expression is ghost, which hasn't been determined
+      // yet. So, if there is a difference between the two, then pre-type resolution prepares two different resolved expressions.
+      // The choice between these two is done in a later phase during resolution. For now, if there are two, we visit them both.
+      // ASTVisitor arranges to visit ResolvedExpression, but we consider ResolvedCompiledExpression here.
+      if (datatypeUpdateExpr.ResolvedCompiledExpression != datatypeUpdateExpr.ResolvedExpression) {
+        VisitExpression(datatypeUpdateExpr.ResolvedCompiledExpression, context);
+      }
+    }
+    return base.VisitOneExpression(expr, context);
   }
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
@@ -97,7 +112,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = functionCallExpr.Args[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
-          return (formal.Type.Subst(typeMap), actual.Type);
+          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
         }, functionCallExpr.tok, $"{functionCallExpr.Function.Name}({formal.Name} := ...)"));
       }
 
@@ -114,7 +129,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = datatypeValue.Arguments[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, datatypeValue.InferredTypeArgs);
-          return (formal.Type.Subst(typeMap), actual.Type);
+          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
         }, datatypeValue.tok, $"{ctor.Name}({formal.Name} := ...)"));
       }
       flows.Add(new FlowFromComputedType(expr,
@@ -126,63 +141,181 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is SetDisplayExpr setDisplayExpr) {
       foreach (var element in setDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, element.Type), "set display"));
+        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
       }
 
     } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
       foreach (var element in multiSetDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(element.Type), "multiset display"));
+        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
       }
 
     } else if (expr is SeqDisplayExpr seqDisplayExpr) {
       foreach (var element in seqDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(element.Type), "sequence display"));
+        flows.Add(new FlowFromComputedType(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
       }
 
     } else if (expr is MapDisplayExpr mapDisplayExpr) {
       foreach (var element in mapDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite, element.A.Type, element.B.Type),
+        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite,
+            AdjustableType.NormalizeSansBottom(element.A), AdjustableType.NormalizeSansBottom(element.B)),
           "map display"));
       }
 
+    } else if (expr is SetComprehension setComprehension) {
+      flows.Add(new FlowFromComputedType(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
+        "set comprehension"));
+
+    } else if (expr is MapComprehension mapComprehension) {
+      flows.Add(new FlowFromComputedType(expr, () => {
+        Type keyType;
+        if (mapComprehension.TermLeft != null) {
+          keyType = AdjustableType.NormalizeSansBottom(mapComprehension.TermLeft);
+        } else {
+          Contract.Assert(mapComprehension.BoundVars.Count == 1);
+          keyType = AdjustableType.NormalizeSansBottom(mapComprehension.BoundVars[0]);
+        }
+        return new MapType(mapComprehension.Finite, keyType, AdjustableType.NormalizeSansBottom(mapComprehension.Term));
+      }, "map comprehension"));
+
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+        case BinaryExpr.ResolvedOpcode.Imp:
+        case BinaryExpr.ResolvedOpcode.And:
+        case BinaryExpr.ResolvedOpcode.Or:
+        case BinaryExpr.ResolvedOpcode.Add:
+        case BinaryExpr.ResolvedOpcode.Sub:
+        case BinaryExpr.ResolvedOpcode.Mul:
+        case BinaryExpr.ResolvedOpcode.Div:
+        case BinaryExpr.ResolvedOpcode.Mod:
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
         case BinaryExpr.ResolvedOpcode.Union:
+        case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
         case BinaryExpr.ResolvedOpcode.Concat:
         case BinaryExpr.ResolvedOpcode.MapMerge:
-        case BinaryExpr.ResolvedOpcode.Intersection:
-        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          // For these operators, the result type is the same as that of E0 and E1.
+          //
           // Note about intersection: In general, let set<C> be the result of combining the operands set<A> and set<B>
           // of intersection. To be precise, we would need C to be a type that conjoins the constraints of A and B.
           // We don't have such a time, so we instead (approximate the other direction and) let C be the join of A and B.
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E1, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+        case BinaryExpr.ResolvedOpcode.RightShift:
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
         case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          // For these operators, the result type is determined by E0.
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+        case BinaryExpr.ResolvedOpcode.SetEq:
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+        case BinaryExpr.ResolvedOpcode.ProperSubset:
+        case BinaryExpr.ResolvedOpcode.Subset:
+        case BinaryExpr.ResolvedOpcode.Superset:
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+        case BinaryExpr.ResolvedOpcode.Disjoint:
+        case BinaryExpr.ResolvedOpcode.InSet:
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+        case BinaryExpr.ResolvedOpcode.MultiSetEq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSubset:
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+        case BinaryExpr.ResolvedOpcode.InMultiSet:
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+        case BinaryExpr.ResolvedOpcode.Prefix:
+        case BinaryExpr.ResolvedOpcode.InSeq:
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+        case BinaryExpr.ResolvedOpcode.MapEq:
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+        case BinaryExpr.ResolvedOpcode.InMap:
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+        case BinaryExpr.ResolvedOpcode.RankLt:
+        case BinaryExpr.ResolvedOpcode.RankGt:
+          // For these operators, the result type is fixed (to be bool), so there is no flow.
+          break;
+        case BinaryExpr.ResolvedOpcode.YetUndetermined:
+        case BinaryExpr.ResolvedOpcode.LessThanLimit:
         default:
+          Contract.Assert(false); // unexpected operator
           break;
       }
+
+    } else if (expr is LetExpr letExpr) {
+      if (letExpr.Exact) {
+        Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
+        for (var i = 0; i < letExpr.LHSs.Count; i++) {
+          var rhs = letExpr.RHSs[i];
+          VisitPattern(letExpr.LHSs[i], () => AdjustableType.NormalizeSansBottom(rhs), context);
+        }
+      }
+      flows.Add(new FlowBetweenExpressions(expr, letExpr.Body, "let"));
+
+    } else if (expr is LambdaExpr lambdaExpr) {
+      flows.Add(new FlowFromComputedType(expr, () => {
+        return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
+          lambdaExpr.BoundVars.ConvertAll(v => AdjustableType.NormalizeSansBottom(v)),
+          AdjustableType.NormalizeSansBottom(lambdaExpr.Body),
+          lambdaExpr.Reads.Expressions.Count != 0, lambdaExpr.Range != null, systemModuleManager);
+      }, lambdaExpr.WhatKind));
+
     }
 
     base.PostVisitOneExpression(expr, context);
   }
 
-  private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
+  private void VisitPattern<VT>(CasePattern<VT> casePattern, Func<Type> getPatternRhsType, IASTVisitorContext context) where VT : class, IVariable {
     VisitExpression(casePattern.Expr, context);
 
-    if (casePattern.Arguments != null) {
-      casePattern.Arguments.ForEach(v => VisitPattern(v, context));
+    if (casePattern.Var != null) {
+      flows.Add(new FlowIntoVariableFromComputedType(casePattern.Var, getPatternRhsType, casePattern.tok, ":="));
+      Contract.Assert(casePattern.Arguments == null);
+    } else if (casePattern.Arguments != null) {
+      var ctor = casePattern.Ctor;
+      Contract.Assert(ctor != null);
+
+      Func<Type> GetPatternArgumentType(int argumentIndex) {
+        return () => {
+          var sourceType = getPatternRhsType().NormalizeExpand();
+          Contract.Assert(sourceType.IsDatatype);
+          Contract.Assert(sourceType.TypeArgs.Count == ctor.EnclosingDatatype.TypeArgs.Count);
+          var typeMap = TypeParameter.SubstitutionMap(ctor.EnclosingDatatype.TypeArgs, sourceType.TypeArgs);
+          Contract.Assert(argumentIndex < ctor.Formals.Count);
+          return ctor.Formals[argumentIndex].Type.Subst(typeMap);
+        };
+      }
+
+      for (var i = 0; i < casePattern.Arguments.Count; i++) {
+        VisitPattern<VT>(casePattern.Arguments[i], GetPatternArgumentType(i), context);
+      }
     }
+
   }
 
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
-      VisitPattern(varDeclPattern.LHS, context);
+      VisitPattern(varDeclPattern.LHS, () => AdjustableType.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
         flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
@@ -202,7 +335,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = callStmt.Args[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
-          return (formal.Type.Subst(typeMap), actual.Type);
+          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
         }, callStmt.tok, $"{callStmt.Method.Name}({formal.Name} := ...)"));
       }
 
@@ -212,7 +345,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
           var formal = callStmt.Method.Outs[i];
           flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
             var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
-            return formal.Type.Subst(typeMap);
+            return AdjustableType.NormalizeSansBottom(formal).Subst(typeMap);
           }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
         }
       }
