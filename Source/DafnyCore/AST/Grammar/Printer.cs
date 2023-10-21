@@ -1239,6 +1239,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (expectStmt != null && expectStmt.Message != null) {
           wr.Write(", ");
           PrintExpression(expectStmt.Message, true);
+          wr.Write(";");
         } else {
           wr.Write(";");
         }

@@ -954,7 +954,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
-        throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: this is an invalid operation
+        //throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
       } else {
         return PopN(1)[0];
       }

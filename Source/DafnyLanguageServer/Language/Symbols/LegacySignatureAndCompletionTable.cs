@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private static readonly ConditionalWeakTable<DafnyOptions, SystemModuleManager> systemModuleManagers = new();
 
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
+      var outerModule = new DefaultModuleDefinition();
       var errorReporter = new DiagnosticErrorReporter(options, uri);
       var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
