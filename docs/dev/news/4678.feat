@@ -1,0 +1,2 @@
+The Dafny distribution now includes standard libraries, available with the `--standard-libraries` option.
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for details.

@@ -17,7 +17,7 @@ public class CompilationAfterParsing : Compilation {
     Program program,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     Dictionary<Uri, DocumentVerificationTree> verificationTrees)
-    : base(compilation.Version, compilation.Project, compilation.RootUris) {
+    : base(compilation.Options, compilation.Version, compilation.Project, compilation.RootUris) {
     ResolutionDiagnostics = diagnostics;
     VerificationTrees = verificationTrees;
     Program = program;

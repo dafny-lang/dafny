@@ -246,7 +246,7 @@ public class CompilationManager : IDisposable {
         updated = true;
         return tasksForVerifiable.ToDictionary(
           t => GetImplementationName(t.Implementation),
-          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+          t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
         gutterIconManager.ReportImplementationsBeforeVerification(compilation,
@@ -332,7 +332,7 @@ public class CompilationManager : IDisposable {
     var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationView>();
+        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
       }
@@ -381,6 +381,7 @@ public class CompilationManager : IDisposable {
     }
 
     DafnyDiagnostic[] newDiagnostics;
+    bool hitErrorLimit = false;
     if (boogieStatus is BatchCompleted batchCompleted) {
       gutterIconManager.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
@@ -388,7 +389,7 @@ public class CompilationManager : IDisposable {
       foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
         compilation.Counterexamples.Add(counterExample);
       }
-
+      hitErrorLimit = batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
     } else {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();
@@ -396,8 +397,12 @@ public class CompilationManager : IDisposable {
 
     var view = implementations.TryGetValue(implementationName, out var taskAndView)
       ? taskAndView
-      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
-    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
+      : new ImplementationState(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hitErrorLimit);
+    implementations[implementationName] = view with {
+      Status = status,
+      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(),
+      HitErrorLimit = view.HitErrorLimit || hitErrorLimit
+    };
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;

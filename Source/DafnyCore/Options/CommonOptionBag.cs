@@ -3,10 +3,15 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
+    "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
@@ -253,6 +258,13 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
+  public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
+    @"
+Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+Not compatible with the --unicode-char:false option.
+");
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
@@ -433,18 +445,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionMatches },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
-        // Ideally this feature shouldn't affect separate compilation,
-        // because it's automatically disabled on {:extern} signatures.
-        // Realistically though, we don't have enough strong mechanisms to stop
-        // target language code from referencing compiled internal code,
-        // so to be conservative we flag this as not compatible in general.
-        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
-        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
-        // but in practice it does.
-        { AddCompileSuffix, DooFile.CheckOptionMatches },
-        { ReadsClausesOnMethods, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
+        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -480,7 +483,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       WarnRedundantAssumptions,
       VerificationCoverageReport,
       NoTimeStampForCoverageReport,
-      DefaultFunctionOpacity
+      DefaultFunctionOpacity,
+      UseStandardLibraries,
+      OptimizeErasableDatatypeWrapper,
+      AddCompileSuffix
     );
   }
 
