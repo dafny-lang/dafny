@@ -20,9 +20,10 @@ public class SymbolTable {
   private SymbolTable() {
     DeclarationToUsages = ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>>.Empty;
     UsageToDeclaration = ImmutableDictionary<IDeclarationOrUsage, IDeclarationOrUsage>.Empty;
+    Definitions = ImmutableList<ISymbol>.Empty;
   }
 
-  public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages) {
+  public SymbolTable(IReadOnlyList<(IDeclarationOrUsage usage, IDeclarationOrUsage declaration)> usages, ImmutableList<ISymbol> definitions) {
     var safeUsages1 = usages.Where(k => k.usage.NameToken.Uri != null).ToImmutableList();
     var safeUsages = usages.Where(k => k.usage.NameToken.Uri != null && k.declaration.NameToken.Uri != null).ToImmutableList();
 
@@ -33,6 +34,8 @@ public class SymbolTable {
     DeclarationToUsages = safeUsages1.GroupBy(u => u.declaration).ToImmutableDictionary(
       g => g.Key,
       g => (ISet<IDeclarationOrUsage>)g.Select(k => k.usage).ToHashSet());
+
+    Definitions = definitions;
 
     var symbols = safeUsages.Select(u => u.declaration).
       Concat(safeUsages.Select(u => u.usage)).
@@ -58,7 +61,13 @@ public class SymbolTable {
   /// <summary>
   /// Maps each symbol declaration to usages of the symbol, not including the declaration itself.
   /// </summary>
-  private ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> DeclarationToUsages { get; }
+  public ImmutableDictionary<IDeclarationOrUsage, ISet<IDeclarationOrUsage>> DeclarationToUsages { get; }
+
+  /// <summary>
+  ///  A list of all definitions, such as methods, classes, functions, etc., used for workspace-wide symbol
+  /// lookup.
+  /// </summary>
+  public ImmutableList<ISymbol> Definitions { get; }
 
   public ISet<Location> GetUsages(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {

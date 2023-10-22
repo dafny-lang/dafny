@@ -30,10 +30,7 @@ public static class PreType2TypeUtil {
       case TypeParameter.TPVariance.Co:
         ty = new BottomTypePlaceholder(ty);
         break;
-      case TypeParameter.TPVariance.Non:
-        ty = new ExactTypePlaceholder(ty);
-        break;
-      case TypeParameter.TPVariance.Contra:
+      default:
         break;
     }
 
@@ -50,7 +47,7 @@ public static class PreType2TypeUtil {
     }
 
     Type ArgumentAsCo(int i) {
-      return PreType2Type(pt.Arguments[i], allowFutureAdjustments, futureAdjustments);
+      return PreType2Type(pt.Arguments[i], true, futureAdjustments);
     }
 
     switch (pt.Decl.Name) {
@@ -79,7 +76,7 @@ public static class PreType2TypeUtil {
       default:
         break;
     }
-    // TODO: the following line should look at variance and adjust the parameters to PreType2Type accordingly
+
     var arguments = pt.Arguments.ConvertAll(preType => PreType2AdjustableType(preType, futureAdjustments));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);

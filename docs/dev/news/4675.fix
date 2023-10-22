@@ -1,0 +1,1 @@
+Fix a case where the document symbol API would return incorrect data when working on a file with parse errors

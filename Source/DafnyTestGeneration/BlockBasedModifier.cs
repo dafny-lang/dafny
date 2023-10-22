@@ -29,6 +29,24 @@ namespace DafnyTestGeneration {
       return VisitProgram(p);
     }
 
+    /// <summary>
+    /// After inlining, several basic blocks might correspond to the same program state, i.e. location in the Dafny code
+    /// This method creates a mapping from such a state to all blocks that represent it
+    /// </summary>
+    private void PopulateStateToBlocksMap(Block block, Dictionary<string, HashSet<Block>> stateToBlocks) {
+      if (program == null || implementation == null) {
+        return;
+      }
+      var state = Utils.GetBlockId(block, DafnyInfo.Options);
+      if (state == null) {
+        return;
+      }
+      if (!stateToBlocks.ContainsKey(state)) {
+        stateToBlocks[state] = new();
+      }
+      stateToBlocks[state].Add(block);
+    }
+
     private IEnumerable<ProgramModification> VisitImplementation(
       Implementation node) {
       implementation = node;
@@ -41,21 +59,31 @@ namespace DafnyTestGeneration {
         : new() { implementation.VerboseName };
       var blocks = node.Blocks.ToList();
       blocks.Reverse();
+      var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();
+      foreach (var block in node.Blocks) {
+        PopulateStateToBlocksMap(block, stateToBlocksMap);
+      }
       foreach (var block in blocks) {
         var state = Utils.GetBlockId(block, DafnyInfo.Options);
         if (state == null) {
           continue;
         }
-        block.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+        }
         var record = modifications.GetProgramModification(program, implementation,
-          new HashSet<string>() { state },
+          Utils.AllBlockIds(block, DafnyInfo.Options).ToHashSet(),
           testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
         if (record.IsCovered(modifications)) {
-          block.cmds.RemoveAt(block.cmds.Count - 1);
+          foreach (var twinBlock in stateToBlocksMap[state]) {
+            twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
+          }
           continue;
         }
         yield return record;
-        block.cmds.RemoveAt(block.cmds.Count - 1);
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
+        }
       }
 
     }

@@ -39,7 +39,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify>? Verifiables { get; }
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
-  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationView>> ImplementationsPerVerifiable { get; } = new();
+  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> ImplementationsPerVerifiable { get; } = new();
 
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
@@ -76,7 +76,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         (a, b) => new IdeImplementationView(
           a.Range,
           Combine(a.Status, b.Status),
-          a.Diagnostics.Concat(b.Diagnostics).ToList()))));
+          a.Diagnostics.Concat(b.Diagnostics).ToList(), a.HitErrorLimit || b.HitErrorLimit))));
   }
 
   public override IdeState ToIdeState(IdeState previousState) {
@@ -110,7 +110,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
         var status = implementationView.Status == PublishedVerificationStatus.Stale && VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
           ? PublishedVerificationStatus.Queued : implementationView.Status;
         return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
-          status, diagnostics.ToList());
+          status, diagnostics.ToList(), implementationView.HitErrorLimit);
       });
       return new IdeVerificationResult(VerificationPreparationState.Done, implementations);
 
@@ -135,5 +135,10 @@ public class CompilationAfterResolution : CompilationAfterParsing {
 
   static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
     return new[] { first, second }.Min();
+  }
+
+  public void RefreshDiagnosticsFromProgramReporter() {
+    ResolutionDiagnostics =
+      ((DiagnosticErrorReporter)Program.Reporter).AllDiagnosticsCopy;
   }
 }

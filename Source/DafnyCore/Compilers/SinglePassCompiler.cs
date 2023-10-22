@@ -44,8 +44,9 @@ namespace Microsoft.Dafny.Compilers {
     public virtual bool SupportsDatatypeWrapperErasure => true;
     public static string DefaultNameMain = "Main";
 
-    protected virtual string ModuleSeparator { get => "."; }
-    protected virtual string ClassAccessor { get => "."; }
+    public virtual string ModuleSeparator => ".";
+    protected virtual string StaticClassAccessor => ".";
+    protected virtual string InstanceClassAccessor => ".";
 
     protected ErrorReporter Reporter;
 
@@ -1386,168 +1387,196 @@ namespace Microsoft.Dafny.Compilers {
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
       foreach (var m in temp) {
-        if (m.IsAbstract) {
-          // the purpose of an abstract module is to skip compilation
-          continue;
-        }
-
-        DetectAndMarkCapitalizationConflicts(m);
-
-        var moduleIsExtern = false;
-        string libraryName = null;
-        if (!Options.DisallowExterns) {
-          var args = Attributes.FindExpressions(m.Attributes, "extern");
-          if (args != null) {
-            if (args.Count == 2) {
-              libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
-            }
-            moduleIsExtern = true;
-          }
-        }
-        if (!m.ShouldCompile(program.Compilation)) {
-          DependOnModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName);
-          continue;
-        }
-        var wr = CreateModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
-        var v = new CheckHasNoAssumes_Visitor(this, wr);
-        Contract.Assert(enclosingModule == null);
-        enclosingModule = m;
-        foreach (TopLevelDecl d in m.TopLevelDecls) {
-          bool compileIt = true;
-          if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
-            continue;
-          }
-          var newLineWriter = wr.Fork();
-          if (d is AbstractTypeDecl) {
-            var at = (AbstractTypeDecl)d;
-            bool externP = Attributes.Contains(at.Attributes, "extern");
-            if (externP) {
-              var exprs = Attributes.FindExpressions(at.Attributes, "extern");
-              Contract.Assert(exprs != null);  // because externP is true
-              if (exprs.Count == 1) {
-                DeclareExternType(at, exprs[0], wr);
-              } else {
-                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
-              }
-              v.Visit(exprs);
-            } else {
-              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
-            }
-          } else if (d is TypeSynonymDecl) {
-            var sst = d as SubsetTypeDecl;
-            if (sst != null) {
-              DeclareSubsetType(sst, wr);
-              v.Visit(sst);
-            } else {
-              continue;
-            }
-          } else if (d is NewtypeDecl) {
-            var nt = (NewtypeDecl)d;
-            var w = DeclareNewtype(nt, wr);
-            v.Visit(nt);
-            CompileClassMembers(program, nt, w);
-            w.Finish();
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && Options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
-            // ignore this type declaration
-          } else if (d is DatatypeDecl) {
-            var dt = (DatatypeDecl)d;
-
-            if (!DeclaredDatatypes.Add((m, dt.GetCompileName(Options)))) {
-              continue;
-            }
-            var w = DeclareDatatype(dt, wr);
-            if (w != null) {
-              CompileClassMembers(program, dt, w);
-              w.Finish();
-            } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
-              continue;
-            }
-          } else if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-              Error(ErrorId.c_iterators_are_not_deterministic, iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option", wr);
-            }
-
-            var wIter = CreateIterator(iter, wr);
-            if (iter.Body == null) {
-              Error(ErrorId.c_iterator_has_no_body, iter.tok, "iterator {0} has no body", wIter, iter.FullName);
-            } else {
-              TrStmtList(iter.Body.Body, wIter);
-            }
-
-          } else if (d is TraitDecl trait) {
-            // writing the trait
-            var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
-            CompileClassMembers(program, trait, w);
-            w.Finish();
-          } else if (d is DefaultClassDecl defaultClassDecl) {
-            Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
-            Predicate<MemberDecl> compilationMaterial = x =>
-              !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
-            var include = defaultClassDecl.Members.Exists(compilationMaterial);
-            var classIsExtern = false;
-            if (include) {
-              classIsExtern =
-                (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
-                Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
-              if (classIsExtern && defaultClassDecl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-                include = false;
-              }
-            }
-            if (include) {
-              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(defaultClassDecl),
-                classIsExtern, defaultClassDecl.FullName,
-                defaultClassDecl.TypeArgs, defaultClassDecl, defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.tok, wr);
-              CompileClassMembers(program, defaultClassDecl, cw);
-              cw.Finish();
-            } else {
-              // still check that given members satisfy compilation rules
-              var abyss = new NullClassWriter();
-              CompileClassMembers(program, defaultClassDecl, abyss);
-            }
-
-          } else if (d is ClassLikeDecl cl) {
-            var include = true;
-            var classIsExtern = false;
-            if (include) {
-              classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-              if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-                include = false;
-              }
-            }
-            if (Options.ForbidNondeterminism &&
-                !classIsExtern &&
-                !cl.Members.Exists(member => member is Constructor) &&
-                cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
-              Error(ErrorId.c_constructorless_class_forbidden, cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
-            }
-            if (include) {
-              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl), classIsExtern, cl.FullName,
-                cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
-              CompileClassMembers(program, cl, cw);
-              cw.Finish();
-            } else {
-              // still check that given members satisfy compilation rules
-              var abyss = new NullClassWriter();
-              CompileClassMembers(program, cl, abyss);
-            }
-          } else if (d is ValuetypeDecl) {
-            // nop
-            continue;
-          } else if (d is ModuleDecl) {
-            // nop
-            continue;
-          } else { Contract.Assert(false); }
-
-          newLineWriter.WriteLine();
-        }
-
-        FinishModule();
-
-        Contract.Assert(enclosingModule == m);
-        enclosingModule = null;
+        EmitModule(program, wrx, m);
       }
       EmitFooter(program, wrx);
+    }
+
+    private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
+      if (module.IsAbstract) {
+        // the purpose of an abstract module is to skip compilation
+        return;
+      }
+
+      DetectAndMarkCapitalizationConflicts(module);
+
+      var moduleIsExtern = false;
+      string libraryName = null;
+      if (!Options.DisallowExterns) {
+        var args = Attributes.FindExpressions(module.Attributes, "extern");
+        if (args != null) {
+          if (args.Count == 2) {
+            libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
+          }
+
+          moduleIsExtern = true;
+        }
+      }
+
+      if (!module.ShouldCompile(program.Compilation)) {
+        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, moduleIsExtern, libraryName);
+        return;
+      }
+
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, moduleIsExtern, libraryName, programNode);
+      var v = new CheckHasNoAssumes_Visitor(this, wr);
+      Contract.Assert(enclosingModule == null);
+      enclosingModule = module;
+      foreach (TopLevelDecl d in module.TopLevelDecls) {
+        bool compileIt = true;
+        if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
+          continue;
+        }
+
+        var newLineWriter = wr.Fork();
+        if (d is AbstractTypeDecl) {
+          var at = (AbstractTypeDecl)d;
+          bool externP = Attributes.Contains(at.Attributes, "extern");
+          if (externP) {
+            var exprs = Attributes.FindExpressions(at.Attributes, "extern");
+            Contract.Assert(exprs != null); // because externP is true
+            if (exprs.Count == 1) {
+              DeclareExternType(at, exprs[0], wr);
+            } else {
+              Error(ErrorId.c_abstract_type_needs_hint, d.tok,
+                "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}",
+                wr, at.FullName);
+            }
+
+            v.Visit(exprs);
+          } else {
+            Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok,
+              "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr,
+              at.FullName);
+          }
+        } else if (d is TypeSynonymDecl) {
+          var sst = d as SubsetTypeDecl;
+          if (sst != null) {
+            DeclareSubsetType(sst, wr);
+            v.Visit(sst);
+          } else {
+            continue;
+          }
+        } else if (d is NewtypeDecl) {
+          var nt = (NewtypeDecl)d;
+          var w = DeclareNewtype(nt, wr);
+          v.Visit(nt);
+          CompileClassMembers(program, nt, w);
+          w.Finish();
+        } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure &&
+                   Options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+          // ignore this type declaration
+        } else if (d is DatatypeDecl) {
+          var dt = (DatatypeDecl)d;
+
+          if (!DeclaredDatatypes.Add((module, dt.GetCompileName(Options)))) {
+            continue;
+          }
+
+          var w = DeclareDatatype(dt, wr);
+          if (w != null) {
+            CompileClassMembers(program, dt, w);
+            w.Finish();
+          } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
+            continue;
+          }
+        } else if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
+            Error(ErrorId.c_iterators_are_not_deterministic, iter.tok,
+              "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option",
+              wr);
+          }
+
+          var wIter = CreateIterator(iter, wr);
+          if (iter.Body == null) {
+            Error(ErrorId.c_iterator_has_no_body, iter.tok, "iterator {0} has no body", wIter, iter.FullName);
+          } else {
+            TrStmtList(iter.Body.Body, wIter);
+          }
+        } else if (d is TraitDecl trait) {
+          // writing the trait
+          var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs,
+            trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+          CompileClassMembers(program, trait, w);
+          w.Finish();
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
+          Predicate<MemberDecl> compilationMaterial = x =>
+            !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
+          var include = defaultClassDecl.Members.Exists(compilationMaterial);
+          var classIsExtern = false;
+          if (include) {
+            classIsExtern =
+              (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
+              Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
+            if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
+                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+              include = false;
+            }
+          }
+
+          if (include) {
+            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
+              IdName(defaultClassDecl),
+              classIsExtern, defaultClassDecl.FullName,
+              defaultClassDecl.TypeArgs, defaultClassDecl,
+              defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.tok, wr);
+            CompileClassMembers(program, defaultClassDecl, cw);
+            cw.Finish();
+          } else {
+            // still check that given members satisfy compilation rules
+            var abyss = new NullClassWriter();
+            CompileClassMembers(program, defaultClassDecl, abyss);
+          }
+        } else if (d is ClassLikeDecl cl) {
+          var include = true;
+          var classIsExtern = false;
+          if (include) {
+            classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+            if (classIsExtern && cl.Members.TrueForAll(member =>
+                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+              include = false;
+            }
+          }
+
+          if (Options.ForbidNondeterminism &&
+              !classIsExtern &&
+              !cl.Members.Exists(member => member is Constructor) &&
+              cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+            Error(ErrorId.c_constructorless_class_forbidden, cl.tok,
+              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option",
+              wr);
+          }
+
+          if (include) {
+            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
+              classIsExtern, cl.FullName,
+              cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
+            CompileClassMembers(program, cl, cw);
+            cw.Finish();
+          } else {
+            // still check that given members satisfy compilation rules
+            var abyss = new NullClassWriter();
+            CompileClassMembers(program, cl, abyss);
+          }
+        } else if (d is ValuetypeDecl) {
+          // nop
+          continue;
+        } else if (d is ModuleDecl) {
+          // nop
+          continue;
+        } else {
+          Contract.Assert(false);
+        }
+
+        newLineWriter.WriteLine();
+      }
+
+      FinishModule();
+
+      Contract.Assert(enclosingModule == module);
+      enclosingModule = null;
     }
 
     private void DetectAndMarkCapitalizationConflicts(ModuleDefinition module) {
@@ -2219,7 +2248,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
 
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
-      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), StaticClassAccessor);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
@@ -2260,7 +2289,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
-      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), StaticClassAccessor);
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
@@ -2344,7 +2373,7 @@ namespace Microsoft.Dafny.Compilers {
       var companionName = CompanionMemberIdName(method);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
       EmitTypeName_Companion(calleeReceiverType, wr, wr, method.tok, method);
-      wr.Write(ClassAccessor);
+      wr.Write(StaticClassAccessor);
 
       var typeArgs = CombineAllTypeArguments(method, thisContext);
       EmitNameAndActualTypeArgs(companionName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
@@ -3259,7 +3288,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
           var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
-          EmitExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, guardWriter, wStmts);
+          EmitExpr(s.IsBindingGuard ? ((ExistsExpr)s.Guard).AlphaRename("eg_d") : s.Guard, false, guardWriter, wStmts);
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
@@ -3287,7 +3316,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         foreach (var alternative in s.Alternatives) {
           var thn = EmitIf(out var guardWriter, true, wr);
-          EmitExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, false, guardWriter, wStmts);
+          EmitExpr(alternative.IsBindingGuard ? ((ExistsExpr)alternative.Guard).AlphaRename("eg_d") : alternative.Guard, false, guardWriter, wStmts);
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
@@ -4714,10 +4743,10 @@ namespace Microsoft.Dafny.Compilers {
         var protectedName = receiverReplacement == null && customReceiver ? CompanionMemberIdName(s.Method) : IdName(s.Method);
         if (receiverReplacement != null) {
           EmitIdentifier(IdProtect(receiverReplacement), wr);
-          wr.Write(ClassAccessor);
+          wr.Write(InstanceClassAccessor);
         } else if (customReceiver) {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
-          wr.Write(ClassAccessor);
+          wr.Write(StaticClassAccessor);
         } else if (!s.Method.IsStatic) {
           wr.Write("(");
           var wReceiver = wr;
@@ -4725,13 +4754,13 @@ namespace Microsoft.Dafny.Compilers {
             wReceiver = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
           }
           EmitExpr(s.Receiver, false, wReceiver, wStmts);
-          wr.Write($"){ClassAccessor}");
+          wr.Write($"){InstanceClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
-          wr.Write("{0}{1}", qual, ModuleSeparator);
+          wr.Write("{0}{1}", qual, StaticClassAccessor);
           protectedName = compileName;
         } else {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
-          wr.Write(ModuleSeparator);
+          wr.Write(StaticClassAccessor);
         }
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
@@ -5208,7 +5237,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || e.ToType.IsRefType == e.E.Type.IsRefType);
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || e.ToType.IsRefType == e.E.Type.IsRefType);
         if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
@@ -5840,7 +5869,7 @@ namespace Microsoft.Dafny.Compilers {
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
         wr.Write("{0}{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
-        wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);
+        wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), StaticClassAccessor);
         compileName = customReceiver ? CompanionMemberIdName(f) : IdName(f);
       } else {
         wr.Write("(");
@@ -5849,7 +5878,7 @@ namespace Microsoft.Dafny.Compilers {
           wReceiver = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, f), e.tok, wr);
         }
         tr(e.Receiver, wReceiver, inLetExprBody, wStmts);
-        wr.Write($"){ClassAccessor}");
+        wr.Write($"){InstanceClassAccessor}");
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);

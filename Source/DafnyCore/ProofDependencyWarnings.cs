@@ -40,9 +40,9 @@ public class ProofDependencyWarnings {
         .OfType<AssumptionDependency>()
         .Where(d => d is AssumptionDependency ad && ad.IsAssumeStatement);
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
-      foreach (var dep in unusedObligations) {
-        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"proved using contradictory assumptions: {dep.Description}");
+      foreach (var dependency in unusedObligations) {
+        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
+          reporter.Warning(MessageSource.Verifier, "", dependency.Range, $"proved using contradictory assumptions: {dependency.Description}");
         }
       }
 
@@ -59,7 +59,9 @@ public class ProofDependencyWarnings {
       }
 
       foreach (var dep in unusedAssumeStatements) {
-        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+        if (ShouldWarnUnused(dep)) {
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+        }
       }
     }
   }
@@ -88,17 +90,13 @@ public class ProofDependencyWarnings {
 
       // Some proof obligations occur in a context that the Dafny programmer
       // doesn't have control of, so warning about vacuity isn't helpful.
-      if (poDep.ProofObligation
-          is MatchIsComplete
-          or AlternativeIsComplete
-          or ValidInRecursion
-          or TraitDecreases) {
+      if (poDep.ProofObligation.ProvedOutsideUserCode) {
         return false;
       }
 
       // Don't warn about `assert false` being proved vacuously. If it's proved,
       // it must be vacuous, but it's also probably an attempt to prove that a
-      // given alternative is unreachable.
+      // given branch is unreachable (often, but not always, in ghost code).
       var assertedExpr = poDep.ProofObligation.GetAssertedExpr(options);
       if (assertedExpr is not null &&
           Expression.IsBoolLiteral(assertedExpr, out var lit) &&
@@ -108,8 +106,34 @@ public class ProofDependencyWarnings {
     }
 
     // Ensures clauses are often proven vacuously during well-formedness checks.
+    // There's unfortunately no way to identify these checks once Dafny has
+    // been translated to Boogie other than looking at the name. This is a significant
+    // limitation, because it means that function ensures clauses that are satisfied
+    // only vacuously won't be reported. It would great if we could change the Boogie
+    // encoding so that these unreachable-by-construction checks don't exist.
     if (verboseName.Contains("well-formedness") && dep is EnsuresDependency) {
       return false;
+    }
+
+    return true;
+  }
+
+  /// <summary>
+  /// Some assumptions that don't show up in the dependency list
+  /// are innocuous. In particular, `assume true` is often used
+  /// as a place to attach attributes such as `{:split_here}`.
+  /// Don't warn about such assumptions.
+  /// </summary>
+  /// <param name="dep">the dependency to examine</param>
+  /// <returns>false to skip warning about the absence of this
+  /// dependency, true otherwise</returns>
+  private static bool ShouldWarnUnused(ProofDependency dep) {
+    if (dep is AssumptionDependency assumeDep) {
+      if (assumeDep.Expr is not null &&
+          Expression.IsBoolLiteral(assumeDep.Expr, out var lit) &&
+          lit == true) {
+        return false;
+      }
     }
 
     return true;

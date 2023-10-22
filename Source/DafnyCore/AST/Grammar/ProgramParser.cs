@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -34,11 +35,12 @@ public class ProgramParser {
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new SystemModuleManager(options);
-    var defaultModule = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
+    var defaultModule = new DefaultModuleDefinition();
 
+    var rootSourceUris = files.Select(f => f.Uri).ToList();
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-    var compilation = new CompilationData(errorReporter, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+    var compilation = new CompilationData(errorReporter, defaultModule.Includes, rootSourceUris, verifiedRoots,
       compiledRoots);
     var program = new Program(
       programName,
@@ -157,24 +159,10 @@ public class ProgramParser {
 
     parseResult.ErrorReporter.CopyDiagnostics(program.Reporter);
 
-    foreach (var declToMove in fileModule.DefaultClasses.Concat(fileModule.SourceDecls)) {
-      declToMove.EnclosingModuleDefinition = defaultModule;
-      if (declToMove is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
-      }
+    ModuleDefinition sourceModule = fileModule;
+    ModuleDefinition targetModule = defaultModule;
 
-      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
-        nonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
-      }
-      if (declToMove is DefaultClassDecl defaultClassDecl) {
-        foreach (var member in defaultClassDecl.Members) {
-          defaultModule.DefaultClass.Members.Add(member);
-          member.EnclosingClass = defaultModule.DefaultClass;
-        }
-      } else {
-        defaultModule.SourceDecls.Add(declToMove);
-      }
-    }
+    MoveModuleContents(sourceModule, targetModule);
 
     foreach (var include in fileModule.Includes) {
       defaultModule.Includes.Add(include);
@@ -185,6 +173,28 @@ public class ProgramParser {
     }
 
     defaultModule.DefaultClass.SetMembersBeforeResolution();
+  }
+
+  public static void MoveModuleContents(ModuleDefinition sourceModule, ModuleDefinition targetModule) {
+    foreach (var declToMove in sourceModule.DefaultClasses.Concat(sourceModule.SourceDecls)) {
+      declToMove.EnclosingModuleDefinition = targetModule;
+      if (declToMove is LiteralModuleDecl literalModuleDecl) {
+        literalModuleDecl.ModuleDef.EnclosingModule = targetModule;
+      }
+
+      if (declToMove is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
+        nonNullTypeDecl.EnclosingModuleDefinition = targetModule;
+      }
+
+      if (declToMove is DefaultClassDecl defaultClassDecl) {
+        foreach (var member in defaultClassDecl.Members) {
+          targetModule.DefaultClass.Members.Add(member);
+          member.EnclosingClass = targetModule.DefaultClass;
+        }
+      } else {
+        targetModule.SourceDecls.Add(declToMove);
+      }
+    }
   }
 
   public IList<DfyParseResult> TryParseIncludes(
