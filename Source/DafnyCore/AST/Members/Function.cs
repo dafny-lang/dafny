@@ -247,7 +247,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
-    this.IsOpaque = isOpaque;
+    this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
