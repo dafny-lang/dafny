@@ -1,5 +1,4 @@
-// RUN: %baredafny run --target:java "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 // Running this using the Java backend used to cause an NPE
 // because Tree's default value would be initialized using Tree's
