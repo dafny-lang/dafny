@@ -91,7 +91,7 @@ jobs:
     ## Now that the dotnet tool distribution doesn't include the Scripts,
     ## so we need to clone the repository to get them.
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         path: dafny-repo
