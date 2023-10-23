@@ -206,6 +206,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       }
     }
 
+    if (result.SolverIdentifier == "Z3") {
+      result.SolverVersion = null;
+    }
+
+    result.ApplyDefaultOptionsWithoutSettingsDefault();
+
     return result;
   }
 
