@@ -76,7 +76,7 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version == 'oldest'
+      if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v3
       with:
         java-version: 8
