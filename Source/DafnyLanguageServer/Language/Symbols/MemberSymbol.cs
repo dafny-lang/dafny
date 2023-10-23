@@ -22,7 +22,7 @@
       }
     }
 
-    public MemberSymbol(ISymbol? scope, MemberDecl memberDeclaration) : base(scope, memberDeclaration.Name) {
+    public MemberSymbol(ILegacySymbol? scope, MemberDecl memberDeclaration) : base(scope, memberDeclaration.Name) {
     }
   }
 }

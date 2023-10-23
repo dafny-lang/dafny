@@ -1,0 +1,13 @@
+MiscTypeInferenceTests.dfy(85,11): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'x' to have the value 'null', declare its type to be 'Node?')
+MiscTypeInferenceTests.dfy(95,16): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
+MiscTypeInferenceTests.dfy(14,59): Error: value does not satisfy the subset constraints of 'neg'
+MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
+MiscTypeInferenceTests.dfy(27,11): Error: value of expression (of type 'int -> int') is not known to be an instance of type 'int ~> nat'
+MiscTypeInferenceTests.dfy(50,13): Error: function precondition could not be proved
+MiscTypeInferenceTests.dfy(50,16): Error: assertion might not hold
+MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
+MiscTypeInferenceTests.dfy(155,15): Error: value does not satisfy the subset constraints of 'nat'
+
+Dafny program verifier finished with 10 verified, 9 errors

@@ -1,0 +1,10 @@
+55
+Trunc( -3.0 ) = -3 (expected -3)
+Trunc( -2.8 ) = -3 (expected -3)
+Trunc( -2.2 ) = -3 (expected -3)
+Trunc( -0.1 ) = -1 (expected -1)
+Trunc( 0.0 ) = 0 (expected 0)
+Trunc( 0.1 ) = 0 (expected 0)
+Trunc( 2.2 ) = 2 (expected 2)
+Trunc( 2.8 ) = 2 (expected 2)
+Trunc( 3.0 ) = 3 (expected 3)

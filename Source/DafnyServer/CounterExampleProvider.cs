@@ -7,33 +7,38 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace DafnyServer {
-  public class CounterExampleProvider {
+  public sealed class CounterExampleProvider {
     private const int maximumCounterexampleDepth = 5;
-    public const string ModelBvd = "./model.bvd";
+    public readonly string ModelBvd;
 
-    public CounterExample LoadCounterModel() {
+    public CounterExampleProvider() {
+      ModelBvd = $"./model{GetHashCode()}.bvd";
+    }
+
+    public CounterExample LoadCounterModel(DafnyOptions options) {
       try {
-        var models = LoadModelFromFile();
+        var models = LoadModelFromFile(options);
         return ConvertModels(models);
       } catch (Exception) {
         return new CounterExample();
       }
     }
 
-    private static List<DafnyModel> LoadModelFromFile() {
+    private List<DafnyModel> LoadModelFromFile(DafnyOptions options) {
       using var wr = new StreamReader(ModelBvd);
       var output = wr.ReadToEnd();
       var models = ExtractModels(output);
-      var dafnyModels = BuildModels(models).ToList();
+      var dafnyModels = BuildModels(options, models).ToList();
       return dafnyModels;
     }
 
-    private static IEnumerable<DafnyModel> BuildModels(IEnumerable<Model> modelList) {
-      return modelList.Select(model => new DafnyModel(model));
+    private static IEnumerable<DafnyModel> BuildModels(DafnyOptions options, IEnumerable<Model> modelList) {
+      return modelList.Select(model => new DafnyModel(model, options));
     }
 
     private static List<Model> ExtractModels(string output) {

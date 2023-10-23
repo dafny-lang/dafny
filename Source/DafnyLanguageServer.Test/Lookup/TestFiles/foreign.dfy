@@ -3,7 +3,7 @@
 
   constructor() {}
 
-  function method GetX(): int
+  function GetX(): int
     reads this
   {
     this.x

@@ -1,4 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -9,24 +11,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// The offset to convert a boogie line-number to an LSP line-number.
     /// </summary>
-    private const int LineOffset = -1;
+    public const int LineOffset = -1;
 
     /// <summary>
     /// The offset to convert a boogie column-number to an LSP column-number.
     /// </summary>
-    private const int ColumnOffset = -1;
+    public const int ColumnOffset = -1;
 
-    /// <summary>
-    /// Gets the LSP range of the specified token.
-    /// </summary>
-    /// <param name="startToken">The token to get the range of.</param>
-    /// <param name="endToken">An optional other token to get the end of the range of.</param>
-    /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this RangeToken range) {
+    public static Range ToLspRange(this DafnyRange range) {
       return new Range(
-        GetLspPosition(range.StartToken),
-        ToLspPosition(range.EndToken.line, range.EndToken.col + range.EndToken.val.Length)
-      );
+        range.Start.GetLspPosition(),
+        range.ExclusiveEnd.GetLspPosition());
     }
 
     /// <summary>
@@ -35,13 +30,64 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
-      endToken ??= startToken;
-      endToken = endToken is BoogieRangeToken rangeToken ? rangeToken.EndToken : endToken;
+    public static Range ToLspRange(this RangeToken range) {
+      return range.ToDafnyRange().ToLspRange();
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range GetLspRange(this IToken startToken, IToken endToken) {
+      return GetLspRangeGeneric(startToken, endToken);
+    }
+
+    private static Range GetLspRangeGeneric(this Boogie.IToken startToken, Boogie.IToken endToken) {
       return new Range(
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="token">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range GetLspRange(this Boogie.IToken token, bool nameRange = false) {
+      if (token is NestedToken nestedToken) {
+        return GetLspRange(nestedToken.Outer, nameRange);
+      }
+      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
+      if (dafnyToken is RangeToken rangeToken) {
+        return GetLspRangeGeneric(rangeToken.StartToken, rangeToken.EndToken);
+      }
+      return GetLspRangeGeneric(token, token);
+    }
+
+    public static Position GetLspPosition(this DafnyPosition position) {
+      return new Position(position.Line, position.Column);
+    }
+
+    public static Location GetLocation(this IToken token) {
+      return new Location {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange(true)
+      };
+    }
+
+    public static Location GetLocation(this RangeToken token) {
+      return new Location() {
+        Uri = DocumentUri.From(token.Uri),
+        Range = token.GetLspRange()
+      };
+    }
+
+    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+      return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
 
     /// <summary>

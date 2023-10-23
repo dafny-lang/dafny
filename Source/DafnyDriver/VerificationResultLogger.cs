@@ -13,7 +13,6 @@ using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
-using VC;
 
 namespace Microsoft.Dafny {
 
@@ -27,14 +26,15 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(List<string> loggerConfigs) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options, ProofDependencyManager depManager) {
+      var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
 
       var events = new LocalTestLoggerEvents();
-      var verificationResults = (DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+      var verificationResults = (options.Printer as DafnyConsolePrinter).VerificationResults.ToList();
       foreach (var loggerConfig in loggerConfigs) {
         string loggerName;
         int semiColonIndex = loggerConfig.IndexOf(";");
@@ -57,12 +57,12 @@ namespace Microsoft.Dafny {
           var logger = new TrxLogger();
           logger.Initialize(events, parameters);
         } else if (loggerName == "csv") {
-          var csvLogger = new CSVTestLogger();
+          var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger();
+          var textLogger = new TextLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
           return;
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults)
+      var results = VerificationToTestResults(verificationResults.Select(e => (e.Implementation, e.Result.VCResults)))
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -87,32 +87,29 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(List<(Implementation, VerificationResult)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<DafnyConsolePrinter.VCResultLogEntry>)> verificationResults) {
       var testResults = new List<TestResult>();
 
-      foreach (var (implementation, result) in verificationResults) {
-        var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        var currentFile = implementation.tok.filename;
-        foreach (var vcResult in vcResults) {
-          var verbName = implementation.VerboseName;
+      foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
+        foreach (var vcResult in vcResults.OrderBy(r => r.VCNum)) {
           var name = vcResults.Count() > 1
-            ? verbName + $" (assertion batch {vcResult.vcNum})"
+            ? verbName + $" (assertion batch {vcResult.VCNum})"
             : verbName;
           var testCase = new TestCase {
             FullyQualifiedName = name,
             ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = currentFile
+            Source = ((IToken)currentFile).Uri.LocalPath
           };
           var testResult = new TestResult(testCase) {
-            StartTime = vcResult.startTime,
-            Duration = vcResult.runTime
+            StartTime = vcResult.StartTime,
+            Duration = vcResult.RunTime
           };
-          testResult.SetPropertyValue(ResourceCountProperty, vcResult.resourceCount);
-          if (vcResult.outcome == ProverInterface.Outcome.Valid) {
+          testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
+          if (vcResult.Outcome == ProverInterface.Outcome.Valid) {
             testResult.Outcome = TestOutcome.Passed;
           } else {
             testResult.Outcome = TestOutcome.Failed;
-            testResult.ErrorMessage = vcResult.outcome.ToString();
+            testResult.ErrorMessage = vcResult.Outcome.ToString();
           }
           testResults.Add(testResult);
         }

@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using JetBrains.Annotations;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -295,15 +297,15 @@ method ReturnTuple() returns (x:(uint32,uint32))
   return (1, 2);
 }
 
-function method EmptyTuple() : () {
+function EmptyTuple() : () {
   ()
 }
 
-function method GetEmptyTuple() : () {
+function GetEmptyTuple() : () {
   EmptyTuple()
 }
 
-function method Test() : (bool, bool) {
+function Test() : (bool, bool) {
   (false, true)
 }
 
@@ -345,5 +347,8 @@ method M...
   else {}
 }
 ");
+  }
+
+  public FormatterForTopLevelDeclarations([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

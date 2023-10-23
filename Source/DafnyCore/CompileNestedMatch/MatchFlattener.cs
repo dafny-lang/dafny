@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// Removes nesting from matching patterns, such as case Cons(head1, Cons(head2, tail))
@@ -49,23 +49,14 @@ public class MatchFlattener : IRewriter {
     this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolve(Program program) {
-    foreach (var compileModule in program.RawModules()) {
-      FlattenNode(compileModule);
-    }
-    foreach (var compileModule in program.CompileModules) {
-      var reporter = Reporter;
-      Reporter = new ErrorReporterSink();
-      FlattenNode(compileModule);
-      Reporter = reporter;
-    }
+  internal override void PostResolve(ModuleDefinition module) {
+    FlattenNode(module);
   }
 
   private void FlattenNode(Node root) {
     root.Visit(node => {
       if (node != root && node is ModuleDefinition) {
-        // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
-        // so this is to prevent recursion into the uncloned definitions. 
+        // The default module contains all the other modules, prevent visiting them since they're already visited as roots. 
         return false;
       }
 
@@ -114,7 +105,7 @@ public class MatchFlattener : IRewriter {
     if (compiledMatch.Node is Expression expression) {
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
       return expression;
@@ -123,7 +114,9 @@ public class MatchFlattener : IRewriter {
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
-    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
+    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt)
+      .Select(nms => nms.Clone(new Cloner(false, true)))
+      .ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
     var paths = cases.Select((@case, index) => (PatternPath)new StmtPatternPath(index, @case, @case.Attributes)).ToList();
@@ -143,11 +136,11 @@ public class MatchFlattener : IRewriter {
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).
+      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false, false).
         Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     }
@@ -337,11 +330,11 @@ public class MatchFlattener : IRewriter {
       foreach (var path in paths) {
         var (head, tail) = SplitPath(path);
         if (head is IdPattern idPattern) {
-          if (ctor.Name.Equals(idPattern.Id) && idPattern.Arguments != null) {
+          if (ctor.Name == idPattern.Id && idPattern.Arguments != null) {
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
             // After making sure the constructor is applied to the right number of arguments
 
-            if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
+            if (idPattern.Arguments.Count != ctor.Formals.Count) {
               Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
@@ -420,7 +413,7 @@ public class MatchFlattener : IRewriter {
 
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
       var body = UnboxStmt(statement).Select(cloner.CloneStmt).ToList();
       newMatchCase = new MatchCaseStmt(tok.ToRange(), ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
@@ -665,7 +658,7 @@ public class MatchFlattener : IRewriter {
     public override string ToString() {
       var bodyStr = "";
       foreach (var stmt in this.Body) {
-        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), "\t");
+        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, stmt), "\t");
       }
       return string.Format("\t> id: {0}\n\t> patterns: <{1}>\n\t-> body:\n{2} \n", this.CaseId, String.Join(",", this.Patterns.ConvertAll(x => x.ToString())), bodyStr);
     }
@@ -680,7 +673,7 @@ public class MatchFlattener : IRewriter {
 
     public override string ToString() {
       return
-        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(this.Body)}";
+        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this.Body)}";
     }
   }
 
@@ -708,15 +701,14 @@ public class MatchFlattener : IRewriter {
     var type = var.Type ?? new InferredTypeProxy();
     var isGhost = var.IsGhost;
 
-    // if the expression is a generated IdentifierExpr, replace its token by the path's
+    // if the expression is a generated IdentifierExpr, replace its token by the path's; this causes any sub-range error message
+    // to point at the bound variable, not at the source expression
     Expression expr = genExpr;
-    if (genExpr is IdentifierExpr idExpr) {
-      if (idExpr.Name.StartsWith("_")) {
-        expr = new IdentifierExpr(var.Tok, idExpr.Var);
-      }
+    if (genExpr.Resolved is IdentifierExpr idExpr) {
+      expr = new IdentifierExpr(var.Tok, idExpr.Var);
     }
     if (bodyPath is StmtPatternPath stmtPath) {
-      if (stmtPath.Body.Count <= 0) {
+      if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
         return stmtPath;
       }
 
@@ -755,13 +747,13 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  // If cp is not a wildcard, replace path.Body with let cp = expr in path.Body
+  // If cp is not a literal or wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
-  private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
-    if (!var.IsWildcardPattern) {
-      return LetBind(var, expr, bodyPath);
+  private PatternPath LetBindNonWildCard(IdPattern idPattern, Expression expr, PatternPath bodyPath) {
+    Contract.Assert(idPattern.Ctor == null);
+    if (idPattern.ResolvedLit != null || (idPattern.IsWildcardPattern && (idPattern.Id.Contains('#') || idPattern.Type is TypeProxy))) {
+      return bodyPath;
     }
-
-    return bodyPath;
+    return LetBind(idPattern, expr, bodyPath);
   }
 }

@@ -1,0 +1,23 @@
+#! /usr/bin/env bash
+dir=$(dirname "${BASH_SOURCE[0]}")
+cd "$dir"
+
+FAIL=0
+java MakeErrorCatalog.java Errors-Compiler.template \
+      ../../Source/DafnyCore/Compilers/CompilerErrors.cs 
+if [ "$?" != "0" ] ; then echo "Java build-run failed"; exit 1; fi
+
+diff Errors-Compiler.tmp Errors-Compiler.md || \
+   { echo "Errors-Compiler.md has been altered -- check and commit the edits"; FAIL=1; }
+
+java MakeErrorCatalog.java Errors-Parser.template \
+      ../../Source/DafnyCore/AST/Grammar/ParseErrors.cs 
+if [ "$?" != "0" ] ; then echo "Java build-run failed"; exit 1; fi
+
+diff Errors-Parser.tmp Errors-Parser.md || \
+   { echo "Errors-Parser.md has been altered -- check and commit the edits"; FAIL=1; }
+
+
+if [ "$FAIL" != "0" ]; then echo FAILURE; exit 1; fi
+
+

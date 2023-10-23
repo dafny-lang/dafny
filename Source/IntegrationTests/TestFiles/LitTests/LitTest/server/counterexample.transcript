@@ -1,0 +1,6 @@
+# RUN: %server "%s" > "%t"
+# RUN: %diff "%s.expect" "%t"
+
+counterexample
+eyJhcmdzIjpbXSwiZmlsZW5hbWUiOiJhYnMuZGZ5Iiwic291cmNlIjoibWV0aG9kIEFicyh4OiBpbnQpIFxyXG4gICAgcmV0dXJucyAoeTogaW50KVxyXG5lbnN1cmVzIHkgPj0gMCB7XHJcbiAgICByZXR1cm4geDtcclxufSIsInNvdXJjZUlzRmlsZSI6ZmFsc2V9
+[[DAFNY-CLIENT: EOM]]

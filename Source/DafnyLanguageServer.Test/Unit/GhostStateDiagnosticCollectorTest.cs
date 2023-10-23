@@ -1,22 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using DafnyCore.Test;
 using IntervalTree;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
-[TestClass]
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
@@ -34,38 +32,48 @@ public class GhostStateDiagnosticCollectorTest {
     }
   }
 
-  [TestInitialize]
-  public void SetUp() {
-    var options = new DafnyOptions();
-    options.Set(ServerCommand.GhostIndicators, true);
+  public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
+    var options = new DafnyOptions(TextReader.Null, (TextWriter)new WriterFromOutputHelper(output), (TextWriter)new WriterFromOutputHelper(output));
+    options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
       new DummyLogger());
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
-      return this.AllMessages;
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
+      return this.AllMessagesByLevel;
+    }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDefinition(), null) {
+      new DefaultModuleDefinition(), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;
     }
   }
 
-  [TestMethod]
+  [Fact]
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter, DafnyOptions.O);
+    var options = DafnyOptions.DefaultImmutableOptions;
+    var rootUri = new Uri(Directory.GetCurrentDirectory());
+    var dummyModuleDecl = new DummyModuleDecl();
+    var reporter = new CollectingErrorReporter(options);
+    var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+      Sets.Empty<Uri>());
+    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
-      , CancellationToken.None);
-    Assert.AreEqual(0, ghostDiagnostics.Count());
+      new LegacySignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
+        null!, null!, ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty, true)
+      , source.Token);
+    Assert.Empty(ghostDiagnostics);
   }
 }

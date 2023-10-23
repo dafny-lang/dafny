@@ -47,17 +47,15 @@ Dafny supports both reference types that contain the special `null` value
 
 ### 5.1.3. Named Types ([grammar](#g-type))
 
-A _Named Type_ is used to specify a user-defined type by name
-(possibly module-qualified). Named types are introduced by
+A _Named Type_ is used to specify a user-defined type by a (possibly module- or class-qualified) name.
+Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
-A Named Type is denoted by a dot-separated sequence of `NameSegmentForTypeName`s
+A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
-A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation``, which supplies type parameters to a generic
-type, if needed. It is a special case of a ``NameSegment``
-([Section 9.32](#sec-name-segment))
-that does not allow a ``HashCall``.
+A name segment (for a type) is a type name optionally followed by a
+_generic instantiation_, which supplies type parameters to a generic
+type, if needed.
 
 The following sections describe each of these kinds of types in more detail.
 
@@ -141,6 +139,18 @@ is simply a shorthand for
 A == B && B == C
 ```
 
+Also,
+<!-- %no-check -->
+```dafny
+A <==> B == C <==> D
+```
+is
+<!-- %no-check -->
+```dafny
+A <==> (B == C) <==> D
+```
+
+
 #### 5.2.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 
 Conjunction and disjunction are associative.  These operators are
@@ -171,7 +181,7 @@ C <== B <== A
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
 [Section 5.1.2](#sec-reference-types)), which means the following two
-expressions are well-formed:
+expressions are [well-formed](#sec-assertion-batches):
 <!-- %no-check -->
 ```dafny
 a != null ==> 0 <= a.Length
@@ -183,9 +193,9 @@ The contrapositives of these two expressions would be:
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
 ```
-but these expressions are not well-formed, since well-formedness
+but these expressions might not necessarily be [well-formed](#sec-assertion-batches), since well-formedness
 requires the left (and right, respectively) operand, `a.Length < 0`,
-to be well-formed by itself.
+to be [well-formed](#sec-assertion-batches) in their context.
 
 Implication `A ==> B` is equivalent to the disjunction `!A || B`, but
 is sometimes (especially in specifications) clearer to read.  Since,
@@ -194,12 +204,12 @@ is sometimes (especially in specifications) clearer to read.  Since,
 ```dafny
 a == null || 0 <= a.Length
 ```
-is well-formed, whereas
+is [well-formed](#sec-assertion-batches) by itself, whereas
 <!-- %no-check -->
 ```dafny
 0 <= a.Length || a == null  // not well-formed
 ```
-is not.
+is not if the context cannot prove that `a != null`.
 
 In addition, booleans support _logical quantifiers_ (forall and
 exists), described in [Section 9.31.4](#sec-quantifier-expression).
@@ -616,6 +626,30 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
+When an actual type is substituted for a type parameter in a generic type instantiation,
+the actual type must have the declared or inferred type characteristics of the type parameter.
+These characteristics might also be inferred for the actual type. For example, a numeric-based
+subset or newtype automatically has the `==` relationship of its base type. Similarly, 
+type synonyms have the characteristics of the type they represent.
+
+An abstract type has no known characteristics. If it is intended to be defined only as types
+that have certain characteristics, then those characteristics must be declared.
+For example,
+<!-- %check-resolve Types.26.expect -->
+```dafny
+class A<T(00)> {}
+type Q
+const a: A<Q>
+```
+will give an error because it is not known whether the type `Q` is non-empty (`00`).
+Instead, one needs to write
+<!-- %check-resolve -->
+```dafny
+class A<T(00)> {}
+type Q(00)
+const a: A?<Q> := null
+```
+
 #### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
@@ -762,7 +796,7 @@ the instantiation `Result<int>` satisfies `(!new)`, whereas
 
 Note that this characteristic of a type parameter is operative for both
 verification and compilation.
-Also, opaque types at the topmost scope are always implicitly `(!new)`.
+Also, abstract types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
 <!-- %check-resolve Types.9.expect -->
@@ -903,7 +937,7 @@ expression `e` of type `T`, sets support the following operations:
  expression          | precedence | result type |  description
 ---------------------|:---:|:---:|------------------------------------
  `e in s`            | 4   | `bool` | set membership
- `e !in s`           | 3   | `bool` | set non-membership
+ `e !in s`           | 4   | `bool` | set non-membership
  `|s|`               | 11  | `nat`  | set cardinality (not for `iset`)
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -1228,7 +1262,8 @@ the domain, the range, and the 2-tuples holding the key-value
 associations in the map. Note that `m.Values` will have a different
 cardinality than `m.Keys` and `m.Items` if different keys are
 associated with the same value. If `m` is an `imap`, then these
-expressions return `iset` values.
+expressions return `iset` values. If `m` is a map, `m.Values` and `m.Items`
+require the type of the range `U` to support equality.
 
 [^fn-map-membership]: This is likely to change in the future as
     follows:  The `in` and `!in` operations will no longer be
@@ -1257,6 +1292,26 @@ In this use, `+` is not commutative; if a key exists in both
 The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
+
+To avoid cuasing circular reasoning chains or providing too much informatino that might
+complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
+For example, the following does not prove:
+<!-- %check-verify Types.25.expect -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert v in mm.Values;
+  }
+```
+Rather, one must provide an intermediate step, which is not entirely obvious:
+<!-- %check-verify -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert k in mm.Keys;
+    assert v in mm.Values;
+  }
+```
 
 ### 5.5.5. Iterating over collections
 
@@ -1356,7 +1411,7 @@ It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
 
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
-* ([Section 5.6.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
+* ([Section 5.6.2](#sec-abstract-types)) An _abstract type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 * ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
@@ -1375,7 +1430,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.
 If the `= G` is omitted then the declaration just declares a name as an uninterpreted
-_opaque_ type, as described in [Section 5.6.2](#sec-opaque-types).  Such types may be
+_opaque_ type, as described in [Section 5.6.2](#sec-abstract-types).  Such types may be
 given a definition elsewhere in the Dafny program.
 
   Here, `T` is a
@@ -1394,8 +1449,12 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
-The new type name itself may have type characteristics declared, though these are typically
-inferred from the definition, if there is one.
+The new type name itself may have [type characteristics](#sec-type-characteristics) declared, and may need to if there is no definition.
+If there is a definition, the type characteristics are typically inferred from the definition. The syntax is like this:
+<!-- %no-check -->
+```dafny
+type Z(==)<T(0)>
+```
 
 As already described in [Section 5.5.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
@@ -1406,7 +1465,21 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
+Note that although a type synonym can be declared and used in place of a type name, 
+that does not affect the names of datatype or class constructors.
+For example, consider
+<!-- %check-resolve Types.22.expect -->
+```dafny
+datatype Pair<T> = Pair(first: T, second: T)
+type IntPair = Pair<int>
+
+const p: IntPair := Pair(1,2) // OK
+const q: IntPair := IntPair(3,4) // Error
+```
+
+In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
+
+### 5.6.2. Abstract types ([grammar](#g-type-definition)) {#sec-abstract-types}
 
 Examples:
 <!-- %check-resolve -->
@@ -1415,7 +1488,7 @@ type T
 type Q { function toString(t: T): string }
 ```
 
-An opaque type is a special case of a type synonym that is underspecified.  Such
+An abstract type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
 <!-- %check-resolve -->
 ```dafny
@@ -1442,7 +1515,7 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-Even as an opaque type, the type
+Even as an abstract type, the type
 may be given members such as constants, methods or functions.
 For example,
 <!-- %check-resolve -->
@@ -1494,7 +1567,10 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 9.10](#sec-as-is-expression).)
 
-The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare that there is
+a value that satisfies the subset type's predicate; that is, the witness clause establishes that the defined
+type is not empty. The compiler may, but is not obligated to, use this value when auto-initializing a
+newly declared variable of the subset type.
 
 Dafny builds in three families of subset types, as described next.
 
@@ -1609,13 +1685,14 @@ and the subset type `(TT) --> U` is called the _partial arrow type_.
 think of the little gap between the two hyphens in `-->` as showing a broken
 arrow.)
 
-The built-in partial arrow type is defined as follows (here shown
+Intuitively, the built-in partial arrow type is defined as follows (here shown
 for arrows with arity 1):
 <!-- %no-check -->
 ```dafny
 type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
 ```
-(except that what is shown here left of the `=` is not legal Dafny syntax).
+(except that what is shown here left of the `=` is not legal Dafny syntax
+and that the restriction could not be verified as is).
 That is, the partial arrow type is defined as those functions `f`
 whose reads frame is empty for all inputs.
 More precisely, taking variance into account, the partial arrow type
@@ -1660,11 +1737,15 @@ The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
 variables of any type are expected to have some value when they are used.
 In many cases, Dafny can determine that a newly declared type has 
-some value. For example, a numeric type that includes 0 is known by Dafny
-to be non-empty. However, Dafny cannot always make this determination.
+some value. 
+For example, in the absence of a witness clause,
+a numeric type that includes 0 is known by Dafny
+to be non-empty.
+However, Dafny cannot always make this determination.
 If it cannot, a `witness` clause is required. The value given in
 the `witness` clause must be a valid value for the type and assures Dafny
-that the type is non-empty.
+that the type is non-empty. (The variation `witness *` is described below.)
+
 
 For example, 
 <!-- %check-verify Types.10.expect -->
@@ -1801,6 +1882,14 @@ var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
 
+An additional point with respect to arithmetic overflow is that for (signed)
+`int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
+can also overflow the bounds of the `int32` type. So you could also write:
+<!-- %no-check -->
+```dafny
+var mid := lo + (hi/2 - lo/2);
+```
+
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a
 compiler for Dafny is free to specialize the run-time representation
@@ -1847,7 +1936,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.38](#sec-compile-time-constants).
+in [Section 9.37](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 
@@ -2407,7 +2496,7 @@ matrix.Length0 == m && matrix.Length1 == n
 Higher-dimensional arrays are similar (`Length0`, `Length1`,
 `Length2`, ...).  The array selection expression and array update
 statement require that the indices are in bounds.  For example, the
-swap statement above is well-formed only if:
+swap statement above is [well-formed](#sec-assertion-batches) only if:
 <!-- %no-check -->
 ```dafny
 0 <= i < matrix.Length0 && 0 <= j < matrix.Length1 &&
@@ -2582,6 +2671,16 @@ Note, in the precondition of the iterator, which is to hold upon
 construction of the iterator, the in-parameters are indeed
 in-parameters, not fields of `this`.
 
+`reads` clauses on iterators have a different meaning than they do on functions and methods.
+Iterators may read any memory they like, but because arbitrary code may be executed
+whenever they `yield` control, they need to declare what memory locations must not be modified
+by other code in order to maintain correctness.
+The contents of an iterator's `reads` clauses become part of the `reads` clause
+of the implicitly created `Valid()` predicate.
+This means if client code modifies any of this state,
+it will not be able to establish the precondition for the iterator's `MoveNext()` method,
+and hence the iterator body will never resume if this state is modified.
+
 It is regrettably tricky to use iterators. The language really
 ought to have a `foreach` statement to make this easier.
 Here is an example showing a definition and use of an iterator.
@@ -2589,13 +2688,13 @@ Here is an example showing a definition and use of an iterator.
 <!-- %check-verify -->
 ```dafny
 iterator Iter<T(0)>(s: set<T>) yields (x: T)
-  yield ensures x in s && x !in xs[..|xs|-1];
-  ensures s == set z | z in xs;
+  yield ensures x in s && x !in xs[..|xs|-1]
+  ensures s == set z | z in xs
 {
   var r := s;
   while (r != {})
     invariant r !! set z | z in xs
-    invariant s == r + set z | z in xs;
+    invariant s == r + set z | z in xs
   {
     var y :| y in r;
     assert y !in xs;
@@ -2607,14 +2706,14 @@ iterator Iter<T(0)>(s: set<T>) yields (x: T)
 }
 
 method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var m := new Iter(s);
   while (true)
-    invariant m.Valid() && fresh(m._new);
-    invariant t == set z | z in m.xs;
-    decreases s - t;
+    invariant m.Valid() && fresh(m._new)
+    invariant t == set z | z in m.xs
+    decreases s - t
   {
     var more := m.MoveNext();
     if (!more) { break; }
@@ -2624,45 +2723,6 @@ method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
 ```
 
 The design of iterators is [under discussion and may change](https://github.com/dafny-lang/dafny/issues/2440).
-
-<!--
-Make this a heading if it is uncommented
- 16. Async-task types
-
-Another experimental feature in Dafny that is likely to undergo some
-evolution is _asynchronous methods_.  When an asynchronous method is
-called, it does not return values for the out-parameters, but instead
-returns an instance of an _async-task type_.  An asynchronous method
-declared in a class `C` with the following signature:
-<!-- %no-check -->
-```dafny
-async method AM<T>(\(_in-params_\)) returns (\(_out-params_\))
-```
-also gives rise to an async-task type `AM<T>` (outside the enclosing
-class, the name of the type needs the qualification `C.AM<T>`).  The
-async-task type is a reference type and can be understood as a class
-with various members, a simplified version of which is described next.
-
-Each in-parameter `x` of type `X` of the asynchronous method gives
-rise to a immutable ghost field of the async-task type:
-<!-- %no-check -->
-```dafny
-ghost var x: X;
-```
-Each out-parameter `y` of type `Y` gives rise to a field
-<!-- %no-check -->
-```dafny
-var y: Y;
-```
-These fields are changed automatically by the time the asynchronous
-method is successfully awaited, but are not assignable by user code.
-
-The async-task type also gets a number of special fields that are used
-to keep track of dependencies, outstanding tasks, newly allocated
-objects, etc.  These fields will be described in more detail as the
-design of asynchronous methods evolves.
-
--->
 
 <!--PDF NEWPAGE-->
 ## 5.12. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
@@ -2808,21 +2868,48 @@ body.  For a function `f: T ~> U`, the value that the function yields
 for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 
 Note that `f.reads` and `f.requires` are themselves functions.
-Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
-is a function of type `T ~> set<object?>` whose `reads` and `requires`
-properties are:
+Without loss of generality, suppose `f` is defined as:
+<!-- %no-check -->
+```dafny 
+function f<T,U>(x: T): U
+  reads R(x)
+  requires P(x)
+{
+  body(x)
+}
+```
+where `P`, `R`, and `body` are declared as:
+<!-- %no-check -->
+```dafny 
+predicate P<T>(x: T)
+function R<T>(x: T): set<object>
+function body<T,U>(x: T): U
+```
+Then, `f.reads` is a function of type `T ~> set<object?>` 
+whose `reads` and `requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.reads.reads(t) == f.reads(t)
-f.reads.requires(t) == true
+function f.reads<T>(x: T): set<object>
+  reads R(x)
+  requires P(x)
+{
+  R(x)
+}
 ```
 `f.requires` is a function of type `T ~> bool` whose `reads` and
-`requires` properties are:
+`requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
-f.requires.reads(t) == f.reads(t)
-f.requires.requires(t) == true
+predicate f_requires<T>(x: T)
+  requires true
+  reads if P(x) then R(x) else *
+{
+  P(x)
+}
 ```
+where `*` is a notation to indicate that any memory location can
+be read, but is not valid Dafny syntax.
+
 In these examples, if `f` instead had type `T --> U` or `T -> U`,
 then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
@@ -2932,7 +3019,7 @@ Note that the expression
 ```dafny
 Cons(5, Nil).tail.head
 ```
-is not well-formed, since `Cons(5, Nil).tail` does not necessarily satisfy
+is not [well-formed](#sec-assertion-batches) by itself, since `Cons(5, Nil).tail` does not necessarily satisfy
 `Cons?`.
 
 A constructor can have the same name as
@@ -3094,7 +3181,7 @@ greatest lemma Theorem_BelowSquare(a: IStream<int>)
 
 // an incorrect property and a bogus proof attempt
 greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
-  ensures Below(Mult(a, a), a); // ERROR
+  ensures Below(Mult(a, a), a) // ERROR
 {
   NotATheorem_SquareBelow(a);
 }
@@ -3498,7 +3585,19 @@ a lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
 
-# 6. Member declarations
+#### 5.14.3.7. Abstemious and voracious functions {#sec-abstemious}
+
+Some functions on codatatypes are _abstemious_, meaning that they do not
+need to unfold a datatype instance very far (perhaps just one destructor call) 
+to prove a relevant property. Knowing this is the case can aid the proofs of
+properties about the function. The attribute `{:abstemious}` can be applied to
+a function definition to indicate this.
+
+_TODO: Say more about the effect of this attribute and when it should be applied
+(and likely, correct the paragraph above)._
+
+
+# 6. Member declarations {#sec-member-declaration}
 
 Members are the various kinds of methods, the various kinds of functions, mutable fields,
 and constant fields. These are usually associated with classes, but they also may be
@@ -4109,8 +4208,13 @@ default. To make it ghost, replace the keyword `function` with the two keywords 
 (See the [--function-syntax option](#sec-function-syntax) for a description 
 of the migration path for this change in behavior.}
 
-Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
-declared `opaque`. In that case, only the signature and specification of the method
+By default, the body of a function is transparent to its users, but
+sometimes it is useful to hide it. Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be
+declared opaque using either the `opaque` keyword, or using the `--default-function-opacity` argument. If a function `foo` or `bar` is opaque, then Dafny hides the body of the function,
+so that it can only be seen within its recursive clique (if any),
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
+
+In that case, only the signature and specification of the method
 is known at its points of use, not its body. The body can be _revealed_ for reasoning
 purposes using the [reveal statment](#sec-reveal-statement).
 
@@ -4191,7 +4295,7 @@ This means that the run-time evaluation of an expression may have print effects.
 If `--track-print-effects` is enabled, this use of print in a function context
 will be disallowed.
 
-### 6.4.4. Function Transparency
+### 6.4.4. Function Transparency {#sec-opaque}
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -4202,24 +4306,35 @@ A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
 
-But the transparency of a function is affected by
-whether the function was declared with an `opaque` modifier, as explained
-in [Section 11.2.8](#sec-opaque)),
-the reveal statement ([Section 8.20](#sec-reveal-statement)),
+The default transparency of a function can be set with the `--default-function-opacity` commandline flag. By default, the `--default-function-opacity` is transparent.
+The transparency of a function is also affected by
+whether the function was declared with an `opaque` modifier or [`transparent` attribute](#sec-transparent),
+the ([reveal statement](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 
-- Inside the module where the function is declared:
-   - if there is no `opaque` modifier, the function is transparent
-   - if there is an `opaque` modifier, then the function is opaque,
-   except if the function is mentioned in a `reveal` statement, then
-   it is transparent between that `reveal` statement and the end of
-   the block containing the `reveal` statement.
-- Outside the module where the function is declared, the function is 
-visible only if it was listed in the export set by which the contents
-of its module was imported. In that case, if the function was exported
-with `reveals`, the rules are the same within the importing module as when the function is used inside
-its declaring module. If the function is exported only with `provides` it is
-always opaque and is not permitted to be used in a reveal statement.
+Inside the module where the function is declared:
+  - If `--default-function-opacity` is set to `transparent` (default), then:
+     - if there is no `opaque` modifier, the function is transparent.
+     - if there is an `opaque` modifier, then the function is opaque. If the function is mentioned in a `reveal` statement, then
+     its body is available starting at that `reveal` statement.
+
+  - If `--default-function-opacity` is set to `opaque`, then:
+    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. If the function is mentioned in a `reveal` statement, then the body of the function is available starting at that `reveal` statement.
+    - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
+
+  - If `--default-function-opacity` is set to `autoRevealDependencies`, then:
+    - if there is no [`{:transparent}` attribute](#sec-transparent), the function is opaque. However, the body of the function is available inside any callable that depends on this function via an implicitly inserted `reveal` statement, unless the callable has the [`{autoRevealDependencies k}` attribute](#sec-autorevealdependencies) for some natural number `k` which is too low.
+    - if there is a [`{:transparent}` attribute](#sec-transparent), then the function is transparent.
+
+
+Outside the module where the function is declared, the function is
+  visible only if it was listed in the export set by which the contents
+  of its module was imported. In that case, if the function was exported
+  with `reveals`, the rules are the same within the importing module as when the function is used inside
+  its declaring module. If the function is exported only with `provides` it is
+  always opaque and is not permitted to be used in a reveal statement.
+
+More information about the Boogie implementation of opaquenes is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 ### 6.4.5. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 12.5.3](#sec-friendliness) for descriptions
@@ -4463,4 +4578,65 @@ imposed on the body of `ReachableVia` makes sure that, if the
 predicate returns `true`, then every object reference in `p` is as old
 as some object reference in another parameter to the predicate.
 
+## 6.5. Nameonly Formal Parameters and Default-Value Expressions
+
+A formal parameter of a method, constructor in a class, iterator,
+function, or datatype constructor can be declared with an expression
+denoting a _default value_. This makes the parameter _optional_,
+as opposed to _required_.
+
+For example,
+<!-- %check-resolve %save f.tmp -->
+```dafny
+function f(x: int, y: int := 10): int
+```
+may be called as either
+<!-- %check-resolve %use f.tmp -->
+```dafny
+const i := f(1, 2)
+const j := f(1)
+```
+where `f(1)` is equivalent to `f(1, 10)` in this case.
+
+The above function may also be called as
+<!-- %no-check -->
+```dafny
+var k := f(y := 10, x := 2);
+```
+using names; actual arguments with names may be given in any order,
+though they must be after actual arguments without names. 
+
+Formal parameters may also be declared `nameonly`, in which case a call site
+must always explicitly name the formal when providing its actual argument.
+
+For example, a function `ff` declared as
+<!-- %check-resolve -->
+```dafny
+function ff(x: int, nameonly y: int): int
+```
+must be called either by listing the value for x and then y with a name, 
+as in `ff(0, y := 4)` or by giving both actuals by name (in any order). 
+A `nameonly` formal may also have a default value and thus be optional.
+
+Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.
+
+The formals of datatype constructors are not required to have names.
+A nameless formal may not have a default value, nor may it follow a formal
+that has a default value.
+
+The default-value expression for a parameter is allowed to mention the
+other parameters, including `this` (for instance methods and instance
+functions), but not the implicit `_k` parameter in least and greatest
+predicates and lemmas. The default value of a parameter may mention
+both preceding and subsequent parameters, but there may not be any
+dependent cycle between the parameters and their default-value
+expressions.
+
+The [well-formedness](#sec-assertion-batches) of default-value expressions is checked independent
+of the precondition of the enclosing declaration. For a function, the
+parameter default-value expressions may only read what the function's
+`reads` clause allows. For a datatype constructor, parameter default-value
+expressions may not read anything. A default-value expression may not be
+involved in any recursive or mutually recursive calls with the enclosing
+declaration.
 

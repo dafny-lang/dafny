@@ -36,9 +36,9 @@ If your change is user-visible, then part of the PR should be corresponding chan
 Any PR should have tests that check whether the bug-fix fixes the problem addressed or that the new functionality 
 is properly working.
 
-  - Dafny's integration tests are in [`Test`](../Test).  PRs that fix issues reported on GitHub should include a test in [`Test/git-issues/`](../Test/git-issues/).
+  - Dafny's integration tests are in [this directory](Source/IntegrationTests/TestFiles/LitTests/LitTest).  PRs that fix issues reported on GitHub should include a test under [`git-issues/`](Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/).
 
-    Each `.dfy` file in `Test/` is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [`Test/README.md`](../Test/README.md) for more info on running Dafny' integration tests.
+    Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny' integration tests.
 
   - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
 
@@ -62,6 +62,26 @@ Once it succeeds, one has to go back to (view 1) and re-run the failed jobs, so 
 
 After doing these steps once, for other PRs, one only needs to re-run deep checks in (view 1)
 
+### How to fix nightly build failures / check deep tests?
+
+- Create a branch (e.g. `fix-ci-<date>`) that should fix the nightly build.
+  (Either an actual fix, or reverting a PR that caused the problem - look at the logs)
+- Push your branch to the main Dafny repository.
+- After pushing, you'll get a link to create a PR, click on it.
+- **Before clicking on the "Create PR" button**, add the label `run-deep-tests`. If you add it later, you will have to push a new commit to trigger the deep tests.
+- Click on the "Create PR" button.
+  The CI will run the deep tests within this PR (and for every new commit pushed to the branch). Note that only the "required" tests block merging.
+- If some required tests fail, investigate and push more commits, but know that each CI run takes a lot of time, so try to fix the problem with as few commits as possible (ideally 1)
+  It is also possible you find some tests that fail randomly, in that case, re-run them and report to the team. Avoid using the re-run all failed jobs here, because it will re-run _all_ jobs, so select them individually instead.
+- Have someone approve the PR and merge it (or auto-merge).
+- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
+- Select "Run workflow..."
+- Select master
+- Wait for this new run to succeed.
+- Now go back to all the PRs where `check-deep-tests` were failing and re-run the failing tests by updating the PRs.
+
+Subsequent CI runs should pick up the successful `deep-tests` run and make the `check-deep-tests` jobs succeed.
+
 ### How can I write portions of Dafny in Dafny itself?
 
 Since https://github.com/dafny-lang/dafny/pull/2399, it is possible to add \*.dfy files next to other source files.
@@ -77,3 +97,7 @@ For example, `Formatting.dfy`
 - Defines `CsStringEmpty` as an alias for `System.String.Empty`
 - Defines `Microsoft.Dafny.HelperString.FinishesByNewline` by also using externs. That helper is defined in `IndentationFormatter.cs`
 - Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `ReindentProgramFromFirstToken`
+
+### What is the release process?
+
+You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).

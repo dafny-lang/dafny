@@ -4,22 +4,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
-[TestClass]
 public class FormattingTest : ClientBasedLanguageServerTest {
-  [TestInitialize]
-  public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await base.SetUp();
+  public override async Task InitializeAsync() {
+    await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting1() {
     var source = @"
 function test
@@ -49,7 +47,7 @@ function test
     await FormattingWorksFor(target, target);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting2() {
     var source = @"
 function Fib(i: nat): nat {
@@ -84,7 +82,7 @@ function Fib(i: nat): nat {
   }
 
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting3() {
     var source = @"
 predicate IsBinary(s: seq<int>) {
@@ -104,14 +102,14 @@ predicate IsBinary(s: seq<int>) {
     await FormattingWorksFor(target, target);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestWhenDocIsEmpty() {
     var source = @"
 ";
     await FormattingWorksFor(source);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestWhenParsingFails() {
     var source = @"
 function test() {
@@ -148,21 +146,27 @@ module A {
     if (target == null) {
       target = source;
     }
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "FormattingWorksFor.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    DocumentAfterParsing document = await Documents.GetLastDocumentAsync(documentItem);
+    CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
-    var finalText = source;
-    Assert.IsNotNull(document, "document != null");
-    var codeActionInput = new DafnyCodeActionInput(document);
+    Assert.NotNull(compilation);
 
-    foreach (var edit in edits) {
-      finalText = codeActionInput.Extract(new Range((0, 0), edit.Range.Start)) +
-                  edit.NewText +
-                  codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
+    if (edits.Count == 0) {
+      Assert.Equal(target, source);
+    } else {
+      Assert.Single(edits);
+      var edit = edits[0];
+      var buffer = new TextBuffer(source);
+      var end = new Position(buffer.Lines.Count - 1, buffer.Lines[^1].EndIndex - buffer.Lines[^1].StartIndex);
+      var finalText = buffer.Extract(new Range((0, 0), edit.Range.Start)) +
+                      edit.NewText +
+                      buffer.Extract(new Range(edit.Range.End, end));
+      Assert.Equal(target, finalText);
     }
-    Assert.AreEqual(target, finalText);
+  }
+
+  public FormattingTest(ITestOutputHelper output) : base(output) {
   }
 }

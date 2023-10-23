@@ -2,14 +2,21 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
-using Microsoft.Boogie;
+using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
-  public static readonly Option<int> ErrorLimit =
-    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
+    "Show hints on locations where implicit assertions occur");
+
+  public static readonly Option<bool> AddCompileSuffix =
+    new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
+      IsHidden = true
+    };
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
@@ -30,7 +37,10 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.") {
+    "Print additional information such as which files are emitted where.");
+
+  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
+    "Warn about the use of deprecated features (default true).") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -38,8 +48,7 @@ true - In the compiled target code, transform any non-extern
 (experimental, will be replaced in the future)
 Reduce Dafny's knowledge of non-linear arithmetic (*,/,%).
   
-Results in more manual work, but also produces more predictable behavior.".TrimStart()) {
-  };
+Results in more manual work, but also produces more predictable behavior.".TrimStart());
 
   public static readonly Option<bool> EnforceDeterminism = new("--enforce-determinism",
     "Check that only deterministic statements are used, so that values seen during execution will be the same in every run of the program.") {
@@ -49,22 +58,20 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
-  public static readonly Option<bool> IsolateAssertions = new("--isolate-assertions", @"Verify each assertion in isolation.");
-
   public static readonly Option<List<string>> VerificationLogFormat = new("--log-format", $@"
 Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
 
 The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
 
-The `text` format also includes a more detailed breakdown of what assertions appear in each assertion batch. When combined with the {CommonOptionBag.IsolateAssertions.Name} option, it will provide approximate time and resource use costs for each assertion, allowing identification of especially expensive assertions.".TrimStart()) {
+The `text` format also includes a more detailed breakdown of what assertions appear in each assertion batch. When combined with the {BoogieOptionBag.IsolateAssertions.Name} option, it will provide approximate time and resource use costs for each assertion, allowing identification of especially expensive assertions.".TrimStart()) {
     ArgumentHelpName = "configuration"
   };
 
-  public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
-  public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
-  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+  public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
+    IsHidden = true
+  };
 
-  public static readonly Option<IList<string>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -72,12 +79,18 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+    "Specify the filepath that determines where to place and how to name build files.") {
+    ArgumentHelpName = "file",
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -86,7 +99,8 @@ receive arguments. More information about what plugins do and how
 to define them:
 
 https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins") {
-    ArgumentHelpName = "path-to-one-assembly[,argument]*"
+    ArgumentHelpName = "path-to-one-assembly[,argument]*",
+    IsHidden = true
   };
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
@@ -106,7 +120,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
         }
       }
 
-      return QuantifierSyntaxOptions.Version3;
+      return QuantifierSyntaxOptions.Version4;
     }, true, @"
 The syntax for quantification domains is changing from Dafny version 3 to version 4, more specifically where quantifier ranges (|
 <Range>) are allowed. This switch gives early access to the new syntax.
@@ -133,26 +147,92 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     ArgumentHelpName = "language",
   };
 
-  public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => false,
+  public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => true,
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
-  public static readonly Option<FileInfo> SolverPath = new("--solver-path",
-    "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
+  public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
+    @"
+false - The type-inference engine and supported types are those of Dafny 4.0.
+true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
   };
+
+  public enum GeneralTraitsOptions {
+    Legacy,
+    Datatype,
+    Full
+  }
+
+  public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
+    @"
+legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
+    @"
+false - Don't print type-inference debug information.
+true - Print type-inference debug information.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> NewTypeInferenceDebug = new("--type-system-debug", () => false,
+    @"
+false - Don't print debug information for the new type system.
+true - Print debug information for the new type system.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
+  public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
+    "When parsing use basename of file for tokens instead of the path supplied on the command line") {
+  };
+  public static readonly Option<bool> SpillTranslation = new("--spill-translation",
+    @"In case the Dafny source code is translated to another language, emit that translation.") {
+  };
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
     "Treat warnings as errors.");
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
+  public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
+(experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
+May slow down verification slightly.
+May produce spurious warnings.") {
+    IsHidden = true
+  };
+  public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
+(experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
+May slow down verification slightly.
+May produce spurious warnings.") {
+    IsHidden = true
+  };
+  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
+    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+    ArgumentHelpName = "directory"
+  };
+  public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
+    "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
+
+  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
+    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
+  );
+
+  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
+    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
+  );
 
   public enum TestAssumptionsMode {
     None,
@@ -164,11 +244,121 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
+  public enum DefaultFunctionOpacityOptions {
+    Transparent,
+    AutoRevealDependencies,
+    Opaque
+  }
+
+  public static readonly Option<DefaultFunctionOpacityOptions> DefaultFunctionOpacity = new("--default-function-opacity", () => DefaultFunctionOpacityOptions.Transparent,
+    @"
+Change the default opacity of functions. 
+`transparent` (default) means functions are transparent, can be manually made opaque and then revealed. 
+`autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
+`opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
+  };
+
+  public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
+    @"
+Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+Not compatible with the --unicode-char:false option.
+");
+
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
+cs (default) - Compile to .NET via C#.
+go - Compile to Go.
+js - Compile to JavaScript.
+java - Compile to Java.
+py - Compile to Python.
+cpp - Compile to C++.
+dfy - Compile to Dafny.
+
+Note that the C++ backend has various limitations (see
+Docs/Compilation/Cpp.md). This includes lack of support for
+BigIntegers (aka int), most higher order functions, and advanced
+features like traits or co-inductive types.".TrimStart(), "cs");
+
+    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
+0 - Include all non-ghost datatype constructors in the compiled code
+1 (default) - In the compiled target code, transform any non-extern
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+
+    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
+    DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
+0 - The char type represents any UTF-16 code unit.
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
+    DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
+0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
+legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+    DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
+0 (default) - Don't print type-inference debug information.
+1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
+0 (default) - Don't print debug information for the new type system.
+1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(PluginOption, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
+    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
+
+    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
+
+    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
+
+    DafnyOptions.RegisterLegacyUi(Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart(),
+      argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
+      defaultValue: PrintModes.Everything);
+
+    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("Everything")) {
+          options.Set(option, PrintModes.Everything);
+        } else if (ps.args[ps.i].Equals("NoIncludes")) {
+          options.Set(option, PrintModes.NoIncludes);
+        } else if (ps.args[ps.i].Equals("NoGhost")) {
+          options.Set(option, PrintModes.NoGhost);
+        } else if (ps.args[ps.i].Equals("DllEmbed")) {
+          // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+          // but it is now used by the LibraryBackend when building .doo files as well. 
+          options.Set(option, PrintModes.Serialization);
+        } else {
+          DafnyOptions.InvalidArgumentError(option.Name, ps);
+        }
+      }
+    }
+
+    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
+
+    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
+
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
-    DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
-      if (value != null) {
-        options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");
+    DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
+      if (value) {
+        options.Printer = new DafnyJsonConsolePrinter(options);
+        options.DiagnosticsFormat = DafnyOptions.DiagnosticsFormats.JSON;
       }
     });
 
@@ -181,20 +371,27 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
+    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
+      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
-    DafnyOptions.RegisterLegacyBinding(ErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
+    DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
-
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => { options.QuantifierSyntax = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
+    DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
       options.FormatCheck = value;
@@ -213,23 +410,19 @@ Functionality is still being expanded. Currently only checks contracts on every 
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
+
+    DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
+
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.ToHashSet(); });
+      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
-    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
+    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
+    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
-    DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
-    DafnyOptions.RegisterLegacyBinding(SolverResourceLimit, (o, v) => o.ResourceLimit = v);
-    DafnyOptions.RegisterLegacyBinding(SolverPlugin, (o, v) => {
-      if (v is not null) {
-        o.ProverDllName = v;
-        o.TheProverFactory = ProverFactory.Load(o.ProverDllName);
-      }
-    });
-    DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+    DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
@@ -248,8 +441,54 @@ Functionality is still being expanded. Currently only checks contracts on every 
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
-  }
 
+    DooFile.RegisterLibraryChecks(
+      new Dictionary<Option, DooFile.OptionCheck>() {
+        { UnicodeCharacters, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
+        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+      }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Check,
+      Libraries,
+      Output,
+      PluginOption,
+      Prelude,
+      Target,
+      Verbose,
+      WarnDeprecation,
+      FormatPrint,
+      JsonDiagnostics,
+      QuantifierSyntax,
+      SpillTranslation,
+      StdIn,
+      TestAssumptions,
+      WarnShadowing,
+      ManualLemmaInduction,
+      TypeInferenceDebug,
+      GeneralTraits,
+      TypeSystemRefresh,
+      VerificationLogFormat,
+      VerifyIncludedFiles,
+      WarningAsErrors,
+      DisableNonLinearArithmetic,
+      NewTypeInferenceDebug,
+      UseBaseFileName,
+      WarnMissingConstructorParenthesis,
+      UseJavadocLikeDocstringRewriterOption,
+      IncludeRuntimeOption,
+      WarnContradictoryAssumptions,
+      WarnRedundantAssumptions,
+      VerificationCoverageReport,
+      NoTimeStampForCoverageReport,
+      DefaultFunctionOpacity,
+      UseStandardLibraries,
+      OptimizeErasableDatatypeWrapper,
+      AddCompileSuffix
+    );
+  }
 
   public static readonly Option<bool> FormatPrint = new("--print",
     @"Print Dafny program to stdout after formatting it instead of altering the files.") {

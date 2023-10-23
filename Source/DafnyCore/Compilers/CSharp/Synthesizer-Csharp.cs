@@ -35,6 +35,7 @@ public class CsharpSynthesizer {
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
   private Method lastSynthesizedMethod = null;
+  private DafnyOptions Options => compiler.Options;
 
   public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
@@ -95,7 +96,7 @@ public class CsharpSynthesizer {
         $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
-    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.CompileName)}{typeParameters}({parameterString}) {{");
+    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
 
     // Initialize the mocks
     objectToMockName = method.Outs.ToDictionary(o => (IVariable)o,
@@ -175,13 +176,14 @@ public class CsharpSynthesizer {
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
     var method = ((MemberSelectExpr)methodApp.Resolved).Member;
-    var methodName = method.CompileName;
+    var methodName = method.GetCompileName(Options);
 
     if (((Function)method).Ens.Count != 0) {
-      compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
-                                 "be unsatisfied when synthesizing code " +
-                                 "for method {1}", ErrorWriter,
-        methodName, lastSynthesizedMethod.Name);
+      compiler.Error(CompilerErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.tok,
+        "Post-conditions on function {0} might " +
+        "be unsatisfied when synthesizing code " +
+        "for method {1}",
+        ErrorWriter, methodName, lastSynthesizedMethod.Name);
     }
 
     var tmpId = compiler.idGenerator.FreshId("tmp");
@@ -220,9 +222,9 @@ public class CsharpSynthesizer {
     if (binaryExpr.E0 is ExprDotName exprDotName) { // field stubbing
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
-      var fieldName = field.CompileName;
-      compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
-                                "(field {0} of object {1} inside method {2})",
+      var fieldName = field.GetCompileName(Options);
+      compiler.Error(CompilerErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.tok,
+        "Stubbing fields is not recommended (field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       var tmpId = compiler.idGenerator.FreshId("tmp");
       wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
@@ -284,7 +286,7 @@ public class CsharpSynthesizer {
         wr.Write("\treturn ");
         wr.Append(compiler.Expr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
-        binaryExpr = (BinaryExpr)binaryExpr.E1;
+        binaryExpr = (BinaryExpr)binaryExpr.E1.Resolved;
         break;
       case BinaryExpr.Opcode.Eq:
         wr.WriteLine("\treturn true;");

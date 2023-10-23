@@ -1,0 +1,4 @@
+includes = ["**/*"]
+
+[options]
+warn-shadowing = 3

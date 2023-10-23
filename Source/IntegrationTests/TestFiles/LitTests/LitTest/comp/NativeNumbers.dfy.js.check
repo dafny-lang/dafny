@@ -1,0 +1,1 @@
+// CHECK: Error: None of the types given in :nativeType arguments is supported by the current compilation target\. Try supplying others\.

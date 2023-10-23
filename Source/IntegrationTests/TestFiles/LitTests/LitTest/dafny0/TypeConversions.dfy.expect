@@ -1,0 +1,364 @@
+// TypeConversions.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
+   * SCC at height 0:
+   *   nat
+   * SCC at height 0:
+   *   object
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+    ghost function requires(x0: T0): bool
+      reads reads(x0)
+
+    ghost function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  type {:compile false} /*_#Func0*/ () ~> +R {
+    ghost function requires(): bool
+      reads reads()
+
+    ghost function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function RotateLeft(w: nat): selftype
+
+    function RotateRight(w: nat): selftype
+  }
+
+  type map<+T, +U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<*T, +U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
+
+  type {:compile false} /*_#Func9*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8) ~> +R {
+    ghost function requires(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8): bool
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8)
+
+    ghost function reads(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8): set<object?>
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8)
+  }
+
+  type {:compile false} /*_#PartialFunc9*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8) --> +R = f: (T0, T1, T2, T3, T4, T5, T6, T7, T8) ~> R
+    | forall x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8 :: f.reads(x0, x1, x2, x3, x4, x5, x6, x7, x8) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc9*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8) -> +R = f: (T0, T1, T2, T3, T4, T5, T6, T7, T8) --> R
+    | forall x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8 :: f.requires(x0, x1, x2, x3, x4, x5, x6, x7, x8)
+    /*special witness*/
+}
+// bitvector types in use: bv67 bv32 bv7 bv0
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 2:
+ *   M0
+ * SCC at height 2:
+ *   M1
+ * SCC at height 2:
+ *   M2
+ * SCC at height 2:
+ *   M2'
+ * SCC at height 2:
+ *   M3
+ * SCC at height 2:
+ *   M4
+ * SCC at height 2:
+ *   M5
+ * SCC at height 1:
+ *   ClassSubset
+ * SCC at height 1:
+ *   UseTheVars
+ * SCC at height 0:
+ *   Class
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
+ *   SmallReal
+ */
+ghost predicate UseTheVars(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  decreases x, n, r, even, small, b67, w, seven, noll
+{
+  true
+}
+
+method M0()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      n := x as int;
+    case 0 <= x =>
+      x := x as int;
+    case true =>
+      x := r as int;
+    case true =>
+      n := r.Floor;
+    case 0.0 <= r =>
+      n := r.Floor;
+    case r == r.Floor as real =>
+      x := r as int;
+    case true =>
+      var b: bool := r as int == r.Floor;
+    case true =>
+      assert -4 <= small.Floor < 300;
+    case true =>
+      even := 6.0 as EvenInt;
+      assert even == 6;
+  }
+}
+
+method M1()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      x := b67 as int;
+    case true =>
+      x := w as int;
+    case true =>
+      x := seven as int;
+    case true =>
+      x := noll as int;
+    case true =>
+      n := noll as int;
+    case true =>
+      n := b67 as int;
+    case true =>
+      r := b67 as real;
+    case true =>
+      r := seven as real;
+    case true =>
+      r := noll as real;
+    case true =>
+      even := (b67 as int * 2) as EvenInt;
+    case true =>
+      small := small as real as SmallReal;
+    case true =>
+      small := small.Floor as SmallReal;
+    case true =>
+      small := noll as SmallReal;
+    case true =>
+      small := seven as SmallReal;
+    case true =>
+      small := w as SmallReal;
+    case (w & 15) as int <= 15 =>
+      small := (w & 15) as SmallReal;
+  }
+}
+
+method M2()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      b67 := b67 as bv67;
+    case true =>
+      b67 := w as bv67;
+    case true =>
+      b67 := seven as bv67;
+    case true =>
+      b67 := noll as bv67;
+    case true =>
+      w := b67 as bv32;
+    case true =>
+      w := w as bv32;
+    case true =>
+      w := seven as bv32;
+    case true =>
+      w := noll as bv32;
+    case true =>
+      seven := b67 as bv7;
+    case true =>
+      seven := w as bv7;
+    case true =>
+      seven := seven as bv7;
+    case true =>
+      seven := noll as bv7;
+  }
+}
+
+method M2'()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      noll := b67 as bv0;
+    case true =>
+      noll := w as bv0;
+    case true =>
+      noll := seven as bv0;
+    case true =>
+      noll := noll as bv0;
+  }
+}
+
+method M3()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      x, r := b67 as int, b67 as real;
+    case true =>
+      x, r := w as int, w as real;
+    case true =>
+      x, r := seven as int, seven as real;
+    case true =>
+      x, r := noll as int, noll as real;
+  }
+  assert 0 <= x && 0.0 <= r;
+}
+
+method M4()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
+    case true =>
+      even := noll as EvenInt;
+    case b67 as int % 2 == 0 =>
+      even := b67 as EvenInt;
+    case true =>
+      small := seven as SmallReal;
+    case true =>
+      even := small as EvenInt;
+    case small == small.Floor as SmallReal =>
+      even := small as EvenInt;
+    case small == small.Floor as SmallReal && small as int % 2 == 0 =>
+      even := small as EvenInt;
+  }
+}
+
+method M5()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  x := 150;
+  if {
+    case true =>
+      b67 := x as bv67;
+    case true =>
+      w := x as bv32;
+    case true =>
+      seven := x as bv7;
+    case true =>
+      noll := x as bv0;
+    case n < 128 =>
+      seven := n as bv7;
+    case n == 0 =>
+      noll := n as bv0;
+    case n < 1 =>
+      noll := n as bv0;
+    case 0 <= even < 4294967296 =>
+      w := even as bv32;
+    case small as real == small.Floor as real =>
+      seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
+  }
+}
+
+newtype EvenInt = x: int
+  | x % 2 == 0
+
+newtype SmallReal = r: real
+  | -4.0 <= r < 300.0
+
+class Class { }
+/*-- non-null type
+type {:axiom} Class(==) = c: Class? | c != null /*special witness*/
+*/
+
+type ClassSubset = c: Class
+  | true
+TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
+TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(17,40): Error: value does not satisfy the subset constraints of 'nat'
+TypeConversions.dfy(20,44): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(44,28): Error: result of operation might violate newtype constraint for 'SmallReal'
+TypeConversions.dfy(57,26): Error: value to be converted might not fit in bv32
+TypeConversions.dfy(61,30): Error: value to be converted might not fit in bv7
+TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
+TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
+TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
+TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
+TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it might be null
+
+Dafny program verifier finished with 3 verified, 17 errors

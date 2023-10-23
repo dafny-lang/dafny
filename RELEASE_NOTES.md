@@ -2,6 +2,345 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.3.0
+
+## New features
+
+- Add support for the Find References LSP request
+  - Returned references may be incomplete when not using project mode
+  (https://github.com/dafny-lang/dafny/pull/2320)
+
+- Improve scalability of inlining for test generation and generate coverage information with respect to the original Dafny source (https://github.com/dafny-lang/dafny/pull/4255)
+
+- Support generating of tests targeting path-coverage of the entire program and tests targeting call-graph-sensitive block coverage (referred to as Branch coverage) (https://github.com/dafny-lang/dafny/pull/4326)
+
+- Add support for Rename LSP request
+  - Support requires enabling project mode and defining a Dafny project file
+  (https://github.com/dafny-lang/dafny/pull/4365)
+
+- Make verification in the IDE more responsive by starting verification after translating the required module to Boogie, instead of first translating all modules that could be verified. (https://github.com/dafny-lang/dafny/pull/4378)
+
+- The Dafny IDE now has improved behavior when working with a Dafny file that's part of a Dafny project. A Dafny file is part of a project if a `dfyconfig.toml` can be found somewhere in the file's path hierarchy, such as in the same folder or in the parent folder. A `dfyconfig.toml` can specify which Dafny options to use for that project, and can specify which Dafny files are part of the project. By default, the project will include all .dfy files reachable from the folder in which the `dfyconfig.toml` resides. Project related features of the IDE are:
+  - Whenever one file in the project is opened, diagnostics for all files in the Dafny project are shown. When including a file with errors that's part of the same project, the message "the included file contains errors" is no longer shown. Instead, the included file's errors are shown directly.
+  - If any file in the project is changed, diagnostics for all files in the project are updated. Without a project, changing an included file will not update diagnostics for the including file until the including file is also changed.
+  - The find references feature (also added in this release), works better in files that are part of a project, since only then can it find references that are inside files that include the current file.
+  - The assisted rename feature (also added in this release), only works for files that are part of a project.
+  - When using a project file, it is no longer necessary to use include directives. In the previous version of Dafny, it was already the case that the Dafny CLI, when passed a Dafny project file, does not require include directives to process the Dafny program. The same now holds for the Dafny IDE when working with Dafny files for which a project file can be found.
+  - If any file in the project is resolved, all files in the project are resolved. Opening a file in a project that's already resolved means the opened file is resolved instantly.
+  - The IDE's memory consumption stays the same regardless of how many files in a project are opened. Without a project, the IDE increases it's memory usage for each open file.
+
+  Try out the IDE's project support now by creating an empty `dfyconfig.toml` file in the root of your project repository.
+  (https://github.com/dafny-lang/dafny/pull/4435)
+
+- Prior to generating tests, Dafny now checks the targeted program for any features that test generation does not support or any misuse of test generation specific attributes.
+  Any such issues are reported to the user.
+  (https://github.com/dafny-lang/dafny/pull/4444)
+
+- Added documentation of the generate-tests command to the reference manual (https://github.com/dafny-lang/dafny/pull/4445)
+
+- When two modules in the same scope have the same name, Dafny now reports an error that contains the location of both modules. (https://github.com/dafny-lang/dafny/pull/4499)
+
+- - The Dafny IDE will now report errors that occur in project files.
+  - The Dafny IDE will now shown a hint diagnostic at the top of Dafny project files, that says which files are referenced by the project.
+  (https://github.com/dafny-lang/dafny/pull/4539)
+
+## Bug fixes
+
+- Triggers warnings correclty converted into errors with --warn-as-errors (https://github.com/dafny-lang/dafny/pull/3358)
+
+- Allow JavaScript keywords as names of Dafny modules (https://github.com/dafny-lang/dafny/pull/4243)
+
+- Support odd characters in pathnames for Go (https://github.com/dafny-lang/dafny/pull/4257)
+
+- Allow Dafny filenames compiled to Java to start with a digit (https://github.com/dafny-lang/dafny/pull/4258)
+
+- Parser now supports files with a lot of consecutive single-line comments (https://github.com/dafny-lang/dafny/pull/4261)
+
+- Gutter icons more robust (https://github.com/dafny-lang/dafny/pull/4287)
+
+- Unresolved abstract imports no longer crash the resolver (https://github.com/dafny-lang/dafny/pull/4298)
+
+- Make capitalization of target Go code consistent (https://github.com/dafny-lang/dafny/pull/4310)
+
+- Refining an abstract module with a class with an opaque function no longer crashes (https://github.com/dafny-lang/dafny/pull/4315)
+
+- Dafny can now produce coverage reports indicating which parts of the program are expected to be covered by automatically generated tests. 
+  The same functionality can be used to report other forms of coverage.
+  (https://github.com/dafny-lang/dafny/pull/4325)
+
+- Fix issue that would prevent the IDE from correctly handling default export sets (https://github.com/dafny-lang/dafny/pull/4328)
+
+- Allow function-syntax and other options with a custom default to be overridden in `dfyconfig.toml` (https://github.com/dafny-lang/dafny/pull/4357)
+
+- There were two differences between verification in the IDE and the CLI, one small and one tiny, which would only become apparent for proofs that Z3 had trouble verifying. The small difference has been resolved, while the tiny one still persists, so the IDE and CLI should behave almost equivalently now, including resource counts, on most code. (https://github.com/dafny-lang/dafny/pull/4374)
+
+- Old command line interface for test generation is no longer supported, all calls should use dafny generate-tests (https://github.com/dafny-lang/dafny/pull/4385)
+
+- Fixed a bug leading to stack overflow during counterexample extraction on some programs. (https://github.com/dafny-lang/dafny/pull/4392)
+
+- Ability to use .Key as a constant name in datatypes and classes (https://github.com/dafny-lang/dafny/pull/4394)
+
+- Existential assertions are now printed correctly (https://github.com/dafny-lang/dafny/pull/4401)
+
+- When a symbol such as a method is not given a name, the error given by Dafny now shows where this problem occurs. (https://github.com/dafny-lang/dafny/pull/4411)
+
+- Fix flickering and incorrect results in the verification status bar, and improve responsiveness of verification diagnostics (https://github.com/dafny-lang/dafny/pull/4413)
+
+- Significantly improve IDE responsiveness for large projects, preventing it from appearing unresponsive or incorrect. Previously, for projects of a certain size, the IDE would not be able to keep up with incoming changes made by the user, possibly causing it to never catch up and appearing frozen or showing outdated results. (https://github.com/dafny-lang/dafny/pull/4419)
+
+- Declarations with {:only} ensure that other declarations aren't displayed as verified in the gutter icons (https://github.com/dafny-lang/dafny/pull/4432)
+
+- Fix issues that could cause the IDE status bar to show incorrect information (https://github.com/dafny-lang/dafny/pull/4454)
+
+- When verification times out, only show a red underline on the name of the verifiable for which verification timed out, instead of under its whole definition. (https://github.com/dafny-lang/dafny/pull/4477)
+
+- Prevent the IDE from becoming completely unresponsive after certain kinds of parse errors would occur. (https://github.com/dafny-lang/dafny/pull/4495)
+
+- Support all types of options in the Dafny project file (dfyconfig.toml) (https://github.com/dafny-lang/dafny/pull/4506)
+
+- Fix an issue that would cause some types of errors and other diagnostics not to appear in the IDE, if they appeared in files other than the active one. (https://github.com/dafny-lang/dafny/pull/4513)
+
+- Fix an IDE issue that would lead to exceptions when using module export declarations and making edits in imported modules that were re-exported (https://github.com/dafny-lang/dafny/pull/4556)
+
+- Fix a leak in the IDE that would cause it to become less responsive over time. (https://github.com/dafny-lang/dafny/pull/4570)
+
+# 4.2.0
+
+## New features
+
+- The --show-snippets options is implemented for errors printed to the console (https://github.com/dafny-lang/dafny/pull/3304)
+
+- * {:error} now accepts success messages
+  * Better hover messages when using the IDE
+  * Harmonized language to use more "could not prove" rather than "might not hold"
+  (https://github.com/dafny-lang/dafny/pull/3687)
+
+- Unicode representations of mathematical symbols (such as logical implies, and, and or) are no longer recognized by the parser. (https://github.com/dafny-lang/dafny/pull/3755)
+
+- Allow the Dafny IDE to publish 'Parsing' and 'Preparing Verification' messages to let the user better understand what they're waiting for. (https://github.com/dafny-lang/dafny/pull/4031)
+
+- Removed obsolete options /mimicVerificationOf, /allowGlobals (https://github.com/dafny-lang/dafny/pull/4062)
+
+- Allow the `{:only}` attribute to be used on members in addition to `assert` statements (https://github.com/dafny-lang/dafny/pull/4074)
+
+- The obsolete and unsound option /allocated is removed; the behavior of dafny is locked to the case of /allocated:4. (https://github.com/dafny-lang/dafny/pull/4076)
+
+- When using the Dafny CLI, error messages of the form "the included file <filename> contains error(s)" are no longer reported, since the actual errors for these included files are shown as well. When using the Dafny server, errors like these are still shown, since the Dafny server only shows errors for currently opened files. In addition, such errors are now also shown for files that are indirectly included by an opened file. (https://github.com/dafny-lang/dafny/pull/4083)
+
+- When using the Dafny IDE, parsing is now cached in order to improve performance when making changes in multi-file projects. (https://github.com/dafny-lang/dafny/pull/4085)
+
+- Errors issued in command-line mode now show source code context by default; this behavior can be disabled using the option --show-snippets:false. (https://github.com/dafny-lang/dafny/pull/4087)
+
+- Reduced resolution time by up to 50%. Measurements on large codebases show a 35% average reduction in resolution time.
+
+- After generating Python code we run the byte-code compiler to surface possible issues earlier, if it's not subsequently run. (https://github.com/dafny-lang/dafny/pull/4155)
+
+- Improve the responsiveness of the Dafny language server when making changes while it is in the 'Resolving...' state. (https://github.com/dafny-lang/dafny/pull/4175)
+
+- It is now possible to reveal an instance function of a class by a static reveal, without the need of an object of that class. (https://github.com/dafny-lang/dafny/pull/4176)
+
+- Support for the `--bprint` option for language server arguments (https://github.com/dafny-lang/dafny/pull/4206)
+
+- Improve printing of real numbers to use decimal notation more often (https://github.com/dafny-lang/dafny/pull/4235)
+
+- When translated to other languages, Dafny module names no longer have the suffix `_Compile` appended to them. This may cause issues with existing code from non-Dafny languages in your codebase, if that code was previously referencing modules with `_Compile` in the name. You can migrate either by removing the `_Compile` part of references in your codebase, or by using the backwards compatibility option `--compile-suffix` when using `translate`, `build`, or `run`. (https://github.com/dafny-lang/dafny/pull/4265)
+
+- Counterexample parsing now supports both the 'Arguments' and 'Predicates' polymorphism encoding in Boogie. (https://github.com/dafny-lang/dafny/pull/4299)
+
+## Bug fixes
+
+- Removed wrong "related position" precision when dealing with regrouped quantifiers (https://github.com/dafny-lang/dafny/pull/2211)
+
+- Fixed crash on an empty filename (https://github.com/dafny-lang/dafny/pull/3549)
+
+- Fixes crash if solver-path is not found (https://github.com/dafny-lang/dafny/pull/3572)
+
+- Avoid infinite recursion when trying to construct a potentially self-referential object during test generation (https://github.com/dafny-lang/dafny/pull/3727)
+
+- Better error message when incorrect number of out parameters (https://github.com/dafny-lang/dafny/pull/3835)
+
+- Compilation of continue labels no longer crashing in Go (https://github.com/dafny-lang/dafny/pull/3978)
+
+- The terminology 'opaque type' is changed to 'abstract type (for uninterpreted type declarations), to avoid ambiguity with used of the 'opaque' keyword and revealing declarations (https://github.com/dafny-lang/dafny/pull/3990)
+
+- Ensures override checks have access to fuel constant equivalences (https://github.com/dafny-lang/dafny/pull/3995)
+
+- No more crash when using constant in pattern (https://github.com/dafny-lang/dafny/pull/4000)
+
+- Remove multiset cardinality cap in Python (https://github.com/dafny-lang/dafny/pull/4014)
+
+- Wrong statement order in generated code for certain for-loops (https://github.com/dafny-lang/dafny/pull/4015)
+
+- Making assertion explicit work for nested statements (https://github.com/dafny-lang/dafny/pull/4016)
+
+- Use type antecedent in Type/Allocation axioms for const fields
+  Don't generate injectivity axioms for export-provided types
+  (https://github.com/dafny-lang/dafny/pull/4020)
+
+- Added a new CLI option --warn-deprecation, which is on by default
+  Extraneous semicolons are now warned about by default; the warning can be disabled using --warn-deprecation:false
+  (https://github.com/dafny-lang/dafny/pull/4041)
+
+- Regression in the subset check of the function override check (https://github.com/dafny-lang/dafny/pull/4056)
+
+- Fix function to function-by-method transformation pass in test generation that could previously lead to parsing errors (https://github.com/dafny-lang/dafny/pull/4067)
+
+- Modules verified in the correct order to prevent Boogie Crash (https://github.com/dafny-lang/dafny/pull/4139)
+
+- In VSCode, resource units are now always displayed with 3 digit precision.
+  Moreover, they can now display values greater than MAX_INT without displaying a negative result.
+  (https://github.com/dafny-lang/dafny/pull/4143)
+
+- Remove redundant code in the test generation project (https://github.com/dafny-lang/dafny/pull/4146)
+
+- Generate type axioms in the absence of explicit constraints for `newtype`s (https://github.com/dafny-lang/dafny/pull/4190)
+
+- Support for opaque function handles (https://github.com/dafny-lang/dafny/pull/4202)
+
+- Traits with opaque functions can now be extended without errors (https://github.com/dafny-lang/dafny/pull/4205)
+
+- Disabled --show-snippets CLI option, which is otherwise on by default, during test generation
+  Test generation modifies Boogie AST resulting from Dafny, and is, therefore, incompatible with --show-snippets
+  (https://github.com/dafny-lang/dafny/pull/4216)
+
+- Select proper division for real-based newtypes (https://github.com/dafny-lang/dafny/pull/4234)
+
+- Formatting in the IDE consistent again with the CLI (https://github.com/dafny-lang/dafny/pull/4269)
+
+- Fixes invalid declaration errors when verifying directly from Dafny using /typeEncoding:m. (https://github.com/dafny-lang/dafny/pull/4275)
+
+- Make gutter icons more robust to document changes (https://github.com/dafny-lang/dafny/pull/4308)
+
+# 4.1.0
+
+## New features
+
+- Added support for `.toml` based Dafny project files. For now the project file only allows specifying which Dafny files to include and exclude, and what options to use.
+  The CLI commands that take Dafny files as input, such as build, run, translate, will now also accept Dafny project files.
+  When using an IDE based on `dafny server`, such as the Dafny VSCode extension, the IDE will look for a Dafny project file by traversing up the file tree from the currently opened file, until it finds it `dfyconfig.toml`. The project file will override options specified in the IDE.
+  (https://github.com/dafny-lang/dafny/pull/2907)
+
+- Recognize the `{:only}` attribute on `assert` statements to temporarily transform other assertions into assumptions (https://github.com/dafny-lang/dafny/pull/3095)
+
+- Exposes the --output and --spill-translation options for the dafny test command (https://github.com/dafny-lang/dafny/pull/3612)
+
+- The `dafny audit` command now reports instances of the `{:concurrent}` attribute, intended to flag code that is intended, but can't be proven, to be safe for use in a concurrent setting. (https://github.com/dafny-lang/dafny/pull/3660)
+
+- Added option --no-verify for language server (https://github.com/dafny-lang/dafny/pull/3732)
+
+- Documenting Dafny Entities
+  * Added `.GetDocstring(DafnyOptions)` to every AST node
+  * Plugin support for custom Docstring formatter, 
+  * Activatable plugin to support a subset of Javadoc through `--javadoclike-docstring-plugin`
+  * Support for displaying docstring in VSCode
+  (https://github.com/dafny-lang/dafny/pull/3756)
+
+- Documentation of the syntax for docstrings added to the reference manual (https://github.com/dafny-lang/dafny/pull/3773)
+
+- Labelled assertions and requires in functions (https://github.com/dafny-lang/dafny/pull/3804)
+
+- API support for obtaining the Dafny expression that is being checked by each assertion (https://github.com/dafny-lang/dafny/pull/3888)
+
+- Added a "Dafny Library" backend, which produces self-contained, pre-verified `.doo` files ideal for distributing shared libraries.
+  `.doo` files are produced with commands of the form `dafny build -t:lib ...`.
+  (https://github.com/dafny-lang/dafny/pull/3913)
+
+- Semantic interpretation of dots in names for `{:extern}` modules when compiling to Python (https://github.com/dafny-lang/dafny/pull/3919)
+
+- Code actions in editor to explicit failing assertions.
+  In VSCode, place the cursor on a failing assertion that support being made explicit and either
+  - Position the caret on a failing assertion, press CTRL+; and then ENTER
+  - Hover over the failing division by zero, click "quick fix", press ENTER
+  Both scenarios will explicit the failing assertion.
+  If you don't see a quick fix, it means that the assertion cannot be automatically made explicit for now.
+
+  Here is a initial list of assertions that can now be made explicit:
+  - Division by zero
+  - "out of bound" on sequences index, sequence slices, or array index
+  - "Not in domain" on maps
+  - "Could not prove unicity" of `var x :| ...` statement  
+  - "Could not prove existence" of `var x :| ...` statement
+  (https://github.com/dafny-lang/dafny/pull/3940)
+
+## Bug fixes
+
+- dafny test accepts a --methods-to-test option whose value is a regular expression selecting which tests to include in the test run (https://github.com/dafny-lang/dafny/pull/3221)
+
+- The deprecated attributes :dllimport, :handle, and :heapQuantifier are no longer recognized. (https://github.com/dafny-lang/dafny/pull/3398)
+
+- While using `dafny translate --target=java`, the `--include-runtime` option works as intended, while before it had no affect. (https://github.com/dafny-lang/dafny/pull/3611)
+
+- Tested support for paths with spaces in them (https://github.com/dafny-lang/dafny/pull/3683)
+
+- Crash related to the override check for generic functions (https://github.com/dafny-lang/dafny/pull/3692)
+
+- Opaque functions guaranteed to be opaque until revealed (https://github.com/dafny-lang/dafny/pull/3719)
+
+- Support for Corretto tests (https://github.com/dafny-lang/dafny/pull/3731)
+
+- Right shift on native byte has the same consistent semantics even in Java (https://github.com/dafny-lang/dafny/pull/3734)
+
+- Main and {:test} methods may now be in the same program (https://github.com/dafny-lang/dafny/pull/3744)
+
+- The formatter now produces the same output whether invoked on the command-line or from VSCode (https://github.com/dafny-lang/dafny/pull/3790)
+
+- The --solver-log option is now hidden from help unless --help-internal is used. (https://github.com/dafny-lang/dafny/pull/3798)
+
+- Highlight "inconclusive" as errors in the gutter icons (https://github.com/dafny-lang/dafny/pull/3821)
+
+- Docstring for functions with ensures (https://github.com/dafny-lang/dafny/pull/3840)
+
+- Prevent a compiler crash that could occur when a datatype constructor was defined that has multiple parameters with the same name. (https://github.com/dafny-lang/dafny/pull/3860)
+
+- Improved rules for nameonly parameters and parameter default-value expressions (https://github.com/dafny-lang/dafny/pull/3864)
+
+- Fixes several compilation issues, mostly related to subset types defined by one of its type parameter (https://github.com/dafny-lang/dafny/pull/3893)
+
+- Explicitly define inequality of `multiset`s in Python for better backwards compatibility (https://github.com/dafny-lang/dafny/pull/3904)
+
+- Format for comprehension expressions (https://github.com/dafny-lang/dafny/pull/3912)
+
+- Formatting for parameter default values (https://github.com/dafny-lang/dafny/pull/3944)
+
+- Formatting issue in forall statement range (https://github.com/dafny-lang/dafny/pull/3960)
+
+- Select alternative default calc operator only if it doesn't clash with given step operators (https://github.com/dafny-lang/dafny/pull/3963)
+
+# 4.0.0
+
+## Breaking changes
+
+- Remove deprecated countVerificationErrors option (https://github.com/dafny-lang/dafny/pull/3165)
+
+- The default version of Z3 Dafny uses for verification is now 4.12.1. (https://github.com/dafny-lang/dafny/pull/3400)
+
+- The default values of several options has changed in Dafny 4.0. See `--help` for details.
+     - `--function-syntax` changed from `3` to `4`
+     - `--quantifier-syntax` changed from `3` to `4`
+     - `--unicode-char` changed from `false` to `true`
+  (https://github.com/dafny-lang/dafny/pull/3623)
+
+- The default value of the `/allocated` option is now `4`, and the option itself is deprecated. (https://github.com/dafny-lang/dafny/pull/3637)
+
+- Compilation to Go no longer attempts to use the Dafny `string` type and the Go `string` type interchangably when calling external methods (which was buggy and unsound). (https://github.com/dafny-lang/dafny/pull/3647)
+
+# 3.13.1
+
+## New features
+
+- Expose non-relaxed definite assignment (`/definiteAssignment:4`) in legacy CLI (https://github.com/dafny-lang/dafny/pull/3641)
+
+## Bug fixes
+
+- Fix translation of Dafny FunctionHandles to Boogie (https://github.com/dafny-lang/dafny/pull/2266)
+
+- To ensure that a `class` correctly implements a `trait`, we perform an override check. This check was previously faulty across `module`s, but works unconditionally now. (https://github.com/dafny-lang/dafny/pull/3479)
+
+- Fixes to definite assignment and determinism options:
+     - `--enforce-determinism` now forbids constructor-less classes
+     - With non-relaxed definite assignment, allow auto-init fields to be uninitialized
+  (https://github.com/dafny-lang/dafny/pull/3641)
+
 # 3.12.0
 
 ## New features

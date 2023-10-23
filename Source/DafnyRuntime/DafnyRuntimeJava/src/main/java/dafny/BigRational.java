@@ -16,22 +16,23 @@ public class BigRational {
         if (den.equals(BigInteger.ONE) || num.equals(BigInteger.ZERO)) {
             return num + ".0";
         } else {
-            Tuple2<Boolean, Integer> t = IsPowerOf10(den);
-            Integer log10 = t.dtor__1();
+            Tuple3<Boolean, BigInteger, Integer> t = dividesAPowerOf10(den);
+            Integer log10 = t.dtor__2();
             if (t.dtor__0()) {
+                BigInteger n = num.multiply(t.dtor__1());
                 String sign;
                 String digits;
                 if (num.signum() < 0) {
                     sign = "-";
-                    digits = (num.negate()).toString();
+                    digits = (n.negate()).toString();
                 } else {
                     sign = "";
-                    digits = num.toString();
+                    digits = n.toString();
                 }
 
                 if (log10 < digits.length()) {
-                    int n = digits.length() - log10;
-                    return sign + digits.substring(0, n) + "." + digits.substring(n);
+                    int digitCount = digits.length() - log10;
+                    return sign + digits.substring(0, digitCount) + "." + digits.substring(digitCount);
                 } else {
                     int z = log10 - digits.length();
                     StringBuffer outputBuffer = new StringBuffer(z);
@@ -46,7 +47,7 @@ public class BigRational {
         }
     }
 
-    public Tuple2<Boolean, Integer> IsPowerOf10(BigInteger x) {
+    public static Tuple2<Boolean, Integer> isPowerOf10(BigInteger x) {
         int log10 = 0;
         if (x.equals(BigInteger.ZERO)) {
             return new Tuple2<>(false, log10);
@@ -63,6 +64,35 @@ public class BigRational {
                 return new Tuple2<>(false, log10);
             }
         }
+    }
+
+    public static Tuple3<Boolean, BigInteger, Integer> dividesAPowerOf10(BigInteger i) {
+      BigInteger factor = BigInteger.ONE;
+      int log10 = 0;
+      if (i.compareTo(BigInteger.ZERO) <= 0) {
+        return new Tuple3<>(false, factor, log10);
+      }
+
+      // invariant: 1 <= i && i * 10^log10 == factor * old(i)
+      while (i.mod(BigInteger.TEN).equals(BigInteger.ZERO)) {
+        i = i.divide(BigInteger.TEN);
+        log10++;
+      }
+
+      BigInteger two = BigInteger.valueOf(2); // note, in Java 9, one can use BigInteger.TWO
+      BigInteger five = BigInteger.valueOf(5);
+      while (i.mod(five).equals(BigInteger.ZERO)) {
+        i = i.divide(five);
+        factor = factor.multiply(two);
+        log10++;
+      }
+      while (i.mod(two).equals(BigInteger.ZERO)) {
+        i = i.divide(two);
+        factor = factor.multiply(five);
+        log10++;
+      }
+
+      return new Tuple3<>(i.equals(BigInteger.ONE), factor, log10);
     }
 
     public BigRational() {

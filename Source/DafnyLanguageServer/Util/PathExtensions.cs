@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
@@ -13,10 +14,10 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// Gets the path of the file represented by the given dafny document. The path returned is
     /// in the standard system format. E.g. C:\data\test.dfy for windows or /home/test.dfy for linux.
     /// </summary>
-    /// <param name="document">The document to get the file path of.</param>
+    /// <param name="compilation">The document to get the file path of.</param>
     /// <returns>The file path.</returns>
-    public static string GetFilePath(this Document document) {
-      return GetFilePath(document.Uri);
+    public static string GetFilePath(this Compilation compilation) {
+      return GetFilePath(compilation.Uri);
     }
 
     /// <summary>
@@ -36,17 +37,6 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     }
 
     /// <summary>
-    /// Checks if the given token is part of the entrypoint document.
-    /// </summary>
-    /// <param name="program">The dafny program to check the token against.</param>
-    /// <param name="token">The token to check.</param>
-    /// <returns><c>true</c> if the given token is part of the entrypoint document of the given program.</returns>
-    public static bool IsPartOfEntryDocument(this Dafny.Program program, Boogie.IToken token) {
-      // The token filename happens to be null if it's representing a default module or class.
-      return token.filename == null || token.filename == program.FullName;
-    }
-
-    /// <summary>
     /// Checks if the given URI is the entrypoint document.
     /// </summary>
     /// <param name="program">The dafny program to check the token against.</param>
@@ -62,15 +52,11 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
     public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
-      if (token is IncludeToken includeToken) {
-        return DocumentUri.FromFileSystemPath(includeToken.Include.CanonicalPath);
-      }
-
       while (token is RefinementToken refinementToken) {
         token = refinementToken.WrappedToken;
       }
 
-      return DocumentUri.Parse(token.filename);
+      return DocumentUri.From(((IToken)token).Uri);
     }
 
     /// <summary>
@@ -78,8 +64,12 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// </summary>
     /// <param name="token">The token to get the document filename from.</param>
     /// <returns>The filename (without path) of the document containing the given token.</returns>
-    public static string GetDocumentFileName(this Boogie.IToken token) {
-      return Path.GetFileName(token.filename);
+    public static string? GetDocumentFileName(this Boogie.IToken token) {
+      if (token.filename == null) {
+        return null;
+      }
+
+      return token.filename;
     }
   }
 }

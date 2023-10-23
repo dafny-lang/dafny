@@ -1,0 +1,486 @@
+// BitvectorsMore.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
+   * SCC at height 0:
+   *   nat
+   * SCC at height 0:
+   *   object
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+    ghost function requires(x0: T0): bool
+      reads reads(x0)
+
+    ghost function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  type {:compile false} /*_#Func0*/ () ~> +R {
+    ghost function requires(): bool
+      reads reads()
+
+    ghost function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function RotateLeft(w: nat): selftype
+
+    function RotateRight(w: nat): selftype
+  }
+
+  type map<+T, +U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<*T, +U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
+
+  type {:compile false} /*_#Func11*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8, -T9, -T10) ~> +R {
+    ghost function requires(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): bool
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+
+    ghost function reads(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): set<object?>
+      reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+  }
+
+  type {:compile false} /*_#PartialFunc11*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8, -T9, -T10) --> +R = f: (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) ~> R
+    | forall x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10 :: f.reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc11*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8, -T9, -T10) -> +R = f: (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) --> R
+    | forall x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10 :: f.requires(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+    /*special witness*/
+}
+// bitvector types in use: bv7 bv137 bv0 bv10 bv60 bv67 bv32 bv2 bv5 bv8 bv6 bv3
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 2:
+ *   Shifts0
+ * SCC at height 2:
+ *   Shifts1
+ * SCC at height 2:
+ *   Shifts2
+ * SCC at height 2:
+ *   Shifts3
+ * SCC at height 2:
+ *   Shifts4
+ * SCC at height 2:
+ *   Shifts5
+ * SCC at height 2:
+ *   Shifts6
+ * SCC at height 1:
+ *   PQ
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   M
+ * SCC at height 0:
+ *   N0
+ * SCC at height 0:
+ *   N1
+ * SCC at height 0:
+ *   N2
+ * SCC at height 0:
+ *   N3
+ * SCC at height 0:
+ *   N4
+ * SCC at height 0:
+ *   P
+ * SCC at height 0:
+ *   Q
+ * SCC at height 0:
+ *   R
+ * SCC at height 0:
+ *   Rotate
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   TestActualRotate
+ * SCC at height 0:
+ *   TestActualShifting
+ */
+method M()
+{
+  var h: bv8 := 5;
+  var k: bv8 := h * 128 / 128;
+  assert k == 1;
+  h := 3;
+  k := h * 128 / 128;
+  assert k == 1;
+  h := *;
+  k := k / h;
+}
+
+method N0(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x / y;
+}
+
+method N1(x: bv7, y: bv7)
+  decreases x, y
+{
+  var z: bv7 := x % y;
+}
+
+method N2(x: bv137, y: bv137)
+  decreases x, y
+{
+  var z: bv137 := x / y;
+}
+
+method N3(x: bv0, y: bv0)
+  decreases x, y
+{
+  if * {
+    var z: bv0 := x / y;
+  } else {
+    var z: bv0 := x % y;
+  }
+}
+
+method N4(x: bv0, y: bv0) returns (z: bv0)
+  ensures z == 0
+  decreases x, y
+{
+  if {
+    case true =>
+      z := x + y;
+    case true =>
+      z := x - y;
+    case true =>
+      z := x * y;
+    case true =>
+      z := x & y;
+    case true =>
+      z := x | y;
+    case true =>
+      z := x ^ y;
+    case true =>
+      z := !x;
+    case true =>
+      z := -x;
+    case true =>
+    case true =>
+      assert !(x < y);
+    case true =>
+      assert x <= y;
+    case true =>
+      assert x >= y;
+    case true =>
+      assert !(x > y);
+  }
+}
+
+method P(x: bv0, y: bv0)
+  requires x != y
+  decreases x, y
+{
+  assert false;
+}
+
+method Q(x: bv10, y: bv10)
+  decreases x, y
+{
+  if x < 0 {
+    var z: bv10 := x / y;
+  }
+}
+
+method R(x: bv60, y: bv60)
+  decreases x, y
+{
+  var a0: bool, a1: bool;
+  a0, a1 := x < y, y > x;
+  assert a0 == a1;
+  a0, a1 := x <= y, y >= x;
+  assert a0 == a1;
+}
+
+ghost predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  decreases x, n, r, even, small, b67, w, seven, bb, noll, h
+{
+  x == x &&
+  n == n &&
+  r == r &&
+  even == even &&
+  small == small &&
+  b67 == b67 &&
+  w == w &&
+  seven == seven &&
+  bb == bb &&
+  noll == noll &&
+  h == h
+}
+
+method Shifts0()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case x < 20 =>
+      b67 := b67 << x as bv7;
+    case 0 <= x =>
+      b67 := b67 << x as bv7;
+    case 0 <= x < 67 =>
+      b67 := b67 << x as bv7;
+    case true =>
+      b67 := b67 << n as bv7;
+    case true =>
+      b67 := b67 << h as bv7;
+  }
+}
+
+method Shifts1()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case even <= 66 =>
+      b67 := b67 << even as bv7;
+    case 0 <= even =>
+      b67 := b67 << even as bv7;
+    case 0 <= even <= 66 =>
+      b67 := b67 << even as bv7;
+  }
+}
+
+method Shifts2()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      b67 := b67 << b67 as bv7;
+    case true =>
+      b67 := b67 << w as bv7;
+    case true =>
+      b67 := b67 << (seven / 2) as bv7;
+    case true =>
+      b67 := b67 << bb as bv7;
+    case true =>
+      b67 := b67 << noll as bv7;
+  }
+}
+
+method Shifts3()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      w := w << b67 as bv6;
+    case true =>
+      w := w << w as bv6;
+    case true =>
+      w := w << seven as bv6;
+    case true =>
+      w := w << bb as bv6;
+    case true =>
+      w := w << noll as bv6;
+  }
+}
+
+method Shifts4()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      seven := seven << b67 as bv3;
+    case true =>
+      seven := seven << w as bv3;
+    case true =>
+      seven := seven << seven as bv3;
+    case true =>
+      seven := seven << bb as bv3;
+    case true =>
+      seven := seven << noll as bv3;
+  }
+}
+
+method Shifts5()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      bb := bb << b67 as bv2;
+    case true =>
+      bb := bb << w as bv2;
+    case true =>
+      bb := bb << seven as bv2;
+    case true =>
+      bb := bb << bb as bv2;
+    case true =>
+      bb := bb << noll as bv2;
+  }
+}
+
+method Shifts6()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+  ensures PQ(x, n, r, even, small, b67, w, seven, bb, noll, h)
+{
+  if {
+    case true =>
+      noll := noll << b67 as bv0;
+    case true =>
+      noll := noll << w as bv0;
+    case true =>
+      noll := noll << seven as bv0;
+    case true =>
+      noll := noll << bb as bv0;
+    case true =>
+      noll := noll << noll as bv0;
+  }
+}
+
+method TestActualShifting()
+{
+  var a: bv67 := 3;
+  assert a << 2 as bv7 == 12;
+  assert a >> 0 as bv7 == 3;
+  assert a >> 1 as bv7 == 1;
+  assert a >> 2 as bv7 == 0;
+  var b: bv5 := 24;
+  assert b << 1 as bv3 == 16;
+  assert b >> 0 as bv3 == 24;
+  assert b >> 1 as bv3 == 12;
+  assert b >> 2 as bv3 == 6;
+}
+
+method Rotate() returns (x: nat, bb: bv5)
+{
+  if {
+    case true =>
+      bb := bb.RotateLeft(x);
+    case true =>
+      bb := bb.RotateRight(x);
+  }
+}
+
+method TestActualRotate()
+{
+  var a: bv5 := 12;
+  assert a == a.RotateLeft(3).RotateRight(3);
+}
+
+newtype EvenInt = x: int
+  | x % 2 == 0
+
+newtype SmallReal = r: real
+  | -4.0 <= r < 300.0
+
+newtype Handful = x: int
+  | 0 <= x < 80
+BitvectorsMore.dfy(13,9): Error: possible division by zero
+BitvectorsMore.dfy(17,13): Error: possible division by zero
+BitvectorsMore.dfy(21,13): Error: possible division by zero
+BitvectorsMore.dfy(25,13): Error: possible division by zero
+BitvectorsMore.dfy(30,15): Error: possible division by zero
+BitvectorsMore.dfy(32,15): Error: possible division by zero
+BitvectorsMore.dfy(104,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(105,38): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(107,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(115,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(116,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(124,28): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(124,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(125,28): Error: shift amount must not exceed the width of the result (67)
+BitvectorsMore.dfy(125,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the result (32)
+BitvectorsMore.dfy(135,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
+BitvectorsMore.dfy(136,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
+BitvectorsMore.dfy(137,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(146,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(147,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(148,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the result (2)
+BitvectorsMore.dfy(157,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
+BitvectorsMore.dfy(158,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
+BitvectorsMore.dfy(159,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
+BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
+BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
+
+Dafny program verifier finished with 9 verified, 41 errors

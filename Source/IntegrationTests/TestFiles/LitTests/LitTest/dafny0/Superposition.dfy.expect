@@ -1,0 +1,19 @@
+Superposition.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
+
+Verifying M0.C.M (correctness) ...
+  [4 proof obligations]  verified
+
+Verifying M0.C.Q (well-formedness) ...
+  [3 proof obligations]  error
+Superposition.dfy(20,20): Error: a postcondition could not be proved on this return path
+Superposition.dfy(21,25): Related location: this is the postcondition that could not be proved
+
+Verifying M0.C.R (well-formedness) ...
+  [3 proof obligations]  error
+Superposition.dfy(26,20): Error: a postcondition could not be proved on this return path
+Superposition.dfy(27,25): Related location: this is the postcondition that could not be proved
+
+Verifying M1.C.M (correctness) ...
+  [1 proof obligation]  verified
+
+Dafny program verifier finished with 2 verified, 2 errors

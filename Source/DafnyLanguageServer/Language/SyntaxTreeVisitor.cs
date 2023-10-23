@@ -14,7 +14,7 @@
     /// <param name="token">The token associated with the unknown node.</param>
     public abstract void VisitUnknown(object node, IToken token);
 
-    public virtual void Visit(Dafny.Program program) {
+    public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {
         Visit(module);
       }
@@ -28,8 +28,11 @@
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch (topLevelDeclaration) {
-        case ClassDecl classDeclaration:
+        case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
+          break;
+        case DefaultClassDecl defaultClassDecl:
+          Visit(defaultClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
@@ -39,7 +42,7 @@
           break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
@@ -48,7 +51,7 @@
       }
     }
 
-    public virtual void Visit(ClassDecl classDeclaration) {
+    public virtual void Visit(TopLevelDeclWithMembers classDeclaration) {
       foreach (var member in classDeclaration.Members) {
         Visit(member);
       }
@@ -101,6 +104,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Reads);
       Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
@@ -122,9 +126,7 @@
       if (function.Result != null) {
         Visit(function.Result);
       }
-      foreach (var read in function.Reads) {
-        Visit(read);
-      }
+      Visit(function.Reads);
       foreach (var requirement in function.Req) {
         Visit(requirement);
       }

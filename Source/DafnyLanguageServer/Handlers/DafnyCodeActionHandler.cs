@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -11,18 +12,21 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Newtonsoft.Json.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
+  private readonly DafnyOptions options;
   private readonly ILogger<DafnyCodeActionHandler> logger;
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
-  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IProjectDatabase projects) {
+    this.options = options;
     this.logger = logger;
-    this.documents = documents;
+    this.projects = projects;
   }
 
   public record DafnyCodeActionWithId(DafnyCodeAction DafnyCodeAction, int Id);
@@ -42,10 +46,11 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// <summary>
   /// Returns the fixes along with a unique identifier
   /// </summary>
-  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DocumentAfterParsing document, CodeActionParams request) {
+  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, CompilationAfterParsing compilation, CodeActionParams request) {
     var id = 0;
+    var uri = request.TextDocument.Uri.ToUri();
     return fixers.SelectMany(fixer => {
-      var fixerInput = new DafnyCodeActionInput(document);
+      var fixerInput = new DafnyCodeActionInput(compilation, uri);
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -56,7 +61,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActiones = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
-    var document = await documents.GetLastDocumentAsync(request.TextDocument);
+    var document = await projects.GetLastDocumentAsync(request.TextDocument);
     if (document == null) {
       logger.LogWarning("dafny code actions requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();
@@ -83,9 +88,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
     , new ErrorMessageDafnyCodeActionProvider()
+    , new ImplicitFailingAssertionCodeActionProvider(options)
     }
     .Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin =>
+      options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
   }
@@ -130,7 +136,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     foreach (var (range, toReplace) in quickFixEdits) {
       edits.Add(new TextEdit() {
         NewText = toReplace,
-        Range = range
+        Range = range.ToLspRange()
       });
     }
     return edits;
@@ -138,29 +144,17 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  public DafnyCodeActionInput(DocumentAfterParsing document) {
-    Document = document;
+  private readonly Uri uri;
+
+  public DafnyCodeActionInput(CompilationAfterParsing compilation, Uri uri) {
+    this.uri = uri;
+    Compilation = compilation;
   }
 
-  public string Uri => Document.Uri.ToString();
-  public int Version => Document.Version;
-  public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program Program => Document.Program;
-  public DocumentAfterParsing Document { get; }
+  public string Uri => Compilation.Uri.ToString();
+  public Program Program => Compilation.Program;
+  public CompilationAfterParsing Compilation { get; }
 
-  public Diagnostic[] Diagnostics {
-    get {
-      var result = Document.Diagnostics.ToArray();
-      return result;
-    }
-  }
-
-  public string Extract(Range range) {
-    var buffer = Document.TextDocumentItem;
-    try {
-      return buffer.Extract(range);
-    } catch (ArgumentException) {
-      return "";
-    }
-  }
+  public IEnumerable<DafnyDiagnostic> Diagnostics => Compilation.GetDiagnostics(uri);
+  public VerificationTree? VerificationTree => Compilation.GetVerificationTree(uri);
 }

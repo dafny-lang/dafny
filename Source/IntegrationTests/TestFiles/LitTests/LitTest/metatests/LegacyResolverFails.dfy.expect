@@ -1,0 +1,2 @@
+LegacyResolverFails.dfy(7,2): Error: Could not resolve the type of the source of the match statement. Please provide additional typing annotations.
+1 resolution/type errors detected in LegacyResolverFails.dfy

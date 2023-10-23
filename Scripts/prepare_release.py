@@ -166,60 +166,38 @@ class NewsFragments:
 class Version(NamedTuple):
     """Support functions for version numbers.
 
-    >>> v = Version.from_string("3.8.2-xyz", datetime.date(2022, 8, 1))
-    >>> v.short
+    >>> v = Version.from_string("3.8.2-xyz")
+    >>> v.string
     '3.8.2-xyz'
-    >>> v.full
-    '3.8.2.40801-xyz'
-    >>> v.comment
-    'Version 3.8.2, year 2018+4, month 8, day 1.'
     """
 
     VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<identifier>-.+)?$")
 
     main: str # Main version number (1.2.3)
-    date: datetime.date # Release date
     identifier: str # Optional marker ("alpha")
 
     @classmethod
-    def from_string(cls, vernum: str, date: Optional[datetime.date]=None) -> Optional["Version"]:
+    def from_string(cls, vernum: str) -> Optional["Version"]:
         """Parse a short version string into a `Version` object."""
         if m := cls.VERSION_NUMBER_PATTERN.match(vernum):
             prefix, identifier = m.group("prefix", "identifier")
-            date = date or datetime.date.today()
-            return Version(prefix, date, identifier or "")
+            return Version(prefix, identifier or "")
         return None
 
     @property
-    def year_delta(self):
-        return self.date.year - 2018
-
-    @property
-    def short(self):
+    def string(self):
         return f"{self.main}{self.identifier}"
-
-    @property
-    def timestamp(self):
-        return str((self.year_delta * 100 + self.date.month) * 100 + self.date.day)
-
-    @property
-    def full(self):
-        return f"{self.main}.{self.timestamp}{self.identifier}"
-
-    @property
-    def comment(self):
-        return (f"Version {self.main}, year 2018+{self.year_delta}, " +
-                f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
     REMOTE = "origin"
-    MASTER_BRANCH = "refs/heads/master"
     NEWSFRAGMENTS_PATH = "docs/dev/news"
 
-    def __init__(self, version: str) -> None:
+    def __init__(self, version: str, source_branch: str) -> None:
         self.version = version
-        self.branch_name = f"release-{version}"
-        self.branch_path = f"refs/heads/{self.branch_name}"
+        self.source_branch_name = source_branch
+        self.source_branch_path = f"refs/heads/{self.source_branch_name}"
+        self.release_branch_name = f"release-{version}"
+        self.release_branch_path = f"refs/heads/{self.release_branch_name}"
         self.tag = f"v{version}"
         self.build_props_path = Path("Source/Directory.Build.props")
         self.release_notes_md_path = Path("RELEASE_NOTES.md")
@@ -275,7 +253,7 @@ class Release:
         return Version.from_string(self.version)
 
     def _is_release_branch(self) -> bool:
-        return self._get_branch(check=False) in (self.MASTER_BRANCH, self.branch_path)
+        return self._get_branch(check=False) in (self.source_branch_path, self.release_branch_path)
 
     @staticmethod
     def _is_repo_clean() -> bool:
@@ -302,7 +280,7 @@ class Release:
         return True
 
     def _no_release_branch(self) -> bool:
-        return git("rev-parse", "--quiet", "--verify", self.branch_path).returncode == 1
+        return git("rev-parse", "--quiet", "--verify", self.release_branch_path).returncode == 1
 
     def _no_release_tag(self) -> bool:
         return git("tag", "--verify", self.tag).returncode == 1
@@ -315,13 +293,11 @@ class Release:
             tail = version_element.tail
             version_element.clear()
             version_element.tail = tail
-            version_element.text = vernum.full
-            comment = ElementTree.Comment(vernum.comment)
-            version_element.append(comment)
+            version_element.text = vernum.string
         xml.write(self.build_props_path, encoding="utf-8")
 
     def _create_release_branch(self):
-        git("checkout", "-b", self.branch_name, check=True)
+        git("checkout", "-b", self.release_branch_name, check=True)
 
     def _consolidate_news_fragments(self):
         news = self.newsfragments.render()
@@ -343,7 +319,7 @@ class Release:
 
     def _push_release_branch(self):
         git("push", "--force-with-lease", "--set-upstream",
-            self.REMOTE, f"{self.branch_path}:{self.branch_path}",
+            self.REMOTE, f"{self.release_branch_path}:{self.release_branch_path}",
             check=True)
 
     # Still TODO:
@@ -368,7 +344,7 @@ class Release:
                    self._version_number_is_fresh)
         assert_one(f"Do we have news in {self.NEWSFRAGMENTS_PATH}?",
                    self._has_news)
-        assert_one(f"Is the current branch `master` or `{self.branch_name}`?",
+        assert_one(f"Is the current branch `{self.source_branch_name}` or `{self.release_branch_name}`?",
                    self._is_release_branch)
         assert_one("Is repo clean (all changes committed)?",
                    self._is_repo_clean)
@@ -378,10 +354,10 @@ class Release:
                    self._no_release_blocking_issues)
         assert_one(f"Can we create release tag `{self.tag}`?",
                    self._no_release_tag)
-        if self._get_branch(check=False) != self.branch_path:
-            assert_one(f"Can we create release branch `{self.branch_name}`?",
+        if self._get_branch(check=False) != self.release_branch_path:
+            assert_one(f"Can we create release branch `{self.release_branch_name}`?",
                        self._no_release_branch)
-            run_one(f"Creating release branch {self.branch_path}...",
+            run_one(f"Creating release branch {self.release_branch_path}...",
                     self._create_release_branch)
         else:
             progress("Note: Release branch already checked out, so not creating it.")
@@ -399,15 +375,16 @@ class Release:
         progress("Done!")
         progress()
 
-        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml"
-        progress(f"Now, start a deep-tests workflow manually for branch {self.branch_name} at\n"
-                 f"<{DEEPTESTS_URL}>.\n"
-                 "Once it completes, re-run this script with argument `release`.")
+        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml"
+        progress(f"Now, start a deep-tests workflow manually for branch {self.release_branch_name} at\n"
+                 f"<{DEEPTESTS_URL}>\n"
+                 f"To do so, click Run workflow, use workflow from {self.release_branch_name},\n"
+                 f"Once it completes, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
         progress()
 
     def _tag_release(self):
         git("tag", "--annotate", f"--message=Dafny {self.tag}",
-            self.tag, self.branch_path, capture_output=False).check_returncode()
+            self.tag, self.release_branch_path, capture_output=False).check_returncode()
 
     def _push_release_tag(self):
         git("push", self.REMOTE, f"{self.tag}",
@@ -422,7 +399,7 @@ class Release:
         progress("Done!")
         progress()
 
-        PR_URL = f"https://github.com/dafny-lang/dafny/pull/new/{self.branch_name}"
+        PR_URL = f"https://github.com/dafny-lang/dafny/pull/new/{self.release_branch_name}"
         progress("You can merge this branch by opening a PR at\n"
                  f"<{PR_URL}>.")
 
@@ -450,6 +427,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dafny release helper")
     parser.add_argument("--dry-run", help="Do not make any modifications (no file updates, no git commands).",
                         action="store_true")
+    parser.add_argument("--source-branch", help="Which branch to release from (optional, defaults to 'master')", default="master")
     parser.add_argument("version", help="Version number for this release (A.B.C-xyz)")
     parser.add_argument("action", help="Which part of the release process to run",
                         choices=["prepare", "release"])
@@ -458,7 +436,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     args = parse_arguments()
     try:
-        release = (DryRunRelease if args.dry_run else Release)(args.version)
+        release = (DryRunRelease if args.dry_run else Release)(args.version, args.source_branch)
         {"prepare": release.prepare,
          "release": release.release}[args.action]()
     except CannotReleaseError:

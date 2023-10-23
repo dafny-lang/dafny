@@ -1,0 +1,424 @@
+// ModuleInsertion.dfy
+
+method Main()
+{
+  Outer.Test();
+  XY.Test();
+  U.V.Test();
+  print MyModule.Q.W.E.R.T.Y.h, "\n";
+}
+
+module Outer {
+  method Test()
+  {
+    print A.a, " ", B.b, " ", C.c, " ", D.d, "\n";
+  }
+
+  module C {
+    const c := 2 + D.d
+
+    import D
+  }
+}
+
+module XY {
+  method Test()
+  {
+    print X.m, " ", X.M.n, " ", Y.m, "\n";
+  }
+}
+
+module MyModule {
+
+  module Q.W.E.R.T {
+  }
+
+  module Q.W.E.R.T.Y {
+    const h := 2
+  }
+}
+
+module Outer.A {
+  const a := B.b + C.c
+
+  import B
+
+  import C
+}
+
+module Outer.B {
+  const b := 1
+}
+
+module Outer.D {
+  const d := 3
+}
+
+module Outer.E {
+
+  export
+    provides F
+
+
+  module F {
+
+    export G
+
+  }
+}
+
+module Outer.H {
+
+  import E
+
+  import F = E.F`G
+}
+
+module XY.X {
+  const m := 20
+
+  module M {
+    const n := Y.m - 5
+
+    import Y
+  }
+}
+
+module XY.Y {
+  const m := 22
+}
+
+module U.V.W.X {
+  const x0 := 12
+}
+
+module U.V {
+  const x2 := 14 + W.x1 + W.X.x0
+
+  method Test()
+  {
+    print W.X.x0, " ", W.x1, " ", x2, "\n";
+  }
+}
+
+module U.V.W {
+  const x1 := 12 * X.x0
+}
+// ModuleInsertion.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
+   * SCC at height 0:
+   *   nat
+   * SCC at height 0:
+   *   object
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+    ghost function requires(x0: T0): bool
+      reads reads(x0)
+
+    ghost function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  type {:compile false} /*_#Func0*/ () ~> +R {
+    ghost function requires(): bool
+      reads reads()
+
+    ghost function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function RotateLeft(w: nat): selftype
+
+    function RotateRight(w: nat): selftype
+  }
+
+  type map<+T, +U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<*T, +U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 0:
+ *   Main
+ */
+method Main()
+{
+  Outer.Test();
+  XY.Test();
+  U.V.Test();
+  print MyModule.Q.W.E.R.T.Y.h, "\n";
+}
+
+module Outer {
+  /* CALL GRAPH for module Outer:
+   * SCC at height 0:
+   *   Test
+   */
+  method Test()
+  {
+    print A.a, " ", B.b, " ", C.c, " ", D.d, "\n";
+  }
+
+  module C {
+    /* CALL GRAPH for module C:
+     * SCC at height 0:
+     *   c
+     */
+    const c: int := 2 + D.d
+
+    import D
+  }
+
+  module A {
+    /* CALL GRAPH for module A:
+     * SCC at height 0:
+     *   a
+     */
+    const a: int := B.b + C.c
+
+    import B
+
+    import C
+  }
+
+  module B {
+    /* CALL GRAPH for module B:
+     * SCC at height 0:
+     *   b
+     */
+    const b: int := 1
+  }
+
+  module D {
+    /* CALL GRAPH for module D:
+     * SCC at height 0:
+     *   d
+     */
+    const d: int := 3
+  }
+
+  module E {
+    /* CALL GRAPH for module E:
+     */
+
+    export
+      provides F
+      /*----- exported view:
+
+        module F {
+          /* CALL GRAPH for module F:
+           */
+
+          export G
+
+        }
+      -----*/
+
+
+    module F {
+      /* CALL GRAPH for module F:
+       */
+
+      export G
+
+    }
+  }
+
+  module H {
+    /* CALL GRAPH for module H:
+     */
+
+    import E
+
+    import F = E.F`G
+  }
+}
+
+module XY {
+  /* CALL GRAPH for module XY:
+   * SCC at height 0:
+   *   Test
+   */
+  method Test()
+  {
+    print X.m, " ", X.M.n, " ", Y.m, "\n";
+  }
+
+  module X {
+    /* CALL GRAPH for module X:
+     * SCC at height 0:
+     *   m
+     */
+    const m: int := 20
+
+    module M {
+      /* CALL GRAPH for module M:
+       * SCC at height 0:
+       *   n
+       */
+      const n: int := Y.m - 5
+
+      import Y
+    }
+  }
+
+  module Y {
+    /* CALL GRAPH for module Y:
+     * SCC at height 0:
+     *   m
+     */
+    const m: int := 22
+  }
+}
+
+module MyModule {
+  /* CALL GRAPH for module MyModule:
+   */
+
+  module Q {
+    /* CALL GRAPH for module Q:
+     */
+
+    module W {
+      /* CALL GRAPH for module W:
+       */
+
+      module E {
+        /* CALL GRAPH for module E:
+         */
+
+        module R {
+          /* CALL GRAPH for module R:
+           */
+
+          module T {
+            /* CALL GRAPH for module T:
+             */
+
+            module Y {
+              /* CALL GRAPH for module Y:
+               * SCC at height 0:
+               *   h
+               */
+              const h: int := 2
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+module U {
+  /* CALL GRAPH for module U:
+   */
+
+  module V {
+    /* CALL GRAPH for module V:
+     * SCC at height 1:
+     *   Test
+     * SCC at height 0:
+     *   x2
+     */
+    const x2: int := 14 + W.x1 + W.X.x0
+
+    method Test()
+    {
+      print W.X.x0, " ", W.x1, " ", x2, "\n";
+    }
+
+    module W {
+      /* CALL GRAPH for module W:
+       * SCC at height 0:
+       *   x1
+       */
+      const x1: int := 12 * X.x0
+
+      module X {
+        /* CALL GRAPH for module X:
+         * SCC at height 0:
+         *   x0
+         */
+        const x0: int := 12
+      }
+    }
+  }
+}
+
+Dafny program verifier finished with 1 verified, 0 errors
+6 1 5 3
+20 17 22
+12 144 170
+2

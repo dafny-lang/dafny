@@ -1,0 +1,83 @@
+ParseErrors.dfy(7,18): Error: a chain cannot have more than one != operator
+ParseErrors.dfy(9,36): Error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(10,37): Error: this operator chain cannot continue with an ascending operator
+ParseErrors.dfy(15,23): Error: this operator chain cannot continue with a descending operator
+ParseErrors.dfy(18,17): Error: this operator cannot be part of a chain
+ParseErrors.dfy(19,18): Error: this operator cannot be part of a chain
+ParseErrors.dfy(20,17): Error: this operator cannot be part of a chain
+ParseErrors.dfy(21,17): Error: chaining not allowed from the previous operator
+ParseErrors.dfy(28,18): Error: chaining not allowed from the previous operator
+ParseErrors.dfy(31,19): Error: can only chain disjoint (!!) with itself
+ParseErrors.dfy(58,7): Error: the main operator of a calculation must be transitive
+ParseErrors.dfy(74,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(75,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(80,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(81,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(87,1): Error: this operator cannot continue this calculation
+ParseErrors.dfy(96,0): Error: a lemma cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(98,0): Error: a least lemma cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(100,0): Error: a greatest lemma cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(102,0): Error: a two-state lemma cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(113,16): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(114,11): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(116,8): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(117,11): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(119,15): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(120,11): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(122,19): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(123,11): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(125,18): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(126,11): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(133,17): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(135,18): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(137,19): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(139,23): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(142,21): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(143,22): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound variable must have a term expression
+ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression
+ParseErrors.dfy(178,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
+ParseErrors.dfy(179,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
+ParseErrors.dfy(183,29): Error: closeparen expected
+ParseErrors.dfy(186,28): Error: formal cannot be declared 'nameonly' in this context
+ParseErrors.dfy(189,33): Error: formal cannot be declared 'nameonly' in this context
+ParseErrors.dfy(202,24): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(211,4): Error: a constructor cannot be declared 'static'
+ParseErrors.dfy(213,2): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+ParseErrors.dfy(214,2): Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
+ParseErrors.dfy(215,2): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
+ParseErrors.dfy(216,2): Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
+ParseErrors.dfy(217,2): Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here
+ParseErrors.dfy(219,2): Error: a datatype or codatatype cannot be declared 'static'
+ParseErrors.dfy(220,2): Error: a module cannot be declared 'static'
+ParseErrors.dfy(226,2): Error: a datatype or codatatype cannot be declared 'ghost'
+ParseErrors.dfy(227,2): Error: a module cannot be declared 'ghost'
+ParseErrors.dfy(234,41): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(234,2): Error: a function-by-method has a ghost function body and a non-ghost method body; a function-by-method declaration does not use the 'ghost' keyword.
+ParseErrors.dfy(235,35): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(236,40): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(236,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
+ParseErrors.dfy(237,34): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(240,37): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(240,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
+ParseErrors.dfy(241,40): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(241,2): Error: a predicate-by-method has a ghost function body and a non-ghost method body; a predicate-by-method declaration does not use the 'ghost' keyword.
+ParseErrors.dfy(244,45): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(244,2): Error: a function-by-method cannot be declared 'abstract'
+ParseErrors.dfy(245,44): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(245,2): Error: a predicate-by-method cannot be declared 'abstract'
+ParseErrors.dfy(246,41): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(246,2): Error: a predicate-by-method cannot be declared 'abstract'
+ParseErrors.dfy(247,44): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(247,2): Error: a predicate-by-method cannot be declared 'abstract'
+ParseErrors.dfy(255,20): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(255,26): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(255,32): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(256,11): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(257,23): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(261,28): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(267,12): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,18): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(272,35): Error: arrow-type arguments may not be declared as 'ghost'
+ParseErrors.dfy(278,10): Error: invalid NewtypeDecl
+77 parse errors detected in ParseErrors.dfy

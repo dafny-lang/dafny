@@ -1,0 +1,2 @@
+brokenProducer.dfy(1,9): Error: Function body type mismatch (expected int, got bool)
+1 resolution/type errors detected in the_program

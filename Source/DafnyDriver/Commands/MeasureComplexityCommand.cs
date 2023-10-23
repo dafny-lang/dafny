@@ -2,19 +2,25 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class MeasureComplexityCommand : ICommandSpec {
-  public IEnumerable<Option> Options => new Option[] {
+static class MeasureComplexityCommand {
+  public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
-  }.Concat(ICommandSpec.VerificationOptions).
-    Concat(ICommandSpec.ResolverOptions);
+  }.Concat(DafnyCommands.VerificationOptions).
+    Concat(DafnyCommands.ResolverOptions);
 
   static MeasureComplexityCommand() {
-    DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomSeedIterations = (int)v);
+    DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
+
+    DooFile.RegisterNoChecksNeeded(
+      Iterations,
+      RandomSeed
+    );
   }
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
@@ -25,14 +31,16 @@ public class MeasureComplexityCommand : ICommandSpec {
     ArgumentHelpName = "n"
   };
 
-
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("measure-complexity", "(Experimental) Measure the complexity of verifying the program.");
-    result.AddArgument(ICommandSpec.FilesArgument);
+    result.AddArgument(DafnyCommands.FilesArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+      options.Compile = false;
+      return CompilerDriver.RunCompiler(options);
+    });
     return result;
-  }
-
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
   }
 }

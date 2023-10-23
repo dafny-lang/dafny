@@ -1,0 +1,779 @@
+// Twostate-Resolution.dfy
+
+
+module M0 {
+  twostate lemma L8(a: A, new b: A)
+    requires a != null
+    requires unchanged(a.g)
+    modifies a.g
+    decreases old(a.f)
+  {
+  }
+
+  class A {
+    var f: int
+    var g: A
+  }
+}
+
+module M1 {
+  class C {
+    var f: int
+  }
+
+  class K {
+    var g: int
+
+    method M(c: C)
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    lemma L(c: C)
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    ghost function F(c: C): bool
+      requires unchanged(c)
+      ensures unchanged(c)
+
+    twostate lemma L2(c: C, d: C)
+      requires unchanged(c, d`f, `g, this`g)
+      ensures unchanged(c)
+    {
+      assert g == this.g == this.g == d.f;
+    }
+  }
+}
+
+module PrettyPrinting {
+  twostate function F(x: int, new u: object): real
+  {
+    x as real
+  }
+
+  twostate predicate P(y: real, new u: object)
+  {
+    y.Floor as real == y
+  }
+
+  class U {
+    twostate function G(x: int, new u: object): real
+    {
+      x as real
+    }
+
+    twostate predicate Q(y: real, new u: object)
+    {
+      y.Floor as real == y
+    }
+
+    static twostate function H(x: int, new u: object): real
+    {
+      x as real
+    }
+
+    static twostate predicate R(y: real, new u: object)
+    {
+      y.Floor as real == y
+    }
+
+    function MF(y: real, ghost g: int): char
+    {
+      'G'
+    }
+
+    twostate lemma LL(y: real, new u: object)
+    {
+    }
+  }
+}
+
+module F {
+  class U {
+    var aa: int
+    var bb: int
+    var next: U
+
+    static twostate function H(x: int, new u: object): real
+    {
+      assert u == this;
+      x as real
+    }
+
+    twostate predicate R(y: real, new u: object)
+    {
+      y.Floor
+    }
+
+    twostate function G(x: int, new u: object): real
+      requires this != u
+      requires old(aa) <= aa && unchanged(`bb)
+      reads this, old(next)
+      ensures old(aa) <= aa && old(G(x, u)) == G(x, u)
+      decreases old(aa) - old(aa) + x
+    {
+      if 0 < x then
+        G(x - 1, u)
+      else
+        x as real
+    }
+  }
+}
+
+module G {
+  twostate predicate P()
+  {
+    true
+  }
+
+  ghost function Fu(): int
+    requires P()
+    reads if P() then {null} else {}
+    ensures P()
+    decreases P(), old(c.f)
+
+  method Me(c: C) returns (b: bool)
+    requires c != null
+    requires P()
+    modifies if P() then {null} else {}
+    ensures P()
+    decreases P(), old(c.f)
+
+  twostate function TF(c: C): int
+    requires c != null
+    requires P()
+    reads if P() then {null} else {}
+    ensures P()
+    decreases P(), old(c.f), c.f
+
+  twostate lemma TL(c: C)
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+
+  class C {
+    var f: int
+  }
+
+  iterator Iter(c: C)
+    requires c != null
+    requires P()
+    reads if P() then {null} else {}
+    modifies if P() then {null} else {}
+    yield requires P()
+    yield ensures P()
+    ensures P()
+    decreases P(), old(c.f)
+}
+
+module H {
+  twostate predicate P()
+  {
+    true
+  }
+
+  ghost function Fu(): int
+  {
+    ghost var p: () -> bool := P;
+    ghost var q: () -> bool := YY.Sp;
+    if P() then
+      5
+    else
+      7
+  }
+
+  method Me(c: C) returns (b: bool)
+    requires c != null
+    ensures P()
+  {
+    assert P();
+    ghost var p: () -> bool := P;
+    ghost var q: () -> bool := YY.Sp;
+  }
+
+  twostate function TF(c: C): int
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+  {
+    if P() then
+      5
+    else
+      var p: () -> bool := P; if p() then 7 else 9
+  }
+
+  twostate lemma TL(c: C)
+    requires c != null
+    requires P()
+    ensures P()
+    decreases P(), old(c.f), c.f
+  {
+    assert P();
+    var p: () -> bool := P;
+  }
+
+  ghost function K(c: C): int
+  {
+    TL(c);
+    5
+  }
+
+  class C {
+    var f: int
+  }
+
+  class YY {
+    static twostate predicate Sp()
+    {
+      false
+    }
+  }
+
+  class D {
+    ghost function G(): int
+
+    static method Sm(c: C) returns (ghost b: bool)
+      requires c != null
+      ensures P()
+    {
+      ghost var u := G();
+      ghost var g := G;
+      assert P();
+      b := P();
+      ghost var p: () -> bool := P;
+      ghost var q: () -> bool := YY.Sp;
+    }
+  }
+
+  iterator Iter(c: C)
+    requires c != null
+    yield ensures P()
+    ensures P()
+  {
+  }
+}
+
+module J {
+  twostate predicate P()
+  {
+    true
+  }
+
+  method Me() returns (b: bool)
+    ensures P()
+  {
+    assert P();
+    b := P();
+    var p': () -> bool;
+    p' := P;
+  }
+}
+
+module OldWithinOld {
+  class C {
+    var data: int
+    var next: C
+
+    twostate function F(): int
+
+    twostate lemma L()
+
+    method M()
+    {
+      ghost var x0 := old(F());
+      ghost var x1 := old(L(); 5);
+      ghost var x2 := old(unchanged(this));
+      ghost var x3 := unchanged(old(next));
+      ghost var x4 := old(fresh(this));
+      ghost var x5 := fresh(old(next));
+      ghost var x6 := old(old(data));
+    }
+  }
+}
+
+module TraitsAndOldParameters {
+  class C { }
+
+  trait Tr {
+    twostate predicate A(c: C)
+
+    twostate predicate B(new c: C)
+
+    twostate predicate P(c: C, new d: C)
+
+    twostate lemma L(c: C)
+
+    twostate lemma M(new c: C)
+
+    twostate lemma N(c: C, new d: C)
+  }
+
+  class Cl extends Tr {
+    twostate predicate A(new c: C)
+
+    twostate predicate B(c: C)
+
+    twostate predicate P(c: C, new d: C)
+
+    twostate lemma L(new c: C)
+
+    twostate lemma M(c: C)
+
+    twostate lemma N(c: C, new d: C)
+  }
+}
+
+module PrintTest {
+  function Five(): int
+  {
+    5
+  }
+
+  ghost function Six(): int
+  {
+    6
+  }
+
+  function Ten(): int
+  {
+    var f := Five();
+    ghost var s := Six();
+    assert s == 6;
+    f + f
+  }
+
+  function TenAgain(): int
+  {
+    var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  ghost function TenOnceMore(): int
+  {
+    var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  ghost function Eleven(): int
+  {
+    var f, s := Five(), Six();
+    f + s
+  }
+
+  ghost function Twelve(): int
+  {
+    var s, t := Six(), Six();
+    s + t
+  }
+
+  function Twenty(): int
+  {
+    var x :| x == 10;
+    x + x
+  }
+
+  function TwentyOne(): int
+  {
+    ghost var x :| x == 10 && Yes(x);
+    assert x + x + 1 == 21;
+    21
+  }
+
+  ghost predicate Yes(x: int)
+  {
+    true
+  }
+
+  type Odd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  newtype NewOdd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  type Even = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
+  newtype NewEven = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+}
+
+module TwoStateAt {
+  twostate function SP<Y>(c: Cell, y: Y): int
+    reads c
+  {
+    old(c.data) + c.data
+  }
+
+  ghost function F(): int
+  {
+    9
+  }
+
+  method Test<Y>(c: Cell, b: bool, y: Y)
+    requires c.data == 2
+    modifies c
+  {
+    assert c.Plus(0) == 4;
+    c.data := c.data + 3;
+    label Five:
+    assert Cell.Sum(c, y) == 7;
+    assert Cell.Sum<int>@Five(c, 0) == 10;
+    assert Cell.Sum@Five(c, 0) == 10;
+    assert Cell.Sum<Y>@Five(c, y) == 10;
+    assert Cell.Sum@Five(c, y) == 10;
+    c.data := c.data + 1;
+    assert SP<bv3>(c, 0) == 8;
+    assert SP<Y>@DoesNotExist(c, y) == 11;
+    if b {
+      label OnlyB:
+      c.data := c.data + 10;
+    } else {
+      c.data := c.data + 20;
+    }
+    label PostIf:
+    assert c.Plus<Y>@OnlyB(y) == 16 || c.Plus<int>@Five(0) == 26;
+    assert b ==> Cell.Sum@PostIf(c, y) == 32;
+    ghost var z := F@Five();
+  }
+
+  twostate lemma TwoLemma<Y>(c: Cell, y: Y)
+    requires 2 * old(c.data) <= Cell.Sum<Y>(c, y)
+    ensures old(c.data) <= SP<int>(c, 0) == SP<Y>(c, y) == c.Plus(0)
+  {
+  }
+
+  method CallLemmas<Y>(c: Cell, b: bool, y: Y)
+    modifies c
+  {
+    c.data := c.data + 1;
+    label OneMore:
+    if -1 <= old(c.data) {
+      TwoLemma<Y>(c, y);
+    }
+    c.data := c.data + 4;
+    label FiveMore:
+    TwoLemma<int>@OneMore(c, 0);
+    if b {
+      c.data := c.data - 10;
+      TwoLemma<Y>@FiveMore(c, y);
+    } else {
+      c.data := c.data + 2;
+      TwoLemma<int>@After(c, 0);
+    }
+    c.LL(y);
+    c.LL<Y>(y);
+    c.LL<bv3>(0);
+    label After:
+    var g := c.G@FiveMore();
+    c.Theorem@OneMore();
+  }
+
+  method ExprAt(c: Cell, f: int -> int, g: int -> int, b: bool)
+  {
+    label L:
+    var plus := c.Plus<int>;
+    var xL := plus@L(0);
+  }
+
+  twostate lemma ReturnSomething(c: Cell) returns (x: int, d: Cell)
+  {
+    d := c;
+  }
+
+  method CallTwo(c: Cell)
+    modifies c
+  {
+    c.data := 16;
+    label L:
+    var x, d := ReturnSomething@L(c);
+  }
+
+  ghost function {:opaque} OrdinaryOpaque(): int
+  {
+    12
+  }
+
+  method UseOrdinaryOpaque()
+  {
+    label L:
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;
+    reveal OrdinaryOpaque@K();
+    reveal OrdinaryOpaque@L();
+  }
+
+  ghost function FuncUseOrdinaryOpaque(): int
+  {
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;
+    reveal OrdinaryOpaque@K();
+    10
+  }
+
+  twostate function {:opaque} Opaque(): int
+  {
+    12
+  }
+
+  method UseOpaque()
+  {
+    label L:
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    reveal Opaque@L();
+  }
+
+  ghost function FuncUseOpaque(): int
+  {
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    10
+  }
+
+  twostate function TwoFuncUseOpaque(): int
+  {
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    10
+  }
+
+  twostate lemma EasyTwo()
+    ensures true
+
+  ghost function CallEasy(): int
+  {
+    EasyTwo();
+    9
+  }
+
+  class Cell {
+    var data: int
+
+    constructor (x: int)
+      ensures data == x
+    {
+      data := x;
+    }
+
+    static twostate function Sum<Y>(c: Cell, y: Y): int
+      reads c
+    {
+      c.Plus<Y>(y)
+    }
+
+    twostate function Plus<Y>(y: Y): int
+      reads this
+    {
+      SP<Y>(this, y)
+    }
+
+    twostate lemma LL<Y>(y: Y)
+      ensures old(data) < data
+    {
+      var g := data;
+      IdentityLemma<Y>(this, y);
+      Cell.IdentityLemma<int>(this, 0);
+      this.IdentityLemma<Y>(this, y);
+      assert data == g;
+    }
+
+    static twostate lemma IdentityLemma<Y>(c: Cell, y: Y)
+    {
+      assert old(c.data) == c.data;
+    }
+
+    function G(): int
+    {
+      32
+    }
+
+    lemma Theorem()
+    {
+    }
+  }
+}
+
+module OlderParameters {
+  class C { }
+
+  trait Tr {
+    ghost predicate P(a: C)
+
+    ghost predicate Q(older a: C)
+
+    twostate predicate X(a: C)
+
+    twostate predicate Y(new a: C)
+  }
+
+  class Good extends Tr {
+    ghost predicate P(a: C)
+
+    ghost predicate Q(older a: C)
+
+    twostate predicate X(a: C)
+
+    twostate predicate Y(new a: C)
+  }
+
+  class Bad extends Tr {
+    ghost predicate P(older a: C)
+
+    ghost predicate Q(a: C)
+
+    twostate predicate X(new a: C)
+
+    twostate predicate Y(a: C)
+  }
+}
+
+module RefinementBase {
+  ghost predicate P(a: C)
+
+  ghost predicate Q(older a: C)
+
+  twostate predicate X(a: C)
+
+  twostate predicate Y(new a: C)
+
+  class C { }
+}
+
+module GoodRefinement refines RefinementBase {
+  ghost predicate P(a: C)
+  {
+    true
+  }
+
+  ghost predicate Q(older a: C)
+  {
+    true
+  }
+
+  twostate predicate X(a: C)
+  {
+    true
+  }
+
+  twostate predicate Y(new a: C)
+  {
+    true
+  }
+}
+
+module BadRefinement refines RefinementBase {
+  ghost predicate P(older a: C)
+  {
+    true
+  }
+
+  ghost predicate Q(a: C)
+  {
+    true
+  }
+
+  twostate predicate X(new a: C)
+  {
+    true
+  }
+
+  twostate predicate Y(a: C)
+  {
+    true
+  }
+}
+
+module RevealInsideIterator {
+  ghost function {:opaque} G(): int
+  {
+    2
+  }
+
+  iterator Iter(x: int) yields (r: int)
+  {
+    reveal G();
+  }
+}
+Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
+Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(31,15): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(32,14): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(93,18): Error: 'this' is not allowed in a 'static' context
+Twostate-Resolution.dfy(97,23): Error: Function body type mismatch (expected bool, got int)
+Twostate-Resolution.dfy(106,12): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(107,35): Error: two-state function ('G') can only be called in a two-state context
+Twostate-Resolution.dfy(122,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(123,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(124,12): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(125,14): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(126,14): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(126,18): Error: unresolved identifier: c
+Twostate-Resolution.dfy(129,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(130,16): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(132,14): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(133,14): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(147,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(142,14): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(143,14): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(138,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(139,16): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(136,13): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(137,19): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(165,31): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(166,34): Error: two-state function ('Sp') can only be called in a two-state context
+Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be called in a two-state context
+Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(183,21): Error: 'this' is not allowed in a 'static' context
+Twostate-Resolution.dfy(184,21): Error: 'this' is not allowed in a 'static' context
+Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
+Twostate-Resolution.dfy(230,30): Error: a twostate predicate is allowed only in specification contexts
+Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
+Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
+Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
+Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
+Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to in the overridden method, from non-new to new
+Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to in the overridden method, from new to non-new
+Twostate-Resolution.dfy(405,17): Error: no label 'DoesNotExist' in scope at this time
+Twostate-Resolution.dfy(415,21): Error: no label 'OnlyB' in scope at this time
+Twostate-Resolution.dfy(418,21): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(445,20): Error: no label 'After' in scope at this time
+Twostate-Resolution.dfy(452,17): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(453,14): Error: an @-label can only be applied to a two-state lemma
+Twostate-Resolution.dfy(459,19): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(481,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
+Twostate-Resolution.dfy(482,26): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(483,26): Error: an @-label can only be applied to a two-state lemma
+Twostate-Resolution.dfy(487,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
+Twostate-Resolution.dfy(488,26): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(495,11): Error: to reveal a function (Opaque), append parentheses
+Twostate-Resolution.dfy(496,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(497,19): Error: to reveal a two-state function, do not list any parameters or @-labels
+Twostate-Resolution.dfy(500,17): Error: a two-state function can only be revealed in a two-state context
+Twostate-Resolution.dfy(501,11): Error: to reveal a function (Opaque), append parentheses
+Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
+Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
+Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
+Twostate-Resolution.dfy(535,28): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
+Twostate-Resolution.dfy(536,22): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
+Twostate-Resolution.dfy(537,29): Error: parameter 'a' of function X cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(538,25): Error: parameter 'a' of function Y cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(558,26): Error: parameter 'a' of function P cannot be changed, compared to the corresponding function in the module it refines, from non-older to older
+Twostate-Resolution.dfy(559,20): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
+Twostate-Resolution.dfy(560,27): Error: parameter 'a' of function X cannot be changed, compared to the corresponding function in the module it refines, from non-new to new
+Twostate-Resolution.dfy(561,23): Error: parameter 'a' of function Y cannot be changed, compared to the corresponding function in the module it refines, from new to non-new
+73 resolution/type errors detected in Twostate-Resolution.dfy

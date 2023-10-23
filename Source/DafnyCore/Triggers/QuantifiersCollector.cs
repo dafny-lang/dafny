@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.Boogie;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 
@@ -47,8 +46,7 @@ namespace Microsoft.Dafny.Triggers {
       } else if (enclosingOldContext != null) { // FIXME be more restrctive on the type of stuff that we annotate
         // Add the association (expr, oldContext) to exprsInOldContext. However, due to chaining expressions,
         // expr may already be a key in exprsInOldContext.
-        HashSet<OldExpr> prevValue;
-        if (exprsInOldContext.TryGetValue(expr, out prevValue)) {
+        if (exprsInOldContext.TryGetValue(expr, out var prevValue)) {
           prevValue.Add(enclosingOldContext);
         } else {
           var single = new HashSet<OldExpr>() { enclosingOldContext };
@@ -62,8 +60,8 @@ namespace Microsoft.Dafny.Triggers {
     protected override bool VisitOneStmt(Statement stmt, ref OldExpr/*?*/ st) {
       if (stmt is ForallStmt) {
         ForallStmt s = (ForallStmt)stmt;
-        if (s.ForallExpressions != null) {
-          foreach (Expression expr in s.ForallExpressions) {
+        if (s.EffectiveEnsuresClauses != null) {
+          foreach (Expression expr in s.EffectiveEnsuresClauses) {
             VisitOneExpr(expr, ref st);
           }
         }
