@@ -40,7 +40,7 @@ jobs:
     - name: Print version
       run: echo ${{ inputs.name }}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         ref: ${{ inputs.ref }}
