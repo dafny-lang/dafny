@@ -122,7 +122,7 @@ public class AuditReport {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
-      if (module.IsDefaultModule) {
+      if (module.TryToAvoidName) {
         text.AppendLine($"# Default module");
       } else {
         text.AppendLine($"# Module `{module.Name}`");

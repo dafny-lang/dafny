@@ -60,7 +60,21 @@ public class ProofObligationDependency : ProofDependency {
   public override string Description =>
       $"{ProofObligation.SuccessDescription}";
 
-  public ProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
+  public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
+    Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
+    ProofObligation = proofObligation;
+  }
+}
+
+public class AssumedProofObligationDependency : ProofDependency {
+  public override RangeToken Range { get; }
+
+  public PODesc.ProofObligationDescription ProofObligation { get; }
+
+  public override string Description =>
+      $"assumption that {ProofObligation.SuccessDescription}";
+
+  public AssumedProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
     Range = tok as RangeToken ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }
@@ -150,20 +164,21 @@ public class CallDependency : ProofDependency {
 
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
-  private readonly Expression expr;
-
   public override RangeToken Range =>
-    expr.RangeToken;
+    Expr.RangeToken;
 
   public override string Description =>
     comment ?? $"assume {OriginalString()}";
 
   private readonly string comment;
+
+  public Expression Expr { get; }
+
   public bool IsAssumeStatement { get; }
 
   public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
     this.comment = comment;
-    this.expr = expr;
+    this.Expr = expr;
     this.IsAssumeStatement = isAssumeStatement;
   }
 }

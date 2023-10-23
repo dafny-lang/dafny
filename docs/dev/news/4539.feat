@@ -1,2 +1,0 @@
-- The Dafny IDE will now report errors that occur in project files.
-- The Dafny IDE will now shown a hint diagnostic at the top of Dafny project files, that says which files are referenced by the project.

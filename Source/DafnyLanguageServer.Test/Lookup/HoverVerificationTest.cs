@@ -479,19 +479,6 @@ lemma{:rlimit 10000} L()
       );
     }
 
-    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-      source = source.TrimStart();
-      if (includeProjectFile) {
-        var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-        await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
-      }
-      var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetLastDocumentAsync(documentItem);
-      Assert.True(document is CompilationAfterResolution);
-      return documentItem;
-    }
 
     public HoverVerificationTest(ITestOutputHelper output) : base(output) {
     }

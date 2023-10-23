@@ -115,7 +115,7 @@ namespace DafnyTestGeneration {
       if (coverageReport == null) {
         return;
       }
-      coverageReport.RegisterFiles(program);
+
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
@@ -134,7 +134,6 @@ namespace DafnyTestGeneration {
           if (!int.TryParse(match.Groups[2].Value, out var lineNumber) || lineNumber == 0) {
             continue;
           }
-          lineNumber -= 1; // to zero-based
           Uri uri;
           try {
             uri = new Uri(
@@ -144,7 +143,7 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var rangeToken = new RangeToken(new Token(lineNumber, 0), new Token(lineNumber + 1, 0));
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
           rangeToken.Uri = uri;
           coverageReport.LabelCode(rangeToken,
             coveredStates.Contains(state)
@@ -186,7 +185,6 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
-      TestMethod.ClearTypesToSynthesize();
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
       if (!firstPass.IsOk(code, uri)) {
@@ -210,6 +208,9 @@ namespace DafnyTestGeneration {
       var cache = new Modifications(options);
       var methodsGenerated = 0;
       DafnyInfo dafnyInfo = null;
+      if (report != null) {
+        report.RegisterFiles(program); // do this here prior to modifying the program
+      }
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         if (methodsGenerated == 0) {
           dafnyInfo = new DafnyInfo(program);
@@ -225,7 +226,7 @@ namespace DafnyTestGeneration {
         methodsGenerated++;
       }
 
-      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
       yield return "}";
 
       PopulateCoverageReport(report, program, cache);

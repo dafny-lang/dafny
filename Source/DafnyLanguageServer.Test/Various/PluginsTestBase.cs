@@ -69,7 +69,7 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
   protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     LibraryPath = GetLibrary(LibraryName);
     void ModifyOptions(DafnyOptions options) {
-      options.Set(CommonOptionBag.Plugin, CommandLineArgument.ToList());
+      options.Set(CommonOptionBag.PluginOption, CommandLineArgument.ToList());
       modifyOptions?.Invoke(options);
     }
     return base.SetUp(ModifyOptions);

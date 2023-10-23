@@ -31,7 +31,7 @@ public class DafnyLangSymbolResolverTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDefinition(new List<Uri>()), null, Guid.NewGuid()) {
+      new DefaultModuleDefinition(), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;

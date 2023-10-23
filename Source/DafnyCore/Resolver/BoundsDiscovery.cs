@@ -771,7 +771,7 @@ namespace Microsoft.Dafny {
               u = whereIsBv == 0 ? jBounds.LowerBound : jBounds.UpperBound;
             }
             if (u != null && !FreeVariables(u).Contains(bv) && IsMonotonic(u, boundVars[j], true)) {
-              thatSide = Translator.Substitute(thatSide, boundVars[j], u);
+              thatSide = BoogieGenerator.Substitute(thatSide, boundVars[j], u);
               fvThatSide = FreeVariables(thatSide);
               continue;
             }

@@ -1,0 +1,49 @@
+TypeAdjustments.dfy(294,13): Error: assertion might not hold
+TypeAdjustments.dfy(316,13): Error: assertion might not hold
+TypeAdjustments.dfy(376,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(376,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
+TypeAdjustments.dfy(376,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'
+TypeAdjustments.dfy(387,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(387,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
+TypeAdjustments.dfy(387,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'
+TypeAdjustments.dfy(409,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(409,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
+TypeAdjustments.dfy(409,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'
+TypeAdjustments.dfy(423,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(423,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
+TypeAdjustments.dfy(423,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'
+TypeAdjustments.dfy(437,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(437,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
+TypeAdjustments.dfy(437,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'
+TypeAdjustments.dfy(453,14): Error: value of expression (of type 'seq<int>') is not known to be an instance of type 'seq<nat>'
+TypeAdjustments.dfy(453,18): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, nat>'
+TypeAdjustments.dfy(453,23): Error: value of expression (of type 'imap<int, int>') is not known to be an instance of type 'imap<nat, nat>'
+TypeAdjustments.dfy(464,14): Error: value of expression (of type 'seq<int>') is not known to be an instance of type 'seq<nat>'
+TypeAdjustments.dfy(464,18): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, nat>'
+TypeAdjustments.dfy(464,23): Error: value of expression (of type 'imap<int, int>') is not known to be an instance of type 'imap<nat, nat>'
+TypeAdjustments.dfy(481,20): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, nat>'
+TypeAdjustments.dfy(481,25): Error: value of expression (of type 'imap<int, int>') is not known to be an instance of type 'imap<nat, nat>'
+TypeAdjustments.dfy(496,22): Error: value does not satisfy the subset constraints of '() --> int' (possible cause: it may have read effects)
+TypeAdjustments.dfy(497,22): Error: value does not satisfy the subset constraints of '() -> int' (possible cause: it may be partial or have read effects)
+TypeAdjustments.dfy(508,22): Error: value does not satisfy the subset constraints of '() -> int' (possible cause: it may be partial or have read effects)
+TypeAdjustments.dfy(540,24): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
+TypeAdjustments.dfy(566,24): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, int>'
+TypeAdjustments.dfy(23,13): Error: assertion might not hold
+TypeAdjustments.dfy(25,17): Error: assertion might not hold
+TypeAdjustments.dfy(27,13): Error: assertion might not hold
+TypeAdjustments.dfy(40,11): Error: assertion might not hold
+TypeAdjustments.dfy(105,15): Error: assertion might not hold
+TypeAdjustments.dfy(107,15): Error: assertion might not hold
+TypeAdjustments.dfy(133,16): Error: assertion might not hold
+TypeAdjustments.dfy(135,16): Error: assertion might not hold
+TypeAdjustments.dfy(137,16): Error: assertion might not hold
+TypeAdjustments.dfy(154,16): Error: assertion might not hold
+TypeAdjustments.dfy(156,16): Error: assertion might not hold
+TypeAdjustments.dfy(158,16): Error: assertion might not hold
+TypeAdjustments.dfy(203,11): Error: assertion might not hold
+TypeAdjustments.dfy(228,11): Error: assertion might not hold
+TypeAdjustments.dfy(243,13): Error: assertion might not hold
+TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
+TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
+
+Dafny program verifier finished with 19 verified, 47 errors

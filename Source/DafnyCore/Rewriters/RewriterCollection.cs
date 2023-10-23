@@ -22,7 +22,7 @@ public static class RewriterCollection {
 
     if (reporter.Options.AutoTriggers) {
       result.Add(new QuantifierSplittingRewriter(reporter));
-      result.Add(new TriggerGeneratingRewriter(reporter));
+      result.Add(new TriggerGeneratingRewriter(reporter, program.SystemModuleManager));
     }
 
     if (reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
