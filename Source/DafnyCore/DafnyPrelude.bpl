@@ -595,13 +595,13 @@ const $OneHeap: Heap uses {
 }
 
 function $HeapSucc(Heap, Heap): bool;
-//axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
-//  $IsGoodHeap(update(h, r, f, x)) ==>
-//  $HeapSucc(h, update(h, r, f, x)));
-//axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
-//  a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
-//axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
-//  $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
+axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
+  $IsGoodHeap(update(h, r, f, x)) ==>
+  $HeapSucc(h, update(h, r, f, x)));
+axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
+  a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
+axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
+  $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
 function $HeapSuccGhost(Heap, Heap): bool;
 

@@ -8686,6 +8686,7 @@ namespace Microsoft.Dafny {
         }
       }
       for (int i = 0; i < lhss.Count; i++) {
+
         lhsBuilder[i](finalRhss[i], rhss[i] is HavocRhs, builder, etran);
       }
     }
@@ -9105,6 +9106,9 @@ namespace Microsoft.Dafny {
         TypeRhs tRhs = (TypeRhs)rhs;
 
         var callsConstructor = tRhs.InitCall != null && tRhs.InitCall.Method is Constructor;
+
+        //experiment assume $HeapSucc(old($Heap), $Heap) for new objects
+        builder.Add(TrAssumeCmd(tok, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr)));
 
         if (tRhs.ArrayDimensions == null) {
           Contract.Assert(tRhs.ElementInit == null && tRhs.InitDisplay == null);
