@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using DafnyCore;
@@ -10,6 +11,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public string FilePath { get; private set; }
+  public string Extension { get; private set; }
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
@@ -23,21 +25,25 @@ public class DafnyFile {
     Origin = origin;
     var filePath = uri.LocalPath;
 
-    var extension = ".dfy";
+    Extension = ".dfy";
     if (uri.IsFile) {
-      extension = Path.GetExtension(uri.LocalPath).ToLower();
+      Extension = Path.GetExtension(uri.LocalPath).ToLower();
       BaseName = Path.GetFileName(uri.LocalPath);
-    }
-    if (uri.Scheme == "stdin") {
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Canonicalize(filePath).LocalPath;
+    } else if (uri.Scheme == "stdin") {
       getContentOverride = () => options.Input;
       BaseName = "<stdin>";
+      CanonicalPath = "<stdin>";
+    } else if (uri.Scheme == "dllresource") {
+      Extension = Path.GetExtension(uri.LocalPath).ToLower();
+      BaseName = uri.LocalPath;
+      CanonicalPath = uri.ToString();
     }
 
-    // Normalizing symbolic links appears to be not
-    // supported in .Net APIs, because it is very difficult in general
-    // So we will just use the absolute path, lowercased for all file systems.
-    // cf. IncludeComparer.CompareTo
-    CanonicalPath = getContentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
     FilePath = CanonicalPath;
 
     var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
@@ -45,7 +51,7 @@ public class DafnyFile {
       IsPreverified = false;
       IsPrecompiled = false;
       GetContent = getContentOverride;
-    } else if (extension == ".dfy" || extension == ".dfyi") {
+    } else if (Extension == ".dfy" || Extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
       if (!File.Exists(filePath)) {
@@ -61,15 +67,30 @@ public class DafnyFile {
       } else {
         GetContent = () => new StreamReader(filePath);
       }
-    } else if (extension == ".doo") {
+    } else if (Extension == ".doo") {
       IsPreverified = true;
       IsPrecompiled = false;
 
-      if (!File.Exists(filePath)) {
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
-        throw new IllegalDafnyFile(true);
+      DooFile dooFile;
+      if (uri.Scheme == "dllresource") {
+        var assembly = Assembly.Load(uri.Host);
+        // Skip the leading "/"
+        var resourceName = uri.LocalPath[1..];
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null) {
+          throw new Exception($"Cannot find embedded resource: {resourceName}");
+        }
+
+        dooFile = DooFile.Read(stream);
+      } else {
+        if (!File.Exists(filePath)) {
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
+          throw new IllegalDafnyFile(true);
+        }
+
+        dooFile = DooFile.Read(filePath);
       }
-      var dooFile = DooFile.Read(filePath);
+
       if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
         throw new IllegalDafnyFile(true);
       }
@@ -81,7 +102,7 @@ public class DafnyFile {
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
       GetContent = () => new StringReader(dooFile.ProgramText);
-    } else if (extension == ".dll") {
+    } else if (Extension == ".dll") {
       IsPreverified = true;
       // Technically only for C#, this is for backwards compatability
       IsPrecompiled = true;

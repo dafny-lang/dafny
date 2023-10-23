@@ -28,11 +28,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
     public int Version { get; }
+    public DafnyOptions Options { get; }
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
+    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
       this.RootUris = rootUris;
+      Options = options;
       Version = version;
       Project = project;
     }
@@ -43,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = new EmptyNode();
       return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
         ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), new(),
+        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
         initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
@@ -60,8 +62,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public record ImplementationView(IImplementationTask Task, PublishedVerificationStatus Status,
-    IReadOnlyList<DafnyDiagnostic> Diagnostics);
+  public record ImplementationState(IImplementationTask Task, PublishedVerificationStatus Status,
+    IReadOnlyList<DafnyDiagnostic> Diagnostics, bool HitErrorLimit);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

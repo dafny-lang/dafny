@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
         //     Constrain a :> alpha
         //     Constrain beta :> b
         // else do nothing for now
-        if (!(ptSuper.Decl is TraitDecl)) {
+        if (ptSuper.Decl is not TraitDecl) {
           var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, constraints);
           var pt = new DPreType(ptSuper.Decl, arguments);
           constraints.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);

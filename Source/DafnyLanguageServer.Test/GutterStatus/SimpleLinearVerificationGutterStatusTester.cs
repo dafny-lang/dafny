@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -13,6 +14,38 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
   // Add '//Replace<n>:' to edit a line multiple times
+
+  [Fact]
+  public async Task GitIssue4432GutterIconsOnly() {
+    await VerifyTrace(@"
+ ? :method NotVerified() { // Should not be highlighted in green
+ ? :  assert 1 == 0;
+ ? :}
+ | :method {:only} Verified() { // Verified
+ | :  assert true;
+ | :}
+ ? :method NotVerified2() { // Should not be highlighted in green
+ ? :  assert 1 == 0;
+ ? :}", false, intermediates: false);
+  }
+
+  [Fact]
+  public async Task Fields() {
+    var markedSource = @"
+| :method Test() {
+| :  assert true;
+| :}
+| :
+| :class A {
+| :  ghost var B: seq<int>
+| :  var C: array<int>
+| :
+| :  method Test() {
+| :    assert true;
+| :  }
+| :}";
+    await VerifyTrace(markedSource, false, intermediates: false);
+  }
 
   [Fact]
   public async Task GitIssue4287GutterHighlightingBroken() {
@@ -39,12 +72,12 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     var source = @"
 method Foo() ensures false { } ";
     await SetUp(options => {
-      options.Set(ServerCommand.LineVerificationStatus, false);
+      options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
     });
 
     var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
   }
 

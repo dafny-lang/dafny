@@ -12,18 +12,15 @@ concurrency:
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
 
-  build:
+  build-refman:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest ]
-        # os: [macos-latest, ubuntu-latest ]
+        os: [ ubuntu-20.04 ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -41,28 +38,11 @@ jobs:
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install texlive texlive-xetex
-        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb
+        sudo apt-get update
+        sudo apt-get install texlive-full
+        wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
-      # apt-get has pandoc, but it is outdated
-    - name: Extra linux packages
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get install texlive-science
-        sudo tlmgr init-usertree
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
-        pandoc -v
-        which latex || echo NOT FOUND latex
-        which xelatex || echo NOT FOUND xelatex
-        sudo gem install rouge
-    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
-      run: |
-        sudo apt-get install texlive-math-extra
-        sudo tlmgr init-usertree
-        sudo tlmgr update --self
-        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex

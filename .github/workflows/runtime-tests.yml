@@ -12,8 +12,6 @@ concurrency:
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
 
   build:
     needs: check-deep-tests

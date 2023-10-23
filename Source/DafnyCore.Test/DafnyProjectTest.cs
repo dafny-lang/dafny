@@ -28,13 +28,13 @@ public class DafnyProjectTest {
 
     Assert.Equal(first, second);
 
-    first.Options.Add("k", new[] { 1, 2, 3 });
-    second.Options.Add("k", new[] { 1, 2, 3 });
+    first.Options.Add("k", "1, 2, 3");
+    second.Options.Add("k", "1, 2, 3");
 
     Assert.Equal(first, second);
 
-    first.Options.Add("m", new[] { 1, 2, 3 });
-    second.Options.Add("m", new[] { 3, 2, 1 });
+    first.Options.Add("m", "1, 2, 3");
+    second.Options.Add("m", "3, 2, 1");
     Assert.NotEqual(first, second);
   }
 }

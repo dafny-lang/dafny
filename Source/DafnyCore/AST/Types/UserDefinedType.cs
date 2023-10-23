@@ -22,7 +22,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
 
   public string FullName {
     get {
-      if (ResolvedClass?.EnclosingModuleDefinition?.IsDefaultModule == false) {
+      if (ResolvedClass?.EnclosingModuleDefinition?.TryToAvoidName == false) {
         return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
       } else {
         return Name;
@@ -36,7 +36,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
     var m = ResolvedClass.EnclosingModuleDefinition;
-    var s = m.IsDefaultModule ? "" : m.GetCompileName(options) + ".";
+    var s = m.TryToAvoidName ? "" : m.GetCompileName(options) + ".";
     return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }
 
@@ -88,12 +88,19 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     Contract.Requires(cd != null);
     Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
+    return FromTopLevelDecl(tok, cd, args);
+  }
+
+  /// <summary>
+  /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.
+  /// </summary>
+  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<Type> typeArguments) {
     if (cd is ArrowTypeDecl) {
-      return new ArrowType(tok, (ArrowTypeDecl)cd, args);
+      return new ArrowType(tok, (ArrowTypeDecl)cd, typeArguments);
     } else if (cd is ClassLikeDecl { IsReferenceTypeDecl: true }) {
-      return new UserDefinedType(tok, cd.Name + "?", cd, args);
+      return new UserDefinedType(tok, cd.Name + "?", cd, typeArguments);
     } else {
-      return new UserDefinedType(tok, cd.Name, cd, args);
+      return new UserDefinedType(tok, cd.Name, cd, typeArguments);
     }
   }
 
@@ -110,19 +117,35 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
   ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
   ///   of "member.EnclosingClass".
+  ///   Preserves non-null-ness of "receiverType" if it is a non-null reference.
   /// Otherwise:
   ///   Return "receiverType" (expanded).
   /// </summary>
   public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
     Contract.Requires(receiverType != null);
     if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
-      return receiverType.AsParentType(member.EnclosingClass);
+      var parentType = receiverType.AsParentType(member.EnclosingClass);
+
+      if (receiverType.IsNonNullRefType) {
+        if (parentType == null) {
+          return null;
+        } else if (parentType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
+          return CreateNonNullType(parentType);
+        } else {
+          return parentType;
+        }
+      } else {
+        return parentType;
+      }
     }
     return receiverType.NormalizeExpandKeepConstraints();
   }
 
   /// <summary>
-  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
+  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type.
+  /// Note, if "cd" is an arrow type or a possibly-null reference type, then it's better to call
+  /// the FromTopLevelDecl method to create the UserDefinedType; that makes sure the right class
+  /// and right name is used.
   /// </summary>
   public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
     Contract.Requires(tok != null);
@@ -136,6 +159,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
+    Contract.Assert(cd is not ArrowTypeDecl || this is ArrowType);
     this.tok = tok;
     this.Name = name;
     this.ResolvedClass = cd;

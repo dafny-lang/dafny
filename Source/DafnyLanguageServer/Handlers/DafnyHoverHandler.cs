@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -15,6 +14,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using OmniSharp.Extensions.JsonRpc.Server;
 using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -22,16 +22,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private DafnyOptions options;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects, DafnyOptions options) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
       this.projects = projects;
-      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -42,7 +40,17 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      IdeState? state;
+      try {
+        state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      } catch (OperationCanceledException) {
+        return new Hover {
+          Contents = new MarkedStringsOrMarkupContent(new MarkupContent {
+            Kind = MarkupKind.Markdown,
+            Value = "No hover information available due to program error"
+          })
+        };
+      }
       if (state == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
@@ -79,7 +87,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol) : null;
+      var options = state.Program is Program program ? program.Reporter.Options : DafnyOptions.Default;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(options, symbol) : null;
       return (symbol, symbolHoverContent);
     }
 
@@ -293,10 +302,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
-          if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
+
+          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
@@ -431,7 +442,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private string CreateSymbolMarkdown(ISymbol symbol) {
+    private string CreateSymbolMarkdown(DafnyOptions options, ISymbol symbol) {
       var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
       return (docString + $"\n```dafny\n{symbol.GetDescription(options)}\n```").TrimStart();
     }

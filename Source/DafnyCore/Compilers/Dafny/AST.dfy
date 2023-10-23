@@ -1,12 +1,13 @@
 module {:extern "DAST"} DAST {
-  datatype Module = Module(name: string, body: seq<ModuleItem>)
+  datatype Module = Module(name: string, isExtern: bool, body: seq<ModuleItem>)
 
   datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
 
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
+    Nullable(Type) |
     Tuple(seq<Type>) |
-    Array(element: Type) |
+    Array(element: Type, dims: nat) |
     Seq(element: Type) |
     Set(element: Type) |
     Multiset(element: Type) |
@@ -45,46 +46,73 @@ module {:extern "DAST"} DAST {
     DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
+    Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
+    Foreach(boundName: string, boundType: Type, over: Expression, body: seq<Statement>) |
     Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
+    Break(toLabel: Optional<string>) |
+    TailRecursive(body: seq<Statement>) |
+    JumpTailCallStart() |
     Halt() |
     Print(Expression)
 
   datatype AssignLhs =
     Ident(Ident) |
     Select(expr: Expression, field: string) |
-    Index(expr: Expression, idx: Expression)
+    Index(expr: Expression, indices: seq<Expression>)
+
+  datatype CollKind = Seq | Array | Map
+
+  datatype BinOp =
+    Eq(referential: bool, nullable: bool) |
+    Neq(referential: bool, nullable: bool) |
+    Div() | EuclidianDiv() |
+    Mod() | EuclidianMod() |
+    Implies() |
+    In() |
+    NotIn() |
+    SetDifference() |
+    Concat() |
+    Passthrough(string)
 
   datatype Expression =
     Literal(Literal) |
     Ident(string) |
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
-    New(path: seq<Ident>, args: seq<Expression>) |
-    NewArray(dims: seq<Expression>) |
-    DatatypeValue(path: seq<Ident>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
+    New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
+    NewArray(dims: seq<Expression>, typ: Type) |
+    DatatypeValue(path: seq<Ident>, typeArgs: seq<Type>, variant: string, isCo: bool, contents: seq<(string, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
-    SeqValue(elements: seq<Expression>) |
+    SeqConstruct(length: Expression, elem: Expression) |
+    SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
+    MapValue(mapElems: seq<(Expression, Expression)>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression) |
-    BinOp(op: string, left: Expression, right: Expression) |
-    ArrayLen(expr: Expression) |
+    BinOp(op: BinOp, left: Expression, right: Expression) |
+    ArrayLen(expr: Expression, dim: nat) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
-    Index(expr: Expression, idx: Expression) |
+    Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
+    IndexRange(expr: Expression, isArray: bool, low: Optional<Expression>, high: Optional<Expression>) |
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
+    BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
     IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: string) |
-    InitializationValue(typ: Type)
+    InitializationValue(typ: Type) |
+    BoolBoundedPool() |
+    SetBoundedPool(of: Expression) |
+    SeqBoundedPool(of: Expression, includeDuplicates: bool) |
+    IntRange(lo: Expression, hi: Expression)
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null
+  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null(Type)
 }

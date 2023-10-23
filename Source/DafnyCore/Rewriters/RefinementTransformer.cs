@@ -563,7 +563,7 @@ namespace Microsoft.Dafny {
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = previousFunction.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
       var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
@@ -633,7 +633,7 @@ namespace Microsoft.Dafny {
       var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = previousMethod.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
@@ -649,25 +649,27 @@ namespace Microsoft.Dafny {
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
+      var newRange = currentMethod.RangeToken.MakeRefined(moduleUnderConstruction);
+      var newName = currentMethod.NameNode.Clone(refinementCloner);
       if (previousMethod is LeastLemma) {
-        return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+        return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+        return new GreatestLemma(newRange, newName, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Lemma) {
-        return new Lemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+        return new Lemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is TwoStateLemma) {
         var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
+        return new Method(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
       }
@@ -812,8 +814,8 @@ namespace Microsoft.Dafny {
               if (f.Req.Count != 0) {
                 Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
-              if (f.Reads.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+              if (f.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
@@ -863,8 +865,8 @@ namespace Microsoft.Dafny {
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
               }
-              if (m.Reads.Count != 0) {
-                Error(ErrorId.ref_no_new_method_reads, m.Reads[0].E.tok, "a refining method is not allowed to extend the reads clause");
+              if (m.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.tok, "a refining method is not allowed to extend the reads clause");
               }
               if (m.Mod.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
@@ -1143,7 +1145,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new RangeToken(new Translator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
+                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
@@ -1289,7 +1291,7 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                var tok = new Translator.ForceCheckToken(addedAssert.RangeToken.StartToken);
+                var tok = new BoogieGenerator.ForceCheckToken(addedAssert.RangeToken.StartToken);
                 body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null, null));
               }
             } else {

@@ -18,7 +18,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
 
     DooFile.RegisterLibraryChecks(
       checks: new Dictionary<Option, DooFile.OptionCheck> {
-        { TrackPrintEffectsOption, DooFile.CheckOptionMatches }
+        { TrackPrintEffectsOption, DooFile.CheckOptionLocalImpliesLibrary }
       });
   }
 

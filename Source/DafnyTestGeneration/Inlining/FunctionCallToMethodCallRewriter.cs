@@ -31,7 +31,7 @@ public class FunctionCallToMethodCallRewriter : Cloner {
 
   private void Visit(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(Visit);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(Visit);
       withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().ForEach(Visit);

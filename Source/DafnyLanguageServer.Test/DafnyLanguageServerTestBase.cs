@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
-lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 100} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -40,6 +40,8 @@ lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
     }
   }
 }".TrimStart();
+
+    protected string SlowToVerifyNoLimit => SlowToVerify.Replace(" {:rlimit 100}", "");
 
     protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
@@ -95,9 +97,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.Create(output);
-      dafnyOptions.Set(ServerCommand.UpdateThrottling, 0);
+      dafnyOptions.Set(ProjectManager.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
-      ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+      Microsoft.Dafny.LanguageServer.LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
         options.WithDafnyLanguageServer(() => { });
@@ -111,12 +113,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in ServerCommand.Instance.Options) {
+      foreach (var serverOption in LanguageServer.Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in ServerCommand.Instance.Options) {
+      foreach (var option in LanguageServer.Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
 

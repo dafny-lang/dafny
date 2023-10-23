@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class DocCommand : ICommandSpec {
+static class DocCommand {
 
   public static readonly Option<string> DocProgramNameOption = new("--program-name",
     "[doc] The text to use as program name in generated documentation"
@@ -25,9 +23,9 @@ class DocCommand : ICommandSpec {
     DocProgramNameOption,
     DocFilenameFormat,
     DocShowModifyTime,
-  }.Concat(ICommandSpec.ResolverOptions);
+  }.Concat(DafnyCommands.ResolverOptions);
 
-  public DocCommand() {
+  static DocCommand() {
     DafnyCore.DooFile.RegisterNoChecksNeeded(
       DocProgramNameOption,
       DocFilenameFormat,
@@ -35,17 +33,19 @@ class DocCommand : ICommandSpec {
     );
   }
 
-  public IEnumerable<Option> Options => DocOptions;
+  public static IEnumerable<Option> Options => DocOptions;
 
-  public Command Create() {
+  public static Command Create() {
     var result = new Command("doc", @"[Experimental] Create a description page for each module. Files are placed in the folder specified by --output (default is ./docs).");
-    result.AddArgument(ICommandSpec.FilesArgument);
+    result.AddArgument(DafnyCommands.FilesArgument);
+    foreach (var option in Options) {
+      result.AddOption(option);
+    }
+    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+      options.AllowSourceFolders = true;
+      var exitValue = await DafnyDoc.DoDocumenting(options);
+      return (int)exitValue;
+    });
     return result;
-  }
-
-  public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
-    dafnyOptions.Compile = false;
-    dafnyOptions.DafnyVerify = false;
-    dafnyOptions.AllowSourceFolders = true;
   }
 }

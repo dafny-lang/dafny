@@ -34,70 +34,83 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishProgressStatus(previousState, state);
-      PublishGhostness(previousState, state);
       await PublishDiagnostics(state);
+      PublishProgress(previousState, state);
+      PublishGhostness(previousState, state);
     }
 
-    private void PublishProgressStatus(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
-        // TODO, still have to check for ownedness
+    private void PublishProgress(IdeState previousState, IdeState state) {
+      // Some global progress values, such as ResolutionSucceeded, will trigger the symbol progress to be displayed.
+      // To ensure that the displayed progress is always up-to-date,
+      // we must publish symbol progress before publishing the global one.
 
-        var current = GetProgressStatus(state, uri);
-        var previous = GetProgressStatus(previousState, uri);
+      // Better would be to have a single notification API with the schema { globalProgress, symbolProgress }
+      // so this problem can not occur, although that would require the "symbolProgress" part to be able to contain a
+      // "no-update" value to prevent having to send many duplicate symbolProgress updates.
+
+      PublishSymbolProgress(previousState, state);
+      PublishGlobalProgress(previousState, state);
+    }
+
+    private void PublishSymbolProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        var previous = GetFileVerificationStatus(previousState, uri);
+        var current = GetFileVerificationStatus(state, uri);
 
         if (Equals(current, previous)) {
           continue;
         }
 
-        switch (current) {
-          case ResolutionProgressStatus resolutionProgressStatus:
-            languageServer.SendNotification(new CompilationStatusParams {
-              Uri = uri,
-              Version = filesystem.GetVersion(uri),
-              Status = resolutionProgressStatus.CompilationStatus,
-              Message = null
-            });
-            break;
-          case VerificationProgressStatus verificationProgressStatus:
-            languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, verificationProgressStatus.FileVerificationStatus);
-            break;
+        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
+      }
+    }
+
+    private void PublishGlobalProgress(IdeState previousState, IdeState state) {
+      foreach (var uri in state.Compilation.RootUris) {
+        // TODO, still have to check for ownedness
+
+        var current = GetGlobalProgress(state);
+        var previous = GetGlobalProgress(previousState);
+
+        if (Equals(current, previous)) {
+          continue;
         }
+
+        languageServer.SendNotification(new CompilationStatusParams {
+          Uri = uri,
+          Version = filesystem.GetVersion(uri),
+          Status = current,
+          Message = null
+        });
       }
 
     }
 
-    private abstract record ProgressStatus;
-
-    private sealed record VerificationProgressStatus(FileVerificationStatus FileVerificationStatus) : ProgressStatus;
-
-    private sealed record ResolutionProgressStatus(CompilationStatus CompilationStatus) : ProgressStatus;
-
-    private ProgressStatus GetProgressStatus(IdeState state, Uri uri) {
-      var hasResolutionDiagnostics = (state.ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>()).
-        Any(d => d.Severity == DiagnosticSeverity.Error);
+    private CompilationStatus GetGlobalProgress(IdeState state) {
+      var errors = state.ResolutionDiagnostics.Values.SelectMany(x => x).
+        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       if (state.Compilation is CompilationAfterResolution) {
-        if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ResolutionFailed);
+        if (errors.Any(d => d.Source == MessageSource.Resolver.ToString())) {
+          return CompilationStatus.ResolutionFailed;
         }
 
-        return new VerificationProgressStatus(GetFileVerificationStatus(state, uri));
+        return CompilationStatus.ResolutionSucceeded;
       }
 
       if (state.Compilation is CompilationAfterParsing) {
-        if (hasResolutionDiagnostics) {
-          return new ResolutionProgressStatus(CompilationStatus.ParsingFailed);
+        if (errors.Any(d => d.Source == MessageSource.Parser.ToString())) {
+          return CompilationStatus.ParsingFailed;
         }
 
-        return new ResolutionProgressStatus(CompilationStatus.ResolutionStarted);
+        return CompilationStatus.ResolutionStarted;
       }
 
-      return new ResolutionProgressStatus(CompilationStatus.Parsing);
+      return CompilationStatus.Parsing;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
       var verificationResults = state.GetVerificationResults(uri);
-      return new FileVerificationStatus(uri, filesystem.GetVersion(uri) ?? 0,
+      return new FileVerificationStatus(uri, filesystem.GetVersion(uri),
         verificationResults.Select(kv => GetNamedVerifiableStatuses(kv.Key, kv.Value)).
             OrderBy(s => s.NameRange.Start).ToList());
     }
@@ -163,7 +176,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
-            Version = filesystem.GetVersion(publishUri) ?? 0,
+            Version = filesystem.GetVersion(publishUri),
             Diagnostics = diagnostics,
           });
         }
@@ -173,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
     public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
-      if (!options.Get(ServerCommand.LineVerificationStatus)) {
+      if (!options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus)) {
         return;
       }
 
@@ -182,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri) ?? 0;
+      var fileVersion = filesystem.GetVersion(uri);
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,
@@ -224,7 +237,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-      { LineVerificationStatus.ResolutionError, @"/!\" }
+      { LineVerificationStatus.ResolutionError, @"/!\" },
+      { LineVerificationStatus.Skipped, @" ? " }
     };
 
     private void PublishGhostness(IdeState previousState, IdeState state) {
