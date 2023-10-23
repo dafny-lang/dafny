@@ -1,7 +1,6 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-include "Wrappers.dfy"
-import opened Wrappers
+// RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries --relax-definite-assignment
+
+import opened DafnyStdLibs.Wrappers
 
 datatype Bar = Bar(i: string)
 function ParseBar(s: string): Result<Bar, string> {
