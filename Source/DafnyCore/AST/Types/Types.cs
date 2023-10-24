@@ -302,7 +302,7 @@ public abstract class Type : TokenNode {
   public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
   public bool IsNumericBased() {
     var t = NormalizeExpand();
-    return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
+    return t.IsIntegerType || t.IsRealType || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
   public enum NumericPersuasion { Int, Real }
   [System.Diagnostics.Contracts.Pure]
