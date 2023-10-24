@@ -13,11 +13,10 @@ public static class ShouldCompileOrVerify {
     }
 
     
-    var systemModuleMode = program.Options.Get(CommonOptionBag.SystemModule);
     if (module.FullName == "_System") {
-      return systemModuleMode != CommonOptionBag.SystemModuleMode.Omit;
+      return program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.Omit;
     } 
-    if (systemModuleMode == CommonOptionBag.SystemModuleMode.Populate) {
+    if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Populate) {
       return false;
     }
 

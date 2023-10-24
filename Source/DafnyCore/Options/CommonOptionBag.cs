@@ -276,6 +276,7 @@ Change the default opacity of functions.
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });

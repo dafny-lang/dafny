@@ -315,7 +315,7 @@ namespace Microsoft.Dafny.Compilers {
         UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
 
-      if (Options.Get(CommonOptionBag.SystemModule) == CommonOptionBag.SystemModuleMode.Omit) {
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
         return;
       }
       

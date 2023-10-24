@@ -667,6 +667,54 @@ namespace _System {
     }
   }
 
+  public interface _ITuple1<out T0> {
+    T0 dtor__0 { get; }
+    _ITuple1<__T0> DowncastClone<__T0>(Func<T0, __T0> converter0);
+  }
+  public class Tuple1<T0> : _ITuple1<T0> {
+    public readonly T0 __0;
+    public Tuple1(T0 _0) {
+      this.__0 = _0;
+    }
+    public _ITuple1<__T0> DowncastClone<__T0>(Func<T0, __T0> converter0) {
+      if (this is _ITuple1<__T0> dt) { return dt; }
+      return new Tuple1<__T0>(converter0(__0));
+    }
+    public override bool Equals(object other) {
+      var oth = other as _System.Tuple1<T0>;
+      return oth != null && object.Equals(this.__0, oth.__0);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__0));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "";
+      s += "(";
+      s += Dafny.Helpers.ToString(this.__0);
+      s += ")";
+      return s;
+    }
+    public static _System._ITuple1<T0> Default(T0 _default_T0) {
+      return create(_default_T0);
+    }
+    public static Dafny.TypeDescriptor<_System._ITuple1<T0>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0) {
+      return new Dafny.TypeDescriptor<_System._ITuple1<T0>>(_System.Tuple1<T0>.Default(_td_T0.Default()));
+    }
+    public static _ITuple1<T0> create(T0 _0) {
+      return new Tuple1<T0>(_0);
+    }
+    public static _ITuple1<T0> create____hMake1(T0 _0) {
+      return create(_0);
+    }
+    public T0 dtor__0 {
+      get {
+        return this.__0;
+      }
+    }
+  }
 
   public interface _ITuple3<out T0, out T1, out T2> {
     T0 dtor__0 { get; }
