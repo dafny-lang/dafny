@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Collections;
 [assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 4.3.0.0
-// Command-line arguments: translate cs --no-verify --use-basename-for-filename --include-system-module systemModulePopulator.dfy --output:systemModulePopulator
+// Command-line arguments: translate cs --no-verify --use-basename-for-filename --include-system-module systemModulePopulator.dfy --output:obj/systemModulePopulator
 // systemModulePopulator.dfy
 
 method HasTuples()

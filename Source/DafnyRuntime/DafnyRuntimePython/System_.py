@@ -15,3 +15,4 @@ class nat:
     @staticmethod
     def default():
         return int(0)
+
