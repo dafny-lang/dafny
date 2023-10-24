@@ -34,7 +34,7 @@
     <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\Test\dafny0\warnings-as-errors.dfy">
+    <Content Include="..\IntegrationTests\TestFiles\LitTests\LitTest\dafny0\warnings-as-errors.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

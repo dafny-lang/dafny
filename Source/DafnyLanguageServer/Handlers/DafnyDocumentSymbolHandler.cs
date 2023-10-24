@@ -54,13 +54,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           children.Add(childDocumentSymbol);
         }
       }
+
+      var range = symbol.RangeToken.ToLspRange();
       return new DocumentSymbol {
         Children = children,
         Name = symbol.NameToken.val,
         Detail = documentation,
-        Range = symbol.RangeToken.ToLspRange(),
+        Range = range,
         Kind = (SymbolKind)symbol.Kind,
-        SelectionRange = symbol.NameToken.ToRange().ToLspRange()
+        SelectionRange = symbol.NameToken == Token.NoToken ? range : symbol.NameToken.ToRange().ToLspRange()
       };
     }
   }

@@ -6,19 +6,18 @@ namespace Microsoft.Dafny;
 
 public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModuleDefinition> {
   public List<Include> Includes { get; } = new();
-  public IList<Uri> RootSourceUris { get; }
 
   public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
-    RootSourceUris = original.RootSourceUris;
   }
 
-  public DefaultModuleDefinition(IList<Uri> rootSourceUris)
+  public DefaultModuleDefinition()
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false,
-      null, null, null, true) {
-    RootSourceUris = rootSourceUris;
+      null, null, null) {
   }
 
   public override bool IsDefaultModule => true;
+
+  public override bool TryToAvoidName => Name == "_module";
 
   public override IEnumerable<INode> Children => Includes.Concat(base.Children);
   public override IEnumerable<INode> PreResolveChildren => Includes.Concat(base.PreResolveChildren);

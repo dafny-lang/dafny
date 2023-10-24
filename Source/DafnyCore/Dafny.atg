@@ -1051,8 +1051,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
-                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false);
+                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
