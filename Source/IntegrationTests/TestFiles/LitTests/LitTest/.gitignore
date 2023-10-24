@@ -40,3 +40,5 @@ git-issues/git-issue-622$f/**
 comp/compile1verbose/CompileAndThenRun
 comp/compile1quiet/CompileRunQuietly
 docexamples
+
+**/.lit_test_times.txt
