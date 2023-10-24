@@ -17,6 +17,9 @@ namespace DafnyTestGeneration {
   public class Modifications {
     private readonly DafnyOptions options;
     internal HashSet<int> preprocessedPrograms = new();
+    // List of all types for which a {:synthesize} - annotated method is needed
+    // These methods are used to get fresh instances of the corresponding types
+    internal readonly List<UserDefinedType> TypesToSynthesize = new();
     public Modifications(DafnyOptions options) {
       this.options = options;
     }
@@ -215,7 +218,7 @@ namespace DafnyTestGeneration {
       if (log == null) {
         return null;
       }
-      TestMethod = new TestMethod(dafnyInfo, log);
+      TestMethod = new TestMethod(dafnyInfo, log, cache);
       if (!TestMethod.IsValid || !returnNullIfNotUnique) {
         return TestMethod;
       }

@@ -49,6 +49,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Compiler.Compile(dafnyProgram, output);
   }
 
+  public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+    base.OnPreCompile(reporter, otherFileNames);
+    compiler = CreateCompiler();
+  }
+
   SinglePassCompiler Compiler {
     get {
       if (compiler == null) {

@@ -185,7 +185,6 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
-      TestMethod.ClearTypesToSynthesize();
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
       if (!firstPass.IsOk(code, uri)) {
@@ -227,7 +226,7 @@ namespace DafnyTestGeneration {
         methodsGenerated++;
       }
 
-      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
       yield return "}";
 
       PopulateCoverageReport(report, program, cache);
