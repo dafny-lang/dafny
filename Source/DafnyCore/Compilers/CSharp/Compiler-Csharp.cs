@@ -123,6 +123,10 @@ namespace Microsoft.Dafny.Compilers {
         UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
 
+      if (!Options.Get(CommonOptionBag.IncludeSystemModule)) {
+        return;
+      }
+
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
