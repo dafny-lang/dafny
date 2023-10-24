@@ -353,7 +353,6 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool ClassesRedeclareInheritedFields => true;
-    protected virtual void AddTupleToSet(int i) { }
     public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
