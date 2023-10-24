@@ -40,3 +40,127 @@ module Module1 {
     }
   }
 }
+
+module Module2 {
+  function
+    {:myAttr var r := 10; r}
+    {:warnShadowing false}
+    {:myAttr
+      var x := 2;
+      var x := 3;
+      x
+    }
+    F0(x: int): (r: int)
+  {
+    var x := 2;
+    var x := 3;
+    var r := 4;
+    x
+  }
+
+  function
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:warnShadowing true}
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    F1(x: int): (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // warning: x is shadowed
+    var r := 4; // okay
+    x
+  }
+
+  function
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:warnShadowing} // this is the same as {:warnShadowing true}
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    F2(x: int): (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // warning: x is shadowed
+    var r := 4; // okay
+    x
+  }
+
+  function
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    F3(x: int): (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // warning: x is shadowed
+    var r := 4; // okay
+    x
+  }
+
+  method
+    {:myAttr var r := 10; r}
+    {:warnShadowing false}
+    {:myAttr
+      var x := 2;
+      var x := 3;
+      x
+    }
+    M0(x: int) returns (r: int)
+  {
+    var x := 2;
+    var x := 3; // error: duplicate variable
+    var r := 4; // error: duplicate variable
+  }
+
+  method
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:warnShadowing true}
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    M1(x: int) returns (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // error: duplicate variable
+    var r := 4; // error: duplicate variable
+  }
+
+  method
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:warnShadowing} // this is the same as {:warnShadowing true}
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    M2(x: int) returns (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // error: duplicate variable
+    var r := 4; // error: duplicate variable
+  }
+
+  method
+    {:myAttr var r := 10; r} // warning: r is shadowed
+    {:myAttr
+      var x := 2; // warning: x is shadowed
+      var x := 3; // warning: x is shadowed
+      x
+    }
+    M3(x: int) returns (r: int)
+  {
+    var x := 2; // warning: x is shadowed
+    var x := 3; // warning: x is shadowed
+    var r := 4; // warning: r is shadowed
+  }
+}
