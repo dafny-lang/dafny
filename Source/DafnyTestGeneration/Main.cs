@@ -66,6 +66,9 @@ namespace DafnyTestGeneration {
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
       var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      if (report != null) {
+        report.RegisterFiles(program); // do this here prior to modifying the program
+      }
       var cache = new Modifications(program.Options);
       await foreach (var line in GetDeadCodeStatistics(program, cache)) {
         yield return line;
@@ -225,7 +228,7 @@ namespace DafnyTestGeneration {
       var methodsGenerated = 0;
       DafnyInfo dafnyInfo = null;
       if (report != null) {
-        report.RegisterFiles(program); // do this here prior to modifying the program
+        report.RegisterFiles(program);
       }
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         if (methodsGenerated == 0) {
