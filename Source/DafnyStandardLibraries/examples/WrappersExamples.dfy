@@ -1,4 +1,4 @@
-module Demo {
+module WrappersExamples {
 
   import opened DafnyStdLibs.Wrappers
 
