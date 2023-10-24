@@ -116,7 +116,6 @@ namespace DafnyTestGeneration {
         return;
       }
 
-      var lineNumToPosCache = new Dictionary<Uri, int[]>();
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
@@ -144,12 +143,8 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var linePos = Utils.GetPosFromLine(uri, lineNumber, lineNumToPosCache);
-          var lineLength = Utils.GetPosFromLine(uri, lineNumber + 1, lineNumToPosCache) - linePos - 1;
-          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber, lineLength));
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
           rangeToken.Uri = uri;
-          rangeToken.StartToken.pos = linePos;
-          rangeToken.EndToken.pos = linePos + lineLength;
           coverageReport.LabelCode(rangeToken,
             coveredStates.Contains(state)
               ? CoverageLabel.FullyCovered
@@ -190,7 +185,6 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
-      TestMethod.ClearTypesToSynthesize();
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
       if (!firstPass.IsOk(code, uri)) {
@@ -232,7 +226,7 @@ namespace DafnyTestGeneration {
         methodsGenerated++;
       }
 
-      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
       yield return "}";
 
       PopulateCoverageReport(report, program, cache);

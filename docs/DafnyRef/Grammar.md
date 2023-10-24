@@ -515,7 +515,7 @@ For example, in the quantifier domain `i | 0 <= i < |s|, y <- s[i] | i < y`, the
 because the range attached to `i` ensures `i` is a valid index in the sequence `s`.
 
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
-the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 13.8.5](#sec-controlling-language)).
+the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 13.9.5](#sec-controlling-language)).
 
 ### 2.7.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 

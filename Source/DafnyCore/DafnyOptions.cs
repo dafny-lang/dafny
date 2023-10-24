@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
-    public TextWriter ErrorWriter { get; }
+    public TextWriter ErrorWriter { get; set; }
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
     public static string DefaultZ3Version = "4.12.1";
     // Not directly user-configurable, only recorded once we discover it
     public string SolverIdentifier { get; private set; }
-    public Version SolverVersion { get; private set; }
+    public Version SolverVersion { get; set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
@@ -378,7 +378,6 @@ namespace Microsoft.Dafny {
         var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         foreach (var fi in fields) {
           var value = fi.GetValue(this);
-
           // This hacky code is necessary until we switch to a Boogie version that implements https://github.com/boogie-org/boogie/pull/788
           if (useNullWriters && fi.Name is "<ErrorWriter>k__BackingField" or "<OutputWriter>k__BackingField") {
             value = TextWriter.Null;
@@ -1127,7 +1126,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void SetZ3Options(Version z3Version) {
+    public void SetZ3Options(Version z3Version) {
       // Don't allow changing this once set, just in case:
       // a DooFile will record this and will get confused if it changes.
       if ((SolverIdentifier != null && SolverIdentifier != "Z3")

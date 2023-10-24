@@ -22,7 +22,8 @@ public class ServerCommand {
       GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
       LanguageServer.VerifySnapshots,
       DafnyLangSymbolResolver.UseCaching,
-      ProjectManager.UpdateThrottling
+      ProjectManager.UpdateThrottling,
+      LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
     );
   }
 
