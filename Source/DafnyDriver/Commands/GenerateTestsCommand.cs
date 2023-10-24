@@ -84,7 +84,7 @@ Path - Generate tests targeting path-coverage.");
 
     var uri = new Uri(dafnyFileNames[0]);
     var source = new StreamReader(dafnyFileNames[0]);
-    var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Locations", suffix: "_tests_expected", program: null);
+    var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
     if (options.TestGenOptions.WarnDeadCode) {
       await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
         await options.OutputWriter.WriteLineAsync(line);

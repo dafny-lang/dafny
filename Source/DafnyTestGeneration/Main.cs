@@ -127,16 +127,11 @@ namespace DafnyTestGeneration {
           }
         }
       }
-
-      HashSet<string> statesAddedToCoverageReport = new();
+      Dictionary<Uri, Dictionary<int, CoverageLabel>> lineCoverageLabels = new();
       foreach (var modification in cache.Values) {
         foreach (var preciseState in modification.CapturedStates) {
           var index = preciseState.LastIndexOf('#');
           var state = index == -1 ? preciseState : preciseState[..index];
-          if (statesAddedToCoverageReport.Contains(state)) {
-            continue;
-          }
-          statesAddedToCoverageReport.Add(state);
           var match = lineRegex.Match(state);
           if (!match.Success) {
             continue;
@@ -153,12 +148,23 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
+          if (!lineCoverageLabels.ContainsKey(uri)) {
+            lineCoverageLabels[uri] = new Dictionary<int, CoverageLabel>();
+          }
+          var newLabel = coveredStates.Contains(state)
+            ? CoverageLabel.FullyCovered
+            : CoverageLabel.NotCovered;
+          var oldLabel = lineCoverageLabels[uri].GetValueOrDefault(lineNumber, CoverageLabel.None);
+          lineCoverageLabels[uri][lineNumber] = CoverageLabelExtension.Combine(newLabel, oldLabel);
+        }
+      }
+
+      foreach (var uri in lineCoverageLabels.Keys) {
+        foreach (var lineNumber in lineCoverageLabels[uri].Keys) {
           var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
           rangeToken.Uri = uri;
           coverageReport.LabelCode(rangeToken,
-            coveredStates.Contains(state)
-              ? CoverageLabel.FullyCovered
-              : CoverageLabel.NotCovered);
+            lineCoverageLabels[uri][lineNumber]);
         }
       }
     }
