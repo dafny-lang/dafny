@@ -1944,349 +1944,349 @@ namespace Dafny {
     }
   }
 }
-
-namespace @_System {
-
-  public interface _ITuple0 {
-    _ITuple0 DowncastClone();
-  }
-
-  public class Tuple0 : _ITuple0 {
-    public Tuple0() {
-    }
-
-    public _ITuple0 DowncastClone() {
-      if (this is _ITuple0 dt) {
-        return dt;
-      }
-
-      return new Tuple0();
-    }
-
-    public override bool Equals(object other) {
-      var oth = other as _System.Tuple0;
-      return oth != null;
-    }
-
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      return (int)hash;
-    }
-
-    public override string ToString() {
-      string s = "";
-      s += "(";
-      s += ")";
-      return s;
-    }
-
-    private static readonly _ITuple0 theDefault = create();
-
-    public static _ITuple0 Default() {
-      return theDefault;
-    }
-
-    public static Dafny.TypeDescriptor<_System._ITuple0> _TypeDescriptor() {
-      return new Dafny.TypeDescriptor<_System._ITuple0>(_System.Tuple0.Default());
-    }
-
-    public static _ITuple0 create() {
-      return new Tuple0();
-    }
-  }
-
-  public interface _ITuple1<out T1> {
-    T1 dtor__0 { get; }
-    _ITuple1<__T1> DowncastClone<__T1>(Func<T1, __T1> converter0);
-  }
-
-  public class Tuple1<T1> : _ITuple1<T1> {
-    public readonly T1 _0;
-
-    public Tuple1(T1 _0) {
-      this._0 = _0;
-    }
-
-    public _ITuple1<__T1> DowncastClone<__T1>(Func<T1, __T1> converter0) {
-      if (this is _ITuple1<__T1> dt) {
-        return dt;
-      }
-
-      return new Tuple1<__T1>(converter0(_0));
-    }
-
-    public override bool Equals(object other) {
-      var oth = other as _System.Tuple1<T1>;
-      return oth != null && object.Equals(this._0, oth._0);
-    }
-
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      return (int)hash;
-    }
-
-    public override string ToString() {
-      string s = "";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._0);
-      s += ")";
-      return s;
-    }
-
-    public static _ITuple1<T1> Default(T1 _default_T1) {
-      return create(_default_T1);
-    }
-
-    public static Dafny.TypeDescriptor<_System._ITuple1<T1>> _TypeDescriptor(Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System._ITuple1<T1>>(_System.Tuple1<T1>.Default(_td_T1.Default()));
-    }
-
-    public static _ITuple1<T1> create(T1 _0) {
-      return new Tuple1<T1>(_0);
-    }
-
-    public T1 dtor__0 {
-      get { return this._0; }
-    }
-  }
-
-  public interface _ITuple2<out T0, out T1> {
-    T0 dtor__0 { get; }
-    T1 dtor__1 { get; }
-  }
-
-  public class Tuple2<T0, T1> : _ITuple2<T0, T1> {
-    public readonly T0 _0;
-    public readonly T1 _1;
-
-    public Tuple2(T0 _0, T1 _1) {
-      this._0 = _0;
-      this._1 = _1;
-    }
-
-    public override bool Equals(object other) {
-      var oth = other as _System.Tuple2<T0, T1>;
-      return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
-    }
-
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
-      return (int)hash;
-    }
-
-    public override string ToString() {
-      string s = "";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._0);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._1);
-      s += ")";
-      return s;
-    }
-
-    public static _ITuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
-      return create(_default_T0, _default_T1);
-    }
-
-    public static Dafny.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,
-      Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System._ITuple2<T0, T1>>(
-        _System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
-    }
-
-    public static _ITuple2<T0, T1> create(T0 _0, T1 _1) {
-      return new Tuple2<T0, T1>(_0, _1);
-    }
-
-    public T0 dtor__0 {
-      get { return this._0; }
-    }
-
-    public T1 dtor__1 {
-      get { return this._1; }
-    }
-  }
-
-  public interface _ITuple3<out T0, out T1, out T2> {
-    T0 dtor__0 { get; }
-    T1 dtor__1 { get; }
-    T2 dtor__2 { get; }
-
-    _ITuple3<__T0, __T1, __T2> DowncastClone<__T0, __T1, __T2>(Func<T0, __T0> converter0, Func<T1, __T1> converter1,
-      Func<T2, __T2> converter2);
-  }
-
-  public class Tuple3<T0, T1, T2> : _ITuple3<T0, T1, T2> {
-    public readonly T0 _0;
-    public readonly T1 _1;
-    public readonly T2 _2;
-
-    public Tuple3(T0 _0, T1 _1, T2 _2) {
-      this._0 = _0;
-      this._1 = _1;
-      this._2 = _2;
-    }
-
-    public _ITuple3<__T0, __T1, __T2> DowncastClone<__T0, __T1, __T2>(Func<T0, __T0> converter0,
-      Func<T1, __T1> converter1, Func<T2, __T2> converter2) {
-      if (this is _ITuple3<__T0, __T1, __T2> dt) {
-        return dt;
-      }
-
-      return new Tuple3<__T0, __T1, __T2>(converter0(_0), converter1(_1), converter2(_2));
-    }
-
-    public override bool Equals(object other) {
-      var oth = other as _System.Tuple3<T0, T1, T2>;
-      return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1) &&
-             object.Equals(this._2, oth._2);
-    }
-
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
-      return (int)hash;
-    }
-
-    public override string ToString() {
-      string s = "";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._0);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._1);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._2);
-      s += ")";
-      return s;
-    }
-
-    public static _ITuple3<T0, T1, T2> Default(T0 _default_T0, T1 _default_T1, T2 _default_T2) {
-      return create(_default_T0, _default_T1, _default_T2);
-    }
-
-    public static Dafny.TypeDescriptor<_System._ITuple3<T0, T1, T2>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,
-      Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2) {
-      return new Dafny.TypeDescriptor<_System._ITuple3<T0, T1, T2>>(
-        _System.Tuple3<T0, T1, T2>.Default(_td_T0.Default(), _td_T1.Default(), _td_T2.Default()));
-    }
-
-    public static _ITuple3<T0, T1, T2> create(T0 _0, T1 _1, T2 _2) {
-      return new Tuple3<T0, T1, T2>(_0, _1, _2);
-    }
-
-    public T0 dtor__0 {
-      get { return this._0; }
-    }
-
-    public T1 dtor__1 {
-      get { return this._1; }
-    }
-
-    public T2 dtor__2 {
-      get { return this._2; }
-    }
-  }
-
-  public interface _ITuple4<out T0, out T1, out T2, out T3> {
-    T0 dtor__0 { get; }
-    T1 dtor__1 { get; }
-    T2 dtor__2 { get; }
-    T3 dtor__3 { get; }
-
-    _ITuple4<__T0, __T1, __T2, __T3> DowncastClone<__T0, __T1, __T2, __T3>(Func<T0, __T0> converter0,
-      Func<T1, __T1> converter1, Func<T2, __T2> converter2, Func<T3, __T3> converter3);
-  }
-
-  public class Tuple4<T0, T1, T2, T3> : _ITuple4<T0, T1, T2, T3> {
-    public readonly T0 _0;
-    public readonly T1 _1;
-    public readonly T2 _2;
-    public readonly T3 _3;
-
-    public Tuple4(T0 _0, T1 _1, T2 _2, T3 _3) {
-      this._0 = _0;
-      this._1 = _1;
-      this._2 = _2;
-      this._3 = _3;
-    }
-
-    public _ITuple4<__T0, __T1, __T2, __T3> DowncastClone<__T0, __T1, __T2, __T3>(Func<T0, __T0> converter0,
-      Func<T1, __T1> converter1, Func<T2, __T2> converter2, Func<T3, __T3> converter3) {
-      if (this is _ITuple4<__T0, __T1, __T2, __T3> dt) {
-        return dt;
-      }
-
-      return new Tuple4<__T0, __T1, __T2, __T3>(converter0(_0), converter1(_1), converter2(_2), converter3(_3));
-    }
-
-    public override bool Equals(object other) {
-      var oth = other as _System.Tuple4<T0, T1, T2, T3>;
-      return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1) &&
-             object.Equals(this._2, oth._2) && object.Equals(this._3, oth._3);
-    }
-
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._3));
-      return (int)hash;
-    }
-
-    public override string ToString() {
-      string s = "";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._0);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._1);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._2);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._3);
-      s += ")";
-      return s;
-    }
-
-    public static _ITuple4<T0, T1, T2, T3> Default(T0 _default_T0, T1 _default_T1, T2 _default_T2, T3 _default_T3) {
-      return create(_default_T0, _default_T1, _default_T2, _default_T3);
-    }
-
-    public static Dafny.TypeDescriptor<_System._ITuple4<T0, T1, T2, T3>> _TypeDescriptor(
-      Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2,
-      Dafny.TypeDescriptor<T3> _td_T3) {
-      return new Dafny.TypeDescriptor<_System._ITuple4<T0, T1, T2, T3>>(
-        _System.Tuple4<T0, T1, T2, T3>.Default(_td_T0.Default(), _td_T1.Default(), _td_T2.Default(), _td_T3.Default()));
-    }
-
-    public static _ITuple4<T0, T1, T2, T3> create(T0 _0, T1 _1, T2 _2, T3 _3) {
-      return new Tuple4<T0, T1, T2, T3>(_0, _1, _2, _3);
-    }
-
-    public T0 dtor__0 {
-      get { return this._0; }
-    }
-
-    public T1 dtor__1 {
-      get { return this._1; }
-    }
-
-    public T2 dtor__2 {
-      get { return this._2; }
-    }
-
-    public T3 dtor__3 {
-      get { return this._3; }
-    }
-  }
-}
+//
+// namespace @_System {
+//
+//   public interface _ITuple0 {
+//     _ITuple0 DowncastClone();
+//   }
+//
+//   public class Tuple0 : _ITuple0 {
+//     public Tuple0() {
+//     }
+//
+//     public _ITuple0 DowncastClone() {
+//       if (this is _ITuple0 dt) {
+//         return dt;
+//       }
+//
+//       return new Tuple0();
+//     }
+//
+//     public override bool Equals(object other) {
+//       var oth = other as _System.Tuple0;
+//       return oth != null;
+//     }
+//
+//     public override int GetHashCode() {
+//       ulong hash = 5381;
+//       hash = ((hash << 5) + hash) + 0;
+//       return (int)hash;
+//     }
+//
+//     public override string ToString() {
+//       string s = "";
+//       s += "(";
+//       s += ")";
+//       return s;
+//     }
+//
+//     private static readonly _ITuple0 theDefault = create();
+//
+//     public static _ITuple0 Default() {
+//       return theDefault;
+//     }
+//
+//     public static Dafny.TypeDescriptor<_System._ITuple0> _TypeDescriptor() {
+//       return new Dafny.TypeDescriptor<_System._ITuple0>(_System.Tuple0.Default());
+//     }
+//
+//     public static _ITuple0 create() {
+//       return new Tuple0();
+//     }
+//   }
+//
+//   public interface _ITuple1<out T1> {
+//     T1 dtor__0 { get; }
+//     _ITuple1<__T1> DowncastClone<__T1>(Func<T1, __T1> converter0);
+//   }
+//
+//   public class Tuple1<T1> : _ITuple1<T1> {
+//     public readonly T1 _0;
+//
+//     public Tuple1(T1 _0) {
+//       this._0 = _0;
+//     }
+//
+//     public _ITuple1<__T1> DowncastClone<__T1>(Func<T1, __T1> converter0) {
+//       if (this is _ITuple1<__T1> dt) {
+//         return dt;
+//       }
+//
+//       return new Tuple1<__T1>(converter0(_0));
+//     }
+//
+//     public override bool Equals(object other) {
+//       var oth = other as _System.Tuple1<T1>;
+//       return oth != null && object.Equals(this._0, oth._0);
+//     }
+//
+//     public override int GetHashCode() {
+//       ulong hash = 5381;
+//       hash = ((hash << 5) + hash) + 0;
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
+//       return (int)hash;
+//     }
+//
+//     public override string ToString() {
+//       string s = "";
+//       s += "(";
+//       s += Dafny.Helpers.ToString(this._0);
+//       s += ")";
+//       return s;
+//     }
+//
+//     public static _ITuple1<T1> Default(T1 _default_T1) {
+//       return create(_default_T1);
+//     }
+//
+//     public static Dafny.TypeDescriptor<_System._ITuple1<T1>> _TypeDescriptor(Dafny.TypeDescriptor<T1> _td_T1) {
+//       return new Dafny.TypeDescriptor<_System._ITuple1<T1>>(_System.Tuple1<T1>.Default(_td_T1.Default()));
+//     }
+//
+//     public static _ITuple1<T1> create(T1 _0) {
+//       return new Tuple1<T1>(_0);
+//     }
+//
+//     public T1 dtor__0 {
+//       get { return this._0; }
+//     }
+//   }
+//
+//   public interface _ITuple2<out T0, out T1> {
+//     T0 dtor__0 { get; }
+//     T1 dtor__1 { get; }
+//   }
+//
+//   public class Tuple2<T0, T1> : _ITuple2<T0, T1> {
+//     public readonly T0 _0;
+//     public readonly T1 _1;
+//
+//     public Tuple2(T0 _0, T1 _1) {
+//       this._0 = _0;
+//       this._1 = _1;
+//     }
+//
+//     public override bool Equals(object other) {
+//       var oth = other as _System.Tuple2<T0, T1>;
+//       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
+//     }
+//
+//     public override int GetHashCode() {
+//       ulong hash = 5381;
+//       hash = ((hash << 5) + hash) + 0;
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
+//       return (int)hash;
+//     }
+//
+//     public override string ToString() {
+//       string s = "";
+//       s += "(";
+//       s += Dafny.Helpers.ToString(this._0);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._1);
+//       s += ")";
+//       return s;
+//     }
+//
+//     public static _ITuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
+//       return create(_default_T0, _default_T1);
+//     }
+//
+//     public static Dafny.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,
+//       Dafny.TypeDescriptor<T1> _td_T1) {
+//       return new Dafny.TypeDescriptor<_System._ITuple2<T0, T1>>(
+//         _System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+//     }
+//
+//     public static _ITuple2<T0, T1> create(T0 _0, T1 _1) {
+//       return new Tuple2<T0, T1>(_0, _1);
+//     }
+//
+//     public T0 dtor__0 {
+//       get { return this._0; }
+//     }
+//
+//     public T1 dtor__1 {
+//       get { return this._1; }
+//     }
+//   }
+//
+//   public interface _ITuple3<out T0, out T1, out T2> {
+//     T0 dtor__0 { get; }
+//     T1 dtor__1 { get; }
+//     T2 dtor__2 { get; }
+//
+//     _ITuple3<__T0, __T1, __T2> DowncastClone<__T0, __T1, __T2>(Func<T0, __T0> converter0, Func<T1, __T1> converter1,
+//       Func<T2, __T2> converter2);
+//   }
+//
+//   public class Tuple3<T0, T1, T2> : _ITuple3<T0, T1, T2> {
+//     public readonly T0 _0;
+//     public readonly T1 _1;
+//     public readonly T2 _2;
+//
+//     public Tuple3(T0 _0, T1 _1, T2 _2) {
+//       this._0 = _0;
+//       this._1 = _1;
+//       this._2 = _2;
+//     }
+//
+//     public _ITuple3<__T0, __T1, __T2> DowncastClone<__T0, __T1, __T2>(Func<T0, __T0> converter0,
+//       Func<T1, __T1> converter1, Func<T2, __T2> converter2) {
+//       if (this is _ITuple3<__T0, __T1, __T2> dt) {
+//         return dt;
+//       }
+//
+//       return new Tuple3<__T0, __T1, __T2>(converter0(_0), converter1(_1), converter2(_2));
+//     }
+//
+//     public override bool Equals(object other) {
+//       var oth = other as _System.Tuple3<T0, T1, T2>;
+//       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1) &&
+//              object.Equals(this._2, oth._2);
+//     }
+//
+//     public override int GetHashCode() {
+//       ulong hash = 5381;
+//       hash = ((hash << 5) + hash) + 0;
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
+//       return (int)hash;
+//     }
+//
+//     public override string ToString() {
+//       string s = "";
+//       s += "(";
+//       s += Dafny.Helpers.ToString(this._0);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._1);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._2);
+//       s += ")";
+//       return s;
+//     }
+//
+//     public static _ITuple3<T0, T1, T2> Default(T0 _default_T0, T1 _default_T1, T2 _default_T2) {
+//       return create(_default_T0, _default_T1, _default_T2);
+//     }
+//
+//     public static Dafny.TypeDescriptor<_System._ITuple3<T0, T1, T2>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,
+//       Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2) {
+//       return new Dafny.TypeDescriptor<_System._ITuple3<T0, T1, T2>>(
+//         _System.Tuple3<T0, T1, T2>.Default(_td_T0.Default(), _td_T1.Default(), _td_T2.Default()));
+//     }
+//
+//     public static _ITuple3<T0, T1, T2> create(T0 _0, T1 _1, T2 _2) {
+//       return new Tuple3<T0, T1, T2>(_0, _1, _2);
+//     }
+//
+//     public T0 dtor__0 {
+//       get { return this._0; }
+//     }
+//
+//     public T1 dtor__1 {
+//       get { return this._1; }
+//     }
+//
+//     public T2 dtor__2 {
+//       get { return this._2; }
+//     }
+//   }
+//
+//   public interface _ITuple4<out T0, out T1, out T2, out T3> {
+//     T0 dtor__0 { get; }
+//     T1 dtor__1 { get; }
+//     T2 dtor__2 { get; }
+//     T3 dtor__3 { get; }
+//
+//     _ITuple4<__T0, __T1, __T2, __T3> DowncastClone<__T0, __T1, __T2, __T3>(Func<T0, __T0> converter0,
+//       Func<T1, __T1> converter1, Func<T2, __T2> converter2, Func<T3, __T3> converter3);
+//   }
+//
+//   public class Tuple4<T0, T1, T2, T3> : _ITuple4<T0, T1, T2, T3> {
+//     public readonly T0 _0;
+//     public readonly T1 _1;
+//     public readonly T2 _2;
+//     public readonly T3 _3;
+//
+//     public Tuple4(T0 _0, T1 _1, T2 _2, T3 _3) {
+//       this._0 = _0;
+//       this._1 = _1;
+//       this._2 = _2;
+//       this._3 = _3;
+//     }
+//
+//     public _ITuple4<__T0, __T1, __T2, __T3> DowncastClone<__T0, __T1, __T2, __T3>(Func<T0, __T0> converter0,
+//       Func<T1, __T1> converter1, Func<T2, __T2> converter2, Func<T3, __T3> converter3) {
+//       if (this is _ITuple4<__T0, __T1, __T2, __T3> dt) {
+//         return dt;
+//       }
+//
+//       return new Tuple4<__T0, __T1, __T2, __T3>(converter0(_0), converter1(_1), converter2(_2), converter3(_3));
+//     }
+//
+//     public override bool Equals(object other) {
+//       var oth = other as _System.Tuple4<T0, T1, T2, T3>;
+//       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1) &&
+//              object.Equals(this._2, oth._2) && object.Equals(this._3, oth._3);
+//     }
+//
+//     public override int GetHashCode() {
+//       ulong hash = 5381;
+//       hash = ((hash << 5) + hash) + 0;
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._2));
+//       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._3));
+//       return (int)hash;
+//     }
+//
+//     public override string ToString() {
+//       string s = "";
+//       s += "(";
+//       s += Dafny.Helpers.ToString(this._0);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._1);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._2);
+//       s += ", ";
+//       s += Dafny.Helpers.ToString(this._3);
+//       s += ")";
+//       return s;
+//     }
+//
+//     public static _ITuple4<T0, T1, T2, T3> Default(T0 _default_T0, T1 _default_T1, T2 _default_T2, T3 _default_T3) {
+//       return create(_default_T0, _default_T1, _default_T2, _default_T3);
+//     }
+//
+//     public static Dafny.TypeDescriptor<_System._ITuple4<T0, T1, T2, T3>> _TypeDescriptor(
+//       Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1, Dafny.TypeDescriptor<T2> _td_T2,
+//       Dafny.TypeDescriptor<T3> _td_T3) {
+//       return new Dafny.TypeDescriptor<_System._ITuple4<T0, T1, T2, T3>>(
+//         _System.Tuple4<T0, T1, T2, T3>.Default(_td_T0.Default(), _td_T1.Default(), _td_T2.Default(), _td_T3.Default()));
+//     }
+//
+//     public static _ITuple4<T0, T1, T2, T3> create(T0 _0, T1 _1, T2 _2, T3 _3) {
+//       return new Tuple4<T0, T1, T2, T3>(_0, _1, _2, _3);
+//     }
+//
+//     public T0 dtor__0 {
+//       get { return this._0; }
+//     }
+//
+//     public T1 dtor__1 {
+//       get { return this._1; }
+//     }
+//
+//     public T2 dtor__2 {
+//       get { return this._2; }
+//     }
+//
+//     public T3 dtor__3 {
+//       get { return this._3; }
+//     }
+//   }
+// }

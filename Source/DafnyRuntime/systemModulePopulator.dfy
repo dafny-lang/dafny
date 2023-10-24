@@ -1,5 +1,5 @@
 
-method {:test} HasTuples() {
+method HasTuples() {
   var has0 := ();
   var has1 := (1, ghost 1.5);  // Just (1) is an int in parentheses instead
   var has2 := (1,2);
@@ -23,7 +23,7 @@ method {:test} HasTuples() {
   var has20 := (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20);
 }
 
-method {:test} HasArrows() {
+method HasArrows() {
   var has0 := () => 42;
   var has1 := (x1: int) => 42;
   var has2 := (x1: int, x2: int) => 42;
@@ -41,13 +41,13 @@ method {:test} HasArrows() {
   var has14 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int) => 42;
   var has15 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int) => 42;
   var has16 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int) => 42;
-  var has17 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int) => 42;
-  var has18 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int) => 42;
-  var has19 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int) => 42;
-  var has20 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int, x20: int) => 42;
+  // var has17 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int) => 42;
+  // var has18 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int) => 42;
+  // var has19 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int) => 42;
+  // var has20 := (x1: int, x2: int, x3: int, x4: int, x5: int, x6: int, x7: int, x8: int, x9: int, x10: int, x11: int, x12: int, x13: int, x14: int, x15: int, x16: int, x17: int, x18: int, x19: int, x20: int) => 42;
 }
 
-method {:test} HasArrays() {
+method HasArrays() {
   var has1 := new int[1];
   var has2 := new int[1,2];
   var has3 := new int[1,2,3];
@@ -64,8 +64,8 @@ method {:test} HasArrays() {
   var has14 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14];
   var has15 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
   var has16 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
-  var has17 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
-  var has18 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
-  var has19 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
-  var has20 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+  // var has17 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
+  // var has18 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+  // var has19 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
+  // var has20 := new int[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 }
