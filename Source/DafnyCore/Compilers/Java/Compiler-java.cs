@@ -370,7 +370,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
-        return wr;
+        // return wr;
+        moduleName = "_System";
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
