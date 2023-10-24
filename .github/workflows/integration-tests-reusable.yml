@@ -76,7 +76,7 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version == 'oldest'
+      if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v3
       with:
         java-version: 8
@@ -98,7 +98,7 @@ jobs:
     - uses: actions/setup-node@v3
     - run: npm install bignumber.js
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         ref: ${{ inputs.ref }}

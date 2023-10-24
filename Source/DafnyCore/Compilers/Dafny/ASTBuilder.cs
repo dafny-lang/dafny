@@ -147,7 +147,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
@@ -186,11 +186,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddMethod(DAST.Method item) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
@@ -236,7 +236,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
-      throw new NotImplementedException();
+      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     public object Finish() {
@@ -954,7 +954,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
-        throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
+        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: this is an invalid operation
+        //throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
       } else {
         return PopN(1)[0];
       }

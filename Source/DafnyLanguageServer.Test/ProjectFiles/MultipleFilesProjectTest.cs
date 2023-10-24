@@ -75,7 +75,7 @@ method Bar() {
 
   [Fact]
   public async Task OnDiskProducerVerificationErrorsChangeProject() {
-    await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject));
+    await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject));
 
     var producerSource = @"
 method Foo(x: int) 
@@ -249,7 +249,7 @@ warn-shadowing = true
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "src/file.dfy"));
 
-    var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Equal(2, diagnostics1.Count(d => d.Severity <= DiagnosticSeverity.Warning));
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 

@@ -14,7 +14,7 @@ public class RustBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
-  public override bool IsStable => false;
+  public override bool IsStable => true;
   public override bool IsInternal => true;
   public override string TargetExtension => "rs";
   public override int TargetIndentSize => 4;

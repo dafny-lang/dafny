@@ -1,0 +1,658 @@
+﻿//-----------------------------------------------------------------------------
+//
+// Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+//
+//-----------------------------------------------------------------------------
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using Bpl = Microsoft.Boogie;
+using BplParser = Microsoft.Boogie.Parser;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using Microsoft.Boogie;
+using static Microsoft.Dafny.Util;
+using Core;
+using DafnyCore.Verifier;
+using Microsoft.BaseTypes;
+using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Triggers;
+using Action = System.Action;
+using PODesc = Microsoft.Dafny.ProofObligationDescription;
+using static Microsoft.Dafny.GenericErrors;
+
+namespace Microsoft.Dafny {
+  public partial class BoogieGenerator {
+
+
+    /// <summary>
+    /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
+    /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function
+    /// if its body is available in the current context and its height is less than "heightLimit" (if "heightLimit" is
+    /// passed in as 0, then no functions will be inlined).
+    /// </summary>
+    bool TrSplitExpr(Expression expr, List<SplitExprInfo/*!*/>/*!*/ splits, bool position, int heightLimit, bool inlineProtectedFunctions, bool apply_induction, ExpressionTranslator etran) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type.IsBoolType || (expr is BoxingCastExpr && ((BoxingCastExpr)expr).E.Type.IsBoolType));
+      Contract.Requires(splits != null);
+      Contract.Requires(etran != null);
+
+      switch (expr) {
+        case BoxingCastExpr castExpr: {
+            var bce = castExpr;
+            var ss = new List<SplitExprInfo>();
+            if (TrSplitExpr(bce.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+              foreach (var s in ss) {
+                splits.Add(ToSplitExprInfo(s.Kind, CondApplyBox(s.Tok, s.E, bce.FromType, bce.ToType)));
+              }
+              return true;
+            }
+
+            break;
+          }
+        case ConcreteSyntaxExpression expression: {
+            var e = expression;
+            return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+          }
+        case NestedMatchExpr nestedMatchExpr:
+          return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        case LetExpr letExpr: {
+            var e = letExpr;
+            if (!e.Exact) {
+              var d = LetDesugaring(e);
+              return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+            } else {
+              var ss = new List<SplitExprInfo>();
+              if (TrSplitExpr(e.Body, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+                // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
+                // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
+                // uses of the same let variable may end up needing different Layer constants. The following code will
+                // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
+                // LetExpr sits in a position for which TrSplitExpr is invoked.
+                List<Bpl.Variable> lhss;
+                List<Bpl.Expr> rhss;
+                etran.LayerOffset(1).TrLetExprPieces(e, out lhss, out rhss);
+                foreach (var s in ss) {
+                  // as the source location in the following let, use that of the translated "s"
+                  splits.Add(ToSplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
+                }
+                return true;
+              }
+            }
+
+            break;
+          }
+        case UnchangedExpr unchangedExpr: {
+            var e = unchangedExpr;
+            if (position && e.Frame.Count > 1) {
+              // split into a number of UnchangeExpr's, one for each FrameExpression
+              foreach (var fe in e.Frame) {
+                var tok = new NestedToken(GetToken(e), fe.tok);
+                Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
+                ee.Type = Type.Bool;  // resolve here
+                TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              }
+              return true;
+            }
+
+            break;
+          }
+        case UnaryOpExpr opExpr: {
+            var e = opExpr;
+            if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
+              var ss = new List<SplitExprInfo>();
+              if (TrSplitExpr(e.E, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+                foreach (var s in ss) {
+                  splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Unary(s.E.tok, UnaryOperator.Opcode.Not, s.E)));
+                }
+                return true;
+              }
+            }
+
+            break;
+          }
+        case BinaryExpr binaryExpr: {
+            var bin = binaryExpr;
+            if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+              TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              return true;
+
+            } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+              TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              return true;
+
+            } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+              // non-conditionally split these, so we get the source location to point to a subexpression
+              if (position) {
+                var lhs = etran.TrExpr(bin.E0);
+                var ss = new List<SplitExprInfo>();
+                TrSplitExpr(bin.E1, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+                foreach (var s in ss) {
+                  // as the source location in the following implication, use that of the translated "s"
+                  splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
+                }
+              } else {
+                var ss = new List<SplitExprInfo>();
+                TrSplitExpr(bin.E0, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+                var rhs = etran.TrExpr(bin.E1);
+                foreach (var s in ss) {
+                  // as the source location in the following implication, use that of the translated "s"
+                  splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
+                }
+              }
+              return true;
+            }
+
+            break;
+          }
+        case TernaryExpr ternaryExpr: {
+            var e = ternaryExpr;
+            if ((e.Op == TernaryExpr.Opcode.PrefixEqOp && position) || (e.Op == TernaryExpr.Opcode.PrefixNeqOp && !position)) {
+              var e1type = e.E1.Type.NormalizeExpand();
+              var e2type = e.E2.Type.NormalizeExpand();
+              var codecl = e1type.AsCoDatatype;
+              Contract.Assert(codecl != null);
+              var k = etran.TrExpr(e.E0);
+              var A = etran.TrExpr(e.E1);
+              var B = etran.TrExpr(e.E2);
+              // split as shown here for possibly infinite lists:
+              //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Nil? ==> B.Nil?)
+              //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
+              //   checked $PrefixEqual#Dt(k, A, B) || (k != 0 && k.IsLimit ==> $Equal#Dt(A, B))  // (*)
+              //   free $PrefixEqual#Dt(k, A, B);
+              // Note:  First off, (*) is used only when ORDINAL is involved. Moreover, if there's an error among the first checked
+              // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
+              // the conjunction of all the previous RHSs.
+              var kAsORD = !e.E0.Type.IsBigOrdinalType && !TernaryExpr.PrefixEqUsesNat ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
+              var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+              Bpl.Expr kHasSuccessor, kMinusOne;
+              if (e.E0.Type.IsBigOrdinalType) {
+                kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
+                kMinusOne = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType, k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(1)));
+              } else {
+                kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+                kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
+                if (!TernaryExpr.PrefixEqUsesNat) {
+                  kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
+                }
+              }
+              // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
+              var etran2 = etran.LayerOffset(1);
+              var A2 = etran2.TrExpr(e.E1);
+              var B2 = etran2.TrExpr(e.E2);
+              var needsTokenAdjust = TrSplitNeedsTokenAdjustment(ternaryExpr);
+              var tok = needsTokenAdjust ? new ForceCheckToken(ternaryExpr.tok) : ternaryExpr.tok;
+              Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
+              Bpl.Expr eqComponents = Bpl.Expr.True;
+              foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
+                eqComponents = BplAnd(eqComponents, c);
+                var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kHasSuccessor, c));
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+              if (e.E0.Type.IsBigOrdinalType) {
+                var kIsNonZeroLimit = BplAnd(
+                  Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))),
+                  FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k));
+                var eq = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, null, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B);
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), Bpl.Expr.Imp(kIsNonZeroLimit, eq)));
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+              splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
+              return true;
+            }
+
+            break;
+          }
+        case ITEExpr iteExpr: {
+            var ite = iteExpr;
+
+            var ssThen = new List<SplitExprInfo>();
+            var ssElse = new List<SplitExprInfo>();
+
+            TrSplitExpr(ite.Thn, ssThen, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+            TrSplitExpr(ite.Els, ssElse, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+
+            var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
+            var test = etran.TrExpr(ite.Test);
+            foreach (var s in ssThen) {
+              // as the source location in the following implication, use that of the translated "s"
+              splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, test, s.E)));
+            }
+
+            var negatedTest = Bpl.Expr.Not(test);
+            foreach (var s in ssElse) {
+              // as the source location in the following implication, use that of the translated "s"
+              splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
+            }
+
+            return true;
+          }
+        case MatchExpr matchExpr: {
+            var e = matchExpr;
+            var ite = etran.DesugarMatchExpr(e);
+            return TrSplitExpr(ite, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+          }
+        case StmtExpr stmtExpr: {
+            var e = stmtExpr;
+            // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
+            // this assumption is not generated in non-split positions (because I don't know how.)
+            // So, treat "S; E" like "SConclusion ==> E".
+            if (position) {
+              var conclusion = etran.TrExpr(e.GetSConclusion());
+              var ss = new List<SplitExprInfo>();
+              TrSplitExpr(e.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              foreach (var s in ss) {
+                // as the source location in the following implication, use that of the translated "s"
+                splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, conclusion, s.E)));
+              }
+            } else {
+              var ss = new List<SplitExprInfo>();
+              TrSplitExpr(e.GetSConclusion(), ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              var rhs = etran.TrExpr(e.E);
+              foreach (var s in ss) {
+                // as the source location in the following implication, use that of the translated "s"
+                splits.Add(ToSplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
+              }
+            }
+            return true;
+          }
+        case OldExpr oldExpr: {
+            var e = oldExpr;
+            return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran.OldAt(e.AtLabel));
+          }
+        case FunctionCallExpr callExpr when position: {
+            var fexp = callExpr;
+            if (TrSplitFunctionCallExpr(callExpr, splits, heightLimit, inlineProtectedFunctions, apply_induction, etran, fexp)) {
+              return true;
+            }
+
+            break;
+          }
+        case QuantifierExpr quantifierExpr when quantifierExpr.SplitQuantifier != null:
+          return TrSplitExpr(quantifierExpr.SplitQuantifierExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        default: {
+            if (((position && expr is ForallExpr) || (!position && expr is ExistsExpr))) {
+              var e = (QuantifierExpr)expr;
+              var inductionVariables = ApplyInduction(e.BoundVars, e.Attributes);
+              if (apply_induction && inductionVariables.Count != 0) {
+                // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
+                //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
+                // For an existential (exists n :: P(n)), it is
+                //   (exists n :: (forall k :: k < n ==> !P(k)) && P(n))
+                //    ^^^^^^                             ^      ^^        <--- note these 3 differences
+                var kvars = new List<BoundVar>();
+                var kk = new List<Bpl.Expr>();
+                var nn = new List<Bpl.Expr>();
+                var toks = new List<IToken>();
+                var types = new List<Type>();
+                var substMap = new Dictionary<IVariable, Expression>();
+                foreach (var n in inductionVariables) {
+                  toks.Add(n.tok);
+                  types.Add(n.Type.NormalizeExpandKeepConstraints());
+                  BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
+                  kvars.Add(k);
+
+                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
+                  ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+                  kk.Add(etran.TrExpr(ieK));
+
+                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
+                  ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+                  nn.Add(etran.TrExpr(ieN));
+
+                  substMap.Add(n, ieK);
+                }
+                Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
+                Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
+
+                Bpl.Expr ihBody = etran.TrExpr(bodyK);
+                if (!position) {
+                  ihBody = Bpl.Expr.Not(ihBody);
+                }
+                ihBody = Bpl.Expr.Imp(less, ihBody);
+                List<Variable> bvars = new List<Variable>();
+                Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
+                Bpl.Expr ih;
+                var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
+                ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
+
+                // More precisely now:
+                //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
+                //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
+                // or similar for existentials.
+                var caseProduct = new List<Bpl.Expr>() {
+                // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
+                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+              };
+                var i = 0;
+                foreach (var n in inductionVariables) {
+                  var newCases = new List<Bpl.Expr>();
+                  foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
+                    foreach (var cs in caseProduct) {
+                      if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
+                        newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                      } else {
+                        newCases.Add(cs);
+                      }
+                    }
+                  }
+                  caseProduct = newCases;
+                  i++;
+                }
+                List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+                bvars = new List<Variable>();
+                typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
+                foreach (var kase in caseProduct) {
+                  var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
+                  var etranBody = etran.LayerOffset(1);
+                  var bdy = etranBody.TrExpr(e.LogicalBody());
+                  Bpl.Expr q;
+                  var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
+                  if (position) {
+                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, Bpl.Expr.Imp(ante, bdy));
+                  } else {
+                    q = new Bpl.ExistsExpr(kase.tok, bvars, trig, Bpl.Expr.And(ante, bdy));
+                  }
+                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, q));
+                }
+
+                // Finally, assume the original quantifier (forall/exists n :: P(n))
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));
+                return true;
+              } else {
+                // Don't use induction on these quantifiers.
+                // Nevertheless, produce two translated versions of the quantifier, one that uses #2 functions (that is, layerOffset 1)
+                // for checking and one that uses #1 functions (that is, layerOffset 0) for assuming.
+                var etranBoost = etran.LayerOffset(1);
+                var r = etranBoost.TrExpr(expr);
+                var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
+                if (needsTokenAdjustment) {
+                  r.tok = new ForceCheckToken(expr.tok);
+                }
+                if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
+                  // apparently, the LayerOffset(1) we did had no effect
+                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, r));
+                  return needsTokenAdjustment;
+                } else {
+                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, r));  // check the boosted expression
+                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));  // assume the ordinary expression
+                  return true;
+                }
+              }
+            } else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
+              // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
+              // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
+              adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
+              var etranBoost = etran.LayerOffset(1);
+              var r = etran.TrExpr(expr);
+              var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
+              if (needsTokenAdjustment) {
+                r.tok = new ForceCheckToken(expr.tok);
+              }
+              if (etran.Statistics_CustomLayerFunctionCount == 0) {
+                // apparently, doesn't use layer
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, r));
+                return needsTokenAdjustment;
+              } else {
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, r));  // check the ordinary expression
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etranBoost.TrExpr(expr)));  // assume the boosted expression
+                return true;
+              }
+            }
+
+            break;
+          }
+      }
+
+      Bpl.Expr translatedExpression;
+      bool splitHappened;
+      if ((position && expr is ExistsExpr) || (!position && expr is ForallExpr)) {
+        translatedExpression = etran.TrExpr(expr);
+        splitHappened = false;
+      } else {
+        etran = etran.LayerOffset(1);
+        translatedExpression = etran.TrExpr(expr);
+        splitHappened = etran.Statistics_CustomLayerFunctionCount != 0;  // return true if the LayerOffset(1) came into play
+      }
+      if (TrSplitNeedsTokenAdjustment(expr)) {
+        translatedExpression.tok = new ForceCheckToken(expr.tok);
+        splitHappened = true;
+      }
+      splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, translatedExpression));
+      return splitHappened;
+    }
+
+
+    IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
+      ty = ty.NormalizeExpand();
+      IndDatatypeDecl dt = ty.AsIndDatatype;
+      if (dt == null) {
+        yield return Bpl.Expr.True;
+      } else {
+        UserDefinedType instantiatedType = (UserDefinedType)ty;  // correctness of cast follows from the non-null return of ty.AsDatatype
+        var subst = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < dt.TypeArgs.Count; i++) {
+          subst.Add(dt.TypeArgs[i], instantiatedType.TypeArgs[i]);
+        }
+
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          List<Variable> bvs;
+          List<Bpl.Expr> args;
+          CreateBoundVariables(ctor.Formals, out bvs, out args);
+          Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+          // (exists args :: args-have-the-expected-types && ct(args) == expr)
+          Bpl.Expr q = Bpl.Expr.Binary(ctor.tok, BinaryOperator.Opcode.Eq, ct, expr);
+          if (bvs.Count != 0) {
+            int i = 0;
+            Bpl.Expr typeAntecedent = Bpl.Expr.True;
+            foreach (Formal arg in ctor.Formals) {
+              var instantiatedArgType = arg.Type.Subst(subst);
+              Bpl.Expr wh = GetWhereClause(arg.tok, CondApplyUnbox(arg.tok, args[i], arg.Type, instantiatedArgType), instantiatedArgType, etran, NOALLOC);
+              if (wh != null) {
+                typeAntecedent = BplAnd(typeAntecedent, wh);
+              }
+              i++;
+            }
+            var trigger = BplTrigger(ct);  // this is probably never used, because this quantifier is not expected ever to appear in a context where it needs to be instantiated
+            q = new Bpl.ExistsExpr(ctor.tok, bvs, trigger, BplAnd(typeAntecedent, q));
+          }
+          yield return q;
+        }
+      }
+    }
+
+    private bool TrSplitFunctionCallExpr(Expression expr, List<SplitExprInfo> splits, int heightLimit, bool inlineProtectedFunctions,
+      bool apply_induction, ExpressionTranslator etran, FunctionCallExpr fexp) {
+      var f = fexp.Function;
+      Contract.Assert(f != null); // filled in during resolution
+      var module = f.EnclosingClass.EnclosingModuleDefinition;
+      var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
+
+      if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
+        if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+            f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
+            (codeContext == null || !codeContext.MustReverify)) {
+          // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
+          // that needed to be proved about the function was proved already in the previous module, even without the body definition).
+        } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
+          // Don't inline opaque functions
+        } else if (Attributes.Contains(f.Attributes, "no_inline")) {
+          // User manually prevented inlining
+        } else {
+          // Produce, for a "body" split into b0, b1, b2:
+          //     checked F#canCall(args) ==> F(args) || b0
+          //     checked F#canCall(args) ==> F(args) || b1
+          //     checked F#canCall(args) ==> F(args) || b2
+          //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
+          // For "inCoContext", split into:
+          //     checked F#canCall(args) ==> F'(args) || b0''
+          //     checked F#canCall(args) ==> F'(args) || b1''
+          //     checked F#canCall(args) ==> F'(args) || b2''
+          //     free F#canCall(args) && F'(args)
+          // where the primes indicate certificate translations.
+          // The checked conjuncts of the body make use of the type-specialized body.
+
+          // F#canCall(args)
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
+          Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
+
+          Bpl.Expr fargs;
+          // F(args)
+          fargs = etran.TrExpr(fexp);
+
+          if (!CanSafelyInline(fexp, f)) {
+            // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
+            // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call are not inlined.");
+            // F#canCall(args) ==> F(args)
+            var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
+            splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
+            // F#canCall(args) && F(args)
+            var fr = Bpl.Expr.And(canCall, fargs);
+            splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, fr));
+          } else {
+            // inline this body
+            var typeSpecializedBody = GetSubstitutedBody(fexp, f);
+            var typeSpecializedResultType = f.ResultType.Subst(fexp.GetTypeArgumentSubstitutions());
+
+            // recurse on body
+            var ss = new List<SplitExprInfo>();
+            TrSplitExpr(typeSpecializedBody, ss, true, functionHeight, inlineProtectedFunctions, apply_induction, etran);
+            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(typeSpecializedBody);
+            foreach (var s in ss) {
+              if (s.IsChecked) {
+                var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
+                var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+                var tok = needsTokenAdjust
+                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
+                  : (IToken)new NestedToken(GetToken(fexp), s.Tok);
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+            }
+
+            // allocatedness for arguments to the inlined call in body
+            if (typeSpecializedBody is FunctionCallExpr) {
+              FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
+              for (int i = 0; i < e.Args.Count; i++) {
+                Expression ee = e.Args[i];
+                Type t = e.Function.Formals[i].Type;
+                Expr tr_ee = etran.TrExpr(ee);
+                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
+                if (wh != null) {
+                  fargs = Bpl.Expr.And(fargs, wh);
+                }
+              }
+            }
+
+            // body
+            var trBody = etran.TrExpr(typeSpecializedBody);
+            trBody = CondApplyUnbox(trBody.tok, trBody, typeSpecializedResultType, expr.Type);
+            // F#canCall(args) && F(args) && (b0 && b1 && b2)
+            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+            splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, fr));
+          }
+
+          return true;
+        }
+      }
+      return false;
+    }
+
+
+    private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
+      var visitor = new TriggersExplorer();
+      if (f.Body != null) {
+        var body = f.Body;
+        if (f is PrefixPredicate pp) {
+          body = PrefixSubstitution(pp, body);
+        }
+        visitor.Visit(body);
+      }
+      return
+        !triggersCollector.IsTriggerKiller(fexp.Receiver) &&
+        Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+    }
+
+
+    // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
+    Triggers.TriggersCollector triggersCollector;
+
+    private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
+      return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
+    }
+
+    private class TriggersExplorer : BottomUpVisitor {
+      private readonly VariablesCollector collector;
+
+      internal ISet<IVariable> TriggerVariables => collector.variables;
+
+      internal TriggersExplorer() {
+        collector = new VariablesCollector();
+      }
+
+      protected override void VisitOneExpr(Expression expr) {
+        if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
+          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+            collector.Visit(trigger);
+          }
+        }
+      }
+    }
+
+    private Expression GetSubstitutedBody(FunctionCallExpr fexp, Function f) {
+      Contract.Requires(fexp != null);
+      Contract.Requires(f != null);
+      var substMap = new Dictionary<IVariable, Expression>();
+      Contract.Assert(fexp.Args.Count == f.Formals.Count);
+      for (int i = 0; i < f.Formals.Count; i++) {
+        Formal p = f.Formals[i];
+        var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
+        Expression arg = fexp.Args[i];
+        arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
+        arg.Type = formalType;  // resolve here
+        substMap.Add(p, arg);
+      }
+      var body = f.Body;
+      if (f is PrefixPredicate) {
+        var pp = (PrefixPredicate)f;
+        body = PrefixSubstitution(pp, body);
+      }
+      body = Substitute(body, fexp.Receiver, substMap, fexp.GetTypeArgumentSubstitutions(), fexp.AtLabel);
+      return body;
+    }
+
+
+    SplitExprInfo ToSplitExprInfo(SplitExprInfo.K kind, Expr e) {
+      return new SplitExprInfo(flags.ReportRanges, kind, e);
+    }
+
+    public class SplitExprInfo {
+      public enum K { Free, Checked, Both }
+      public K Kind;
+      public bool IsOnlyFree { get { return Kind == K.Free; } }
+      public bool IsOnlyChecked { get { return Kind == K.Checked; } }
+      public bool IsChecked { get { return Kind != K.Free; } }
+      public readonly Expr E;
+      public IToken Tok;
+      public SplitExprInfo(bool reportRanges, K kind, Expr e) {
+        Contract.Requires(e != null && e.tok != null);
+        // TODO:  Contract.Requires(kind == K.Free || e.tok.IsValid);
+        Kind = kind;
+        E = e;
+        Tok = ToDafnyToken(reportRanges, e.tok);
+      }
+    }
+  }
+}

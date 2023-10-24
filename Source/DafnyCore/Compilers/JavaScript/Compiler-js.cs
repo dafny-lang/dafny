@@ -29,6 +29,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SeparateCompilation
     };
 
+    public override string ModuleSeparator => "_";
+
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";
@@ -440,7 +442,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           thn.WriteLine("return \"{0}\";", nm);
           i++;
@@ -454,7 +456,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           cw.Write("return \"{0}\"", nm);
           var sep = " + \"(\" + ";
@@ -1565,7 +1567,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"
+        Contract.Assert(!cl.EnclosingModuleDefinition.TryToAvoidName); // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
