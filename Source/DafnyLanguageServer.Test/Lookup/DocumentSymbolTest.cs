@@ -47,8 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       SymbolsAreValid(symbols);
     }
 
-    private static void SymbolsAreValid(List<DocumentSymbol> symbols)
-    {
+    private static void SymbolsAreValid(List<DocumentSymbol> symbols) {
       Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
       Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
       Assert.True(symbols.All(s => !string.IsNullOrEmpty(s.Name)));
