@@ -13,10 +13,9 @@ all: check-system-module test
 test:
 	./gradlew test
 
+# TODO: Add --optimize-erasable-datatype-wrapper:false elsewhere too
 build-system-module:
-	$(DAFNY) translate java --no-verify --use-basename-for-filename --system-module:Populate ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
-# _System.__default is the default module folded into _System so ignore it
-	rm ../obj/systemModulePopulator-java/_System/__default.java
+	$(DAFNY) translate java --no-verify --use-basename-for-filename --optimize-erasable-datatype-wrapper:false --system-module:Populate ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
 
 check-system-module: build-system-module
 	diff $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)

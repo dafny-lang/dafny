@@ -314,8 +314,25 @@ namespace Microsoft.Dafny.Compilers {
 
     // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
+      // TODO: update to look at SystemModule mode
       if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
         UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      }
+
+      if (Options.Get(CommonOptionBag.SystemModule) == CommonOptionBag.SystemModuleMode.Omit) {
+        return;
+      }
+      
+      foreach (var kv in systemModuleManager.ArrowTypeDecls) {
+        var arity = kv.Key;
+        CreateLambdaFunctionInterface(arity, wr);
+      }
+
+      foreach (var decl in systemModuleManager.SystemModule.TopLevelDecls) {
+        if (decl is ArrayClassDecl classDecl) {
+          var dims = classDecl.Dims;
+          CreateDafnyArrays(dims, wr);
+        }
       }
     }
 
@@ -1827,8 +1844,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-      if (dt is TupleTypeDecl) {
-        // Handled by CreateTuple() from EmitFooter() instead (which produces somewhat different code)
+      if (dt is TupleTypeDecl tupleTypeDecl) {
+        // CreateTuple() produces somewhat different code
+        CreateTuple(tupleTypeDecl.Dims, wr);
         return null;
       }
 
@@ -2992,27 +3010,6 @@ namespace Microsoft.Dafny.Compilers {
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
-      }
-    }
-
-    protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
-      if (program.Options.Get(CommonOptionBag.SystemModule) == CommonOptionBag.SystemModuleMode.Omit) {
-        return;
-      }
-      
-      // Emit tuples
-      foreach (int i in tuples) {
-        CreateTuple(i, wr);
-      }
-
-      // Emit function interfaces
-      foreach (var i in functions) {
-        CreateLambdaFunctionInterface(i, wr);
-      }
-
-      // Emit arrays
-      foreach (var i in arrays) {
-        CreateDafnyArrays(i, wr);
       }
     }
 
