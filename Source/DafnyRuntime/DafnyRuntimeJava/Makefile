@@ -14,7 +14,7 @@ test:
 	./gradlew test
 
 build-system-module:
-	$(DAFNY) translate java --no-verify --use-basename-for-filename --include-system-module ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
+	$(DAFNY) translate java --no-verify --use-basename-for-filename --system-module:Populate ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
 # _System.__default is the default module folded into _System so ignore it
 	rm ../obj/systemModulePopulator-java/_System/__default.java
 

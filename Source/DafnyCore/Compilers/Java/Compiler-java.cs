@@ -2996,7 +2996,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
-      if (!program.Options.Get(CommonOptionBag.IncludeSystemModule)) {
+      if (program.Options.Get(CommonOptionBag.SystemModule) == CommonOptionBag.SystemModuleMode.Omit) {
         return;
       }
       

@@ -64,6 +64,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+      var systemModuleMode = program.Options.Get(CommonOptionBag.SystemModule);
+
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, you will need the libraries");
       wr.WriteLine("//     System.Runtime.Numerics.dll System.Collections.Immutable.dll");
@@ -71,14 +73,23 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
+      if (systemModuleMode == CommonOptionBag.SystemModuleMode.Populate) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
+      if (systemModuleMode == CommonOptionBag.SystemModuleMode.Populate) {
+        wr.WriteLine("#endif");
+      }
       Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
       }
-      EmitDafnySourceAttribute(program, wr);
+
+      if (systemModuleMode != CommonOptionBag.SystemModuleMode.Populate) {
+        EmitDafnySourceAttribute(program, wr);
+      }
 
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
@@ -123,7 +134,7 @@ namespace Microsoft.Dafny.Compilers {
         UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
 
-      if (!Options.Get(CommonOptionBag.IncludeSystemModule)) {
+      if (Options.Get(CommonOptionBag.SystemModule) == CommonOptionBag.SystemModuleMode.Omit) {
         return;
       }
 

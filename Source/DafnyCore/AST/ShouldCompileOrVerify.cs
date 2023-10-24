@@ -12,8 +12,13 @@ public static class ShouldCompileOrVerify {
       program.UrisToCompile = ComputeUrisToCompile(program);
     }
 
+    
+    var systemModuleMode = program.Options.Get(CommonOptionBag.SystemModule);
     if (module.FullName == "_System") {
-      return program.Options.Get(CommonOptionBag.IncludeSystemModule);
+      return systemModuleMode != CommonOptionBag.SystemModuleMode.Omit;
+    } 
+    if (systemModuleMode == CommonOptionBag.SystemModuleMode.Populate) {
+      return false;
     }
 
     if (module is DefaultModuleDefinition) {

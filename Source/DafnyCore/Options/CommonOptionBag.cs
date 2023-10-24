@@ -215,8 +215,14 @@ May produce spurious warnings.") {
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
   
-  public static readonly Option<bool> IncludeSystemModule = new("--include-system-module", () => false,
-    "Include the built-in _System module and other built-ins as source in the target language.") {
+  public enum SystemModuleMode {
+    Include,
+    Omit,
+    Populate
+  }
+  
+  public static readonly Option<SystemModuleMode> SystemModule = new("--system-module", () => SystemModuleMode.Omit,
+    "How to handle the built-in _System module.") {
     IsHidden = true
   };
 
@@ -390,7 +396,7 @@ Change the default opacity of functions.
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
       DefaultFunctionOpacity,
-      IncludeSystemModule
+      SystemModule
     );
   }
 
