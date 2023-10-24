@@ -41,4 +41,5 @@ comp/compile1verbose/CompileAndThenRun
 comp/compile1quiet/CompileRunQuietly
 docexamples
 
+**/Build/**
 **/.lit_test_times.txt
