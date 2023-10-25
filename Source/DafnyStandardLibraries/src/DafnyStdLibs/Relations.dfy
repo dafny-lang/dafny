@@ -84,10 +84,6 @@ module DafnyStdLibs.Relations {
     && Transitive(relation)
   }
 
-  ghost predicate SortedBy<T>(lessOrEqual: (T, T) -> bool, xs: seq<T>) {
-    forall i, j | 0 <= i < j < |xs| :: lessOrEqual(xs[i], xs[j])
-  }
-
   ghost predicate IsLeast<T>(lessOrEqual: (T, T) -> bool, least: T, s: set<T>) {
     least in s && forall x | x in s :: lessOrEqual(least, x)
   }
@@ -102,6 +98,10 @@ module DafnyStdLibs.Relations {
 
   ghost predicate IsMaximal<T>(lessOrEqual: (T, T) -> bool, maximal: T, s: set<T>) {
     maximal in s && forall x | x in s && lessOrEqual(maximal, x) :: lessOrEqual(x, maximal)
+  }
+
+  ghost predicate SortedBy<T>(lessOrEqual: (T, T) -> bool, xs: seq<T>) {
+    forall i, j | 0 <= i < j < |xs| :: lessOrEqual(xs[i], xs[j])
   }
 
   lemma LemmaNewFirstElementStillSortedBy<T>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
