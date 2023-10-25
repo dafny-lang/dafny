@@ -16,7 +16,7 @@ module DafnyStdLibs.Function {
     forall x1, x2 :: f(x1) == f(x2) ==> x1 == x2
   }
 
-  ghost predicate Commutative<T(!new),U(!new)>(f: (T,T) -> U)
+  ghost predicate Commutative<T(!new), U(!new)>(f: (T,T) -> U)
     reads f.reads
     requires forall x,y :: f.requires(x,y) && f.requires(y,x)
   {
