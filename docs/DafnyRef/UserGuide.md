@@ -1738,7 +1738,7 @@ To enable easily customising runtime behavior across an entire Dafny program, Da
 
 <!-- %check-run -->
 ```dafny
-placeholder module Foo {
+replaceable module Foo {
   method Bar() returns (i: int) 
     ensures i >= 2
 }
