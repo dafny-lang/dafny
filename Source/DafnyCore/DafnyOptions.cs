@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
     public static string DefaultZ3Version = "4.12.1";
     // Not directly user-configurable, only recorded once we discover it
     public string SolverIdentifier { get; private set; }
-    public Version SolverVersion { get; private set; }
+    public Version SolverVersion { get; set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
@@ -1126,7 +1126,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void SetZ3Options(Version z3Version) {
+    public void SetZ3Options(Version z3Version) {
       // Don't allow changing this once set, just in case:
       // a DooFile will record this and will get confused if it changes.
       if ((SolverIdentifier != null && SolverIdentifier != "Z3")
