@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
-            if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name == "fuel" && arg is NameSegment)) {
+            if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment)) {
               ResolveExpression(arg, resolutionContext);
             } else {
               ResolveRevealLemmaAttribute(arg);
