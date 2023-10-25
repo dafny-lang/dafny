@@ -257,7 +257,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
 
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
-      bool warnShadowing = false;
+      bool warnShadowing = true;
       if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
         resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
@@ -281,35 +281,14 @@ public class Method : MemberDecl, TypeParameter.ParentType,
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      var readsClausesOnMethodsEnabled = resolver.Options.Get(CommonOptionBag.ReadsClausesOnMethods);
-      // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
-      // Doing it before resolution is a bit easier than adding resolved frame expressions afterwards.
-      // Note that `reads *` is the right default for backwards-compatibility,
-      // but we may want to infer a sensible default like decreases clauses instead in the future.
-      if (readsClausesOnMethodsEnabled && !IsLemmaLike && !Reads.Expressions.Any()) {
-        Reads.Expressions.Add(new FrameExpression(tok, new WildcardExpr(tok), null));
-      }
+      resolver.ResolveAttributes(Reads, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
-        if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)",
-            WhatKind);
-        } else if (!readsClausesOnMethodsEnabled) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok,
-            "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
-        } else if (IsGhost) {
-          resolver.DisallowNonGhostFieldSpecifiers(fe);
-        }
       }
 
       resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
       foreach (FrameExpression fe in Mod.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);
-        if (IsLemmaLike) {
-          resolver.reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", WhatKind);
-        } else if (IsGhost) {
-          resolver.DisallowNonGhostFieldSpecifiers(fe);
-        }
       }
 
       resolver.ResolveAttributes(Decreases, new ResolutionContext(this, false));

@@ -3,7 +3,6 @@
 
 module M0 {
   twostate lemma L8(a: A, new b: A)
-    requires a != null
     requires unchanged(a.g)
     modifies a.g
     decreases old(a.f)
@@ -133,21 +132,18 @@ module G {
     decreases P(), old(c.f)
 
   method Me(c: C) returns (b: bool)
-    requires c != null
     requires P()
     modifies if P() then {null} else {}
     ensures P()
     decreases P(), old(c.f)
 
   twostate function TF(c: C): int
-    requires c != null
     requires P()
     reads if P() then {null} else {}
     ensures P()
     decreases P(), old(c.f), c.f
 
   twostate lemma TL(c: C)
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f
@@ -157,7 +153,6 @@ module G {
   }
 
   iterator Iter(c: C)
-    requires c != null
     requires P()
     reads if P() then {null} else {}
     modifies if P() then {null} else {}
@@ -184,7 +179,6 @@ module H {
   }
 
   method Me(c: C) returns (b: bool)
-    requires c != null
     ensures P()
   {
     assert P();
@@ -193,7 +187,6 @@ module H {
   }
 
   twostate function TF(c: C): int
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f
@@ -205,7 +198,6 @@ module H {
   }
 
   twostate lemma TL(c: C)
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f
@@ -235,7 +227,6 @@ module H {
     ghost function G(): int
 
     static method Sm(c: C) returns (ghost b: bool)
-      requires c != null
       ensures P()
     {
       ghost var u := G();
@@ -248,7 +239,6 @@ module H {
   }
 
   iterator Iter(c: C)
-    requires c != null
     yield ensures P()
     ensures P()
   {

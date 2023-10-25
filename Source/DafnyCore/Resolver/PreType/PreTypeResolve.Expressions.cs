@@ -1592,7 +1592,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<ModuleResolver.MethodCallInformation>() == null || allowMethodCall);
 
-      Contract.Assert(e.MethodCallInfo == null); // this will be set below if the ApplySuffix is a method call
+      if (e.MethodCallInfo != null) {
+        return e.MethodCallInfo;
+      }
 
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
