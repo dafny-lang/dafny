@@ -128,12 +128,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
+        if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+          UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+        }
       }
 
-      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
-        return;
+      // The declarations below would normally be omitted if we aren't compiling the system module,
+      // but they are all marked as "internal", so they have to be included in each separately-compiled assembly.
+      // Instead we just make sure to guard them with "#if ISDAFNYRUNTIMELIB" when compiling the system module,
+      // so they don't become duplicates when --include-runtime is used.
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Populate) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
@@ -142,6 +149,10 @@ namespace Microsoft.Dafny.Compilers {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
       EmitFuncExtensions(systemModuleManager, wr);
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Populate) {
+        wr.WriteLine("#endif");
+      }
     }
 
     // Generates casts for functions of those arities present in the program, like:

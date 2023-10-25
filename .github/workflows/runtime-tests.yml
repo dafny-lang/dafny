@@ -64,9 +64,9 @@ jobs:
           make all
       - name: Test DafnyRuntimeRust
         run: |
-          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          cd ./Source/DafnyRuntime/DafnyRuntimeRust
           make all
       - name: Test DafnyRuntimeCpp
         run: |
-          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          cd ./Source/DafnyRuntime/DafnyRuntimeCpp
           make all
