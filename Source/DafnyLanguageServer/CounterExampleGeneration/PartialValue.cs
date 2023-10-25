@@ -37,6 +37,8 @@ public class PartialValue {
     if (constraintsGathered) {
       return;
     }
+    state.Model.GetExpansion(state, this);
+    constraintsGathered = true;
     // TODO
   }
 

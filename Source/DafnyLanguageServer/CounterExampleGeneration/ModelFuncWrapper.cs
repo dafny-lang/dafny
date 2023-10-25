@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 /// </summary>
 class ModelFuncWrapper {
 
-  private readonly Model.Func func;
+  public readonly Model.Func func;
   private readonly int argsToSkip;
 
   public ModelFuncWrapper(DafnyModel model, string name, int arity, int argsToSkip) {

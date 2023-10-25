@@ -297,12 +297,22 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       return result;
     }
 
+    public void GetExpansion(PartialState state, PartialValue value) {
+      foreach (var funcTuple in value.Element.References) {
+        if (funcTuple.Func == fSeqLength.func) {
+          
+        } else if (funcTuple.Func == fIs.func) {
+          
+        } // etc.
+      }
+    }
+
     /// <summary>
     /// Get the Dafny type of the value indicated by <param name="element"></param>
     /// This is in contrast to ReconstructType, which returns the type indicated by the element itself.
     /// This method tries to extract the base type (so seq<char> instead of string)
     /// </summary>
-    private Type GetDafnyType(Model.Uninterpreted element) {
+    /*private Type GetDafnyType(Model.Uninterpreted element) {
       var finalResult = UnknownType;
       foreach (var typeElement in GetIsResults(element)) {
         var reconstructedType = ReconstructType(typeElement);
@@ -366,7 +376,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       var dtypeElement = fDtype.OptEval(element);
       return dtypeElement != null ? ReconstructType(dtypeElement) : finalResult;
-    }
+    }*/
 
     /// <summary>
     /// Reconstruct Dafny type from an element that represents a type in Z3
@@ -439,7 +449,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Return "" if !IsPrimitive(elt, state) unless elt is a datatype,
     /// in which case return the corresponding constructor name.
     /// </summary>
-    public string CanonicalName(Model.Element elt, Type type) {
+    /*public string CanonicalName(Model.Element elt, Type type) {
       if (elt == null || (type is UserDefinedType userDefinedType && userDefinedType.Name == UnknownType.Name)) {
         return "?";
       }
@@ -504,7 +514,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         default:
           return "";
       }
-    }
+    }*/
 
     /// <summary>
     /// Find a char value that is different from any other value
@@ -589,7 +599,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// values of fields for objects, values at certain positions for
     /// sequences, etc.
     /// </summary>
-    public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue var) {
+    /*public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue var) {
       HashSet<PartialValue> result = new();
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
         return result;  // primitive types can't have fields
@@ -760,7 +770,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
       }
       return result;
-    }
+    }*/
 
     /// <summary>
     /// Return all functions mapping an object to a destructor value.
