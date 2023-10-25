@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-placeholder module FooModule {
+replaceable module FooModule {
   method Foo() returns (i: int) 
     ensures i >= 2
 }
@@ -11,13 +11,13 @@ abstract module SuchAbstract {
   }
 }
 
-placeholder module BarModule refines SuchAbstract {
+replaceable module BarModule refines SuchAbstract {
   method Bar() returns (i: int) 
     ensures i >= 1
 }
 
 
-placeholder module BazModule replaces BarModule {
+replaceable module BazModule replaces BarModule {
 }
 
 module Nesting {

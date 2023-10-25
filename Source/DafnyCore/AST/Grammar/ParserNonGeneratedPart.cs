@@ -606,8 +606,8 @@ public partial class Parser {
   /// they can be used in error messages.
   /// </summary>
   class DeclModifierData {
-    public bool IsPlaceholder;
-    public IToken PlaceholderToken;
+    public bool IsReplaceable;
+    public IToken ReplaceableToken;
     public bool IsAbstract;
     public IToken AbstractToken;
     public bool IsGhost;
@@ -621,12 +621,12 @@ public partial class Parser {
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
-    if (mods.IsPlaceholder && mods.IsAbstract) {
-      SemErr(null, mods.PlaceholderToken, "Can't be both placeholder and abstract");
+    if (mods.IsReplaceable && mods.IsAbstract) {
+      SemErr(null, mods.ReplaceableToken, "Can't be both placeholder and abstract");
     }
 
-    if (mods.IsPlaceholder) {
-      return ModuleKindEnum.Placeholder;
+    if (mods.IsReplaceable) {
+      return ModuleKindEnum.Replaceable;
     }
     if (mods.IsAbstract) {
       return ModuleKindEnum.Abstract;
@@ -663,7 +663,7 @@ public partial class Parser {
     AlreadyGhost = 4,
     Static = 8,
     Opaque = 16,
-    Placeholder = 32
+    Replaceable = 32
   };
 
   bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
@@ -734,9 +734,9 @@ public partial class Parser {
       SemErr(ErrorId.p_abstract_not_allowed, dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
       dmod.IsAbstract = false;
     }
-    if (dmod.IsPlaceholder && ((allowed & AllowedDeclModifiers.Placeholder) == 0)) {
-      SemErr(ErrorId.p_abstract_not_allowed, dmod.PlaceholderToken, $"{declCaption} cannot be declared 'abstract'");
-      dmod.IsPlaceholder = false;
+    if (dmod.IsReplaceable && ((allowed & AllowedDeclModifiers.Replaceable) == 0)) {
+      SemErr(ErrorId.p_abstract_not_allowed, dmod.ReplaceableToken, $"{declCaption} cannot be declared 'replaceable'");
+      dmod.IsReplaceable = false;
     }
     if (dmod.IsGhost) {
       if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {

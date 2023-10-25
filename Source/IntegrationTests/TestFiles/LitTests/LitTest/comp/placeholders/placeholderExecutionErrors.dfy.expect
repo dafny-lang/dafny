@@ -1,5 +1,0 @@
-
-Dafny program verifier finished with 4 verified, 0 errors
-placeholderExecutionErrors.dfy(20,7): Error: A placeholder module may only be replaced once. Other replacing module: placeholderExecutionErrors.dfy(26,7)
-placeholderExecutionErrors.dfy(14,7): Error: A placeholder module may only be replaced once. Other replacing module: placeholderExecutionErrors.dfy(26,7)
-placeholderExecutionErrors.dfy(4,19): Error: When producing executable code, placeholder modules must be replaced somewhere in the program

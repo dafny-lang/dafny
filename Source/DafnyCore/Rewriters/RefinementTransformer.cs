@@ -192,7 +192,7 @@ namespace Microsoft.Dafny {
       } else {
         // There is a refinement parent and it resolved OK
         var refinementTarget = m.Implements.Target;
-        if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Placeholder) {
+        if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
           Reporter.Error(MessageSource.RefinementTransformer, "refinePlaceholder", refinementTarget.Tok,
             "It is not possible to refine a placeholder module");
 

@@ -46,7 +46,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         }
       }
 
-      if (compiledModule.ModuleKind == ModuleKindEnum.Placeholder && compiledModule.Replacement == null) {
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
         Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
           "When producing executable code, placeholder modules must be replaced somewhere in the program");
       }

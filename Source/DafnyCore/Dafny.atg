@@ -242,7 +242,7 @@ Dafny
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "placeholder"                          (. dmod.IsPlaceholder = true;  CheckAndSetToken(ref dmod.PlaceholderToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -321,7 +321,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      ImplementationKind implementationKind = ImplementationKind.Refinement;
      submodule = null; // appease compiler
      var dafnyOptionsBackup = theOptions;
-     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Placeholder);
+     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Replaceable);
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ModuleQualifiedName<out var names>

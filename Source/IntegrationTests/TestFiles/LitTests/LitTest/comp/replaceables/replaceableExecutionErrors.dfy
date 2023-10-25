@@ -1,12 +1,12 @@
 // RUN: ! %baredafny run %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-placeholder module NeverReplaced {
+replaceable module NeverReplaced {
   method Foo() returns (i: int) 
     ensures i >= 2
 }
 
-placeholder module ReplacedThrice {
+replaceable module ReplacedThrice {
   method Foo() returns (i: int) 
     ensures i >= 2
 }

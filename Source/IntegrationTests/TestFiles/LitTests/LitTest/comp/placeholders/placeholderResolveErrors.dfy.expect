@@ -1,4 +1,0 @@
-placeholderResolveErrors.dfy(17,26): Error: It is not possible to refine a placeholder module
-placeholderResolveErrors.dfy(23,27): Error: It is not possible to refine a placeholder module
-placeholderResolveErrors.dfy(17,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'FooRefiner'
-3 resolution/type errors detected in placeholderResolveErrors.dfy

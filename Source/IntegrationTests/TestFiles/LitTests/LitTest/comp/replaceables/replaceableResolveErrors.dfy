@@ -1,7 +1,7 @@
 // RUN: ! %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-placeholder module FooModule {
+replaceable module FooModule {
   method Foo() returns (i: int) 
     ensures i >= 2
 }

@@ -12,7 +12,7 @@ public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Mo
 public enum ModuleKindEnum {
   Concrete,
   Abstract,
-  Placeholder
+  Replaceable
 }
 
 public enum ImplementationKind {
