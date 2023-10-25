@@ -38,6 +38,10 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
+      - name: Test DafnyRuntime (C#)
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntime
+          make all
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
@@ -49,4 +53,20 @@ jobs:
       - name: Test DafnyRuntimeJava
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJava
+          make all
+      - name: Test DafnyRuntimePython
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimePython
+          make all
+      - name: Test DafnyRuntimeJs
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          make all
+      - name: Test DafnyRuntimeRust
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          make all
+      - name: Test DafnyRuntimeCpp
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJs
           make all

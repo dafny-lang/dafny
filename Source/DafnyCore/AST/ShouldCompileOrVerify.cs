@@ -12,7 +12,6 @@ public static class ShouldCompileOrVerify {
       program.UrisToCompile = ComputeUrisToCompile(program);
     }
 
-    
     if (module.FullName == "_System") {
       return program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.Omit;
     } 
