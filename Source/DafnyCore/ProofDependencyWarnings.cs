@@ -16,7 +16,7 @@ public class ProofDependencyWarnings {
     }
   }
 
-  public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter, 
+  public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter,
     ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
     if (result.Outcome != ConditionGeneration.Outcome.Correct) {
       return;

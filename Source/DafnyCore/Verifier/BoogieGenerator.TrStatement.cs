@@ -532,22 +532,19 @@ namespace Microsoft.Dafny {
       fuelContext = FuelSetting.PopFuelContext();
     }
 
-    private void TrAssumeStmt(AssumeStmt assumeStmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrAssumeStmt(AssumeStmt assumeStmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       AddComment(builder, assumeStmt, "assume statement");
       stmtContext = StmtType.ASSUME;
       TrStmt_CheckWellformed(assumeStmt.Expr, builder, locals, etran, false);
       builder.Add(TrAssumeCmdWithDependencies(etran, assumeStmt.Tok, assumeStmt.Expr, "assume statement", true,
         etran.TrAttributes(assumeStmt.Attributes, null)));
       stmtContext = StmtType.NONE; // done with translating assume stmt.
-      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None)
-      {
+      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.AddCaptureState(assumeStmt);
       }
     }
 
-    private void TrExpectStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ExpectStmt expectStmt)
-    {
+    private void TrExpectStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ExpectStmt expectStmt) {
       AddComment(builder, expectStmt, "expect statement");
       stmtContext = StmtType.ASSUME;
       TrStmt_CheckWellformed(expectStmt.Expr, builder, locals, etran, false);
@@ -569,8 +566,7 @@ namespace Microsoft.Dafny {
       stmtContext = StmtType.NONE; // done with translating expect stmt.
     }
 
-    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       var stmtBuilder = new BoogieStmtListBuilder(this, options);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
@@ -579,44 +575,34 @@ namespace Microsoft.Dafny {
       AddComment(b, stmt, "assert statement");
       TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
       IToken enclosingToken = null;
-      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken"))
-      {
+      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
         enclosingToken = stmt.Tok;
       }
 
       BoogieStmtListBuilder proofBuilder = null;
       var assertStmt = stmt as AssertStmt;
-      if (assertStmt != null)
-      {
-        if (assertStmt.Proof != null)
-        {
+      if (assertStmt != null) {
+        if (assertStmt.Proof != null) {
           proofBuilder = new BoogieStmtListBuilder(this, options);
           AddComment(proofBuilder, stmt, "assert statement proof");
           CurrentIdGenerator.Push();
           TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           CurrentIdGenerator.Pop();
-        }
-        else if (assertStmt.Label != null)
-        {
+        } else if (assertStmt.Label != null) {
           proofBuilder = new BoogieStmtListBuilder(this, options);
           AddComment(proofBuilder, stmt, "assert statement proof");
         }
       }
 
       var splits = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
-      if (!splitHappened)
-      {
+      if (!splitHappened) {
         var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
         var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
         (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
           etran.TrAttributes(stmt.Attributes, null)));
-      }
-      else
-      {
-        foreach (var split in splits)
-        {
-          if (split.IsChecked)
-          {
+      } else {
+        foreach (var split in splits) {
+          if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
             var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
             (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
@@ -625,16 +611,13 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (proofBuilder != null)
-      {
+      if (proofBuilder != null) {
         PathAsideBlock(stmt.Tok, proofBuilder, b);
       }
 
       stmtContext = StmtType.NONE; // done with translating assert stmt
-      if (splitHappened || proofBuilder != null)
-      {
-        if (assertStmt != null && assertStmt.Label != null)
-        {
+      if (splitHappened || proofBuilder != null) {
+        if (assertStmt != null && assertStmt.Label != null) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
           var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
@@ -642,10 +625,8 @@ namespace Microsoft.Dafny {
           var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
           b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
           var substMap = new Dictionary<IVariable, Expression>();
-          foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr))
-          {
-            if (v is LocalVariable)
-            {
+          foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
+            if (v is LocalVariable) {
               var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
               vcopy.type = vcopy.OptionalType; // resolve local here
@@ -664,9 +645,7 @@ namespace Microsoft.Dafny {
           var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
           var etr = new ExpressionTranslator(etran, h);
           assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
-        }
-        else if (!defineFuel)
-        {
+        } else if (!defineFuel) {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
           adjustFuelForExists = true;
@@ -675,8 +654,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (defineFuel)
-      {
+      if (defineFuel) {
         var ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
           null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
         builder.Add(ifCmd);
@@ -687,8 +665,7 @@ namespace Microsoft.Dafny {
         stmtContext = StmtType.NONE;
       }
 
-      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None)
-      {
+      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.AddCaptureState(stmt);
       }
     }
