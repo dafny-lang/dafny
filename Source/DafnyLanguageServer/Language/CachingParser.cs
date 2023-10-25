@@ -30,11 +30,11 @@ public class CachingParser : ProgramParser {
   protected override DfyParseResult ParseFile(DafnyOptions options, bool parseAsDooFile, Func<TextReader> getReader,
     Uri uri, CancellationToken cancellationToken) {
     using var reader = getReader();
-    
+
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
     var uriBytes = Encoding.UTF8.GetBytes(uri + "\0");
-    var startingBytes = new[] {Convert.ToByte(parseAsDooFile) }.Concat(uriBytes).ToArray();
-    
+    var startingBytes = new[] { Convert.ToByte(parseAsDooFile) }.Concat(uriBytes).ToArray();
+
     var (newReader, hash) = ComputeHashFromReader(startingBytes, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
