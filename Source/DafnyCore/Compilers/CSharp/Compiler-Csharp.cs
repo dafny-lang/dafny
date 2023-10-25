@@ -141,6 +141,54 @@ namespace Microsoft.Dafny.Compilers {
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
+      EmitFuncExtensions(systemModuleManager, wr);
+    }
+
+    // Generates casts for functions of those arities present in the program, like:
+    //   public static class FuncExtensions {
+    //     public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F,
+    //         Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
+    //       return arg => ResConv(F(ArgConv(arg)));
+    //     }
+    //     ...
+    //   }
+    // They aren't in any namespace to make them universally accessible.
+    private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
+      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
+      foreach (var kv in systemModuleManager.ArrowTypeDecls) {
+        int arity = kv.Key;
+
+        List<string> TypeParameterList(string prefix) {
+          var l = arity switch {
+            1 => new List<string> { prefix },
+            _ => Enumerable.Range(1, arity).Select(i => $"{prefix}{i}").ToList()
+          };
+          l.Add($"{prefix}Result");
+          return l;
+        }
+
+        var us = TypeParameterList("U");
+        var ts = TypeParameterList("T");
+
+        string ArgConvDecl((string u, string t) tp) => $"Func<{tp.u}, {tp.t}> ArgConv";
+        var argConvDecls = arity switch {
+          0 => "",
+          1 => $"{ArgConvDecl(("U", "T"))}, ",
+          _ => Enumerable.Zip(us.SkipLast(1), ts.SkipLast(1))
+                 .Comma((tp, i) => $"{ArgConvDecl(tp)}{++i}")
+               + ", "
+        };
+
+        var parameters = $"this Func<{ts.Comma()}> F, {argConvDecls}Func<TResult, UResult> ResConv";
+        funcExtensions.Write($"public static Func<{us.Comma()}> DowncastClone<{ts.Concat(us).Comma()}>({parameters})");
+
+        var binder = arity switch { 1 => "arg", _ => $"({Enumerable.Range(1, arity).Comma(i => $"arg{i}")})" };
+        var argConvCalls = arity switch {
+          1 => "ArgConv(arg)",
+          _ => Enumerable.Range(1, arity).Comma(i => $"ArgConv{i}(arg{i})")
+        };
+        funcExtensions.NewBlock().WriteLine($"return {binder} => ResConv(F({argConvCalls}));");
+      }
     }
 
     private void EmitInitNewArrays(SystemModuleManager systemModuleManager, ConcreteSyntaxTree dafnyNamespace) {

@@ -229,7 +229,6 @@ May produce spurious warnings.") {
   public enum SystemModuleMode {
     Include,
     Omit,
-    // TODO: better name? OmitOthers?
     Populate
   }
   
