@@ -49,7 +49,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       }
     }
     this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
-    
+
     // TODO: Correct?
     ParentTypeInformation = new InheritanceInformationClass();
   }

@@ -318,7 +318,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
         return;
       }
-      
+
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         var arity = kv.Key;
         CreateLambdaFunctionInterface(arity, wr);

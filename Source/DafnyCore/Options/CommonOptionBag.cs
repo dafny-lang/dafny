@@ -235,14 +235,14 @@ May produce spurious warnings.") {
     "Include the Dafny runtime as source in the target language.") {
     IsHidden = true
   };
-  
+
   public enum SystemModuleMode {
     Include,
     Omit,
     // TODO: better name? OmitOthers?
     Populate
   }
-  
+
   public static readonly Option<SystemModuleMode> SystemModule = new("--system-module", () => SystemModuleMode.Omit,
     "How to handle the built-in _System module.") {
     IsHidden = true

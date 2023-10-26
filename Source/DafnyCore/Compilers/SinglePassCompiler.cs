@@ -1635,7 +1635,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public void Finish() { }
     }
-    
+
     protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var files = assembly.GetManifestResourceNames();
