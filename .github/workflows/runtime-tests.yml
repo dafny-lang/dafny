@@ -40,7 +40,7 @@ jobs:
           make check-format
       - name: Test DafnyRuntime (C#)
         run: |
-          cd ./Source/DafnyRuntime/DafnyRuntime
+          cd ./Source/DafnyRuntime
           make all
       - name: Test DafnyRuntimeDafny
         run: |
@@ -61,12 +61,4 @@ jobs:
       - name: Test DafnyRuntimeJs
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJs
-          make all
-      - name: Test DafnyRuntimeRust
-        run: |
-          cd ./Source/DafnyRuntime/DafnyRuntimeRust
-          make all
-      - name: Test DafnyRuntimeCpp
-        run: |
-          cd ./Source/DafnyRuntime/DafnyRuntimeCpp
           make all
