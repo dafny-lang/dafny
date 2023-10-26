@@ -33,7 +33,7 @@ In the second, the module is imported as opened, in which case the type and cons
 <!-- %check-verify -->
 ```dafny
 module M {
-  import BI = Dafny.BoundedInts
+  import BI = DafnyStdLibs.BoundedInts
   
   method m(k: BI.int16) {
     assert k as int < BI.TWO_TO_THE_15;
@@ -41,7 +41,7 @@ module M {
 }
 
 module N {
-  import opened Dafny.BoundedInts
+  import opened DafnyStdLibs.BoundedInts
 
   method m(k: int16) {
     assert (k/256) as int < TWO_TO_THE_8;
