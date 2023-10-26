@@ -302,7 +302,7 @@ public class SystemModuleManager {
     var reads = CreateMember("reads", ObjectSetType(), null);
     var req = CreateMember("requires", Type.Bool, reads);
 
-    var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, null);
+    var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
     ArrowTypeDecls.Add(arity, arrowDecl);
     SystemModule.SourceDecls.Add(arrowDecl);
 
