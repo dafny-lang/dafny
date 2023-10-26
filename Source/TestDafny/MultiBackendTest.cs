@@ -322,7 +322,14 @@ public class MultiBackendTest {
       options.TestFile!,
     }.Concat(options.OtherArgs);
     if (!includeRuntime) {
-      dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false" });
+      // We have to provide the path to DafnyRuntime.dll manually, since the program will be run
+      // in the directory containing the DLL built from Dafny code, not the Dafny distribution.
+      if (backend.TargetId != "cs") {
+        throw new ArgumentException("--include-runtime:false is currently only supported for the C# backend");
+      }
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var runtimePath = Path.Join(libPath, "DafnyRuntime.dll");
+      dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false", "--input", runtimePath });
     }
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
