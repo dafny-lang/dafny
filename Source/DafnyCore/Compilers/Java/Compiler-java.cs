@@ -308,15 +308,29 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
     }
 
-    // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      // TODO: update to look at SystemModule mode
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
-      }
-
-      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
-        return;
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+          // Check that the runtime already has all required builtins
+          if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+            UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+          }
+          var maxArrowArity = systemModuleManager.ArrowTypeDecls.Keys.Max();
+          if (maxArrowArity > 16) {
+            UnsupportedFeatureError(Token.NoToken, Feature.ArrowsWithMoreThan16Arguments);
+          }
+          var maxArraysDims = systemModuleManager.arrayTypeDecls.Keys.Max();
+          if (maxArraysDims > 16) {
+            UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
+          }
+          return;
+        }
+        case CommonOptionBag.SystemModuleMode.Populate: {
+          systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(20);
+          systemModuleManager.CheckHasAllArrayDimsUpTo(16);
+          systemModuleManager.CheckHasAllArrowAritiesUpTo(16);
+          break;
+        }
       }
 
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {

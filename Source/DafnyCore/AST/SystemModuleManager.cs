@@ -490,6 +490,33 @@ public class SystemModuleManager {
       }
     }
   }
+
+  public void CheckHasAllTupleNonGhostDimsUpTo(int max) {
+    var allNeededDims = Enumerable.Range(0, max + 1).ToHashSet();
+    var allDeclaredDims = tupleTypeDecls.Keys
+        .Select(argumentGhostness => argumentGhostness.Count(ghost => !ghost))
+        .Distinct()
+        .ToHashSet();
+    if (!allDeclaredDims.SetEquals(allNeededDims)) {
+      throw new ArgumentException($"Not all tuple types declared between 0 and {max}:\n{allNeededDims.Comma()}\n{allDeclaredDims.Comma()}");
+    }
+  }
+  
+  public void CheckHasAllArrayDimsUpTo(int max) {
+    var allNeededDims = Enumerable.Range(1, max);
+    var allDeclaredDims = arrayTypeDecls.Keys.ToHashSet();
+    if (!allDeclaredDims.SetEquals(allNeededDims)) {
+      throw new ArgumentException($"Not all array types declared between 1 and {max}:\n{allNeededDims.Comma()}\n{allDeclaredDims.Comma()}");
+    }
+  }
+  
+  public void CheckHasAllArrowAritiesUpTo(int max) {
+    var allNeededDims = Enumerable.Range(0, max + 1);
+    var allDeclaredDims = ArrowTypeDecls.Keys.ToHashSet();
+    if (!allDeclaredDims.SetEquals(allNeededDims)) {
+      throw new ArgumentException($"Not all arrow types declared between 0 and {max}");
+    }
+  }
 }
 
 enum ValuetypeVariety {

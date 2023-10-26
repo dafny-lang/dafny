@@ -164,6 +164,12 @@ public enum Feature {
   [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
   TuplesWiderThan20,
 
+  [FeatureDescription("Arrays with more than 16 dimensions", "sec-tuple-types")]
+  ArraysWithMoreThan16Dims,
+  
+  [FeatureDescription("Arrow types with more than 16 arguments", "sec-tuple-types")]
+  ArrowsWithMoreThan16Arguments,
+
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
 
@@ -175,7 +181,10 @@ public enum Feature {
   LegacyCLI,
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
-  SeparateCompilation
+  SeparateCompilation,
+  
+  [FeatureDescription("All built-in types in runtime", "sec-compilation-built-ins")]
+  BuiltinsInRuntime
 }
 
 public class UnsupportedFeatureException : Exception {

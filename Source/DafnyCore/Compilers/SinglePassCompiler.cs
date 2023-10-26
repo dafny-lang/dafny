@@ -110,6 +110,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
+    /// <summary>
+    /// Emits any supporting code necessary for built-in Dafny elements,
+    /// such as the `nat` subset type, or array and arrow types of various arities.
+    /// These built-in elements are generally declared in the internal _System module
+    /// by the SystemModuleManager.
+    /// Some of them are emitted by compiling their declarations in that module, such as tuples.
+    /// Others have {:compile false} added, so they are not normally given to the compiler at all,
+    /// but instead need special handling in this method.
+    /// 
+    /// It would likely be cleaner in the future to remove all of the {:compile false} attributes
+    /// on built-in declarations, and allow compilers to handle them directly
+    /// (which for many backends just means ignoring many of them).
+    /// </summary>
     protected virtual void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) { }
 
     /// <summary>

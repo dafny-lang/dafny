@@ -1,8 +1,13 @@
+// RUN: %testDafnyForEachCompiler "%s"
+
+// Essentially a copy of DafnyRuntime/systemModulePopulator.dfy,
+// but here independently as a test that all the implicitly-referenced built-ins
+// are in fact correctly added to the runtimes.
 
 method HasTuples() {
   var b := true;
   var has0 := ();
-  var has1 := (b, ghost b);  // Just (b) is a bool in parentheses instead
+  var has1 := (b, ghost b);  // Just (1) is an bool in parentheses instead
   var has2 := (b,b);
   var has3 := (b,b,b);
   var has4 := (b,b,b,b);
@@ -64,4 +69,10 @@ method HasArrays() {
   var has14 := new bool[n,n,n,n,n,n,n,n,n,n,n,n,n,n];
   var has15 := new bool[n,n,n,n,n,n,n,n,n,n,n,n,n,n,n];
   var has16 := new bool[n,n,n,n,n,n,n,n,n,n,n,n,n,n,n,n];
+}
+
+method Main() {
+  HasTuples();
+  HasArrows();
+  HasArrays();
 }

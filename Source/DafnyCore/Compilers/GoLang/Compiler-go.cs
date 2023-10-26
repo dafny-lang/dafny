@@ -70,9 +70,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-    }
-
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
 
     // The implementation of seq<T> is now in DafnyRuntimeDafny/src/dafnyRuntime.dfy.
