@@ -58,7 +58,8 @@ public static class DafnyCommands {
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
-    CommonOptionBag.SpillTranslation
+    CommonOptionBag.SpillTranslation,
+    CommonOptionBag.InternalIncludeRuntimeOptionForExecution
   }.Concat(TranslationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
