@@ -125,6 +125,27 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) { }
 
+    protected void CheckCommonSytemModuleLimits(SystemModuleManager systemModuleManager) {
+      // Check that the runtime already has all required builtins
+      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      }
+      var maxArrowArity = systemModuleManager.ArrowTypeDecls.Keys.Max();
+      if (maxArrowArity > 16) {
+        UnsupportedFeatureError(Token.NoToken, Feature.ArrowsWithMoreThan16Arguments);
+      }
+      var maxArraysDims = systemModuleManager.arrayTypeDecls.Keys.Max();
+      if (maxArraysDims > 16) {
+        UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
+      }
+    }
+    
+    protected void CheckSystemModulePopulatedToCommonLimits(SystemModuleManager systemModuleManager) {
+      systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(20);
+      systemModuleManager.CheckHasAllArrayDimsUpTo(16);
+      systemModuleManager.CheckHasAllArrowAritiesUpTo(16);
+    }
+    
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.

@@ -498,23 +498,29 @@ public class SystemModuleManager {
         .Distinct()
         .ToHashSet();
     if (!allDeclaredDims.SetEquals(allNeededDims)) {
-      throw new ArgumentException($"Not all tuple types declared between 0 and {max}:\n{allNeededDims.Comma()}\n{allDeclaredDims.Comma()}");
+      throw new ArgumentException(@$"Not all tuple types declared between 0 and {max}!
+needed: {allNeededDims.Comma()}
+declared: {allDeclaredDims.Comma()}");
     }
   }
   
   public void CheckHasAllArrayDimsUpTo(int max) {
-    var allNeededDims = Enumerable.Range(1, max);
+    var allNeededDims = Enumerable.Range(1, max).ToHashSet();
     var allDeclaredDims = arrayTypeDecls.Keys.ToHashSet();
     if (!allDeclaredDims.SetEquals(allNeededDims)) {
-      throw new ArgumentException($"Not all array types declared between 1 and {max}:\n{allNeededDims.Comma()}\n{allDeclaredDims.Comma()}");
+      throw new ArgumentException(@$"Not all array types declared between 1 and {max}!
+needed: {allNeededDims.Comma()}
+declared: {allDeclaredDims.Comma()}");
     }
   }
   
   public void CheckHasAllArrowAritiesUpTo(int max) {
-    var allNeededDims = Enumerable.Range(0, max + 1);
-    var allDeclaredDims = ArrowTypeDecls.Keys.ToHashSet();
-    if (!allDeclaredDims.SetEquals(allNeededDims)) {
-      throw new ArgumentException($"Not all arrow types declared between 0 and {max}");
+    var allNeededArities = Enumerable.Range(0, max + 1).ToHashSet();
+    var allDeclaredArities = ArrowTypeDecls.Keys.ToHashSet();
+    if (!allDeclaredArities.SetEquals(allNeededArities)) {
+      throw new ArgumentException(@$"Not all arrow types declared between 0 and {max}
+needed: {allNeededArities.Comma()}
+declared: {allDeclaredArities.Comma()}");
     }
   }
 }

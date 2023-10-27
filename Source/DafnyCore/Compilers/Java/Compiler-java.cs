@@ -27,7 +27,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Iterators,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     const string DafnySetClass = "dafny.DafnySet";
@@ -311,24 +313,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       switch (Options.SystemModuleTranslationMode) {
         case CommonOptionBag.SystemModuleMode.Omit: {
-          // Check that the runtime already has all required builtins
-          if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-            UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
-          }
-          var maxArrowArity = systemModuleManager.ArrowTypeDecls.Keys.Max();
-          if (maxArrowArity > 16) {
-            UnsupportedFeatureError(Token.NoToken, Feature.ArrowsWithMoreThan16Arguments);
-          }
-          var maxArraysDims = systemModuleManager.arrayTypeDecls.Keys.Max();
-          if (maxArraysDims > 16) {
-            UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
-          }
+          CheckCommonSytemModuleLimits(systemModuleManager);
           return;
         }
         case CommonOptionBag.SystemModuleMode.Populate: {
-          systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(20);
-          systemModuleManager.CheckHasAllArrayDimsUpTo(16);
-          systemModuleManager.CheckHasAllArrowAritiesUpTo(16);
+          CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
           break;
         }
       }

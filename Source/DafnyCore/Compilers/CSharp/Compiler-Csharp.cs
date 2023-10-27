@@ -24,7 +24,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
@@ -128,9 +130,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Omit) {
-        if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-          UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+          CheckCommonSytemModuleLimits(systemModuleManager);
+          return;
+        }
+        case CommonOptionBag.SystemModuleMode.Populate: {
+          CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+          break;
         }
       }
 

@@ -161,13 +161,16 @@ public enum Feature {
   [FeatureDescription("Subtype constraints in quantifiers", "sec-quantifier-expression")]
   SubtypeConstraintsInQuantifiers,
 
+  // TODO: Add a refman section on builtins and prepopulating them in the runtime,
+  // and link to that in the next three features instead.
+  
   [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
   TuplesWiderThan20,
 
-  [FeatureDescription("Arrays with more than 16 dimensions", "sec-tuple-types")]
+  [FeatureDescription("Arrays with more than 16 dimensions", "sec-array-type")]
   ArraysWithMoreThan16Dims,
   
-  [FeatureDescription("Arrow types with more than 16 arguments", "sec-tuple-types")]
+  [FeatureDescription("Arrow types with more than 16 arguments", "sec-arrow-types")]
   ArrowsWithMoreThan16Arguments,
 
   [FeatureDescription("Unicode chars", "#sec-characters")]
