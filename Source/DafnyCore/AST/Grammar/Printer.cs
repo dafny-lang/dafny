@@ -571,7 +571,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("abstract ");
       }
       if (module.ModuleKind == ModuleKindEnum.Replaceable) {
-        wr.Write("placeholder ");
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);

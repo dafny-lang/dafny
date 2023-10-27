@@ -622,7 +622,7 @@ public partial class Parser {
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
     if (mods.IsReplaceable && mods.IsAbstract) {
-      SemErr(null, mods.ReplaceableToken, "Can't be both placeholder and abstract");
+      SemErr(null, mods.ReplaceableToken, "Can't be both replaceable and abstract");
     }
 
     if (mods.IsReplaceable) {

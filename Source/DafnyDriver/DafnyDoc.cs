@@ -229,7 +229,7 @@ class DafnyDoc {
     var details = new StringBuilder();
     var modifier = moduleDef.ModuleKind switch {
       ModuleKindEnum.Abstract => "abstract ",
-      ModuleKindEnum.Replaceable => "placeholder ",
+      ModuleKindEnum.Replaceable => "replaceable ",
       _ => ""
     };
 

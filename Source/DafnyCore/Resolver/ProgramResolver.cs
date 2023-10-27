@@ -270,7 +270,7 @@ public class ProgramResolver {
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
       if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
-          "The abstract import named {0} (using :) may only be used in an abstract or placeholder module declaration",
+          "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
       }
     }
