@@ -1,4 +1,5 @@
 // RUN: %verify --warn-contradictory-assumptions "%s" > "%t"
+// Check that the output contains no warnings about contradictory assumptions
 // RUN: %diff "%s.expect" "%t"
 
 abstract module PR4715Test {
