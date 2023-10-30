@@ -1,0 +1,5 @@
+GeneralNewtypeVerify.dfy(10,11): Error: assertion might not hold
+GeneralNewtypeVerify.dfy(20,21): Error: result of operation might violate newtype constraint for 'NoBool'
+GeneralNewtypeVerify.dfy(32,11): Error: cannot prove termination; try supplying a decreases clause
+
+Dafny program verifier finished with 7 verified, 3 errors
