@@ -166,18 +166,18 @@ public partial class BoogieGenerator {
   bool CompatibleDecreasesTypes(Type t, Type u) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
-    t = t.NormalizeExpand();
-    u = u.NormalizeExpand();
+    t = t.NormalizeToAncestorType();
+    u = u.NormalizeToAncestorType();
     if (t is BoolType) {
       return u is BoolType;
     } else if (t is CharType) {
       return u is CharType;
-    } else if (t.IsNumericBased(Type.NumericPersuasion.Int)) {
+    } else if (t is IntType) {
       // we can allow different kinds of int-based types
-      return u.IsNumericBased(Type.NumericPersuasion.Int);
-    } else if (t.IsNumericBased(Type.NumericPersuasion.Real)) {
+      return u is IntType;
+    } else if (t is RealType) {
       // we can allow different kinds of real-based types
-      return u.IsNumericBased(Type.NumericPersuasion.Real);
+      return u is RealType;
     } else if (t is SetType) {
       return u is SetType;
     } else if (t is SeqType) {
@@ -196,9 +196,10 @@ public partial class BoogieGenerator {
       return u is BitvectorType;
     } else if (t is BigOrdinalType) {
       return u is BigOrdinalType;
-    } else {
-      Contract.Assert(t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym);
+    } else if (t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym) {
       return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
+    } else {
+      return t.Equals(u);
     }
   }
 
@@ -224,8 +225,8 @@ public partial class BoogieGenerator {
     Contract.Ensures(Contract.ValueAtReturn(out atmost) != null);
     Contract.Ensures(Contract.ValueAtReturn(out eq) != null);
 
-    ty0 = ty0.NormalizeExpand();
-    ty1 = ty1.NormalizeExpand();
+    ty0 = ty0.NormalizeToAncestorType();
+    ty1 = ty1.NormalizeToAncestorType();
     var rk0 = RankFunction(ty0);
     var rk1 = RankFunction(ty1);
     if (rk0 != null && rk1 != null && rk0 != rk1) {

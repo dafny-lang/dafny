@@ -154,6 +154,22 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
+  /// Call NormalizeExpand() repeatedly, also on the base type of newtype's.
+  /// </summary>
+  public Type NormalizeToAncestorType() {
+    Type t = this;
+    while (true) {
+      t = t.NormalizeExpand();
+      if (t.AsNewtype is {} newtypeDecl) {
+        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, t.TypeArgs);
+        t = newtypeDecl.BaseType.Subst(subst);
+      } else {
+        return t;
+      }
+    }
+  }
+
+  /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
   /// not follow subset types.
   ///
