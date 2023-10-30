@@ -43,9 +43,8 @@ method Test() {
 }";
     var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetLastDocumentAsync(documentItem.Uri);
-    Assert.NotNull(document);
-    Assert.Single(document.GetDiagnostics(documentItem.Uri.ToUri()));
+    var diagnostics = await GetLastDiagnostics(documentItem);
+    Assert.Single(diagnostics);
   }
 
   [Fact]

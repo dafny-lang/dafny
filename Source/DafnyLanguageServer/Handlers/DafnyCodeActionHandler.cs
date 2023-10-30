@@ -152,10 +152,11 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
     Compilation = compilation;
   }
 
-  public string Uri => Compilation.Uri.ToString();
+  public DocumentUri Uri => Compilation.Uri;
+
   public Program Program => Compilation.Program;
   public CompilationAfterParsing Compilation { get; }
 
-  public IEnumerable<DafnyDiagnostic> Diagnostics => Compilation.GetDiagnostics(uri);
+  public IEnumerable<DafnyDiagnostic> Diagnostics => throw new NotImplementedException(); //Compilation.Program.Reporter.GetDiagnostics(uri);
   public VerificationTree? VerificationTree => Compilation.GetVerificationTree(uri);
 }

@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     DafnyDiagnostic diagnostic, Range selection) {
-    var uri = new Uri(input.Uri);
+    var uri = input.Uri.ToUri();
     if (diagnostic.Source != MessageSource.Verifier) {
       return null;
     }

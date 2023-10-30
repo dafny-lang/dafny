@@ -232,7 +232,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return result;
   }
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning, CancellationToken? cancellationToken = null, bool allowStale = false) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,
+    CancellationToken? cancellationToken = null, bool allowStale = false) {
     var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
     return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }

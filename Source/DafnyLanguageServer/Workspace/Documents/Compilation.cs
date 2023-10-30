@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Project = project;
     }
 
-    public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
+    // public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
       var program = new EmptyNode();

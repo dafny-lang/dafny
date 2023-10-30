@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class ObservableErrorReporter : ErrorReporter {
     private readonly Subject<NewDiagnostic> updates = new();
     public IObservable<NewDiagnostic> Updates => updates;
-    
+
     private const MessageSource VerifierMessageSource = MessageSource.Verifier;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;

@@ -30,11 +30,11 @@ public interface ICompilationEvent {
   public IdeState UpdateState(IdeState previousState);
 }
 
-record NewDiagnostic(Uri uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
+public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
   public IdeState UpdateState(IdeState previousState) {
-    var diagnostics = previousState.ResolutionDiagnostics.GetValueOrDefault(uri, ImmutableList<Diagnostic>.Empty);
+    var diagnostics = previousState.ResolutionDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
     return previousState with {
-      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(uri, diagnostics.Add(Diagnostic.ToLspDiagnostic()))
+      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(Uri, diagnostics.Add(Diagnostic.ToLspDiagnostic()))
     };
   }
 }
@@ -563,7 +563,7 @@ public class CompilationManager : IDisposable {
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ParsedCompilation;
-    
+
     if (parsedDocument.Program.Reporter.HasErrors) {
       return null;
     }
