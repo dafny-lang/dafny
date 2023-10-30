@@ -8,7 +8,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </summary>
   public interface IGutterIconAndHoverVerificationDetailsManager {
     void RecomputeVerificationTrees(CompilationAfterParsing compilation);
-    void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted);
 
     void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations);
     void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implToken);

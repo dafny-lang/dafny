@@ -37,6 +37,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await PublishDiagnostics(state);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
+      foreach (var uri in state.Compilation.RootUris) {
+        PublishGutterIcons(uri, state);
+      }
     }
 
     private void PublishProgress(IdeState previousState, IdeState state) {
@@ -185,10 +188,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
-    public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
+
+    private void PublishGutterIcons(Uri uri, IdeState state) {
       if (!options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus)) {
         return;
       }
+
+      bool verificationStarted = state.Compilation is CompilationAfterResolution;
 
       var errors = state.ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
@@ -209,8 +215,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
                         $"icons: {icons}\n" +
                         $"stacktrace:\n{Environment.StackTrace}");
-      };
-
+      }
 
       lock (previouslyPublishedIcons) {
         var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
