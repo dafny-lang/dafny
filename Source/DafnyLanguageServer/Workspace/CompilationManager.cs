@@ -33,8 +33,9 @@ public interface ICompilationEvent {
 public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
   public IdeState UpdateState(IdeState previousState) {
     var diagnostics = previousState.ResolutionDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
+    var newDiagnostics = diagnostics.Add(Diagnostic.ToLspDiagnostic());
     return previousState with {
-      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(Uri, diagnostics.Add(Diagnostic.ToLspDiagnostic()))
+      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(Uri, newDiagnostics)
     };
   }
 }
@@ -135,8 +136,9 @@ public class CompilationManager : IDisposable {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      // var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
-      var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
+      var errorReporter = new ObservableErrorReporter(options, StartingCompilation.Uri.ToUri());
+      errorReporter.Updates.Subscribe(compilationUpdates);
+      var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
       gutterIconManager.RecomputeVerificationTrees(parsedCompilation);

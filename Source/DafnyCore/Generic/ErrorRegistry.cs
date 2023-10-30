@@ -46,7 +46,7 @@ public static class ErrorRegistry {
   public static string NoneId => "none";
 #nullable enable
   public static List<ActionSignature>? GetAction(string? errorId) {
-    return errorId != null && codeActionMap.ContainsKey(errorId) ? new List<ActionSignature> { codeActionMap[errorId] } : null;
+    return errorId != null && codeActionMap.TryGetValue(errorId, out var value) ? new List<ActionSignature> { value } : null;
   }
 #nullable disable
 

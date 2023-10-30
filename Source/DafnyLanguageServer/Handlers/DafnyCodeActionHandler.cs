@@ -59,7 +59,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     });
   }
 
-  private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActiones = new();
+  private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActions = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
     var document = await projects.GetLastDocumentAsync(request.TextDocument);
@@ -71,7 +71,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     var fixesWithId = GetFixesWithIds(quickFixers, document, request).ToArray();
 
     var documentUri = document.Uri.ToString();
-    documentUriToDafnyCodeActiones.AddOrUpdate(documentUri, _ => fixesWithId, (_, _) => fixesWithId);
+    documentUriToDafnyCodeActions.AddOrUpdate(documentUri, _ => fixesWithId, (_, _) => fixesWithId);
     var codeActions = fixesWithId.Select(fixWithId => {
       CommandOrCodeAction t = new CodeAction {
         Title = fixWithId.DafnyCodeAction.Title,
@@ -104,7 +104,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     }
 
     string? documentUri = command[0]?.Value<string>();
-    if (documentUri == null || !documentUriToDafnyCodeActiones.TryGetValue(documentUri, out var quickFixes)) {
+    if (documentUri == null || !documentUriToDafnyCodeActions.TryGetValue(documentUri, out var quickFixes)) {
       return Task.FromResult(request);
     }
 

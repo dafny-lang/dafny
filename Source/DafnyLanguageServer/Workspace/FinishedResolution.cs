@@ -29,7 +29,7 @@ record FinishedResolution(
     };
   }
 
-  IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
+  private static IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
     return results.Aggregate((a, b) => new IdeVerificationResult(
       MergeStates(a.PreparationProgress, b.PreparationProgress),
       a.Implementations.ToImmutableDictionary().Merge(b.Implementations,

@@ -172,8 +172,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       latestIdeState.Value.VerificationTrees);
 
     var migratedUpdates = CompilationManager.CompilationUpdates.Select(ev => {
-      latestIdeState =
-        new Lazy<IdeState>(() => ev.UpdateState(migratedLazyPreviousCompilationLastIdeState.Value));
+      var previousState = latestIdeState.Value;
+      latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(previousState));
 
       return latestIdeState;
     });

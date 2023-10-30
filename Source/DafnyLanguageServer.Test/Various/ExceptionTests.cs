@@ -118,9 +118,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(compilation);
     }
 
-    public Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
+    public Task<CompilationAfterParsing> ParseAsync(ErrorReporter reporter, Compilation compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
-      return loader.ParseAsync(options, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
+      return loader.ParseAsync(reporter, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
     }
 
     public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
