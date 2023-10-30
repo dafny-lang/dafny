@@ -41,24 +41,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
 
-    public IdeState InitialIdeState(Compilation initialCompilation, DafnyOptions options) {
+    public IdeState InitialIdeState(DafnyOptions options) {
       var program = new EmptyNode();
-      return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
-        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
+      return new IdeState(Version, this, program,
+        ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
+        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
-      ));
-    }
-
-    /// <summary>
-    /// Collects information to present to the IDE
-    /// </summary>
-    public virtual IdeState ToIdeState(IdeState previousState) {
-      return previousState with {
-        Compilation = this
-      };
+        RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
+      );
     }
   }
 

@@ -55,16 +55,6 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
   }
 
-  public const string OutdatedPrefix = "Outdated: ";
-  private IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
-    return diagnostics.Select(diagnostic => diagnostic with {
-      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
-      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
-        ? diagnostic.Message
-        : OutdatedPrefix + diagnostic.Message
-    });
-  }
-
   VerificationPreparationState MergeStates(VerificationPreparationState a, VerificationPreparationState b) {
     return new[] { a, b }.Max();
   }
@@ -79,66 +69,61 @@ public class CompilationAfterResolution : CompilationAfterParsing {
           a.Diagnostics.Concat(b.Diagnostics).ToList(), a.HitErrorLimit || b.HitErrorLimit))));
   }
 
-  public override IdeState ToIdeState(IdeState previousState) {
-    IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
-      var range = canVerify.NameToken.GetLspRange();
-      var previousImplementations =
-        previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
-        ImmutableDictionary<string, IdeImplementationView>.Empty;
-      if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
-        var progress = VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
-          ? VerificationPreparationState.InProgress
-          : VerificationPreparationState.NotStarted;
-        return new IdeVerificationResult(PreparationProgress: progress,
-          Implementations: previousImplementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
-            Status = PublishedVerificationStatus.Stale,
-            Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-          }));
-      }
-
-      var implementations = implementationsPerName!.ToDictionary(kv => kv.Key, kv => {
-        var implementationView = kv.Value;
-        var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
-        if (implementationView.Status < PublishedVerificationStatus.Error) {
-          var previousDiagnostics = previousImplementations.GetValueOrDefault(kv.Key)?.Diagnostics;
-          if (previousDiagnostics != null) {
-            diagnostics = MarkDiagnosticsAsOutdated(previousDiagnostics);
-          }
-        }
-
-        // If we're trying to verify this symbol, its status is at least queued.
-        var status = implementationView.Status == PublishedVerificationStatus.Stale && VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
-          ? PublishedVerificationStatus.Queued : implementationView.Status;
-        return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
-          status, diagnostics.ToList(), implementationView.HitErrorLimit);
-      });
-      return new IdeVerificationResult(VerificationPreparationState.Done, implementations);
-
-    }
-
-    var result = base.ToIdeState(previousState) with {
-      SymbolTable = SymbolTable ?? previousState.SymbolTable,
-      SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
-      GhostRanges = GhostDiagnostics,
-      Counterexamples = new List<Counterexample>(Counterexamples),
-      ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
-        kv => kv.Key,
-        kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
-      VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
-      VerificationResults = Verifiables == null ? previousState.VerificationResults : Verifiables.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
-        k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
-          l => l.Key,
-          l => MergeResults(l.Select(MergeVerifiable))))
-    };
-    return result;
-  }
+  // public override IdeState ToIdeState(IdeState previousState) {
+  //   IdeVerificationResult MergeVerifiable(ICanVerify canVerify) {
+  //     var range = canVerify.NameToken.GetLspRange();
+  //     var previousImplementations =
+  //       previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
+  //       ImmutableDictionary<string, IdeImplementationView>.Empty;
+  //     if (!ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)) {
+  //       var progress = VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
+  //         ? VerificationPreparationState.InProgress
+  //         : VerificationPreparationState.NotStarted;
+  //       return new IdeVerificationResult(PreparationProgress: progress,
+  //         Implementations: previousImplementations.ToDictionary(kv => kv.Key, kv => kv.Value with {
+  //           Status = PublishedVerificationStatus.Stale,
+  //           Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
+  //         }));
+  //     }
+  //
+  //     var implementations = implementationsPerName!.ToDictionary(kv => kv.Key, kv => {
+  //       var implementationView = kv.Value;
+  //       var diagnostics = implementationView.Diagnostics.Select(d => d.ToLspDiagnostic());
+  //       if (implementationView.Status < PublishedVerificationStatus.Error) {
+  //         var previousDiagnostics = previousImplementations.GetValueOrDefault(kv.Key)?.Diagnostics;
+  //         if (previousDiagnostics != null) {
+  //           diagnostics = IdeState.MarkDiagnosticsAsOutdated(previousDiagnostics);
+  //         }
+  //       }
+  //
+  //       // If we're trying to verify this symbol, its status is at least queued.
+  //       var status = implementationView.Status == PublishedVerificationStatus.Stale && VerifyingOrVerifiedSymbols.ContainsKey(canVerify)
+  //         ? PublishedVerificationStatus.Queued : implementationView.Status;
+  //       return new IdeImplementationView(implementationView.Task.Implementation.tok.GetLspRange(true),
+  //         status, diagnostics.ToList(), implementationView.HitErrorLimit);
+  //     });
+  //     return new IdeVerificationResult(VerificationPreparationState.Done, implementations);
+  //
+  //   }
+  //
+  //   var result = base.ToIdeState(previousState) with {
+  //     SymbolTable = SymbolTable ?? previousState.SymbolTable,
+  //     SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
+  //     GhostRanges = GhostDiagnostics,
+  //     Counterexamples = new List<Counterexample>(Counterexamples),
+  //     ResolutionDiagnostics = ResolutionDiagnostics.ToDictionary(
+  //       kv => kv.Key,
+  //       kv => (IReadOnlyList<Diagnostic>)kv.Value.Select(d => d.ToLspDiagnostic()).ToList()),
+  //     VerificationTrees = VerificationTrees.ToDictionary(kv => kv.Key, kv => (DocumentVerificationTree)kv.Value.GetCopyForNotification()),
+  //     VerificationResults = Verifiables == null ? previousState.VerificationResults : Verifiables.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
+  //       k => k.GroupBy(l => l.NameToken.GetLspRange()).ToDictionary(
+  //         l => l.Key,
+  //         l => MergeResults(l.Select(MergeVerifiable))))
+  //   };
+  //   return result;
+  // }
 
   static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
     return new[] { first, second }.Min();
-  }
-
-  public void RefreshDiagnosticsFromProgramReporter() {
-    ResolutionDiagnostics =
-      ((DiagnosticErrorReporter)Program.Reporter).AllDiagnosticsCopy;
   }
 }

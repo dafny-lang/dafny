@@ -100,9 +100,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
-    this.boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var initialCompilation = CreateInitialCompilation();
-    var initialIdeState = initialCompilation.InitialIdeState(initialCompilation, options);
+    var initialIdeState = initialCompilation.InitialIdeState(options);
     latestIdeState = new Lazy<IdeState>(initialIdeState);
 
     observer = createIdeStateObserver(initialIdeState);
@@ -171,11 +171,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       CreateInitialCompilation(),
       latestIdeState.Value.VerificationTrees);
 
-    var migratedUpdates = CompilationManager.CompilationUpdates.Select(document => {
-      if (document.Version == compilationVersion) {
-        latestIdeState =
-          new Lazy<IdeState>(() => document.ToIdeState(migratedLazyPreviousCompilationLastIdeState.Value));
-      }
+    var migratedUpdates = CompilationManager.CompilationUpdates.Select(ev => {
+      latestIdeState =
+        new Lazy<IdeState>(() => ev.UpdateState(migratedLazyPreviousCompilationLastIdeState.Value));
 
       return latestIdeState;
     });

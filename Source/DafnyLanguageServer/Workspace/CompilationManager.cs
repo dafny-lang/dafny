@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -24,6 +25,45 @@ public delegate CompilationManager CreateCompilationManager(
   ExecutionEngine boogieEngine,
   Compilation compilation,
   IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
+
+public interface ICompilationEvent {
+  public IdeState UpdateState(IdeState previousState);
+}
+
+record NewDiagnostic(Uri uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
+  public IdeState UpdateState(IdeState previousState) {
+    var diagnostics = previousState.ResolutionDiagnostics.GetValueOrDefault(uri, ImmutableList<Diagnostic>.Empty);
+    return previousState with {
+      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(uri, diagnostics.Add(Diagnostic.ToLspDiagnostic()))
+    };
+  }
+}
+
+record FinishedParsing(Program Program) : ICompilationEvent {
+  public IdeState UpdateState(IdeState previousState) {
+    return previousState with {
+      Program = Program
+    };
+  }
+}
+
+record CanVerifyPartsIdentified(ICanVerify CanVerify, ICollection<string> Parts) : ICompilationEvent {
+  public IdeState UpdateState(IdeState previousState) {
+    var uri = CanVerify.Tok.Uri;
+    var range = CanVerify.NameToken.GetLspRange();
+    var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
+    var remainingParts = previousImplementations.Where(kv => Parts.Contains(kv.Key));
+    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.InProgress,
+      Implementations: remainingParts.ToImmutableDictionary(kv => kv.Key,
+        kv => kv.Value with {
+          Status = PublishedVerificationStatus.Stale,
+          Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
+        }));
+    return previousState with {
+      VerificationResults = previousState.VerificationResults.SetItem(uri, previousState.VerificationResults[uri].SetItem(range, verificationResult))
+    };
+  }
+}
 
 /// <summary>
 /// The compilation of a single document version.
@@ -53,8 +93,8 @@ public class CompilationManager : IDisposable {
   public Compilation StartingCompilation { get; }
   private readonly ExecutionEngine boogieEngine;
 
-  private readonly Subject<Compilation> compilationUpdates = new();
-  public IObservable<Compilation> CompilationUpdates => compilationUpdates;
+  private readonly Subject<ICompilationEvent> compilationUpdates = new();
+  public IObservable<ICompilationEvent> CompilationUpdates => compilationUpdates;
 
   public Task<CompilationAfterParsing> ParsedCompilation { get; }
   public Task<CompilationAfterResolution> ResolvedCompilation { get; }
@@ -95,6 +135,7 @@ public class CompilationManager : IDisposable {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
+      // var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
       var parsedCompilation = await documentLoader.ParseAsync(options, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
@@ -103,7 +144,7 @@ public class CompilationManager : IDisposable {
         gutterIconManager.PublishGutterIcons(parsedCompilation, root, false);
       }
 
-      compilationUpdates.OnNext(parsedCompilation);
+      compilationUpdates.OnNext(new FinishedParsing(parsedCompilation.Program));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
       return parsedCompilation;
@@ -128,7 +169,11 @@ public class CompilationManager : IDisposable {
         }
       }
 
-      compilationUpdates.OnNext(resolvedCompilation);
+      compilationUpdates.OnNext(new FinishedResolution(
+        resolvedCompilation.SymbolTable,
+        resolvedCompilation.SignatureAndCompletionTable,
+        resolvedCompilation.GhostDiagnostics,
+        resolvedCompilation.Verifiables));
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
@@ -168,7 +213,7 @@ public class CompilationManager : IDisposable {
       throw new TaskCanceledException();
     }
 
-    var verifiable = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
+    var canVerify = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
       node => {
         if (node is not ICanVerify) {
           return false;
@@ -179,35 +224,35 @@ public class CompilationManager : IDisposable {
         return compilation.Verifiables!.Contains(node);
       }) as ICanVerify;
 
-    if (verifiable == null) {
+    if (canVerify == null) {
       return false;
     }
 
-    var containingModule = verifiable.ContainingModule;
+    var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !compilation.VerifyingOrVerifiedSymbols.TryAdd(verifiable, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && !compilation.VerifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
       return false;
     }
-    compilationUpdates.OnNext(compilation);
+    compilationUpdates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, compilation);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, verifiable, compilation);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, compilation);
     return true;
   }
 
-  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify verifiable,
+  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
     CompilationAfterResolution compilation) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
-      var containingModule = verifiable.ContainingModule;
+      var containingModule = canVerify.ContainingModule;
 
       IncrementJobs();
 
@@ -216,9 +261,6 @@ public class CompilationManager : IDisposable {
         tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
             cancellationSource.Token);
-          compilation.ResolutionDiagnostics =
-            ((DiagnosticErrorReporter)compilation.Program.Reporter).AllDiagnosticsCopy;
-          compilationUpdates.OnNext(compilation);
           foreach (var task in result) {
             cancellationSource.Token.Register(task.Cancel);
           }
@@ -238,9 +280,9 @@ public class CompilationManager : IDisposable {
 
       // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(verifiable, () => {
+      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(canVerify, () => {
         var tasksForVerifiable =
-          tasksForModule.GetValueOrDefault(verifiable.NameToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
 
         updated = true;
@@ -250,10 +292,10 @@ public class CompilationManager : IDisposable {
       });
       if (updated) {
         gutterIconManager.ReportImplementationsBeforeVerification(compilation,
-          verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
+          canVerify, implementations.Select(t => t.Value.Task.Implementation).ToArray());
 
-        gutterIconManager.PublishGutterIcons(compilation, verifiable.Tok.Uri, true);
-        compilationUpdates.OnNext(compilation);
+        gutterIconManager.PublishGutterIcons(compilation, canVerify.Tok.Uri, true);
+        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify, compilation.ImplementationsPerVerifiable[canVerify].Keys));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
@@ -289,7 +331,7 @@ public class CompilationManager : IDisposable {
           statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
             update => {
               try {
-                HandleStatusUpdate(compilation, verifiable, task, update);
+                HandleStatusUpdate(compilation, canVerify, task, update);
               } catch (Exception e) {
                 logger.LogError(e, "Caught exception in statusUpdates OnNext.");
               }
@@ -312,7 +354,7 @@ public class CompilationManager : IDisposable {
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
               $"startingCompilation.version {StartingCompilation.Version}.");
             if (remainingJobs == 0) {
-              FinishedNotifications(compilation, verifiable);
+              FinishedNotifications(compilation, canVerify);
             }
           } catch (Exception e) {
             logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
@@ -368,11 +410,11 @@ public class CompilationManager : IDisposable {
     MarkVerificationFinished();
   }
 
-  private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify verifiable, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+  private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var status = StatusFromBoogieStatus(boogieStatus);
 
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
-    var implementations = compilation.ImplementationsPerVerifiable[verifiable];
+    var implementations = compilation.ImplementationsPerVerifiable[canVerify];
 
     var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
@@ -419,12 +461,12 @@ public class CompilationManager : IDisposable {
       ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
       gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
-    compilationUpdates.OnNext(compilation);
+    compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify, implementationName, implementations[implementationName]));
   }
 
   private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
 
-  public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+  private static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
     Implementation implementation, VerificationResult verificationResult) {
     var options = compilation.Program.Reporter.Options;
     if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
@@ -437,7 +479,6 @@ public class CompilationManager : IDisposable {
       compilation.Program.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
-    compilation.RefreshDiagnosticsFromProgramReporter();
   }
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {

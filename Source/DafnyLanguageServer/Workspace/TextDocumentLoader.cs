@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IdeState CreateUnloaded(Compilation compilation) {
-      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
+      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty);
     }
 
     public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
-      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
+      ImmutableDictionary<Uri, ImmutableList<Diagnostic>> resolutionDiagnostics) {
       var dafnyOptions = DafnyOptions.Default;
       var program = new EmptyNode();
       return new IdeState(
@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         resolutionDiagnostics,
         SymbolTable.Empty(),
         LegacySignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
-        ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
+        ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
       ImmutableDictionary<Uri, DocumentVerificationTree>.Empty

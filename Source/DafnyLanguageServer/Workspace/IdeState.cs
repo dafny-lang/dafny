@@ -17,7 +17,7 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
   IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeImplementationView> Implementations);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -27,14 +27,24 @@ public record IdeState(
   int Version,
   Compilation Compilation,
   Node Program,
-  IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
+  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
+  public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
+    return diagnostics.Select(diagnostic => diagnostic with {
+      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
+        ? diagnostic.Message
+        : OutdatedPrefix + diagnostic.Message
+    });
+  }
+
+  public const string OutdatedPrefix = "Outdated: ";
 
   public IdeState Migrate(Migrator migrator, int version) {
     var migratedVerificationTrees = VerificationTrees.ToDictionary(
@@ -50,33 +60,33 @@ public record IdeState(
     };
   }
 
-  private ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
+  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
     Migrator migrator,
-    ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
     if (previous == null) {
       return oldVerificationDiagnostics;
     }
-    var result = new Dictionary<Range, IdeVerificationResult>();
+    var result = ImmutableDictionary<Range, IdeVerificationResult>.Empty;
     foreach (var entry in previous) {
       var newOuterRange = migrator.MigrateRange(entry.Key);
       if (newOuterRange == null) {
         continue;
       }
 
-      var newValue = new Dictionary<string, IdeImplementationView>();
+      var newValue = ImmutableDictionary<string, IdeImplementationView>.Empty;
       foreach (var innerEntry in entry.Value.Implementations) {
         var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
         if (newInnerRange != null) {
-          newValue.Add(innerEntry.Key, innerEntry.Value with {
+          newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
             Range = newInnerRange,
             Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
           });
         }
       }
 
-      result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);
