@@ -32,6 +32,6 @@ and then need to prove this lemma to use it in a sorting routine:
     ensures StrictTotalOrdering(IntLT) {}
 ```
 
-Fortunately, dafny proves this without aid.
+Fortunately, Dafny proves this without aid.
 
 All these definitions are ghost predicates; they are used as part of proofs rather than in compiled code.
