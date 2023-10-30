@@ -21,12 +21,10 @@ Send notifications about the verification status of each line in the program.
 
   private readonly DafnyOptions options;
   private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
-  private readonly INotificationPublisher notificationPublisher;
 
   public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
-    INotificationPublisher notificationPublisher, DafnyOptions options) {
+    DafnyOptions options) {
     this.logger = logger;
-    this.notificationPublisher = notificationPublisher;
     this.options = options;
   }
 
