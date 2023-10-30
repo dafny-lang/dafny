@@ -1,6 +1,6 @@
 module FunctionExamples {
 
-  import opened DafnyStdLibs.Function
+  import opened DafnyStdLibs.Functions
 
   const square := (x: int) => x * x
   lemma TestInjective()
