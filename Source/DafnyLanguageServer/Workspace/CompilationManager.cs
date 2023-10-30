@@ -166,7 +166,7 @@ public class CompilationManager : IDisposable {
         resolvedCompilation.SymbolTable,
         resolvedCompilation.SignatureAndCompletionTable,
         resolvedCompilation.GhostDiagnostics,
-        resolvedCompilation.Verifiables));
+        resolvedCompilation.CanVerifies));
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
@@ -198,11 +198,7 @@ public class CompilationManager : IDisposable {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var compilation = await ResolvedCompilation;
-
-    if (compilation.ResolutionDiagnostics.Values.SelectMany(x => x).Any(d =>
-          d.Level == ErrorLevel.Error &&
-          d.Source != MessageSource.Compiler &&
-          d.Source != MessageSource.Verifier)) {
+    if (compilation.Program.Reporter.HasErrorsUntilResolver) {
       throw new TaskCanceledException();
     }
 
@@ -214,7 +210,7 @@ public class CompilationManager : IDisposable {
         // Sometimes traversing the AST can return different versions of a single source AST node,
         // for example in the case of a LeastLemma, which is later also represented as a PrefixLemma.
         // This check ensures that we consistently use the same version of an AST node. 
-        return compilation.Verifiables!.Contains(node);
+        return compilation.CanVerifies!.Contains(node);
       }) as ICanVerify;
 
     if (canVerify == null) {
@@ -472,7 +468,9 @@ public class CompilationManager : IDisposable {
   }
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
+    var errorReporter = new ObservableErrorReporter(options, compilation.Uri.ToUri());
+    List<DafnyDiagnostic> diagnostics = new();
+    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
     var outcome = GetOutcome(result.outcome);
     foreach (var counterExample in result.counterExamples) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
@@ -483,7 +481,6 @@ public class CompilationManager : IDisposable {
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);
 
-    var diagnostics = errorReporter.AllDiagnosticsCopy.Values.SelectMany(x => x);
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
@@ -566,10 +563,8 @@ public class CompilationManager : IDisposable {
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ParsedCompilation;
-    if (parsedDocument.GetDiagnostics(uri).Any(diagnostic =>
-          diagnostic.Level == ErrorLevel.Error &&
-          diagnostic.Source == MessageSource.Parser
-        )) {
+    
+    if (parsedDocument.Program.Reporter.HasErrors) {
       return null;
     }
 

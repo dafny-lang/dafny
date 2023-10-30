@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
 
         var program = compilation.Program;
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+        var errorReporter = (ObservableErrorReporter)program.Reporter;
 
         cancellationToken.ThrowIfCancellationRequested();
 

@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var project = compilation.Project;
-      var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
+      var errorReporter = new ObservableErrorReporter(options, project.Uri);
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       compilation.Project.Errors.CopyDiagnostics(program.Reporter);
       var projectPath = compilation.Project.Uri.LocalPath;
@@ -83,8 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
         }
       }
-      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
-        compilation.RootUris.ToDictionary(uri => uri,
+      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, compilation.RootUris.ToDictionary(uri => uri,
           uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
 
       return compilationAfterParsing;
@@ -102,7 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation, CancellationToken cancellationToken) {
 
       var program = compilation.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var errorReporter = (ObservableErrorReporter)program.Reporter;
       if (errorReporter.HasErrors) {
         throw new TaskCanceledException();
       }
@@ -132,9 +131,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                                                               v.ShouldVerify).ToList();
       }
 
-      var compilationAfterParsingWithProgramClone = new CompilationAfterParsing(compilation, programClone, compilation.ResolutionDiagnostics, compilation.VerificationTrees);
+      var compilationAfterParsingWithProgramClone = new CompilationAfterParsing(compilation, programClone, compilation.VerificationTrees);
       return new CompilationAfterResolution(compilationAfterParsingWithProgramClone,
-        errorReporter.AllDiagnosticsCopy,
         newSymbolTable,
         legacySymbolTable,
         ghostDiagnostics,

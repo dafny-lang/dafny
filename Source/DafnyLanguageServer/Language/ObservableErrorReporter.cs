@@ -1,19 +1,21 @@
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
-  public class DiagnosticErrorReporter : ErrorReporter {
+  public class ObservableErrorReporter : ErrorReporter {
+    private readonly Subject<NewDiagnostic> updates = new();
+    public IObservable<NewDiagnostic> Updates => updates;
+    
     private const MessageSource VerifierMessageSource = MessageSource.Verifier;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly Uri entryUri;
-    private readonly Dictionary<Uri, List<DafnyDiagnostic>> diagnostics = new();
+    // private readonly Dictionary<Uri, List<DafnyDiagnostic>> diagnostics = new();
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
@@ -25,25 +27,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DafnyOptions options, Uri entryUri) : base(options) {
+    public ObservableErrorReporter(DafnyOptions options, Uri entryUri) : base(options) {
       this.entryUri = entryUri;
     }
 
-    public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
+    // public IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
-    public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
-      rwLock.EnterReadLock();
-      try {
-        // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
-        // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
-        return new List<DafnyDiagnostic>(
-          diagnostics.GetValueOrDefault(documentUri.ToUri()) ??
-          Enumerable.Empty<DafnyDiagnostic>());
-      }
-      finally {
-        rwLock.ExitReadLock();
-      }
-    }
+    // public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
+    //   rwLock.EnterReadLock();
+    //   try {
+    //     // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
+    //     // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
+    //     return new List<DafnyDiagnostic>(
+    //       diagnostics.GetValueOrDefault(documentUri.ToUri()) ??
+    //       Enumerable.Empty<DafnyDiagnostic>());
+    //   }
+    //   finally {
+    //     rwLock.ExitReadLock();
+    //   }
+    // }
 
     public void ReportBoogieError(ErrorInformation error, bool useRange = true) {
       var relatedInformation = new List<DafnyRelatedInformation>();
@@ -151,7 +153,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
-        diagnostics.GetOrCreate(uri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
+        updates.OnNext(new NewDiagnostic(uri, dafnyDiagnostic));
+        // diagnostics.GetOrCreate(uri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
       }
       finally {
         rwLock.ExitWriteLock();

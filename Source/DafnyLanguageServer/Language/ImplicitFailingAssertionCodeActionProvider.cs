@@ -46,7 +46,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     public ExplicitAssertionDafnyCodeAction(
       DafnyOptions options,
-      Dafny.Program program,
+      Node program,
       Expression failingImplicitAssertion,
       Range selection
       ) : base("Insert explicit failing assertion") {

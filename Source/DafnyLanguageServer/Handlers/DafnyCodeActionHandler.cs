@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Newtonsoft.Json.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;

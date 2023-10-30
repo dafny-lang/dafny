@@ -133,7 +133,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="line">The line of the opening brace</param>
   /// <param name="col">The column of the opening brace</param>
   /// <returns>The token of a matching closing brace, typically the `ÈndTok` of a BlockStmt</returns>
-  private static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, int line, int col) {
+  private static IToken? GetMatchingEndToken(Node program, Uri documentUri, int line, int col) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     IToken? tokenFound = null;

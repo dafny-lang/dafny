@@ -17,19 +17,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class CompilationAfterResolution : CompilationAfterParsing {
 
   public CompilationAfterResolution(CompilationAfterParsing compilationAfterParsing,
-    IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
-    IReadOnlyList<ICanVerify>? verifiables,
+    IReadOnlyList<ICanVerify>? canVerifies,
     LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
     List<Counterexample> counterexamples
     ) :
-    base(compilationAfterParsing, compilationAfterParsing.Program, diagnostics, compilationAfterParsing.VerificationTrees) {
+    base(compilationAfterParsing, compilationAfterParsing.Program, compilationAfterParsing.VerificationTrees) {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
-    Verifiables = verifiables;
+    CanVerifies = canVerifies;
     TranslatedModules = translatedModules;
     Counterexamples = counterexamples;
   }
@@ -37,7 +36,7 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   public SymbolTable? SymbolTable { get; }
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
-  public IReadOnlyList<ICanVerify>? Verifiables { get; }
+  public IReadOnlyList<ICanVerify>? CanVerifies { get; }
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
   public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> ImplementationsPerVerifiable { get; } = new();
 
@@ -46,14 +45,14 @@ public class CompilationAfterResolution : CompilationAfterParsing {
   /// </summary>
   public LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
-  public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
-    var implementationsForUri = ImplementationsPerVerifiable.
-      Where(kv => kv.Key.Tok.Uri == uri).
-      Select(kv => kv.Value).ToList();
-    var verificationDiagnostics = implementationsForUri.SelectMany(view =>
-      view.Values.SelectMany(v => v.Diagnostics));
-    return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
-  }
+  // public override IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) {
+  //   var implementationsForUri = ImplementationsPerVerifiable.
+  //     Where(kv => kv.Key.Tok.Uri == uri).
+  //     Select(kv => kv.Value).ToList();
+  //   var verificationDiagnostics = implementationsForUri.SelectMany(view =>
+  //     view.Values.SelectMany(v => v.Diagnostics));
+  //   return base.GetDiagnostics(uri).Concat(verificationDiagnostics);
+  // }
 
   VerificationPreparationState MergeStates(VerificationPreparationState a, VerificationPreparationState b) {
     return new[] { a, b }.Max();

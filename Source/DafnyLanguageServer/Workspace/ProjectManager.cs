@@ -295,7 +295,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       compilationManager.IncrementJobs();
       var resolvedCompilation = await compilationManager.ResolvedCompilation;
 
-      var verifiables = resolvedCompilation.Verifiables?.ToList();
+      var verifiables = resolvedCompilation.CanVerifies?.ToList();
       if (verifiables == null) {
         return;
       }
