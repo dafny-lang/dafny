@@ -12,10 +12,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="state">The document whose diagnostics should be published.</param>
     Task PublishNotifications(IdeState previousState, IdeState state);
-
-    /// <summary>
-    /// Publishes the more precise real-time verification diagnostics to the connected LSP client
-    /// </summary>
-    void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted);
   }
 }

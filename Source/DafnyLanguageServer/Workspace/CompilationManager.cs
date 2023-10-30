@@ -99,10 +99,6 @@ public class CompilationManager : IDisposable {
         cancellationSource.Token);
 
       gutterIconManager.RecomputeVerificationTrees(parsedCompilation);
-      foreach (var root in parsedCompilation.RootUris) {
-        gutterIconManager.PublishGutterIcons(parsedCompilation, root, false);
-      }
-
       compilationUpdates.OnNext(parsedCompilation);
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
@@ -123,9 +119,6 @@ public class CompilationManager : IDisposable {
 
       if (!resolvedCompilation.Program.Reporter.HasErrors) {
         gutterIconManager.RecomputeVerificationTrees(resolvedCompilation);
-        foreach (var root in resolvedCompilation.RootUris) {
-          gutterIconManager.PublishGutterIcons(resolvedCompilation, root, true);
-        }
       }
 
       compilationUpdates.OnNext(resolvedCompilation);
@@ -252,7 +245,6 @@ public class CompilationManager : IDisposable {
         gutterIconManager.ReportImplementationsBeforeVerification(compilation,
           verifiable, implementations.Select(t => t.Value.Task.Implementation).ToArray());
 
-        gutterIconManager.PublishGutterIcons(compilation, verifiable.Tok.Uri, true);
         compilationUpdates.OnNext(compilation);
       }
 
@@ -361,8 +353,6 @@ public class CompilationManager : IDisposable {
         // All unvisited trees need to set them as "verified"
         gutterIconManager.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
       }
-
-      gutterIconManager.PublishGutterIcons(compilation, canVerify.Tok.Uri, true);
     }
 
     MarkVerificationFinished();

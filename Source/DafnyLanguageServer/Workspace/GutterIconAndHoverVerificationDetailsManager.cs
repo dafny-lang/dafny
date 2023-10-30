@@ -241,17 +241,6 @@ Send notifications about the verification status of each line in the program.
   }
 
   /// <summary>
-  /// Triggers sending of the current verification diagnostics to the client
-  /// </summary>
-  public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    if (options.Get(LineVerificationStatus)) {
-      lock (LockProcessing) {
-        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, compilation.Program.Reporter.Options), verificationStarted);
-      }
-    }
-  }
-
-  /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
   public void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implementation) {
@@ -275,7 +264,6 @@ Send notifications about the verification status of each line in the program.
         }
 
         targetMethodNode.PropagateChildrenErrorsUp();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
@@ -318,7 +306,6 @@ Send notifications about the verification status of each line in the program.
 
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
@@ -429,7 +416,6 @@ Send notifications about the verification status of each line in the program.
         }
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
