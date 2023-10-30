@@ -161,7 +161,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var compilationVersion = ++version;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
-    Lazy<IdeState> migratedLazyPreviousCompilationLastIdeState = latestIdeState;
     observerSubscription.Dispose();
 
     CompilationManager.Dispose();
