@@ -509,15 +509,15 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
+    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowNewtypeRelationships, string errorFormatString) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(tok != null);
       Contract.Requires(errorFormatString != null);
-      Constraints.AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
+      Constraints.AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, allowNewtypeRelationships, errorFormatString));
     }
 
-    bool ApplyComparableConstraints(PreType a, PreType b, IToken tok, string errorFormatString) {
+    bool ApplyComparableConstraints(PreType a, PreType b, IToken tok, bool allowNewtypeRelationships, string errorFormatString) {
       // The meaning of a comparable constraint
       //     A ~~ B
       // is the disjunction
@@ -525,13 +525,30 @@ namespace Microsoft.Dafny {
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
-      if (ptA != null && ptB != null &&
-          Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments) == null &&
-          Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments) == null) {
+      if (ptA != null && ptB != null) {
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, allowNewtypeRelationships);
+        if (subArguments != null) {
+          // use B :> A
+          var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString);
+          return true;
+        }
+        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, allowNewtypeRelationships);
+        if (subArguments != null) {
+          // use A :> B
+          var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString);
+          return true;
+        }
+
         // neither A :> B nor B :> A is possible
         ReportError(tok, errorFormatString, a, b);
         return true;
-      } else if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
+      }
+
+      if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
         // use B :> A
         Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
         Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString);

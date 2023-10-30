@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
         //     Constrain g(x,y) :> b
         //     Constrain c == h(x,y)
         // else report an error
-        var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
+        var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments, false);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
           ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, this, constraints);

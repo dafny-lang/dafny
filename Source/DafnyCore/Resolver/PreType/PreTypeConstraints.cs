@@ -641,7 +641,7 @@ namespace Microsoft.Dafny {
     /// "super<L>" is a supertype of "sub<subArguments>".
     /// Otherwise, return "null".
     /// </summary>
-    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments) {
+    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool allowNewtypeRelationships) {
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -650,7 +650,14 @@ namespace Microsoft.Dafny {
         var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
         foreach (var parentType in AllParentTraits(md)) {
           var parentPreType = (DPreType)PreTypeResolver.Type2PreType(parentType).Substitute(subst);
-          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments);
+          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments, false);
+          if (arguments != null) {
+            return arguments;
+          }
+        }
+        if (allowNewtypeRelationships && md is NewtypeDecl newtypeDecl) {
+          var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
+          var arguments = GetTypeArgumentsForSuperType(super, basePreType.Decl, basePreType.Arguments, true);
           if (arguments != null) {
             return arguments;
           }

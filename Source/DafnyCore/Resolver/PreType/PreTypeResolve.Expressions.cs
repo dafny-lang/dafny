@@ -492,13 +492,14 @@ namespace Microsoft.Dafny {
             Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
               "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, false,
               "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
           } else if (ancestorDecl is TraitDecl) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, false,
               "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+            // Non-numeric, non-reference types can be converted to/from newtypes of the same family where one is an ancestor of the other.
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
               "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
           }
           e.PreType = toPreType;
@@ -512,7 +513,8 @@ namespace Microsoft.Dafny {
         expr.PreType = ConstrainResultToBoolFamilyOperator(expr.tok, "is");
         resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         var toPreType = Type2PreType(e.ToType);
-        AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
+        AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
+          "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
         Constraints.AddConfirmation(() => {
           // TODO: all of these tests should be revisited (they don't seem right in the presence of newtype's)
           var fromPT = e.E.PreType.NormalizeWrtScope() as DPreType;
@@ -541,7 +543,8 @@ namespace Microsoft.Dafny {
           case TernaryExpr.Opcode.PrefixNeqOp:
             expr.PreType = ConstrainResultToBoolFamily(expr.tok, "ternary op", "boolean literal used as if it had type {0}");
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrORDINAL, e.E0.PreType, expr.tok, "prefix-equality limit argument must be an ORDINAL or integer expression (got {0})");
-            AddComparableConstraint(e.E1.PreType, e.E2.PreType, expr.tok, "arguments must have the same type (got {0} and {1})");
+            AddComparableConstraint(e.E1.PreType, e.E2.PreType, expr.tok, false,
+              "arguments must have the same type (got {0} and {1})");
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsCoDatatype, e.E1.PreType, expr.tok, "arguments to prefix equality must be codatatypes (instead of {0})");
             break;
           default:
@@ -767,7 +770,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Eq:
         case BinaryExpr.Opcode.Neq:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          AddComparableConstraint(e0.PreType, e1.PreType, tok, "arguments must have comparable types (got {0} and {1})");
+          AddComparableConstraint(e0.PreType, e1.PreType, tok, false, "arguments must have comparable types (got {0} and {1})");
           break;
 
         case BinaryExpr.Opcode.Disjoint:
