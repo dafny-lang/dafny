@@ -67,7 +67,7 @@ jobs:
       with:
         java-version: 18
         distribution: corretto
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
       uses: actions/setup-python@v4
