@@ -14,7 +14,15 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
   // Add '//Replace<n>:' to edit a line multiple times
-
+  
+  [Fact]
+  public async Task GitIssue4656GutterIconsResolutionError() {
+    await VerifyTrace(@"
+   :method Test() {
+/!\:  assert x == 1;
+   :}", false, intermediates: false);
+  }
+  
   [Fact]
   public async Task GitIssue4432GutterIconsOnly() {
     await VerifyTrace(@"
