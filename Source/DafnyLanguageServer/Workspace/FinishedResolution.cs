@@ -22,6 +22,7 @@ record FinishedResolution(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     return previousState with {
+      Program = Compilation.Program,
       Compilation = Compilation,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing
