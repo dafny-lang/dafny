@@ -8,7 +8,7 @@ GENERATED_SYSTEM_MODULE_TARGET=System_/System_.go
 all: check-system-module test
 
 test:
-	GO111MODULE=auto go test
+	cd dafny &&	GO111MODULE=auto go test
 
 build-system-module:
 	$(DAFNY) translate go --no-verify --use-basename-for-filename --system-module:Populate ../systemModulePopulator.dfy --output:../obj/systemModulePopulator

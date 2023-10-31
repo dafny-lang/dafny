@@ -133,7 +133,7 @@ namespace Microsoft.Dafny.Compilers {
       switch (Options.SystemModuleTranslationMode) {
         case CommonOptionBag.SystemModuleMode.Omit: {
           CheckCommonSytemModuleLimits(systemModuleManager);
-          return;
+          break;
         }
         case CommonOptionBag.SystemModuleMode.Populate: {
           CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
@@ -145,6 +145,7 @@ namespace Microsoft.Dafny.Compilers {
       // but they are all marked as "internal", so they have to be included in each separately-compiled assembly.
       // Instead we just make sure to guard them with "#if ISDAFNYRUNTIMELIB" when compiling the system module,
       // so they don't become duplicates when --include-runtime is used.
+      // See comment at the top of DafnyRuntime.cs.
 
       if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Populate) {
         wr.WriteLine("#if ISDAFNYRUNTIMELIB");

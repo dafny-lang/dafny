@@ -72,6 +72,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public readonly CoverageInstrumenter Coverage;
+    
+    // Common limits on the size of builtins: tuple, arrow, and array types.
+    // Some backends have to enforce limits so that all built-ins can be pre-compiled
+    // into their runtimes.
+    // See CheckCommonSytemModuleLimits().
+    
+    protected int MaxTupleNonGhostDims => 20;
+    // This one matches the maximum arity of the C# System.Func<> type used to implement arrows. 
+    protected int MaxArrowArity => 16;
+    // This one is also limited by the maximum arrow arity, since a given array type
+    // uses an arrow of the matching arity for initialization.
+    protected int MaxArrayDims => MaxArrowArity;
 
     protected SinglePassCompiler(DafnyOptions options, ErrorReporter reporter) {
       this.Options = options;
@@ -127,23 +139,27 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void CheckCommonSytemModuleLimits(SystemModuleManager systemModuleManager) {
       // Check that the runtime already has all required builtins
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
+      if (systemModuleManager.MaxNonGhostTupleSizeUsed > MaxTupleNonGhostDims) {
         UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
       }
       var maxArrowArity = systemModuleManager.ArrowTypeDecls.Keys.Max();
-      if (maxArrowArity > 16) {
+      if (maxArrowArity > MaxArrowArity) {
         UnsupportedFeatureError(Token.NoToken, Feature.ArrowsWithMoreThan16Arguments);
       }
       var maxArraysDims = systemModuleManager.arrayTypeDecls.Keys.Max();
-      if (maxArraysDims > 16) {
+      if (maxArraysDims > MaxArrayDims) {
         UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
       }
     }
     
+    /// <summary>
+    /// Checks that the system module contains all sizes of built-in types up to the maximum.
+    /// See also DafnyRuntime/systemModulePopulator.dfy.
+    /// </summary>
     protected void CheckSystemModulePopulatedToCommonLimits(SystemModuleManager systemModuleManager) {
-      systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(20);
-      systemModuleManager.CheckHasAllArrayDimsUpTo(16);
-      systemModuleManager.CheckHasAllArrowAritiesUpTo(16);
+      systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(MaxTupleNonGhostDims);
+      systemModuleManager.CheckHasAllArrayDimsUpTo(MaxArrayDims);
+      systemModuleManager.CheckHasAllArrowAritiesUpTo(MaxArrowArity);
     }
     
     /// <summary>

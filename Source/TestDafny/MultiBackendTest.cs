@@ -211,7 +211,7 @@ public class MultiBackendTest {
         if (compiler.TargetId == "cs") {
           // C# is a bit unusual in that the runtime behaves a little differently
           // depending on whether it is included as source or referenced as DafnyRuntime.dll
-          // (because of "#ifdef ISDAFNYRUNTIMELIB" directives).
+          // (because of "#ifdef ISDAFNYRUNTIMELIB" directives - see DafnyRuntime.cs).
           // This should be enabled for any other backends that have similar divergence.
           result = RunWithCompiler(options, compiler, expectedOutput, checkFile, false);
           if (result != 0) {
