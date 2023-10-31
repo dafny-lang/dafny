@@ -52,7 +52,6 @@ namespace Microsoft.Dafny.Compilers {
 
     private struct Import {
       public string Name, Path;
-      public ModuleDefinition NonDummyModule;
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
@@ -161,7 +160,6 @@ namespace Microsoft.Dafny.Compilers {
       if (nonDummyModule != null) {
         // Allow the library name to be "" to import built-in things like the error type
         if (pkgName != "") {
-          import.NonDummyModule = nonDummyModule;
         }
       }
 
@@ -209,28 +207,11 @@ namespace Microsoft.Dafny.Compilers {
 
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
-      string memberName;
-      bool isType;
-      if (import.NonDummyModule != null) {
-        var callable = import.NonDummyModule.CallGraph.TopologicallySortedComponents()[0];
-        memberName = callable.NameToken.val;
-        isType = callable is TopLevelDecl;
+      if (id == "os") {
+        importDummyWriter.WriteLine("var _ = {0}.{1}", id, "Args");
       } else {
-        if (id == "os") {
-          isType = false;
-          memberName = "Args";
-        } else {
-          isType = true;
-          memberName = DummyTypeName;
-        }
+        importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
       }
-
-      if (isType) {
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, memberName);
-      } else {
-        importDummyWriter.WriteLine("var _ = {0}.{1}", id, memberName);
-      }
-
     }
 
     protected override string GetHelperModuleName() => "_dafny";

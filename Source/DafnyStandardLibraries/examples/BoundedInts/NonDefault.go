@@ -1,5 +1,7 @@
 package Externs
 
+type Dummy__ struct{}
+
 type NonDefault struct{}
 var Companion_NonDefault_ = NonDefault{}
 

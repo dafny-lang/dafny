@@ -74,28 +74,28 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
     : base(callable, isGhostContext) {
   }
 
-  protected ICallable cwInner => (ICallable)inner;
-  public IToken Tok => cwInner.Tok;
-  public IEnumerable<INode> Children => cwInner.Children;
-  public IEnumerable<INode> PreResolveChildren => cwInner.PreResolveChildren;
+  public ICallable CwInner => (ICallable)inner;
+  public IToken Tok => CwInner.Tok;
+  public IEnumerable<INode> Children => CwInner.Children;
+  public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
 
-  public string WhatKind => cwInner.WhatKind;
-  public string NameRelativeToModule => cwInner.NameRelativeToModule;
-  public Specification<Expression> Decreases => cwInner.Decreases;
+  public string WhatKind => CwInner.WhatKind;
+  public string NameRelativeToModule => CwInner.NameRelativeToModule;
+  public Specification<Expression> Decreases => CwInner.Decreases;
 
   public bool InferredDecreases {
-    get => cwInner.InferredDecreases;
-    set { cwInner.InferredDecreases = value; }
+    get => CwInner.InferredDecreases;
+    set { CwInner.InferredDecreases = value; }
   }
 
-  public bool AllowsAllocation => cwInner.AllowsAllocation;
+  public bool AllowsAllocation => CwInner.AllowsAllocation;
 
-  public IEnumerable<IToken> OwnedTokens => cwInner.OwnedTokens;
-  public RangeToken RangeToken => cwInner.RangeToken;
-  public IToken NameToken => cwInner.NameToken;
-  public DafnySymbolKind Kind => cwInner.Kind;
+  public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
+  public RangeToken RangeToken => CwInner.RangeToken;
+  public IToken NameToken => CwInner.NameToken;
+  public DafnySymbolKind Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {
-    return cwInner.GetDescription(options);
+    return CwInner.GetDescription(options);
   }
 }
 
