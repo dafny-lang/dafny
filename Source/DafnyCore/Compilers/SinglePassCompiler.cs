@@ -117,13 +117,13 @@ namespace Microsoft.Dafny.Compilers {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
-    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
+    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
     /// </summary>
-    protected virtual void DependOnModule(string moduleName, bool isDefault, bool isExtern,
+    protected virtual void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/) { }
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -1402,7 +1402,7 @@ namespace Microsoft.Dafny.Compilers {
 
       DetectAndMarkCapitalizationConflicts(module);
 
-      bool isExtern = false;
+      ModuleDefinition externModule = null;
       string libraryName = null;
       if (!Options.DisallowExterns) {
         var args = Attributes.FindExpressions(module.Attributes, "extern");
@@ -1411,16 +1411,16 @@ namespace Microsoft.Dafny.Compilers {
             libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
           }
 
-          isExtern = true;
+          externModule = module;
         }
       }
 
       if (!module.ShouldCompile(program.Compilation)) {
-        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, isExtern, libraryName);
+        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
         return;
       }
 
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, isExtern, libraryName, programNode);
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;

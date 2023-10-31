@@ -52,6 +52,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private struct Import {
       public string Name, Path;
+      public ModuleDefinition ExternModule;
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
@@ -139,7 +140,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -156,17 +157,18 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      return new Import { Name = moduleName, Path = pkgName };
+      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool nonDummyModule,
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
         return wr;
       }
 
-      var import = CreateImport(moduleName, isDefault, libraryName);
+      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
 
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
@@ -178,9 +180,9 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern,
+    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName) {
-      var import = CreateImport(moduleName, isDefault, libraryName);
+      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
       AddImport(import);
     }
 
@@ -201,10 +203,30 @@ namespace Microsoft.Dafny.Compilers {
 
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
+      bool isType;
+      string memberName;
       if (id == "os") {
-        importDummyWriter.WriteLine("var _ = {0}.{1}", id, "Args");
+        memberName = "Args";
+        isType = false;
       } else {
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
+        isType = true;
+        memberName = DummyTypeName;
+        if (import.ExternModule != null) {
+          var attributes = Attributes.Find(import.ExternModule.Attributes, "member");
+          if (attributes != null && attributes.Args.Count == 2) {
+            if (attributes.Args[0] is LiteralExpr expr1 && expr1.Value is string isNameValue &&
+              attributes.Args[1] is LiteralExpr expr2 && expr2.Value is bool isTypeValue) {
+              memberName = isNameValue;
+              isType = isTypeValue;
+            }
+          }
+        }
+
+      }
+      if (isType) {
+        importDummyWriter.WriteLine("var _ {0}.{1}", id, memberName);
+      } else {
+        importDummyWriter.WriteLine("var _ = {0}.{1}", id, memberName);
       }
     }
 
