@@ -21,6 +21,7 @@ using System.CommandLine;
 using static Microsoft.Dafny.ParseErrors;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
+readonly bool parseAsDooFile;
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
@@ -178,10 +179,11 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
+public Parser(DafnyOptions options, bool parseAsDooFile, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
   : this(scanner, errors, cancellationToken)  // the real work
 {
   // initialize readonly fields
+  this.parseAsDooFile = parseAsDooFile;
   dummyExpr = new LiteralExpr(Token.NoToken);
   dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
@@ -442,7 +444,7 @@ string UnwildIdent(IToken x, bool allowWildcardId) {
   if (x.val.StartsWith("_")) {
     if (allowWildcardId && x.val.Length == 1) {
       return "_v" + anonymousIds++;
-    } else {
+    } else if (!parseAsDooFile) {
       SemErr(ErrorId.p_no_leading_underscore, x, "cannot declare identifier beginning with underscore");
     }
   }
@@ -5308,7 +5310,7 @@ Name<out Name name>
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. if (x.val.StartsWith("_")) {
+  Ident<out x>     (. if (x.val.StartsWith("_") && !parseAsDooFile) {
                         SemErr(ErrorId.p_no_leading_underscore_2, x, 
                           "cannot declare identifier beginning with underscore");
                       }

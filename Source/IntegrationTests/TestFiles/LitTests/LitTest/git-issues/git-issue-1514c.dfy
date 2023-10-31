@@ -1,7 +1,6 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries --relax-definite-assignment
 
-include "Wrappers.dfy"
-import opened Wrappers
+import opened DafnyStdLibs.Wrappers
 
 method id<T>(r: T) returns (r2: T)  {
   r2 := r;

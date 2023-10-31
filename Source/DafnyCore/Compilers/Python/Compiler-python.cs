@@ -597,14 +597,15 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return DatatypeWrapperEraser.SimplifyType(Options, type, true) switch {
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      return simplifiedType switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
         CharType => UnicodeCharEnabled ? $"{DafnyDefaults}.codepoint" : $"{DafnyDefaults}.char",
         IntType or BitvectorType => $"{DafnyDefaults}.int",
         RealType => $"{DafnyDefaults}.real",
-        SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
+        SeqType or SetType or MultiSetType or MapType => TypeHelperName(simplifiedType.NormalizeExpandKeepConstraints()),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
@@ -614,10 +615,6 @@ namespace Microsoft.Dafny.Compilers {
         },
         _ => throw new cce.UnreachableException()
       };
-
-      string CollectionTypeDescriptor() {
-        return TypeHelperName(type.NormalizeExpandKeepConstraints());
-      }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         if ((thisContext != null && typeParameter.Parent is TopLevelDeclWithMembers and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
