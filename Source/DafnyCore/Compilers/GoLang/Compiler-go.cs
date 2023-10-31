@@ -209,12 +209,28 @@ namespace Microsoft.Dafny.Compilers {
 
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
-      var dummyMember = import.NonDummyModule != null
-        ? import.NonDummyModule.CallGraph.TopologicallySortedComponents()[0].NameToken.val
-        : id == "os"
-          ? "Args"
-          : DummyTypeName;
-      importDummyWriter.WriteLine("var _ {0}.{1}", id, dummyMember);
+      string memberName;
+      bool isType;
+      if (import.NonDummyModule != null) {
+        var callable = import.NonDummyModule.CallGraph.TopologicallySortedComponents()[0];
+        memberName = callable.NameToken.val;
+        isType = callable is TopLevelDecl;
+      } else {
+        if (id == "os") {
+          isType = false;
+          memberName = "Args";
+        } else {
+          isType = true;
+          memberName = DummyTypeName;
+        }
+      }
+
+      if (isType) {
+        importDummyWriter.WriteLine("var _ {0}.{1}", id, memberName);
+      } else {
+        importDummyWriter.WriteLine("var _ = {0}.{1}", id, memberName);
+      }
+
     }
 
     protected override string GetHelperModuleName() => "_dafny";

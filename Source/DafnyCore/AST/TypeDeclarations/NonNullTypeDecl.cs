@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class NonNullTypeDecl : SubsetTypeDecl, ISymbol {
+public class NonNullTypeDecl : SubsetTypeDecl {
   public override string WhatKind { get { return "non-null type"; } }
   public readonly ClassLikeDecl Class;
 
