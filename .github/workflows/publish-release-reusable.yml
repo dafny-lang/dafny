@@ -40,7 +40,7 @@ jobs:
     - name: Print version
       run: echo ${{ inputs.name }}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         ref: ${{ inputs.ref }}
@@ -67,7 +67,7 @@ jobs:
       with:
         java-version: 18
         distribution: corretto
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
       uses: actions/setup-python@v4

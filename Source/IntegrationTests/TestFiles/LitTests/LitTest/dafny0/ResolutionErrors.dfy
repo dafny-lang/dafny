@@ -846,23 +846,23 @@ module ObjectType {
     o := co;  // error
   }
 }
-
 // ------------------ modify statment ---------------------------
-
 module MiscModify {
   class ModifyStatementClass {
     var x: int
     ghost var g: int
-    method M()
-    {
+    method M() {
       modify x;  // error: type error
     }
+} }
+module MiscModifiesGhost {
+  class ModifyStatementClass {
+    var x: int
+    ghost var g: int
     ghost method G0()
       modifies `g
       modifies `x  // error: non-ghost field mentioned in ghost context
-  }
-}
-
+} }
 module ModifyStatementClass_More {
   class C {
     var x: int

@@ -13,7 +13,7 @@ ghost predicate {:opaque} ValidGlobalStateOpaque(globals: globalsmap)
 ghost function GlobalWord(gm:globalsmap, g:string): int
     requires ValidGlobalStateOpaque(gm) && ValidGlobal(g)
 {
-    reveal_ValidGlobalStateOpaque();
+    reveal ValidGlobalStateOpaque();
     gm[g][0]
 }
 
@@ -21,7 +21,7 @@ ghost function GlobalUpdate(gm: globalsmap, g:string, v:int): globalsmap
     requires ValidGlobalStateOpaque(gm) && ValidGlobal(g)
     ensures ValidGlobalStateOpaque(GlobalUpdate(gm, g, v))
 {
-    reveal_ValidGlobalStateOpaque();
+    reveal ValidGlobalStateOpaque();
     gm[g := gm[g][0 := v]]
 }
 
@@ -31,8 +31,15 @@ lemma test()
     ghost var g: string;
     ghost var v: int;
     assume ValidGlobal(g) && ValidGlobalStateOpaque(gm1);
-		ghost var gm2 := GlobalUpdate(gm1, g, v);
-    assert GlobalWord(gm2, g) == v;
+	ghost var gm2 := GlobalUpdate(gm1, g, v);
+    // Because ValidGlobal is not revealed in this scope,
+    // it could simplify
+    // gm[g := gm[g][0 := v]][g][0]
+    // == gm[g][0 := v][0]
+    // but it cannot simplify further because
+    // it does not know that 0 < |gm[g]|, which is needed for simplification
+    assert g in gm1 && |gm1[g]| == 1 ==>
+      GlobalWord(gm2, g) == v;
 }
 
 datatype reg = R0|R1|R2|R3
@@ -56,5 +63,7 @@ lemma test2() {
     assume s0 == s1;
     var r: reg;
     //reveal_ValidRegState();
-    assert s0 == sp_update_reg(r, s1, s0);
+
+    // Cannot simplify this because ValidRegState is not revealed in scope.
+    assert r in s0 ==> s0 == sp_update_reg(r, s1, s0);
 }
