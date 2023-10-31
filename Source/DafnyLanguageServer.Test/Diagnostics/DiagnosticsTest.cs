@@ -346,8 +346,8 @@ predicate {:opaque} m() {
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
-      diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Empty(diagnostics);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.Empty(diagnostics2);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 

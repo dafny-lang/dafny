@@ -6,7 +6,9 @@ using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-record ImplementationStateUpdated(ICanVerify CanVerify, string Name, ImplementationState State, IVerificationStatus BoogieStatus) : ICompilationEvent {
+record ImplementationStateUpdated(ICanVerify CanVerify, string Name, ImplementationState State, IVerificationStatus BoogieStatus) 
+  : ICompilationEvent 
+{
   public IdeState UpdateState(IdeState previousState) {
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();

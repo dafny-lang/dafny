@@ -41,24 +41,6 @@ public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationE
   }
 }
 
-record CanVerifyPartsIdentified(ICanVerify CanVerify, ICollection<string> Parts) : ICompilationEvent {
-  public IdeState UpdateState(IdeState previousState) {
-    var uri = CanVerify.Tok.Uri;
-    var range = CanVerify.NameToken.GetLspRange();
-    var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
-    var remainingParts = previousImplementations.Where(kv => Parts.Contains(kv.Key));
-    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
-      Implementations: remainingParts.ToImmutableDictionary(kv => kv.Key,
-        kv => kv.Value with {
-          Status = PublishedVerificationStatus.Stale,
-          Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-        }));
-    return previousState with {
-      VerificationResults = previousState.VerificationResults.SetItem(uri, previousState.VerificationResults[uri].SetItem(range, verificationResult))
-    };
-  }
-}
-
 /// <summary>
 /// The compilation of a single document version.
 /// The document will be parsed, resolved, translated to Boogie and verified.

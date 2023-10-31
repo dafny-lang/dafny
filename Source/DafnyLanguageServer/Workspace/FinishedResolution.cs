@@ -13,7 +13,8 @@ record FinishedResolution(
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
+{
   public IdeState UpdateState(IdeState previousState) {
     var verificationResults = CanVerifies == null
       ? previousState.VerificationResults

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -51,6 +52,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly IdeStateObserver observer;
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
+  private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly INotificationPublisher notificationPublisher;
   private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
   private readonly ILogger<ProjectManager> logger;
@@ -170,10 +172,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       CreateInitialCompilation(),
       latestIdeState.Value.VerificationTrees);
 
-    var migratedUpdates = CompilationManager.CompilationUpdates.Select(ev => {
+    var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
+      // TODO think about how to handle concurrency and laziness.
+      // With the new events model, CompilationManager doesn't need need to use the EventLoopScheduler since it doesn't need to process the events
+      // Into a unified state. HandleStatusUpdate can be moved
+      // However, on that case an observeOn should be used here before the Select
       var previousState = latestIdeState.Value;
       latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(previousState));
-
       return latestIdeState;
     });
     var throttleTime = options.Get(UpdateThrottling);
@@ -380,6 +385,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public void Dispose() {
     boogieEngine.Dispose();
+    ideStateUpdateScheduler.Dispose();
     observerSubscription.Dispose();
     CompilationManager.Dispose();
   }
