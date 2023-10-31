@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationStatus GetGlobalProgress(IdeState state) {
-      var errors = state.ResolutionDiagnostics.Values.SelectMany(x => x).
+      var errors = state.NotMigratedDiagnostics.Values.SelectMany(x => x).
         Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       if (state.Compilation is CompilationAfterResolution) {
         if (errors.Any(d => d.Source == MessageSource.Resolver.ToString())) {
@@ -196,7 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       bool verificationStarted = state.Compilation is CompilationAfterResolution;
 
-      var errors = state.ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
+      var errors = state.NotMigratedDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var tree = state.VerificationTrees[uri];
 

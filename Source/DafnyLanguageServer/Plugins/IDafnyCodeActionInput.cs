@@ -10,7 +10,7 @@ public interface IDafnyCodeActionInput {
   /// The URI of the document being considered
   /// </summary>
   DocumentUri Uri { get; }
-  Program? Program { get; }
+  Node? Program { get; }
   IEnumerable<DafnyDiagnostic> Diagnostics { get; }
   VerificationTree? VerificationTree { get; }
 }

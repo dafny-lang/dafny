@@ -9,6 +9,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record FinishedResolution(
+  CompilationAfterResolution Compilation,
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
@@ -21,6 +22,7 @@ record FinishedResolution(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     return previousState with {
+      Compilation = Compilation,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing
       SignatureAndCompletionTable = LegacySignatureAndCompletionTable,

@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    private CompilationAfterParsing ParseInternal(ErrorReporter errorReporter, Compilation compilation, 
+    private CompilationAfterParsing ParseInternal(ErrorReporter errorReporter, Compilation compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var program = parser.Parse(compilation, errorReporter, cancellationToken);

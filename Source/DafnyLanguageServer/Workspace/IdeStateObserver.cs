@@ -52,7 +52,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedState with {
-      ResolutionDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(initialState.Compilation.Uri.ToUri(), ImmutableList.Create(internalErrorDiagnostic))
+      NotMigratedDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(initialState.Compilation.Uri.ToUri(), ImmutableList.Create(internalErrorDiagnostic))
     };
 
     OnNext(documentToPublish);

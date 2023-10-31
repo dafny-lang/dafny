@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -32,18 +33,10 @@ public interface ICompilationEvent {
 
 public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
   public IdeState UpdateState(IdeState previousState) {
-    var diagnostics = previousState.ResolutionDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
+    var diagnostics = previousState.NotMigratedDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
     var newDiagnostics = diagnostics.Add(Diagnostic.ToLspDiagnostic());
     return previousState with {
-      ResolutionDiagnostics = previousState.ResolutionDiagnostics.SetItem(Uri, newDiagnostics)
-    };
-  }
-}
-
-record FinishedParsing(Program Program) : ICompilationEvent {
-  public IdeState UpdateState(IdeState previousState) {
-    return previousState with {
-      Program = Program
+      NotMigratedDiagnostics = previousState.NotMigratedDiagnostics.SetItem(Uri, newDiagnostics)
     };
   }
 }
@@ -54,7 +47,7 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, ICollection<string> Parts)
     var range = CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
     var remainingParts = previousImplementations.Where(kv => Parts.Contains(kv.Key));
-    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.InProgress,
+    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
       Implementations: remainingParts.ToImmutableDictionary(kv => kv.Key,
         kv => kv.Value with {
           Status = PublishedVerificationStatus.Stale,
@@ -85,9 +78,12 @@ public class CompilationManager : IDisposable {
   // TODO CompilationManager shouldn't be aware of migration
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
-  private TaskCompletionSource started = new();
+  private readonly TaskCompletionSource started = new();
   private readonly EventLoopScheduler verificationUpdateScheduler = new();
   private readonly CancellationTokenSource cancellationSource;
+  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> diagnostics = new();
+  public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
+    diagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
@@ -136,13 +132,15 @@ public class CompilationManager : IDisposable {
   private async Task<CompilationAfterParsing> ParseAsync() {
     try {
       await started.Task;
-      var errorReporter = new ObservableErrorReporter(options, StartingCompilation.Uri.ToUri());
+      var uri = StartingCompilation.Uri.ToUri();
+      var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(compilationUpdates);
+      errorReporter.Updates.Subscribe(onNext => diagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
       var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
       gutterIconManager.RecomputeVerificationTrees(parsedCompilation);
-      compilationUpdates.OnNext(new FinishedParsing(parsedCompilation.Program));
+      compilationUpdates.OnNext(new FinishedParsing(parsedCompilation));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
       return parsedCompilation;
@@ -165,6 +163,7 @@ public class CompilationManager : IDisposable {
       }
 
       compilationUpdates.OnNext(new FinishedResolution(
+        resolvedCompilation,
         resolvedCompilation.SymbolTable,
         resolvedCompilation.SignatureAndCompletionTable,
         resolvedCompilation.GhostDiagnostics,
@@ -449,7 +448,10 @@ public class CompilationManager : IDisposable {
       ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
       gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
-    compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify, implementationName, implementations[implementationName]));
+    compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+      implementationName,
+      implementations[implementationName],
+      boogieStatus));
   }
 
   private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);

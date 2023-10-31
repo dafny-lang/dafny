@@ -27,7 +27,7 @@ public record IdeState(
   int Version,
   Compilation Compilation,
   Node Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> ResolutionDiagnostics,
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> NotMigratedDiagnostics,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
   ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
@@ -102,7 +102,7 @@ public record IdeState(
   }
 
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
-    var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
+    var resolutionDiagnostics = NotMigratedDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
       return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
     });
@@ -130,7 +130,7 @@ public record IdeState(
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
-    return ResolutionDiagnostics.Keys.Concat(VerificationResults.Keys);
+    return NotMigratedDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 }
 

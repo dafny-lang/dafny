@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-record ImplementationStateUpdated(ICanVerify CanVerify, string Name, ImplementationState State) : ICompilationEvent {
+record ImplementationStateUpdated(ICanVerify CanVerify, string Name, ImplementationState State, IVerificationStatus BoogieStatus) : ICompilationEvent {
   public IdeState UpdateState(IdeState previousState) {
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();
@@ -26,8 +27,13 @@ record ImplementationStateUpdated(ICanVerify CanVerify, string Name, Implementat
 
     var newView = new IdeImplementationView(range, status, diagnostics.ToList(), State.HitErrorLimit);
 
+    var counterExamples = previousState.Counterexamples;
+    if (BoogieStatus is BatchCompleted batchCompleted) {
+      counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
+    }
     var previousVerificationResult = previousState.VerificationResults[uri][range];
     return previousState with {
+      Counterexamples = counterExamples,
       VerificationResults = previousState.VerificationResults.SetItem(uri, previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
         Implementations = previousVerificationResult.Implementations.SetItem(Name, newView)
       }))
