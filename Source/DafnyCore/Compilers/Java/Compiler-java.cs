@@ -313,13 +313,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       switch (Options.SystemModuleTranslationMode) {
         case CommonOptionBag.SystemModuleMode.Omit: {
-          CheckCommonSytemModuleLimits(systemModuleManager);
-          return;
-        }
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            return;
+          }
         case CommonOptionBag.SystemModuleMode.Populate: {
-          CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
-          break;
-        }
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
       }
 
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {

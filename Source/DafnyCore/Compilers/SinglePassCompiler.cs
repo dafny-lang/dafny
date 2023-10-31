@@ -72,12 +72,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public readonly CoverageInstrumenter Coverage;
-    
+
     // Common limits on the size of builtins: tuple, arrow, and array types.
     // Some backends have to enforce limits so that all built-ins can be pre-compiled
     // into their runtimes.
     // See CheckCommonSytemModuleLimits().
-    
+
     protected int MaxTupleNonGhostDims => 20;
     // This one matches the maximum arity of the C# System.Func<> type used to implement arrows. 
     protected int MaxArrowArity => 16;
@@ -151,7 +151,7 @@ namespace Microsoft.Dafny.Compilers {
         UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
       }
     }
-    
+
     /// <summary>
     /// Checks that the system module contains all sizes of built-in types up to the maximum.
     /// See also DafnyRuntime/systemModulePopulator.dfy.
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.Compilers {
       systemModuleManager.CheckHasAllArrayDimsUpTo(MaxArrayDims);
       systemModuleManager.CheckHasAllArrowAritiesUpTo(MaxArrowArity);
     }
-    
+
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.

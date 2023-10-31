@@ -166,7 +166,7 @@ public enum Feature {
 
   [FeatureDescription("Arrays with more than 16 dimensions", "#sec-compilation-built-ins")]
   ArraysWithMoreThan16Dims,
-  
+
   [FeatureDescription("Arrow types with more than 16 arguments", "#sec-compilation-built-ins")]
   ArrowsWithMoreThan16Arguments,
 
@@ -182,7 +182,7 @@ public enum Feature {
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
   SeparateCompilation,
-  
+
   [FeatureDescription("All built-in types in runtime library", "#sec-compilation-built-ins")]
   BuiltinsInRuntime
 }

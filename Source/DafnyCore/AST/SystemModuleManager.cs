@@ -503,7 +503,7 @@ needed: {allNeededDims.Comma()}
 declared: {allDeclaredDims.Comma()}");
     }
   }
-  
+
   public void CheckHasAllArrayDimsUpTo(int max) {
     var allNeededDims = Enumerable.Range(1, max).ToHashSet();
     var allDeclaredDims = arrayTypeDecls.Keys.ToHashSet();
@@ -513,7 +513,7 @@ needed: {allNeededDims.Comma()}
 declared: {allDeclaredDims.Comma()}");
     }
   }
-  
+
   public void CheckHasAllArrowAritiesUpTo(int max) {
     var allNeededArities = Enumerable.Range(0, max + 1).ToHashSet();
     var allDeclaredArities = ArrowTypeDecls.Keys.ToHashSet();

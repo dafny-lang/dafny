@@ -132,13 +132,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       switch (Options.SystemModuleTranslationMode) {
         case CommonOptionBag.SystemModuleMode.Omit: {
-          CheckCommonSytemModuleLimits(systemModuleManager);
-          break;
-        }
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            break;
+          }
         case CommonOptionBag.SystemModuleMode.Populate: {
-          CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
-          break;
-        }
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
       }
 
       // The declarations below would normally be omitted if we aren't compiling the system module,
