@@ -139,7 +139,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition nonDummyModule, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, bool isDefault, string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -156,23 +156,17 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var import = new Import { Name = moduleName, Path = pkgName };
-      if (nonDummyModule != null) {
-        // Allow the library name to be "" to import built-in things like the error type
-        if (pkgName != "") {
-        }
-      }
-
-      return import;
+      return new Import { Name = moduleName, Path = pkgName };
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition nonDummyModule, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool nonDummyModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
         return wr;
       }
 
-      var import = CreateImport(moduleName, isDefault, nonDummyModule, libraryName);
+      var import = CreateImport(moduleName, isDefault, libraryName);
 
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
@@ -184,9 +178,9 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern,
       string libraryName) {
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      var import = CreateImport(moduleName, isDefault, libraryName);
       AddImport(import);
     }
 

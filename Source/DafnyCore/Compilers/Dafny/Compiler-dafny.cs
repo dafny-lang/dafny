@@ -104,10 +104,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
       string libraryName, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
-        currentBuilder = moduleBuilder.Module(moduleName, externModule != null);
+        currentBuilder = moduleBuilder.Module(moduleName, isExtern);
       } else {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
       }
