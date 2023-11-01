@@ -16,6 +16,7 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
+  public bool IsPrerefined { get; private set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; }
   [CanBeNull] public IToken Origin { get; }
@@ -102,6 +103,7 @@ public class DafnyFile {
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
       GetContent = () => new StringReader(dooFile.ProgramText);
+      IsPrerefined = true;
     } else if (Extension == ".dll") {
       IsPreverified = true;
       // Technically only for C#, this is for backwards compatability
