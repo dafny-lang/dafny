@@ -204,13 +204,12 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
       bool isType;
-      string memberName;
+      string memberName = null;
       if (id == "os") {
         memberName = "Args";
         isType = false;
       } else {
         isType = true;
-        memberName = DummyTypeName;
         if (import.ExternModule != null) {
           var attributes = Attributes.Find(import.ExternModule.Attributes, "member");
           if (attributes != null && attributes.Args.Count == 2) {
@@ -220,13 +219,17 @@ namespace Microsoft.Dafny.Compilers {
               isType = isTypeValue;
             }
           }
+        } else {
+          memberName = DummyTypeName;
         }
-
       }
-      if (isType) {
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, memberName);
-      } else {
-        importDummyWriter.WriteLine("var _ = {0}.{1}", id, memberName);
+
+      if (memberName != null) {
+        if (isType) {
+          importDummyWriter.WriteLine("var _ {0}.{1}", id, memberName);
+        } else {
+          importDummyWriter.WriteLine("var _ = {0}.{1}", id, memberName);
+        }
       }
     }
 
