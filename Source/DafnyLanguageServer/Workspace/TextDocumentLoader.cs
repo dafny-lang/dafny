@@ -61,13 +61,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ParseInternal(errorReporter, compilation, migratedVerificationTrees, cancellationToken), cancellationToken
+        async () => ParseInternal(errorReporter, compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
     }
 
     private CompilationAfterParsing ParseInternal(ErrorReporter errorReporter, Compilation compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
       CancellationToken cancellationToken) {
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       compilation.Project.Errors.CopyDiagnostics(program.Reporter);
@@ -81,10 +80,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
         }
       }
-      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, compilation.RootUris.ToDictionary(uri => uri,
-          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
 
-      return compilationAfterParsing;
+      return new CompilationAfterParsing(compilation, program);
     }
 
     public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
@@ -129,13 +126,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                                                               v.ShouldVerify).ToList();
       }
 
-      var compilationAfterParsingWithProgramClone = new CompilationAfterParsing(compilation, programClone, compilation.VerificationTrees);
+      var compilationAfterParsingWithProgramClone = new CompilationAfterParsing(compilation, programClone);
       return new CompilationAfterResolution(compilationAfterParsingWithProgramClone,
         newSymbolTable,
         legacySymbolTable,
         ghostDiagnostics,
         verifiables,
-        new(),
         new()
       );
     }

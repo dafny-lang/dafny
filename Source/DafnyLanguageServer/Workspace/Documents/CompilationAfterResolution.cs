@@ -6,10 +6,7 @@ using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -21,18 +18,15 @@ public class CompilationAfterResolution : CompilationAfterParsing {
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify>? canVerifies,
-    LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules,
-    List<Counterexample> counterexamples
+    LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules
     ) :
-    base(compilationAfterParsing, compilationAfterParsing.Program, compilationAfterParsing.VerificationTrees) {
+    base(compilationAfterParsing, compilationAfterParsing.Program) {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;
     CanVerifies = canVerifies;
     TranslatedModules = translatedModules;
-    Counterexamples = counterexamples;
   }
-  public List<Counterexample> Counterexamples { get; set; }
   public SymbolTable? SymbolTable { get; }
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }

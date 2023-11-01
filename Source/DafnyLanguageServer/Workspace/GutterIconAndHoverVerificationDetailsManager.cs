@@ -404,8 +404,8 @@ Send notifications about the verification status of each line in the program.
     }
   }
 
-  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
-    var tree = compilation.VerificationTrees[canVerify.Tok.Uri];
+  public void SetAllUnvisitedMethodsAsVerified(IdeState state, ICanVerify canVerify) {
+    var tree = state.VerificationTrees[canVerify.Tok.Uri];
     var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
     verifyTree.SetVerifiedIfPending();
   }

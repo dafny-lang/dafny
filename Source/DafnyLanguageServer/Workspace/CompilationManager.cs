@@ -42,9 +42,9 @@ public class CompilationManager : IDisposable {
 
   private readonly TaskCompletionSource started = new();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> diagnostics = new();
+  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> nonVerificationDiagnostics = new();
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
-    diagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
+    nonVerificationDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
@@ -94,7 +94,7 @@ public class CompilationManager : IDisposable {
       var uri = StartingCompilation.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(compilationUpdates);
-      errorReporter.Updates.Subscribe(onNext => diagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
+      errorReporter.Updates.Subscribe(onNext => nonVerificationDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
       var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
@@ -252,7 +252,9 @@ public class CompilationManager : IDisposable {
               foreach (var result in completedCache.Result.VCResults) {
                 compilationUpdates.OnNext(new BoogieUpdate(canVerify,
                   task,
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                   new BatchCompleted(null /* unused */, result)));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
               }
 
               compilationUpdates.OnNext(new BoogieUpdate(canVerify,
