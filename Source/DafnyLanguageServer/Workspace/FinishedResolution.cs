@@ -5,16 +5,19 @@ using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record FinishedResolution(
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics,
   CompilationAfterResolution Compilation,
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
+{
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var trees = previousState.VerificationTrees;
     if (!Compilation.Program.Reporter.HasErrors) {
@@ -33,7 +36,7 @@ record FinishedResolution(
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved ? LegacySignatureAndCompletionTable : previousState.SignatureAndCompletionTable;
     return previousState with {
-      //Program = Compilation.Program,
+      StaticDiagnostics = Diagnostics,
       Compilation = Compilation,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing

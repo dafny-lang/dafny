@@ -27,12 +27,6 @@ Send notifications about the verification status of each line in the program.
   public static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
-    if (parsedCompilation is not CompilationAfterResolution) {
-      return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
-        Children = rootVerificationTree.Children
-      };
-    }
-
     List<VerificationTree> result = new List<VerificationTree>();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();

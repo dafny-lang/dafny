@@ -269,7 +269,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public Task<IdeState> GetStateAfterResolutionAsync() {
     return States.Select(l => l.Value).Where(s => {
-      var errors = s.NotMigratedDiagnostics.Values.SelectMany(x => x).
+      var errors = s.StaticDiagnostics.Values.SelectMany(x => x).
         Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       if (errors.Any()) {
         return s.Compilation is CompilationAfterParsing;

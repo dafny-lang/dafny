@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Subjects;
@@ -42,9 +43,9 @@ public class CompilationManager : IDisposable {
 
   private readonly TaskCompletionSource started = new();
   private readonly CancellationTokenSource cancellationSource;
-  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> nonVerificationDiagnostics = new();
+  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
-    nonVerificationDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
+    staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
@@ -94,7 +95,7 @@ public class CompilationManager : IDisposable {
       var uri = StartingCompilation.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(compilationUpdates);
-      errorReporter.Updates.Subscribe(onNext => nonVerificationDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
+      errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
       var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
@@ -117,6 +118,8 @@ public class CompilationManager : IDisposable {
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
       compilationUpdates.OnNext(new FinishedResolution(
+        staticDiagnostics.ToImmutableDictionary(k => k.Key,
+          kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
         resolvedCompilation,
         resolvedCompilation.SymbolTable,
         resolvedCompilation.SignatureAndCompletionTable,

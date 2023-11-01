@@ -27,7 +27,7 @@ public record IdeState(
   int Version,
   Compilation Compilation,
   Node Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> NotMigratedDiagnostics,
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
   ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
@@ -60,7 +60,7 @@ public record IdeState(
 
     return this with {
       Version = version,
-      NotMigratedDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
+      StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
       SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(Compilation.Options, Compilation.Project),
@@ -111,7 +111,7 @@ public record IdeState(
   }
 
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
-    var resolutionDiagnostics = NotMigratedDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
+    var resolutionDiagnostics = StaticDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
       return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
     });
@@ -139,7 +139,7 @@ public record IdeState(
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
-    return NotMigratedDiagnostics.Keys.Concat(VerificationResults.Keys);
+    return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 }
 
