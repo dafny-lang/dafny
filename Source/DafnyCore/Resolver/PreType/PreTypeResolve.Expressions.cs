@@ -611,6 +611,7 @@ namespace Microsoft.Dafny {
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         e.ResolvedExpression = DesugarElephantExpr(e, resolutionContext);
+        ResolveExpression(e.ResolvedExpression, resolutionContext);
         e.PreType = e.ResolvedExpression.PreType;
         Constraints.AddGuardedConstraint(() => {
           if (e.Rhs.PreType.NormalizeWrtScope() is DPreType receiverPreType) {
