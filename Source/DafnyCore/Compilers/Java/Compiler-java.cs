@@ -1298,7 +1298,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
         return;
       }
-      wr.Write($"{CollectionTypeUnparameterizedName(ct)}.of(");
+      wr.Write($"{CollectionTypeUnparameterizedName(ct)}.<{BoxedTypeName(ct.Arg, wr, tok)}> of(");
       string sep = "";
       if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeCharEnabled && ct.Arg.IsCharType))) {
         wr.Write(TypeDescriptor(ct.Arg, wr, tok));
