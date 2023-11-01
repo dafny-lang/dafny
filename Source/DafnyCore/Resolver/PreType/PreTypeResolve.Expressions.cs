@@ -1625,7 +1625,7 @@ namespace Microsoft.Dafny {
       }
       if (r == null) {
         // e.Lhs denotes a function value, or at least it's used as if it were
-        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType);
+        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType, false);
         if (dp != null && DPreType.IsArrowType(dp.Decl)) {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
