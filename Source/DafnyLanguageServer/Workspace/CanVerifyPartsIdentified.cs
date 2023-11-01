@@ -11,18 +11,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementationTask> Parts) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
-
     var implementations = Parts.Select(t => t.Implementation);
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
     gutterIconManager.ReportImplementationsBeforeVerification(previousState,
       CanVerify, implementations.ToArray());
     
-    
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
+    var names = Parts.Select(t => CompilationManager.GetImplementationName(t.Implementation));
     var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
-      Implementations: Parts.Select(t => t.Implementation.Name).ToImmutableDictionary(k => k,
+      Implementations: names.ToImmutableDictionary(k => k,
         k => {
           var previous = previousImplementations.GetValueOrDefault(k);
           return new IdeImplementationView(range, PublishedVerificationStatus.Stale, 

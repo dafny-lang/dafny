@@ -250,12 +250,12 @@ public class CompilationManager : IDisposable {
           if (statusUpdates == null) {
             if (task.CacheStatus is Completed completedCache) {
               foreach (var result in completedCache.Result.VCResults) {
-                compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+                compilationUpdates.OnNext(new BoogieUpdate(canVerify,
                   task,
                   new BatchCompleted(null /* unused */, result)));
               }
 
-              compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+              compilationUpdates.OnNext(new BoogieUpdate(canVerify,
                 task,
                 completedCache));
             }
@@ -357,7 +357,7 @@ public class CompilationManager : IDisposable {
       ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, completed.Result);
     }
     
-    compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+    compilationUpdates.OnNext(new BoogieUpdate(canVerify,
       implementationTask,
       boogieStatus));
   }

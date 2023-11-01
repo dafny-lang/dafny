@@ -11,7 +11,7 @@ using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-record ImplementationStateUpdated(ICanVerify CanVerify, IImplementationTask Task, IVerificationStatus BoogieStatus) 
+record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificationStatus BoogieStatus) 
   : ICompilationEvent 
 {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
@@ -28,6 +28,12 @@ record ImplementationStateUpdated(ICanVerify CanVerify, IImplementationTask Task
     var counterExamples = previousState.Counterexamples;
     bool hitErrorLimit = previousView.HitErrorLimit;
     var diagnostics = previousView.Diagnostics;
+    if (BoogieStatus is Running) {
+      diagnostics = Array.Empty<Diagnostic>();
+      counterExamples = Array.Empty<Counterexample>();
+      hitErrorLimit = false;
+    }
+
     if (BoogieStatus is BatchCompleted batchCompleted) {
       counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
       hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
@@ -35,7 +41,7 @@ record ImplementationStateUpdated(ICanVerify CanVerify, IImplementationTask Task
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     }
     var view = new IdeImplementationView(range, status, diagnostics.ToList(), previousView.HitErrorLimit || hitErrorLimit);
-    return previousState with {
+      return previousState with {
       Counterexamples = counterExamples,
       VerificationResults = previousState.VerificationResults.SetItem(uri, previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
         Implementations = previousVerificationResult.Implementations.SetItem(name, view)

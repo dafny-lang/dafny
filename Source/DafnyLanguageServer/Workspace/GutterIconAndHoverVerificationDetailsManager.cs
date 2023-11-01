@@ -165,7 +165,7 @@ Send notifications about the verification status of each line in the program.
   /// </summary>
   public virtual void ReportImplementationsBeforeVerification(IdeState state, ICanVerify canVerify, Implementation[] implementations) {
     var uri = canVerify.Tok.Uri;
-    var tree = state.VerificationTrees[uri];
+    var tree = state.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(state.Program, uri);
 
     if (logger.IsEnabled(LogLevel.Debug)) {
       logger.LogDebug($"ReportImplementationsBeforeVerification for ${state.Uri}, version {state.Version}, implementations: " +
