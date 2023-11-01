@@ -2674,11 +2674,19 @@ namespace Microsoft.Dafny.Compilers {
       return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
+    /// <summary>
+    /// This method in a target statement-context version of "TrCasePattern", in the same way that "TrExprOpt" is a
+    /// target statement-context version of "Expr(...)" (see comment by "TrExprOpt").
+    /// </summary>
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody)
       where VT : class, IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
+    /// <summary>
+    /// This method in a target statement-context version of "TrCasePattern", in the same way that "TrExprOpt" is a
+    /// target statement-context version of "Expr(...)" (see comment by "TrExprOpt").
+    /// </summary>
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, Action<ConcreteSyntaxTree> emitRhs, Type rhsType, IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
@@ -2740,6 +2748,16 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /// <summary>
+    /// This method compiles "expr" into a statement context of the target. This typically means that, for example, Dafny let-bound variables can
+    /// be compiled into local variables in the target code, and that Dafny if-then-else expressions can be compiled into if statements in the
+    /// target code.
+    /// In contrast, the "Expr(...)" method compiles its given expression into an expression context of the target. This can result in
+    /// more complicated constructions in target languages that don't support name bindings in expressions (like most of our target
+    /// languages) or that don't support if-then-else expressions (like Go).
+    /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
+    /// same semantics.
+    /// </summary>
     void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
