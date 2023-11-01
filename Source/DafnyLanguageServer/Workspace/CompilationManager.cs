@@ -61,7 +61,6 @@ public class CompilationManager : IDisposable {
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private readonly TaskCompletionSource started = new();
-  private readonly EventLoopScheduler verificationUpdateScheduler = new();
   private readonly CancellationTokenSource cancellationSource;
   private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> diagnostics = new();
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
