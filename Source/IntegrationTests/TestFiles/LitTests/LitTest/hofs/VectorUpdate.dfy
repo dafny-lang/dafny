@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 // this is a rather verbose version of the VectorUpdate method
 method VectorUpdate<A>(N: int, a : array<A>, f : (int,A) ~> A)

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --standard-libraries --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --standard-libraries --relax-definite-assignment
 
 import opened DafnyStdLibs.Wrappers
 
