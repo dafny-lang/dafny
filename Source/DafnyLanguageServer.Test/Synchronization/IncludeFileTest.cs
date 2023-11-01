@@ -54,9 +54,9 @@ method Test() {
 include ""./hasWarning.dfy""
 ".TrimStart();
     var warningSource = "const tooManySemiColons := 3;";
-    await CreateAndOpenTestDocument(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
+    await CreateOpenAndWaitForResolve(warningSource, Path.Combine(TestFileDirectory, "hasWarning.dfy"));
     await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    await CreateAndOpenTestDocument(source, TestFilePath);
+    await CreateOpenAndWaitForResolve(source, TestFilePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
@@ -137,7 +137,7 @@ ensures Foo(x) {{
     await File.WriteAllTextAsync(temp, producer);
     var documentItem2 = CreateTestDocument(consumer, "MethodWhosePostConditionFailsAndDependsOnIncludedFile.dfy");
     client.OpenDocument(documentItem2);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem2);
     Assert.Single(verificationDiagnostics);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }

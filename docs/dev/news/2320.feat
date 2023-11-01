@@ -1,2 +1,0 @@
-Add support for the Find References LSP request
-- Returned references may be incomplete when not using project mode

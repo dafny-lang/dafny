@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using Serilog;
 using Serilog.Sinks.InMemory;
 using Xunit;
 using Xunit.Abstractions;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
 
@@ -27,6 +29,65 @@ public class CachingTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
+  public async Task ChangedImportAffectsExport() {
+
+    var importedSource = @"
+module Imported {
+  const x: int := 3
+  class Foo {
+    const r := 2
+
+    constructor() {
+
+    }
+  }
+}
+".TrimStart();
+
+    var exporter = @"
+module Exporter {
+  import Imported
+  export provides Imported, FooAlias, Wrapper
+
+  class Wrapper<T> {
+    method V() returns (r: T)
+  }
+  type FooAlias = Wrapper<Imported.Foo>
+}
+".TrimStart();
+
+    var importerSource = @"
+module Importer {
+  import Exporter
+  const i: int := 3
+  const x := Exporter.Imported.x
+
+  method Faz() {
+    var z : Exporter.FooAlias;
+
+    var q := new Exporter.Imported.Foo();
+    print q.r;
+  }  
+}
+".TrimStart();
+
+    var directory = Path.GetRandomFileName();
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var imported = await CreateOpenAndWaitForResolve(importedSource, Path.Combine(directory, "imported.dfy"));
+    await CreateOpenAndWaitForResolve(exporter, Path.Combine(directory, "exporter.dfy"));
+    var importer = await CreateOpenAndWaitForResolve(importerSource, Path.Combine(directory, "importer.dfy"));
+
+    // Make a change to imported, which could trigger a bug where some dependants of it are not marked dirty
+    ApplyChange(ref imported, ((0, 0), (0, 0)), "//comment" + Environment.NewLine);
+
+    // Make any change that should cause a diagnostic to be shown 
+    ApplyChange(ref importer, ((2, 18), (2, 19)), "true");
+    var diagnostics2 = await GetLastDiagnostics(importer);
+    Assert.Single(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  [Fact]
   public async Task GrowingSystemModule() {
 
     var source = @"
@@ -39,12 +100,11 @@ const tuple2 := (3,2)
 
     await AssertNoDiagnosticsAreComing(CancellationToken);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple3: (int, int, bool) := (1,2,3) \n");
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics2);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
-    var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics3 = await GetLastDiagnostics(documentItem);
     Assert.Equal(2, diagnostics3.Length);
-
   }
 
   [Fact]
@@ -81,9 +141,9 @@ module ModC {
 
 
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    var noCachingProject = await CreateAndOpenTestDocument(@"[options]
+    var noCachingProject = await CreateOpenAndWaitForResolve(@"[options]
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
-    var noCaching = await CreateAndOpenTestDocument(source, Path.Combine(temp, "noCaching.dfy"));
+    var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCountForNoCaching = await WaitAndCountHits(noCaching);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
@@ -270,7 +330,7 @@ module ChangedClonedId {
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "notCached.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
-    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(documentItem1);
     Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
 
     ApplyChange(ref documentItem1, new Range(2, 0, 2, 0), "//comment\n");

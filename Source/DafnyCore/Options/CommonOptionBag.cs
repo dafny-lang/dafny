@@ -3,10 +3,15 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public enum AssertionShowMode { None, Implicit, All }
+  public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
+    "Show hints on locations where implicit assertions occur");
 
   public static readonly Option<bool> AddCompileSuffix =
     new("--compile-suffix", "Add the suffix _Compile to module names without :extern") {
@@ -32,8 +37,7 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.") {
-  };
+    "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
     "Warn about the use of deprecated features (default true).") {
@@ -44,8 +48,7 @@ true - In the compiled target code, transform any non-extern
 (experimental, will be replaced in the future)
 Reduce Dafny's knowledge of non-linear arithmetic (*,/,%).
   
-Results in more manual work, but also produces more predictable behavior.".TrimStart()) {
-  };
+Results in more manual work, but also produces more predictable behavior.".TrimStart());
 
   public static readonly Option<bool> EnforceDeterminism = new("--enforce-determinism",
     "Check that only deterministic statements are used, so that values seen during execution will be the same in every run of the program.") {
@@ -76,12 +79,18 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+    "Specify the filepath that determines where to place and how to name build files.") {
+    ArgumentHelpName = "file",
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> Plugin = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -90,7 +99,8 @@ receive arguments. More information about what plugins do and how
 to define them:
 
 https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins") {
-    ArgumentHelpName = "path-to-one-assembly[,argument]*"
+    ArgumentHelpName = "path-to-one-assembly[,argument]*",
+    IsHidden = true
   };
 
   public static readonly Option<FileInfo> Prelude = new("--prelude", "Choose the Dafny prelude file.") {
@@ -150,10 +160,17 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
-  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
+  public enum GeneralTraitsOptions {
+    Legacy,
+    Datatype,
+    Full
+  }
+
+  public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
     @"
-false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
-true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
   };
 
@@ -197,6 +214,14 @@ May slow down verification slightly.
 May produce spurious warnings.") {
     IsHidden = true
   };
+  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
+    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+    ArgumentHelpName = "directory"
+  };
+  public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
+    "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
+    IsHidden = true
+  };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
@@ -233,7 +258,102 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
+  public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
+    @"
+Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+Not compatible with the --unicode-char:false option.
+");
+
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
+cs (default) - Compile to .NET via C#.
+go - Compile to Go.
+js - Compile to JavaScript.
+java - Compile to Java.
+py - Compile to Python.
+cpp - Compile to C++.
+dfy - Compile to Dafny.
+
+Note that the C++ backend has various limitations (see
+Docs/Compilation/Cpp.md). This includes lack of support for
+BigIntegers (aka int), most higher order functions, and advanced
+features like traits or co-inductive types.".TrimStart(), "cs");
+
+    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
+0 - Include all non-ghost datatype constructors in the compiled code
+1 (default) - In the compiled target code, transform any non-extern
+    datatype with a single non-ghost constructor that has a single
+    non-ghost parameter into just that parameter. For example, the type
+        datatype Record = Record(x: int)
+    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+
+    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
+    DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
+0 - The char type represents any UTF-16 code unit.
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
+    DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
+0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
+legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+    DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
+0 (default) - Don't print type-inference debug information.
+1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
+0 (default) - Don't print debug information for the new type system.
+1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(PluginOption, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
+    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
+
+    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
+
+    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+0 (default) - Don't show source code snippets for Dafny messages.
+1 - Show a source code snippet for each Dafny message.".TrimStart());
+
+    DafnyOptions.RegisterLegacyUi(Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
+Everything (default) - Print everything listed below.
+DllEmbed - print the source that will be included in a compiled dll.
+NoIncludes - disable printing of {:verify false} methods
+    incorporated via the include mechanism, as well as datatypes and
+    fields included from other files.
+NoGhost - disable printing of functions, ghost methods, and proof
+    statements in implementation methods. It also disables anything
+    NoIncludes disables.".TrimStart(),
+      argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
+      defaultValue: PrintModes.Everything);
+
+    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("Everything")) {
+          options.Set(option, PrintModes.Everything);
+        } else if (ps.args[ps.i].Equals("NoIncludes")) {
+          options.Set(option, PrintModes.NoIncludes);
+        } else if (ps.args[ps.i].Equals("NoGhost")) {
+          options.Set(option, PrintModes.NoGhost);
+        } else if (ps.args[ps.i].Equals("DllEmbed")) {
+          // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+          // but it is now used by the LibraryBackend when building .doo files as well. 
+          options.Set(option, PrintModes.Serialization);
+        } else {
+          DafnyOptions.InvalidArgumentError(option.Name, ps);
+        }
+      }
+    }
+
+    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
+
+    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
+
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
@@ -271,7 +391,7 @@ Change the default opacity of functions.
 
     DafnyOptions.RegisterLegacyBinding(QuantifierSyntax, (options, value) => { options.QuantifierSyntax = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Plugin, (options, value) => { options.AdditionalPluginArguments = value; });
+    DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
     DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
       options.FormatCheck = value;
@@ -290,6 +410,9 @@ Change the default opacity of functions.
       options.ExpandFilename(options.DafnyPrelude, x => options.DafnyPrelude = x, options.LogPrefix,
         options.FileTimestamp);
     });
+
+    DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
+
     DafnyOptions.RegisterLegacyBinding(Libraries,
       (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
@@ -322,25 +445,16 @@ Change the default opacity of functions.
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionMatches },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
-        // Ideally this feature shouldn't affect separate compilation,
-        // because it's automatically disabled on {:extern} signatures.
-        // Realistically though, we don't have enough strong mechanisms to stop
-        // target language code from referencing compiled internal code,
-        // so to be conservative we flag this as not compatible in general.
-        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
-        // Similarly this shouldn't matter if external code ONLY refers to {:extern}s,
-        // but in practice it does.
-        { AddCompileSuffix, DooFile.CheckOptionMatches },
-        { ReadsClausesOnMethods, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
+        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
       }
     );
     DooFile.RegisterNoChecksNeeded(
       Check,
       Libraries,
       Output,
-      Plugin,
+      PluginOption,
       Prelude,
       Target,
       Verbose,
@@ -367,7 +481,12 @@ Change the default opacity of functions.
       IncludeRuntimeOption,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
-      DefaultFunctionOpacity
+      VerificationCoverageReport,
+      NoTimeStampForCoverageReport,
+      DefaultFunctionOpacity,
+      UseStandardLibraries,
+      OptimizeErasableDatatypeWrapper,
+      AddCompileSuffix
     );
   }
 

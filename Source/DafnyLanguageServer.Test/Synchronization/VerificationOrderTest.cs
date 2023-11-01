@@ -18,7 +18,7 @@ public class VerificationOrderTest : ClientBasedLanguageServerTest {
   public async Task MigrationOfRecentlyRelatedChanges() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"
@@ -28,7 +28,7 @@ method Foo() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    var firstFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var firstFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "firstFile.dfy"));
 
     await WaitUntilCompletedForUris(1, CancellationToken);
 
@@ -53,7 +53,7 @@ method Foo() {
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"
@@ -69,9 +69,9 @@ method Bar() {
 ".TrimStart();
 
     var directory = Path.GetRandomFileName();
-    await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-    var firstFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "firstFile.dfy"));
-    var secondFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "secondFile.dfy"));
+    await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+    var firstFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var secondFile = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "secondFile.dfy"));
 
     await WaitUntilCompletedForUris(2, CancellationToken);
 

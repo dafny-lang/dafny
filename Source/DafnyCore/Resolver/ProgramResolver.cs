@@ -164,7 +164,7 @@ public class ProgramResolver {
 
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name);
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), SystemModuleManager.SystemModule.Name, false);
 
     return systemModuleResolver.moduleClassMembers;
   }
@@ -186,7 +186,7 @@ public class ProgramResolver {
   }
 
   /// <summary>
-  /// Check that now two modules that are being compiled have the same CompileName.
+  /// Check that no two modules that are being compiled have the same CompileName.
   ///
   /// This could happen if they are given the same name using the 'extern' declaration modifier.
   /// </summary>
@@ -259,7 +259,12 @@ public class ProgramResolver {
         continue;
       }
 
-      dependencies.AddEdge(literalDecl, moduleDecl);
+      if (toplevel is ModuleExportDecl) {
+        dependencies.AddEdge(moduleDecl, literalDecl);
+      } else {
+        dependencies.AddEdge(literalDecl, moduleDecl);
+      }
+
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
       if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {

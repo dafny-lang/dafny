@@ -34,9 +34,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
+      await PublishDiagnostics(state);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
-      await PublishDiagnostics(state);
     }
 
     private void PublishProgress(IdeState previousState, IdeState state) {
@@ -87,10 +87,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationStatus GetGlobalProgress(IdeState state) {
-      var hasResolutionDiagnostics = state.ResolutionDiagnostics.Values.SelectMany(x => x).
-        Any(d => d.Severity == DiagnosticSeverity.Error);
+      var errors = state.ResolutionDiagnostics.Values.SelectMany(x => x).
+        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       if (state.Compilation is CompilationAfterResolution) {
-        if (hasResolutionDiagnostics) {
+        if (errors.Any(d => d.Source == MessageSource.Resolver.ToString())) {
           return CompilationStatus.ResolutionFailed;
         }
 
@@ -98,7 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (state.Compilation is CompilationAfterParsing) {
-        if (hasResolutionDiagnostics) {
+        if (errors.Any(d => d.Source == MessageSource.Parser.ToString())) {
           return CompilationStatus.ParsingFailed;
         }
 
@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
     public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
-      if (!options.Get(ServerCommand.LineVerificationStatus)) {
+      if (!options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus)) {
         return;
       }
 
@@ -237,7 +237,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
       { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
-      { LineVerificationStatus.ResolutionError, @"/!\" }
+      { LineVerificationStatus.ResolutionError, @"/!\" },
+      { LineVerificationStatus.Skipped, @" ? " }
     };
 
     private void PublishGhostness(IdeState previousState, IdeState state) {

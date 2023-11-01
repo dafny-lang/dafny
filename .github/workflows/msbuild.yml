@@ -16,8 +16,6 @@ env:
 jobs:
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: master
 
   singletons:
     needs: check-deep-tests
@@ -29,7 +27,7 @@ jobs:
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         submodules: recursive
@@ -45,7 +43,7 @@ jobs:
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
@@ -55,7 +53,7 @@ jobs:
       run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs --exclude DafnyCore/GeneratedFromDafnyRust.cs
+      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
@@ -71,6 +69,7 @@ jobs:
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      ref: ${{ github.ref }}
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
@@ -86,7 +85,7 @@ jobs:
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: dafny
           submodules: recursive

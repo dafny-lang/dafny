@@ -9,7 +9,7 @@ on:
       prerelease:
         required: false
         type: boolean
-      sha:
+      ref:
         required: true
         type: string
       draft:
@@ -40,10 +40,10 @@ jobs:
     - name: Print version
       run: echo ${{ inputs.name }}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
-        ref: ${{ inputs.sha }}
+        ref: ${{ inputs.ref }}
     - name: Ensure tag exists
       if: ${{ inputs.prerelease }}
       run: |
@@ -67,7 +67,7 @@ jobs:
       with:
         java-version: 18
         distribution: corretto
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -96,7 +96,7 @@ jobs:
       # Need --skip-duplicate for cases where we release a new Dafny
       # version but the runtime hasn't changed and is still the old
       # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc
       run: |

@@ -13,9 +13,8 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-
 public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
-  IReadOnlyList<Diagnostic> Diagnostics);
+  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
 public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
@@ -45,7 +44,8 @@ public record IdeState(
     return this with {
       Version = version,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
-      SignatureAndCompletionTable = migrator.MigrateSymbolTable(SignatureAndCompletionTable),
+      SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
+        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(Compilation.Options, Compilation.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }
@@ -93,9 +93,30 @@ public record IdeState(
 
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
     var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
-    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x =>
-      x.Value.Implementations.Values.SelectMany(v => v.Diagnostics));
+    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
+      return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
+    });
     return resolutionDiagnostics.Concat(verificationDiagnostics);
+  }
+
+  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x) {
+    var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
+    IEnumerable<Diagnostic> result;
+    if (anyImplementationHitErrorLimit) {
+      var diagnostic = new Diagnostic() {
+        Severity = DiagnosticSeverity.Warning,
+        Code = new DiagnosticCode("errorLimitHit"),
+        Message =
+          "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit",
+        Range = x.Key,
+        Source = MessageSource.Verifier.ToString()
+      };
+      result = new[] { diagnostic };
+    } else {
+      result = Enumerable.Empty<Diagnostic>();
+    }
+
+    return result;
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
@@ -122,7 +143,7 @@ public static class Util {
     };
   }
 
-  private static Location CreateLocation(IToken token) {
+  public static Location CreateLocation(IToken token) {
     var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),

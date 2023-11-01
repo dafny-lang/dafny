@@ -30,4 +30,39 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     body.Type = Term.Type;
     return body;
   }
+
+  /// <summary>
+  /// Returns an expression like 'exists' but where the bound variables have been renamed to have
+  /// 'prefix' as a prefix to their previous names.
+  /// Assumes the expression has been resolved.
+  /// </summary>
+  public Expression AlphaRename(string prefix) {
+    Contract.Requires(this != null);
+    Contract.Requires(prefix != null);
+
+    if (SplitQuantifier != null) {
+      // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
+    }
+
+    var substMap = new Dictionary<IVariable, Expression>();
+    var var4var = new Dictionary<BoundVar, BoundVar>();
+    var bvars = new List<BoundVar>();
+    foreach (var bv in BoundVars) {
+      var newBv = new BoundVar(bv.tok, prefix + bv.Name, bv.Type);
+      bvars.Add(newBv);
+      var4var.Add(bv, newBv);
+      var ie = new IdentifierExpr(newBv.tok, newBv.Name);
+      ie.Var = newBv;  // resolve here
+      ie.Type = newBv.Type;  // resolve here
+      substMap.Add(bv, ie);
+    }
+    var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+    var range = Range == null ? null : s.Substitute(Range);
+    var term = s.Substitute(Term);
+    var attrs = s.SubstAttributes(Attributes);
+    var ex = new ExistsExpr(tok, RangeToken, bvars, range, term, attrs);
+    ex.Type = Type.Bool;
+    ex.Bounds = s.SubstituteBoundedPoolList(Bounds);
+    return ex;
+  }
 }
