@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny "%s" /dprint:"%t.dprint" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 include "./NatOutcome.dfy"
 include "./VoidOutcome.dfy"
 
@@ -10,11 +10,11 @@ method TestTypecheckingInDesugaredTerm_Nat() returns (res: NatOutcome) {
 }
 
 method RedeclareVar_Nat() returns (res: NatOutcome) {
-    var a := MakeNatSuccess(42);
+    var x := MakeNatSuccess(42);
     var a :- MakeNatSuccess(43);
     var b :- MakeNatSuccess(44);
-    var b := MakeNatSuccess(45);
-    return a;
+    var y := MakeNatSuccess(45);
+    return x;
 }
 
 trait BadOutcome1 {
