@@ -24,6 +24,9 @@ public class ForEachCompilerOptions {
 
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
+  
+  [Option("target", Required = true, HelpText = "Compilation target. Defaults to all targets.")]
+  public string? Target { get; set; } = null;
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -32,7 +35,7 @@ public class FeaturesOptions {
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
-[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), execute the given test file, and assert the output matches the <test file>.expect file.")]
+[Verb("for-each-resolver", HelpText = "For each resolver (legacy and refresh), verify the given test file, and assert the output matches the <test file>.expect file.")]
 public class ForEachResolverOptions {
 
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
@@ -178,35 +181,37 @@ public class MultiBackendTest {
 
     // Then execute the program for each available compiler.
 
+    var compilers = plugins.SelectMany(plugin => plugin.GetCompilers(DafnyOptions.Default));
+    if (options.Target != null) {
+      compilers = compilers.Where(compiler => compiler.TargetId == options.Target);
+    }
+    
     string expectFile = options.TestFile + ".expect";
     var commonExpectedOutput = File.ReadAllText(expectFile);
 
     var success = true;
-    foreach (var plugin in plugins) {
-      foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable) {
-          // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
-          // Such as empty constructors with ensures clauses, generated from iterators
-          continue;
-        }
+    foreach (var compiler in compilers) {
+      if (!compiler.IsStable) {
+        // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
+        // Such as empty constructors with ensures clauses, generated from iterators
+        continue;
+      }
 
-        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
-        var expectedOutput = commonExpectedOutput;
-        string? checkFile = null;
-        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
-        if (File.Exists(expectFileForBackend)) {
-          expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
-        }
+      // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+      var expectedOutput = commonExpectedOutput;
+      string? checkFile = null;
+      var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+      if (File.Exists(expectFileForBackend)) {
+        expectedOutput = File.ReadAllText(expectFileForBackend);
+      }
+      var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+      if (File.Exists(checkFileForBackend)) {
+        checkFile = checkFileForBackend;
+      }
 
-        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
-        if (File.Exists(checkFileForBackend)) {
-          checkFile = checkFileForBackend;
-        }
-
-        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
-        if (result != 0) {
-          success = false;
-        }
+      var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+      if (result != 0) {
+        success = false;
       }
     }
 
@@ -365,7 +370,20 @@ public class MultiBackendTest {
     var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
+<<<<<<< HEAD
+    int exitCode;
+    try {
+      exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null,
+        argumentsWithDefaults.ToArray());
+    } catch (Exception e) {
+      // Reproduce the same output and exit code that shelling out would have produced.
+      errorWriter.Write("Unhandled exception. ");
+      errorWriter.Write(e);
+      exitCode = 134;
+    }
+=======
     var exitCode = DafnyCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+>>>>>>> 30a8abc466eea85269079f4ec49461cbb6489a95
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);

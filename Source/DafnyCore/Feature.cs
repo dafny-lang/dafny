@@ -71,6 +71,9 @@ public enum Feature {
   [FeatureDescription("Multi-dimensional arrays", "sec-multi-dimensional-arrays")]
   MultiDimensionalArrays,
 
+  [FeatureDescription("Set comprehensions", "sec-set-comprehension-expression")]
+  SetComprehensions,
+
   [FeatureDescription("Map comprehensions", "sec-map-comprehension-expression")]
   MapComprehensions,
 
@@ -127,7 +130,10 @@ public enum Feature {
 
   [FeatureDescription("Quantifiers", "sec-quantifier-expression")]
   Quantifiers,
-
+  
+  [FeatureDescription("Bitvectors", "sec-bit-vector-types")]
+  Bitvectors,
+  
   [FeatureDescription("Bitvector RotateLeft/RotateRight functions", "sec-bit-vector-types")]
   BitvectorRotateFunctions,
 
@@ -175,7 +181,10 @@ public enum Feature {
   LegacyCLI,
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
-  SeparateCompilation
+  SeparateCompilation,
+  
+  [FeatureDescription("Contravariance in type parameters", "sec-type-parameter-variance")]
+  Contravariance
 }
 
 public class UnsupportedFeatureException : Exception {
