@@ -239,8 +239,8 @@ May produce spurious warnings.") {
   public enum SystemModuleMode {
     Include,
     Omit,
-    // TODO: better name? OmitOthers?
-    Populate
+    // Used to pre-compile the System module into the runtimes
+    OmitAllOtherModules
   }
 
   public static readonly Option<SystemModuleMode> SystemModule = new("--system-module", () => SystemModuleMode.Omit,

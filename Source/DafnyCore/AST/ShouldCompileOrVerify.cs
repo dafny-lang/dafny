@@ -15,7 +15,7 @@ public static class ShouldCompileOrVerify {
     if (module.FullName == "_System") {
       return program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.Omit;
     }
-    if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.Populate) {
+    if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
       return false;
     }
 

@@ -11,7 +11,7 @@ test:
 	cd dafny &&	GO111MODULE=auto go test
 
 build-system-module:
-	$(DAFNY) translate go --no-verify --use-basename-for-filename --system-module:Populate ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
+	$(DAFNY) translate go --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
 
 check-system-module: build-system-module
 	diff $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)

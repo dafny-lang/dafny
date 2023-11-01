@@ -267,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var wrVarInit = wr;
       wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
-      // TODO: Assert that Tuple(L) exists in the _System module
+      Contract.Assert(L <= MaxTupleNonGhostDims);
       EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       var wrOuter = wr;
       wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
@@ -316,7 +316,7 @@ namespace Microsoft.Dafny.Compilers {
             CheckCommonSytemModuleLimits(systemModuleManager);
             return;
           }
-        case CommonOptionBag.SystemModuleMode.Populate: {
+        case CommonOptionBag.SystemModuleMode.OmitAllOtherModules: {
             CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
             break;
           }
@@ -373,7 +373,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
-        // return wr;
         moduleName = "_System";
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
@@ -1837,7 +1836,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (dt is TupleTypeDecl tupleTypeDecl) {
-        // CreateTuple() produces somewhat different code
+        // CreateTuple() produces quite different code than this method would
+        // by treating a tuple declaration as just a special case of a datatype.
+        // Compare to the C# compiler which just compiles tuples like datatypes
+        // with a bit of special handling for the name.
+        // This could be changed to match at some point, but it would break
+        // code that relies on the current runtime representation of tuples in Java.
         CreateTuple(tupleTypeDecl.Dims, wr);
         return null;
       }
