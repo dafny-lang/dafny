@@ -86,7 +86,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Message = null
         });
       }
-
     }
 
     private CompilationStatus GetGlobalProgress(IdeState state) {
@@ -128,10 +127,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      if (result.PreparationProgress == VerificationPreparationState.Done &&
-          status == PublishedVerificationStatus.Stale) {
-        status = PublishedVerificationStatus.Queued;
-      }
       return new(canVerify, status);
     }
 

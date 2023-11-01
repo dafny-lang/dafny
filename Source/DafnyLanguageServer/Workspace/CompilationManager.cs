@@ -317,6 +317,7 @@ public class CompilationManager : IDisposable {
         ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
+        //compilationUpdates.OnNext(new BoogieUpdate(canVerify, view.Task, new Stale()));
       }
       resolvedCompilation.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
     }

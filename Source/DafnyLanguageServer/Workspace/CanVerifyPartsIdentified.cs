@@ -30,7 +30,7 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
       Implementations: names.ToImmutableDictionary(k => k,
         k => {
           var previous = previousImplementations.GetValueOrDefault(k);
-          return new IdeImplementationView(range, PublishedVerificationStatus.Stale,
+          return new IdeImplementationView(range, PublishedVerificationStatus.Queued,
             previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false);
         }));

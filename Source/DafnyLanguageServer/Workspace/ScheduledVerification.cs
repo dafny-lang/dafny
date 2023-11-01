@@ -10,8 +10,11 @@ record ScheduledVerification(ICanVerify CanVerify) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions Options, ILogger logger, IdeState previousState) {
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();
-    var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
-    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.InProgress,
+    var previousVerificationResult = previousState.VerificationResults[uri][range];
+    var previousImplementations = previousVerificationResult.Implementations;
+    var preparationProgress = new[]
+      { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max(); 
+    var verificationResult = new IdeVerificationResult(PreparationProgress: preparationProgress,
       Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()

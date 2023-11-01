@@ -65,7 +65,8 @@ public record IdeState(
 
   private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
     Migrator migrator,
-    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) 
+  {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
     if (previous == null) {
@@ -89,7 +90,8 @@ public record IdeState(
         }
       }
 
-      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      // TODO Do we have to set it to NotStarted here?
+      result = result.Add(newOuterRange, new IdeVerificationResult(PreparationProgress: VerificationPreparationState.NotStarted, Implementations: newValue));
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);

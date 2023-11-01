@@ -67,8 +67,7 @@ record FinishedResolution(
     var previousImplementations =
       previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
       ImmutableDictionary<string, IdeImplementationView>.Empty;
-    var progress = VerificationPreparationState.NotStarted;
-    return new IdeVerificationResult(PreparationProgress: progress,
+    return new IdeVerificationResult(PreparationProgress: VerificationPreparationState.NotStarted,
       Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
