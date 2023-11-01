@@ -1155,7 +1155,8 @@ namespace Microsoft.Dafny {
       // This option tends to lead to the best all-around arithmetic
       // performance, though some programs can be verified more quickly
       // (or verified at all) using a different solver.
-      SetZ3Option("smt.arith.solver", "2");
+      //SetZ3Option("smt.arith.solver", "2");
+      //experiment default solver
 
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
