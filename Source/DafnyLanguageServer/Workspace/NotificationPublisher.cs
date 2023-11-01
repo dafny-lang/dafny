@@ -209,17 +209,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
+      if (state.Compilation is not CompilationAfterParsing) {
+        return;
+      }
+
       bool verificationStarted = state.Compilation is CompilationAfterResolution;
 
       var errors = state.NotMigratedDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var tree = state.VerificationTrees.GetValueOrDefault(uri);
-      // if (tree == null) {
-      //   return;
-      // }
+      var tree = state.VerificationTrees[uri];
 
       var linesCount = tree.Range.End.Line + 1;
       var fileVersion = filesystem.GetVersion(uri);
+      if (linesCount == 0) {
+        return;
+      }
+      
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,

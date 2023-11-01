@@ -8,9 +8,6 @@ record FinishedParsing(CompilationAfterParsing Compilation) : ICompilationEvent 
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
 
     var trees = previousState.VerificationTrees;
-    // var trees = previousState.Compilation.RootUris.ToImmutableDictionary(
-    //   uri => uri, 
-    //   rootUri => previousState.VerificationTrees.GetValueOrDefault(rootUri) ?? new DocumentVerificationTree(previousState.Program, rootUri));
     
     foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,

@@ -381,7 +381,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     private static Range ComputeRange(INode node, Uri uri) {
       if (node is not Program program) {
-        return new Range(0, 0, 0, 0);
+        return new Range(0, 0, -1, 0);
       }
       var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
       while (end.Next != null) {
