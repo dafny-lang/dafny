@@ -868,13 +868,7 @@ namespace Microsoft.Dafny {
 #endif
         }
         if (attr.Args != null) {
-          foreach (var arg in attr.Args) {
-            if (Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment nameSegment) {
-              ResolveNameSegment(nameSegment, true, null, opts, false, specialOpaqueHackAllowance: true);
-            } else {
-              ResolveExpression(arg, opts);
-            }
-          }
+          attr.Args.ForEach(arg => ResolveExpression(arg, opts));
           if (solveConstraints) {
             Constraints.SolveAllTypeConstraints($"attribute of {attributeHost.ToString()}");
           }

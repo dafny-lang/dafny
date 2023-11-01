@@ -1085,11 +1085,8 @@ namespace Microsoft.Dafny {
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a MemberSelectExpr whose .Member is a Method.</param>
     /// <param name="complain"></param>
-    /// <param name="specialOpaqueHackAllowance">If "true", treats an expression "f" where "f" is an instance function, as "this.f", even though
-    /// there is no "this" in scope. This seems like a terrible hack, because it breaks scope invariants about the AST. But, for now, it's here
-    /// to mimic what the legacy resolver does.</param>
     Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
-      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true, bool specialOpaqueHackAllowance = false) {
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -1138,7 +1135,7 @@ namespace Microsoft.Dafny {
             (TopLevelDeclWithMembers)member.EnclosingClass, true);
           receiver.PreType = Type2PreType(receiver.Type);
         } else {
-          if (!scope.AllowInstance && !specialOpaqueHackAllowance) {
+          if (!scope.AllowInstance) {
             if (complain) {
               ReportError(expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             } else {
