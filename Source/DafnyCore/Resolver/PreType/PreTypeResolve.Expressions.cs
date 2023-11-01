@@ -1030,7 +1030,7 @@ namespace Microsoft.Dafny {
     /// "receiverPreType" is an unresolved proxy type and that, after solving more type constraints, "receiverPreType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName) {
+    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, bool reportErrorOnMissingMember = true) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
@@ -1046,7 +1046,9 @@ namespace Microsoft.Dafny {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
         if (!resolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
-          if (memberName == "_ctor") {
+          if (!reportErrorOnMissingMember) {
+            // don't report any error
+          } else if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
             ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
@@ -1058,7 +1060,9 @@ namespace Microsoft.Dafny {
           return (member, dReceiver);
         }
       }
-      ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      if (reportErrorOnMissingMember) {
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
       return (null, null);
     }
 
@@ -2140,7 +2144,7 @@ namespace Microsoft.Dafny {
 
       var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure");
       var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure");
-      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract");
+      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", reportErrorOnMissingMember: expectExtract);
 
       if (keyword != null) {
         if (memberIsFailure == null || (memberExtract != null) != expectExtract) {
