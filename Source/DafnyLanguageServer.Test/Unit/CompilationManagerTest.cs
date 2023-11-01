@@ -16,7 +16,6 @@ public class CompilationManagerTest {
     var compilationManager = new CompilationManager(new Mock<ILogger<CompilationManager>>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
-      new Mock<IGutterIconAndHoverVerificationDetailsManager>().Object,
       dafnyOptions,
       null, new Compilation(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();

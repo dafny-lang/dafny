@@ -53,7 +53,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private IDisposable observerSubscription;
   private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly INotificationPublisher notificationPublisher;
-  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -84,14 +83,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
     INotificationPublisher notificationPublisher,
-    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     CustomStackSizePoolTaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
-    this.gutterIconManager = gutterIconManager;
     this.notificationPublisher = notificationPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
@@ -173,7 +170,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;
-      latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(previousState));
+      latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
       return latestIdeState;
     });
     var throttleTime = options.Get(UpdateThrottling);

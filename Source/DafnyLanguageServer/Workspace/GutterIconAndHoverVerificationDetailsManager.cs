@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
@@ -12,33 +11,20 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
+public class GutterIconAndHoverVerificationDetailsManager {
 
   public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
 (experimental, API will change)
 Send notifications about the verification status of each line in the program.
 ".TrimStart());
 
-  private readonly DafnyOptions options;
-  private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
+  private readonly ILogger logger;
 
-  public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
-    DafnyOptions options) {
+  public GutterIconAndHoverVerificationDetailsManager(ILogger logger) {
     this.logger = logger;
-    this.options = options;
   }
 
-  /// <summary>
-  /// Fills up the document with empty verification diagnostics, one for each top-level declarations
-  /// Possibly migrates previous diagnostics
-  /// </summary>
-  public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
-    foreach (var uri in compilation.VerificationTrees.Keys) {
-      compilation.VerificationTrees[uri] = UpdateTree(compilation.Program.Reporter.Options, compilation, compilation.VerificationTrees[uri]);
-    }
-  }
-
-  private static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
+  public static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     if (parsedCompilation is not CompilationAfterResolution) {
@@ -177,12 +163,12 @@ Send notifications about the verification status of each line in the program.
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
-  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations) {
+  public virtual void ReportImplementationsBeforeVerification(IdeState state, ICanVerify canVerify, Implementation[] implementations) {
     var uri = canVerify.Tok.Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees[uri];
 
     if (logger.IsEnabled(LogLevel.Debug)) {
-      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${state.Uri}, version {state.Version}, implementations: " +
                       $"{string.Join(", ", implementations.Select(i => i.Name))}");
     }
 
@@ -203,7 +189,7 @@ Send notifications about the verification status of each line in the program.
 
       targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", state, implementation);
         continue;
       }
 
@@ -241,14 +227,14 @@ Send notifications about the verification status of each line in the program.
   /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
-  public void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implementation) {
+  public void ReportVerifyImplementationRunning(IdeState state, Implementation implementation) {
     var uri = ((IToken)implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees[uri];
 
     lock (LockProcessing) {
       var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportVerifyImplementationRunning", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportVerifyImplementationRunning", state, implementation);
       } else {
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
@@ -269,14 +255,14 @@ Send notifications about the verification status of each line in the program.
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  public void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implementation, VerificationResult verificationResult) {
+  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation, VerificationResult verificationResult) {
 
     var uri = ((IToken)implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees[uri];
 
     var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
     if (targetMethodNode == null) {
-      NoMethodNodeAtLogging(tree, "ReportEndVerifyImplementation", compilation, implementation);
+      NoMethodNodeAtLogging(tree, "ReportEndVerifyImplementation", state, implementation);
     } else if (implementationNode == null) {
       logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
     } else {
@@ -308,12 +294,12 @@ Send notifications about the verification status of each line in the program.
     }
   }
 
-  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {
+  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, IdeState state, Implementation implementation) {
     var position = implementation.tok.GetLspPosition();
     var availableMethodNodes = string.Join(",", tree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
     logger.LogDebug(
-      $"No method found in {methodName}, in document {compilation.Uri} and filename {tree.Filename}, " +
+      $"No method found in {methodName}, in document {state.Uri} and filename {tree.Filename}, " +
       $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
       $"Available nodes: " + availableMethodNodes);
   }
@@ -321,9 +307,9 @@ Send notifications about the verification status of each line in the program.
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
-  public void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult) {
+  public void ReportAssertionBatchResult(IdeState ideState, AssertionBatchResult batchResult) {
     var uri = ((IToken)batchResult.Implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = ideState.VerificationTrees[uri];
 
     lock (LockProcessing) {
       var implementation = batchResult.Implementation;
@@ -331,7 +317,7 @@ Send notifications about the verification status of each line in the program.
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportAssertionBatchResult", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportAssertionBatchResult", ideState, implementation);
       } else if (implementationNode == null) {
         logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {

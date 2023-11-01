@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
 using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +12,6 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -26,20 +21,6 @@ public delegate CompilationManager CreateCompilationManager(
   ExecutionEngine boogieEngine,
   Compilation compilation,
   IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
-
-public interface ICompilationEvent {
-  public IdeState UpdateState(IdeState previousState);
-}
-
-public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationEvent {
-  public IdeState UpdateState(IdeState previousState) {
-    var diagnostics = previousState.NotMigratedDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
-    var newDiagnostics = diagnostics.Add(Diagnostic.ToLspDiagnostic());
-    return previousState with {
-      NotMigratedDiagnostics = previousState.NotMigratedDiagnostics.SetItem(Uri, newDiagnostics)
-    };
-  }
-}
 
 /// <summary>
 /// The compilation of a single document version.
@@ -55,7 +36,6 @@ public class CompilationManager : IDisposable {
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
-  private readonly IGutterIconAndHoverVerificationDetailsManager gutterIconManager;
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
@@ -81,7 +61,6 @@ public class CompilationManager : IDisposable {
     ILogger<CompilationManager> logger,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    IGutterIconAndHoverVerificationDetailsManager gutterIconManager,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
     Compilation compilation,
@@ -95,7 +74,6 @@ public class CompilationManager : IDisposable {
     this.documentLoader = documentLoader;
     this.logger = logger;
     this.verifier = verifier;
-    this.gutterIconManager = gutterIconManager;
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
@@ -120,7 +98,6 @@ public class CompilationManager : IDisposable {
       var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
         cancellationSource.Token);
 
-      gutterIconManager.RecomputeVerificationTrees(parsedCompilation);
       compilationUpdates.OnNext(new FinishedParsing(parsedCompilation));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
@@ -139,10 +116,6 @@ public class CompilationManager : IDisposable {
       var parsedCompilation = await ParsedCompilation;
       var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
 
-      if (!resolvedCompilation.Program.Reporter.HasErrors) {
-        gutterIconManager.RecomputeVerificationTrees(resolvedCompilation);
-      }
-
       compilationUpdates.OnNext(new FinishedResolution(
         resolvedCompilation,
         resolvedCompilation.SymbolTable,
@@ -160,7 +133,7 @@ public class CompilationManager : IDisposable {
     }
   }
 
-  private static string GetImplementationName(Implementation implementation) {
+  public static string GetImplementationName(Implementation implementation) {
     var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
@@ -262,10 +235,8 @@ public class CompilationManager : IDisposable {
           t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
-        gutterIconManager.ReportImplementationsBeforeVerification(compilation,
-          canVerify, implementations.Select(t => t.Value.Task.Implementation).ToArray());
-
-        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify, compilation.ImplementationsPerVerifiable[canVerify].Keys));
+        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify, 
+          compilation.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
@@ -279,15 +250,14 @@ public class CompilationManager : IDisposable {
           if (statusUpdates == null) {
             if (task.CacheStatus is Completed completedCache) {
               foreach (var result in completedCache.Result.VCResults) {
-                gutterIconManager.ReportVerifyImplementationRunning(compilation,
-                  task.Implementation);
-                gutterIconManager.ReportAssertionBatchResult(compilation,
-                  new AssertionBatchResult(task.Implementation, result));
+                compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+                  task,
+                  new BatchCompleted(null /* unused */, result)));
               }
 
-              ReportVacuityAndRedundantAssumptionsChecks(compilation, task.Implementation, completedCache.Result);
-              gutterIconManager.ReportEndVerifyImplementation(compilation, task.Implementation,
-                completedCache.Result);
+              compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
+                task,
+                completedCache));
             }
 
             StatusUpdateHandlerFinally();
@@ -298,7 +268,7 @@ public class CompilationManager : IDisposable {
           logger.LogDebug(
             $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
 
-          statusUpdates.ObserveOn(verificationUpdateScheduler).Subscribe(
+          statusUpdates.Subscribe(
             update => {
               try {
                 HandleStatusUpdate(compilation, canVerify, task, update);
@@ -371,7 +341,7 @@ public class CompilationManager : IDisposable {
     if (ReportGutterStatus) {
       if (!cancellationSource.IsCancellationRequested) {
         // All unvisited trees need to set them as "verified"
-        gutterIconManager.SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
+        new GutterIconAndHoverVerificationDetailsManager(logger).SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
       }
     }
 
@@ -379,59 +349,16 @@ public class CompilationManager : IDisposable {
   }
 
   private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var status = StatusFromBoogieStatus(boogieStatus);
 
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
-    var implementations = compilation.ImplementationsPerVerifiable[canVerify];
-
-    var implementationName = GetImplementationName(implementationTask.Implementation);
     logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
-    if (boogieStatus is Running) {
-      gutterIconManager.ReportVerifyImplementationRunning(compilation, implementationTask.Implementation);
-    }
-
-    DafnyDiagnostic[] newDiagnostics;
-    bool hitErrorLimit = false;
-    if (boogieStatus is BatchCompleted batchCompleted) {
-      gutterIconManager.ReportAssertionBatchResult(compilation,
-        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
-
-      foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
-        compilation.Counterexamples.Add(counterExample);
-      }
-      hitErrorLimit = batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
-      newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
-    } else {
-      newDiagnostics = Array.Empty<DafnyDiagnostic>();
-    }
-
-    var view = implementations.TryGetValue(implementationName, out var taskAndView)
-      ? taskAndView
-      : new ImplementationState(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hitErrorLimit);
-    implementations[implementationName] = view with {
-      Status = status,
-      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(),
-      HitErrorLimit = view.HitErrorLimit || hitErrorLimit
-    };
 
     if (boogieStatus is Completed completed) {
-      var verificationResult = completed.Result;
-      // Sometimes, the boogie status is set as Completed
-      // but the assertion batches were not reported yet.
-      // because they are on a different thread.
-      // This loop will ensure that every vc result has been dealt with
-      // before we report that the verification of the implementation is finished 
-      foreach (var result in completed.Result.VCResults) {
-        logger.LogDebug($"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {compilation.Version}");
-        gutterIconManager.ReportAssertionBatchResult(compilation,
-          new AssertionBatchResult(implementationTask.Implementation, result));
-      }
-      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
-      gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
+      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, completed.Result);
     }
+    
     compilationUpdates.OnNext(new ImplementationStateUpdated(canVerify,
-      implementationName,
-      implementations[implementationName],
+      implementationTask,
       boogieStatus));
   }
 
@@ -450,62 +377,6 @@ public class CompilationManager : IDisposable {
       compilation.Program.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
-  }
-
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
-    var errorReporter = new ObservableErrorReporter(options, compilation.Uri.ToUri());
-    List<DafnyDiagnostic> diagnostics = new();
-    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
-    var outcome = GetOutcome(result.outcome);
-    foreach (var counterExample in result.counterExamples) {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
-    }
-
-    var implementation = task.Implementation;
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
-      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
-      implementation.GetTimeLimit(options), result.counterExamples);
-
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
-  }
-
-  private ConditionGeneration.Outcome GetOutcome(ProverInterface.Outcome outcome) {
-    switch (outcome) {
-      case ProverInterface.Outcome.Valid:
-        return ConditionGeneration.Outcome.Correct;
-      case ProverInterface.Outcome.Invalid:
-        return ConditionGeneration.Outcome.Errors;
-      case ProverInterface.Outcome.TimeOut:
-        return ConditionGeneration.Outcome.TimedOut;
-      case ProverInterface.Outcome.OutOfMemory:
-        return ConditionGeneration.Outcome.OutOfMemory;
-      case ProverInterface.Outcome.OutOfResource:
-        return ConditionGeneration.Outcome.OutOfResource;
-      case ProverInterface.Outcome.Undetermined:
-        return ConditionGeneration.Outcome.Inconclusive;
-      case ProverInterface.Outcome.Bounded:
-        return ConditionGeneration.Outcome.ReachedBound;
-      default:
-        throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
-    }
-  }
-
-  private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
-    switch (verificationStatus) {
-      case Stale:
-        return PublishedVerificationStatus.Stale;
-      case Queued:
-        return PublishedVerificationStatus.Queued;
-      case Running:
-      case BatchCompleted:
-        return PublishedVerificationStatus.Running;
-      case Completed completed:
-        return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
-          ? PublishedVerificationStatus.Correct
-          : PublishedVerificationStatus.Error;
-      default:
-        throw new ArgumentOutOfRangeException();
-    }
   }
 
   public void CancelPendingUpdates() {
@@ -580,6 +451,5 @@ public class CompilationManager : IDisposable {
 
     disposed = true;
     CancelPendingUpdates();
-    verificationUpdateScheduler.Dispose();
   }
 }

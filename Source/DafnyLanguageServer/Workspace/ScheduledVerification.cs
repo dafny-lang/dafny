@@ -1,12 +1,13 @@
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record ScheduledVerification(ICanVerify CanVerify) : ICompilationEvent {
 
-  public IdeState UpdateState(IdeState previousState) {
+  public IdeState UpdateState(DafnyOptions Options, ILogger logger, IdeState previousState) {
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;

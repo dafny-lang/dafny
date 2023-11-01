@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Extensions.Logging;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -15,7 +16,16 @@ record FinishedResolution(
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
 {
-  public IdeState UpdateState(IdeState previousState) {
+  public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
+    var trees = previousState.VerificationTrees;
+    if (!Compilation.Program.Reporter.HasErrors) {
+      foreach (var uri in trees.Keys) {
+        trees = trees.SetItem(uri,
+          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, Compilation,
+            previousState.VerificationTrees[uri]));
+      }
+    }
+
     var verificationResults = CanVerifies == null
       ? previousState.VerificationResults
       : CanVerifies.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
@@ -29,7 +39,8 @@ record FinishedResolution(
                     ?? previousState.SymbolTable, // TODO migration seems missing
       SignatureAndCompletionTable = LegacySignatureAndCompletionTable,
       GhostRanges = GhostRanges,
-      VerificationResults = verificationResults
+      VerificationResults = verificationResults,
+      VerificationTrees = trees
     };
   }
 
