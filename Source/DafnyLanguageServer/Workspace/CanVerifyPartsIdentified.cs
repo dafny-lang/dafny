@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -13,10 +14,15 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var implementations = Parts.Select(t => t.Implementation);
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
-    gutterIconManager.ReportImplementationsBeforeVerification(previousState,
-      CanVerify, implementations.ToArray());
     
     var uri = CanVerify.Tok.Uri;
+    var tree = previousState.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(previousState.Program, uri);
+    previousState = previousState with {
+      VerificationTrees = previousState.VerificationTrees.SetItem(uri, tree)
+    };
+    gutterIconManager.ReportImplementationsBeforeVerification(previousState,
+      CanVerify, implementations.ToArray());
+
     var range = CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
     var names = Parts.Select(t => CompilationManager.GetImplementationName(t.Implementation));
@@ -24,7 +30,7 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
       Implementations: names.ToImmutableDictionary(k => k,
         k => {
           var previous = previousImplementations.GetValueOrDefault(k);
-          return new IdeImplementationView(range, PublishedVerificationStatus.Stale, 
+          return new IdeImplementationView(range, PublishedVerificationStatus.Stale,
             previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false);
         }));

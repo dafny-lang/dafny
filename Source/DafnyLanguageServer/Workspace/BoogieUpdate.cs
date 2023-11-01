@@ -11,9 +11,8 @@ using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificationStatus BoogieStatus) 
-  : ICompilationEvent 
-{
+record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificationStatus BoogieStatus)
+  : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     UpdateGutterIconTrees(options, logger, previousState);
 
@@ -41,7 +40,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     }
     var view = new IdeImplementationView(range, status, diagnostics.ToList(), previousView.HitErrorLimit || hitErrorLimit);
-      return previousState with {
+    return previousState with {
       Counterexamples = counterExamples,
       VerificationResults = previousState.VerificationResults.SetItem(uri, previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
         Implementations = previousVerificationResult.Implementations.SetItem(name, view)
@@ -49,21 +48,18 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
     };
   }
 
-  private void UpdateGutterIconTrees(DafnyOptions options, ILogger logger, IdeState previousState)
-  {
+  private void UpdateGutterIconTrees(DafnyOptions options, ILogger logger, IdeState previousState) {
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
     if (BoogieStatus is Running) {
       gutterIconManager.ReportVerifyImplementationRunning(previousState, Task.Implementation);
     }
-    
-    if (BoogieStatus is BatchCompleted batchCompleted)
-    {
+
+    if (BoogieStatus is BatchCompleted batchCompleted) {
       gutterIconManager.ReportAssertionBatchResult(previousState,
         new AssertionBatchResult(Task.Implementation, batchCompleted.VcResult));
     }
 
-    if (BoogieStatus is Completed completed)
-    {
+    if (BoogieStatus is Completed completed) {
       var tokenString = BoogieGenerator.ToDafnyToken(true, Task.Implementation.tok).TokenToString(options);
       var verificationResult = completed.Result;
       // Sometimes, the boogie status is set as Completed
@@ -71,8 +67,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
       // because they are on a different thread.
       // This loop will ensure that every vc result has been dealt with
       // before we report that the verification of the implementation is finished 
-      foreach (var result in completed.Result.VCResults)
-      {
+      foreach (var result in completed.Result.VCResults) {
         logger.LogDebug(
           $"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {previousState.Version}");
         gutterIconManager.ReportAssertionBatchResult(previousState,
@@ -100,7 +95,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
         throw new ArgumentOutOfRangeException();
     }
   }
-  
+
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(IdeState state, IImplementationTask task, VCResult result) {
     var options = state.Compilation.Options;
     var errorReporter = new ObservableErrorReporter(options, state.Uri);
@@ -112,7 +107,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
     }
 
     var implementation = task.Implementation;
-    
+
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));

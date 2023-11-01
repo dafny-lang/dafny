@@ -36,7 +36,7 @@ public record IdeState(
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
   public Uri Uri => Compilation.Uri.ToUri();
-  
+
   public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
     return diagnostics.Select(diagnostic => diagnostic with {
       Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,

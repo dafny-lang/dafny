@@ -14,8 +14,7 @@ record FinishedResolution(
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
-{
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var trees = previousState.VerificationTrees;
     if (!Compilation.Program.Reporter.HasErrors) {
@@ -32,12 +31,13 @@ record FinishedResolution(
         k => k.GroupBy<ICanVerify, Range>(l => l.NameToken.GetLspRange()).ToImmutableDictionary(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
+    var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved ? LegacySignatureAndCompletionTable : previousState.SignatureAndCompletionTable;
     return previousState with {
       Program = Compilation.Program,
       Compilation = Compilation,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing
-      SignatureAndCompletionTable = LegacySignatureAndCompletionTable,
+      SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = GhostRanges,
       VerificationResults = verificationResults,
       VerificationTrees = trees

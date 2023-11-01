@@ -235,7 +235,7 @@ public class CompilationManager : IDisposable {
           t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
-        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify, 
+        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify,
           compilation.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
       }
 
@@ -356,7 +356,7 @@ public class CompilationManager : IDisposable {
     if (boogieStatus is Completed completed) {
       ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, completed.Result);
     }
-    
+
     compilationUpdates.OnNext(new BoogieUpdate(canVerify,
       implementationTask,
       boogieStatus));

@@ -119,15 +119,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
-      var nothingToVerifyStatus = PublishedVerificationStatus.Correct;
+      const PublishedVerificationStatus nothingToVerifyStatus = PublishedVerificationStatus.Correct;
       var status = result.PreparationProgress switch {
         VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
         VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
         VerificationPreparationState.Done =>
-              result.Implementations.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
+          result.Implementations.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
         _ => throw new ArgumentOutOfRangeException()
       };
 
+      if (result.PreparationProgress == VerificationPreparationState.Done &&
+          status == PublishedVerificationStatus.Stale) {
+        status = PublishedVerificationStatus.Queued;
+      }
       return new(canVerify, status);
     }
 

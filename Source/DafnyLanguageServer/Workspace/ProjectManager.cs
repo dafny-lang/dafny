@@ -8,6 +8,8 @@ using System.Numerics;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
@@ -76,6 +78,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
   private Lazy<IdeState> latestIdeState;
+  private readonly ReplaySubject<Lazy<IdeState>> states = new(1);
+  public IObservable<Lazy<IdeState>> States => states;
 
   public ProjectManager(
     DafnyOptions serverOptions,
@@ -171,10 +175,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;
       latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
+      
       return latestIdeState;
     });
+    migratedUpdates.Subscribe(states);
+    
     var throttleTime = options.Get(UpdateThrottling);
-    var throttledUpdates = throttleTime == 0 ? migratedUpdates : migratedUpdates.Sample(TimeSpan.FromMilliseconds(throttleTime));
+    var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.
       Select(x => x.Value).Subscribe(observer);
 
@@ -245,29 +252,19 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     return await CompilationManager.LastDocument;
   }
 
-  public async Task<IdeState> GetStateAfterParsingAsync() {
-    try {
-      var parsedCompilation = await CompilationManager.ParsedCompilation;
-      logger.LogDebug($"GetSnapshotAfterParsingAsync returns compilation version {parsedCompilation.Version}");
-    } catch (OperationCanceledException) {
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for parsed compilation {Project.Uri}");
-    }
-
-    logger.LogDebug($"GetSnapshotAfterParsingAsync returns state version {latestIdeState.Value.Version}");
-    return latestIdeState.Value;
+  public Task<IdeState> GetStateAfterParsingAsync() {
+    return States.Select(l => l.Value).Where(s => s.Compilation is CompilationAfterParsing).FirstAsync().ToTask();
   }
 
-  public async Task<IdeState> GetStateAfterResolutionAsync() {
-    try {
-      var resolvedCompilation = await CompilationManager.ResolvedCompilation;
-      logger.LogDebug($"GetStateAfterResolutionAsync returns compilation version {resolvedCompilation.Version}");
-      logger.LogDebug($"GetStateAfterResolutionAsync returns state version {latestIdeState.Value.Version}");
-      return latestIdeState.Value;
-    } catch (OperationCanceledException) {
-      logger.LogDebug($"GetSnapshotAfterResolutionAsync caught OperationCanceledException for resolved compilation {Project.Uri}");
-      throw;
-    }
-
+  public Task<IdeState> GetStateAfterResolutionAsync() {
+    return States.Select(l => l.Value).Where(s => {
+      var errors = s.NotMigratedDiagnostics.Values.SelectMany(x => x).
+        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+      if (errors.Any()) {
+        return true;
+      }
+      return s.Compilation is CompilationAfterResolution;
+    }).FirstAsync().ToTask();
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {

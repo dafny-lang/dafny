@@ -319,7 +319,7 @@ method Bar() {
     Assert.Single(producerDiagnostics2); // File has no code
 
     var consumer2 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
-    var consumer2Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer2);
+    var consumer2Diagnostics = await GetLastDiagnostics(consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
     client.CloseDocument(producerItem);

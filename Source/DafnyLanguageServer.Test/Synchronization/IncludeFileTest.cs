@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -94,11 +95,7 @@ include ""./cycleA.dfy""
 ".TrimStart();
     var documentItem = CreateTestDocument(source, TestFilePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    // Parse diagnostics are currently only sent if they contain errors
-    // var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    // Assert.Single(parseDiagnostics);
-    // Assert.Contains(parseDiagnostics, d => d.Message.Contains("cycle of includes"));
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Hint);
     Assert.Equal(2, resolutionDiagnostics.Length);
     Assert.Contains(resolutionDiagnostics, d => d.Message.Contains("cycle of includes"));
     Assert.Contains(resolutionDiagnostics, d => d.Message.Contains("the referenced file"));
