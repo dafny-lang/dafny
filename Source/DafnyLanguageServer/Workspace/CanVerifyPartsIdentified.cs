@@ -14,7 +14,7 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var implementations = Parts.Select(t => t.Implementation);
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
-    
+
     var uri = CanVerify.Tok.Uri;
     gutterIconManager.ReportImplementationsBeforeVerification(previousState,
       CanVerify, implementations.ToArray());

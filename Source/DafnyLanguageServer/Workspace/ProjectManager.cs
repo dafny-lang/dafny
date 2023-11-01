@@ -177,7 +177,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       var value = lazyState.Value;
       return value with {
         Compilation = initialCompilation,
-        VerificationTrees = initialCompilation.RootUris.ToImmutableDictionary(uri => uri, 
+        VerificationTrees = initialCompilation.RootUris.ToImmutableDictionary(uri => uri,
           uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
       };
     });
@@ -186,11 +186,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;
       latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
-      
+
       return latestIdeState;
     });
     migratedUpdates.Subscribe(states);
-    
+
     var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
     observerSubscription = throttledUpdates.

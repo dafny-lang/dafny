@@ -224,7 +224,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (linesCount == 0) {
         return;
       }
-      
+
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,

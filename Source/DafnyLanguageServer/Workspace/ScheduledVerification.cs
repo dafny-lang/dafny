@@ -13,7 +13,7 @@ record ScheduledVerification(ICanVerify CanVerify) : ICompilationEvent {
     var previousVerificationResult = previousState.VerificationResults[uri][range];
     var previousImplementations = previousVerificationResult.Implementations;
     var preparationProgress = new[]
-      { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max(); 
+      { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max();
     var verificationResult = new IdeVerificationResult(PreparationProgress: preparationProgress,
       Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
