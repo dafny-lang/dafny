@@ -5,7 +5,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
   import opened System
 
   trait {:extern "IToken"} {:compile false} IToken {
-    var val : CsString
+    var val: CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
     var Next: IToken?
@@ -34,7 +34,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
     lemma TokenNextIsIPlus1(middle: IToken, i: int)
       requires Valid()
       requires 0 <= i < |allTokens|
-      requires allTokens[i] == middle;
+      requires allTokens[i] == middle
       requires middle.Next != null
       ensures 0 <= i + 1 < |allTokens| && allTokens[i+1] == middle.Next
     {
