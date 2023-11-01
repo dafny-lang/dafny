@@ -456,6 +456,15 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
+    bool TryApplyDefaultAdviceFor(PreTypeProxy proxy) {
+      foreach (var advice in defaultAdvice) {
+        if (advice.ApplyFor(proxy, PreTypeResolver)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
