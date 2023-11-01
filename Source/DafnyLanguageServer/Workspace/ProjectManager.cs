@@ -173,8 +173,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       boogieEngine,
       initialCompilation,
       lazyState.Value.VerificationTrees);
-    latestIdeState = new Lazy<IdeState>(() => lazyState.Value with {
-      Compilation = initialCompilation
+    latestIdeState = new Lazy<IdeState>(() => {
+      var value = lazyState.Value;
+      return value with {
+        Compilation = initialCompilation,
+        VerificationTrees = initialCompilation.RootUris.ToImmutableDictionary(uri => uri, 
+          uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
+      };
     });
     states.OnNext(latestIdeState);
 

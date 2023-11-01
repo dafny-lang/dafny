@@ -213,7 +213,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var errors = state.NotMigratedDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var tree = state.VerificationTrees[uri];
+      var tree = state.VerificationTrees.GetValueOrDefault(uri);
+      // if (tree == null) {
+      //   return;
+      // }
 
       var linesCount = tree.Range.End.Line + 1;
       var fileVersion = filesystem.GetVersion(uri);

@@ -339,12 +339,12 @@ public class CompilationManager : IDisposable {
   }
 
   private void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
-    if (ReportGutterStatus) {
-      if (!cancellationSource.IsCancellationRequested) {
-        // All unvisited trees need to set them as "verified"
-        new GutterIconAndHoverVerificationDetailsManager(logger).SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
-      }
-    }
+    // if (ReportGutterStatus) {
+    //   if (!cancellationSource.IsCancellationRequested) {
+    //     // All unvisited trees need to set them as "verified"
+    //     new GutterIconAndHoverVerificationDetailsManager(logger).SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
+    //   }
+    // }
 
     MarkVerificationFinished();
   }

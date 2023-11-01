@@ -16,10 +16,6 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
     
     var uri = CanVerify.Tok.Uri;
-    var tree = previousState.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(previousState.Program, uri);
-    previousState = previousState with {
-      VerificationTrees = previousState.VerificationTrees.SetItem(uri, tree)
-    };
     gutterIconManager.ReportImplementationsBeforeVerification(previousState,
       CanVerify, implementations.ToArray());
 

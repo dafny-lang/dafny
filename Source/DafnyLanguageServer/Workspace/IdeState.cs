@@ -52,6 +52,11 @@ public record IdeState(
     var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
+    
+    // var tree = previousState.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(previousState.Program, uri);
+    // previousState = previousState with {
+    //   VerificationTrees = previousState.VerificationTrees.SetItem(uri, tree)
+    // };
 
     return this with {
       Version = version,
