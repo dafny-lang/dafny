@@ -1,12 +1,18 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
 method Main() {
+  var r := NotOptimized("let");
+  print r, "\n"; // 15
   var recur := new Recur(25);
   print NotSoDeep("1900"), "\n";
   print WoahThat'sDeep(A, "42"), "\n";
   print WoahThat'sDeepToo(AA("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"), "555"), "\n";
   print "Recur: ", recur.Follow0(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
   print "Recur: ", recur.Follow1(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
+}
+
+method NotOptimized(s: string) returns (r: int) {
+  return (var abc := |s|; 3 * abc) + (var xyz := |s|; xyz + xyz);
 }
 
 function NotSoDeep(x: string): Option<string> {
