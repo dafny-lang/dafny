@@ -18,7 +18,7 @@ public class CompilationManagerTest {
       new Mock<IProgramVerifier>().Object,
       new Mock<IGutterIconAndHoverVerificationDetailsManager>().Object,
       dafnyOptions,
-      null, new Compilation(0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
+      null, new Compilation(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
     await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedCompilation);
   }

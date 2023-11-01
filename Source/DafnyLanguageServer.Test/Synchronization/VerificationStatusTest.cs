@@ -71,7 +71,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
   return 2;
 }".TrimStart();
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem1 = await CreateOpenAndWaitForResolve(source, "PreparingVerificationShowsUpAsAllQueued.dfy");
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
@@ -107,7 +107,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
   return 2;
 }".TrimStart();
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
@@ -151,7 +151,7 @@ module A.B.D {
   }
 }".TrimStart();
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
       options.Set(CommonOptionBag.VerifyIncludedFiles, true);
 
     });
@@ -175,7 +175,7 @@ module A.B.C {
   }
 }".TrimStart();
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -192,7 +192,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
   return 2;
 }";
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source, "ManuallyRunMethodWithTwoUnderlyingTasks.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -299,7 +299,7 @@ function fib(n: nat): nat {
   if (n <= 1) then n else fib(n - 1) + fib(n - 2)
 }".TrimStart();
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source, "ManyConcurrentVerificationRuns.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -323,7 +323,7 @@ function fib(n: nat): nat {
   public async Task MigrateDeletedVerifiableSymbol() {
     var source = @"method Foo() { assert false; }";
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source, "MigrateDeletedVerifiableSymbol.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -341,7 +341,7 @@ function fib(n: nat): nat {
   [Fact]
   public async Task ChangeRunSaveWithVerify() {
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Save);
     });
     var source = @"method Foo() { assert true; }
 method Bar() { assert false; }";
@@ -351,10 +351,10 @@ method Bar() { assert false; }";
     var methodHeader = new Position(0, 7);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken, true);
+    var preSaveDiagnostics = await GetLastDiagnostics(documentItem, allowStale: true);
     Assert.Single(preSaveDiagnostics);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-    var lastDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var lastDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Equal(2, lastDiagnostics.Length);
   }
 
@@ -362,7 +362,7 @@ method Bar() { assert false; }";
   public async Task MigratedDiagnosticsAfterManualRun() {
     var source = @"method Foo() { assert false; }";
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(source, "MigratedDiagnosticsAfterManualRun.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -384,7 +384,7 @@ method Bar() { assert false; }";
   public async Task ManualRunCancelCancelRunRun() {
 
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Never);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
     var documentItem = CreateTestDocument(SlowToVerify, "ManualRunCancelCancelRunRun.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -424,7 +424,7 @@ method Bar() { assert false; }";
     var source = @"method Foo() { assert false; }";
 
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source, "SingleMethodGoesThroughAllPhasesExceptQueued.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -464,7 +464,7 @@ method Bar() { assert false; }";
 ";
 
     await SetUp(options => {
-      options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+      options.Set(ProjectManager.Verification, VerifyOnMode.Save);
     });
     var documentItem = CreateTestDocument(source, "WhenUsingOnSaveMethodStaysStaleUntilSave.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -492,7 +492,7 @@ method Bar() { assert true; }";
 
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.VerifySnapshots, 1U);
+      options.Set(LanguageServer.VerifySnapshots, 1U);
     });
 
     var documentItem = CreateTestDocument(source, "CachingDoesNotWork.dfy");
@@ -655,8 +655,10 @@ module Refinement2 refines BaseModule {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
-    Assert.Equal(1, status.NamedVerifiables.Count);
+    Assert.Equal(3, status.NamedVerifiables.Count);
     Assert.Equal(new Range(1, 9, 1, 12), status.NamedVerifiables[0].NameRange);
+    Assert.Equal(new Range(5, 9, 5, 12), status.NamedVerifiables[1].NameRange);
+    Assert.Equal(new Range(11, 9, 11, 12), status.NamedVerifiables[2].NameRange);
   }
 
   [Fact]

@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -16,8 +18,9 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     return base.SetUp(options => {
       modifyOptions?.Invoke(options);
       // We're setting LineVerificationStatus to false already, with the expectation that this will become the default.
-      options.Set(ServerCommand.LineVerificationStatus, false);
-      options.Set(ServerCommand.UpdateThrottling, ServerCommand.DefaultThrottleTime);
+      options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
+      options.Set(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable, false);
+      options.Set(ProjectManager.UpdateThrottling, ProjectManager.DefaultThrottleTime);
     });
   }
 

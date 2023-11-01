@@ -141,7 +141,7 @@ public class CompilationManager : IDisposable {
   }
 
   private static string GetImplementationName(Implementation implementation) {
-    var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
+    var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
@@ -246,7 +246,7 @@ public class CompilationManager : IDisposable {
         updated = true;
         return tasksForVerifiable.ToDictionary(
           t => GetImplementationName(t.Implementation),
-          t => new ImplementationView(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>()));
+          t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
         gutterIconManager.ReportImplementationsBeforeVerification(compilation,
@@ -273,6 +273,7 @@ public class CompilationManager : IDisposable {
                   new AssertionBatchResult(task.Implementation, result));
               }
 
+              ReportVacuityAndRedundantAssumptionsChecks(compilation, task.Implementation, completedCache.Result);
               gutterIconManager.ReportEndVerifyImplementation(compilation, task.Implementation,
                 completedCache.Result);
             }
@@ -331,7 +332,7 @@ public class CompilationManager : IDisposable {
     var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationView>();
+        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
       }
@@ -370,7 +371,7 @@ public class CompilationManager : IDisposable {
   private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify verifiable, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
     var status = StatusFromBoogieStatus(boogieStatus);
 
-    var tokenString = implementationTask.Implementation.tok.TokenToString(options);
+    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
     var implementations = compilation.ImplementationsPerVerifiable[verifiable];
 
     var implementationName = GetImplementationName(implementationTask.Implementation);
@@ -380,6 +381,7 @@ public class CompilationManager : IDisposable {
     }
 
     DafnyDiagnostic[] newDiagnostics;
+    bool hitErrorLimit = false;
     if (boogieStatus is BatchCompleted batchCompleted) {
       gutterIconManager.ReportAssertionBatchResult(compilation,
         new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
@@ -387,7 +389,7 @@ public class CompilationManager : IDisposable {
       foreach (var counterExample in batchCompleted.VcResult.counterExamples) {
         compilation.Counterexamples.Add(counterExample);
       }
-
+      hitErrorLimit = batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       newDiagnostics = GetDiagnosticsFromResult(compilation, implementationTask, batchCompleted.VcResult).ToArray();
     } else {
       newDiagnostics = Array.Empty<DafnyDiagnostic>();
@@ -395,8 +397,12 @@ public class CompilationManager : IDisposable {
 
     var view = implementations.TryGetValue(implementationName, out var taskAndView)
       ? taskAndView
-      : new ImplementationView(implementationTask, status, Array.Empty<DafnyDiagnostic>());
-    implementations[implementationName] = view with { Status = status, Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray() };
+      : new ImplementationState(implementationTask, status, Array.Empty<DafnyDiagnostic>(), hitErrorLimit);
+    implementations[implementationName] = view with {
+      Status = status,
+      Diagnostics = view.Diagnostics.Concat(newDiagnostics).ToArray(),
+      HitErrorLimit = view.HitErrorLimit || hitErrorLimit
+    };
 
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
@@ -410,12 +416,29 @@ public class CompilationManager : IDisposable {
         gutterIconManager.ReportAssertionBatchResult(compilation,
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
+      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, verificationResult);
       gutterIconManager.ReportEndVerifyImplementation(compilation, implementationTask.Implementation, verificationResult);
     }
     compilationUpdates.OnNext(compilation);
   }
 
-  private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
+  private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
+
+  public static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+    Implementation implementation, VerificationResult verificationResult) {
+    var options = compilation.Program.Reporter.Options;
+    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
+       ) {
+      return;
+    }
+
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
+      compilation.Program.ProofDependencyManager,
+      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
+      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
+    compilation.RefreshDiagnosticsFromProgramReporter();
+  }
 
   private List<DafnyDiagnostic> GetDiagnosticsFromResult(CompilationAfterResolution compilation, IImplementationTask task, VCResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, compilation.Uri.ToUri());
@@ -425,7 +448,7 @@ public class CompilationManager : IDisposable {
     }
 
     var implementation = task.Implementation;
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);
 

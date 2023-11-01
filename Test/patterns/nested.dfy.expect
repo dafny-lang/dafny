@@ -1,5 +1,0 @@
-nested.dfy(8,6): Warning: note, this forall statement has no body
-nested.dfy(8,6): Warning: /!\ No terms found to trigger on.
-nested.dfy(8,28): Error: match has no cases and this is only allowed when the verifier can prove the match is unreachable
-
-Dafny program verifier finished with 0 verified, 1 error
