@@ -33,7 +33,7 @@ record FinishedResolution(
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved ? LegacySignatureAndCompletionTable : previousState.SignatureAndCompletionTable;
     return previousState with {
-      Program = Compilation.Program,
+      //Program = Compilation.Program,
       Compilation = Compilation,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing

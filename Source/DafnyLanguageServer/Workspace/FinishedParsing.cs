@@ -11,8 +11,10 @@ record FinishedParsing(CompilationAfterParsing Compilation) : ICompilationEvent 
         GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, Compilation, previousState.VerificationTrees[uri]));
     }
 
+    var cloner = new Cloner(true, false);
+    var programClone = new Program(cloner, Compilation.Program);
     return previousState with {
-      Program = Compilation.Program,
+      Program = programClone,
       Compilation = Compilation,
       VerificationTrees = trees
     };

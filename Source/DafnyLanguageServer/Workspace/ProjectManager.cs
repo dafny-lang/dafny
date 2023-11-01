@@ -166,11 +166,17 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription.Dispose();
 
     CompilationManager.Dispose();
+    var lazyState = latestIdeState;
+    var initialCompilation = CreateInitialCompilation();
     CompilationManager = createCompilationManager(
       options,
       boogieEngine,
-      CreateInitialCompilation(),
-      latestIdeState.Value.VerificationTrees);
+      initialCompilation,
+      lazyState.Value.VerificationTrees);
+    latestIdeState = new Lazy<IdeState>(() => lazyState.Value with {
+      Compilation = initialCompilation
+    });
+    states.OnNext(latestIdeState);
 
     var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;
@@ -261,7 +267,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       var errors = s.NotMigratedDiagnostics.Values.SelectMany(x => x).
         Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       if (errors.Any()) {
-        return true;
+        return s.Compilation is CompilationAfterParsing;
       }
       return s.Compilation is CompilationAfterResolution;
     }).FirstAsync().ToTask();
