@@ -29,6 +29,7 @@ public record IdeState(
   CompilationStatus Status,
   Node Program,
   ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
+  Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
   ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,

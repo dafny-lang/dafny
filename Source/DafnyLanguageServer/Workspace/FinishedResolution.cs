@@ -13,11 +13,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record FinishedResolution(
   ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics,
-  Program Program,
+  Program ResolvedProgram,
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
+{
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var errors = Diagnostics.Values.SelectMany(x => x).
       Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
@@ -27,7 +28,7 @@ record FinishedResolution(
     if (status == CompilationStatus.ResolutionSucceeded) {
       foreach (var uri in trees.Keys) {
         trees = trees.SetItem(uri,
-          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, Program,
+          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, ResolvedProgram,
             previousState.VerificationTrees[uri]));
       }
     }
@@ -43,6 +44,7 @@ record FinishedResolution(
     return previousState with {
       StaticDiagnostics = Diagnostics,
       Status = status,
+      ResolvedProgram = ResolvedProgram,
       SymbolTable = SymbolTable
                     ?? previousState.SymbolTable, // TODO migration seems missing
       SignatureAndCompletionTable = signatureAndCompletionTable,
