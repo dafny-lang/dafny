@@ -11,30 +11,9 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class Resolution {
-
-  public Resolution(
-    Program ResolvedProgram,
-    SymbolTable? symbolTable,
-    LegacySignatureAndCompletionTable signatureAndCompletionTable,
-    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges,
-    IReadOnlyList<ICanVerify>? canVerifies
-    ) {
-    this.ResolvedProgram = ResolvedProgram;
-    SymbolTable = symbolTable;
-    SignatureAndCompletionTable = signatureAndCompletionTable;
-    GhostRanges = ghostRanges;
-  }
-
-  public Program ResolvedProgram { get; }
-  public SymbolTable? SymbolTable { get; }
-  public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
-  public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges { get; }
-  public IReadOnlyList<ICanVerify>? CanVerifies { get; }
-
-  // TODO Move?
-  public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
-  public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> ImplementationsPerVerifiable { get; } = new();
-
-
-}
+public record Resolution(
+  Program ResolvedProgram,
+  SymbolTable? SymbolTable,
+  LegacySignatureAndCompletionTable SignatureAndCompletionTable,
+  IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
+  IReadOnlyList<ICanVerify>? CanVerifies);

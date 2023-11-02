@@ -53,6 +53,9 @@ public class Compilation : IDisposable {
   /// </summary>
   private readonly LazyConcurrentDictionary<ModuleDefinition,
     Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules = new();
+
+  private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
+  private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> implementationsPerVerifiable = new();
   
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
@@ -198,7 +201,7 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !resolution.VerifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
       return false;
     }
     updates.OnNext(new ScheduledVerification(canVerify));
@@ -245,7 +248,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementations = resolution.ImplementationsPerVerifiable.GetOrAdd(canVerify, () => {
+      var implementations = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
@@ -257,7 +260,7 @@ public class Compilation : IDisposable {
       });
       if (updated) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          resolution.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
+          implementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
@@ -337,12 +340,12 @@ public class Compilation : IDisposable {
     var resolution = await Resolution;
     var canVerify = program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
-      var implementations = resolution.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
+      var implementations = implementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
       }
-      resolution.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
+      verifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
     }
   }
 
