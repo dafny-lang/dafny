@@ -129,8 +129,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var upcomingVersion = version + 1;
     latestIdeState = new Lazy<IdeState>(() => {
       // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-      observer.Migrate(migrator, upcomingVersion);
-      return lazyPreviousCompilationLastIdeState.Value.Migrate(migrator, upcomingVersion);
+      observer.Migrate(options, migrator, upcomingVersion);
+      return lazyPreviousCompilationLastIdeState.Value.Migrate(options, migrator, upcomingVersion);
     });
     StartNewCompilation();
 

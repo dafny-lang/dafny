@@ -77,9 +77,9 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     }
   }
 
-  public void Migrate(Migrator migrator, int version) {
+  public void Migrate(DafnyOptions options, Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
-      LastPublishedState = LastPublishedState.Migrate(migrator, version);
+      LastPublishedState = LastPublishedState.Migrate(options, migrator, version);
       logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Compilation.Uri.ToUri()}");
     }
   }
