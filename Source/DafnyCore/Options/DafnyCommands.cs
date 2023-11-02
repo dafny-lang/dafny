@@ -52,12 +52,14 @@ public static class DafnyCommands {
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
-    CommonOptionBag.AddCompileSuffix
+    CommonOptionBag.AddCompileSuffix,
+    CommonOptionBag.SystemModule
   }.Concat(VerificationOptions).ToList();
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
-    CommonOptionBag.SpillTranslation
+    CommonOptionBag.SpillTranslation,
+    CommonOptionBag.InternalIncludeRuntimeOptionForExecution
   }.Concat(TranslationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {

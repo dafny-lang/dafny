@@ -27,6 +27,40 @@ Additional target code written to ManualCompile-java/dafny/DafnyMultiset.java
 Additional target code written to ManualCompile-java/dafny/DafnySequence.java
 Additional target code written to ManualCompile-java/dafny/DafnySet.java
 Additional target code written to ManualCompile-java/dafny/Helpers.java
+Additional target code written to ManualCompile-java/dafny/TypeDescriptor.java
+Additional target code written to ManualCompile-java/dafny/Array1.java
+Additional target code written to ManualCompile-java/dafny/Array10.java
+Additional target code written to ManualCompile-java/dafny/Array11.java
+Additional target code written to ManualCompile-java/dafny/Array12.java
+Additional target code written to ManualCompile-java/dafny/Array13.java
+Additional target code written to ManualCompile-java/dafny/Array14.java
+Additional target code written to ManualCompile-java/dafny/Array15.java
+Additional target code written to ManualCompile-java/dafny/Array16.java
+Additional target code written to ManualCompile-java/dafny/Array2.java
+Additional target code written to ManualCompile-java/dafny/Array3.java
+Additional target code written to ManualCompile-java/dafny/Array4.java
+Additional target code written to ManualCompile-java/dafny/Array5.java
+Additional target code written to ManualCompile-java/dafny/Array6.java
+Additional target code written to ManualCompile-java/dafny/Array7.java
+Additional target code written to ManualCompile-java/dafny/Array8.java
+Additional target code written to ManualCompile-java/dafny/Array9.java
+Additional target code written to ManualCompile-java/dafny/Function0.java
+Additional target code written to ManualCompile-java/dafny/Function1.java
+Additional target code written to ManualCompile-java/dafny/Function10.java
+Additional target code written to ManualCompile-java/dafny/Function11.java
+Additional target code written to ManualCompile-java/dafny/Function12.java
+Additional target code written to ManualCompile-java/dafny/Function13.java
+Additional target code written to ManualCompile-java/dafny/Function14.java
+Additional target code written to ManualCompile-java/dafny/Function15.java
+Additional target code written to ManualCompile-java/dafny/Function16.java
+Additional target code written to ManualCompile-java/dafny/Function2.java
+Additional target code written to ManualCompile-java/dafny/Function3.java
+Additional target code written to ManualCompile-java/dafny/Function4.java
+Additional target code written to ManualCompile-java/dafny/Function5.java
+Additional target code written to ManualCompile-java/dafny/Function6.java
+Additional target code written to ManualCompile-java/dafny/Function7.java
+Additional target code written to ManualCompile-java/dafny/Function8.java
+Additional target code written to ManualCompile-java/dafny/Function9.java
 Additional target code written to ManualCompile-java/dafny/Tuple0.java
 Additional target code written to ManualCompile-java/dafny/Tuple1.java
 Additional target code written to ManualCompile-java/dafny/Tuple10.java
@@ -48,7 +82,6 @@ Additional target code written to ManualCompile-java/dafny/Tuple6.java
 Additional target code written to ManualCompile-java/dafny/Tuple7.java
 Additional target code written to ManualCompile-java/dafny/Tuple8.java
 Additional target code written to ManualCompile-java/dafny/Tuple9.java
-Additional target code written to ManualCompile-java/dafny/TypeDescriptor.java
 Additional target code written to ManualCompile-java/_System/nat.java
 Additional target code written to ManualCompile-java/_System/__default.java
 hello, Dafny
@@ -61,7 +94,7 @@ hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to ManualCompile-py/__main__.py
-Additional target code written to ManualCompile-py/_dafny.py
 Additional target code written to ManualCompile-py/System_.py
+Additional target code written to ManualCompile-py/_dafny.py
 Additional target code written to ManualCompile-py/module_.py
 hello, Dafny
