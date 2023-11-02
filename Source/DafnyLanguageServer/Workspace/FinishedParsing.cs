@@ -9,8 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record FinishedParsing(
   Program Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent 
-{
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
 
     var trees = previousState.VerificationTrees;

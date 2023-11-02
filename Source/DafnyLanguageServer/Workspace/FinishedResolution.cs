@@ -17,11 +17,10 @@ record FinishedResolution(
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
-{
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var errors = Diagnostics.Values.SelectMany(x => x).
-      Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+      Where(d => d.Severity == DiagnosticSeverity.Error && d.Source != MessageSource.Compiler.ToString()).ToList();
     var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
 
     var trees = previousState.VerificationTrees;

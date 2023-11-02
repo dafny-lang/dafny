@@ -62,7 +62,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogDebug("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        var delay = Task.Delay(1000);
+        var task = Task.WhenAny(projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument)),
+          delay);
+        var c = await task;
+        if (c == delay) {
+          throw new Exception("blieee");
+        }
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }

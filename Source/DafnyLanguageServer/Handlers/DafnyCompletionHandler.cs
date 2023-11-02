@@ -76,9 +76,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
 
         if (logger.IsEnabled(LogLevel.Trace)) {
-          var program = (Program)state.Program;
+          var program = (Program)state.ResolvedProgram;
           var writer = new StringWriter();
-          var printer = new Printer(writer, DafnyOptions.Default);
+          var printer = new Printer(writer, state.Input.Options);
           printer.PrintProgram(program, true);
           logger.LogTrace($"Program:\n{writer}");
         }
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       private bool IsDotExpression() {
-        var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        var node = state.ResolvedProgram.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
         return node?.RangeToken.EndToken.val == ".";
       }
 

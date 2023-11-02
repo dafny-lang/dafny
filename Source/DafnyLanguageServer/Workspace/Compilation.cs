@@ -56,7 +56,7 @@ public class Compilation : IDisposable {
 
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> implementationsPerVerifiable = new();
-  
+
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   public CompilationInput Input { get; }
@@ -109,7 +109,7 @@ public class Compilation : IDisposable {
       var uri = Input.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(updates);
-      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic => 
+      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
         staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
       compiledProgram = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
         cancellationSource.Token);
@@ -336,9 +336,8 @@ public class Compilation : IDisposable {
   }
 
   public async Task Cancel(FilePosition filePosition) {
-    var program = await Program;
     var resolution = await Resolution;
-    var canVerify = program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
+    var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = implementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();

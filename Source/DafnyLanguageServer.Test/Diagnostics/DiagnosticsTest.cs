@@ -326,7 +326,7 @@ module N refines M
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
-      Assert.Contains(diagnostics, d => d.Message.Contains( 
+      Assert.Contains(diagnostics, d => d.Message.Contains(
         "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value"));
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

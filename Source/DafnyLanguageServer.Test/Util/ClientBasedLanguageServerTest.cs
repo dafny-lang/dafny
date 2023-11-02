@@ -91,16 +91,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   private void AssertMatchRegex(string expected, string value) {
     var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", "[\\s\\S]*");
     var matched = new Regex(regexExpected).Match(value).Success;
-    if (!matched) {
-      // A simple helper to determine what portion of the regex did not match
-      var helper = "";
-      foreach (var chunk in expected.Split("???")) {
-        if (!value.Contains(chunk)) {
-          helper += $"\nThe result string did not contain '{chunk}'";
-        }
-      }
-      Assert.Fail($"{value} did not match {regexExpected}." + helper);
+    if (matched) {
+      return;
     }
+
+    // A simple helper to determine what portion of the regex did not match
+    var helper = "";
+    foreach (var chunk in expected.Split("???")) {
+      if (!value.Contains(chunk)) {
+        helper += $"\nThe result string did not contain '{chunk}'";
+      }
+    }
+    Assert.Fail($"value '{value}' did not match {regexExpected}." + helper);
   }
 
   public async Task<NamedVerifiableStatus> WaitForStatus([CanBeNull] Range nameRange, PublishedVerificationStatus statusToFind,
@@ -214,7 +216,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       return null;
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
-    if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
+    if (fileVerificationStatus != null && fileVerificationStatus.Version <= documentId.Version) {
       while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
 

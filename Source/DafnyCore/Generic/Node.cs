@@ -62,7 +62,7 @@ public abstract class Node : INode {
       }
     }
   }
-  
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children

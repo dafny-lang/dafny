@@ -403,10 +403,10 @@ method Bar() { assert false; }";
     Assert.Equal(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);
 
     await client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     // Do a second cancel to check it doesn't crash.
     await client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
 
-    var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);

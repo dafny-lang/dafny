@@ -73,19 +73,15 @@ method Foo() returns (x: int) {
       await CheckExpectedStatuses(expectedStatuses, documents);
     }
 
-    private async Task CheckExpectedStatuses(CompilationStatus[] expectedStatuses, DocumentUri[] documents)
-    {
-      foreach (var expectedStatus in expectedStatuses)
-      {
+    private async Task CheckExpectedStatuses(CompilationStatus[] expectedStatuses, DocumentUri[] documents) {
+      foreach (var expectedStatus in expectedStatuses) {
         var statuses = new Dictionary<DocumentUri, CompilationStatusParams>();
-        foreach (var _ in documents)
-        {
+        foreach (var _ in documents) {
           var statusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
           statuses.Add(statusParams.Uri, statusParams);
         }
 
-        foreach (var document in documents)
-        {
+        foreach (var document in documents) {
           var status = statuses[document];
           Assert.Equal(expectedStatus, status.Status);
         }
@@ -103,7 +99,7 @@ method Foo() returns (x: int) {
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      
+
       var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar"));
       var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
@@ -114,7 +110,7 @@ method Foo() returns (x: int) {
       };
       var allDocuments = new[] { projectFile.Uri, documentItem1.Uri, DocumentUri.File(secondFilePath) };
       await CheckExpectedStatuses(expectedStatuses, allDocuments);
-      foreach (var _ in new[] { documentItem1.Uri, DocumentUri.File(secondFilePath)}) {
+      foreach (var _ in new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) }) {
         await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken);
       }
     }

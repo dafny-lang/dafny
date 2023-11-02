@@ -37,6 +37,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ", "testFile.dfy", true);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) this postcondition could not be proved on a return path  
@@ -80,6 +81,7 @@ method DoIt() returns (x: int)
   return -1;
 //^ hover #1
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"), false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
         @"[**Error:**](???) a postcondition could not be proved on this return path???
@@ -140,6 +142,7 @@ method main(k: int) {
   Test(k);
 }
 ", "testfile.dfy", false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (6, 6),
         @"**Success:**???argument is always even  
 Did prove: `i % 2 == 0`"
@@ -236,6 +239,7 @@ method Test2(i: int)
   requires i > 0 {
 
 }", "testfile.dfy", false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (1, 10),
         @"???
 Failing precondition:???"
@@ -264,6 +268,7 @@ method f(x: int) {
   assert false;
   assert false;
 }", "testfile2.dfy", false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
@@ -290,6 +295,7 @@ datatype Test = Test(i: int)
   }
 }
 ", "testfile2.dfy", true);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (4, 20),
         @"**Error:**???assertion might not hold???
 Could not prove: `t.i > 0`  "
@@ -354,6 +360,7 @@ datatype Test = Test(i: int)
 function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy", true);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (9, 20),
         @"**Error:**???assertion might not hold???
 Could not prove: `i > 0`  "
@@ -393,6 +400,7 @@ method Test(i: int) returns (j: nat)
   }
 }
 ", "testfile2.dfy", false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (12, 11),
         @"**Error:**???this postcondition could not be proved on a return path???
 Could not prove: `i == j || -i == j`???
@@ -430,6 +438,7 @@ method Test() returns (j: int)
   return 2;
 }
 ", "testfile2.dfy", true);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (14, 5),
         @"**Error:**???a postcondition could not be proved on this return path???
 Could not prove: `j == 1`"
@@ -448,6 +457,7 @@ method Test(i: int)
   assert P(1);
 }
 ", "testfile2.dfy", false);
+      await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
       await AssertHoverMatches(documentItem, (6, 11),
         @"**Error:**???assertion might not hold  
 Inside `P(1)`  

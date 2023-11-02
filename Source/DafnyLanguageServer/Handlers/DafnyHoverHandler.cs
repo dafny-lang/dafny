@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           })
         };
       }
-      
+
       var diagnosticHoverContent = GetDiagnosticsHover(state, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
       var (symbol, symbolHoverContent) = GetStaticHoverContent(request, state);
       if (diagnosticHoverContent == null && symbolHoverContent == null) {
@@ -86,8 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var options = state.Program is Program program ? program.Reporter.Options : DafnyOptions.Default;
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(options, symbol) : null;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(state.Input.Options, symbol) : null;
       return (symbol, symbolHoverContent);
     }
 

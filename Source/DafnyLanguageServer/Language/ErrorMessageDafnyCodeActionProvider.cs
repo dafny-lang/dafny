@@ -23,8 +23,7 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     return actions;
   }
 
-  public static RangeToken FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range)
-  {
+  public static RangeToken FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
     var start = range.Start;
     var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
     var startToken = startNode.CoveredTokens.First(t => t.line - 1 == start.Line && t.col - 1 == start.Character);

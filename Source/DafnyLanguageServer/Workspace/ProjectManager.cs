@@ -77,7 +77,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
   private Lazy<IdeState> latestIdeState;
-  private readonly ReplaySubject<Lazy<IdeState>> states = new(1);
+  private ReplaySubject<Lazy<IdeState>> states = new(1);
   public IObservable<Lazy<IdeState>> States => states;
 
   public ProjectManager(
@@ -174,11 +174,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       var value = lazyState.Value;
       return value with {
         Input = input,
-        // TODO Should we set preparation status to not started here?
         VerificationTrees = input.RootUris.ToImmutableDictionary(uri => uri,
           uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
       };
     });
+    states = new ReplaySubject<Lazy<IdeState>>();
     states.OnNext(latestIdeState);
 
     var migratedUpdates = Compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
