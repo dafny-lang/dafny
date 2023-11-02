@@ -4,12 +4,10 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Test;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Xunit;
@@ -68,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.ParseAsync(new ErrorReporterSink(DafnyOptions.Default), GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, source.Token);
+      var task = textDocumentLoader.ParseAsync(new ErrorReporterSink(DafnyOptions.Default), GetCompilation(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -91,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.ParseAsync(new ErrorReporterSink(DafnyOptions.Default), GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, default);
+      var task = textDocumentLoader.ParseAsync(new ErrorReporterSink(DafnyOptions.Default), GetCompilation(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
 
         if (logger.IsEnabled(LogLevel.Trace)) {
-          var program = (Program)state.ResolvedProgram;
+          var program = (Program)state.ResolvedProgram!;
           var writer = new StringWriter();
           var printer = new Printer(writer, state.Input.Options);
           printer.PrintProgram(program, true);

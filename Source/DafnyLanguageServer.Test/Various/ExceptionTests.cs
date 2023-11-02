@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +8,6 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -113,9 +111,8 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
-      return loader.ParseAsync(reporter, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
+    public Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation, CancellationToken cancellationToken) {
+      return loader.ParseAsync(reporter, compilation, cancellationToken);
     }
 
     public Task<Resolution> ResolveAsync(CompilationInput input,

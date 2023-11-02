@@ -1,6 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,8 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
     }
 
-    public async Task<Program> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+    public async Task<Program> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
         async () => ParseInternal(errorReporter, compilation, cancellationToken), cancellationToken

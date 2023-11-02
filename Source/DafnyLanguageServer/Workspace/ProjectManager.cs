@@ -105,9 +105,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     latestIdeState = new Lazy<IdeState>(initialIdeState);
 
     observer = createIdeStateObserver(initialIdeState);
-    Compilation = createCompilation(
-        options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
-    );
+    Compilation = createCompilation(options, boogieEngine, initialCompilation);
 
     observerSubscription = Disposable.Empty;
   }
@@ -168,8 +166,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     Compilation = createCompilation(
       options,
       boogieEngine,
-      input,
-      lazyState.Value.VerificationTrees);
+      input);
     latestIdeState = new Lazy<IdeState>(() => {
       var value = lazyState.Value;
       return value with {

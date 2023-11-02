@@ -21,8 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public delegate Compilation CreateCompilation(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
-  CompilationInput compilation,
-  IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
+  CompilationInput compilation);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -38,9 +37,6 @@ public class Compilation : IDisposable {
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
-
-  // TODO CompilationManager shouldn't be aware of migration
-  private readonly IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees;
 
   private readonly TaskCompletionSource started = new();
   private readonly CancellationTokenSource cancellationSource;
@@ -78,13 +74,11 @@ public class Compilation : IDisposable {
     IProgramVerifier verifier,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
-    CompilationInput input,
-    IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
+    CompilationInput input
     ) {
     this.options = options;
     Input = input;
     this.boogieEngine = boogieEngine;
-    this.migratedVerificationTrees = migratedVerificationTrees;
 
     this.documentLoader = documentLoader;
     this.logger = logger;
@@ -111,8 +105,7 @@ public class Compilation : IDisposable {
       errorReporter.Updates.Subscribe(updates);
       staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
         staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
-      compiledProgram = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
-        cancellationSource.Token);
+      compiledProgram = await documentLoader.ParseAsync(errorReporter, Input, cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, compiledProgram);

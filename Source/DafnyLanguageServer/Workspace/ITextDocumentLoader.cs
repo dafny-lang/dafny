@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -13,8 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </summary>
   public interface ITextDocumentLoader {
 
-    Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken);
+    Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation, CancellationToken cancellationToken);
 
     Task<Resolution> ResolveAsync(CompilationInput input,
       Program program,
