@@ -8,6 +8,7 @@ module JustMethods {
     ensures true
     decreases x
   {
+    y := x;
   }
 }
 
@@ -22,6 +23,7 @@ module JustMethods {
     ensures true
     decreases x
   {
+    y := x;
   }
 }
 
@@ -145,6 +147,7 @@ module JustMethods {
     ensures true
     decreases x
   {
+    y := x;
   }
 }
 
@@ -269,6 +272,7 @@ module JustMethods {
     ensures true
     decreases x
   {
+    y := x;
   }
 }
 
