@@ -27,6 +27,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// These do not have to be owned
     /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
+
+    public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Project.Uri }).Distinct();
     public int Version { get; }
     public DafnyOptions Options { get; }
     public DafnyProject Project { get; }

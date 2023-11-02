@@ -33,8 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       CancellationToken cancellationToken) {
       var engine = boogieEngine;
 
-      var verifiableModules = BoogieGenerator.VerifiableModules(resolution.ResolvedProgram);
-      if (!verifiableModules.Contains(moduleDefinition)) {
+      if (!BoogieGenerator.ShouldVerifyModule(resolution.ResolvedProgram, moduleDefinition)) {
         throw new Exception("tried to get verification tasks for a module that is not verified");
       }
 

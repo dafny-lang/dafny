@@ -95,6 +95,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
+    foreach (var member in members) {
+      member.EnclosingClass = this;
+    }
     ParentTraits = traits ?? new List<Type>();
     SetMembersBeforeResolution();
   }

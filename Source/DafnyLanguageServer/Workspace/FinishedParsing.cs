@@ -23,11 +23,11 @@ record FinishedParsing(
 
     var errors = Diagnostics.Values.SelectMany(x => x).
       Where(d => d.Severity == DiagnosticSeverity.Error);
-
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
     return previousState with {
       Program = Program,
+      StaticDiagnostics = status == CompilationStatus.ParsingFailed ? Diagnostics : previousState.StaticDiagnostics,
       Status = status,
       VerificationTrees = trees
     };

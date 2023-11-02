@@ -52,7 +52,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
       Range = new Range(0, 0, 0, 1)
     };
     var documentToPublish = LastPublishedState with {
-      StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(initialState.Compilation.Uri.ToUri(), ImmutableList.Create(internalErrorDiagnostic))
+      StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(initialState.Input.Uri.ToUri(), ImmutableList.Create(internalErrorDiagnostic))
     };
 
     OnNext(documentToPublish);
@@ -73,14 +73,14 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
 #pragma warning restore VSTHRD002
       LastPublishedState = snapshot;
-      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Compilation.Uri.ToUri()}");
+      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 
   public void Migrate(DafnyOptions options, Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
       LastPublishedState = LastPublishedState.Migrate(options, migrator, version);
-      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Compilation.Uri.ToUri()}");
+      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 }

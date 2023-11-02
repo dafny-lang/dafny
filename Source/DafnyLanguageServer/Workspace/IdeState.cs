@@ -25,7 +25,7 @@ public record IdeVerificationResult(VerificationPreparationState PreparationProg
 /// </summary>
 public record IdeState(
   int Version,
-  CompilationInput Compilation,
+  CompilationInput Input,
   CompilationStatus Status,
   Node Program,
   ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
@@ -36,7 +36,7 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
-  public Uri Uri => Compilation.Uri.ToUri();
+  public Uri Uri => Input.Uri.ToUri();
 
   public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
     return diagnostics.Select(diagnostic => diagnostic with {
@@ -54,17 +54,12 @@ public record IdeState(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
 
-    // var tree = previousState.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(previousState.Program, uri);
-    // previousState = previousState with {
-    //   VerificationTrees = previousState.VerificationTrees.SetItem(uri, tree)
-    // };
-
     return this with {
       Version = version,
-      StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
+      Status = CompilationStatus.Parsing,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
-        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Compilation.Project),
+        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }
@@ -95,8 +90,7 @@ public record IdeState(
         }
       }
 
-      // TODO Do we have to set it to NotStarted here?
-      result = result.Add(newOuterRange, new IdeVerificationResult(PreparationProgress: VerificationPreparationState.NotStarted, Implementations: newValue));
+      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);

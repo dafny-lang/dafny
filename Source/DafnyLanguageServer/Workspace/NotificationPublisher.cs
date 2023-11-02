@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       await PublishDiagnostics(state);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
-      foreach (var uri in state.Compilation.RootUris) {
+      foreach (var uri in state.Input.RootUris) {
         PublishGutterIcons(uri, state);
       }
     }
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishSymbolProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
+      foreach (var uri in state.Input.RootUris) {
         var previous = GetFileVerificationStatus(previousState, uri);
         var current = GetFileVerificationStatus(state, uri);
 
@@ -69,11 +69,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishGlobalProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
+      foreach (var uri in state.Input.RootAndProjectUris) {
         // TODO, still have to check for ownedness
 
-        var current = GetGlobalProgress(state);
-        var previous = GetGlobalProgress(previousState);
+        var current = state.Status;
+        var previous = previousState.Status;
 
         if (Equals(current, previous)) {
           continue;
@@ -86,10 +86,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Message = null
         });
       }
-    }
-
-    private CompilationStatus GetGlobalProgress(IdeState state) {
-      return state.Status;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
@@ -132,15 +128,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task PublishDiagnostics(IdeState state) {
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = state.GetDiagnosticUris().Concat(state.Compilation.RootUris).Distinct();
+      var sources = state.GetDiagnosticUris().Concat(state.Input.RootUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
         var current = state.GetDiagnosticsForUri(uri);
         var uriProject = await projectManagerDatabase.GetProject(uri);
-        var ownedUri = uriProject.Equals(state.Compilation.Project);
+        var ownedUri = uriProject.Equals(state.Input.Project);
         if (ownedUri) {
-          if (uri == state.Compilation.Project.Uri) {
+          if (uri == state.Input.Project.Uri) {
             // Delay publication of project diagnostics,
             // since it also serves as a bucket for diagnostics from unowned files
             projectDiagnostics.AddRange(current);
@@ -162,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      PublishForUri(state.Compilation.Project.Uri, projectDiagnostics.ToArray());
+      PublishForUri(state.Input.Project.Uri, projectDiagnostics.ToArray());
 
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
@@ -217,7 +213,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
       if (logger.IsEnabled(LogLevel.Trace)) {
         var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
-        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
+        logger.LogDebug($"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
                         $"icons: {icons}\n" +
                         $"stacktrace:\n{Environment.StackTrace}");
       }

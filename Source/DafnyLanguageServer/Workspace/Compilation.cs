@@ -29,7 +29,7 @@ public delegate Compilation CreateCompilation(
 /// The document will be parsed, resolved, translated to Boogie and verified.
 ///
 /// Compilation may be configured to pause after translation,
-/// requiring a call to CompilationManager.Verify for the document to be verified.
+/// requiring a call to Compilation.VerifySymbol for the document to be verified.
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
@@ -57,7 +57,7 @@ public class Compilation : IDisposable {
   public IObservable<ICompilationEvent> Updates => updates;
 
   private Program? programAfterParsing;
-  private Program? program;
+  private Program? compiledProgram;
   private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
 
   public Task<Program> Program { get; }
@@ -100,12 +100,13 @@ public class Compilation : IDisposable {
       var uri = Input.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(updates);
-      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
-      program = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
+      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic => 
+        staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
+      compiledProgram = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
         cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
-      programAfterParsing = new Program(cloner, program);
+      programAfterParsing = new Program(cloner, compiledProgram);
 
       var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
         kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
@@ -125,12 +126,12 @@ public class Compilation : IDisposable {
   private async Task<Resolution> ResolveAsync() {
     try {
       await Program;
-      var resolution = await documentLoader.ResolveAsync(Input, program!, cancellationSource.Token);
+      var resolution = await documentLoader.ResolveAsync(Input, compiledProgram!, cancellationSource.Token);
 
       updates.OnNext(new FinishedResolution(
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
           kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
-        program!,
+        compiledProgram!,
         resolution.SymbolTable,
         resolution.SignatureAndCompletionTable,
         resolution.GhostDiagnostics,
@@ -166,13 +167,12 @@ public class Compilation : IDisposable {
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
-    var program = await Program;
     var resolution = await Resolution;
-    if (program.Reporter.HasErrorsUntilResolver) {
+    if (resolution.ResolvedProgram.Reporter.HasErrorsUntilResolver) {
       throw new TaskCanceledException();
     }
 
-    var canVerify = program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
+    var canVerify = resolution.ResolvedProgram.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
       node => {
         if (node is not ICanVerify) {
           return false;
@@ -188,7 +188,7 @@ public class Compilation : IDisposable {
     }
 
     var containingModule = canVerify.ContainingModule;
-    if (!containingModule.ShouldVerify(program.Compilation)) {
+    if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
     }
 
@@ -207,7 +207,7 @@ public class Compilation : IDisposable {
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    Resolution compilation) {
+    Resolution resolution) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -217,8 +217,8 @@ public class Compilation : IDisposable {
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
       try {
-        tasksForModule = await compilation.TranslatedModules.GetOrAdd(containingModule, async () => {
-          var result = await verifier.GetVerificationTasksAsync(boogieEngine, compilation, containingModule,
+        tasksForModule = await resolution.TranslatedModules.GetOrAdd(containingModule, async () => {
+          var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
           foreach (var task in result) {
             cancellationSource.Token.Register(task.Cancel);
@@ -239,7 +239,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementations = compilation.ImplementationsPerVerifiable.GetOrAdd(canVerify, () => {
+      var implementations = resolution.ImplementationsPerVerifiable.GetOrAdd(canVerify, () => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
@@ -251,7 +251,7 @@ public class Compilation : IDisposable {
       });
       if (updated) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          compilation.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
+          resolution.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
@@ -311,7 +311,7 @@ public class Compilation : IDisposable {
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
               $"startingCompilation.version {Input.Version}.");
             if (remainingJobs == 0) {
-              FinishedNotifications(compilation, canVerify);
+              FinishedNotifications(resolution, canVerify);
             }
           } catch (Exception e) {
             logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
@@ -388,8 +388,8 @@ public class Compilation : IDisposable {
       return;
     }
 
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, program!.Reporter,
-      program.ProofDependencyManager,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, compiledProgram!.Reporter,
+      compiledProgram.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
   }

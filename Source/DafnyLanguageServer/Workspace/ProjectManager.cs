@@ -100,7 +100,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
-    var initialCompilation = CreateInitialCompilation();
+    var initialCompilation = GetCompilationInput();
     var initialIdeState = initialCompilation.InitialIdeState(options);
     latestIdeState = new Lazy<IdeState>(initialIdeState);
 
@@ -112,7 +112,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = Disposable.Empty;
   }
 
-  private CompilationInput CreateInitialCompilation() {
+  private CompilationInput GetCompilationInput() {
     var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
     return new CompilationInput(options, version, Project, rootUris);
   }
@@ -164,17 +164,18 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     Compilation.Dispose();
     var lazyState = latestIdeState;
-    var initialCompilation = CreateInitialCompilation();
+    var input = GetCompilationInput();
     Compilation = createCompilation(
       options,
       boogieEngine,
-      initialCompilation,
+      input,
       lazyState.Value.VerificationTrees);
     latestIdeState = new Lazy<IdeState>(() => {
       var value = lazyState.Value;
       return value with {
-        Compilation = initialCompilation,
-        VerificationTrees = initialCompilation.RootUris.ToImmutableDictionary(uri => uri,
+        Input = input,
+        // TODO Should we set preparation status to not started here?
+        VerificationTrees = input.RootUris.ToImmutableDictionary(uri => uri,
           uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
       };
     });
@@ -265,7 +266,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public Task<IdeState> GetStateAfterResolutionAsync() {
-    return States.Select(l => l.Value).Where(s => s.Status > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
+    return States.Select(l => l.Value).Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
