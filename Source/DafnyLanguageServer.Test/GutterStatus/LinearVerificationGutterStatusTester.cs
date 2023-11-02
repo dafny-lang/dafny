@@ -281,7 +281,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     var traces = new List<LineVerificationStatus[]>();
     traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     foreach (var changes in changesList) {
-      await Projects.GetLastIdeState(documentItem).WaitAsync(CancellationToken);
+      await Projects.WaitUntilFinished(documentItem).WaitAsync(CancellationToken);
       ApplyChanges(ref documentItem, changes);
       traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver, intermediates: intermediates));
     }

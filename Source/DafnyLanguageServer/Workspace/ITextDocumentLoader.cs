@@ -16,8 +16,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<CompilationAfterParsing> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken);
 
-    Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, 
-      DafnyProject project, Program program,
+    Task<Resolution> ResolveAsync(CompilationInput input,
+      Program program,
       CancellationToken cancellationToken);
   }
 }

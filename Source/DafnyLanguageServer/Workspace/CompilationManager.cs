@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,9 +56,12 @@ public class CompilationManager : IDisposable {
   private readonly Subject<ICompilationEvent> compilationUpdates = new();
   public IObservable<ICompilationEvent> CompilationUpdates => compilationUpdates;
 
-  private Program parsedProgram;
+  private Program? parsedProgram;
+  private Program? program;
+  private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
+  
   public Task<Program> ParsedProgram { get; }
-  public Task<CompilationAfterResolution> ResolvedCompilation { get; }
+  public Task<Resolution> ResolvedCompilation { get; }
 
   public CompilationManager(
     ILogger<CompilationManager> logger,
@@ -101,6 +105,7 @@ public class CompilationManager : IDisposable {
         cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
+      program = parsedCompilation.Program;
       parsedProgram = new Program(cloner, parsedCompilation.Program);
       
       compilationUpdates.OnNext(new FinishedParsing(staticDiagnostics.ToImmutableDictionary(k => k.Key,
@@ -117,22 +122,22 @@ public class CompilationManager : IDisposable {
     }
   }
 
-  private async Task<CompilationAfterResolution> ResolveAsync() {
+  private async Task<Resolution> ResolveAsync() {
     try {
       await ParsedProgram;
-      var resolvedCompilation = await documentLoader.ResolveAsync(options, Input.Project, parsedProgram, cancellationSource.Token);
+      var resolution = await documentLoader.ResolveAsync(Input, program!, cancellationSource.Token);
 
       compilationUpdates.OnNext(new FinishedResolution(
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
           kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
-        resolvedCompilation,
-        resolvedCompilation.SymbolTable,
-        resolvedCompilation.SignatureAndCompletionTable,
-        resolvedCompilation.GhostDiagnostics,
-        resolvedCompilation.CanVerifies));
+        program!,
+        resolution.SymbolTable,
+        resolution.SignatureAndCompletionTable,
+        resolution.GhostDiagnostics,
+        resolution.CanVerifies));
       staticDiagnosticsSubscription.Dispose();
-      logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
-      return resolvedCompilation;
+      logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
+      return resolution;
 
     } catch (OperationCanceledException) {
       throw;
@@ -161,12 +166,13 @@ public class CompilationManager : IDisposable {
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
-    var compilation = await ResolvedCompilation;
-    if (compilation.Program.Reporter.HasErrorsUntilResolver) {
+    var program = await ParsedProgram;
+    var resolution = await ResolvedCompilation;
+    if (program.Reporter.HasErrorsUntilResolver) {
       throw new TaskCanceledException();
     }
 
-    var canVerify = compilation.Program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
+    var canVerify = program.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
       node => {
         if (node is not ICanVerify) {
           return false;
@@ -174,7 +180,7 @@ public class CompilationManager : IDisposable {
         // Sometimes traversing the AST can return different versions of a single source AST node,
         // for example in the case of a LeastLemma, which is later also represented as a PrefixLemma.
         // This check ensures that we consistently use the same version of an AST node. 
-        return compilation.CanVerifies!.Contains(node);
+        return resolution.CanVerifies!.Contains(node);
       }) as ICanVerify;
 
     if (canVerify == null) {
@@ -182,26 +188,26 @@ public class CompilationManager : IDisposable {
     }
 
     var containingModule = canVerify.ContainingModule;
-    if (!containingModule.ShouldVerify(compilation.Program.Compilation)) {
+    if (!containingModule.ShouldVerify(program.Compilation)) {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !compilation.VerifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && !resolution.VerifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
       return false;
     }
     compilationUpdates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, compilation);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, compilation);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
     return true;
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    CompilationAfterResolution compilation) {
+    Resolution compilation) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -277,12 +283,12 @@ public class CompilationManager : IDisposable {
 
           var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
           logger.LogDebug(
-            $"Incremented jobs for task, remaining jobs {incrementedJobs}, {compilation.Uri} version {compilation.Version}");
+            $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
 
           statusUpdates.Subscribe(
             update => {
               try {
-                HandleStatusUpdate(compilation, canVerify, task, update);
+                HandleStatusUpdate(canVerify, task, update);
               } catch (Exception e) {
                 logger.LogError(e, "Caught exception in statusUpdates OnNext.");
               }
@@ -302,7 +308,7 @@ public class CompilationManager : IDisposable {
           try {
             var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
             logger.LogDebug(
-              $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
+              $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
               $"startingCompilation.version {Input.Version}.");
             if (remainingJobs == 0) {
               FinishedNotifications(compilation, canVerify);
@@ -321,16 +327,16 @@ public class CompilationManager : IDisposable {
   }
 
   public async Task Cancel(FilePosition filePosition) {
-    var resolvedCompilation = await ResolvedCompilation;
-    var canVerify = resolvedCompilation.Program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
+    var program = await ParsedProgram;
+    var resolution = await ResolvedCompilation;
+    var canVerify = program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
-      var implementations = resolvedCompilation.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
+      var implementations = resolution.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
       foreach (var view in implementations) {
         view.Task.Cancel();
-        //compilationUpdates.OnNext(new BoogieUpdate(canVerify, view.Task, new Stale()));
       }
-      resolvedCompilation.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
+      resolution.VerifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
     }
   }
 
@@ -349,7 +355,7 @@ public class CompilationManager : IDisposable {
     }
   }
 
-  private void FinishedNotifications(CompilationAfterResolution compilation, ICanVerify canVerify) {
+  private void FinishedNotifications(Resolution compilation, ICanVerify canVerify) {
     // if (ReportGutterStatus) {
     //   if (!cancellationSource.IsCancellationRequested) {
     //     // All unvisited trees need to set them as "verified"
@@ -376,14 +382,13 @@ public class CompilationManager : IDisposable {
 
   private void ReportVacuityAndRedundantAssumptionsChecks(
     Implementation implementation, VerificationResult verificationResult) {
-    var options = parsedProgram.Reporter.Options;
-    if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
-        && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
+    if (!Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+        && !Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)
        ) {
       return;
     }
 
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, parsedProgram.Reporter,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, parsedProgram!.Reporter,
       parsedProgram.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
@@ -405,7 +410,7 @@ public class CompilationManager : IDisposable {
     verificationCompleted.TrySetResult();
   }
 
-  public Task<CompilationAfterParsing> LastDocument {
+  public Task Finished {
     get {
       logger.LogDebug($"LastDocument {Input.Uri} will return document version {Input.Version}");
       return ResolvedCompilation.ContinueWith(
@@ -416,7 +421,7 @@ public class CompilationManager : IDisposable {
               verificationCompletedTask => {
                 logger.LogDebug(
                   $"LastDocument returning translated compilation {Input.Uri} with status {verificationCompletedTask.Status}");
-                return Task.FromResult<CompilationAfterParsing>(t.Result);
+                return Task.CompletedTask;
               }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
           }
@@ -453,8 +458,7 @@ public class CompilationManager : IDisposable {
 
   }
 
-  private bool disposed = false;
-  private IDisposable staticDiagnosticsSubscription;
+  private bool disposed;
 
   public void Dispose() {
     if (disposed) {

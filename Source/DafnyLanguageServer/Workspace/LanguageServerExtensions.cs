@@ -28,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
-          provider.GetRequiredService<INotificationPublisher>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
           scheduler,

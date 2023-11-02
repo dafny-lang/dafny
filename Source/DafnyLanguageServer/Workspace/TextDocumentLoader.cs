@@ -1,18 +1,14 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -80,23 +76,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new CompilationAfterParsing(compilation, program);
     }
 
-    public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
-      DafnyProject project, Program program,
+    public async Task<Resolution> ResolveAsync(CompilationInput input,
+      Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(project, program, cancellationToken), cancellationToken);
+        async () => ResolveInternal(input, program, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
     }
 
-    private CompilationAfterResolution ResolveInternal(DafnyProject project, Program program, CancellationToken cancellationToken) {
+    private Resolution ResolveInternal(CompilationInput input, Program program, CancellationToken cancellationToken) {
 
       var errorReporter = (ObservableErrorReporter)program.Reporter;
       if (errorReporter.HasErrors) {
         throw new TaskCanceledException();
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
       var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
       var newSymbolTable = errorReporter.HasErrors
@@ -116,7 +112,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                                                               v.ShouldVerify).ToList();
       }
 
-      return new CompilationAfterResolution(
+      return new Resolution(
+        program,
         newSymbolTable,
         legacySymbolTable,
         ghostDiagnostics,

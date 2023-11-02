@@ -171,7 +171,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
     foreach (var entry in Projects.Managers) {
       try {
-        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken.Value);
+        await entry.WaitUntilFinished().WaitAsync(cancellationToken.Value);
       } catch (TaskCanceledException) {
 
       }
@@ -308,7 +308,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
     foreach (var entry in Projects.Managers) {
       try {
-        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
+        await entry.WaitUntilFinished().WaitAsync(cancellationToken);
       } catch (TaskCanceledException) {
 
       }
@@ -330,7 +330,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
     foreach (var entry in Projects.Managers) {
       try {
-        await entry.GetLastDocumentAsync();
+        await entry.WaitUntilFinished();
       } catch (TaskCanceledException) {
 
       }
@@ -456,8 +456,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetLastIdeState(documentItem);
-    Assert.NotNull(document);
+    await Projects.WaitUntilFinished(documentItem);
     return documentItem;
   }
 }

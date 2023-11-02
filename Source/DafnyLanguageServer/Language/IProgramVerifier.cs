@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// Applies the program verification to the specified dafny program.
     /// </summary>
     /// <param name="engine"></param>
-    /// <param name="compilation">The dafny document to verify.</param>
+    /// <param name="resolution">The dafny document to verify.</param>
     /// <param name="moduleDefinition"></param>
     /// <param name="cancellationToken"></param>
     /// <param name="progressReporter"></param>
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      CompilationAfterResolution compilation,
+      Resolution resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken);
   }

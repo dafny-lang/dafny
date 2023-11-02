@@ -96,12 +96,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
+      Resolution resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new Exception("testing crash");
       }
-      return verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
+      return verifier.GetVerificationTasksAsync(engine, resolution, moduleDefinition, cancellationToken);
     }
   }
 
@@ -119,12 +119,13 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.ParseAsync(reporter, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
     }
 
-    public Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options, CompilationAfterParsing compilation,
+    public Task<Resolution> ResolveAsync(CompilationInput input,
+      Program program,
       CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("testing crash");
       }
-      return loader.ResolveAsync(options, compilation, cancellationToken);
+      return loader.ResolveAsync(input, program, cancellationToken);
     }
   }
 

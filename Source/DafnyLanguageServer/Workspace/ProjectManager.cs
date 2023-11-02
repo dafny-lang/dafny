@@ -54,7 +54,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public CompilationManager CompilationManager { get; private set; }
   private IDisposable observerSubscription;
   private readonly EventLoopScheduler ideStateUpdateScheduler = new();
-  private readonly INotificationPublisher notificationPublisher;
   private readonly ILogger<ProjectManager> logger;
 
   /// <summary>
@@ -86,14 +85,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
-    INotificationPublisher notificationPublisher,
     CreateCompilationManager createCompilationManager,
     CreateIdeStateObserver createIdeStateObserver,
     CustomStackSizePoolTaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
-    this.notificationPublisher = notificationPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
     this.createCompilationManager = createCompilationManager;
@@ -251,16 +248,16 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public async Task CloseAsync() {
     CompilationManager.Dispose();
     try {
-      await CompilationManager.LastDocument;
+      await CompilationManager.Finished;
       observer.OnCompleted();
     } catch (OperationCanceledException) {
     }
     Dispose();
   }
 
-  public async Task<IdeState> GetLastDocumentAsync() {
+  public async Task WaitUntilFinished() {
     logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
-    return await CompilationManager.LastDocument;
+    await CompilationManager.Finished;
   }
 
   public Task<IdeState> GetStateAfterParsingAsync() {
@@ -273,7 +270,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
     try {
-      await GetLastDocumentAsync();
+      await WaitUntilFinished();
     } catch (OperationCanceledException) {
     }
 

@@ -27,7 +27,7 @@ record FinishedParsing(
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
     
     return previousState with {
-      Program = programClone,
+      Program = Program,
       Status = status,
       VerificationTrees = trees
     };
