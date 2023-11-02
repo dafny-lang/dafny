@@ -352,21 +352,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
     }
 
-    // If the verification never starts on this node, it means there is nothing to verify about it.
-    // Returns true if a status was updated
-    public bool SetVerifiedIfPending() {
-      if (StatusCurrent == CurrentStatus.Obsolete) {
-        StatusCurrent = CurrentStatus.Current;
-        StatusVerification = GutterVerificationStatus.Verified;
-        foreach (var child in Children) {
-          child.SetVerifiedIfPending();
-        }
-        return true;
-      }
-
-      return false;
-    }
-
     public virtual VerificationTree GetCopyForNotification() {
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()

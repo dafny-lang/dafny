@@ -313,7 +313,7 @@ public class Compilation : IDisposable {
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
               $"startingCompilation.version {Input.Version}.");
             if (remainingJobs == 0) {
-              FinishedNotifications(resolution, canVerify);
+              MarkVerificationFinished();
             }
           } catch (Exception e) {
             logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
@@ -354,17 +354,6 @@ public class Compilation : IDisposable {
       logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {Input.Uri}, version {Input.Version}.");
       MarkVerificationFinished();
     }
-  }
-
-  private void FinishedNotifications(Resolution compilation, ICanVerify canVerify) {
-    // if (ReportGutterStatus) {
-    //   if (!cancellationSource.IsCancellationRequested) {
-    //     // All unvisited trees need to set them as "verified"
-    //     new GutterIconAndHoverVerificationDetailsManager(logger).SetAllUnvisitedMethodsAsVerified(compilation, canVerify);
-    //   }
-    // }
-
-    MarkVerificationFinished();
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {

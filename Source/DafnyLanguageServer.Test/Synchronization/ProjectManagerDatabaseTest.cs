@@ -71,7 +71,6 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     client.OpenDocument(project);
     for (int i = 0; i < documentsToLoadConcurrently; i++) {
       var documentItem = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, $"pmdtest3_{i}.dfy"));
-      output.Write($"Waited for {i}");
       loadingDocuments.Add(documentItem);
     }
 

@@ -54,8 +54,4 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Workspace\Documents\" />
-  </ItemGroup>
 </Project>

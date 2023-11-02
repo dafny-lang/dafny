@@ -398,13 +398,6 @@ Send notifications about the verification status of each line in the program.
     }
   }
 
-  public void SetAllUnvisitedMethodsAsVerified(IdeState state, ICanVerify canVerify) {
-    var tree = state.VerificationTrees[canVerify.Tok.Uri];
-    var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
-    verifyTree.SetVerifiedIfPending();
-  }
-
-
   /// <summary>
   /// Given an implementation, returns the top-level verification tree.
   /// </summary>
