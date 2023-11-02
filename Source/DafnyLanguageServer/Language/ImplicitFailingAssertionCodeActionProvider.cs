@@ -110,8 +110,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection) {
-    if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
+    Diagnostic diagnostic, Range selection) {
+    if (input.Program == null || diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;
     }
 

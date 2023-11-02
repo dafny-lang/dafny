@@ -66,12 +66,12 @@ public static class ErrorRegistry {
   }
 
 
-  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) };
+  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
   }
 
-  public static DafnyAction OneAction(string title, RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new(title, new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) });
+  public static DafnyAction OneAction(string title, RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
   public static RangeToken IncludeComma(RangeToken range) {

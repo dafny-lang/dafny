@@ -11,6 +11,6 @@ public interface IDafnyCodeActionInput {
   /// </summary>
   DocumentUri Uri { get; }
   Node? Program { get; }
-  IEnumerable<DafnyDiagnostic> Diagnostics { get; }
+  IEnumerable<Diagnostic> Diagnostics { get; }
   VerificationTree? VerificationTree { get; }
 }

@@ -45,11 +45,11 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// <summary>
   /// Returns the fixes along with a unique identifier
   /// </summary>
-  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DafnyDiagnostic[] diagnostics, IdeState state, CodeActionParams request) {
+  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, IdeState state, CodeActionParams request) {
     var id = 0;
     var uri = request.TextDocument.Uri.ToUri();
     return fixers.SelectMany(fixer => {
-      var fixerInput = new DafnyCodeActionInput(diagnostics, state, uri);
+      var fixerInput = new DafnyCodeActionInput(state, uri);
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -67,11 +67,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     }
 
     var uri = request.TextDocument.Uri.ToUri();
-    var diagnostics = projectManager.Compilation.GetDiagnosticsForUri(uri);
 
     var ideState = await projectManager.GetStateAfterResolutionAsync();
     var quickFixers = GetDafnyCodeActionProviders();
-    var fixesWithId = GetFixesWithIds(quickFixers, diagnostics, ideState, request).ToArray();
+    var fixesWithId = GetFixesWithIds(quickFixers, ideState, request).ToArray();
 
     documentUriToDafnyCodeActions.AddOrUpdate(uri.ToString(), _ => fixesWithId, (_, _) => fixesWithId);
     var codeActions = fixesWithId.Select(fixWithId => {
@@ -147,11 +146,9 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  private readonly DafnyDiagnostic[] diagnosticsForUri;
   private readonly Uri uri;
 
-  public DafnyCodeActionInput(DafnyDiagnostic[] diagnosticsForUri, IdeState state, Uri uri) {
-    this.diagnosticsForUri = diagnosticsForUri;
+  public DafnyCodeActionInput(IdeState state, Uri uri) {
     this.uri = uri;
     IdeState = state;
   }
@@ -161,6 +158,6 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Node Program => IdeState.Program;
   public IdeState IdeState { get; }
 
-  public IEnumerable<DafnyDiagnostic> Diagnostics => diagnosticsForUri;
+  public IEnumerable<Diagnostic> Diagnostics => IdeState.GetDiagnosticsForUri(uri);
   public VerificationTree? VerificationTree => IdeState.VerificationTrees.GetValueOrDefault(uri);
 }
