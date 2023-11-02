@@ -41,8 +41,8 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD105
     }
 
-    public static string Comma(this IEnumerable<string> l) {
-      return Comma(l, s => s);
+    public static string Comma<T>(this IEnumerable<T> l) {
+      return Comma(l, s => s.ToString());
     }
 
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {

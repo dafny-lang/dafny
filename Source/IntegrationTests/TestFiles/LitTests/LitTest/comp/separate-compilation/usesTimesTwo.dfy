@@ -55,5 +55,17 @@ module ConsumerModule {
     var n := 21;
     var TwoN := TimesTwo(n);
     print "Two times ", n, " is ", TwoN, "\n";
+
+    // Need to actually execute the use of nat's type descriptor
+    // to ensure it works on dynamic language targets.
+    var aNat := PickANat();
+  }
+
+  method PickANat() returns (n: nat) {
+    n := PickSomething();
+  }
+
+  method PickSomething<T(0)>() returns (t: T) {
+    t := *;
   }
 }

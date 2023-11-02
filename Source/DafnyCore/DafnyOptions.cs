@@ -302,6 +302,7 @@ namespace Microsoft.Dafny {
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool IncludeRuntime = true;
+    public CommonOptionBag.SystemModuleMode SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Omit;
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public bool UseStdin = false;
