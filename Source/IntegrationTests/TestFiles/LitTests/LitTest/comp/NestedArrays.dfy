@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 /* Note, compiling to arrays in Java is difficult. In fact, this is currently
  * broken, see https://github.com/dafny-lang/dafny/issues/3055. Until this gets

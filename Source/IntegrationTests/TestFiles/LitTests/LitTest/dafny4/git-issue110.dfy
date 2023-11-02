@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 module MyModule {
   export provides MyType, Empty, MyLemma

@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 module A {
   export Spec reveals AClass provides *  // when class is revealed, "provides *" also provides all the constructors of the class

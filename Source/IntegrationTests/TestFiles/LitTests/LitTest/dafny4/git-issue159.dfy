@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // map types used to slip through type checking of reads/modifies clauses
 
