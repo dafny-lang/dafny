@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 include "git-issue48-include.dfyi"

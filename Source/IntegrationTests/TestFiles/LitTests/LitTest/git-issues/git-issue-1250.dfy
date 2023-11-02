@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // This file contains the automatic proofs of two nice properties about Fibonacci-like numbers.
 // The theorems were inspired by singingbanana's video https://www.youtube.com/watch?v=CWhcUea5GNc.

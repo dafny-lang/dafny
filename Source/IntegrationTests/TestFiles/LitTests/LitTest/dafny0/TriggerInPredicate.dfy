@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate A(x: bool, y: bool) { x }

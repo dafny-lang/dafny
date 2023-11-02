@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --print:-
+
 
 ghost predicate P(n: int)
 {

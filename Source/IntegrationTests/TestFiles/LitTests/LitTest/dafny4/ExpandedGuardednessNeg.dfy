@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 codatatype Stream<T> = ICons(head: T, tail: Stream<T>)
 
