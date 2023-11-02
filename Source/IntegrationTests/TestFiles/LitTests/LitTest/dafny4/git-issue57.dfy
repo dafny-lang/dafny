@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 lemma lemma_RotateRightAdds(x:bv32)
    ensures  (x.RotateRight(2)).RotateRight(3) == x.RotateRight(5)

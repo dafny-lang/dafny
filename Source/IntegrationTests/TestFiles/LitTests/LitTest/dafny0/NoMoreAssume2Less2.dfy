@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // This file tests various ways of writing the equivalent of "assume false;" or "assert false;" inside a loop.
 // It used to be that Dafny's translation of such statements into Boogie could cause Boogie to cut off the

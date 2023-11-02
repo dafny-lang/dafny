@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /deprecation:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
+
 
 module Functions {
   ghost function f(x: nat): nat

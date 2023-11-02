@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 method Test1(a: array<(int, int)>, b: array<(int, int, ghost int)>) {
   assert a as object != b;

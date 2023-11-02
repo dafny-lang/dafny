@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" --refresh-exit-code=2
+// RUN: %testDafnyForEachResolver --refresh-exit-code=2 "%s"
 
 trait Trait { }
 class Class extends Trait { }

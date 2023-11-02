@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 lemma TestMap(a: map<int, (int,int)>) {
   // The following assertion used to not prove automatically

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --general-traits:full
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --general-traits=full
 
 method Main() {
   BoxingConcerns.Test();
