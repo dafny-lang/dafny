@@ -48,7 +48,7 @@ public record IdeState(
 
   public const string OutdatedPrefix = "Outdated: ";
 
-  public IdeState Migrate(Migrator migrator, int version) {
+  public IdeState Migrate(DafnyOptions options, Migrator migrator, int version) {
     var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
@@ -62,8 +62,8 @@ public record IdeState(
       Version = version,
       StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
-      SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
-        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(Compilation.Options, Compilation.Project),
+      SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
+        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Compilation.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }

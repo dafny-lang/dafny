@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if (!ideState.Counterexamples.Any()) {
-          logger.LogDebug($"got no counter-examples for compilation {ideState.Compilation}");
+          logger.LogDebug($"got no counter-examples for version {ideState.Version}");
           return new CounterExampleList();
         }
 

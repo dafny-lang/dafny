@@ -96,8 +96,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
     }
   }
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(IdeState state, IImplementationTask task, VCResult result) {
-    var options = state.Compilation.Options;
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, IdeState state, IImplementationTask task, VCResult result) {
     var errorReporter = new ObservableErrorReporter(options, state.Uri);
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
