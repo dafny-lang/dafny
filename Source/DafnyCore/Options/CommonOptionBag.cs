@@ -226,6 +226,28 @@ May produce spurious warnings.") {
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
 
+  /// <summary>
+  /// Copy of --include-runtime for execution commands like `dafny run`,
+  /// just so it can be internal only in that context:
+  /// it shouldn't matter to end users but is useful for testing.
+  /// </summary>
+  public static readonly Option<bool> InternalIncludeRuntimeOptionForExecution = new("--include-runtime", () => true,
+    "Include the Dafny runtime as source in the target language.") {
+    IsHidden = true
+  };
+
+  public enum SystemModuleMode {
+    Include,
+    Omit,
+    // Used to pre-compile the System module into the runtimes
+    OmitAllOtherModules
+  }
+
+  public static readonly Option<SystemModuleMode> SystemModule = new("--system-module", () => SystemModuleMode.Omit,
+    "How to handle the built-in _System module.") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
@@ -376,6 +398,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
@@ -484,6 +508,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
+      InternalIncludeRuntimeOptionForExecution,
       WarnContradictoryAssumptions,
       WarnRedundantAssumptions,
       VerificationCoverageReport,
@@ -491,7 +516,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       DefaultFunctionOpacity,
       UseStandardLibraries,
       OptimizeErasableDatatypeWrapper,
-      AddCompileSuffix
+      AddCompileSuffix,
+      SystemModule
     );
   }
 
