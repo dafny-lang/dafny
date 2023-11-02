@@ -15,7 +15,6 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Xunit;
 using Xunit.Abstractions;
-using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -114,7 +113,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public Task<CompilationAfterParsing> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
+    public Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       return loader.ParseAsync(reporter, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
     }

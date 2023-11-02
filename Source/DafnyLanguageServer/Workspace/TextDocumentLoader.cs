@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
     }
 
-    public async Task<CompilationAfterParsing> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation,
+    public async Task<Program> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    private CompilationAfterParsing ParseInternal(ErrorReporter errorReporter, CompilationInput compilation,
+    private Program ParseInternal(ErrorReporter errorReporter, CompilationInput compilation,
       CancellationToken cancellationToken) {
       var program = parser.Parse(compilation, errorReporter, cancellationToken);
       compilation.Project.Errors.CopyDiagnostics(program.Reporter);
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      return new CompilationAfterParsing(compilation, program);
+      return program;
     }
 
     public async Task<Resolution> ResolveAsync(CompilationInput input,

@@ -101,17 +101,16 @@ public class CompilationManager : IDisposable {
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(compilationUpdates);
       staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
-      var parsedCompilation = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
+      program = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
         cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
-      program = parsedCompilation.Program;
-      parsedProgram = new Program(cloner, parsedCompilation.Program);
+      parsedProgram = new Program(cloner, program);
       
       compilationUpdates.OnNext(new FinishedParsing(staticDiagnostics.ToImmutableDictionary(k => k.Key,
         kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()), parsedProgram));
       logger.LogDebug(
-        $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
+        $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return parsedProgram;
 
     } catch (OperationCanceledException) {
