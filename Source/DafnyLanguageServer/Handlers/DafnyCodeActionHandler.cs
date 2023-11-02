@@ -67,7 +67,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     }
 
     var uri = request.TextDocument.Uri.ToUri();
-    var diagnostics = projectManager.CompilationManager.GetDiagnosticsForUri(uri);
+    var diagnostics = projectManager.Compilation.GetDiagnosticsForUri(uri);
 
     var ideState = await projectManager.GetStateAfterResolutionAsync();
     var quickFixers = GetDafnyCodeActionProviders();

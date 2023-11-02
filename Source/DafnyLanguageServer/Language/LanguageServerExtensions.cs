@@ -40,8 +40,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
-          serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
+        .AddSingleton<CreateCompilation>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new Compilation(
+          serviceProvider.GetRequiredService<ILogger<Compilation>>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
           options, engine, compilation, migratedVerificationTree

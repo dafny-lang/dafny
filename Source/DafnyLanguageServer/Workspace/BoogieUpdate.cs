@@ -16,7 +16,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     UpdateGutterIconTrees(options, logger, previousState);
 
-    var name = CompilationManager.GetImplementationName(Task.Implementation);
+    var name = Compilation.GetImplementationName(Task.Implementation);
     var status = StatusFromBoogieStatus(BoogieStatus);
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();

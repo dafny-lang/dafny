@@ -51,7 +51,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public DafnyProject Project { get; }
 
   private readonly IdeStateObserver observer;
-  public CompilationManager CompilationManager { get; private set; }
+  public Compilation Compilation { get; private set; }
   private IDisposable observerSubscription;
   private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly ILogger<ProjectManager> logger;
@@ -73,7 +73,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
-  private readonly CreateCompilationManager createCompilationManager;
+  private readonly CreateCompilation createCompilation;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
   private Lazy<IdeState> latestIdeState;
@@ -85,7 +85,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
-    CreateCompilationManager createCompilationManager,
+    CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
     CustomStackSizePoolTaskScheduler scheduler,
     VerificationResultCache cache,
@@ -93,7 +93,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     Project = project;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
-    this.createCompilationManager = createCompilationManager;
+    this.createCompilation = createCompilation;
     this.createMigrator = createMigrator;
     this.logger = logger;
 
@@ -105,7 +105,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     latestIdeState = new Lazy<IdeState>(initialIdeState);
 
     observer = createIdeStateObserver(initialIdeState);
-    CompilationManager = createCompilationManager(
+    Compilation = createCompilation(
         options, boogieEngine, initialCompilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
     );
 
@@ -162,10 +162,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     observerSubscription.Dispose();
 
-    CompilationManager.Dispose();
+    Compilation.Dispose();
     var lazyState = latestIdeState;
     var initialCompilation = CreateInitialCompilation();
-    CompilationManager = createCompilationManager(
+    Compilation = createCompilation(
       options,
       boogieEngine,
       initialCompilation,
@@ -180,7 +180,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     });
     states.OnNext(latestIdeState);
 
-    var migratedUpdates = CompilationManager.CompilationUpdates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
+    var migratedUpdates = Compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;
       latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
 
@@ -193,7 +193,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = throttledUpdates.
       Select(x => x.Value).Subscribe(observer);
 
-    CompilationManager.Start();
+    Compilation.Start();
   }
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
@@ -246,9 +246,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public async Task CloseAsync() {
-    CompilationManager.Dispose();
+    Compilation.Dispose();
     try {
-      await CompilationManager.Finished;
+      await Compilation.Finished;
       observer.OnCompleted();
     } catch (OperationCanceledException) {
     }
@@ -257,7 +257,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public async Task WaitUntilFinished() {
     logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
-    await CompilationManager.Finished;
+    await Compilation.Finished;
   }
 
   public Task<IdeState> GetStateAfterParsingAsync() {
@@ -284,10 +284,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public static bool GutterIconTesting = false;
 
   public async Task VerifyEverythingAsync(Uri? uri) {
-    var compilationManager = CompilationManager;
+    var compilationManager = Compilation;
     try {
       compilationManager.IncrementJobs();
-      var resolvedCompilation = await compilationManager.ResolvedCompilation;
+      var resolvedCompilation = await compilationManager.Resolution;
 
       var verifiables = resolvedCompilation.CanVerifies?.ToList();
       if (verifiables == null) {
@@ -377,6 +377,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     boogieEngine.Dispose();
     ideStateUpdateScheduler.Dispose();
     observerSubscription.Dispose();
-    CompilationManager.Dispose();
+    Compilation.Dispose();
   }
 }

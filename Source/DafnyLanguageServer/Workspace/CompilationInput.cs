@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState(DafnyOptions options) {
       var program = new EmptyNode();
-      return new IdeState(Version, this, CompilationStatus.Parsing, 
+      return new IdeState(Version, this, CompilationStatus.Parsing,
         program,
         ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
         SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,

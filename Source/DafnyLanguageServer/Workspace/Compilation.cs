@@ -18,7 +18,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public delegate CompilationManager CreateCompilationManager(
+public delegate Compilation CreateCompilation(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   CompilationInput compilation,
@@ -33,7 +33,7 @@ public delegate CompilationManager CreateCompilationManager(
 ///
 /// Compilation is agnostic to document updates, it does not handle the migration of old document state.
 /// </summary>
-public class CompilationManager : IDisposable {
+public class Compilation : IDisposable {
 
   private readonly ILogger logger;
   private readonly ITextDocumentLoader documentLoader;
@@ -53,27 +53,27 @@ public class CompilationManager : IDisposable {
   public CompilationInput Input { get; }
   private readonly ExecutionEngine boogieEngine;
 
-  private readonly Subject<ICompilationEvent> compilationUpdates = new();
-  public IObservable<ICompilationEvent> CompilationUpdates => compilationUpdates;
+  private readonly Subject<ICompilationEvent> updates = new();
+  public IObservable<ICompilationEvent> Updates => updates;
 
-  private Program? parsedProgram;
+  private Program? programAfterParsing;
   private Program? program;
   private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
-  
-  public Task<Program> ParsedProgram { get; }
-  public Task<Resolution> ResolvedCompilation { get; }
 
-  public CompilationManager(
-    ILogger<CompilationManager> logger,
+  public Task<Program> Program { get; }
+  public Task<Resolution> Resolution { get; }
+
+  public Compilation(
+    ILogger<Compilation> logger,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
-    CompilationInput compilation,
+    CompilationInput input,
     IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
-    Input = compilation;
+    Input = input;
     this.boogieEngine = boogieEngine;
     this.migratedVerificationTrees = migratedVerificationTrees;
 
@@ -86,8 +86,8 @@ public class CompilationManager : IDisposable {
     verificationTickets.Enqueue(Unit.Default);
     MarkVerificationFinished();
 
-    ParsedProgram = ParseAsync();
-    ResolvedCompilation = ResolveAsync();
+    Program = ParseAsync();
+    Resolution = ResolveAsync();
   }
 
   public void Start() {
@@ -99,34 +99,35 @@ public class CompilationManager : IDisposable {
       await started.Task;
       var uri = Input.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
-      errorReporter.Updates.Subscribe(compilationUpdates);
+      errorReporter.Updates.Subscribe(updates);
       staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
       program = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
         cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
-      parsedProgram = new Program(cloner, program);
-      
-      compilationUpdates.OnNext(new FinishedParsing(staticDiagnostics.ToImmutableDictionary(k => k.Key,
-        kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()), parsedProgram));
+      programAfterParsing = new Program(cloner, program);
+
+      var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
+        kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+      updates.OnNext(new FinishedParsing(programAfterParsing, diagnosticsCopy));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
-      return parsedProgram;
+      return programAfterParsing;
 
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      compilationUpdates.OnError(e);
+      updates.OnError(e);
       throw;
     }
   }
 
   private async Task<Resolution> ResolveAsync() {
     try {
-      await ParsedProgram;
+      await Program;
       var resolution = await documentLoader.ResolveAsync(Input, program!, cancellationSource.Token);
 
-      compilationUpdates.OnNext(new FinishedResolution(
+      updates.OnNext(new FinishedResolution(
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
           kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
         program!,
@@ -141,7 +142,7 @@ public class CompilationManager : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      compilationUpdates.OnError(e);
+      updates.OnError(e);
       throw;
     }
   }
@@ -165,8 +166,8 @@ public class CompilationManager : IDisposable {
   public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
-    var program = await ParsedProgram;
-    var resolution = await ResolvedCompilation;
+    var program = await Program;
+    var resolution = await Resolution;
     if (program.Reporter.HasErrorsUntilResolver) {
       throw new TaskCanceledException();
     }
@@ -194,7 +195,7 @@ public class CompilationManager : IDisposable {
     if (!onlyPrepareVerificationForGutterTests && !resolution.VerifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
       return false;
     }
-    compilationUpdates.OnNext(new ScheduledVerification(canVerify));
+    updates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
       await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
@@ -232,7 +233,7 @@ public class CompilationManager : IDisposable {
         throw;
       } catch (Exception e) {
         verificationCompleted.TrySetException(e);
-        compilationUpdates.OnError(e);
+        updates.OnError(e);
         throw;
       }
 
@@ -249,7 +250,7 @@ public class CompilationManager : IDisposable {
           t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
       });
       if (updated) {
-        compilationUpdates.OnNext(new CanVerifyPartsIdentified(canVerify,
+        updates.OnNext(new CanVerifyPartsIdentified(canVerify,
           compilation.ImplementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
       }
 
@@ -264,14 +265,14 @@ public class CompilationManager : IDisposable {
           if (statusUpdates == null) {
             if (task.CacheStatus is Completed completedCache) {
               foreach (var result in completedCache.Result.VCResults) {
-                compilationUpdates.OnNext(new BoogieUpdate(canVerify,
+                updates.OnNext(new BoogieUpdate(canVerify,
                   task,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                   new BatchCompleted(null /* unused */, result)));
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
               }
 
-              compilationUpdates.OnNext(new BoogieUpdate(canVerify,
+              updates.OnNext(new BoogieUpdate(canVerify,
                 task,
                 completedCache));
             }
@@ -326,8 +327,8 @@ public class CompilationManager : IDisposable {
   }
 
   public async Task Cancel(FilePosition filePosition) {
-    var program = await ParsedProgram;
-    var resolution = await ResolvedCompilation;
+    var program = await Program;
+    var resolution = await Resolution;
     var canVerify = program.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = resolution.ImplementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
@@ -374,7 +375,7 @@ public class CompilationManager : IDisposable {
       ReportVacuityAndRedundantAssumptionsChecks(implementationTask.Implementation, completed.Result);
     }
 
-    compilationUpdates.OnNext(new BoogieUpdate(canVerify,
+    updates.OnNext(new BoogieUpdate(canVerify,
       implementationTask,
       boogieStatus));
   }
@@ -387,8 +388,8 @@ public class CompilationManager : IDisposable {
       return;
     }
 
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, parsedProgram!.Reporter,
-      parsedProgram.ProofDependencyManager,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, program!.Reporter,
+      program.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
   }
@@ -412,7 +413,7 @@ public class CompilationManager : IDisposable {
   public Task Finished {
     get {
       logger.LogDebug($"LastDocument {Input.Uri} will return document version {Input.Version}");
-      return ResolvedCompilation.ContinueWith(
+      return Resolution.ContinueWith(
         t => {
           if (t.IsCompletedSuccessfully) {
 #pragma warning disable VSTHRD103
@@ -425,14 +426,14 @@ public class CompilationManager : IDisposable {
 #pragma warning restore VSTHRD103
           }
 
-          return ParsedProgram;
+          return Program;
         }, TaskScheduler.Current).Unwrap();
     }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var program = await ParsedProgram;
+    var program = await Program;
 
     if (program.Reporter.HasErrors) {
       return null;

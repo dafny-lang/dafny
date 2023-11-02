@@ -20,8 +20,7 @@ public class Resolution {
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify>? canVerifies,
     LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules
-    ) 
-  {
+    ) {
     this.ResolvedProgram = ResolvedProgram;
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
@@ -35,7 +34,7 @@ public class Resolution {
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
   public IReadOnlyList<ICanVerify>? CanVerifies { get; }
-  
+
   // TODO Move?
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
   public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> ImplementationsPerVerifiable { get; } = new();

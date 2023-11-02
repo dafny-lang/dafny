@@ -8,8 +8,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record FinishedParsing(
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics,
-  Program Program) : ICompilationEvent 
+  Program Program,
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent 
 {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
 
@@ -25,7 +25,7 @@ record FinishedParsing(
       Where(d => d.Severity == DiagnosticSeverity.Error);
 
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
-    
+
     return previousState with {
       Program = Program,
       Status = status,

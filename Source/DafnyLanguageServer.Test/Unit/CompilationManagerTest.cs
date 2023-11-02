@@ -13,12 +13,12 @@ public class CompilationManagerTest {
   [Fact]
   public async Task CancelUnstartedCompilationLeadsToCancelledTasks() {
     var dafnyOptions = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
-    var compilationManager = new CompilationManager(new Mock<ILogger<CompilationManager>>().Object,
+    var compilationManager = new Compilation(new Mock<ILogger<Compilation>>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
       dafnyOptions,
       null, new CompilationInput(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
-    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedProgram);
+    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.Program);
   }
 }

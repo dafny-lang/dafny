@@ -17,13 +17,12 @@ record FinishedResolution(
   SymbolTable? SymbolTable,
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent 
-{
+  IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
   public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var errors = Diagnostics.Values.SelectMany(x => x).
       Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
-    
+
     var trees = previousState.VerificationTrees;
     if (status == CompilationStatus.ResolutionSucceeded) {
       foreach (var uri in trees.Keys) {
@@ -40,7 +39,7 @@ record FinishedResolution(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved ? LegacySignatureAndCompletionTable : previousState.SignatureAndCompletionTable;
-    
+
     return previousState with {
       StaticDiagnostics = Diagnostics,
       Status = status,

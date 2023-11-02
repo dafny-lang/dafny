@@ -13,8 +13,8 @@ public record NewDiagnostic(Uri Uri, DafnyDiagnostic Diagnostic) : ICompilationE
       var diagnostics = previousState.StaticDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
       var newDiagnostics = diagnostics.Add(Diagnostic.ToLspDiagnostic());
       return previousState with {
-          StaticDiagnostics = previousState.StaticDiagnostics.SetItem(Uri, newDiagnostics)
-        };
+        StaticDiagnostics = previousState.StaticDiagnostics.SetItem(Uri, newDiagnostics)
+      };
     }
 
     return previousState;

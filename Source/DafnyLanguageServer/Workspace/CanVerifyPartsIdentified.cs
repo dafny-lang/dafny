@@ -21,7 +21,7 @@ record CanVerifyPartsIdentified(ICanVerify CanVerify, IReadOnlyList<IImplementat
 
     var range = CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
-    var names = Parts.Select(t => CompilationManager.GetImplementationName(t.Implementation));
+    var names = Parts.Select(t => Compilation.GetImplementationName(t.Implementation));
     var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
       Implementations: names.ToImmutableDictionary(k => k,
         k => {
