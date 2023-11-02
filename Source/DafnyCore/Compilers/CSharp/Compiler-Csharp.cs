@@ -24,7 +24,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
@@ -71,17 +73,26 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
       Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
       }
-      EmitDafnySourceAttribute(program, wr);
+
+      if (program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        EmitDafnySourceAttribute(program, wr);
+      }
 
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
+        EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
       }
 
     }
@@ -119,8 +130,28 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            break;
+          }
+        case CommonOptionBag.SystemModuleMode.OmitAllOtherModules: {
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
+      }
+
+      // The declarations below would normally be omitted if we aren't compiling the system module,
+      // but they are all marked as "internal", so they have to be included in each separately-compiled assembly.
+      // In particular, FuncExtensions contain extension methods for the System.Func<> family of delegates,
+      // and extension methods always only apply within the current assembly.
+      //
+      // Instead we just make sure to guard them with "#if ISDAFNYRUNTIMELIB" when compiling the system module,
+      // so they don't become duplicates when --include-runtime is used.
+      // See comment at the top of DafnyRuntime.cs.
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
@@ -129,6 +160,10 @@ namespace Microsoft.Dafny.Compilers {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
       EmitFuncExtensions(systemModuleManager, wr);
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
     }
 
     // Generates casts for functions of those arities present in the program, like:

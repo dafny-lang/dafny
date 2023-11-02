@@ -1620,7 +1620,18 @@ included by default and must be explicitly requested using `--include-runtime`. 
 To be compilable to an executable program, a Dafny program must contain a `Main` entry point, as described [here](#sec-user-guide-main).
 
 
-### 13.8.1. `extern` declarations {#sec-extern-decls}
+### 13.8.1.1 Built-in declarations {#sec-compilation-built-ins}
+
+Dafny includes several built-in types such as tuples, arrays, arrows (functions), and the `nat` subset type.
+The supporting target language code for these declarations could be emitted on-demand,
+but these could then become multiple definitions of the same symbols when compiling multiple components separately. 
+Instead, all such built-ins up to a pre-configured maximum size are included in most of the runtime libraries.
+This means that when compiling to certain target languages, the use of such built-ins above these maximum sizes,
+such as tuples with more than 20 elements, is not supported.
+See the [Supported features by target language](#sec-supported-features-by-target-language) table
+for the details on these limits.
+
+### 13.8.2. `extern` declarations {#sec-extern-decls}
 
 A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
@@ -1733,7 +1744,7 @@ Detailed description of the `dafny build` and `dafny run` commands and
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
-### 13.8.2. C\#
+### 13.8.3. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (run using `dotnet A.dll`).
@@ -1754,7 +1765,7 @@ which is then compiled by `dotnet` to a `.dll`.
 Examples of how to integrate C# libraries and source code with Dafny source code
 are contained in [this separate document](integration-cs/IntegrationCS).
 
-### 13.8.3. Java
+### 13.8.4. Java
 
 The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. 
@@ -1776,7 +1787,7 @@ but not if dafny is only doing translation.
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
 
-### 13.8.4. Javascript
+### 13.8.5. Javascript
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, 
 which can then be run using `node`. (Javascript has no compilation step). 
@@ -1790,7 +1801,7 @@ Or, in one step,
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJS).
 
-### 13.8.5. Go
+### 13.8.6. Go
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
@@ -1814,7 +1825,7 @@ change, though the `./A` alternative will still be supported.
 Examples of how to integrate Go source code and libraries with Dafny source
 are contained in [this separate document](integration-go/IntegrationGo).
 
-### 13.8.6. Python
+### 13.8.7. Python
 
 The Dafny-to-Python compiler is still under development. However, simple
 Dafny programs can be built and run as follows. The Dafny-to-Python
@@ -1832,7 +1843,7 @@ In one step:
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).
 
-### 13.8.7. C++
+### 13.8.8. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
@@ -1852,7 +1863,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 13.8.8. Supported features by target language {#sec-supported-features-by-target-language}
+### 13.8.9. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.

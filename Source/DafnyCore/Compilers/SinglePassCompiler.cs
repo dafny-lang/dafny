@@ -73,6 +73,18 @@ namespace Microsoft.Dafny.Compilers {
 
     public readonly CoverageInstrumenter Coverage;
 
+    // Common limits on the size of builtins: tuple, arrow, and array types.
+    // Some backends have to enforce limits so that all built-ins can be pre-compiled
+    // into their runtimes.
+    // See CheckCommonSytemModuleLimits().
+
+    protected int MaxTupleNonGhostDims => 20;
+    // This one matches the maximum arity of the C# System.Func<> type used to implement arrows. 
+    protected int MaxArrowArity => 16;
+    // This one is also limited by the maximum arrow arity, since a given array type
+    // uses an arrow of the matching arity for initialization.
+    protected int MaxArrayDims => MaxArrowArity;
+
     protected SinglePassCompiler(DafnyOptions options, ErrorReporter reporter) {
       this.Options = options;
       Reporter = reporter;
@@ -110,7 +122,45 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
+    /// <summary>
+    /// Emits any supporting code necessary for built-in Dafny elements,
+    /// such as the `nat` subset type, or array and arrow types of various arities.
+    /// These built-in elements are generally declared in the internal _System module
+    /// by the SystemModuleManager.
+    /// Some of them are emitted by compiling their declarations in that module, such as tuples.
+    /// Others have {:compile false} added, so they are not normally given to the compiler at all,
+    /// but instead need special handling in this method.
+    /// 
+    /// It would likely be cleaner in the future to remove all of the {:compile false} attributes
+    /// on built-in declarations, and allow compilers to handle them directly
+    /// (which for many backends just means ignoring many of them).
+    /// </summary>
     protected virtual void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) { }
+
+    protected void CheckCommonSytemModuleLimits(SystemModuleManager systemModuleManager) {
+      // Check that the runtime already has all required builtins
+      if (systemModuleManager.MaxNonGhostTupleSizeUsed > MaxTupleNonGhostDims) {
+        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      }
+      var maxArrowArity = systemModuleManager.ArrowTypeDecls.Keys.Max();
+      if (maxArrowArity > MaxArrowArity) {
+        UnsupportedFeatureError(Token.NoToken, Feature.ArrowsWithMoreThan16Arguments);
+      }
+      var maxArraysDims = systemModuleManager.arrayTypeDecls.Keys.Max();
+      if (maxArraysDims > MaxArrayDims) {
+        UnsupportedFeatureError(Token.NoToken, Feature.ArraysWithMoreThan16Dims);
+      }
+    }
+
+    /// <summary>
+    /// Checks that the system module contains all sizes of built-in types up to the maximum.
+    /// See also DafnyRuntime/systemModulePopulator.dfy.
+    /// </summary>
+    protected void CheckSystemModulePopulatedToCommonLimits(SystemModuleManager systemModuleManager) {
+      systemModuleManager.CheckHasAllTupleNonGhostDimsUpTo(MaxTupleNonGhostDims);
+      systemModuleManager.CheckHasAllArrayDimsUpTo(MaxArrayDims);
+      systemModuleManager.CheckHasAllArrowAritiesUpTo(MaxArrowArity);
+    }
 
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
@@ -354,7 +404,6 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool ClassesRedeclareInheritedFields => true;
-    protected virtual void AddTupleToSet(int i) { }
     public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
@@ -1637,7 +1686,20 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected void ReadRuntimeSystem(Program program, string filename, ConcreteSyntaxTree wr) {
+    protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
+      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+      var files = assembly.GetManifestResourceNames();
+      // An original source file at <root>/A/B/C.ext will become a manifest resource
+      // with a name like 'DafnyPipeline.<root>.A.B.C.<ext>'
+      String header = $"DafnyPipeline.{root}";
+      foreach (var file in files.Where(f => f.StartsWith(header))) {
+        var parts = file.Split('.');
+        var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+        ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);
+      }
+    }
+
+    private void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 

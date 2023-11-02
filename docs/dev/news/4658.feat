@@ -1,0 +1,2 @@
+Built-in types such as the `nat` subset type, tuples, arrows, and arrays are now pre-compiled into each backend's runtime library,
+instead of emitted on every call to `dafny translate`, to avoid potential duplicate definitions when translating components separately.
