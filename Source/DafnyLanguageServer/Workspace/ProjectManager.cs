@@ -288,9 +288,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var compilationManager = Compilation;
     try {
       compilationManager.IncrementJobs();
-      var resolvedCompilation = await compilationManager.Resolution;
+      var resolution = await compilationManager.Resolution;
 
-      var verifiables = resolvedCompilation.CanVerifies?.ToList();
+      var verifiables = resolution.CanVerifies?.ToList();
       if (verifiables == null) {
         return;
       }

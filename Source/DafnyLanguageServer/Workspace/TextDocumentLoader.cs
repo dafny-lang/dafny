@@ -117,8 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         newSymbolTable,
         legacySymbolTable,
         ghostDiagnostics,
-        verifiables,
-        new()
+        verifiables
       );
     }
   }

@@ -48,6 +48,12 @@ public class Compilation : IDisposable {
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
     staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
+  /// <summary>
+  /// FilePosition is required because the default module lives in multiple files
+  /// </summary>
+  private readonly LazyConcurrentDictionary<ModuleDefinition,
+    Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules = new();
+  
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   public CompilationInput Input { get; }
@@ -134,7 +140,7 @@ public class Compilation : IDisposable {
         compiledProgram!,
         resolution.SymbolTable,
         resolution.SignatureAndCompletionTable,
-        resolution.GhostDiagnostics,
+        resolution.GhostRanges,
         resolution.CanVerifies));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
@@ -217,7 +223,7 @@ public class Compilation : IDisposable {
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
       try {
-        tasksForModule = await resolution.TranslatedModules.GetOrAdd(containingModule, async () => {
+        tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
           foreach (var task in result) {

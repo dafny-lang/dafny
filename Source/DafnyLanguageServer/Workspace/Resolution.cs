@@ -17,31 +17,24 @@ public class Resolution {
     Program ResolvedProgram,
     SymbolTable? symbolTable,
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
-    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
-    IReadOnlyList<ICanVerify>? canVerifies,
-    LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules
+    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges,
+    IReadOnlyList<ICanVerify>? canVerifies
     ) {
     this.ResolvedProgram = ResolvedProgram;
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
-    GhostDiagnostics = ghostDiagnostics;
-    CanVerifies = canVerifies;
-    TranslatedModules = translatedModules;
+    GhostRanges = ghostRanges;
   }
 
   public Program ResolvedProgram { get; }
   public SymbolTable? SymbolTable { get; }
   public LegacySignatureAndCompletionTable SignatureAndCompletionTable { get; }
-  public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostDiagnostics { get; }
+  public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges { get; }
   public IReadOnlyList<ICanVerify>? CanVerifies { get; }
 
   // TODO Move?
   public ConcurrentDictionary<ICanVerify, Unit> VerifyingOrVerifiedSymbols { get; } = new();
   public LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> ImplementationsPerVerifiable { get; } = new();
 
-  /// <summary>
-  /// FilePosition is required because the default module lives in multiple files
-  /// </summary>
-  public LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> TranslatedModules { get; }
 
 }
