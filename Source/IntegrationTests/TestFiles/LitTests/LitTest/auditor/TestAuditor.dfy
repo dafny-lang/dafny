@@ -125,12 +125,6 @@ class Box {
   ghost var value: int
 }
 
-ghost function {:concurrent} AssumedConcurrentFunction(xBox: Box): int 
-  reads {:assume_concurrent} xBox
-{
-  xBox.value
-}
-
 ghost method {:concurrent} AssumedConcurrentMethod(xBox: Box)
   reads {:assume_concurrent} xBox
   modifies {:assume_concurrent} xBox

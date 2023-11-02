@@ -65,7 +65,8 @@ class Concurrent {
   }
 
   ghost predicate {:concurrent} ExistsInJournal(p: string -> bool, j: ConcurrentJournal<string>)
-    reads {:assume_concurrent} j
+    // {:assume_concurrent} is not supported for functions so it has no effect here
+    reads {:assume_concurrent} j  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
   {
     exists element <- j.elements :: p(element)
   }

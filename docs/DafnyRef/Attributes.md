@@ -676,7 +676,7 @@ Only a small subset of Dafny's command line options is supported.  Use the
 ## 11.3. Attributes on reads and modifies clauses
 
 ### 11.3.1. `{:assume_concurrent}`
-This attribute is used to allow non-empty `reads` or `modifies` clauses on declarations
+This attribute is used to allow non-empty `reads` or `modifies` clauses on methods
 with the `{:concurrent}` attribute, which would otherwise reject them.
 
 In some cases it is possible to know that Dafny code that reads or writes shared mutable state
