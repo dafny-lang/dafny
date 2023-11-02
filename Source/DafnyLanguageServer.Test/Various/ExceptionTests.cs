@@ -114,11 +114,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       this.loader = loader;
     }
 
-    public IdeState CreateUnloaded(Compilation compilation) {
-      return loader.CreateUnloaded(compilation);
-    }
-
-    public Task<CompilationAfterParsing> ParseAsync(ErrorReporter reporter, Compilation compilation,
+    public Task<CompilationAfterParsing> ParseAsync(ErrorReporter reporter, CompilationInput compilation,
       IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
       return loader.ParseAsync(reporter, compilation, ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, cancellationToken);
     }

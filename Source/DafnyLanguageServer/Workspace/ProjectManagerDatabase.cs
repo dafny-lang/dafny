@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<IdeState?> GetLastIdeState(TextDocumentIdentifier documentId) {
       // Resolves drive letter capitalisation issues in Windows that occur when this method is called
       // from an in-process client without serializing documentId
       var normalizedUri = DocumentUri.From(documentId.Uri.ToString());

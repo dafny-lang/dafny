@@ -11,16 +11,16 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class CompilationAfterResolution : CompilationAfterParsing {
+public class CompilationAfterResolution {
 
-  public CompilationAfterResolution(CompilationAfterParsing compilationAfterParsing,
+  public CompilationAfterResolution(
     SymbolTable? symbolTable,
     LegacySignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostDiagnostics,
     IReadOnlyList<ICanVerify>? canVerifies,
     LazyConcurrentDictionary<ModuleDefinition, Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules
-    ) :
-    base(compilationAfterParsing, compilationAfterParsing.Program) {
+    ) 
+  {
     SymbolTable = symbolTable;
     SignatureAndCompletionTable = signatureAndCompletionTable;
     GhostDiagnostics = ghostDiagnostics;

@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public delegate CompilationManager CreateCompilationManager(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
-  Compilation compilation,
+  CompilationInput compilation,
   IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees);
 
 /// <summary>
@@ -49,13 +49,14 @@ public class CompilationManager : IDisposable {
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
-  public Compilation StartingCompilation { get; }
+  public CompilationInput Input { get; }
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<ICompilationEvent> compilationUpdates = new();
   public IObservable<ICompilationEvent> CompilationUpdates => compilationUpdates;
 
-  public Task<CompilationAfterParsing> ParsedCompilation { get; }
+  private Program parsedProgram;
+  public Task<Program> ParsedProgram { get; }
   public Task<CompilationAfterResolution> ResolvedCompilation { get; }
 
   public CompilationManager(
@@ -64,11 +65,11 @@ public class CompilationManager : IDisposable {
     IProgramVerifier verifier,
     DafnyOptions options,
     ExecutionEngine boogieEngine,
-    Compilation compilation,
+    CompilationInput compilation,
     IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees
     ) {
     this.options = options;
-    StartingCompilation = compilation;
+    Input = compilation;
     this.boogieEngine = boogieEngine;
     this.migratedVerificationTrees = migratedVerificationTrees;
 
@@ -81,7 +82,7 @@ public class CompilationManager : IDisposable {
     verificationTickets.Enqueue(Unit.Default);
     MarkVerificationFinished();
 
-    ParsedCompilation = ParseAsync();
+    ParsedProgram = ParseAsync();
     ResolvedCompilation = ResolveAsync();
   }
 
@@ -89,20 +90,24 @@ public class CompilationManager : IDisposable {
     started.TrySetResult();
   }
 
-  private async Task<CompilationAfterParsing> ParseAsync() {
+  private async Task<Program> ParseAsync() {
     try {
       await started.Task;
-      var uri = StartingCompilation.Uri.ToUri();
+      var uri = Input.Uri.ToUri();
       var errorReporter = new ObservableErrorReporter(options, uri);
       errorReporter.Updates.Subscribe(compilationUpdates);
-      errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
-      var parsedCompilation = await documentLoader.ParseAsync(errorReporter, StartingCompilation, migratedVerificationTrees,
+      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(onNext => staticDiagnostics.GetOrAdd(uri, _ => new()).Push(onNext.Diagnostic));
+      var parsedCompilation = await documentLoader.ParseAsync(errorReporter, Input, migratedVerificationTrees,
         cancellationSource.Token);
 
-      compilationUpdates.OnNext(new FinishedParsing(parsedCompilation));
+      var cloner = new Cloner(true, false);
+      parsedProgram = new Program(cloner, parsedCompilation.Program);
+      
+      compilationUpdates.OnNext(new FinishedParsing(staticDiagnostics.ToImmutableDictionary(k => k.Key,
+        kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()), parsedProgram));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {parsedCompilation.Version}.");
-      return parsedCompilation;
+      return parsedProgram;
 
     } catch (OperationCanceledException) {
       throw;
@@ -114,8 +119,8 @@ public class CompilationManager : IDisposable {
 
   private async Task<CompilationAfterResolution> ResolveAsync() {
     try {
-      var parsedCompilation = await ParsedCompilation;
-      var resolvedCompilation = await documentLoader.ResolveAsync(options, parsedCompilation, cancellationSource.Token);
+      await ParsedProgram;
+      var resolvedCompilation = await documentLoader.ResolveAsync(options, Input.Project, parsedProgram, cancellationSource.Token);
 
       compilationUpdates.OnNext(new FinishedResolution(
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
@@ -125,6 +130,7 @@ public class CompilationManager : IDisposable {
         resolvedCompilation.SignatureAndCompletionTable,
         resolvedCompilation.GhostDiagnostics,
         resolvedCompilation.CanVerifies));
+      staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {resolvedCompilation.Version}.");
       return resolvedCompilation;
 
@@ -297,7 +303,7 @@ public class CompilationManager : IDisposable {
             var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
             logger.LogDebug(
               $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {compilation.Uri} version {compilation.Version}, " +
-              $"startingCompilation.version {StartingCompilation.Version}.");
+              $"startingCompilation.version {Input.Version}.");
             if (remainingJobs == 0) {
               FinishedNotifications(compilation, canVerify);
             }
@@ -331,14 +337,14 @@ public class CompilationManager : IDisposable {
   public void IncrementJobs() {
     MarkVerificationStarted();
     var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
+    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {Input.Uri} version {Input.Version}");
   }
 
   public void DecrementJobs() {
     var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {StartingCompilation.Uri} version {StartingCompilation.Version}");
+    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}");
     if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {StartingCompilation.Uri}, version {StartingCompilation.Version}.");
+      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {Input.Uri}, version {Input.Version}.");
       MarkVerificationFinished();
     }
   }
@@ -354,13 +360,13 @@ public class CompilationManager : IDisposable {
     MarkVerificationFinished();
   }
 
-  private void HandleStatusUpdate(CompilationAfterResolution compilation, ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
+  private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
 
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
-    logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {compilation.Version}");
+    logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     if (boogieStatus is Completed completed) {
-      ReportVacuityAndRedundantAssumptionsChecks(compilation, implementationTask.Implementation, completed.Result);
+      ReportVacuityAndRedundantAssumptionsChecks(implementationTask.Implementation, completed.Result);
     }
 
     compilationUpdates.OnNext(new BoogieUpdate(canVerify,
@@ -368,19 +374,17 @@ public class CompilationManager : IDisposable {
       boogieStatus));
   }
 
-  private bool ReportGutterStatus => options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus);
-
-  private static void ReportVacuityAndRedundantAssumptionsChecks(CompilationAfterResolution compilation,
+  private void ReportVacuityAndRedundantAssumptionsChecks(
     Implementation implementation, VerificationResult verificationResult) {
-    var options = compilation.Program.Reporter.Options;
+    var options = parsedProgram.Reporter.Options;
     if (!options.Get(CommonOptionBag.WarnContradictoryAssumptions)
         && !options.Get(CommonOptionBag.WarnRedundantAssumptions)
        ) {
       return;
     }
 
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, compilation.Program.Reporter,
-      compilation.Program.ProofDependencyManager,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, parsedProgram.Reporter,
+      parsedProgram.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
   }
@@ -390,20 +394,20 @@ public class CompilationManager : IDisposable {
   }
 
   private void MarkVerificationStarted() {
-    logger.LogDebug($"MarkVerificationStarted called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationStarted called for {Input.Uri} version {Input.Version}");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   private void MarkVerificationFinished() {
-    logger.LogDebug($"MarkVerificationFinished called for {StartingCompilation.Uri} version {StartingCompilation.Version}");
+    logger.LogDebug($"MarkVerificationFinished called for {Input.Uri} version {Input.Version}");
     verificationCompleted.TrySetResult();
   }
 
   public Task<CompilationAfterParsing> LastDocument {
     get {
-      logger.LogDebug($"LastDocument {StartingCompilation.Uri} will return document version {StartingCompilation.Version}");
+      logger.LogDebug($"LastDocument {Input.Uri} will return document version {Input.Version}");
       return ResolvedCompilation.ContinueWith(
         t => {
           if (t.IsCompletedSuccessfully) {
@@ -411,31 +415,31 @@ public class CompilationManager : IDisposable {
             return verificationCompleted.Task.ContinueWith(
               verificationCompletedTask => {
                 logger.LogDebug(
-                  $"LastDocument returning translated compilation {StartingCompilation.Uri} with status {verificationCompletedTask.Status}");
+                  $"LastDocument returning translated compilation {Input.Uri} with status {verificationCompletedTask.Status}");
                 return Task.FromResult<CompilationAfterParsing>(t.Result);
               }, TaskScheduler.Current).Unwrap();
 #pragma warning restore VSTHRD103
           }
 
-          return ParsedCompilation;
+          return ParsedProgram;
         }, TaskScheduler.Current).Unwrap();
     }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var parsedDocument = await ParsedCompilation;
+    var program = await ParsedProgram;
 
-    if (parsedDocument.Program.Reporter.HasErrors) {
+    if (program.Reporter.HasErrors) {
       return null;
     }
 
-    var firstToken = parsedDocument.Program.GetFirstTokenForUri(uri);
+    var firstToken = program.GetFirstTokenForUri(uri);
     if (firstToken == null) {
       return null;
     }
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-      IndentationFormatter.ForProgram(parsedDocument.Program));
+      IndentationFormatter.ForProgram(program));
 
     var lastToken = firstToken;
     while (lastToken.Next != null) {
@@ -450,6 +454,8 @@ public class CompilationManager : IDisposable {
   }
 
   private bool disposed = false;
+  private IDisposable staticDiagnosticsSubscription;
+
   public void Dispose() {
     if (disposed) {
       return;

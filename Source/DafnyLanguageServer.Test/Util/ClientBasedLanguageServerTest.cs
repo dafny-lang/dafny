@@ -456,7 +456,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetLastDocumentAsync(documentItem);
+    var document = await Projects.GetLastIdeState(documentItem);
     Assert.NotNull(document);
     return documentItem;
   }

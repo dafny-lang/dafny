@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(
-          It.IsAny<Compilation>(),
+          It.IsAny<CompilationInput>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
@@ -79,15 +79,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
     }
 
-    private static Compilation GetCompilation() {
+    private static CompilationInput GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
-      var compilation = new Compilation(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
+      var compilation = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
       return compilation;
     }
 
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
-      parser.Setup(p => p.Parse(It.IsAny<Compilation>(),
+      parser.Setup(p => p.Parse(It.IsAny<CompilationInput>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();

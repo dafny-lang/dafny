@@ -89,25 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private CompilationStatus GetGlobalProgress(IdeState state) {
-      var errors = state.StaticDiagnostics.Values.SelectMany(x => x).
-        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-      if (state.Compilation is CompilationAfterResolution) {
-        if (errors.Any(d => d.Source == MessageSource.Resolver.ToString())) {
-          return CompilationStatus.ResolutionFailed;
-        }
-
-        return CompilationStatus.ResolutionSucceeded;
-      }
-
-      if (state.Compilation is CompilationAfterParsing) {
-        if (errors.Any(d => d.Source == MessageSource.Parser.ToString())) {
-          return CompilationStatus.ParsingFailed;
-        }
-
-        return CompilationStatus.ResolutionStarted;
-      }
-
-      return CompilationStatus.Parsing;
+      return state.Status;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
@@ -209,11 +191,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      if (state.Compilation is not CompilationAfterParsing) {
+      if (state.Status == CompilationStatus.Parsing) {
         return;
       }
 
-      bool verificationStarted = state.Compilation is CompilationAfterResolution;
+      bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
       var errors = state.StaticDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();

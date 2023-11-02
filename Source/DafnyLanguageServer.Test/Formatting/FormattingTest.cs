@@ -148,7 +148,7 @@ module A {
     }
     var documentItem = CreateTestDocument(source, "FormattingWorksFor.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
+    CompilationAfterParsing compilation = await Projects.GetLastIdeState(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
     Assert.NotNull(compilation);

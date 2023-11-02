@@ -24,7 +24,7 @@ Send notifications about the verification status of each line in the program.
     this.logger = logger;
   }
 
-  public static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
+  public static DocumentVerificationTree UpdateTree(DafnyOptions options, Program program, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -50,7 +50,7 @@ Send notifications about the verification status of each line in the program.
       }
     }
 
-    foreach (var module in parsedCompilation.Program.Modules()) {
+    foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -147,7 +147,7 @@ Send notifications about the verification status of each line in the program.
       }
     }
 
-    return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+    return new DocumentVerificationTree(program, rootVerificationTree.Uri) {
       Children = result
     };
   }

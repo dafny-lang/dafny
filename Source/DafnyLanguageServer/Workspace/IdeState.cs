@@ -25,7 +25,8 @@ public record IdeVerificationResult(VerificationPreparationState PreparationProg
 /// </summary>
 public record IdeState(
   int Version,
-  Compilation Compilation,
+  CompilationInput Compilation,
+  CompilationStatus Status,
   Node Program,
   ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
   SymbolTable SymbolTable,

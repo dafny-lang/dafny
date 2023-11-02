@@ -17,8 +17,8 @@ public class CompilationManagerTest {
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
       dafnyOptions,
-      null, new Compilation(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
+      null, new CompilationInput(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
     compilationManager.CancelPendingUpdates();
-    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedCompilation);
+    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedProgram);
   }
 }

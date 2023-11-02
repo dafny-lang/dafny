@@ -9,9 +9,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class CompilationAfterParsing : Compilation {
+public class CompilationAfterParsing : CompilationInput {
 
-  public CompilationAfterParsing(Compilation compilation, Program program)
+  public CompilationAfterParsing(CompilationInput compilation, Program program)
     : base(compilation.Options, compilation.Version, compilation.Project, compilation.RootUris) {
     Program = program;
   }

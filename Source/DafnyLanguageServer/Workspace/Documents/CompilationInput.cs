@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// When verification starts, no new instances of Compilation will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
-  public class Compilation {
+  public class CompilationInput {
     /// <summary>
     /// These do not have to be owned
     /// </summary>
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
+    public CompilationInput(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
       this.RootUris = rootUris;
       Options = options;
       Version = version;
@@ -43,7 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IdeState InitialIdeState(DafnyOptions options) {
       var program = new EmptyNode();
-      return new IdeState(Version, this, program,
+      return new IdeState(Version, this, CompilationStatus.Parsing, 
+        program,
         ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
         SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),

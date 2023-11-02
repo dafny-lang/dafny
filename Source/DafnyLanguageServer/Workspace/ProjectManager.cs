@@ -115,9 +115,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = Disposable.Empty;
   }
 
-  private Compilation CreateInitialCompilation() {
+  private CompilationInput CreateInitialCompilation() {
     var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
-    return new Compilation(options, version, Project, rootUris);
+    return new CompilationInput(options, version, Project, rootUris);
   }
 
   private const int MaxRememberedChanges = 100;
@@ -258,24 +258,17 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     Dispose();
   }
 
-  public async Task<CompilationAfterParsing> GetLastDocumentAsync() {
+  public async Task<IdeState> GetLastDocumentAsync() {
     logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
     return await CompilationManager.LastDocument;
   }
 
   public Task<IdeState> GetStateAfterParsingAsync() {
-    return States.Select(l => l.Value).Where(s => s.Compilation is CompilationAfterParsing).FirstAsync().ToTask();
+    return States.Select(l => l.Value).Where(s => s.Status > CompilationStatus.Parsing).FirstAsync().ToTask();
   }
 
   public Task<IdeState> GetStateAfterResolutionAsync() {
-    return States.Select(l => l.Value).Where(s => {
-      var errors = s.StaticDiagnostics.Values.SelectMany(x => x).
-        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-      if (errors.Any()) {
-        return s.Compilation is CompilationAfterParsing;
-      }
-      return s.Compilation is CompilationAfterResolution;
-    }).FirstAsync().ToTask();
+    return States.Select(l => l.Value).Where(s => s.Status > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
 
   public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
