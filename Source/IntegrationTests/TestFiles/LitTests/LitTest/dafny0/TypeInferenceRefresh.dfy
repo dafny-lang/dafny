@@ -967,38 +967,6 @@ module StaticReceivers {
  ******** TO DO *************************************************************************
  ****************************************************************************************
 
-module StaticReceivers {
-  ghost predicate Caller0(s: seq<int>, list: LinkedList<int>)
-  {
-    s == list.StaticFunction(s) // uses "list" as an object to discard
-  }
-
-  ghost predicate Caller1(s: seq<int>)
-  {
-    s == LinkedList.StaticFunction(s) // type parameters inferred
-  }
-
-  ghost predicate Caller2(s: seq<int>)
-  {
-    s == LinkedList<int>.StaticFunction(s)
-  }
-
-  method Caller3()
-  {
-    var s: seq;
-    var b := s == LinkedList<int>.StaticFunction(s);
-  }
-
-  class LinkedList<UUU> {
-    static ghost function StaticFunction(sq: seq<UUU>): seq<UUU>
-  }
-}
-
-
-/****************************************************************************************
- ******** TO DO *************************************************************************
- ****************************************************************************************
-
 // ------------------
 // Clement suggested the following problem to try through the new type inference.
 // On 5 April 2022, he said:
@@ -1032,16 +1000,6 @@ datatype Tree =
 // Dafny rejects the call to MaxF, claiming that forall t | t in ts :: default <= f(t) might not hold.  But default is 0 and f(t)
 // has type nat, so it should hold — and in fact just uncommenting the definition of fn above solves the issue… even if fn isn’t used.
  
-
-// ------------------
-// From Clement:
-
-method copy<T>(a: array<T>) returns (a': array<T>) {
-  a' := new T[a.Length](k requires k < a.Length reads a => a[k]);
-}
-
-// The lambda in a new T is supposed to take a nat, but Dafny infers k to be an int and rejects a[k]
-
 // ------------------
 // In this program, one has to write "n + d != 0" instead of "n != -d", because of a previously known problem with type inference
 
@@ -1071,14 +1029,4 @@ predicate method downup_search'(n: int, d: nat)
   */
 }
 
-// ------------------------
-// From https://github.com/dafny-lang/dafny/issues/1292:
-
-datatype List <T> = None | Cons (hd: T, tl: List<T>)
-
-method m (x: List<int>)  {
-  match x
-    case None => {assert 4 > 3;}
-    case Cons(None, t) => {assert 4 > 3;}
-}
 ****************************************************************************************/
