@@ -11,7 +11,10 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection) {
-    var actionSigs = ErrorRegistry.GetAction(diagnostic.Code.ToString());
+    if (diagnostic.Code is not { IsString: true }) {
+      return Enumerable.Empty<DafnyCodeAction>();
+    }
+    var actionSigs = ErrorRegistry.GetAction(diagnostic.Code.Value.String);
     var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
       var range = FindTokenRangeFromLspRange(input, diagnostic.Range);

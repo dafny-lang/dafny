@@ -155,7 +155,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   private void StartNewCompilation() {
-    var compilationVersion = ++version;
+    ++version;
     logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     observerSubscription.Dispose();
@@ -175,8 +175,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
           uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
       };
     });
-    states = new ReplaySubject<Lazy<IdeState>>();
-    states.OnNext(latestIdeState);
+    states = new ReplaySubject<Lazy<IdeState>>(1);
 
     var migratedUpdates = Compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestIdeState.Value;

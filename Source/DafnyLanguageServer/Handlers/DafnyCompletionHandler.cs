@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       logger.LogDebug("Completion params received");
-      var document = await projects.GetParsedDocumentNormalizeUri(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       private bool IsDotExpression() {
-        var node = state.ResolvedProgram.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
         return node?.RangeToken.EndToken.val == ".";
       }
 
