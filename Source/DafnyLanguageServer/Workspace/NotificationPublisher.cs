@@ -110,15 +110,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
-      if (first is PublishedVerificationStatus.Error or PublishedVerificationStatus.Correct) {
-        return second;
-      }
-
-      if (second is PublishedVerificationStatus.Error or PublishedVerificationStatus.Correct) {
-        return first;
-      }
-
-      return first > second ? first : second;
+      var max = new[] { first, second }.Max();
+      var min = new[] { first, second }.Min();
+      return max >= PublishedVerificationStatus.Error ? min : max;
     }
 
     private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
