@@ -180,7 +180,7 @@ public abstract class Node : INode {
       return matches[^1].Value;
     }
 
-    if (StartToken.Prev.val is "|" or "{") {
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
         return matches[^1].Value;
