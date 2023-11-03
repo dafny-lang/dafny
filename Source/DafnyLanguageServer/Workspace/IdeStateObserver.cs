@@ -44,21 +44,6 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
   }
 
   public void OnError(Exception exception) {
-    var internalErrorDiagnostic = new Diagnostic {
-      Message =
-        "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
-        exception,
-      Severity = DiagnosticSeverity.Error,
-      Range = new Range(0, 0, 0, 1)
-    };
-    var documentToPublish = LastPublishedState with {
-      StaticDiagnostics = ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(initialState.Input.Uri.ToUri(), ImmutableList.Create(internalErrorDiagnostic))
-    };
-
-    OnNext(documentToPublish);
-
-    logger.LogError(exception, "error while handling document event");
-    telemetryPublisher.PublishUnhandledException(exception);
   }
 
   public void OnNext(IdeState snapshot) {

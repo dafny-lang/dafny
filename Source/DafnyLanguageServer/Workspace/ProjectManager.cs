@@ -76,6 +76,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly CreateCompilation createCompilation;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
+  private readonly ITelemetryPublisher telemetryPublisher;
   private Lazy<IdeState> latestIdeState;
   private ReplaySubject<Lazy<IdeState>> states = new(1);
   public IObservable<Lazy<IdeState>> States => states;
@@ -85,12 +86,14 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
+    ITelemetryPublisher telemetryPublisher,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
     CustomStackSizePoolTaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
+    this.telemetryPublisher = telemetryPublisher;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
     this.createCompilation = createCompilation;
@@ -194,6 +197,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
       var previousState = latestCompilationState.Value;
+      if (ev is InternalCompilationException compilationException) {
+        logger.LogError(compilationException.Exception, "error while handling document event");
+        telemetryPublisher.PublishUnhandledException(compilationException.Exception);
+      }
       latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
       return latestCompilationState;
     });

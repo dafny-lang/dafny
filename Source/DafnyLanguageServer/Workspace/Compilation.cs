@@ -120,7 +120,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnError(e);
+      updates.OnNext(new InternalCompilationException(e));
       throw;
     }
   }
@@ -145,7 +145,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnError(e);
+      updates.OnNext(new InternalCompilationException(e));
       throw;
     }
   }
@@ -235,7 +235,7 @@ public class Compilation : IDisposable {
         throw;
       } catch (Exception e) {
         verificationCompleted.TrySetException(e);
-        updates.OnError(e);
+        updates.OnNext(new InternalCompilationException(e));
         throw;
       }
 
