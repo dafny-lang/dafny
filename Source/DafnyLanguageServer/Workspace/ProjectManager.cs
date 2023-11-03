@@ -161,29 +161,15 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription.Dispose();
 
     Compilation.Dispose();
-    var initialState = latestIdeState;
     var input = GetCompilationInput();
     Compilation = createCompilation(
       options,
       boogieEngine,
       input);
-    var latestCompilationState = new Lazy<IdeState>(() => {
-      var value = initialState.Value;
-      return value with {
-        Input = input,
-        VerificationTrees = input.RootUris.ToImmutableDictionary(uri => uri,
-          uri => value.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(new EmptyNode(), uri))
-      };
-    });
+    var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<Lazy<IdeState>>(1);
-
-    var migratedUpdates = Compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
-      var previousState = latestCompilationState.Value;
-      latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
-      latestIdeState = latestCompilationState;
-      return latestCompilationState;
-    });
-    var statesSubscription = observerSubscription = migratedUpdates.Subscribe(states);
+    var statesSubscription = observerSubscription =
+      migratedUpdates.Do(s => latestIdeState = s).Subscribe(states);
 
     var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
@@ -192,6 +178,25 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
+  }
+
+  private IObservable<Lazy<IdeState>> GetStates(Compilation compilation) {
+    var initialState = latestIdeState;
+    var latestCompilationState = new Lazy<IdeState>(() => {
+      var value = initialState.Value;
+      return value with {
+        Input = compilation.Input,
+        VerificationTrees = compilation.Input.RootUris.ToImmutableDictionary(uri => uri,
+          uri => value.VerificationTrees.GetValueOrDefault(uri) ??
+                 new DocumentVerificationTree(new EmptyNode(), uri))
+      };
+    });
+
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
+      var previousState = latestCompilationState.Value;
+      latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
+      return latestCompilationState;
+    });
   }
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
