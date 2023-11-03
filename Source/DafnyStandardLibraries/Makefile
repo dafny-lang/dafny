@@ -23,11 +23,11 @@ update-binary: build-binary
 # with deeper coverage of module functionality.
 test:
 	$(DAFNY) build -t:lib examples/dfyconfig.toml --output:build/stdlibexamples.doo
-	$(DAFNY) test -t:cs build/stdlibexamples.doo --output:build/stdlibexamples
-	$(DAFNY) test -t:java build/stdlibexamples.doo --output:build/stdlibexamples
-	$(DAFNY) test -t:go build/stdlibexamples.doo --output:build/stdlibexamples
-	$(DAFNY) test -t:py build/stdlibexamples.doo --output:build/stdlibexamples
-	$(DAFNY) test -t:js build/stdlibexamples.doo --output:build/stdlibexamples
+	$(DAFNY) test -t:cs build/stdlibexamples.doo examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples
+	$(DAFNY) test -t:java build/stdlibexamples.doo examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
+	$(DAFNY) test -t:go build/stdlibexamples.doo examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
+	$(DAFNY) test -t:py build/stdlibexamples.doo examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
+	$(DAFNY) test -t:js build/stdlibexamples.doo examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
  
 format:
 	$(DAFNY) format .
