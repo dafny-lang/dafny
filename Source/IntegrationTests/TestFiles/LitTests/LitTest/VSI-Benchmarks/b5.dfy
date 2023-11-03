@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 class Queue<T(0)> {
   var head: Node<T>;

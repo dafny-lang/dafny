@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 method MirrorImage<T>(m: array2<T>)
   modifies m

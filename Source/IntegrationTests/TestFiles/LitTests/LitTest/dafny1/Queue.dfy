@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Queue.dfy
 // Dafny version of Queue.bpl

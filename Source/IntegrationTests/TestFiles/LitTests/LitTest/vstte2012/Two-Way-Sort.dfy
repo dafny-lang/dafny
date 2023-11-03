@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // This method is a slight generalization of the
 // code provided in the problem statement since it

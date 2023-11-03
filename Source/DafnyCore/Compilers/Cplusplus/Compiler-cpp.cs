@@ -55,7 +55,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RunAllTests,
       Feature.MethodSynthesis,
       Feature.UnicodeChars,
-      Feature.ConvertingValuesToStrings
+      Feature.ConvertingValuesToStrings,
+      Feature.BuiltinsInRuntime
     };
 
     private List<DatatypeDecl> datatypeDecls = new();
@@ -118,10 +119,8 @@ namespace Microsoft.Dafny.Compilers {
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
 
-      var rt = wr.NewFile("DafnyRuntime.h");
-
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+        EmitRuntimeSource("DafnyRuntimeCpp", wr);
       }
 
     }

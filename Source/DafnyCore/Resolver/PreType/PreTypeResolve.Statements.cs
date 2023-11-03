@@ -1007,7 +1007,7 @@ namespace Microsoft.Dafny {
       }
       TopLevelDeclWithMembers failureSupportingType = null;
       if (firstPreType != null) {
-        Constraints.PartiallySolveTypeConstraints();
+        Constraints.FindDefinedPreType(firstPreType, true);
         failureSupportingType = (firstPreType.Normalize() as DPreType)?.Decl as TopLevelDeclWithMembers;
         if (failureSupportingType != null) {
           if (failureSupportingType.Members.Find(x => x.Name == "IsFailure") == null) {

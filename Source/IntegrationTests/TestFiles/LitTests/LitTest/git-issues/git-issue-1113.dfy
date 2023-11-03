@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // ---------- 1113 ----------
 

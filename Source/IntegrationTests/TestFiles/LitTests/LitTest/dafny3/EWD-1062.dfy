@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Rustan Leino, 17 Jan 2018.
 // A transcription of a little proof calculation by E.W. Dijkstra, see:

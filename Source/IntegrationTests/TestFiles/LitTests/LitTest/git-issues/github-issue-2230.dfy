@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 lemma MergeLShift(v: bv128, i: nat, j: nat)
   requires i <= 128 && j <= 128 && i + j <= 128
   ensures v << i << j == v << i + j

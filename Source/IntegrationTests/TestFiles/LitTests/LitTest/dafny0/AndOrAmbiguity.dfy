@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // && and || have the same binding power and do not associate with each other.
 // The same goes for ==> and <==, and for &, |, and ^.

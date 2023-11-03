@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 datatype DT_<+A> = DT(ret: A)
 type DT<A> = r: DT_<A> | true witness *

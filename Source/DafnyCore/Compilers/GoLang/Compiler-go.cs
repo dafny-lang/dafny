@@ -66,14 +66,8 @@ namespace Microsoft.Dafny.Compilers {
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
       if (Options.IncludeRuntime) {
-        var rt = wr.NewFile("dafny/dafny.go");
-        ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
-        rt = wr.NewFile("dafny/dafnyFromDafny.go");
-        ReadRuntimeSystem(program, "DafnyRuntimeFromDafny.go", rt);
+        EmitRuntimeSource("DafnyRuntimeGo", wr);
       }
-    }
-
-    protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
