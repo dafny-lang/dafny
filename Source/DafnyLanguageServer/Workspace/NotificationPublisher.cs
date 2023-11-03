@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new(canVerify, status);
     }
 
-    private static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
+    public static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
       var max = new[] { first, second }.Max();
       var min = new[] { first, second }.Min();
       return max >= PublishedVerificationStatus.Error ? min : max;
