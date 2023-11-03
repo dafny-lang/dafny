@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny "%s" /rprint:"%t.rprint" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 include "./NatOutcome.dfy"
 include "./VoidOutcome.dfy"

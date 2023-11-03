@@ -1034,15 +1034,6 @@ datatype Tree =
  
 
 // ------------------
-// From Clement:
-
-method copy<T>(a: array<T>) returns (a': array<T>) {
-  a' := new T[a.Length](k requires k < a.Length reads a => a[k]);
-}
-
-// The lambda in a new T is supposed to take a nat, but Dafny infers k to be an int and rejects a[k]
-
-// ------------------
 // In this program, one has to write "n + d != 0" instead of "n != -d", because of a previously known problem with type inference
 
 predicate method ge0'(n: int)
@@ -1071,14 +1062,4 @@ predicate method downup_search'(n: int, d: nat)
   */
 }
 
-// ------------------------
-// From https://github.com/dafny-lang/dafny/issues/1292:
-
-datatype List <T> = None | Cons (hd: T, tl: List<T>)
-
-method m (x: List<int>)  {
-  match x
-    case None => {assert 4 > 3;}
-    case Cons(None, t) => {assert 4 > 3;}
-}
 ****************************************************************************************/
