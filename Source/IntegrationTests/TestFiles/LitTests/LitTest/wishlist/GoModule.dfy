@@ -19,7 +19,7 @@
 
 // "url" is a built-in package, so it should be accessible to the
 // test suite without further requirements on the setup.
-module {:extern "url", "net/url"} {:member "URL", true} URL {
+module {:extern "url", "net/url"} {:dummyImportMember "URL", true} URL {
 
   class URL {
     var {:extern "Host"} host: string
@@ -30,7 +30,7 @@ module {:extern "url", "net/url"} {:member "URL", true} URL {
   trait {:extern "", "error"} Error { }
 }
 
-module {:extern "GoModuleConversions"} {:member "ParseURL", false} GoModuleConversions {
+module {:extern "GoModuleConversions"} {:dummyImportMember "ParseURL", false} GoModuleConversions {
   import opened URL
   method {:extern "ParseURL"} Parse(address: string) returns (url: URL, error: Error?)
 }

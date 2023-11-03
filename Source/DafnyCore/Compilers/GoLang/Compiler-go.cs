@@ -205,7 +205,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         isType = true;
         if (import.ExternModule != null) {
-          var attributes = Attributes.Find(import.ExternModule.Attributes, "member");
+          var attributes = Attributes.Find(import.ExternModule.Attributes, "dummyImportMember");
           if (attributes != null && attributes.Args.Count == 2) {
             if (attributes.Args[0] is LiteralExpr expr1 && expr1.Value is string isNameValue &&
               attributes.Args[1] is LiteralExpr expr2 && expr2.Value is bool isTypeValue) {

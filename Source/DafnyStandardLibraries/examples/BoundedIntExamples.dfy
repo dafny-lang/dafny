@@ -14,7 +14,7 @@ method {:test} UseExterns() {
   expect squareOf8 == 64;
 }
 
-module {:extern} {:member "NonDefault", true} Externs {
+module {:extern} {:dummyImportMember "NonDefault", true} Externs {
   import opened DafnyStdLibs.BoundedInts
   class {:extern} NonDefault {
     static method {:extern} SquareNativeInt(i: int32) returns (r: int32)
