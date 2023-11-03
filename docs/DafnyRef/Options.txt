@@ -118,6 +118,12 @@ Usage: dafny [ option ... ] [ filename ... ]
       0 (default) - Reads clauses on methods are forbidden.
       1 - Reads clauses on methods are permitted (with a default of 'reads *').
 
+  /standardLibraries:<value>
+      0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+      Not compatible with the /unicodeChar:0 option.
+
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.
       1 - Print type-inference debug information.

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 method FindZero(a: array<int>) returns (r: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i];

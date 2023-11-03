@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 ghost predicate ContainsNothingBut5(s: set<int>)
 {

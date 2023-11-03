@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print:-
+
 
 module M0 {
   class A {

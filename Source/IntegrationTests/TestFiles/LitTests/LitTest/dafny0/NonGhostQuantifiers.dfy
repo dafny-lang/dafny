@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // This file contains various tests of resolving quantifiers in ghost and non-ghost positions
 module Misc {
