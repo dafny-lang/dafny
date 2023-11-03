@@ -268,7 +268,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public Task<IdeState> GetStateAfterResolutionAsync() {
-    return States.Select(l => l.Value).Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
+    return States.Select(l => l.Value).
+      Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
 
   /// <summary>

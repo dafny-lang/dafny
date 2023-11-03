@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -96,9 +97,15 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       Resolution resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
-        throw new Exception("testing crash");
+        throw new TestException("testing crash");
       }
       return verifier.GetVerificationTasksAsync(engine, resolution, moduleDefinition, cancellationToken);
+    }
+  }
+
+  class TestException : Exception {
+    public TestException([CanBeNull] string message) : base(message)
+    {
     }
   }
 

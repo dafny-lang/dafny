@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -124,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return first > second ? first : second;
     }
 
-    private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
+    private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
     private async Task PublishDiagnostics(IdeState state) {
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
@@ -167,7 +168,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics[publishUri] = diagnostics;
           } else {
             // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
-            publishedDiagnostics.Remove(publishUri);
+            publishedDiagnostics.TryRemove(publishUri, out _);
           }
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
