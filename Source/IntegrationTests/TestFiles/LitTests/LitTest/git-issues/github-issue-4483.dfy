@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 const TWO_TO_THE_64:  int := 0x1_00000000_00000000
 newtype uint64 = x: int | 0 <= x < TWO_TO_THE_64
 

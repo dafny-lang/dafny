@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 method Test<X(==)>(a: X, b: X) {
     print a == b, "\n";

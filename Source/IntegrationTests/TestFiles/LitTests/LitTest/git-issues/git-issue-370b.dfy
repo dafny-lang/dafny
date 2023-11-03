@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+
 
 // Issue 370 reported a situation where there were 6 errors, but only 5 of
 // them are reported, since there's a limit of 5 error messages per method.
