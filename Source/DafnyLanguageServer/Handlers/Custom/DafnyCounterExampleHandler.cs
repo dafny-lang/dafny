@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
@@ -30,9 +32,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var projectManager = await projects.GetProjectManager(request.TextDocument);
         if (projectManager != null) {
-          await projectManager.VerifyEverythingAsync(request.TextDocument.Uri.ToUri());
+          var uri = request.TextDocument.Uri.ToUri();
+          await projectManager.VerifyEverythingAsync(uri);
 
-          var state = await projectManager.GetIdeStateAfterVerificationAsync();
+          var state = await projectManager.States.Select(s => s.Value).Where(s =>
+            s.Status == CompilationStatus.ResolutionSucceeded &&
+            s.VerificationResults[uri].Values.All(r => 
+              r.PreparationProgress == VerificationPreparationState.Done && 
+              r.Implementations.Values.All(v => v.Status >= PublishedVerificationStatus.Error))).FirstAsync();
           logger.LogDebug("counter-example handler retrieved IDE state");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }

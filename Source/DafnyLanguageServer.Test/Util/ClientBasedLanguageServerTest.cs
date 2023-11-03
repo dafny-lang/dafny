@@ -62,6 +62,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return document;
   }
 
+  protected async Task AssertVerificationHoverMatches(TextDocumentItem documentItem, Position hoverPosition,
+    [CanBeNull] string expected) {
+    await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
+    await AssertHoverMatches(documentItem, hoverPosition, expected);
+  }
+
   protected async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
     if (expected != null && errorTests.Matches(expected).Count >= 2) {
       Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
@@ -430,12 +436,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     ).AsTask();
   }
 
-  protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem,
+  protected Task ApplyChangesAndWaitCompletionAsync(ref TextDocumentItem documentItem,
     params TextDocumentContentChangeEvent[] changes) {
-    return ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
+    var result = ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
       Version = documentItem.Version!.Value,
       Uri = documentItem.Uri
     }, changes);
+    documentItem = documentItem with {
+      Version = documentItem.Version + 1
+    };
+    return result;
   }
 
   protected Task ApplyChangesAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, params TextDocumentContentChangeEvent[] changes) {

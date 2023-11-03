@@ -271,16 +271,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     return States.Select(l => l.Value).Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
 
-  public async Task<IdeState> GetIdeStateAfterVerificationAsync() {
-    try {
-      await WaitUntilFinished();
-    } catch (OperationCanceledException) {
-    }
-
-    return latestIdeState.Value;
-  }
-
-
   /// <summary>
   /// This property and related code will be removed once we replace server gutter icons with client side computed gutter icons
   /// </summary>

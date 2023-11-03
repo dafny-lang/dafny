@@ -1063,7 +1063,8 @@ method test()
       client.OpenDocument(documentItem);
 
       var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
-      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
+      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.
+        Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
 
       Assert.Single(firstVerificationDiagnostics);
       Assert.Equal(2, secondVerificationDiagnostics.Length);
