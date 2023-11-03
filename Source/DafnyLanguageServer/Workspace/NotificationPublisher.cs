@@ -110,15 +110,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
-      if (first == PublishedVerificationStatus.Error || second == PublishedVerificationStatus.Error) {
-        return PublishedVerificationStatus.Error;
-      }
-
-      if (first == PublishedVerificationStatus.Correct) {
+      if (first is PublishedVerificationStatus.Error or PublishedVerificationStatus.Correct) {
         return second;
       }
 
-      if (second == PublishedVerificationStatus.Correct) {
+      if (second is PublishedVerificationStatus.Error or PublishedVerificationStatus.Correct) {
         return first;
       }
 

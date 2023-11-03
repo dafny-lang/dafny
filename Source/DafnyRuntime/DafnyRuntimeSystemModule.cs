@@ -51,12 +51,12 @@ namespace Dafny {
       int s1 = (int)size1;
       int s2 = (int)size2;
       int s3 = (int)size3;
-      T[,,,] a = new T[s0,s1,s2,s3];
+      T[,,,] a = new T[s0, s1, s2, s3];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
             for (int i3 = 0; i3 < s3; i3++) {
-              a[i0,i1,i2,i3] = z;
+              a[i0, i1, i2, i3] = z;
             }
           }
         }
@@ -69,13 +69,13 @@ namespace Dafny {
       int s2 = (int)size2;
       int s3 = (int)size3;
       int s4 = (int)size4;
-      T[,,,,] a = new T[s0,s1,s2,s3,s4];
+      T[,,,,] a = new T[s0, s1, s2, s3, s4];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
             for (int i3 = 0; i3 < s3; i3++) {
               for (int i4 = 0; i4 < s4; i4++) {
-                a[i0,i1,i2,i3,i4] = z;
+                a[i0, i1, i2, i3, i4] = z;
               }
             }
           }
@@ -90,14 +90,14 @@ namespace Dafny {
       int s3 = (int)size3;
       int s4 = (int)size4;
       int s5 = (int)size5;
-      T[,,,,,] a = new T[s0,s1,s2,s3,s4,s5];
+      T[,,,,,] a = new T[s0, s1, s2, s3, s4, s5];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
             for (int i3 = 0; i3 < s3; i3++) {
               for (int i4 = 0; i4 < s4; i4++) {
                 for (int i5 = 0; i5 < s5; i5++) {
-                  a[i0,i1,i2,i3,i4,i5] = z;
+                  a[i0, i1, i2, i3, i4, i5] = z;
                 }
               }
             }
@@ -114,7 +114,7 @@ namespace Dafny {
       int s4 = (int)size4;
       int s5 = (int)size5;
       int s6 = (int)size6;
-      T[,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6];
+      T[,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -122,7 +122,7 @@ namespace Dafny {
               for (int i4 = 0; i4 < s4; i4++) {
                 for (int i5 = 0; i5 < s5; i5++) {
                   for (int i6 = 0; i6 < s6; i6++) {
-                    a[i0,i1,i2,i3,i4,i5,i6] = z;
+                    a[i0, i1, i2, i3, i4, i5, i6] = z;
                   }
                 }
               }
@@ -141,7 +141,7 @@ namespace Dafny {
       int s5 = (int)size5;
       int s6 = (int)size6;
       int s7 = (int)size7;
-      T[,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7];
+      T[,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -150,7 +150,7 @@ namespace Dafny {
                 for (int i5 = 0; i5 < s5; i5++) {
                   for (int i6 = 0; i6 < s6; i6++) {
                     for (int i7 = 0; i7 < s7; i7++) {
-                      a[i0,i1,i2,i3,i4,i5,i6,i7] = z;
+                      a[i0, i1, i2, i3, i4, i5, i6, i7] = z;
                     }
                   }
                 }
@@ -171,7 +171,7 @@ namespace Dafny {
       int s6 = (int)size6;
       int s7 = (int)size7;
       int s8 = (int)size8;
-      T[,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8];
+      T[,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -181,7 +181,7 @@ namespace Dafny {
                   for (int i6 = 0; i6 < s6; i6++) {
                     for (int i7 = 0; i7 < s7; i7++) {
                       for (int i8 = 0; i8 < s8; i8++) {
-                        a[i0,i1,i2,i3,i4,i5,i6,i7,i8] = z;
+                        a[i0, i1, i2, i3, i4, i5, i6, i7, i8] = z;
                       }
                     }
                   }
@@ -204,7 +204,7 @@ namespace Dafny {
       int s7 = (int)size7;
       int s8 = (int)size8;
       int s9 = (int)size9;
-      T[,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
+      T[,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -215,7 +215,7 @@ namespace Dafny {
                     for (int i7 = 0; i7 < s7; i7++) {
                       for (int i8 = 0; i8 < s8; i8++) {
                         for (int i9 = 0; i9 < s9; i9++) {
-                          a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9] = z;
+                          a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9] = z;
                         }
                       }
                     }
@@ -240,7 +240,7 @@ namespace Dafny {
       int s8 = (int)size8;
       int s9 = (int)size9;
       int s10 = (int)size10;
-      T[,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10];
+      T[,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -252,7 +252,7 @@ namespace Dafny {
                       for (int i8 = 0; i8 < s8; i8++) {
                         for (int i9 = 0; i9 < s9; i9++) {
                           for (int i10 = 0; i10 < s10; i10++) {
-                            a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10] = z;
+                            a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10] = z;
                           }
                         }
                       }
@@ -279,7 +279,7 @@ namespace Dafny {
       int s9 = (int)size9;
       int s10 = (int)size10;
       int s11 = (int)size11;
-      T[,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11];
+      T[,,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -292,7 +292,7 @@ namespace Dafny {
                         for (int i9 = 0; i9 < s9; i9++) {
                           for (int i10 = 0; i10 < s10; i10++) {
                             for (int i11 = 0; i11 < s11; i11++) {
-                              a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11] = z;
+                              a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11] = z;
                             }
                           }
                         }
@@ -321,7 +321,7 @@ namespace Dafny {
       int s10 = (int)size10;
       int s11 = (int)size11;
       int s12 = (int)size12;
-      T[,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12];
+      T[,,,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -335,7 +335,7 @@ namespace Dafny {
                           for (int i10 = 0; i10 < s10; i10++) {
                             for (int i11 = 0; i11 < s11; i11++) {
                               for (int i12 = 0; i12 < s12; i12++) {
-                                a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12] = z;
+                                a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12] = z;
                               }
                             }
                           }
@@ -366,7 +366,7 @@ namespace Dafny {
       int s11 = (int)size11;
       int s12 = (int)size12;
       int s13 = (int)size13;
-      T[,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13];
+      T[,,,,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -381,7 +381,7 @@ namespace Dafny {
                             for (int i11 = 0; i11 < s11; i11++) {
                               for (int i12 = 0; i12 < s12; i12++) {
                                 for (int i13 = 0; i13 < s13; i13++) {
-                                  a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13] = z;
+                                  a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13] = z;
                                 }
                               }
                             }
@@ -414,7 +414,7 @@ namespace Dafny {
       int s12 = (int)size12;
       int s13 = (int)size13;
       int s14 = (int)size14;
-      T[,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14];
+      T[,,,,,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -430,7 +430,7 @@ namespace Dafny {
                               for (int i12 = 0; i12 < s12; i12++) {
                                 for (int i13 = 0; i13 < s13; i13++) {
                                   for (int i14 = 0; i14 < s14; i14++) {
-                                    a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14] = z;
+                                    a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14] = z;
                                   }
                                 }
                               }
@@ -465,7 +465,7 @@ namespace Dafny {
       int s13 = (int)size13;
       int s14 = (int)size14;
       int s15 = (int)size15;
-      T[,,,,,,,,,,,,,,,] a = new T[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15];
+      T[,,,,,,,,,,,,,,,] a = new T[s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
@@ -482,7 +482,7 @@ namespace Dafny {
                                 for (int i13 = 0; i13 < s13; i13++) {
                                   for (int i14 = 0; i14 < s14; i14++) {
                                     for (int i15 = 0; i15 < s15; i15++) {
-                                      a[i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15] = z;
+                                      a[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15] = z;
                                     }
                                   }
                                 }
@@ -591,7 +591,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__1));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -643,7 +643,7 @@ namespace _System {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       return "()";
@@ -690,7 +690,7 @@ namespace _System {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -747,7 +747,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__2));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -822,7 +822,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__2));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__3));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -908,7 +908,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__2));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__3));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__4));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1005,7 +1005,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__3));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__4));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__5));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1113,7 +1113,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__4));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__5));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__6));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1232,7 +1232,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__5));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__6));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__7));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1362,7 +1362,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__6));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__7));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__8));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1503,7 +1503,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__7));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__8));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__9));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1655,7 +1655,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__8));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__9));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__10));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1818,7 +1818,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__9));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__10));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__11));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1992,7 +1992,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__10));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__11));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__12));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2177,7 +2177,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__11));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__12));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__13));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2373,7 +2373,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__12));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__13));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__14));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2580,7 +2580,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__13));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__14));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__15));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -2798,7 +2798,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__14));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__15));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__16));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3027,7 +3027,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__15));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__16));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__17));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3267,7 +3267,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__16));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__17));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__18));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -3518,7 +3518,7 @@ namespace _System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__17));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__18));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.__19));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";

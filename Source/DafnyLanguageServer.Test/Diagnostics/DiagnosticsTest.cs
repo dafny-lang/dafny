@@ -1063,11 +1063,11 @@ method test()
       client.OpenDocument(documentItem);
 
       var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
+      AssertM.Equal(2, secondVerificationDiagnostics.Length, secondVerificationDiagnostics.Stringify());
       var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.
         Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
 
       Assert.Single(firstVerificationDiagnostics);
-      Assert.Equal(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1189,7 +1189,7 @@ method test()
       var documentItem = CreateTestDocument(source, "DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(2, diagnostics.Length);
+      AssertM.Equal(2, diagnostics.Length, diagnostics.Stringify());
     }
 
     [Fact]
