@@ -104,8 +104,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
   }
 
   class TestException : Exception {
-    public TestException([CanBeNull] string message) : base(message)
-    {
+    public TestException([CanBeNull] string message) : base(message) {
     }
   }
 
