@@ -24,10 +24,10 @@ namespace Dafny {
     public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
       int s0 = (int)size0;
       int s1 = (int)size1;
-      T[,] a = new T[s0,s1];
+      T[,] a = new T[s0, s1];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
-          a[i0,i1] = z;
+          a[i0, i1] = z;
         }
       }
       return a;
@@ -36,11 +36,11 @@ namespace Dafny {
       int s0 = (int)size0;
       int s1 = (int)size1;
       int s2 = (int)size2;
-      T[,,] a = new T[s0,s1,s2];
+      T[,,] a = new T[s0, s1, s2];
       for (int i0 = 0; i0 < s0; i0++) {
         for (int i1 = 0; i1 < s1; i1++) {
           for (int i2 = 0; i2 < s2; i2++) {
-            a[i0,i1,i2] = z;
+            a[i0, i1, i2] = z;
           }
         }
       }

@@ -161,14 +161,14 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription.Dispose();
 
     Compilation.Dispose();
-    var lazyState = latestIdeState;
+    var initialState = latestIdeState;
     var input = GetCompilationInput();
     Compilation = createCompilation(
       options,
       boogieEngine,
       input);
-    latestIdeState = new Lazy<IdeState>(() => {
-      var value = lazyState.Value;
+    var latestCompilationState = new Lazy<IdeState>(() => {
+      var value = initialState.Value;
       return value with {
         Input = input,
         VerificationTrees = input.RootUris.ToImmutableDictionary(uri => uri,
@@ -178,17 +178,18 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     states = new ReplaySubject<Lazy<IdeState>>(1);
 
     var migratedUpdates = Compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
-      var previousState = latestIdeState.Value;
-      latestIdeState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
-
-      return latestIdeState;
+      var previousState = latestCompilationState.Value;
+      latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
+      latestIdeState = latestCompilationState;
+      return latestCompilationState;
     });
-    migratedUpdates.Subscribe(states);
+    var statesSubscription = observerSubscription = migratedUpdates.Subscribe(states);
 
     var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
-    observerSubscription = throttledUpdates.
+    var throttledSubscription = throttledUpdates.
       Select(x => x.Value).Subscribe(observer);
+    observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
   }
@@ -281,10 +282,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public static bool GutterIconTesting = false;
 
   public async Task VerifyEverythingAsync(Uri? uri) {
-    var compilationManager = Compilation;
+    var compilation = Compilation;
     try {
-      compilationManager.IncrementJobs();
-      var resolution = await compilationManager.Resolution;
+      compilation.IncrementJobs();
+      var resolution = await compilation.Resolution;
 
       var verifiables = resolution.CanVerifies?.ToList();
       if (verifiables == null) {
@@ -321,7 +322,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiableLocations) {
-          await compilationManager.VerifySymbol(canVerify, true);
+          await compilation.VerifySymbol(canVerify, true);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -329,12 +330,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
       foreach (var canVerify in orderedVerifiableLocations) {
         // Wait for each task to try and run, so the order is respected.
-        await compilationManager.VerifySymbol(canVerify);
+        await compilation.VerifySymbol(canVerify);
       }
     }
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      compilationManager.DecrementJobs();
+      compilation.DecrementJobs();
     }
   }
 
