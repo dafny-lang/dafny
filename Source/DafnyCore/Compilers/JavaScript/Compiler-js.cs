@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.js", wr);
+        EmitRuntimeSource("DafnyRuntimeJs", wr, false);
       }
     }
 

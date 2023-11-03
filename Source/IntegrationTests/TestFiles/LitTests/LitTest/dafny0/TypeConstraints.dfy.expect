@@ -85,7 +85,7 @@ module _System {
     | f.requires()
     /*special witness*/
 
-  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+  datatype /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
   type bool { }
 
@@ -120,7 +120,7 @@ module _System {
     var Items: iset<(T, U)>  // immutable
   }
 
-  datatype {:compile false} /*_tuple#0*/ () = _#Make0
+  datatype /*_tuple#0*/ () = _#Make0
 
   type {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
     ghost function requires(x0: T0, x1: T1): bool
