@@ -145,16 +145,23 @@ public class CsharpBackend : ExecutableBackend {
     var crx = (CSharpCompilationResult)compilationResult;
 
     foreach (var otherFileName in otherFileNames) {
-      if (Path.GetExtension(otherFileName) == ".dll") {
-        var targetDirectory = Path.GetDirectoryName(crx.CompiledAssembly.Location);
-        File.Copy(otherFileName, Path.Combine(targetDirectory!, Path.GetFileName(otherFileName)), true);
+      if (Path.GetExtension(otherFileName) != ".dll") {
+        continue;
       }
+
+      var targetDirectory = Path.GetDirectoryName(crx.CompiledAssembly.Location);
+      var destination = Path.Combine(targetDirectory!, Path.GetFileName(otherFileName));
+      try {
+        File.Copy(otherFileName, destination, true);
+      } catch (IOException) { }
     }
 
     if (crx.CompiledAssembly == null) {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
-    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
+
+    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.
+      Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter, errorWriter) == 0;
   }
 
