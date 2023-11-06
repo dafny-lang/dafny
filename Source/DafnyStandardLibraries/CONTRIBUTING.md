@@ -79,6 +79,8 @@ Several standard libraries will need to depend on `{:extern}`-ally implemented f
 The plan is to include such code in each backend's runtime,
 but adding this to the build process is currently blocked on https://github.com/dafny-lang/dafny/issues/511.
 
+For GoLang, there's an attribute `{:dummyImportMember <string>, <bool>}` which has to be used on modules that are marked `{:extern}`. The attribute's first argument should point to a value or type in the module, and the second should be set to true only if it is a type. Without this attribute, Dafny currently can not prevent GoLang code that uses {:extern} from running correctly, as GoLang execution will fail with an unused import error.
+
 ### On brittleness
 
 There are two sides to brittleness relevant to this project:

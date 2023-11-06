@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
+      var dafnyNamespace = CreateModule("Dafny", false, false, systemModuleManager.SystemModule, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
@@ -255,7 +255,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
+      ModuleDefinition module,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
       return wr.NewBlock($"namespace {IdProtect(moduleName)}", " // end of " + $"namespace {IdProtect(moduleName)}");
     }
