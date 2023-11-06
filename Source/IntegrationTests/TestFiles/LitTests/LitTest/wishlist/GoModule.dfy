@@ -2,7 +2,7 @@
 // RUN: %exits-with 3 %dafny /compile:3 /unicodeChar:0 /spillTargetCode:2 "%s" /compileTarget:go 2> "%t"
 // note: putting /compileTarget:go after "%s" overrides user-provided option
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK: GoModuleConversions.go:10:3: "net/url" imported and not used
+// CHECK: undefined: GoModuleConversions.ParseURL
 
 // This test used to work only because of a questionable Go-only feature
 // of mapping a Dafny string directly to a Go string when passed in or out of
@@ -19,7 +19,7 @@
 
 // "url" is a built-in package, so it should be accessible to the
 // test suite without further requirements on the setup.
-module {:extern "url", "net/url"} URL {
+module {:extern "url", "net/url"} {:dummyImportMember "URL", true} URL {
 
   class URL {
     var {:extern "Host"} host: string
@@ -30,7 +30,7 @@ module {:extern "url", "net/url"} URL {
   trait {:extern "", "error"} Error { }
 }
 
-module {:extern "GoModuleConversions"} GoModuleConversions {
+module {:extern "GoModuleConversions"} {:dummyImportMember "ParseURL", false} GoModuleConversions {
   import opened URL
   method {:extern "ParseURL"} Parse(address: string) returns (url: URL, error: Error?)
 }
