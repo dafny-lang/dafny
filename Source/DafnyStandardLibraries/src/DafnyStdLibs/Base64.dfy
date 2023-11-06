@@ -217,11 +217,9 @@ module Base64 {
   {
     reveal EncodeBlock();
     reveal DecodeBlock();
-    // TODO: apply lemmas for the following
-    reveal SeqToBV24();
-    reveal BV24ToIndexSeq();
-    reveal IndexSeqToBV24();
-    reveal BV24ToSeq();
+    var b := SeqToBV24(s);
+    BV24ToIndexSeqToBV24(b);
+    SeqToBV24ToSeq(s);
   }
 
   lemma DecodeEncodeBlock(s: seq<index>)
@@ -230,11 +228,9 @@ module Base64 {
   {
     reveal EncodeBlock();
     reveal DecodeBlock();
-    // TODO: apply lemmas for the following
-    reveal SeqToBV24();
-    reveal BV24ToIndexSeq();
-    reveal IndexSeqToBV24();
-    reveal BV24ToSeq();
+    var b := IndexSeqToBV24(s);
+    BV24ToSeqToBV24(b);
+    IndexSeqToBV24ToIndexSeq(s);
   }
 
   opaque function DecodeRecursively(s: seq<index>): (b: seq<bv8>)
@@ -271,17 +267,27 @@ module Base64 {
 
   opaque function EncodeRecursively(b: seq<bv8>): (s: seq<index>)
     requires |b| % 3 == 0
-    ensures |s| == |b| / 3 * 4
-    ensures |s| % 4 == 0
   {
     if |b| == 0 then []
     else EncodeBlock(b[..3]) + EncodeRecursively(b[3..])
   }
 
+  lemma EncodeRecursivelyBounds(b: seq<bv8>)
+    requires |b| % 3 == 0
+    ensures |EncodeRecursively(b)| == |b| / 3 * 4
+    ensures |EncodeRecursively(b)| % 4 == 0
+    ensures |EncodeRecursively(b)| == 0 ==> |b| == 0
+  {
+    reveal EncodeRecursively();
+  }
+
   lemma EncodeRecursivelyBlock(b: seq<bv8>)
     requires |b| % 3 == 0
-    ensures var s := EncodeRecursively(b); |s| != 0 ==> DecodeBlock(s[..4]) == b[..3]
+    ensures (EncodeRecursivelyBounds(b);
+             var s := EncodeRecursively(b);
+             |s| != 0 ==> DecodeBlock(s[..4]) == b[..3])
   {
+    EncodeRecursivelyBounds(b);
     if |b| == 0 {}
     else {
       EncodeDecodeBlock(b[..3]);
@@ -291,21 +297,28 @@ module Base64 {
 
   lemma EncodeDecodeRecursively(b: seq<bv8>)
     requires |b| % 3 == 0
-    ensures DecodeRecursively(EncodeRecursively(b)) == b
+    ensures (EncodeRecursivelyBounds(b); DecodeRecursively(EncodeRecursively(b)) == b)
   {
     var s := EncodeRecursively(b);
-    reveal EncodeRecursively();
-    reveal DecodeRecursively();
-    if |s| == 0 {
-      assert |b| == 0;
+    EncodeRecursivelyBounds(b);
+    DecodeRecursivelyBounds(s);
+    if |b| == 0 {
     } else {
-      // TODO: calc block?
-      var bStart, bEnd := b[..3], b[3..];
-      //assert s == EncodeBlock(bStart) + EncodeRecursively(bEnd);
-      EncodeRecursivelyBlock(b);
-      assert DecodeBlock(s[..4]) == bStart;
-      EncodeDecodeRecursively(bEnd);
-      //assert DecodeRecursively(EncodeRecursively(bEnd)) == bEnd;
+      calc {
+        DecodeRecursively(EncodeRecursively(b));
+      ==
+        DecodeRecursively(s);
+      == { reveal DecodeRecursively(); }
+        DecodeBlock(s[..4]) + DecodeRecursively(s[4..]);
+      == { EncodeRecursivelyBlock(b); }
+        b[..3] + DecodeRecursively(s[4..]);
+      == { reveal EncodeRecursively(); }
+        b[..3] + DecodeRecursively(EncodeRecursively(b[3..]));
+      == { EncodeDecodeRecursively(b[3..]); }
+        b[..3] + b[3..];
+      ==
+        b;
+      }
     }
   }
 
@@ -314,20 +327,25 @@ module Base64 {
     ensures (DecodeRecursivelyBounds(s); EncodeRecursively(DecodeRecursively(s)) == s)
   {
     var b := DecodeRecursively(s);
+    DecodeRecursivelyBounds(s);
+    EncodeRecursivelyBounds(b);
     if |s| == 0 {
-      assert |b| == 0 by { reveal DecodeRecursively(); }
     } else {
-      // TODO: simplify
-      assert |b| != 0 by { reveal DecodeRecursively(); }
-      DecodeRecursivelyBounds(s);
-      assert EncodeRecursively(b) == EncodeBlock(b[..3]) + EncodeRecursively(b[3..]) by { reveal EncodeRecursively(); }
-      assert DecodeRecursively(s) == DecodeBlock(s[..4]) + DecodeRecursively(s[4..]) by { reveal DecodeRecursively(); }
-      assert (EncodeBlock(b[..3]) == s[..4]) by { DecodeRecursivelyBlock(s); }
-      DecodeRecursivelyBounds(s[4..]);
-      assert EncodeRecursively(DecodeRecursively(s[4..])) == s[4..] by { DecodeEncodeRecursively(s[4..]); }
-      assert s == s[..4] + s[4..];
-      //assert DecodeRecursively(s) == DecodeRecursively(s[..4] + s[4..]);
-      //assert EncodeRecursively(DecodeRecursively(s)) == s;
+      calc {
+        EncodeRecursively(DecodeRecursively(s));
+      ==
+        EncodeRecursively(b);
+      == { reveal EncodeRecursively(); }
+        EncodeBlock(b[..3]) + EncodeRecursively(b[3..]);
+      == { DecodeRecursivelyBlock(s); }
+        s[..4] + EncodeRecursively(b[3..]);
+      == { reveal DecodeRecursively(); }
+        s[..4] + EncodeRecursively(DecodeRecursively(s[4..]));
+      == { DecodeEncodeRecursively(s[4..]); }
+        s[..4] + s[4..];
+      ==
+        s;
+      }
     }
   }
 
@@ -413,6 +431,7 @@ module Base64 {
     ensures |EncodeUnpadded(b)| % 4 == 0
   {
     reveal EncodeUnpadded();
+    EncodeRecursivelyBounds(b);
   }
 
   lemma EncodeUnpaddedBase64(b: seq<bv8>)
@@ -420,6 +439,7 @@ module Base64 {
     ensures IsUnpaddedBase64String(EncodeUnpadded(b))
   {
     reveal EncodeUnpadded();
+    EncodeRecursivelyBounds(b);
     reveal IsUnpaddedBase64String();
   }
 
@@ -432,7 +452,7 @@ module Base64 {
         DecodeUnpadded(EncodeUnpadded(b));
       == { reveal EncodeUnpadded(); }
         DecodeUnpadded(FromIndicesToChars(EncodeRecursively(b)));
-      == { reveal DecodeUnpadded(); }
+      == { reveal DecodeUnpadded(); EncodeRecursivelyBounds(b); }
         DecodeRecursively(FromCharsToIndices(FromIndicesToChars(EncodeRecursively(b))));
       == { FromIndicesToCharsToIndices(EncodeRecursively(b)); }
         DecodeRecursively(EncodeRecursively(b));
@@ -503,21 +523,20 @@ module Base64 {
     [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '=']
   }
 
-  lemma DecodeEncodeBlock1Padding(b: seq<bv8>)
+  lemma EncodeDecodeBlock1Padding(b: seq<bv8>)
     requires |b| == 2
     ensures
       var e := EncodeBlock([b[0], b[1], 0]);
       var d := DecodeBlock([e[0], e[1], e[2], 0]);
       [d[0], d[1]] == b
   {
+    // TODO: reduce resource use, brittleness
     reveal EncodeBlock();
     reveal DecodeBlock();
     reveal BV24ToSeq();
     reveal SeqToBV24();
     reveal IndexSeqToBV24();
     reveal BV24ToIndexSeq();
-    IndexToCharToIndexAuto();
-    CharToIndexToCharAuto();
   }
 
   lemma Encode1PaddingIs1Padding(b: seq<bv8>)
@@ -525,16 +544,26 @@ module Base64 {
     ensures Is1Padding(Encode1Padding(b))
   {
     // TODO: reduce resource use, brittleness
-    reveal IndexToChar();
-    reveal Is1Padding();
-    reveal CharToIndex();
-    reveal Encode1Padding();
-    reveal EncodeBlock();
-    reveal BV24ToSeq();
-    reveal SeqToBV24();
-    reveal IndexSeqToBV24();
-    reveal BV24ToIndexSeq();
-    reveal IsBase64Char();
+    var s := Encode1Padding(b);
+    var e := EncodeBlock([b[0], b[1], 0]);
+    assert s == [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='] by {
+      reveal Encode1Padding();
+    }
+    IndexToCharIsBase64(e[0]);
+    IndexToCharIsBase64(e[1]);
+    IndexToCharIsBase64(e[2]);
+    assert CharToIndex(s[2]) & 0x3 == 0 by {
+      // TODO: simplify
+      reveal Encode1Padding();
+      reveal EncodeBlock();
+      reveal IndexToChar();
+      reveal CharToIndex();
+      reveal BV24ToIndexSeq();
+      reveal SeqToBV24();
+    }
+    assert Is1Padding(s) by {
+      reveal Is1Padding();
+    }
   }
 
   lemma EncodeDecode1Padding(b: seq<bv8>)
@@ -555,7 +584,7 @@ module Base64 {
         [d[0], d[1]];
       == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); IndexToCharToIndex(e[2]); }
         [d'[0], d'[1]];
-      == { DecodeEncodeBlock1Padding(b); }
+      == { EncodeDecodeBlock1Padding(b); }
         b;
     }
   }
@@ -565,25 +594,27 @@ module Base64 {
     ensures Encode1Padding(Decode1Padding(s)) == s
   {
     reveal Is1Padding();
-    var d := DecodeBlock([CharToIndex(s[0]), CharToIndex(s[1]), CharToIndex(s[2]), 0]);
+    var i := [CharToIndex(s[0]), CharToIndex(s[1]), CharToIndex(s[2]), 0];
+    var d := DecodeBlock(i);
     var e := EncodeBlock([d[0], d[1], 0]);
+    var d' := [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='];
     calc {
         Encode1Padding(Decode1Padding(s));
       == { reveal Decode1Padding(); }
         Encode1Padding([d[0], d[1]]);
       == { reveal Encode1Padding(); }
-        [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='];
-      == { 
-           // TODO: make more readable, remove split
-           reveal EncodeBlock();
-           reveal DecodeBlock();
-           reveal BV24ToSeq();
-           reveal SeqToBV24();
-           reveal IndexSeqToBV24();
-           reveal BV24ToIndexSeq();
-           IndexToCharToIndexAuto();
-           CharToIndexToCharAuto();
-         }
+        d';
+      == {
+        // TODO: make better
+        reveal EncodeBlock();
+        reveal DecodeBlock();
+        reveal BV24ToSeq();
+        reveal SeqToBV24();
+        reveal IndexSeqToBV24();
+        reveal BV24ToIndexSeq();
+      }
+        [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), IndexToChar(CharToIndex(s[2])), '='];
+      == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); CharToIndexToChar(s[2]); }
         s;
     }
   }
@@ -644,14 +675,13 @@ module Base64 {
       var d := DecodeBlock([e[0], e[1], 0, 0]);
       [d[0]] == b
   {
+    // TODO: better proof
     reveal EncodeBlock();
     reveal DecodeBlock();
     reveal BV24ToSeq();
     reveal SeqToBV24();
     reveal IndexSeqToBV24();
     reveal BV24ToIndexSeq();
-    IndexToCharToIndexAuto();
-    CharToIndexToCharAuto();
   }
 
   lemma EncodeDecode2Padding(b: seq<bv8>)
@@ -678,26 +708,27 @@ module Base64 {
     ensures Encode2Padding(Decode2Padding(s)) == s
   {
     reveal Is2Padding();
-    var s' := [CharToIndex(s[0]), CharToIndex(s[1]), 0, 0];
-    var d := DecodeBlock(s');
+    var i := [CharToIndex(s[0]), CharToIndex(s[1]), 0, 0];
+    var d := DecodeBlock(i);
     var e := EncodeBlock([d[0], 0, 0]);
+    var d' := [IndexToChar(e[0]), IndexToChar(e[1]), '=', '='];
     calc {
         Encode2Padding(Decode2Padding(s));
       == { reveal Decode2Padding(); }
         Encode2Padding([d[0]]);
       == { reveal Encode2Padding(); }
-        [IndexToChar(e[0]), IndexToChar(e[1]), '=', '='];
+        d';
       == {
-           // TODO: make more readable
-           reveal EncodeBlock();
-           reveal DecodeBlock();
-           reveal BV24ToSeq();
-           reveal SeqToBV24();
-           reveal IndexSeqToBV24();
-           reveal BV24ToIndexSeq();
-           IndexToCharToIndexAuto();
-           CharToIndexToCharAuto();
-         }
+        // TODO: make better
+        reveal EncodeBlock();
+        reveal DecodeBlock();
+        reveal BV24ToSeq();
+        reveal SeqToBV24();
+        reveal IndexSeqToBV24();
+        reveal BV24ToIndexSeq();
+      }
+        [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), '=', '='];
+      == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); }
         s;
     }
   }
@@ -728,6 +759,7 @@ module Base64 {
         DecodeUnpadded(s)
   }
 
+  /*
   opaque function DecodeValidLength(s: seq<char>): int
     requires s != []
     requires |s| % 4 == 0
@@ -766,98 +798,20 @@ module Base64 {
       assert |b| == |s| / 4 * 3;
     }
   }
-
-  // TODO: simplify
-  lemma EncodeDecodeValidLength(b: seq<bv8>)
-    ensures (EncodeIsBase64(b); |DecodeValid(Encode(b))| == |b|)
-  {
-    var s := Encode(b);
-    assert (b == []) <==> (s == []) by {
-      EncodeLengthExact(b);
-    }
-    if s == [] {
-      //assert Encode(b) == [] by  { EncodeLengthExact(b); }
-      EncodeIsBase64(b);
-      assert DecodeValid([]) == [] by { reveal DecodeValid(); }
-      return;
-    }
-    EncodeIsBase64(b);
-    reveal IsBase64String();
-    //assert |s| >= 4 by { reveal IsBase64String(); }
-    var finalBlockStart := |s| - 4;
-    var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-    var b' := DecodeValid(s);
-    AboutDecodeValid(s, b');
-    DecodeValidHasExpectedLength(s);
-    assert |s| == if |b| % 3 == 0 then |b| / 3 * 4 else |b| / 3 * 4 + 4 by { EncodeLengthExact(b); }
-    assert |b'| == DecodeValidLength(s);
-    if |b'| % 3 == 0 {
-      assert !Is1Padding(suffix);
-      assert !Is2Padding(suffix);
-      assert IsUnpaddedBase64String(s);
-      assert |b'| == |s| / 4 * 3 by { reveal DecodeValidLength(); }
-      if |b| % 3 == 0 {
-      } else if |b| % 3 == 1 {
-        // Contradiction
-        EncodeIs2Padded(b);
-        Encode2PaddingIs2Padding(b[(|b| - 1)..]);
-      } else if |b| % 3 == 2 {
-        // Contradiction
-        EncodeIs1Padded(b);
-        Encode1PaddingIs1Padding(b[(|b| - 2)..]);
-      }
-    } else if |b'| % 3 == 1 {
-      assert Is2Padding(suffix);
-      assert IsUnpaddedBase64String(prefix);
-      assert |b'| == ((|s| - 4) / 4 * 3) + 1 by { reveal DecodeValidLength(); }
-      if |b| % 3 == 0 {
-        assert s == EncodeUnpadded(b) by { EncodeIsUnpadded(b); }
-        EncodeUnpaddedNotPadded(b);
-        if Is2Padding(suffix) {
-          // Pattern for proof by contradiction without warnings
-          assert false;
-        }
-      } else if |b| % 3 == 1 {
-      } else if |b| % 3 == 2 {
-        EncodeIs1Padded(b);
-        Encode1PaddingIs1Padding(b[(|b| - 2)..]);
-      }
-    } else if |b'| % 3 == 2 {
-      assert Is1Padding(suffix);
-      assert IsUnpaddedBase64String(prefix);
-      assert |b'| == ((|s| - 4) / 4 * 3) + 2 by { reveal DecodeValidLength(); }
-      if |b| % 3 == 0 {
-        assert s == EncodeUnpadded(b) by { EncodeIsUnpadded(b); }
-        EncodeUnpaddedNotPadded(b);
-        if Is1Padding(suffix) {
-          // Pattern for proof by contradiction without warnings
-          assert false;
-        }
-      } else if |b| % 3 == 1 {
-        // Contradiction
-        EncodeIs2Padded(b);
-        Encode2PaddingIs2Padding(b[(|b| - 1)..]);
-      } else if |b| % 3 == 2 {
-      }
-    }
-  }
+  */
 
   lemma AboutDecodeValid(s: seq<char>, b: seq<bv8>)
     requires IsBase64String(s) && b == DecodeValid(s)
     ensures 4 <= |s| ==> var finalBlockStart := |s| - 4;
       var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-      && (Is1Padding(suffix) && IsUnpaddedBase64String(prefix) <==> |b| % 3 == 2)
-      && (Is2Padding(suffix) && IsUnpaddedBase64String(prefix) <==> |b| % 3 == 1)
-      && (!Is1Padding(suffix) && !Is2Padding(suffix) && IsUnpaddedBase64String(s) <==> |b| % 3 == 0)
+      && (Is1Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 2 && |b| > 1))
+      && (Is2Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 1 && |b| > 0))
+      && (!Is1Padding(suffix) && !Is2Padding(suffix) && IsUnpaddedBase64String(s) <==> (|b| % 3 == 0 && |b| > 1))
   {
-    // TODO: reveal more locally
-    reveal IsUnpaddedBase64String();
     reveal DecodeValid();
-    reveal Decode1Padding();
-    reveal IsBase64Char();
+    reveal IsUnpaddedBase64String();
     reveal IsBase64String();
-    reveal Is2Padding();
-    reveal IndexToChar();
+
     if 4 <= |s| {
       var finalBlockStart := |s| - 4;
       var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
@@ -865,25 +819,26 @@ module Base64 {
       if s == [] {
       } else if Is1Padding(suffix) {
         assert !Is2Padding(suffix) by {
+          reveal IsBase64Char();
           reveal Is1Padding();
           reveal Is2Padding();
         }
         var x, y := DecodeUnpadded(prefix), Decode1Padding(suffix);
         assert b == x + y;
-        assert |x| == |x| / 3 * 3 && |y| == 2 by {
+        assert |x| == |x| / 3 * 3 && |y| == 2 && |b| > 1 by {
           DecodeUnpaddedBounds(prefix);
         }
         Mod3(|x| / 3, |y|, |b|);
       } else if Is2Padding(suffix) {
         var x, y := DecodeUnpadded(prefix), Decode2Padding(suffix);
         assert b == x + y;
-        assert |x| == |x| / 3 * 3 && |y| == 1 by {
+        assert |x| == |x| / 3 * 3 && |y| == 1 && |b| > 0 by {
           DecodeUnpaddedBounds(prefix);
         }
         Mod3(|x| / 3, |y|, |b|);
       } else {
         assert b == DecodeUnpadded(s);
-        assert |b| % 3 == 0 by {
+        assert |b| % 3 == 0 && |b| > 1 by {
           DecodeUnpaddedBounds(s);
         }
       }
@@ -967,14 +922,6 @@ module Base64 {
       assert s == s[..finalBlockStart] + s[finalBlockStart..];
       reveal StringIs7Bit();
     }
-  }
-
-  // TODO: use
-  lemma ConcatMod4Sequences<T>(s: seq<T>, t: seq<T>)
-    requires |s| % 4 == 0
-    requires |t| % 4 == 0
-    ensures |s + t| % 4 == 0
-  {
   }
 
   opaque function Encode(b: seq<bv8>): (s: seq<char>)

@@ -141,8 +141,10 @@ module Base64Lemmas {
     requires Is1Padding(s[(|s| - 4)..])
     ensures |DecodeValid(s)| % 3 == 2
   {
+    assert IsUnpaddedBase64String(s[..(|s| - 4)]) by {
+      UnpaddedBase64Prefix(s);
+    }
     AboutDecodeValid(s, DecodeValid(s));
-    assert |DecodeValid(s)| % 3 == 2;
   }
 
   lemma DecodeValidEncode1Padding(s: seq<char>)
@@ -151,10 +153,10 @@ module Base64Lemmas {
     requires Is1Padding(s[(|s| - 4)..])
     ensures Encode(DecodeValid(s)) == s
   {
+    assert |DecodeValid(s)| % 3 == 2 by { DecodeValid1PaddingLengthMod3(s); }
     calc {
       Encode(DecodeValid(s));
     == { reveal Encode(); }
-      assert |DecodeValid(s)| % 3 == 2 by { DecodeValid1PaddingLengthMod3(s); }
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 2)]) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
     == { DecodeValidUnpaddedPartialFrom1PaddedSeq(s); reveal IsBase64String(); reveal IsUnpaddedBase64String(); }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
@@ -181,18 +183,11 @@ module Base64Lemmas {
        b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
        b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
   {
-    // TODO: simplify
     reveal IsUnpaddedBase64String();
     reveal IsBase64String();
     reveal DecodeValid();
-    var b := DecodeValid(s);
-    AboutDecodeValid(s, b);
-    var finalBlockStart := |s| - 4;
-    var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-    assert Is2Padding(suffix);
-    assert s != [];
-    assert b != [];
-    //assert b == DecodeUnpadded(prefix) + Decode2Padding(suffix) by { reveal DecodeValid(); }
+    AboutDecodeValid(s, DecodeValid(s));
+    assert Is2Padding(s[(|s| - 4)..]);
   }
 
   lemma DecodeValidPartialsFrom1PaddedSeq(s: seq<char>)
@@ -207,18 +202,19 @@ module Base64Lemmas {
        b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
        b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
   {
-    // TODO: simplify
     reveal IsUnpaddedBase64String();
-    reveal IsBase64String();
     reveal DecodeValid();
-    var b := DecodeValid(s);
-    AboutDecodeValid(s, b);
-    var finalBlockStart := |s| - 4;
-    var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-    assert Is1Padding(suffix);
-    assert s != [];
-    assert b != [];
-    //assert b == DecodeUnpadded(prefix) + Decode1Padding(suffix) by { reveal DecodeValid(); }
+    reveal IsBase64String();
+    AboutDecodeValid(s, DecodeValid(s));
+  }
+
+  lemma UnpaddedBase64Prefix(s: string)
+    requires IsBase64String(s)
+    requires |s| >= 4
+    ensures IsUnpaddedBase64String(s[..(|s| - 4)])
+  {
+    reveal IsBase64String();
+    reveal IsUnpaddedBase64String();
   }
 
   lemma DecodeValid2PaddingLengthMod3(s: seq<char>)
@@ -227,8 +223,10 @@ module Base64Lemmas {
     requires Is2Padding(s[(|s| - 4)..])
     ensures |DecodeValid(s)| % 3 == 1
   {
+    assert IsUnpaddedBase64String(s[..(|s| - 4)]) by {
+      UnpaddedBase64Prefix(s);
+    }
     AboutDecodeValid(s, DecodeValid(s));
-    assert |DecodeValid(s)| % 3 == 1;
   }
 
   lemma DecodeValidEncode2Padding(s: seq<char>)
@@ -237,10 +235,10 @@ module Base64Lemmas {
     requires Is2Padding(s[(|s| - 4)..])
     ensures Encode(DecodeValid(s)) == s
   {
+    assert |DecodeValid(s)| % 3 == 1 by { DecodeValid2PaddingLengthMod3(s); }
     calc {
       Encode(DecodeValid(s));
     == { reveal Encode(); }
-      assert |DecodeValid(s)| % 3 == 1 by { DecodeValid2PaddingLengthMod3(s); }
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 1)]) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
     == { DecodeValidPartialsFrom2PaddedSeq(s); reveal IsUnpaddedBase64String(); reveal IsBase64String(); }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
@@ -309,72 +307,36 @@ module Base64Lemmas {
         b;
       }
     } else if |b| % 3 == 1 {
-      // TODO: simplify
+      EncodeDecodeValid2Padded(b);
       var prefix := b[..(|b| - 1)];
       var suffix := b[(|b| - 1)..];
-      EncodeDecodeValid2Padded(b);
       EncodeUnpaddedBase64(prefix);
-      assert |s| >= 4;
-      var finalBlockStart := |s| - 4;
-      var sPrefix, sSuffix := s[..finalBlockStart], s[finalBlockStart..];
-      var b' := DecodeValid(s);
-      assert |b'| == |b| by {
-        EncodeDecodeValidLength(b);
-      }
-      var prefix' := b'[..(|b'| - 1)];
-      var suffix' := b'[(|b'| - 1)..];
-      assert prefix' == DecodeUnpadded(sPrefix) by {
-        DecodeValidPartialsFrom2PaddedSeq(s);
-      }
-      assert suffix' == Decode2Padding(sSuffix) by {
-        DecodeValidPartialsFrom2PaddedSeq(s);
-      }
-      assert prefix' == prefix by { EncodeDecodeUnpadded(prefix); }
-      assert suffix' == suffix by { EncodeDecode2Padding(suffix); }
 
       calc {
-        b';
-      == { DecodeValidPartialsFrom2PaddedSeq(s); }
-        DecodeUnpadded(sPrefix) + Decode2Padding(sSuffix);
-      ==
+        DecodeValid(Encode(b));
+      == { reveal Encode(); }
+        DecodeValid(EncodeUnpadded(prefix) + Encode2Padding(suffix));
+      == { reveal DecodeValid(); DecodeValidPartialsFrom2PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode2Padding(Encode2Padding(suffix));
-      == { DecodeValidPartialsFrom2PaddedSeq(s); }
-        prefix' + suffix';
+      == { EncodeDecodeUnpadded(prefix); EncodeDecode2Padding(suffix); }
+        prefix + suffix;
       ==
         b;
       }
     } else if |b| % 3 == 2 {
-      // TODO: simplify
+      EncodeDecodeValid1Padded(b);
       var prefix := b[..(|b| - 2)];
       var suffix := b[(|b| - 2)..];
-      EncodeDecodeValid1Padded(b);
       EncodeUnpaddedBase64(prefix);
-      assert |s| >= 4;
-      var finalBlockStart := |s| - 4;
-      var sPrefix, sSuffix := s[..finalBlockStart], s[finalBlockStart..];
-      var b' := DecodeValid(s);
-      assert |b'| == |b| by {
-        EncodeDecodeValidLength(b);
-      }
-      var prefix' := b'[..(|b'| - 2)];
-      var suffix' := b'[(|b'| - 2)..];
-      assert prefix' == DecodeUnpadded(sPrefix) by {
-        DecodeValidPartialsFrom1PaddedSeq(s);
-      }
-      assert suffix' == Decode1Padding(sSuffix) by {
-        DecodeValidPartialsFrom1PaddedSeq(s);
-      }
-      assert prefix' == prefix by { EncodeDecodeUnpadded(prefix); }
-      assert suffix' == suffix by { EncodeDecode1Padding(suffix); }
 
       calc {
-        b';
-      == { DecodeValidPartialsFrom1PaddedSeq(s); }
-        DecodeUnpadded(sPrefix) + Decode1Padding(sSuffix);
-      ==
+        DecodeValid(Encode(b));
+      == { reveal Encode(); }
+        DecodeValid(EncodeUnpadded(prefix) + Encode1Padding(suffix));
+      == { reveal DecodeValid(); DecodeValidPartialsFrom1PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode1Padding(Encode1Padding(suffix));
-      == { DecodeValidPartialsFrom1PaddedSeq(s); }
-        prefix' + suffix';
+      == { EncodeDecodeUnpadded(prefix); EncodeDecode1Padding(suffix); }
+        prefix + suffix;
       ==
         b;
       }
