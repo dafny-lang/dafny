@@ -11,19 +11,20 @@ module Example {
     
     var s: set<int> := {};
     var keyIterator := m.Keys();
-    var currentKey := keyIterator.Next();
-    while(currentKey.Some?)
-      decreases !currentKey.IsFailure(), |keyIterator.remainingElements|
+    var hasNext := keyIterator.MoveNext();
+    while(hasNext)
+      decreases hasNext, |keyIterator.remainingElements|
       invariant !keyIterator.WasInterrupted()
-      invariant currentKey.Some? ==> { currentKey.Extract() } + s + keyIterator.remainingElements == m.content().Keys
-      invariant currentKey.None? ==> s + keyIterator.remainingElements == m.content().Keys
-      invariant currentKey.None? ==> keyIterator.remainingElements == {}
+      invariant keyIterator.current.Some? ==> { keyIterator.current.Extract() } + s + keyIterator.remainingElements == m.content().Keys
+      invariant keyIterator.current.None? ==> s + keyIterator.remainingElements == m.content().Keys
+      invariant keyIterator.current.None? ==> keyIterator.remainingElements == {}
         
       // Surprised I need this. I thought Dafny would figure that this would does not need a modified clause
       invariant {3,4} == m.content().Keys
     {
-      s := s + {currentKey.Extract()};
-      currentKey := keyIterator.Next();
+      var currentKey := keyIterator.Current();
+      s := s + {currentKey};
+      hasNext := keyIterator.MoveNext();
     }
         
     assert s == {3, 4};
@@ -37,14 +38,14 @@ module Example {
     var s: set<int> := {};
     var keyIterator := m.Keys();
     m.Put(5,0);
-    var currentKey := keyIterator.Next();
-    while(currentKey.Some?)
-      decreases !currentKey.IsFailure(), |keyIterator.remainingElements|
+    var hasNext := keyIterator.MoveNext();
+    while(hasNext)
+      decreases hasNext, |keyIterator.remainingElements|
       invariant s == {}
     {
-      s := s + {currentKey.Extract()};
-      currentKey := keyIterator.Next();
-      assert currentKey.None?;
+      var currentKey := keyIterator.Current();
+      s := s + {currentKey};
+      hasNext := keyIterator.MoveNext();
     }
     
     assert s == {};
