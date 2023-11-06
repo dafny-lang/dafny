@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Until we get proper dependency to previous Dafny, you have to generate the file GeneratedFromDafny.cs
 # To remove this manual build process, when it will be appropriate:
 # 1. Delete the file GeneratedFromDafny.cs
