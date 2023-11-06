@@ -37,7 +37,7 @@ module Example {
     
     var s: set<int> := {};
     var keyIterator := m.Keys();
-    m.Put(5,0);
+    m.Put(5, 0);
     var hasNext := keyIterator.MoveNext();
     while(hasNext)
       decreases hasNext, |keyIterator.remainingElements|
