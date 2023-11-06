@@ -807,8 +807,9 @@ namespace Microsoft.Dafny.Compilers {
     /// Needed in languages where either
     ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
     ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
+    /// "toOrig" is passed to represent the original, unsubstituted type, which is useful for detecting boxing situations in Java
     /// </summary>
-    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type/*?*/ toOrig = null) {
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }
@@ -818,9 +819,13 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
+    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner, Type/*?*/ toOrig = null) {
+      if (toOrig == null) {
+        toOrig = to;
+      }
+
       var result = new ConcreteSyntaxTree();
-      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      EmitCoercionIfNecessary(from, to, tok, result, toOrig).Append(inner);
       return result;
     }
 
@@ -5292,6 +5297,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var wrArgumentList = new ConcreteSyntaxTree();
         var wTypeDescriptorArguments = new ConcreteSyntaxTree();
+        var typeSubst = TypeParameter.SubstitutionMap(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         string sep = "";
         Contract.Assert(dtv.Ctor.EnclosingDatatype.TypeArgs.Count == dtv.InferredTypeArgs.Count);
         WriteTypeDescriptors(dtv.Ctor.EnclosingDatatype, dtv.InferredTypeArgs, wTypeDescriptorArguments, ref sep);
@@ -5300,7 +5306,7 @@ namespace Microsoft.Dafny.Compilers {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
-            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
+            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst), toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
             EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
             sep = ", ";
           }

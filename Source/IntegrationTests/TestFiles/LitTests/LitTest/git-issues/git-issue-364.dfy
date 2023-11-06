@@ -1,3 +1,4 @@
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4742
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 datatype NatOutcome =

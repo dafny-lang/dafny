@@ -44,4 +44,10 @@ Diff (changing expected into actual):
 
 Executing on C++...
 Executing on Rust...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
 Executing on ResolvedDesugaredExecutableDafny...

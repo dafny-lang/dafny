@@ -17371,7 +17371,7 @@ namespace DCOMP {
           Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _2910_recIdents;
           Dafny.ISequence<Dafny.Rune> _out1654;
           Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out1655;
-          DCOMP.COMP.GenStmts(_2904_body, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None(), _2907_paramNames, true, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), out _out1654, out _out1655);
+          DCOMP.COMP.GenStmts(_2904_body, ((!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) ? (DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this"))) : (DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())), _2907_paramNames, true, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), out _out1654, out _out1655);
           _2909_recursiveGen = _out1654;
           _2910_recIdents = _out1655;
           readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
@@ -17387,7 +17387,11 @@ namespace DCOMP {
             }
             throw new System.Exception("assign-such-that search produced no value (line 1933)");
           after__ASSIGN_SUCH_THAT_1:;
-            if (!((_2907_paramNames).Contains(_2912_next))) {
+            if ((!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_2912_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
+              if (!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) {
+                _2911_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(_2911_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let _this = self.clone();\n"));
+              }
+            } else if (!((_2907_paramNames).Contains(_2912_next))) {
               _2911_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_2911_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), DCOMP.__default.escapeIdent(_2912_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), DCOMP.__default.escapeIdent(_2912_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
               readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_2912_next));
             }
