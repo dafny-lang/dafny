@@ -38,6 +38,7 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
       hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       var newDiagnostics = GetDiagnosticsFromResult(options, previousState, Task, batchCompleted.VcResult).ToArray();
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
+      logger.LogTrace($"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
     }
     var view = new IdeImplementationView(range, status, diagnostics.ToList(), previousView.HitErrorLimit || hitErrorLimit);
     return previousState with {

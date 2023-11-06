@@ -31,6 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task PublishNotifications(IdeState previousState, IdeState state) {
+      logger.LogTrace($"Publish notifications called for {state.Input}");
       if (state.Version < previousState.Version) {
         return;
       }
@@ -161,6 +162,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics.TryRemove(publishUri, out _);
           }
 
+          logger.LogTrace($"Publish notifications called for URI {publishUri}");
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri),

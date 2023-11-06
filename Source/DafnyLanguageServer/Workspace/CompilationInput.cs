@@ -28,6 +28,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public IReadOnlyList<Uri> RootUris { get; }
 
+    public override string ToString() {
+      return $"URI: {Uri}, Version: {Version}";
+    }
+
     public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Project.Uri }).Distinct();
     public int Version { get; }
     public DafnyOptions Options { get; }
@@ -35,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DocumentUri Uri => Project.Uri;
 
     public CompilationInput(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
-      this.RootUris = rootUris;
+      RootUris = rootUris;
       Options = options;
       Version = version;
       Project = project;

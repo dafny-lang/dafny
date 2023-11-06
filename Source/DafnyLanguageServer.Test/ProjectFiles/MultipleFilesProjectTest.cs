@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
@@ -332,6 +333,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
 }
