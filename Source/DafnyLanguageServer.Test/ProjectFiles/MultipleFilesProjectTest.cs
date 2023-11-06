@@ -100,16 +100,17 @@ method Bar() {
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
 
-    var diagnostics = await GetAllDiagnostics(CancellationToken);
-    try {
-      Assert.Single(diagnostics[consumer.Uri]);
-      Assert.Contains("assertion might not hold", diagnostics[consumer.Uri].First().Message);
-      Assert.Single(diagnostics[producerUri]);
-      Assert.Contains("assertion might not hold", diagnostics[producerUri].First().Message);
-    } catch (Exception) {
-      await output.WriteLineAsync($"diagnostics: {diagnostics.Stringify()}");
-      throw;
-    }
+    var producer = new TextDocumentItem() {
+      Version = null,
+      Uri = producerUri
+    };
+    var consumerDiagnostics = await GetLastDiagnostics(consumer);
+    var producerDiagnostics = await GetLastDiagnostics(producer);
+
+    Assert.Single(consumerDiagnostics);
+    Assert.Contains("assertion might not hold", consumerDiagnostics.First().Message);
+    Assert.Single(producerDiagnostics);
+    Assert.Contains("assertion might not hold", producerDiagnostics.First().Message);
   }
 
   [Fact]

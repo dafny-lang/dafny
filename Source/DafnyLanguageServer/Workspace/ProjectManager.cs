@@ -208,7 +208,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
     if (AutomaticVerificationMode is VerifyOnMode.Change or VerifyOnMode.ChangeProject) {
-      var _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.Change ? triggeringFile : null);
+      _ = VerifyEverythingAsync(AutomaticVerificationMode == VerifyOnMode.Change ? triggeringFile : null);
     } else {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
     }

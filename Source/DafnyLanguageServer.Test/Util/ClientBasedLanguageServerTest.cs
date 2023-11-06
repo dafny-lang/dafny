@@ -174,39 +174,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return things.Select(t => t.DocumentSymbol!);
   }
 
-  protected async Task<ImmutableDictionary<DocumentUri, IReadOnlyList<Diagnostic>>> GetAllDiagnostics(CancellationToken? cancellationToken = null) {
-    cancellationToken ??= CancellationToken;
-
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.WaitUntilFinished().WaitAsync(cancellationToken.Value);
-      } catch (TaskCanceledException) {
-
-      }
-    }
-
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken.Value);
-
-    var result = ImmutableDictionary<DocumentUri, IReadOnlyList<Diagnostic>>.Empty;
-    while (true) {
-      var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-      if (verificationDocumentItem.Uri.Equals(resolutionReport.Uri)) {
-        break;
-      }
-
-      result = result.Add(resolutionReport.Uri, resolutionReport.Diagnostics.ToList());
-    }
-    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-      TextDocument = verificationDocumentItem
-    });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-    AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
-      "2) Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
-    return result;
-  }
-
   protected async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentItem documentId,
     CancellationToken? cancellationToken = null,
     bool allowStale = false) {

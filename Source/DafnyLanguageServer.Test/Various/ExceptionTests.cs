@@ -73,7 +73,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     CrashOnPrepareVerification = true;
     var documentItem = CreateTestDocument(source, "PrepareVerificationCrashRecover.dfy");
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    client.OpenDocument(documentItem);
     var translationCrashDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(translationCrashDiagnostics);
     Assert.True(translationCrashDiagnostics[0].Message.Contains("internal error"), translationCrashDiagnostics[0].Message);
