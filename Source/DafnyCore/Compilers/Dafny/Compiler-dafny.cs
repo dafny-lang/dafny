@@ -90,8 +90,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExternalConstructors,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
-      Feature.ForLoops,
-      Feature.Traits
+      Feature.ForLoops
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -201,19 +200,16 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.Traits);
-      // traits need a bit more work
+      if (currentBuilder is TraitContainer builder) {
+        List<DAST.Type> typeParams = new();
+        foreach (var tp in trait.TypeArgs) {
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+        }
 
-      // if (currentBuilder is TraitContainer builder) {
-      //   List<DAST.Type> typeParams = new();
-      //   foreach (var tp in trait.TypeArgs) {
-      //     typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
-      //   }
-
-      //   return new ClassWriter(this, builder.Trait(name, typeParams));
-      // } else {
-      //   throw new InvalidOperationException();
-      // }
+        return new ClassWriter(this, typeParams.Count > 0, builder.Trait(name, typeParams));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -1363,10 +1359,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (topLevel is TypeSynonymDecl typeSynonym) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else if (topLevel is TraitDecl) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.Traits);
-        // traits need a bit more work
-
-        // resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
       } else if (topLevel is DatatypeDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
       } else if (topLevel is ClassDecl) {
