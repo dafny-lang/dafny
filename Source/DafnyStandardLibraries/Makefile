@@ -7,16 +7,31 @@ DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
 all: check-binary test check-format check-examples
 
-build-binary:
-	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+_build-binary:
+	$(DAFNY) build -t:lib src/dfyconfig.toml \
+	  `find ./src -name '*-anytarget.dfy'` \
+		`find ./src -name '*-${TARGETLANG}*.dfy'` \
+		--output:${DOO_FILE_SOURCE}
 
-check-binary: build-binary
+_check-binary: _build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
 	diff build/current build/rebuilt
 
-update-binary: build-binary
+_update-binary: _build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
+
+build-binary-cs: TARGETLANG=cs
+build-binary-cs: _build-binary
+
+build-binary-go: TARGETLANG=go
+build-binary-go: _build-binary
+
+build-binary-java: TARGETLANG=java
+build-binary-java: _build-binary
+
+update-binary-java: TARGETLANG=java
+update-binary-java: _update-binary
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
