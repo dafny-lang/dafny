@@ -87,15 +87,16 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
-        string libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName) {
       moduleName = IdProtect(moduleName);
       Imports.Add(moduleName);
     }
