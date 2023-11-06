@@ -1,63 +1,29 @@
 include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/Wrappers.dfy"
  
-module DafnyStdLibs.CSharp.System.Collections.Generic {
+module {:extern "System.Collections.Generic"} DafnyStdLibs.CSharp {
   import opened Wrappers
-  import opened MutableCollections
+  // import opened MutableCollections
 
-  trait Exception {
+  // With a {:property} attribute this wrapper becomes obsolete
+  function {:extern} DictionaryLength<K(==),V(==)>(dic: Dictionary<K,V>): (r: nat)
+    ensures r == |dic.content|
 
-  }
-  trait IEnumerator<T> {
-    ghost const version: nat
-    ghost const source: MutableIteratorSource
-    ghost var remainingElements: set<T>
-    ghost var wasInterrupted: bool
-    ghost var currentIsDefined: bool
-    ghost var current: T
-    
-    method {:extern} {:wrapException} MoveNext() returns (r: Result<bool, Exception>)
-      ensures (version != source.version()) == wasInterrupted
-      ensures wasInterrupted == r.Success?
-      ensures if (!wasInterrupted && |remainingElements| > 0) 
-        then currentIsDefined && { current } + remainingElements == old(remainingElements) && 1 + |remainingElements| == |old(remainingElements)|
-        else !currentIsDefined && old(remainingElements) == remainingElements
+  // With a {:indexer} attribute this wrapper becomes obsolete
+  method {:extern} DictionarySet<K(==),V(==)>(dic: Dictionary<K,V>, k: K, v: V)
+    modifies dic
+    ensures k in dic.content.Keys && v == dic.content[k]
+    ensures k in old(dic.content).Keys ==> dic.content.Values + {old(dic.content)[k]} == old(dic.content).Values + {v}
+    ensures k !in old(dic.content).Keys ==> dic.content.Values == old(dic.content).Values + {v} 
 
-    function {:extern} {:property} Current(): (v: T)
-      reads this
-      requires currentIsDefined
-      ensures v == current
-  }
+  // With a {:indexer} attribute this wrapper becomes obsolete
+  function {:extern} DictionaryGet<K(==),V(==)>(dic: Dictionary<K,V>, k: K): (value: V)
+    reads dic
+    requires k in dic.content.Keys
+    ensures value == dic.content[k]
 
-  trait IEnumerable {
-    ghost var version: nat
-  }
-
-  class {:extern "System.Collections.Generic", "Dictionary" } Dictionary<K(==),V(==)> 
-    extends IEnumerable
+  class {:extern "Dictionary" } Dictionary<K(==),V(==)> 
   {
     ghost var content: map<K, V> 
-
-    // Need a C# specific property to specify that I want to use the property indexer Dictionary[K key]
-    function {:extern} {:indexer} IndexGetter(k: K): (value: V)
-      reads this
-      requires k in content.Keys
-      ensures value == content[k]
-
-    method {:extern} {:indexer} IndexSetter(k: K, v: V)
-      reads this
-      modifies this
-      ensures this.version == old(this.version) + 1 
-      ensures k in content.Keys && v == content[k]
-      ensures k in old(this.content).Keys ==> this.content.Values + {old(this.content)[k]} == old(this.content).Values + {v}
-      ensures k !in old(this.content).Keys ==> this.content.Values == old(this.content).Values + {v} 
-
-    method {:extern} Add(k: K, v: V)
-      modifies this
-      ensures this.version == old(this.version) + 1 
-      requires !(k in this.content.Keys) // Prevent the exception
-      ensures this.version == old(this.version) + 1 
-      ensures this.content == old(this.content)[k := v]
-      ensures k !in old(this.content).Keys ==> this.content.Values == old(this.content).Values + {v} 
 
     function {:extern} ContainsKey(key: K): (r: bool)
       reads this
@@ -66,7 +32,6 @@ module DafnyStdLibs.CSharp.System.Collections.Generic {
     method {:extern} Remove(k: K)
       modifies this
       ensures this.content == old(this.content) - {k}
-      ensures this.version == old(this.version) + 1 
       ensures k in old(this.content).Keys ==> this.content.Values + {old(this.content)[k]} == old(this.content).Values
 
     function {:extern} {:property} Length(): (r: nat)
@@ -74,6 +39,5 @@ module DafnyStdLibs.CSharp.System.Collections.Generic {
       
     constructor {:extern} () 
       ensures this.content == map[]
-      ensures version == 0
   }
 }
