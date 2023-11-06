@@ -9,7 +9,6 @@ module {:extern "D2DPrettyPrinter"} PrettyPrinter {
       var s' := PModule(d[i]);
       s := s + s';
     }
-    print s;
   }
 
   method PModule(mod: DAST.Module) returns (s: string) {
@@ -19,9 +18,9 @@ module {:extern "D2DPrettyPrinter"} PrettyPrinter {
       match mod.body[i] {
       case Module(m) => var s' := PModule(m); s := s + s';
       case Class(c) => var s' := PClass(c); s := s + s';
-      case Trait(c) => s := "";
-      case Newtype(n) => s := "";
-      case Datatype(d) => s := "";
+      case Trait(c) => s := s + "";
+      case Newtype(n) => s := s + "";
+      case Datatype(d) => s := s + "";
       }
     }
     s := s + "}\n";
