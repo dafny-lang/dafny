@@ -323,7 +323,7 @@ public class MultiBackendTest {
     var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
     var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
     Directory.CreateDirectory(tempOutputDirectory);
-    
+
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
