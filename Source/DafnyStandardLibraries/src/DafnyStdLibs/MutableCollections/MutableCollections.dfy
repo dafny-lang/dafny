@@ -89,19 +89,6 @@ module DafnyStdLibs.MutableCollections {
     method {:extern} Current() returns (v: T)
       requires current.Some?
       ensures v == current.Extract()
-
-    // method {:extern} Next() returns (o: Option<T>)
-    //   ensures (version != source.version) == wasInterrupted
-    //   ensures if (!wasInterrupted && |remainingElements| > 0) 
-    //     then o.Some? && var value := o.Extract(); { value } + remainingElements == old(remainingElements) && 1 + |remainingElements| == |old(remainingElements)|
-    //     else o.None? && old(remainingElements) == remainingElements
-    //  ensures match o {
-    //   case None => old(remainingElements) == remainingElements && 
-    //       (wasInterrupted || |remainingElements| == 0)
-    //   case Some(value) => { value } + remainingElements == old(remainingElements) 
-    //     && 1 + |remainingElements| == |old(remainingElements)|
-    //     && !wasInterrupted
-    //  }
   }
   
   trait MutableIteratorSource<T> {
