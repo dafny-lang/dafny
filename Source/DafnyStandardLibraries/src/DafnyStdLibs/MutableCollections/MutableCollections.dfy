@@ -74,15 +74,27 @@ module DafnyStdLibs.MutableCollections {
     ghost const source: MutableIteratorSource<T>
     ghost var remainingElements: set<T>
     ghost var wasInterrupted: bool
+    ghost var current: Option<T> 
     
     function {:extern} WasInterrupted(): (r: bool)
      ensures r == wasInterrupted
     
-    method {:extern} Next() returns (o: Option<T>)
+    method {:extern} MoveNext() returns (r: bool)
       ensures (version != source.version) == wasInterrupted
+      ensures current.Some? == r
       ensures if (!wasInterrupted && |remainingElements| > 0) 
-        then o.Some? && var value := o.Extract(); { value } + remainingElements == old(remainingElements) && 1 + |remainingElements| == |old(remainingElements)|
-        else o.None? && old(remainingElements) == remainingElements
+        then r && var value := current.Extract(); { value } + remainingElements == old(remainingElements) && 1 + |remainingElements| == |old(remainingElements)|
+        else !r && old(remainingElements) == remainingElements
+
+    method {:extern} Current() returns (v: T)
+      requires current.Some?
+      ensures v == current.Extract()
+
+    // method {:extern} Next() returns (o: Option<T>)
+    //   ensures (version != source.version) == wasInterrupted
+    //   ensures if (!wasInterrupted && |remainingElements| > 0) 
+    //     then o.Some? && var value := o.Extract(); { value } + remainingElements == old(remainingElements) && 1 + |remainingElements| == |old(remainingElements)|
+    //     else o.None? && old(remainingElements) == remainingElements
     //  ensures match o {
     //   case None => old(remainingElements) == remainingElements && 
     //       (wasInterrupted || |remainingElements| == 0)
