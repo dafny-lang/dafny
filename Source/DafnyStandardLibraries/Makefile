@@ -9,7 +9,7 @@ all: check-binary-all test-examples-all check-format check-examples
 
 build-binary:
 	$(DAFNY) build -t:lib src/dfyconfig.toml \
-	  `find ./src -name '*-anytarget.dfy'` \
+	  `find ./src -name '*.dfy' ! -name '*-*.dfy'` \
 		`find ./src -name '*-${TARGETLANG}*.dfy'` \
 		--output:${DOO_FILE_SOURCE}
 
