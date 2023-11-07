@@ -18132,144 +18132,148 @@ namespace DCOMP {
 namespace _module {
 
   public partial class __default {
-    public static _IVal Eval(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal> env, _IVal val) {
+    public static _IClosure Eval(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> env, _IVal val) {
       _IVal _source91 = val;
       if (_source91.is_Var) {
         Dafny.ISequence<Dafny.Rune> _3152___mcc_h0 = _source91.dtor_Var_a0;
         Dafny.ISequence<Dafny.Rune> _3153_x = _3152___mcc_h0;
-        return Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IVal>.Select(env, _3153_x);
+        return Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IClosure>.Select(env, _3153_x);
       } else if (_source91.is_Bool) {
-        bool _3154___mcc_h2 = _source91.dtor_Bool_a0;
-        return val;
+        bool _3154___mcc_h1 = _source91.dtor_Bool_a0;
+        bool _3155_b = _3154___mcc_h1;
+        return Closure.create_Bool(_3155_b);
       } else if (_source91.is_Int) {
-        BigInteger _3155___mcc_h4 = _source91.dtor_Int_a0;
-        return val;
+        BigInteger _3156___mcc_h2 = _source91.dtor_Int_a0;
+        BigInteger _3157_i = _3156___mcc_h2;
+        return Closure.create_Int(_3157_i);
       } else {
-        Ptr<_IComp> _3156___mcc_h6 = _source91.dtor_New_a0;
-        return val;
+        Dafny.ISequence<Dafny.Rune> _3158___mcc_h3 = _source91.dtor_Lambda_a0;
+        _IComp _3159___mcc_h4 = _source91.dtor_Lambda_a1;
+        _IComp _3160_f = _3159___mcc_h4;
+        Dafny.ISequence<Dafny.Rune> _3161_b = _3158___mcc_h3;
+        return Closure.create_Lambda(env, _3161_b, _3160_f);
       }
     }
-    public static _IOut Step(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> state) {
-      _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _let_tmp_rhs1 = state;
-      Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal> _3157_env = _let_tmp_rhs1.dtor__0;
-      _IComp _3158_comp = _let_tmp_rhs1.dtor__1;
-      _IStack _3159_stack = _let_tmp_rhs1.dtor__2;
-      _IComp _source92 = _3158_comp;
+    public static _IOut Step(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> state) {
+      _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _let_tmp_rhs1 = state;
+      Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _3162_env = _let_tmp_rhs1.dtor__0;
+      _IComp _3163_comp = _let_tmp_rhs1.dtor__1;
+      _IStack _3164_stack = _let_tmp_rhs1.dtor__2;
+      _IComp _source92 = _3163_comp;
       if (_source92.is_Pure) {
-        _IVal _3160___mcc_h0 = _source92.dtor_Pure_a0;
-        _IVal _3161_val = _3160___mcc_h0;
-        _IOption<_System._ITuple2<_IFrame, _IStack>> _source93 = (_3159_stack).Pop();
+        _IVal _3165___mcc_h0 = _source92.dtor_Pure_a0;
+        _IVal _3166_val = _3165___mcc_h0;
+        _IOption<_System._ITuple2<_IFrame, _IStack>> _source93 = (_3164_stack).Pop();
         if (_source93.is_None) {
           return Out.create_Terminal();
         } else {
-          _System._ITuple2<_IFrame, _IStack> _3162___mcc_h12 = _source93.dtor_value;
-          _System._ITuple2<_IFrame, _IStack> _source94 = _3162___mcc_h12;
-          _IFrame _3163___mcc_h13 = _source94.dtor__0;
-          _IStack _3164___mcc_h14 = _source94.dtor__1;
-          _IFrame _source95 = _3163___mcc_h13;
+          _System._ITuple2<_IFrame, _IStack> _3167___mcc_h12 = _source93.dtor_value;
+          _System._ITuple2<_IFrame, _IStack> _source94 = _3167___mcc_h12;
+          _IFrame _3168___mcc_h13 = _source94.dtor__0;
+          _IStack _3169___mcc_h14 = _source94.dtor__1;
+          _IFrame _source95 = _3168___mcc_h13;
           if (_source95.is_Bind) {
-            Dafny.ISequence<Dafny.Rune> _3165___mcc_h17 = _source95.dtor_var__;
-            _IComp _3166___mcc_h18 = _source95.dtor_rhs;
-            _IStack _3167_stack = _3164___mcc_h14;
-            _IComp _3168_rhs = _3166___mcc_h18;
-            Dafny.ISequence<Dafny.Rune> _3169_var__ = _3165___mcc_h17;
-            return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IVal>.Update(_3157_env, _3169_var__, __default.Eval(_3157_env, _3161_val)), _3168_rhs, _3167_stack));
+            Dafny.ISequence<Dafny.Rune> _3170___mcc_h17 = _source95.dtor_var__;
+            _IComp _3171___mcc_h18 = _source95.dtor_rhs;
+            _IStack _3172_stack = _3169___mcc_h14;
+            _IComp _3173_rhs = _3171___mcc_h18;
+            Dafny.ISequence<Dafny.Rune> _3174_var__ = _3170___mcc_h17;
+            return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IClosure>.Update(_3162_env, _3174_var__, __default.Eval(_3162_env, _3166_val)), _3173_rhs, _3172_stack));
           } else {
-            _IVal _3170___mcc_h21 = _source95.dtor_arg;
+            _IVal _3175___mcc_h21 = _source95.dtor_arg;
             return Out.create_Stuck();
           }
         }
       } else if (_source92.is_Bind) {
-        _IComp _3171___mcc_h1 = _source92.dtor_lhs;
-        Dafny.ISequence<Dafny.Rune> _3172___mcc_h2 = _source92.dtor_var__;
-        _IComp _3173___mcc_h3 = _source92.dtor_rhs;
-        _IComp _3174_rhs = _3173___mcc_h3;
-        Dafny.ISequence<Dafny.Rune> _3175_var__ = _3172___mcc_h2;
-        _IComp _3176_lhs = _3171___mcc_h1;
-        return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(_3157_env, _3176_lhs, Stack.create_Push(Frame.create_Bind(_3175_var__, _3174_rhs), _3159_stack)));
+        _IComp _3176___mcc_h1 = _source92.dtor_lhs;
+        Dafny.ISequence<Dafny.Rune> _3177___mcc_h2 = _source92.dtor_var__;
+        _IComp _3178___mcc_h3 = _source92.dtor_rhs;
+        _IComp _3179_rhs = _3178___mcc_h3;
+        Dafny.ISequence<Dafny.Rune> _3180_var__ = _3177___mcc_h2;
+        _IComp _3181_lhs = _3176___mcc_h1;
+        return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(_3162_env, _3181_lhs, Stack.create_Push(Frame.create_Bind(_3180_var__, _3179_rhs), _3164_stack)));
       } else if (_source92.is_Ite) {
-        _IVal _3177___mcc_h4 = _source92.dtor_guard;
-        _IComp _3178___mcc_h5 = _source92.dtor_then__;
-        _IComp _3179___mcc_h6 = _source92.dtor_else__;
-        _IComp _3180_else__ = _3179___mcc_h6;
-        _IComp _3181_then__ = _3178___mcc_h5;
-        _IVal _3182_guard = _3177___mcc_h4;
-        _IVal _source96 = __default.Eval(_3157_env, _3182_guard);
-        if (_source96.is_Var) {
-          Dafny.ISequence<Dafny.Rune> _3183___mcc_h23 = _source96.dtor_Var_a0;
-          return Out.create_Stuck();
-        } else if (_source96.is_Bool) {
-          bool _3184___mcc_h25 = _source96.dtor_Bool_a0;
-          bool _3185_guard = _3184___mcc_h25;
-          return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(_3157_env, ((_3185_guard) ? (_3181_then__) : (_3180_else__)), _3159_stack));
+        _IVal _3182___mcc_h4 = _source92.dtor_guard;
+        _IComp _3183___mcc_h5 = _source92.dtor_then__;
+        _IComp _3184___mcc_h6 = _source92.dtor_else__;
+        _IComp _3185_else__ = _3184___mcc_h6;
+        _IComp _3186_then__ = _3183___mcc_h5;
+        _IVal _3187_guard = _3182___mcc_h4;
+        _IClosure _source96 = __default.Eval(_3162_env, _3187_guard);
+        if (_source96.is_Bool) {
+          bool _3188___mcc_h23 = _source96.dtor_Bool_a0;
+          bool _3189_guard = _3188___mcc_h23;
+          return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(_3162_env, ((_3189_guard) ? (_3186_then__) : (_3185_else__)), _3164_stack));
         } else if (_source96.is_Int) {
-          BigInteger _3186___mcc_h27 = _source96.dtor_Int_a0;
+          BigInteger _3190___mcc_h25 = _source96.dtor_Int_a0;
           return Out.create_Stuck();
         } else {
-          Ptr<_IComp> _3187___mcc_h29 = _source96.dtor_New_a0;
+          Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _3191___mcc_h27 = _source96.dtor_Lambda_a0;
+          Dafny.ISequence<Dafny.Rune> _3192___mcc_h28 = _source96.dtor_Lambda_a1;
+          _IComp _3193___mcc_h29 = _source96.dtor_Lambda_a2;
           return Out.create_Stuck();
         }
       } else if (_source92.is_Func) {
-        Dafny.ISequence<Dafny.Rune> _3188___mcc_h7 = _source92.dtor_bound;
-        _IComp _3189___mcc_h8 = _source92.dtor_body;
-        _IComp _3190_body = _3189___mcc_h8;
-        Dafny.ISequence<Dafny.Rune> _3191_bound = _3188___mcc_h7;
-        _IOption<_System._ITuple2<_IFrame, _IStack>> _source97 = (_3159_stack).Pop();
+        Dafny.ISequence<Dafny.Rune> _3194___mcc_h7 = _source92.dtor_bound;
+        _IComp _3195___mcc_h8 = _source92.dtor_body;
+        _IComp _3196_body = _3195___mcc_h8;
+        Dafny.ISequence<Dafny.Rune> _3197_bound = _3194___mcc_h7;
+        _IOption<_System._ITuple2<_IFrame, _IStack>> _source97 = (_3164_stack).Pop();
         if (_source97.is_None) {
           return Out.create_Terminal();
         } else {
-          _System._ITuple2<_IFrame, _IStack> _3192___mcc_h31 = _source97.dtor_value;
-          _System._ITuple2<_IFrame, _IStack> _source98 = _3192___mcc_h31;
-          _IFrame _3193___mcc_h32 = _source98.dtor__0;
-          _IStack _3194___mcc_h33 = _source98.dtor__1;
-          _IFrame _source99 = _3193___mcc_h32;
+          _System._ITuple2<_IFrame, _IStack> _3198___mcc_h33 = _source97.dtor_value;
+          _System._ITuple2<_IFrame, _IStack> _source98 = _3198___mcc_h33;
+          _IFrame _3199___mcc_h34 = _source98.dtor__0;
+          _IStack _3200___mcc_h35 = _source98.dtor__1;
+          _IFrame _source99 = _3199___mcc_h34;
           if (_source99.is_Bind) {
-            Dafny.ISequence<Dafny.Rune> _3195___mcc_h36 = _source99.dtor_var__;
-            _IComp _3196___mcc_h37 = _source99.dtor_rhs;
+            Dafny.ISequence<Dafny.Rune> _3201___mcc_h38 = _source99.dtor_var__;
+            _IComp _3202___mcc_h39 = _source99.dtor_rhs;
             return Out.create_Stuck();
           } else {
-            _IVal _3197___mcc_h40 = _source99.dtor_arg;
-            _IStack _3198_stack = _3194___mcc_h33;
-            _IVal _3199_arg = _3197___mcc_h40;
-            return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IVal>.Update(_3157_env, _3191_bound, __default.Eval(_3157_env, _3199_arg)), _3190_body, _3198_stack));
+            _IVal _3203___mcc_h42 = _source99.dtor_arg;
+            _IStack _3204_stack = _3200___mcc_h35;
+            _IVal _3205_arg = _3203___mcc_h42;
+            return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IClosure>.Update(_3162_env, _3197_bound, __default.Eval(_3162_env, _3205_arg)), _3196_body, _3204_stack));
           }
         }
       } else if (_source92.is_Call) {
-        _IComp _3200___mcc_h9 = _source92.dtor_func;
-        _IVal _3201___mcc_h10 = _source92.dtor_arg;
-        _IVal _3202_arg = _3201___mcc_h10;
-        _IComp _3203_func = _3200___mcc_h9;
-        return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(_3157_env, _3203_func, Stack.create_Push(Frame.create_Call(_3202_arg), _3159_stack)));
+        _IComp _3206___mcc_h9 = _source92.dtor_func;
+        _IVal _3207___mcc_h10 = _source92.dtor_arg;
+        _IVal _3208_arg = _3207___mcc_h10;
+        _IComp _3209_func = _3206___mcc_h9;
+        return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(_3162_env, _3209_func, Stack.create_Push(Frame.create_Call(_3208_arg), _3164_stack)));
       } else {
-        _IVal _3204___mcc_h11 = _source92.dtor_ref;
-        _IVal _3205_ref = _3204___mcc_h11;
-        _IVal _source100 = __default.Eval(_3157_env, _3205_ref);
-        if (_source100.is_Var) {
-          Dafny.ISequence<Dafny.Rune> _3206___mcc_h42 = _source100.dtor_Var_a0;
-          return Out.create_Stuck();
-        } else if (_source100.is_Bool) {
-          bool _3207___mcc_h44 = _source100.dtor_Bool_a0;
+        _IVal _3210___mcc_h11 = _source92.dtor_ref;
+        _IVal _3211_ref = _3210___mcc_h11;
+        _IClosure _source100 = __default.Eval(_3162_env, _3211_ref);
+        if (_source100.is_Bool) {
+          bool _3212___mcc_h44 = _source100.dtor_Bool_a0;
           return Out.create_Stuck();
         } else if (_source100.is_Int) {
-          BigInteger _3208___mcc_h46 = _source100.dtor_Int_a0;
+          BigInteger _3213___mcc_h46 = _source100.dtor_Int_a0;
           return Out.create_Stuck();
         } else {
-          Ptr<_IComp> _3209___mcc_h48 = _source100.dtor_New_a0;
-          Ptr<_IComp> _3210_ptr = _3209___mcc_h48;
-          return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(_3157_env, _3210_ptr.deref, _3159_stack));
+          Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _3214___mcc_h48 = _source100.dtor_Lambda_a0;
+          Dafny.ISequence<Dafny.Rune> _3215___mcc_h49 = _source100.dtor_Lambda_a1;
+          _IComp _3216___mcc_h50 = _source100.dtor_Lambda_a2;
+          _IComp _3217_f = _3216___mcc_h50;
+          Dafny.ISequence<Dafny.Rune> _3218_b = _3215___mcc_h49;
+          Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _3219_env = _3214___mcc_h48;
+          return Out.create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(_3219_env, Comp.create_Func(_3218_b, _3217_f), _3164_stack));
         }
       }
     }
-    public static void Run(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> s) {
+    public static void Run(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> s) {
     TAIL_CALL_START:;
       Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")).ToVerbatimString(false));
       _IOut _source101 = __default.Step(s);
       if (_source101.is_Next) {
-        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _3211___mcc_h0 = _source101.dtor_Next_a0;
-        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _3212_s = _3211___mcc_h0;
-        Dafny.Helpers.Print((_3212_s));
-        Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")).ToVerbatimString(false));
-        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _in2 = _3212_s;
+        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _3220___mcc_h0 = _source101.dtor_Next_a0;
+        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _3221_s = _3220___mcc_h0;
+        Dafny.Helpers.Print((_System.Tuple2<_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>, Dafny.ISequence<Dafny.Rune>>.create(_3221_s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"))));
+        _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _in2 = _3221_s;
         s = _in2;
         goto TAIL_CALL_START;
       } else if (_source101.is_Stuck) {
@@ -18280,25 +18284,21 @@ namespace _module {
         return;
       }
     }
-    public static _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> Initial(_IComp comp) {
-      return _System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IVal>.FromElements(), comp, Stack.create_Empty());
+    public static _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> Initial(_IComp comp) {
+      return _System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IClosure>.FromElements(), comp, Stack.create_Empty());
     }
     public static void _Main(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> __noArgsParameter) {
-      Ptr<_IComp> _3213_ptr;
-      Ptr<_IComp> _nw1 = new Ptr<_IComp>();
-      _nw1.__ctor(Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("y"), Comp.create_Pure(Val.create_Var(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x")))));
-      _3213_ptr = _nw1;
-      _IVal _3214_fv;
-      _3214_fv = Val.create_New(_3213_ptr);
-      _IComp _3215_fc;
-      _3215_fc = Comp.create_Read(Val.create_Var(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("f")));
-      _IVal _3216_x1;
-      _3216_x1 = Val.create_Int(BigInteger.One);
-      _IVal _3217_x2;
-      _3217_x2 = Val.create_Int(new BigInteger(2));
-      _IVal _3218_z;
-      _3218_z = Val.create_Int(BigInteger.Zero);
-      __default.Run(__default.Initial(Comp.create_Call(Comp.create_Call(Comp.create_Call(Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"), Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("f"), Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"), Comp.create_Call(_3215_fc, _3218_z)))), _3217_x2), _3214_fv), _3216_x1)));
+      _IVal _3222_fv;
+      _3222_fv = Val.create_Lambda(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("y"), Comp.create_Pure(Val.create_Var(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"))));
+      _IComp _3223_fc;
+      _3223_fc = Comp.create_Force(Val.create_Var(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("f")));
+      _IVal _3224_x1;
+      _3224_x1 = Val.create_Int(BigInteger.One);
+      _IVal _3225_x2;
+      _3225_x2 = Val.create_Int(new BigInteger(2));
+      _IVal _3226_z;
+      _3226_z = Val.create_Int(BigInteger.Zero);
+      __default.Run(__default.Initial(Comp.create_Call(Comp.create_Call(Comp.create_Call(Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"), Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("f"), Comp.create_Func(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"), Comp.create_Call(_3223_fc, _3226_z)))), _3225_x2), _3222_fv), _3224_x1)));
     }
   }
 
@@ -18408,11 +18408,12 @@ namespace _module {
     bool is_Var { get; }
     bool is_Bool { get; }
     bool is_Int { get; }
-    bool is_New { get; }
+    bool is_Lambda { get; }
     Dafny.ISequence<Dafny.Rune> dtor_Var_a0 { get; }
     bool dtor_Bool_a0 { get; }
     BigInteger dtor_Int_a0 { get; }
-    Ptr<_IComp> dtor_New_a0 { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_Lambda_a0 { get; }
+    _IComp dtor_Lambda_a1 { get; }
     _IVal DowncastClone();
   }
   public abstract class Val : _IVal {
@@ -18435,13 +18436,13 @@ namespace _module {
     public static _IVal create_Int(BigInteger _a0) {
       return new Val_Int(_a0);
     }
-    public static _IVal create_New(Ptr<_IComp> _a0) {
-      return new Val_New(_a0);
+    public static _IVal create_Lambda(Dafny.ISequence<Dafny.Rune> _a0, _IComp _a1) {
+      return new Val_Lambda(_a0, _a1);
     }
     public bool is_Var { get { return this is Val_Var; } }
     public bool is_Bool { get { return this is Val_Bool; } }
     public bool is_Int { get { return this is Val_Int; } }
-    public bool is_New { get { return this is Val_New; } }
+    public bool is_Lambda { get { return this is Val_Lambda; } }
     public Dafny.ISequence<Dafny.Rune> dtor_Var_a0 {
       get {
         var d = this;
@@ -18460,10 +18461,16 @@ namespace _module {
         return ((Val_Int)d)._a0;
       }
     }
-    public Ptr<_IComp> dtor_New_a0 {
+    public Dafny.ISequence<Dafny.Rune> dtor_Lambda_a0 {
       get {
         var d = this;
-        return ((Val_New)d)._a0;
+        return ((Val_Lambda)d)._a0;
+      }
+    }
+    public _IComp dtor_Lambda_a1 {
+      get {
+        var d = this;
+        return ((Val_Lambda)d)._a1;
       }
     }
     public abstract _IVal DowncastClone();
@@ -18549,136 +18556,34 @@ namespace _module {
       return s;
     }
   }
-  public class Val_New : Val {
-    public readonly Ptr<_IComp> _a0;
-    public Val_New(Ptr<_IComp> _a0) : base() {
+  public class Val_Lambda : Val {
+    public readonly Dafny.ISequence<Dafny.Rune> _a0;
+    public readonly _IComp _a1;
+    public Val_Lambda(Dafny.ISequence<Dafny.Rune> _a0, _IComp _a1) : base() {
       this._a0 = _a0;
+      this._a1 = _a1;
     }
     public override _IVal DowncastClone() {
       if (this is _IVal dt) { return dt; }
-      return new Val_New(_a0);
+      return new Val_Lambda(_a0, _a1);
     }
     public override bool Equals(object other) {
-      var oth = other as Val_New;
-      return oth != null && this._a0 == oth._a0;
+      var oth = other as Val_Lambda;
+      return oth != null && object.Equals(this._a0, oth._a0) && object.Equals(this._a1, oth._a1);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int)hash;
-    }
-    public override string ToString() {
-      string s = "Val.New";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._a0);
-      s += ")";
-      return s;
-    }
-  }
-
-  public interface _IObj {
-    bool is_FuncC { get; }
-    bool is_Record { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_FuncC_a0 { get; }
-    _IComp dtor_FuncC_a1 { get; }
-    Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IComp> dtor_Record_a0 { get; }
-    _IObj DowncastClone();
-  }
-  public abstract class Obj : _IObj {
-    public Obj() {
-    }
-    private static readonly _IObj theDefault = create_FuncC(Dafny.Sequence<Dafny.Rune>.Empty, Comp.Default());
-    public static _IObj Default() {
-      return theDefault;
-    }
-    private static readonly Dafny.TypeDescriptor<_IObj> _TYPE = new Dafny.TypeDescriptor<_IObj>(Obj.Default());
-    public static Dafny.TypeDescriptor<_IObj> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static _IObj create_FuncC(Dafny.ISequence<Dafny.Rune> _a0, _IComp _a1) {
-      return new Obj_FuncC(_a0, _a1);
-    }
-    public static _IObj create_Record(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IComp> _a0) {
-      return new Obj_Record(_a0);
-    }
-    public bool is_FuncC { get { return this is Obj_FuncC; } }
-    public bool is_Record { get { return this is Obj_Record; } }
-    public Dafny.ISequence<Dafny.Rune> dtor_FuncC_a0 {
-      get {
-        var d = this;
-        return ((Obj_FuncC)d)._a0;
-      }
-    }
-    public _IComp dtor_FuncC_a1 {
-      get {
-        var d = this;
-        return ((Obj_FuncC)d)._a1;
-      }
-    }
-    public Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IComp> dtor_Record_a0 {
-      get {
-        var d = this;
-        return ((Obj_Record)d)._a0;
-      }
-    }
-    public abstract _IObj DowncastClone();
-  }
-  public class Obj_FuncC : Obj {
-    public readonly Dafny.ISequence<Dafny.Rune> _a0;
-    public readonly _IComp _a1;
-    public Obj_FuncC(Dafny.ISequence<Dafny.Rune> _a0, _IComp _a1) : base() {
-      this._a0 = _a0;
-      this._a1 = _a1;
-    }
-    public override _IObj DowncastClone() {
-      if (this is _IObj dt) { return dt; }
-      return new Obj_FuncC(_a0, _a1);
-    }
-    public override bool Equals(object other) {
-      var oth = other as Obj_FuncC;
-      return oth != null && object.Equals(this._a0, oth._a0) && object.Equals(this._a1, oth._a1);
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a1));
       return (int)hash;
     }
     public override string ToString() {
-      string s = "Obj.FuncC";
+      string s = "Val.Lambda";
       s += "(";
       s += this._a0.ToVerbatimString(true);
       s += ", ";
       s += Dafny.Helpers.ToString(this._a1);
-      s += ")";
-      return s;
-    }
-  }
-  public class Obj_Record : Obj {
-    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IComp> _a0;
-    public Obj_Record(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IComp> _a0) : base() {
-      this._a0 = _a0;
-    }
-    public override _IObj DowncastClone() {
-      if (this is _IObj dt) { return dt; }
-      return new Obj_Record(_a0);
-    }
-    public override bool Equals(object other) {
-      var oth = other as Obj_Record;
-      return oth != null && object.Equals(this._a0, oth._a0);
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int)hash;
-    }
-    public override string ToString() {
-      string s = "Obj.Record";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._a0);
       s += ")";
       return s;
     }
@@ -18690,7 +18595,7 @@ namespace _module {
     bool is_Ite { get; }
     bool is_Func { get; }
     bool is_Call { get; }
-    bool is_Read { get; }
+    bool is_Force { get; }
     _IVal dtor_Pure_a0 { get; }
     _IComp dtor_lhs { get; }
     Dafny.ISequence<Dafny.Rune> dtor_var__ { get; }
@@ -18731,15 +18636,15 @@ namespace _module {
     public static _IComp create_Call(_IComp func, _IVal arg) {
       return new Comp_Call(func, arg);
     }
-    public static _IComp create_Read(_IVal @ref) {
-      return new Comp_Read(@ref);
+    public static _IComp create_Force(_IVal @ref) {
+      return new Comp_Force(@ref);
     }
     public bool is_Pure { get { return this is Comp_Pure; } }
     public bool is_Bind { get { return this is Comp_Bind; } }
     public bool is_Ite { get { return this is Comp_Ite; } }
     public bool is_Func { get { return this is Comp_Func; } }
     public bool is_Call { get { return this is Comp_Call; } }
-    public bool is_Read { get { return this is Comp_Read; } }
+    public bool is_Force { get { return this is Comp_Force; } }
     public _IVal dtor_Pure_a0 {
       get {
         var d = this;
@@ -18809,7 +18714,7 @@ namespace _module {
     public _IVal dtor_ref {
       get {
         var d = this;
-        return ((Comp_Read)d)._ref;
+        return ((Comp_Force)d)._ref;
       }
     }
     public abstract _IComp DowncastClone();
@@ -18979,17 +18884,17 @@ namespace _module {
       return s;
     }
   }
-  public class Comp_Read : Comp {
+  public class Comp_Force : Comp {
     public readonly _IVal _ref;
-    public Comp_Read(_IVal @ref) : base() {
+    public Comp_Force(_IVal @ref) : base() {
       this._ref = @ref;
     }
     public override _IComp DowncastClone() {
       if (this is _IComp dt) { return dt; }
-      return new Comp_Read(_ref);
+      return new Comp_Force(_ref);
     }
     public override bool Equals(object other) {
-      var oth = other as Comp_Read;
+      var oth = other as Comp_Force;
       return oth != null && object.Equals(this._ref, oth._ref);
     }
     public override int GetHashCode() {
@@ -18999,7 +18904,7 @@ namespace _module {
       return (int)hash;
     }
     public override string ToString() {
-      string s = "Comp.Read";
+      string s = "Comp.Force";
       s += "(";
       s += Dafny.Helpers.ToString(this._ref);
       s += ")";
@@ -19159,11 +19064,11 @@ namespace _module {
       if (_source102.is_Empty) {
         return Option<_System._ITuple2<_IFrame, _IStack>>.create_None();
       } else {
-        _IFrame _3219___mcc_h0 = _source102.dtor_top;
-        _IStack _3220___mcc_h1 = _source102.dtor_rest;
-        _IStack _3221_r = _3220___mcc_h1;
-        _IFrame _3222_t = _3219___mcc_h0;
-        return Option<_System._ITuple2<_IFrame, _IStack>>.create_Some(_System.Tuple2<_IFrame, _IStack>.create(_3222_t, _3221_r));
+        _IFrame _3227___mcc_h0 = _source102.dtor_top;
+        _IStack _3228___mcc_h1 = _source102.dtor_rest;
+        _IStack _3229_r = _3228___mcc_h1;
+        _IFrame _3230_t = _3227___mcc_h0;
+        return Option<_System._ITuple2<_IFrame, _IStack>>.create_Some(_System.Tuple2<_IFrame, _IStack>.create(_3230_t, _3229_r));
       }
     }
   }
@@ -19221,17 +19126,175 @@ namespace _module {
     }
   }
 
+  public interface _IClosure {
+    bool is_Bool { get; }
+    bool is_Int { get; }
+    bool is_Lambda { get; }
+    bool dtor_Bool_a0 { get; }
+    BigInteger dtor_Int_a0 { get; }
+    Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> dtor_Lambda_a0 { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_Lambda_a1 { get; }
+    _IComp dtor_Lambda_a2 { get; }
+    _IClosure DowncastClone();
+  }
+  public abstract class Closure : _IClosure {
+    public Closure() {
+    }
+    private static readonly _IClosure theDefault = create_Bool(false);
+    public static _IClosure Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<_IClosure> _TYPE = new Dafny.TypeDescriptor<_IClosure>(Closure.Default());
+    public static Dafny.TypeDescriptor<_IClosure> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IClosure create_Bool(bool _a0) {
+      return new Closure_Bool(_a0);
+    }
+    public static _IClosure create_Int(BigInteger _a0) {
+      return new Closure_Int(_a0);
+    }
+    public static _IClosure create_Lambda(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _a0, Dafny.ISequence<Dafny.Rune> _a1, _IComp _a2) {
+      return new Closure_Lambda(_a0, _a1, _a2);
+    }
+    public bool is_Bool { get { return this is Closure_Bool; } }
+    public bool is_Int { get { return this is Closure_Int; } }
+    public bool is_Lambda { get { return this is Closure_Lambda; } }
+    public bool dtor_Bool_a0 {
+      get {
+        var d = this;
+        return ((Closure_Bool)d)._a0;
+      }
+    }
+    public BigInteger dtor_Int_a0 {
+      get {
+        var d = this;
+        return ((Closure_Int)d)._a0;
+      }
+    }
+    public Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> dtor_Lambda_a0 {
+      get {
+        var d = this;
+        return ((Closure_Lambda)d)._a0;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> dtor_Lambda_a1 {
+      get {
+        var d = this;
+        return ((Closure_Lambda)d)._a1;
+      }
+    }
+    public _IComp dtor_Lambda_a2 {
+      get {
+        var d = this;
+        return ((Closure_Lambda)d)._a2;
+      }
+    }
+    public abstract _IClosure DowncastClone();
+  }
+  public class Closure_Bool : Closure {
+    public readonly bool _a0;
+    public Closure_Bool(bool _a0) : base() {
+      this._a0 = _a0;
+    }
+    public override _IClosure DowncastClone() {
+      if (this is _IClosure dt) { return dt; }
+      return new Closure_Bool(_a0);
+    }
+    public override bool Equals(object other) {
+      var oth = other as Closure_Bool;
+      return oth != null && this._a0 == oth._a0;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      return (int)hash;
+    }
+    public override string ToString() {
+      string s = "Closure.Bool";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._a0);
+      s += ")";
+      return s;
+    }
+  }
+  public class Closure_Int : Closure {
+    public readonly BigInteger _a0;
+    public Closure_Int(BigInteger _a0) : base() {
+      this._a0 = _a0;
+    }
+    public override _IClosure DowncastClone() {
+      if (this is _IClosure dt) { return dt; }
+      return new Closure_Int(_a0);
+    }
+    public override bool Equals(object other) {
+      var oth = other as Closure_Int;
+      return oth != null && this._a0 == oth._a0;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      return (int)hash;
+    }
+    public override string ToString() {
+      string s = "Closure.Int";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._a0);
+      s += ")";
+      return s;
+    }
+  }
+  public class Closure_Lambda : Closure {
+    public readonly Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _a0;
+    public readonly Dafny.ISequence<Dafny.Rune> _a1;
+    public readonly _IComp _a2;
+    public Closure_Lambda(Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure> _a0, Dafny.ISequence<Dafny.Rune> _a1, _IComp _a2) : base() {
+      this._a0 = _a0;
+      this._a1 = _a1;
+      this._a2 = _a2;
+    }
+    public override _IClosure DowncastClone() {
+      if (this is _IClosure dt) { return dt; }
+      return new Closure_Lambda(_a0, _a1, _a2);
+    }
+    public override bool Equals(object other) {
+      var oth = other as Closure_Lambda;
+      return oth != null && object.Equals(this._a0, oth._a0) && object.Equals(this._a1, oth._a1) && object.Equals(this._a2, oth._a2);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a1));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a2));
+      return (int)hash;
+    }
+    public override string ToString() {
+      string s = "Closure.Lambda";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._a0);
+      s += ", ";
+      s += this._a1.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._a2);
+      s += ")";
+      return s;
+    }
+  }
+
   public interface _IOut {
     bool is_Next { get; }
     bool is_Stuck { get; }
     bool is_Terminal { get; }
-    _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> dtor_Next_a0 { get; }
+    _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> dtor_Next_a0 { get; }
     _IOut DowncastClone();
   }
   public abstract class Out : _IOut {
     public Out() {
     }
-    private static readonly _IOut theDefault = create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack>.Default(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IVal>.Empty, Comp.Default(), Stack.Default()));
+    private static readonly _IOut theDefault = create_Next(_System.Tuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack>.Default(Dafny.Map<Dafny.ISequence<Dafny.Rune>, _IClosure>.Empty, Comp.Default(), Stack.Default()));
     public static _IOut Default() {
       return theDefault;
     }
@@ -19239,7 +19302,7 @@ namespace _module {
     public static Dafny.TypeDescriptor<_IOut> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IOut create_Next(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _a0) {
+    public static _IOut create_Next(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _a0) {
       return new Out_Next(_a0);
     }
     public static _IOut create_Stuck() {
@@ -19251,7 +19314,7 @@ namespace _module {
     public bool is_Next { get { return this is Out_Next; } }
     public bool is_Stuck { get { return this is Out_Stuck; } }
     public bool is_Terminal { get { return this is Out_Terminal; } }
-    public _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> dtor_Next_a0 {
+    public _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> dtor_Next_a0 {
       get {
         var d = this;
         return ((Out_Next)d)._a0;
@@ -19260,8 +19323,8 @@ namespace _module {
     public abstract _IOut DowncastClone();
   }
   public class Out_Next : Out {
-    public readonly _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _a0;
-    public Out_Next(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IVal>, _IComp, _IStack> _a0) : base() {
+    public readonly _System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _a0;
+    public Out_Next(_System._ITuple3<Dafny.IMap<Dafny.ISequence<Dafny.Rune>, _IClosure>, _IComp, _IStack> _a0) : base() {
       this._a0 = _a0;
     }
     public override _IOut DowncastClone() {
