@@ -1,6 +1,6 @@
 include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/Wrappers.dfy"
  
-module {:extern "System.Collections.Generic"} DafnyStdLibs.CSharp {
+module {:extern "System.Collections.Generic"} DafnyStdLibs.MutableCollections.CSharp {
   import opened Wrappers
   // import opened MutableCollections
 
@@ -33,9 +33,6 @@ module {:extern "System.Collections.Generic"} DafnyStdLibs.CSharp {
       modifies this
       ensures this.content == old(this.content) - {k}
       ensures k in old(this.content).Keys ==> this.content.Values + {old(this.content)[k]} == old(this.content).Values
-
-    function {:extern} {:property} Length(): (r: nat)
-      ensures r == |this.content.Keys|
       
     constructor {:extern} () 
       ensures this.content == map[]

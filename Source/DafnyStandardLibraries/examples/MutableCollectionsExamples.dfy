@@ -1,19 +1,51 @@
-// include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/CSharp/Dictionary.cs.dfy"
-// include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/CSharp/MutableCollection.cs.dfy"
-include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/Java/MutableCollection.java.dfy"
+// include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/CSharp/MutableCollections.dfy"
+// include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/Java/MutableCollections.dfy"
+// include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/Python/MutableCollections.dfy"
+//include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/GoLang/MutableCollections.dfy"
+include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/JavaScript/MutableCollections.dfy"
 
 // include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/MutableCollections.dfy"
 
 module Example {
   import opened DafnyStdLibs.MutableCollections
 
-  method {:test} PutGet() {
-    var m := new MutableMap<int, int>();
+  datatype Bargl = Bie | Ba
+
+  method {:test} PutGetDatatype() {
+    var m := new HashMap<Bargl, int>();
+
+    m.Put(Bie, 2);
+    m.Put(Ba, 1);
+    expect m.Size() == 2;
+
+    var x := m.Select(Bie);
+    var y := m.Select(Ba);
+    expect x == 2;
+    expect y == 1;
+  }
+
+  method {:test} PutGetInt() {
+    var m := new HashMap<int, int>();
+
     m.Put(3, 2);
     m.Put(4, 1);
+    expect m.Size() == 2;
 
     var x := m.Select(3);
     var y := m.Select(4);
+    expect x == 2;
+    expect y == 1;
+  }
+
+  method {:test} PutGetString() {
+    var m := new HashMap<string, int>();
+
+    m.Put("a", 2);
+    m.Put("b", 1);
+    expect m.Size() == 2;
+
+    var x := m.Select("a");
+    var y := m.Select("b");
     expect x == 2;
     expect y == 1;
   }

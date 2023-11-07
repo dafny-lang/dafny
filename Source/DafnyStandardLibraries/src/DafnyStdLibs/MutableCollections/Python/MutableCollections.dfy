@@ -1,14 +1,16 @@
-include "../Wrappers.dfy"
+include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/Wrappers.dfy"
 
-module DafnyStdLibs.MutableCollections {
+module {:extern "MutableCollections"} DafnyStdLibs.MutableCollections {
   import opened Wrappers
-  
+  // import opened MutableCollections
+
+  // TODO: let this replace MutableCollections.MutableMap
   class {:extern} HashMap<K(==),V(==)> {
-     
+       
     constructor {:extern} ()
       ensures this.content() == map[]
   
-    ghost function {:extern} content(): map<K, V> reads this
+    ghost function {:axiom} content(): map<K, V> reads this
   
     method {:extern} Put(k: K, v: V)
       modifies this
@@ -26,6 +28,15 @@ module DafnyStdLibs.MutableCollections {
       ensures v in this.content().Values
       ensures this.content()[k] == v
   
+    method {:extern} Remove(k: K)
+      modifies this
+      ensures this.content() == old(this.content()) - {k}
+      ensures k in old(this.content()).Keys ==> this.content().Values + {old(this.content())[k]} == old(this.content()).Values
+  
+    function {:extern} Size(): (size: int)
+      reads this
+      ensures size == |this.content().Items|
+  
     function SelectOpt(k: K): (o: Option<V>)
       reads this
       ensures o.Some? ==> (this.HasKey(k) && o.value in this.content().Values && this.content()[k] == o.value)
@@ -36,14 +47,5 @@ module DafnyStdLibs.MutableCollections {
       else
         None
     }
-  
-    method {:extern} Remove(k: K)
-      modifies this
-      ensures this.content() == old(this.content()) - {k}
-      ensures k in old(this.content()).Keys ==> this.content().Values + {old(this.content())[k]} == old(this.content()).Values
-  
-    function {:extern} Size(): (size: int)
-      reads this
-      ensures size == |this.content().Items|
   }
 }

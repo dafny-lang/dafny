@@ -1,18 +1,19 @@
 // include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/MutableCollections.dfy"
-include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/MutableCollections/Java/HashMap.dfy"
+include "Dictionary.dfy"
 
 module DafnyStdLibs.MutableCollections {
   import opened Wrappers
   // import opened MutableCollections
-  import opened Java
+  import opened CSharp
 
-  class MutableMap<K(==),V(==)> {
-    const data: HashMap<K,V>
+  // TODO: let this replace MutableCollections.MutableMap
+  class HashMap<K(==),V(==)> {
+    const data: Dictionary<K,V>
        
     constructor ()
       ensures this.content() == map[]
     {
-      this.data := new HashMap<K,V>();
+      this.data := new Dictionary<K,V>();
     }
   
     ghost function content(): map<K, V> 
@@ -26,7 +27,7 @@ module DafnyStdLibs.MutableCollections {
       ensures k in old(this.content()).Keys ==> this.content().Values + {old(this.content())[k]} == old(this.content()).Values + {v}
       ensures k !in old(this.content()).Keys ==> this.content().Values == old(this.content()).Values + {v} 
     {
-      this.data.Put(k, v);
+      DictionarySet(this.data, k, v);
     }
   
     predicate HasKey(k: K)
@@ -42,7 +43,7 @@ module DafnyStdLibs.MutableCollections {
       ensures v in this.content().Values
       ensures this.content()[k] == v 
     {
-      this.data.Get(k)
+      DictionaryGet(this.data, k)
     }
   
     method Remove(k: K)
@@ -57,7 +58,7 @@ module DafnyStdLibs.MutableCollections {
       reads this
       ensures size == |this.content().Items| 
     {
-      this.data.Size() as int
+      DictionaryLength(this.data)
     }
   
     function SelectOpt(k: K): (o: Option<V>)
