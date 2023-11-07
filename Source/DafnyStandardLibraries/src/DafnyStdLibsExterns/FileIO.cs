@@ -3,13 +3,13 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-namespace DafnyStdLibs {
+namespace DafnyStdLibsExterns {
   using System;
   using System.IO;
 
   using Dafny;
 
-  public class FileIOInternalExterns {
+  public class FileIO {
     /// <summary>
     /// Attempts to read all bytes from the file at the given path, and outputs the following values:
     /// <list>

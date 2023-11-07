@@ -7,7 +7,7 @@ module WriteBytesToFile {
   import DafnyStdLibs.FileIO
 
   method {:test} Test() {
-    theMain("temp", "");
+    theMain("build/fileioexamples", "");
   }
 
   method theMain(outputDir: string, expectedErrorPrefix: string) {

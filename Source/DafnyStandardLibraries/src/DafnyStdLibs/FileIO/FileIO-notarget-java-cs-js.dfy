@@ -43,8 +43,7 @@ module DafnyStdLibs.FileIO {
     *
     * NOTE: See the module description for limitations on the path argument.
     */
-  method WriteBytesToFile(path: string, bytes: seq<bv8>) returns (res: Result<(), string>)
-  {
+  method WriteBytesToFile(path: string, bytes: seq<bv8>) returns (res: Result<(), string>) {
     var isError, errorMsg := FileIOInternalExterns.INTERNAL_WriteBytesToFile(path, bytes);
     return if isError then Failure(errorMsg) else Success(());
   }

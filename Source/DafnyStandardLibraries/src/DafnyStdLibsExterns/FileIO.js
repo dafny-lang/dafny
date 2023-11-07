@@ -3,8 +3,8 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-var DafnyStdLibs = DafnyStdLibs || {};
-DafnyStdLibs.FileIOInternalExterns = (function() {
+var DafnyStdLibsExterns = DafnyStdLibsExterns || {};
+DafnyStdLibsExterns.FileIO = (function() {
   const buffer = require("buffer");
   const fs = require("fs");
   const nodePath = require("path");

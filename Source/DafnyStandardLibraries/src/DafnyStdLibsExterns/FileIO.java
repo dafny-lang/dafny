@@ -3,7 +3,7 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-package DafnyStdLibs;
+package DafnyStdLibsExterns;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,7 +18,7 @@ import dafny.Tuple2;
 import dafny.Tuple3;
 import dafny.TypeDescriptor;
 
-public class FileIOInternalExterns {
+public class FileIO {
     /**
      * Attempts to read all bytes from the file at {@code path}, and returns a tuple of the following values:
      * <dl>
