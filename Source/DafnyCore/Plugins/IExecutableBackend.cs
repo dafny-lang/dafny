@@ -8,6 +8,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Plugins;
 
@@ -130,6 +131,8 @@ public abstract class IExecutableBackend {
   /// Perform any required cleanups after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
   /// </summary>
   public virtual void OnPostCompile() { }
+
+  public abstract CoverageInstrumenter GetCoverageAfterRun();
 
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate

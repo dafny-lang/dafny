@@ -24,6 +24,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
@@ -559,6 +560,16 @@ namespace Microsoft.Dafny {
 
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
             targetPaths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
+
+          if (compiledCorrectly) {
+            var coverageReportDir = options.Get(CommonOptionBag.ExecutionCoverageReport);
+            if (coverageReportDir != null) {
+              var coverage  = compiler.GetCoverageAfterRun();
+              var coverageReport = new CoverageReport("Test Coverage", "Branches", "_tests_actual", dafnyProgram);
+              coverage.PopulateCoverageReport(coverageReport);
+              new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
+            }
+          }
         } else {
           // make sure to give some feedback to the user
           if (options.Verbose) {
@@ -612,6 +623,10 @@ namespace Microsoft.Dafny {
 
     public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
+    }
+
+    public override CoverageInstrumenter GetCoverageAfterRun() {
+      throw new NotImplementedException();
     }
 
     public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {

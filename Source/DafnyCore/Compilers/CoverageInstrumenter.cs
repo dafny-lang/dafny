@@ -1,17 +1,24 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
   private readonly SinglePassCompiler compiler;
   private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
+  private string talliesFilePath;
 
   public CoverageInstrumenter(SinglePassCompiler compiler) {
     this.compiler = compiler;
-    if (compiler.Options?.CoverageLegendFile != null) {
+    if (compiler.Options?.CoverageLegendFile != null 
+        || compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
       legend = new List<(IToken, string)>();
+    }
+
+    if (compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+      talliesFilePath = Path.GetTempFileName();
     }
   }
 
@@ -55,7 +62,11 @@ public class CoverageInstrumenter {
   public void EmitSetup(ConcreteSyntaxTree wr) {
     Contract.Requires(wr != null);
     if (legend != null) {
-      wr.Write("DafnyProfiling.CodeCoverage.Setup({0})", legend.Count);
+      wr.Write("DafnyProfiling.CodeCoverage.Setup({0}", legend.Count);
+      if (talliesFilePath != null) {
+        wr.Write($", \"{talliesFilePath}\"");
+      }
+      wr.Write(")");
       compiler.EndStmt(wr);
     }
   }
@@ -69,7 +80,7 @@ public class CoverageInstrumenter {
   }
 
   public void WriteLegendFile() {
-    if (legend != null) {
+    if (compiler.Options?.CoverageLegendFile != null) {
       var filename = compiler.Options.CoverageLegendFile;
       Contract.Assert(filename != null);
       TextWriter wr = filename == "-" ? compiler.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
@@ -82,4 +93,14 @@ public class CoverageInstrumenter {
       legend = null;
     }
   }
+
+  public void PopulateCoverageReport(CoverageReport report) {
+    var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
+    foreach (var ((token, description), tally) in legend.Zip(tallies)) {
+      var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
+      // TODO: more intelligent conversion to range token
+      report.LabelCode(new RangeToken(token, token), label);
+    }
+  }
+  
 }

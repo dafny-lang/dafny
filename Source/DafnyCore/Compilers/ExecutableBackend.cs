@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -67,6 +68,10 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override void OnPostCompile() {
     base.OnPostCompile();
     Compiler.Coverage.WriteLegendFile();
+  }
+
+  public override CoverageInstrumenter GetCoverageAfterRun() {
+    return Compiler.Coverage;
   }
 
   protected abstract SinglePassCompiler CreateCompiler();

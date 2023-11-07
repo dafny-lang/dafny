@@ -6062,5 +6062,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
 
+    protected virtual void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
+      throw new UnsupportedFeatureException(program.GetStartOfFirstFileToken(), Feature.RuntimeCoverageReport);
+    }
   }
 }

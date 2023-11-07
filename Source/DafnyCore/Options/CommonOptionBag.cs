@@ -215,12 +215,16 @@ May produce spurious warnings.") {
     IsHidden = true
   };
   public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
-    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+    "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
   };
   public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
     "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
     IsHidden = true
+  };
+  public static readonly Option<string> ExecutionCoverageReport = new("--test-coverage-report",
+    "Emit execution coverage report to a given directory.") {
+    ArgumentHelpName = "directory"
   };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
@@ -517,7 +521,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       UseStandardLibraries,
       OptimizeErasableDatatypeWrapper,
       AddCompileSuffix,
-      SystemModule
+      SystemModule,
+      ExecutionCoverageReport
     );
   }
 
