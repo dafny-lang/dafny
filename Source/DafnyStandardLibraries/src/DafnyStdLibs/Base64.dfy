@@ -1,12 +1,9 @@
 // Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT
 
-/*
- * Note that additional lemmas for this module are in Base64Lemmas.dfy.
- */
-module Base64 {
-  import opened DafnyStdLibs.Wrappers
-  import opened DafnyStdLibs.BoundedInts
+module DafnyStdLibs.Base64 {
+  import opened Wrappers
+  import opened BoundedInts
 
   // The maximum index for Base64 is less than 64 (0x40)
   type index = bv6
@@ -530,7 +527,6 @@ module Base64 {
       var d := DecodeBlock([e[0], e[1], e[2], 0]);
       [d[0], d[1]] == b
   {
-    // TODO: reduce resource use, brittleness
     reveal EncodeBlock();
     reveal DecodeBlock();
     reveal BV24ToSeq();
@@ -605,7 +601,9 @@ module Base64 {
       == { reveal Encode1Padding(); }
         d';
       == {
-        // TODO: make better
+        // This argument is easiest to make by just automating it
+        // However, the mix between % and & in padding constraints
+        // makes it a little difficult
         reveal EncodeBlock();
         reveal DecodeBlock();
         reveal BV24ToSeq();
@@ -675,7 +673,6 @@ module Base64 {
       var d := DecodeBlock([e[0], e[1], 0, 0]);
       [d[0]] == b
   {
-    // TODO: better proof
     reveal EncodeBlock();
     reveal DecodeBlock();
     reveal BV24ToSeq();
@@ -719,7 +716,7 @@ module Base64 {
       == { reveal Encode2Padding(); }
         d';
       == {
-        // TODO: make better
+        // This argument is easiest to make by just automating it
         reveal EncodeBlock();
         reveal DecodeBlock();
         reveal BV24ToSeq();
@@ -894,36 +891,6 @@ module Base64 {
     reveal StringIs7Bit();
   }
 
-  lemma Base64StringIs7Bit(s: string)
-    requires IsBase64String(s)
-    ensures StringIs7Bit(s)
-  {
-    // TODO: simplify
-    reveal IsBase64String();
-    reveal IsBase64Char();
-    var finalBlockStart := |s| - 4;
-    if IsUnpaddedBase64String(s) {
-      UnpaddedBase64StringIs7Bit(s);
-    } else if finalBlockStart < 0 {
-      reveal IsUnpaddedBase64String();
-    } else {
-      reveal IsUnpaddedBase64String();
-      assert IsUnpaddedBase64String(s[..finalBlockStart]);
-      UnpaddedBase64StringIs7Bit(s[..finalBlockStart]);
-      assert StringIs7Bit(s[..finalBlockStart]);
-      if (Is1Padding(s[finalBlockStart..])) {
-        Is7Bit1Padding(s[finalBlockStart..]);
-        assert StringIs7Bit(s[finalBlockStart..]);
-      }
-      if (Is2Padding(s[finalBlockStart..])) {
-        Is7Bit2Padding(s[finalBlockStart..]);
-        assert StringIs7Bit(s[finalBlockStart..]);
-      }
-      assert s == s[..finalBlockStart] + s[finalBlockStart..];
-      reveal StringIs7Bit();
-    }
-  }
-
   opaque function EncodeBV(b: seq<bv8>): (s: seq<char>)
     // Rather than ensure Decode(s) == Success(b) directly, lemmas are used to verify this property
   {
@@ -974,52 +941,23 @@ module Base64 {
   lemma EncodeBVIsBase64(b: seq<bv8>)
     ensures IsBase64String(EncodeBV(b))
   {
-    // TODO: simplify
     reveal EncodeBV();
     reveal IsBase64String();
-    var s := EncodeBV(b);
-    EncodeBVLengthCongruentToZeroMod4(b);
     EncodeBVLengthExact(b);
-    assert |s| >= 0;
-    assert |s| % 4 == 0;
-    var finalBlockStart := |s| - 4;
-    if finalBlockStart < 0 {
+    if |EncodeBV(b)| < 4 {
       reveal IsUnpaddedBase64String();
-      return;
-    }
-    var sStart := s[..finalBlockStart];
-    var sEnd := s[finalBlockStart..];
-    if |b| % 3 == 0 {
-      assert s == EncodeUnpadded(b);
+    } else if |b| % 3 == 0 {
       EncodeUnpaddedBase64(b);
-      assert IsUnpaddedBase64String(s);
-      assert IsBase64String(s);
     } else if |b| % 3 == 1 {
       var bStart := b[..(|b| - 1)];
       var bEnd := b[(|b| - 1)..];
-      assert s == EncodeUnpadded(bStart) + Encode2Padding(bEnd);
-      assert s == sStart + sEnd;
-      EncodeUnpaddedBounds(bStart);
-      assert EncodeUnpadded(bStart) == sStart;
-      assert Encode2Padding(bEnd) == sEnd;
       EncodeUnpaddedBase64(bStart);
-      assert IsUnpaddedBase64String(sStart);
       Encode2PaddingIs2Padding(bEnd);
-      assert Is2Padding(sEnd);
-      assert IsBase64String(s);
     } else {
       var bStart := b[..(|b| - 2)];
       var bEnd := b[(|b| - 2)..];
-      assert s == EncodeUnpadded(bStart) + Encode1Padding(bEnd);
-      assert s == sStart + sEnd;
-      EncodeUnpaddedBounds(bStart);
-      assert EncodeUnpadded(bStart) == sStart;
-      assert Encode1Padding(bEnd) == sEnd;
       EncodeUnpaddedBase64(bStart);
-      assert IsUnpaddedBase64String(sStart);
       Encode1PaddingIs1Padding(bEnd);
-      assert Is1Padding(sEnd);
-      assert IsBase64String(s);
     }
   }
 
@@ -1079,8 +1017,6 @@ module Base64 {
   {
     EncodeBVLengthExact(b);
   }
-
-  // TODO: add wrappers for uint8
 
   lemma SeqPartsMakeWhole<T>(s: seq<T>, i: nat)
     requires i <= |s|
@@ -1462,6 +1398,7 @@ module Base64 {
   lemma UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
+    // TODO: reduce resource use
     var b := UInt8sToBVs(u);
     assert |b| == |u|;
     var u' := BVsToUInt8s(b);
