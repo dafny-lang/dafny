@@ -446,15 +446,15 @@ module DafnyStdLibs.Base64 {
   {
     EncodeUnpaddedBase64(b);
     calc {
-        DecodeUnpadded(EncodeUnpadded(b));
-      == { reveal EncodeUnpadded(); }
-        DecodeUnpadded(FromIndicesToChars(EncodeRecursively(b)));
-      == { reveal DecodeUnpadded(); EncodeRecursivelyBounds(b); }
-        DecodeRecursively(FromCharsToIndices(FromIndicesToChars(EncodeRecursively(b))));
-      == { FromIndicesToCharsToIndices(EncodeRecursively(b)); }
-        DecodeRecursively(EncodeRecursively(b));
-      == { EncodeDecodeRecursively(b); }
-        b;
+      DecodeUnpadded(EncodeUnpadded(b));
+    == { reveal EncodeUnpadded(); }
+      DecodeUnpadded(FromIndicesToChars(EncodeRecursively(b)));
+    == { reveal DecodeUnpadded(); EncodeRecursivelyBounds(b); }
+      DecodeRecursively(FromCharsToIndices(FromIndicesToChars(EncodeRecursively(b))));
+    == { FromIndicesToCharsToIndices(EncodeRecursively(b)); }
+      DecodeRecursively(EncodeRecursively(b));
+    == { EncodeDecodeRecursively(b); }
+      b;
     }
   }
 
@@ -573,15 +573,15 @@ module DafnyStdLibs.Base64 {
     var d := DecodeBlock(s);
     var d' := DecodeBlock(s');
     calc {
-        Decode1Padding(Encode1Padding(b));
-      == { reveal Encode1Padding(); }
-        Decode1Padding([IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '=']);
-      == { reveal Decode1Padding(); }
-        [d[0], d[1]];
-      == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); IndexToCharToIndex(e[2]); }
-        [d'[0], d'[1]];
-      == { EncodeDecodeBlock1Padding(b); }
-        b;
+      Decode1Padding(Encode1Padding(b));
+    == { reveal Encode1Padding(); }
+      Decode1Padding([IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '=']);
+    == { reveal Decode1Padding(); }
+      [d[0], d[1]];
+    == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); IndexToCharToIndex(e[2]); }
+      [d'[0], d'[1]];
+    == { EncodeDecodeBlock1Padding(b); }
+      b;
     }
   }
 
@@ -595,25 +595,25 @@ module DafnyStdLibs.Base64 {
     var e := EncodeBlock([d[0], d[1], 0]);
     var d' := [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='];
     calc {
-        Encode1Padding(Decode1Padding(s));
-      == { reveal Decode1Padding(); }
-        Encode1Padding([d[0], d[1]]);
-      == { reveal Encode1Padding(); }
-        d';
-      == {
-        // This argument is easiest to make by just automating it
-        // However, the mix between % and & in padding constraints
-        // makes it a little difficult
-        reveal EncodeBlock();
-        reveal DecodeBlock();
-        reveal BV24ToSeq();
-        reveal SeqToBV24();
-        reveal IndexSeqToBV24();
-        reveal BV24ToIndexSeq();
-      }
-        [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), IndexToChar(CharToIndex(s[2])), '='];
-      == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); CharToIndexToChar(s[2]); }
-        s;
+      Encode1Padding(Decode1Padding(s));
+    == { reveal Decode1Padding(); }
+      Encode1Padding([d[0], d[1]]);
+    == { reveal Encode1Padding(); }
+      d';
+    == {
+         // This argument is easiest to make by just automating it
+         // However, the mix between % and & in padding constraints
+         // makes it a little difficult
+         reveal EncodeBlock();
+         reveal DecodeBlock();
+         reveal BV24ToSeq();
+         reveal SeqToBV24();
+         reveal IndexSeqToBV24();
+         reveal BV24ToIndexSeq();
+       }
+      [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), IndexToChar(CharToIndex(s[2])), '='];
+    == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); CharToIndexToChar(s[2]); }
+      s;
     }
   }
 
@@ -688,15 +688,15 @@ module DafnyStdLibs.Base64 {
     Encode2PaddingIs2Padding(b);
     var e := EncodeBlock([b[0], 0, 0]);
     calc {
-        Decode2Padding(Encode2Padding(b));
-      == { reveal Encode2Padding(); }
-        Decode2Padding([IndexToChar(e[0]), IndexToChar(e[1]), '=', '=']);
-      == { reveal Decode2Padding(); }
-        [DecodeBlock([CharToIndex(IndexToChar(e[0])), CharToIndex(IndexToChar(e[1])), 0, 0])[0]];
-      == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); }
-        [DecodeBlock([e[0], e[1], 0, 0])[0]];
-      == { DecodeEncodeBlock2Padding(b); }
-        b;
+      Decode2Padding(Encode2Padding(b));
+    == { reveal Encode2Padding(); }
+      Decode2Padding([IndexToChar(e[0]), IndexToChar(e[1]), '=', '=']);
+    == { reveal Decode2Padding(); }
+      [DecodeBlock([CharToIndex(IndexToChar(e[0])), CharToIndex(IndexToChar(e[1])), 0, 0])[0]];
+    == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); }
+      [DecodeBlock([e[0], e[1], 0, 0])[0]];
+    == { DecodeEncodeBlock2Padding(b); }
+      b;
     }
   }
 
@@ -710,23 +710,23 @@ module DafnyStdLibs.Base64 {
     var e := EncodeBlock([d[0], 0, 0]);
     var d' := [IndexToChar(e[0]), IndexToChar(e[1]), '=', '='];
     calc {
-        Encode2Padding(Decode2Padding(s));
-      == { reveal Decode2Padding(); }
-        Encode2Padding([d[0]]);
-      == { reveal Encode2Padding(); }
-        d';
-      == {
-        // This argument is easiest to make by just automating it
-        reveal EncodeBlock();
-        reveal DecodeBlock();
-        reveal BV24ToSeq();
-        reveal SeqToBV24();
-        reveal IndexSeqToBV24();
-        reveal BV24ToIndexSeq();
-      }
-        [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), '=', '='];
-      == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); }
-        s;
+      Encode2Padding(Decode2Padding(s));
+    == { reveal Decode2Padding(); }
+      Encode2Padding([d[0]]);
+    == { reveal Encode2Padding(); }
+      d';
+    == {
+         // This argument is easiest to make by just automating it
+         reveal EncodeBlock();
+         reveal DecodeBlock();
+         reveal BV24ToSeq();
+         reveal SeqToBV24();
+         reveal IndexSeqToBV24();
+         reveal BV24ToIndexSeq();
+       }
+      [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), '=', '='];
+    == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); }
+      s;
     }
   }
 
@@ -736,8 +736,8 @@ module DafnyStdLibs.Base64 {
     reveal Is2Padding();
     var finalBlockStart := |s| - 4;
     (|s| % 4 == 0) &&
-      (IsUnpaddedBase64String(s) ||
-      (IsUnpaddedBase64String(s[..finalBlockStart]) && (Is1Padding(s[finalBlockStart..]) || Is2Padding(s[finalBlockStart..]))))
+    (IsUnpaddedBase64String(s) ||
+     (IsUnpaddedBase64String(s[..finalBlockStart]) && (Is1Padding(s[finalBlockStart..]) || Is2Padding(s[finalBlockStart..]))))
   }
 
   opaque function DecodeValid(s: seq<char>): (b: seq<bv8>)
@@ -746,14 +746,14 @@ module DafnyStdLibs.Base64 {
     reveal IsUnpaddedBase64String();
     reveal IsBase64String();
     if s == [] then [] else
-      var finalBlockStart := |s| - 4;
-      var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-      if Is1Padding(suffix) then
-        DecodeUnpadded(prefix) + Decode1Padding(suffix)
-      else if Is2Padding(suffix) then
-        DecodeUnpadded(prefix) + Decode2Padding(suffix)
-      else
-        DecodeUnpadded(s)
+    var finalBlockStart := |s| - 4;
+    var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
+    if Is1Padding(suffix) then
+      DecodeUnpadded(prefix) + Decode1Padding(suffix)
+    else if Is2Padding(suffix) then
+      DecodeUnpadded(prefix) + Decode2Padding(suffix)
+    else
+      DecodeUnpadded(s)
   }
 
   /*
@@ -800,10 +800,10 @@ module DafnyStdLibs.Base64 {
   lemma AboutDecodeValid(s: seq<char>, b: seq<bv8>)
     requires IsBase64String(s) && b == DecodeValid(s)
     ensures 4 <= |s| ==> var finalBlockStart := |s| - 4;
-      var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
-      && (Is1Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 2 && |b| > 1))
-      && (Is2Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 1 && |b| > 0))
-      && (!Is1Padding(suffix) && !Is2Padding(suffix) && IsUnpaddedBase64String(s) <==> (|b| % 3 == 0 && |b| > 1))
+                         var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
+                         && (Is1Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 2 && |b| > 1))
+                         && (Is2Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 1 && |b| > 0))
+                         && (!Is1Padding(suffix) && !Is2Padding(suffix) && IsUnpaddedBase64String(s) <==> (|b| % 3 == 0 && |b| > 1))
   {
     reveal DecodeValid();
     reveal IsUnpaddedBase64String();
@@ -913,17 +913,17 @@ module DafnyStdLibs.Base64 {
   lemma EncodeBVIsUnpadded(b: seq<bv8>)
     requires |b| % 3 == 0
     ensures EncodeBV(b) == EncodeUnpadded(b)
-    { reveal EncodeBV(); }
+  { reveal EncodeBV(); }
 
   lemma EncodeBVIs2Padded(b: seq<bv8>)
     requires |b| % 3 == 1
     ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..])
-    { reveal EncodeBV(); }
+  { reveal EncodeBV(); }
 
   lemma EncodeBVIs1Padded(b: seq<bv8>)
     requires |b| % 3 == 2
     ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..])
-    { reveal EncodeBV(); }
+  { reveal EncodeBV(); }
 
   lemma EncodeBVLengthCongruentToZeroMod4(b: seq<bv8>)
     ensures |EncodeBV(b)| % 4 == 0
@@ -963,8 +963,8 @@ module DafnyStdLibs.Base64 {
 
   lemma EncodeBVLengthExact(b: seq<bv8>)
     ensures var s := EncodeBV(b);
-      && (|b| % 3 == 0 ==> |s| == |b| / 3 * 4)
-      && (|b| % 3 != 0 ==> |s| == |b| / 3 * 4 + 4)
+            && (|b| % 3 == 0 ==> |s| == |b| / 3 * 4)
+            && (|b| % 3 != 0 ==> |s| == |b| / 3 * 4 + 4)
   {
     reveal EncodeBV();
     reveal Is1Padding();
@@ -1013,7 +1013,7 @@ module DafnyStdLibs.Base64 {
 
   lemma EncodeBVLengthBound(b: seq<bv8>)
     ensures var s := EncodeBV(b);
-      |s| <= |b| / 3 * 4 + 4
+            |s| <= |b| / 3 * 4 + 4
   {
     EncodeBVLengthExact(b);
   }
@@ -1098,9 +1098,9 @@ module DafnyStdLibs.Base64 {
   lemma EncodeDecodeValid2Padded(b: seq<bv8>)
     requires |b| % 3 == 1
     ensures
-       var s := EncodeBV(b);
-       && s == (EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..]))
-       && Is2Padding(s[(|s| - 4)..])
+      var s := EncodeBV(b);
+      && s == (EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..]))
+      && Is2Padding(s[(|s| - 4)..])
   {
     EncodeUnpaddedBase64(b[..(|b| - 1)]);
     EncodeUnpaddedBounds(b[..(|b| - 1)]);
