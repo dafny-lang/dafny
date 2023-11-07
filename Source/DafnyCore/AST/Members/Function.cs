@@ -28,6 +28,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       k = WhatKind;
     }
 
+    k = IsOpaque ? "opaque " + k : k;
     return HasStaticKeyword ? "static " + k : k;
   }
 
