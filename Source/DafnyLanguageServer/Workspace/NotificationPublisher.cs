@@ -259,6 +259,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }).ToArray(),
         });
       }
+
+      // If we don't have ghost state anymore, publish empty ghost diagnostics
+      foreach (var (uri, _) in previousParams) {
+        if (!newParams.ContainsKey(uri)) {
+          languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
+            Uri = uri,
+            Version = state.Version,
+            Diagnostics = new List<Diagnostic>()
+          });
+        }
+      }
     }
   }
 }
