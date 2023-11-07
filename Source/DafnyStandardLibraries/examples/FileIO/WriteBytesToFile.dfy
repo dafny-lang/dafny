@@ -6,11 +6,11 @@
 module WriteBytesToFile {
   import DafnyStdLibs.FileIO
 
-  method Main(args: seq<string>) {
-    expect |args| > 0;
-    expect |args| == 3, "usage: " + args[0] + " OUTPUT_DIR EXPECTED_ERROR_PREFIX";
-    var outputDir := args[1];
-    var expectedErrorPrefix := args[2];
+  method {:test} Test() {
+    theMain("temp", "");
+  }
+
+  method theMain(outputDir: string, expectedErrorPrefix: string) {
 
       // Happy paths: write files to the output dir. (The %diff LIT commands check that we wrote the correct content.)
     {

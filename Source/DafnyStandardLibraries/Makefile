@@ -2,8 +2,8 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --
 
-DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
-DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
+DOO_FILE_SOURCE=build/DafnyStandardLibraries-${TARGETLANG}.doo
+DOO_FILE_TARGET=binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
 all: check-binary test check-format check-examples
 
@@ -21,11 +21,14 @@ _check-binary: _build-binary
 _update-binary: _build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 
+
 build-binary-cs: TARGETLANG=cs
 build-binary-cs: _build-binary
 
+
 build-binary-go: TARGETLANG=go
 build-binary-go: _build-binary
+
 
 build-binary-java: TARGETLANG=java
 build-binary-java: _build-binary
@@ -33,17 +36,19 @@ build-binary-java: _build-binary
 update-binary-java: TARGETLANG=java
 update-binary-java: _update-binary
 
+check-binary-java: TARGETLANG=java
+check-binary-java: _check-binary
+
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
 # with deeper coverage of module functionality.
-test:
-	$(DAFNY) build -t:lib examples/dfyconfig.toml --output:build/stdlibexamples.doo
-	$(DAFNY) test -t:cs build/stdlibexamples.doo examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples
-	$(DAFNY) test -t:java build/stdlibexamples.doo examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
-	$(DAFNY) test -t:go build/stdlibexamples.doo examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
-	$(DAFNY) test -t:py build/stdlibexamples.doo examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
-	$(DAFNY) test -t:js build/stdlibexamples.doo examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
- 
+
+_test-examples:
+	$(DAFNY) test -t:${TARGETLANG} examples/dfyconfig.toml `find ./examples -name '*.${TARGETLANG}'` --output:build/stdlibexamples
+
+test-examples-java: TARGETLANG=java
+test-examples-java: _test-examples
+
 format:
 	$(DAFNY) format .
 

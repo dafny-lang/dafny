@@ -6,11 +6,11 @@
 module ReadBytesFromFile {
   import DafnyStdLibs.FileIO
 
-  method Main(args: seq<string>) {
-    expect |args| > 0;
-    expect |args| == 3, "usage: " + args[0] + " DATA_PATH EXPECTED_ERROR_PREFIX";
-    var dataPath := args[1];
-    var expectedErrorPrefix := args[2];
+  method {:test} Test() {
+    theMain("examples/FileIO/data.txt", "");
+  }
+
+  method theMain(dataPath: string, expectedErrorPrefix: string) {
 
       // Happy path: read from the data file, and check that we see the expected content.
     {
