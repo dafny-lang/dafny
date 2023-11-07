@@ -28,7 +28,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       k = WhatKind;
     }
 
-    k = IsOpaque ? "opaque " + k : k;
+    // If this function is opaque due to the opaque keyword, include it.
+    k = (IsOpaque && !Attributes.Contains(Attributes, "opaque")) ? "opaque " + k : k;
     return HasStaticKeyword ? "static " + k : k;
   }
 
