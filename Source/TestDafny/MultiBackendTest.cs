@@ -315,10 +315,20 @@ public class MultiBackendTest {
       output.Write(" (with --include-runtime:false)");
     }
     output.WriteLine("...");
+
+    // Build to a dedicated temporary directory to make sure tests don't interfere with each other.
+    // The path will be something like "<user temp directory>/<random name>/<random name>"
+    // to ensure that all artifacts are put in a dedicated directory,
+    // which just "<user temp directory>/<random name>" would not.
+    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    Directory.CreateDirectory(tempOutputDirectory);
+
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
       $"--target:{backend.TargetId}",
+      $"--build:{tempOutputDirectory}",
       options.TestFile!,
     }.Concat(options.OtherArgs);
     if (!includeRuntime) {
