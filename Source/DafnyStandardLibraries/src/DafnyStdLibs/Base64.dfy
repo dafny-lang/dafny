@@ -851,16 +851,16 @@ module Base64 {
   {
   }
 
-  opaque function Decode(s: seq<char>): (b: Result<seq<bv8>, string>)
+  opaque function DecodeBV(s: seq<char>): (b: Result<seq<bv8>, string>)
     ensures IsBase64String(s) ==> b.Success? // Hard to use without this
   {
     if IsBase64String(s) then Success(DecodeValid(s)) else Failure("The encoding is malformed")
   }
 
-  lemma DecodeFailure(s: seq<char>)
-    ensures !IsBase64String(s) ==> Decode(s).Failure?
+  lemma DecodeBVFailure(s: seq<char>)
+    ensures !IsBase64String(s) ==> DecodeBV(s).Failure?
   {
-    reveal Decode();
+    reveal DecodeBV();
   }
 
   opaque ghost predicate StringIs7Bit(s: string) {
@@ -924,7 +924,7 @@ module Base64 {
     }
   }
 
-  opaque function Encode(b: seq<bv8>): (s: seq<char>)
+  opaque function EncodeBV(b: seq<bv8>): (s: seq<char>)
     // Rather than ensure Decode(s) == Success(b) directly, lemmas are used to verify this property
   {
     if |b| % 3 == 0 then
@@ -943,25 +943,25 @@ module Base64 {
       s1 + s2
   }
 
-  lemma EncodeIsUnpadded(b: seq<bv8>)
+  lemma EncodeBVIsUnpadded(b: seq<bv8>)
     requires |b| % 3 == 0
-    ensures Encode(b) == EncodeUnpadded(b)
-    { reveal Encode(); }
+    ensures EncodeBV(b) == EncodeUnpadded(b)
+    { reveal EncodeBV(); }
 
-  lemma EncodeIs2Padded(b: seq<bv8>)
+  lemma EncodeBVIs2Padded(b: seq<bv8>)
     requires |b| % 3 == 1
-    ensures Encode(b) == EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..])
-    { reveal Encode(); }
+    ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..])
+    { reveal EncodeBV(); }
 
-  lemma EncodeIs1Padded(b: seq<bv8>)
+  lemma EncodeBVIs1Padded(b: seq<bv8>)
     requires |b| % 3 == 2
-    ensures Encode(b) == EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..])
-    { reveal Encode(); }
+    ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..])
+    { reveal EncodeBV(); }
 
-  lemma EncodeLengthCongruentToZeroMod4(b: seq<bv8>)
-    ensures |Encode(b)| % 4 == 0
+  lemma EncodeBVLengthCongruentToZeroMod4(b: seq<bv8>)
+    ensures |EncodeBV(b)| % 4 == 0
   {
-    reveal Encode();
+    reveal EncodeBV();
     if |b| % 3 == 0 {
       EncodeUnpaddedBounds(b);
     } else if |b| % 3 == 1 {
@@ -971,15 +971,15 @@ module Base64 {
     }
   }
 
-  lemma EncodeIsBase64(b: seq<bv8>)
-    ensures IsBase64String(Encode(b))
+  lemma EncodeBVIsBase64(b: seq<bv8>)
+    ensures IsBase64String(EncodeBV(b))
   {
     // TODO: simplify
-    reveal Encode();
+    reveal EncodeBV();
     reveal IsBase64String();
-    var s := Encode(b);
-    EncodeLengthCongruentToZeroMod4(b);
-    EncodeLengthExact(b);
+    var s := EncodeBV(b);
+    EncodeBVLengthCongruentToZeroMod4(b);
+    EncodeBVLengthExact(b);
     assert |s| >= 0;
     assert |s| % 4 == 0;
     var finalBlockStart := |s| - 4;
@@ -1023,16 +1023,16 @@ module Base64 {
     }
   }
 
-  lemma EncodeLengthExact(b: seq<bv8>)
-    ensures var s := Encode(b);
+  lemma EncodeBVLengthExact(b: seq<bv8>)
+    ensures var s := EncodeBV(b);
       && (|b| % 3 == 0 ==> |s| == |b| / 3 * 4)
       && (|b| % 3 != 0 ==> |s| == |b| / 3 * 4 + 4)
   {
-    reveal Encode();
+    reveal EncodeBV();
     reveal Is1Padding();
     reveal Is2Padding();
 
-    var s := Encode(b);
+    var s := EncodeBV(b);
     if |b| % 3 == 0 {
       assert s == EncodeUnpadded(b);
       EncodeUnpaddedBounds(b);
@@ -1073,11 +1073,11 @@ module Base64 {
     }
   }
 
-  lemma EncodeLengthBound(b: seq<bv8>)
-    ensures var s := Encode(b);
+  lemma EncodeBVLengthBound(b: seq<bv8>)
+    ensures var s := EncodeBV(b);
       |s| <= |b| / 3 * 4 + 4
   {
-    EncodeLengthExact(b);
+    EncodeBVLengthExact(b);
   }
 
   // TODO: add wrappers for uint8
@@ -1089,13 +1089,13 @@ module Base64 {
 
   lemma DecodeValidEncodeEmpty(s: seq<char>)
     requires s == []
-    ensures reveal IsUnpaddedBase64String(); reveal IsBase64String(); Encode(DecodeValid(s)) == s
+    ensures reveal IsUnpaddedBase64String(); reveal IsBase64String(); EncodeBV(DecodeValid(s)) == s
   {
     assert IsBase64String(s) by { reveal IsBase64String(); reveal IsUnpaddedBase64String(); }
     var b := DecodeValid(s);
     assert b == [] by { reveal DecodeValid(); }
-    assert Encode(b) == [] by {
-      reveal Encode();
+    assert EncodeBV(b) == [] by {
+      reveal EncodeBV();
       reveal EncodeUnpadded();
       reveal EncodeRecursively();
       reveal FromIndicesToChars();
@@ -1104,15 +1104,15 @@ module Base64 {
 
   lemma EncodeDecodeValidEmpty(b: seq<bv8>)
     requires b == []
-    ensures (EncodeIsBase64(b) ; DecodeValid(Encode(b)) == b)
+    ensures (EncodeBVIsBase64(b) ; DecodeValid(EncodeBV(b)) == b)
   {
-    assert Encode(b) == [] by {
-      reveal Encode();
+    assert EncodeBV(b) == [] by {
+      reveal EncodeBV();
       reveal EncodeUnpadded();
       reveal EncodeRecursively();
       reveal FromIndicesToChars();
     }
-    EncodeIsBase64(b);
+    EncodeBVIsBase64(b);
     assert DecodeValid([]) == [] by {
       reveal DecodeValid();
     }
@@ -1123,16 +1123,16 @@ module Base64 {
     requires |s| >= 4
     requires !Is1Padding(s[(|s| - 4)..])
     requires !Is2Padding(s[(|s| - 4)..])
-    ensures Encode(DecodeValid(s)) == s
+    ensures EncodeBV(DecodeValid(s)) == s
   {
-    reveal Encode();
+    reveal EncodeBV();
     reveal DecodeValid();
     reveal IsBase64String();
     DecodeUnpaddedBounds(s);
     calc {
-      Encode(DecodeValid(s));
+      EncodeBV(DecodeValid(s));
     ==
-      Encode(DecodeUnpadded(s));
+      EncodeBV(DecodeUnpadded(s));
     ==
       EncodeUnpadded(DecodeUnpadded(s));
     == { DecodeEncodeUnpadded(s); }
@@ -1144,7 +1144,7 @@ module Base64 {
     requires |b| % 3 == 0
     requires b != []
     ensures
-      var s := Encode(b);
+      var s := EncodeBV(b);
       && IsUnpaddedBase64String(s)
       && |s| >= 4
       && !Is1Padding(s[(|s| - 4)..])
@@ -1153,8 +1153,8 @@ module Base64 {
   {
     EncodeUnpaddedBase64(b);
     EncodeUnpaddedBounds(b);
-    var s := Encode(b);
-    assert s == EncodeUnpadded(b) by { EncodeIsUnpadded(b); }
+    var s := EncodeBV(b);
+    assert s == EncodeUnpadded(b) by { EncodeBVIsUnpadded(b); }
     assert !Is1Padding(s[(|s| - 4)..]) by { EncodeUnpaddedNotPadded(b); }
     assert !Is2Padding(s[(|s| - 4)..]) by { EncodeUnpaddedNotPadded(b); }
   }
@@ -1162,14 +1162,14 @@ module Base64 {
   lemma EncodeDecodeValid2Padded(b: seq<bv8>)
     requires |b| % 3 == 1
     ensures
-       var s := Encode(b);
+       var s := EncodeBV(b);
        && s == (EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..]))
        && Is2Padding(s[(|s| - 4)..])
   {
     EncodeUnpaddedBase64(b[..(|b| - 1)]);
     EncodeUnpaddedBounds(b[..(|b| - 1)]);
-    reveal Encode();
-    var s := Encode(b);
+    reveal EncodeBV();
+    var s := EncodeBV(b);
     Encode2PaddingIs2Padding(b[(|b| - 1)..]);
     assert Is2Padding(s[(|s| - 4)..]);
   }
@@ -1177,7 +1177,7 @@ module Base64 {
   lemma EncodeDecodeValid1Padded(b: seq<bv8>)
     requires |b| % 3 == 2
     ensures
-      var s := Encode(b);
+      var s := EncodeBV(b);
       && s == (EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..]))
       && |s| >= 4
       && IsUnpaddedBase64String(s[..(|s| - 4)])
@@ -1185,8 +1185,8 @@ module Base64 {
   {
     EncodeUnpaddedBase64(b[..(|b| - 2)]);
     EncodeUnpaddedBounds(b[..(|b| - 2)]);
-    reveal Encode();
-    var s := Encode(b);
+    reveal EncodeBV();
+    var s := EncodeBV(b);
     Encode1PaddingIs1Padding(b[(|b| - 2)..]);
     assert Is1Padding(s[(|s| - 4)..]);
   }
@@ -1227,12 +1227,12 @@ module Base64 {
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is1Padding(s[(|s| - 4)..])
-    ensures Encode(DecodeValid(s)) == s
+    ensures EncodeBV(DecodeValid(s)) == s
   {
     assert |DecodeValid(s)| % 3 == 2 by { DecodeValid1PaddingLengthMod3(s); }
     calc {
-      Encode(DecodeValid(s));
-    == { reveal Encode(); }
+      EncodeBV(DecodeValid(s));
+    == { reveal EncodeBV(); }
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 2)]) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
     == { DecodeValidUnpaddedPartialFrom1PaddedSeq(s); reveal IsBase64String(); reveal IsUnpaddedBase64String(); }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
@@ -1251,7 +1251,7 @@ module Base64 {
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is2Padding(s[(|s| - 4)..])
-    ensures 
+    ensures
       (reveal IsUnpaddedBase64String();
        reveal DecodeValid();
        reveal IsBase64String();
@@ -1270,7 +1270,7 @@ module Base64 {
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is1Padding(s[(|s| - 4)..])
-    ensures 
+    ensures
       (reveal IsUnpaddedBase64String();
        reveal DecodeValid();
        reveal IsBase64String();
@@ -1309,12 +1309,12 @@ module Base64 {
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is2Padding(s[(|s| - 4)..])
-    ensures Encode(DecodeValid(s)) == s
+    ensures EncodeBV(DecodeValid(s)) == s
   {
     assert |DecodeValid(s)| % 3 == 1 by { DecodeValid2PaddingLengthMod3(s); }
     calc {
-      Encode(DecodeValid(s));
-    == { reveal Encode(); }
+      EncodeBV(DecodeValid(s));
+    == { reveal EncodeBV(); }
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 1)]) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
     == { DecodeValidPartialsFrom2PaddedSeq(s); reveal IsUnpaddedBase64String(); reveal IsBase64String(); }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
@@ -1331,30 +1331,30 @@ module Base64 {
 
   lemma DecodeValidEncode(s: seq<char>)
     requires IsBase64String(s)
-    ensures Encode(DecodeValid(s)) == s
+    ensures EncodeBV(DecodeValid(s)) == s
   {
     reveal IsBase64String();
     if s == [] {
       calc {
-        Encode(DecodeValid(s));
+        EncodeBV(DecodeValid(s));
       == { DecodeValidEncodeEmpty(s); }
         s;
       }
     } else if |s| >= 4 && Is1Padding(s[(|s| - 4)..]) {
       calc {
-        Encode(DecodeValid(s));
+        EncodeBV(DecodeValid(s));
       == { DecodeValidEncode1Padding(s); }
         s;
       }
     } else if |s| >= 4 && Is2Padding(s[(|s| - 4)..]) {
       calc {
-        Encode(DecodeValid(s));
+        EncodeBV(DecodeValid(s));
       == { DecodeValidEncode2Padding(s); }
         s;
       }
     } else {
       calc {
-        Encode(DecodeValid(s));
+        EncodeBV(DecodeValid(s));
       == { DecodeValidEncodeUnpadded(s); }
         s;
       }
@@ -1362,20 +1362,20 @@ module Base64 {
   }
 
   lemma EncodeDecodeValid(b: seq<bv8>)
-    ensures (EncodeIsBase64(b); DecodeValid(Encode(b)) == b)
+    ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
   {
-    EncodeIsBase64(b);
-    var s := Encode(b);
+    EncodeBVIsBase64(b);
+    var s := EncodeBV(b);
     if b == [] {
       calc {
-        DecodeValid(Encode(b));
+        DecodeValid(EncodeBV(b));
       == { EncodeDecodeValidEmpty(b); }
         b;
       }
     } else if |b| % 3 == 0 {
       calc {
-        DecodeValid(Encode(b));
-      == { EncodeIsUnpadded(b); } 
+        DecodeValid(EncodeBV(b));
+      == { EncodeBVIsUnpadded(b); }
         DecodeValid(EncodeUnpadded(b));
       == { EncodeDecodeValidUnpadded(b); reveal DecodeValid(); }
         DecodeUnpadded(EncodeUnpadded(b));
@@ -1389,8 +1389,8 @@ module Base64 {
       EncodeUnpaddedBase64(prefix);
 
       calc {
-        DecodeValid(Encode(b));
-      == { reveal Encode(); }
+        DecodeValid(EncodeBV(b));
+      == { reveal EncodeBV(); }
         DecodeValid(EncodeUnpadded(prefix) + Encode2Padding(suffix));
       == { reveal DecodeValid(); DecodeValidPartialsFrom2PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode2Padding(Encode2Padding(suffix));
@@ -1406,8 +1406,8 @@ module Base64 {
       EncodeUnpaddedBase64(prefix);
 
       calc {
-        DecodeValid(Encode(b));
-      == { reveal Encode(); }
+        DecodeValid(EncodeBV(b));
+      == { reveal EncodeBV(); }
         DecodeValid(EncodeUnpadded(prefix) + Encode1Padding(suffix));
       == { reveal DecodeValid(); DecodeValidPartialsFrom1PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode1Padding(Encode1Padding(suffix));
@@ -1419,29 +1419,107 @@ module Base64 {
     }
   }
 
-  lemma DecodeEncode(s: seq<char>)
+  lemma DecodeEncodeBV(s: seq<char>)
     requires IsBase64String(s)
-    ensures Encode(Decode(s).value) == s
+    ensures EncodeBV(DecodeBV(s).value) == s
   {
-    reveal Decode();
+    reveal DecodeBV();
     calc {
-      Encode(Decode(s).value);
+      EncodeBV(DecodeBV(s).value);
     == { DecodeValidEncode(s); }
       s;
     }
   }
 
-  lemma EncodeDecode(b: seq<bv8>)
-    ensures Decode(Encode(b)) == Success(b)
+  lemma EncodeDecodeBV(b: seq<bv8>)
+    ensures DecodeBV(EncodeBV(b)) == Success(b)
   {
-    reveal Decode();
-    EncodeIsBase64(b);
+    reveal DecodeBV();
+    EncodeBVIsBase64(b);
     calc {
-      Decode(Encode(b));
-    == { assert IsBase64String(Encode(b)); }
-      Success(DecodeValid(Encode(b)));
+      DecodeBV(EncodeBV(b));
+    == { assert IsBase64String(EncodeBV(b)); }
+      Success(DecodeValid(EncodeBV(b)));
     == { EncodeDecodeValid(b); }
       Success(b);
+    }
+  }
+
+  opaque function UInt8sToBVs(u: seq<uint8>): (r: seq<bv8>)
+    ensures |r| == |u|
+    ensures forall i :: 0 <= i < |u| ==> r[i] == u[i] as bv8
+  {
+    seq(|u|, i requires 0 <= i < |u| => u[i] as bv8)
+  }
+
+  opaque function BVsToUInt8s(b: seq<bv8>): (r: seq<uint8>)
+    ensures |r| == |b|
+    ensures forall i :: 0 <= i < |b| ==> r[i] == b[i] as uint8
+  {
+    seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
+  }
+
+  lemma UInt8sToBVsToUInt8s(u: seq<uint8>)
+    ensures BVsToUInt8s(UInt8sToBVs(u)) == u
+  {
+    var b := UInt8sToBVs(u);
+    assert |b| == |u|;
+    var u' := BVsToUInt8s(b);
+    assert |u'| == |b|;
+  }
+
+  lemma BVsToUInt8sToBVs(b: seq<bv8>)
+    ensures UInt8sToBVs(BVsToUInt8s(b)) == b
+  {
+    var u := BVsToUInt8s(b);
+    assert |b| == |u|;
+    var b' := UInt8sToBVs(u);
+    assert |b'| == |u|;
+  }
+
+  opaque function Encode(u: seq<uint8>): seq<char> {
+    EncodeBV(UInt8sToBVs(u))
+  }
+
+  opaque function Decode(s: seq<char>): Result<seq<uint8>, string> {
+    if IsBase64String(s)
+    then
+      var b := DecodeValid(s);
+      Success(BVsToUInt8s(b))
+    else Failure("The encoding is malformed")
+  }
+
+  lemma EncodeDecode(b: seq<uint8>)
+    ensures Decode(Encode(b)) == Success(b)
+  {
+    var bvs := UInt8sToBVs(b);
+    var s := EncodeBV(bvs);
+    assert Encode(b) == s by { reveal Encode(); }
+    assert IsBase64String(s) by { EncodeBVIsBase64(bvs); }
+    var b' := DecodeValid(s);
+    assert b' == bvs by { EncodeDecodeValid(bvs); }
+    var us := BVsToUInt8s(b');
+    assert Decode(s) == Success(us) by {
+      reveal Decode();
+    }
+    assert b' == bvs;
+    assert b == us by { UInt8sToBVsToUInt8s(b); }
+  }
+
+  lemma DecodeEncode(s: seq<char>)
+    requires IsBase64String(s)
+    ensures (reveal Decode(); Encode(Decode(s).value) == s)
+  {
+    var b := DecodeValid(s);
+    var u := BVsToUInt8s(b);
+    assert Decode(s) == Success(u) by { reveal Decode(); }
+    var s' := EncodeBV(UInt8sToBVs(u));
+    assert s' == Encode(u) by { reveal Encode(); }
+    assert UInt8sToBVs(BVsToUInt8s(b)) == b by {
+      BVsToUInt8sToBVs(b);
+    }
+    assert s == s' by {
+      DecodeValidEncode(s);
     }
   }
 }
