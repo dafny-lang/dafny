@@ -1,1 +1,1 @@
-CHECK-L: Errors compiling program into git-issue-4449
+CHECK: Errors compiling program into .*
