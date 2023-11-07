@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
+/** An encoder and decoder for the Base64 encoding scheme. */
 module DafnyStdLibs.Base64 {
   import opened Wrappers
   import opened BoundedInts
