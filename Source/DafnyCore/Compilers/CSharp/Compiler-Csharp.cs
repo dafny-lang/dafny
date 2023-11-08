@@ -3443,7 +3443,7 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, catchBlock);
     }
 
-    protected override void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
+    protected void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine(@"
 namespace DafnyProfiling {
   public class CodeCoverage {

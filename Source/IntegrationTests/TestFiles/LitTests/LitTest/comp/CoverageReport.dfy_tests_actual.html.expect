@@ -5,14 +5,14 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
     <link rel="stylesheet" href="./.resources/coverage.css" type="text/css"/>
-    <title>BranchCoverage.dfy, Test Coverage</title>
+    <title>BranchCoverage.dfy, Execution Coverage</title>
 </head>
 <body onload="window['PR_TAB_WIDTH']=4">
 <div class="menu" id="menu">
     <a href="./index_tests_actual.html">Index</a>
     
 </div>
-<h1>BranchCoverage.dfy, Test Coverage</h1>
+<h1>BranchCoverage.dfy, Execution Coverage</h1>
 
 <pre class="source lang-java linenums">
 <span class="na" id="1:1">// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs %S/BranchCoverage2.cs "%s" > "%t"

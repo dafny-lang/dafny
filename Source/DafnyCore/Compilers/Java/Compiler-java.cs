@@ -29,7 +29,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.TuplesWiderThan20,
       Feature.ArraysWithMoreThan16Dims,
-      Feature.ArrowsWithMoreThan16Arguments
+      Feature.ArrowsWithMoreThan16Arguments,
+      Feature.RuntimeCoverageReport,
+      Feature.RuntimeCoverageReport
     };
 
     const string DafnySetClass = "dafny.DafnySet";

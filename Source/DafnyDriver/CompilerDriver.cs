@@ -492,6 +492,11 @@ namespace Microsoft.Dafny {
       foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
         options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
       }
+      
+      if (options.Get(CommonOptionBag.ExecutionCoverageReport) != null 
+          && options.Backend.UnsupportedFeatures.Contains(Feature.RuntimeCoverageReport)) {
+        throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.RuntimeCoverageReport);
+      }
 
       var compiler = options.Backend;
 
@@ -565,7 +570,7 @@ namespace Microsoft.Dafny {
             var coverageReportDir = options.Get(CommonOptionBag.ExecutionCoverageReport);
             if (coverageReportDir != null) {
               var coverage = compiler.GetCoverageAfterRun();
-              var coverageReport = new CoverageReport("Test Coverage", "Branches", "_tests_actual", dafnyProgram);
+              var coverageReport = new CoverageReport("Execution Coverage", "Branches", "_tests_actual", dafnyProgram);
               coverage.PopulateCoverageReport(coverageReport);
               new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
             }
