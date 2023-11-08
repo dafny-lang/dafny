@@ -569,9 +569,8 @@ namespace Microsoft.Dafny {
           if (compiledCorrectly) {
             var coverageReportDir = options.Get(CommonOptionBag.ExecutionCoverageReport);
             if (coverageReportDir != null) {
-              var coverage = compiler.GetCoverageAfterRun();
               var coverageReport = new CoverageReport("Execution Coverage", "Branches", "_tests_actual", dafnyProgram);
-              coverage.PopulateCoverageReport(coverageReport);
+              compiler.PopulateCoverageReport(coverageReport);
               new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
             }
           }
@@ -628,10 +627,6 @@ namespace Microsoft.Dafny {
 
     public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
       throw new NotSupportedException();
-    }
-
-    public override CoverageInstrumenter GetCoverageAfterRun() {
-      throw new NotImplementedException();
     }
 
     public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {

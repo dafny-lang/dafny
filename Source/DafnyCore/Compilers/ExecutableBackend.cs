@@ -70,10 +70,6 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Compiler.Coverage.WriteLegendFile();
   }
 
-  public override CoverageInstrumenter GetCoverageAfterRun() {
-    return Compiler.Coverage;
-  }
-
   protected abstract SinglePassCompiler CreateCompiler();
 
   public override string PublicIdProtect(string name) {

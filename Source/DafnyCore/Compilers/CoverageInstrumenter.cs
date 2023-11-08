@@ -94,15 +94,18 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void PopulateCoverageReport(CoverageReport report) {
-    var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
-    foreach (var ((token, _), tally) in legend.Zip(tallies)) {
-      var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
-      // For now we only identify branches at the line granularity,
-      // which matches what `dafny generate-tests ... --coverage-report` does as well.
-      var rangeToken = new RangeToken(new Token(token.line, 1), new Token(token.line + 1, 0));
-      rangeToken.Uri = token.Uri;
-      report.LabelCode(rangeToken, label);
+  public void PopulateCoverageReport(CoverageReport coverageReport) {
+    var coverageReportDir = compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport);
+    if (coverageReportDir != null) {
+      var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
+      foreach (var ((token, _), tally) in legend.Zip(tallies)) {
+        var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
+        // For now we only identify branches at the line granularity,
+        // which matches what `dafny generate-tests ... --coverage-report` does as well.
+        var rangeToken = new RangeToken(new Token(token.line, 1), new Token(token.line + 1, 0));
+        rangeToken.Uri = token.Uri;
+        coverageReport.LabelCode(rangeToken, label);
+      }
     }
   }
 

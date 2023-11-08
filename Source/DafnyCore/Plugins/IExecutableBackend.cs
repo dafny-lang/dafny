@@ -132,8 +132,6 @@ public abstract class IExecutableBackend {
   /// </summary>
   public virtual void OnPostCompile() { }
 
-  public abstract CoverageInstrumenter GetCoverageAfterRun();
-
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate
   /// directory (e.g. Java).  For other compilers, this method should do nothing.
@@ -199,5 +197,9 @@ public abstract class IExecutableBackend {
 
   public virtual Command GetCommand() {
     return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+  }
+
+  public virtual void PopulateCoverageReport(CoverageReport coverageReport) {
+    throw new NotImplementedException();
   }
 }
