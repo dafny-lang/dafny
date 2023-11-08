@@ -350,7 +350,7 @@ public class CoverageReporter {
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
-    templateText = FileNameRegex.Replace(templateText, $"{uri.LocalPath}, {report.Name}");
+    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(uri.LocalPath)}, {report.Name}");
     templateText = UriRegex.Replace(templateText, uri.ToString());
     return LabeledCodeRegex.Replace(templateText, labeledCode);
   }
