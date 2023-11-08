@@ -40,7 +40,7 @@ module DafnyStdLibs.Collections.Isets {
   /* Construct an iset using elements of another set for which a function
   returns true. */
   ghost function {:opaque} Filter<X(!new)>(xs: iset<X>, f: X~>bool): (ys: iset<X>)
-    reads f.reads
+    reads set x, o | x in xs && o in f.reads(x) :: o
     requires forall x {:trigger f.requires(x)} {:trigger x in xs} :: x in xs ==> f.requires(x)
     ensures forall y {:trigger f(y)}{:trigger y in xs} :: y in ys <==> y in xs && f(y)
   {

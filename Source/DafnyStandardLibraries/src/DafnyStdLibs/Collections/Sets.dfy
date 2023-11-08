@@ -70,8 +70,6 @@ module DafnyStdLibs.Collections.Sets {
     if a != b {
       assert {a} < x;
       LemmaSubsetSize({a}, x);
-      assert |{a}| < |x|;
-      assert |x| > 1;
       assert false;
     }
   }
@@ -169,7 +167,7 @@ module DafnyStdLibs.Collections.Sets {
   /* Construct a set using elements of another set for which a function returns
   true. */
   function {:opaque} Filter<X(!new)>(xs: set<X>, f: X~>bool): (ys: set<X>)
-    reads f.reads
+    reads set x, o | x in xs && o in f.reads(x) :: o
     requires forall x {:trigger f.requires(x)} {:trigger x in xs} :: x in xs ==> f.requires(x)
     ensures forall y {:trigger f(y)}{:trigger y in xs} :: y in ys <==> y in xs && f(y)
     ensures |ys| <= |xs|
@@ -236,17 +234,17 @@ module DafnyStdLibs.Collections.Sets {
     LemmaSubsetSize(x, range);
   }
 
-  /** In a pre-ordered set, a greatest element is necessarily maximal. */
+  /** In a set, a greatest element is necessarily maximal. */
   lemma LemmaGreatestImpliesMaximal<T(!new)>(R: (T, T) -> bool, max: T, s: set<T>)
-    requires PreOrdering(R)
-    ensures IsGreatest(R, max, s) ==> IsMaximal(R, max, s)
+    requires IsGreatest(R, max, s)
+    ensures IsMaximal(R, max, s)
   {
   }
 
-  /** In a pre-ordered set, a least element is necessarily minimal. */
+  /** In a set, a least element is necessarily minimal. */
   lemma LemmaLeastImpliesMinimal<T(!new)>(R: (T, T) -> bool, min: T, s: set<T>)
-    requires PreOrdering(R)
-    ensures IsLeast(R, min, s) ==> IsMinimal(R, min, s)
+    requires IsLeast(R, min, s)
+    ensures IsMinimal(R, min, s)
   {
   }
 

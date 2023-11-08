@@ -109,10 +109,9 @@ module DafnyStdLibs.Collections.Seq {
   }
 
   /* Any element in a slice is included in the original sequence. */
-  lemma LemmaElementFromSlice<T>(xs: seq<T>, xs':seq<T>, a: int, b: int, pos: nat)
-    requires 0 <= a <= b <= |xs|
+  lemma LemmaElementFromSlice<T>(xs: seq<T>, xs': seq<T>, a: int, b: int, pos: nat)
+    requires 0 <= a <= pos < b <= |xs|
     requires xs' == xs[a..b]
-    requires a <= pos < b
     ensures  pos - a < |xs'|
     ensures  xs'[pos-a] == xs[pos]
   {
@@ -230,7 +229,6 @@ module DafnyStdLibs.Collections.Seq {
         // If there is a duplicate, then we show that |ToSet(s)| == |s| cannot hold.
         assert ToSet(xs) == ToSet(DropFirst(xs));
         LemmaCardinalityOfSet(DropFirst(xs));
-        assert |ToSet(xs)| <= |DropFirst(xs)|;
       } else {
         assert |ToSet(xs)| == 1 + |ToSet(DropFirst(xs))|;
         LemmaNoDuplicatesCardinalityOfSet(DropFirst(xs));
@@ -457,11 +455,10 @@ module DafnyStdLibs.Collections.Seq {
     ensures Max(xs[from..to]) <= Max(xs)
   {
     var subseq := xs[from..to];
-    if Max(subseq) > Max(xs) {
-      var k :| 0 <= k < |subseq| && subseq[k] == Max(subseq);
-      assert xs[seq(|subseq|, i requires 0 <= i < |subseq| => i + from)[k]] in xs;
-      assert false;
-    }
+    var subseqMax := Max(subseq);
+    assert forall x | x in subseq :: x in xs[from..];
+    assert subseqMax in subseq;
+    assert subseqMax in xs;
   }
 
   /* The minimum element of a non-empty sequence is less than or equal
@@ -471,10 +468,10 @@ module DafnyStdLibs.Collections.Seq {
     ensures Min(xs[from..to]) >= Min(xs)
   {
     var subseq := xs[from..to];
-    if Min(subseq) < Min(xs) {
-      var k :| 0 <= k < |subseq| && subseq[k] == Min(subseq);
-      assert xs[seq(|subseq|, i requires 0 <= i < |subseq| => i + from)[k]] in xs;
-    }
+    var subseqMin := Min(subseq);
+    assert forall x | x in subseq :: x in xs[from..];
+    assert subseqMin in subseq;
+    assert subseqMin in xs;
   }
 
   /**********************************************************
@@ -495,7 +492,7 @@ module DafnyStdLibs.Collections.Seq {
   /* Flattening sequences of sequences is distributive over concatenation. That is, concatenating
      the flattening of two sequences of sequences is the same as flattening the
      concatenation of two sequences of sequences. */
-  lemma LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
+  lemma {:vcs_split_on_every_assert} LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
     ensures Flatten(xs + ys) == Flatten(xs) + Flatten(ys)
   {
     if |xs| == 0 {
@@ -662,7 +659,8 @@ module DafnyStdLibs.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:opaque} LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
+  lemma {:opaque} {:vcs_split_on_every_assert}
+    LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
@@ -675,7 +673,6 @@ module DafnyStdLibs.Collections.Seq {
         Filter(f, xs + ys);
         { assert {:split_here} (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Filter(f, [xs[0]]) + Filter(f, xs[1..] + ys);
-        { assert Filter(f, xs[1..] + ys) == Filter(f, xs[1..]) + Filter(f, ys); }
         Filter(f, [xs[0]]) + (Filter(f, xs[1..]) + Filter(f, ys));
         { assert {:split_here} [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys; }
         Filter(f, xs) + Filter(f, ys);
@@ -695,7 +692,6 @@ module DafnyStdLibs.Collections.Seq {
      sequences and then folding them to the left, is the same as folding to the left the
      first sequence and using the result to fold to the left the second sequence. */
   lemma {:opaque} LemmaFoldLeftDistributesOverConcat<A,T>(f: (A, T) -> A, init: A, xs: seq<T>, ys: seq<T>)
-    requires 0 <= |xs + ys|
     ensures FoldLeft(f, init, xs + ys) == FoldLeft(f, FoldLeft(f, init, xs), ys)
   {
     reveal FoldLeft();
@@ -756,7 +752,6 @@ module DafnyStdLibs.Collections.Seq {
      two sequences and then folding them to the right, is the same as folding to the right
      the second sequence and using the result to fold to the right the first sequence. */
   lemma {:opaque} LemmaFoldRightDistributesOverConcat<A,T>(f: (T, A) -> A, init: A, xs: seq<T>, ys: seq<T>)
-    requires 0 <= |xs + ys|
     ensures FoldRight(f, xs + ys, init) == FoldRight(f, xs, FoldRight(f, ys, init))
   {
     reveal FoldRight();
@@ -838,8 +833,10 @@ module DafnyStdLibs.Collections.Seq {
     requires multiset(xs) == multiset(ys)
     ensures xs == ys
   {
-    assert |xs| == |multiset(xs)| == |multiset(ys)| == |ys|;
-    if xs == [] || ys == [] {
+    if xs == [] {
+      assert multiset(xs) == multiset{};
+      assert multiset(ys) == multiset{};
+      assert ys == [];
     } else {
       assert xs == [xs[0]] + xs[1..];
       assert ys == [ys[0]] + ys[1..];
@@ -850,17 +847,24 @@ module DafnyStdLibs.Collections.Seq {
     }
   }
 
-  /* Converts a set to a sequence that is ordered w.r.t. a given total order. */
-  function SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
+  /* Converts a set to a sequence that is ordered w.r.t. a given total order (ghost). */
+  ghost function SetToSortedSeqSpec<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(xs, R)
   {
     MergeSortBy(SetToSeqSpec(s), R)
-  } by method {
+  }
+
+  /* Converts a set to a sequence that is ordered w.r.t. a given total order (compiled). */
+  method SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
+    requires TotalOrdering(R)
+    ensures multiset(s) == multiset(xs)
+    ensures SortedBy(xs, R)
+  {
     xs := SetToSeq(s);
     xs := MergeSortBy(xs, R);
-    SortedUnique(xs, SetToSortedSeq(s, R), R);
+    SortedUnique(xs, SetToSortedSeqSpec(s, R), R);
   }
 
 
