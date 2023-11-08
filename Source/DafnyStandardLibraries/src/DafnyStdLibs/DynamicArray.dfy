@@ -41,6 +41,7 @@ module DafnyStdLibs.DynamicArray {
       ensures items == []
       ensures fresh(Repr)
       ensures Valid?()
+      ensures capacity == initial_capacity
     {
       defaultValue := a0;
       items := [];
@@ -78,15 +79,19 @@ module DafnyStdLibs.DynamicArray {
 
     /**
     Ensure that at least a reserved amount of elements can still be pushed onto the array in constant time
+
+    Returns false only if it was not at all possible to provide the ensurance.
      */
     method Ensure(reserved: uint32) returns (s: bool)
       requires Valid?()
-      modifies this, `data
       ensures Valid?()
       modifies `capacity, `data, `Repr, data
-      ensures reserved <= capacity - size ==> s
-      ensures s ==> old(size as int + reserved as int) <= capacity as int
-      ensures !s ==> reserved > MAX_CAPACITY - size
+      ensures s == (reserved <= MAX_CAPACITY - size)
+      ensures s ==> reserved <= capacity - size
+      ensures var largeEnough := old(reserved <= capacity - size);
+              if !s || largeEnough
+              then unchanged(this) && unchanged(data)
+              else fresh(data)
     {
       if reserved > MAX_CAPACITY - size {
         return false;
@@ -140,17 +145,17 @@ module DafnyStdLibs.DynamicArray {
     Push an element onto the array in constant time if there is available capacity, 
     and otherwise in time linear to the current size of the array.
 
-    Return false only if it was not at all possible to push the element onto the array.
+    Returns false only if it was not at all possible to push the element onto the array.
      */
     method Push(element: A) returns (s: bool)
       requires Valid?()
       modifies this, data
       ensures Valid?()
+      ensures s == (old(size) < MAX_CAPACITY)
       ensures !s ==>
                 && unchanged(this)
                 && unchanged(data)
       ensures s ==>
-                && old(size) < MAX_CAPACITY
                 && size == old(size) + 1
                 && items == old(items) + [element]
                 && capacity >= old(capacity)
