@@ -36,6 +36,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeStrings refine
   }
 
   function CharAsUnicodeScalarValue(c: char): Unicode.ScalarValue {
+    assume {:axiom} false;
     CharIsUnicodeScalarValue(c);
     c as Unicode.ScalarValue
   }

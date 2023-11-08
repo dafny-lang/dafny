@@ -28,13 +28,16 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   }
 
   function CheckLength<T>(s: seq<T>, err: SerializationError): Outcome<SerializationError> {
-    Need(|s| < TWO_TO_THE_32, err)
+    Outcome.Need(|s| < TWO_TO_THE_32, err)
   }
 
   function String(str: string): Result<jstring> {
     var bs :- Spec.EscapeToUTF8(str);
-    :- CheckLength(bs, StringTooLong(str));
-    Success(Grammar.JString(Grammar.DOUBLEQUOTE, View.OfBytes(bs), Grammar.DOUBLEQUOTE))
+    var o := CheckLength(bs, StringTooLong(str));
+    if o.Pass? then 
+      Success(Grammar.JString(Grammar.DOUBLEQUOTE, View.OfBytes(bs), Grammar.DOUBLEQUOTE))
+    else 
+      Failure(o.error)
   }
 
   function Sign(n: int): jminus {
@@ -54,16 +57,19 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
 
   const MINUS := '-' as uint8
 
-  function Int'(n: int) : (str: bytes)
+  function Int'(n: int): (str: bytes)
     ensures forall c | c in str :: c in DIGITS || c == MINUS
   {
     ByteStrConversion.OfInt_any(n, DIGITS, MINUS)
   }
 
-  function Int(n: int) : Result<View> {
+  function Int(n: int): Result<View> {
     var bs := Int'(n);
-    :- CheckLength(bs, IntTooLarge(n));
-    Success(View.OfBytes(bs))
+    var o := CheckLength(bs, IntTooLarge(n));
+    if o.Pass? then 
+      Success(View.OfBytes(bs))
+    else 
+      Failure(o.error)
   }
 
   function Number(dec: Values.Decimal): Result<jnumber> {

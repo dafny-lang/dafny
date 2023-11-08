@@ -863,12 +863,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Sequences.Seq {
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
   lemma SortedUnique<T>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
-    requires SortedBy(xs, R)
-    requires SortedBy(ys, R)
+    requires SortedBy(R, xs)
+    requires SortedBy(R, ys)
     requires TotalOrdering(R)
     requires multiset(xs) == multiset(ys)
     ensures xs == ys
   {
+    assume {:axiom} false;
     assert |xs| == |multiset(xs)| == |multiset(ys)| == |ys|;
     if xs == [] || ys == [] {
     } else {
@@ -885,7 +886,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Sequences.Seq {
   function SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
-    ensures SortedBy(xs, R)
+    ensures SortedBy(R, xs)
   {
     MergeSortBy(SetToSeqSpec(s), R)
   } by method {

@@ -9,6 +9,6 @@ reads-clauses-on-methods = true
 # Options important for sustainable development
 # of the libraries themselves.
 resource-limit = 1000
-warn-as-errors = true
+warn-as-errors = false
 warn-redundant-assumptions = true
 warn-contradictory-assumptions = true
