@@ -35,7 +35,7 @@ module DafnyStdLibs.DynamicArray {
       && items == data[..size]
     }
 
-    constructor(a0: A, initial_capacity: uint32 := 8)
+    constructor(defaultValue: A, initial_capacity: uint32 := 8)
       requires initial_capacity > 0
       ensures size == 0
       ensures items == []
@@ -43,11 +43,11 @@ module DafnyStdLibs.DynamicArray {
       ensures Valid?()
       ensures capacity == initial_capacity
     {
-      defaultValue := a0;
+      this.defaultValue := defaultValue;
       items := [];
       size := 0;
       capacity := initial_capacity;
-      data := new A[initial_capacity](_ => a0);
+      data := new A[initial_capacity](_ => defaultValue);
       Repr := {this, data};
     }
 
@@ -172,17 +172,17 @@ module DafnyStdLibs.DynamicArray {
     /**
     For internal use
      */
-    method Realloc(new_capacity: uint32)
+    method Realloc(newCapacity: uint32)
       requires Valid?()
-      requires new_capacity > capacity
+      requires newCapacity > capacity
       modifies `capacity, `data, `Repr, data
       ensures Valid?()
-      ensures capacity == new_capacity
+      ensures capacity == newCapacity
       ensures fresh(data)
     {
-      var old_data, old_capacity := data, capacity;
-      data, capacity := new A[new_capacity](_ => defaultValue), new_capacity;
-      CopyFrom(old_data, old_capacity);
+      var oldData, oldCapacity := data, capacity;
+      data, capacity := new A[newCapacity](_ => defaultValue), newCapacity;
+      CopyFrom(oldData, oldCapacity);
       Repr := {this, data};
     }
 
@@ -223,21 +223,21 @@ module DafnyStdLibs.DynamicArray {
     /**
     For internal use
      */
-    method CopyFrom(new_data: array<A>, count: uint32)
-      requires count as int <= new_data.Length
+    method CopyFrom(newData: array<A>, count: uint32)
+      requires count as int <= newData.Length
       requires count <= capacity
       requires data.Length == capacity as int
       modifies data
-      ensures data[..count] == new_data[..count]
+      ensures data[..count] == newData[..count]
       ensures data[count..] == old(data[count..])
     {
       for idx: uint32 := 0 to count
         invariant idx <= capacity
         invariant data.Length == capacity as int
-        invariant data[..idx] == new_data[..idx]
+        invariant data[..idx] == newData[..idx]
         invariant data[count..] == old(data[count..])
       {
-        data[idx] := new_data[idx];
+        data[idx] := newData[idx];
       }
     }
   }
