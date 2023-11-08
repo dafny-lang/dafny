@@ -1,3 +1,5 @@
+// NONUNIFORM: Out-of-band output (coverage reports) not easily testable via %testDafnyForEachCompiler
+
 // Actual runtime test coverage
 // (See also logger/CoverageReport.dfy for verification coverage and expected coverage of generated tests)
 
