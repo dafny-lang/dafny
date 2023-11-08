@@ -65,7 +65,6 @@ namespace Microsoft.Dafny {
           var textLogger = new TextLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
-          return;
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
         }

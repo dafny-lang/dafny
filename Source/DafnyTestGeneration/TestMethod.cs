@@ -38,9 +38,6 @@ namespace DafnyTestGeneration {
     private readonly Type defaultType = Type.Int;
     // the DafnyModel that describes the inputs to this test method
     private readonly DafnyModel dafnyModel;
-    // List of all types for which a {:synthesize} - annotated method is needed
-    // These methods are used to get fresh instances of the corresponding types
-    private static readonly List<UserDefinedType> TypesToSynthesize = new();
     // is set to true whenever the tool encounters something it does not support
     private readonly List<string> errorMessages = new();
     // records parameters for GetDefaultValue call - this is used to to
@@ -49,9 +46,11 @@ namespace DafnyTestGeneration {
     // similar to above but for objects
     private readonly HashSet<string> getClassTypeInstanceParams = new();
     private Dictionary<string, string> defaultValueForType = new();
+    private readonly Modifications cache;
 
-    public TestMethod(DafnyInfo dafnyInfo, string log) {
+    public TestMethod(DafnyInfo dafnyInfo, string log, Modifications cache) {
       DafnyInfo = dafnyInfo;
+      this.cache = cache;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
       dafnyModel = DafnyModel.ExtractModel(dafnyInfo.Options, log);
@@ -62,10 +61,6 @@ namespace DafnyTestGeneration {
     }
 
     public bool IsValid => errorMessages.Count == 0;
-
-    public static void ClearTypesToSynthesize() {
-      TypesToSynthesize.Clear();
-    }
 
     /// <summary>
     /// Add a tuple to the ValueCreation list with a given type and value.
@@ -98,11 +93,11 @@ namespace DafnyTestGeneration {
     /// Returns a string that contains all the {:synthesize} annotated methods
     /// necessary to compile the tests
     /// </summary>
-    public static string EmitSynthesizeMethods(DafnyInfo dafnyInfo) {
+    public static string EmitSynthesizeMethods(DafnyInfo dafnyInfo, Modifications cache) {
       var result = "";
       // ensures that duplicate types in TypesToSynthesize are skipped:
       HashSet<string> emittedTypes = new();
-      foreach (var typ in TypesToSynthesize) {
+      foreach (var typ in cache.TypesToSynthesize) {
         var typeString = typ.ToString();
         if (emittedTypes.Contains(typeString)) {
           continue;
@@ -445,7 +440,7 @@ namespace DafnyTestGeneration {
                  immutableFields) {
           constFieldValues.Add(GetFieldValue(field, variable));
         }
-        TypesToSynthesize.Add(dafnyType);
+        cache.TypesToSynthesize.Add(dafnyType);
         varId = AddValue(dafnyType, $"{GetSynthesizeMethodName(dafnyType.ToString())}({string.Join(", ", constFieldValues)})");
       }
       getClassTypeInstanceParams.Remove(dafnyType.ToString());
@@ -633,7 +628,7 @@ namespace DafnyTestGeneration {
         returnParNames.Add("r" + i);
       }
 
-      lines.Add($"method {{:test}} test{id}() {{");
+      lines.Add($"method {{:test}} Test{id}() {{");
 
       lines.AddRange(TestInputConstructionLines());
 

@@ -1,0 +1,44 @@
+TypeInferenceRefreshErrors.dfy(14,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> C)
+TypeInferenceRefreshErrors.dfy(19,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got real)
+TypeInferenceRefreshErrors.dfy(20,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<real>)
+TypeInferenceRefreshErrors.dfy(21,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> set<real>)
+TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> map<object, object>)
+TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression assignable to it (got 'D')
+TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression assignable to it (got 'C')
+TypeInferenceRefreshErrors.dfy(49,8): Error: the type ('E?<?0>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E<?2>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E<set<?6>>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(64,8): Error: the type ('map<?8, ?9>') of this local variable is underspecified
+TypeInferenceRefreshErrors.dfy(65,8): Error: the type ('map<?10, ?11>') of this local variable is underspecified
+TypeInferenceRefreshErrors.dfy(66,8): Error: the type ('map<?18, ?19>') of this local variable is underspecified
+TypeInferenceRefreshErrors.dfy(67,11): Error: the type ('map<?16, ?17>') of this expression is underspecified
+TypeInferenceRefreshErrors.dfy(76,8): Error: the type ('Synonym<int, ?4>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(85,8): Error: the type ('SubsetType<int, ?4>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(97,8): Error: the type ('Synonym<int, ?3>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(100,8): Error: the type ('Synonym<int, ?6>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(109,13): Error: datatype constructor does not take any type parameters ('White')
+TypeInferenceRefreshErrors.dfy(110,13): Error: datatype constructor does not take any type parameters ('Blue'); did you perhaps mean to write 'ParametricColor<int>.Blue'?
+TypeInferenceRefreshErrors.dfy(111,13): Error: datatype constructor does not take any type parameters ('Gray')
+TypeInferenceRefreshErrors.dfy(112,13): Error: datatype constructor does not take any type parameters ('Red'); did you perhaps mean to write 'ParametricColor<int>.Red'?
+TypeInferenceRefreshErrors.dfy(122,9): Error: type '(int, int)' does not contain a datatype constructor 'R'
+TypeInferenceRefreshErrors.dfy(124,12): Error: unresolved identifier: x
+TypeInferenceRefreshErrors.dfy(124,16): Error: unresolved identifier: y
+TypeInferenceRefreshErrors.dfy(124,14): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?7)
+TypeInferenceRefreshErrors.dfy(131,11): Error: literal (84848484848484848) is too large for the bitvector type bv7
+TypeInferenceRefreshErrors.dfy(140,11): Error: type of real literal is used as bv7
+TypeInferenceRefreshErrors.dfy(143,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(144,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(145,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(148,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(149,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(150,11): Error: integer literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(151,11): Error: boolean literal used as if it had type real
+TypeInferenceRefreshErrors.dfy(175,11): Error: unary minus (-3, type bv7) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(176,11): Error: unary minus (-0, type bv7) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(182,11): Error: unary minus (-3, type ORDINAL) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(183,11): Error: unary minus (-0, type ORDINAL) not allowed in case pattern
+TypeInferenceRefreshErrors.dfy(205,6): Warning: this branch is redundant
+TypeInferenceRefreshErrors.dfy(212,6): Warning: this branch is redundant
+TypeInferenceRefreshErrors.dfy(220,6): Warning: this branch is redundant
+TypeInferenceRefreshErrors.dfy(255,9): Error: pattern (of type int) cannot be used with source type Color
+40 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

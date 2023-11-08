@@ -21,6 +21,7 @@ using System.CommandLine;
 using static Microsoft.Dafny.ParseErrors;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
+readonly bool parseAsDooFile;
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
@@ -178,10 +179,11 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
+public Parser(DafnyOptions options, bool parseAsDooFile, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
   : this(scanner, errors, cancellationToken)  // the real work
 {
   // initialize readonly fields
+  this.parseAsDooFile = parseAsDooFile;
   dummyExpr = new LiteralExpr(Token.NoToken);
   dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
@@ -442,7 +444,7 @@ string UnwildIdent(IToken x, bool allowWildcardId) {
   if (x.val.StartsWith("_")) {
     if (allowWildcardId && x.val.Length == 1) {
       return "_v" + anonymousIds++;
-    } else {
+    } else if (!parseAsDooFile) {
       SemErr(ErrorId.p_no_leading_underscore, x, "cannot declare identifier beginning with underscore");
     }
   }
@@ -1051,8 +1053,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
-                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false);
+                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
@@ -1264,9 +1265,12 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
 = (. Type parentTrait;
   .)
-  "extends"                   (. if (requiresNonReferenceTraitsFor != null && !theOptions.Get(CommonOptionBag.GeneralTraits)) {
+  "extends"                   (. if (requiresNonReferenceTraitsFor == "newtype" && theOptions.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Full) {
                                    SemErr(ErrorId.p_general_traits_beta, t,
-                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:1 to engage");
+                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:full to engage");
+                                 } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
+                                   SemErr(ErrorId.p_general_traits_beta, t,
+                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:datatype to engage");
                                  }
                               .)
   Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
@@ -5306,7 +5310,7 @@ Name<out Name name>
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. if (x.val.StartsWith("_")) {
+  Ident<out x>     (. if (x.val.StartsWith("_") && !parseAsDooFile) {
                         SemErr(ErrorId.p_no_leading_underscore_2, x, 
                           "cannot declare identifier beginning with underscore");
                       }

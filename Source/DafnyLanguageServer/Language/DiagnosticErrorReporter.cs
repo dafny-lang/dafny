@@ -1,10 +1,7 @@
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using VCGeneration;
@@ -48,17 +45,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public void ReportBoogieError(ErrorInformation error) {
+    public void ReportBoogieError(ErrorInformation error, bool useRange = true) {
       var relatedInformation = new List<DafnyRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg));
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(VerifierMessageSource, Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
           }
         }
       }
@@ -67,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
       }
 
-      var dafnyToken = Translator.ToDafnyToken(error.Tok);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
       var uri = GetUriOrDefault(dafnyToken);
       var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
         VerifierMessageSource, ErrorLevel.Error, relatedInformation);
@@ -80,18 +77,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
 
-    public static string FormatRelated(string related) {
+    private static string FormatRelated(string related) {
       return $"Could not prove: {related}";
     }
 
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      if (tokenForMessage is BoogieRangeToken range) {
+      var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
+      if (dafnyToken is RangeToken rangeToken) {
         if (message == PostConditionFailingMessage) {
-          var postcondition = range.PrintOriginal();
+          var postcondition = rangeToken.PrintOriginal();
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          message = FormatRelated(range.PrintOriginal());
+          message = FormatRelated(rangeToken.PrintOriginal());
         }
       }
 

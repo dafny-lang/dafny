@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -26,13 +27,18 @@ public class CachingParser : ProgramParser {
       telemetryPublisher, programName, "parsing");
   }
 
-  protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
+  protected override DfyParseResult ParseFile(DafnyOptions options, bool parseAsDooFile, Func<TextReader> getReader,
     Uri uri, CancellationToken cancellationToken) {
     using var reader = getReader();
-    var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
+
+    // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
+    var uriBytes = Encoding.UTF8.GetBytes(uri + "\0");
+    var startingBytes = new[] { Convert.ToByte(parseAsDooFile) }.Concat(uriBytes).ToArray();
+
+    var (newReader, hash) = ComputeHashFromReader(startingBytes, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, () => newReader, uri, cancellationToken);
+      result = base.ParseFile(options, parseAsDooFile, () => newReader, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");
@@ -51,15 +57,14 @@ public class CachingParser : ProgramParser {
   /// We read the contents of the reader and store them in memory using chunks
   /// to prevent allocating a large array of memory.
   /// </summary>
-  private static (TextReader reader, byte[] hash) ComputeHashFromReader(Uri uri, TextReader reader, HashAlgorithm hashAlgorithm) {
+  private static (TextReader reader, byte[] hash) ComputeHashFromReader(byte[] startingBytes, TextReader reader, HashAlgorithm hashAlgorithm) {
     var result = new List<char[]>();
     const int chunkSize = 1024;
     hashAlgorithm.Initialize();
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
-    var uriBytes = Encoding.UTF8.GetBytes(uri.ToString() + "\0");
 
     // We need to include the uri as part of the hash, because the parsed AST contains tokens that refer to the filename. 
-    hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
+    hashAlgorithm.TransformBlock(startingBytes, 0, startingBytes.Length, null, 0);
     while (true) {
       var chunk = new char[chunkSize];
       var readCount = reader.ReadBlock(chunk, 0, chunk.Length);

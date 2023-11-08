@@ -375,10 +375,11 @@ class Release:
         progress("Done!")
         progress()
 
-        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml"
+        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml"
         progress(f"Now, start a deep-tests workflow manually for branch {self.release_branch_name} at\n"
-                 f"<{DEEPTESTS_URL}>.\n"
-                 "Once it completes, re-run this script with argument `release`.")
+                 f"<{DEEPTESTS_URL}>\n"
+                 f"To do so, click Run workflow, use workflow from {self.release_branch_name},\n"
+                 f"Once it completes, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
         progress()
 
     def _tag_release(self):

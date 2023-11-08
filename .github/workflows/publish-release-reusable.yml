@@ -35,12 +35,12 @@ env:
 jobs:
 
   publish-release:
-    runs-on: macos-latest
+    runs-on: ubuntu-20.04
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         ref: ${{ inputs.ref }}
@@ -67,7 +67,7 @@ jobs:
       with:
         java-version: 18
         distribution: corretto
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -98,13 +98,26 @@ jobs:
       # version.
       run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
-    - name: Install latex pandoc
+    - name: Install latex pandoc - Linux
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install texlive-full
+        wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
+        sudo dpkg -i *.deb
+        rm -rf *.deb
+        pandoc -v
+        which latex || echo NOT FOUND latex
+        which xelatex || echo NOT FOUND xelatex
+        sudo gem install rouge
+    - name: Install latex pandoc - MacOS
+      if: runner.os == 'MacOS'
       run: |
         unset HOMEBREW_NO_INSTALL_FROM_API
         brew untap Homebrew/core
         brew update-reset && brew update
         brew install pandoc
-        brew install --cask mactex
+        brew install --cask basictex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math

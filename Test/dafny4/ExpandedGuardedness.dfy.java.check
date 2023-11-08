@@ -1,2 +1,0 @@
-// https://github.com/dafny-lang/dafny/issues/4124
-// CHECK: error: incompatible types: int cannot be converted to CodePoint

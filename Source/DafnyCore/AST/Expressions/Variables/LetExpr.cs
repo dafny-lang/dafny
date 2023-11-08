@@ -14,15 +14,15 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
   private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-  private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
+  private BoogieGenerator lastBoogieGeneratorUsed; // avoid clashing desugaring between translators
 
-  public void SetTranslationDesugaring(Translator trans, Expression expr) {
-    lastTranslatorUsed = trans;
+  public void SetTranslationDesugaring(BoogieGenerator trans, Expression expr) {
+    lastBoogieGeneratorUsed = trans;
     translationDesugaring = expr;
   }
 
-  public Expression GetTranslationDesugaring(Translator trans) {
-    if (lastTranslatorUsed == trans) {
+  public Expression GetTranslationDesugaring(BoogieGenerator trans) {
+    if (lastBoogieGeneratorUsed == trans) {
       return translationDesugaring;
     } else {
       return null;

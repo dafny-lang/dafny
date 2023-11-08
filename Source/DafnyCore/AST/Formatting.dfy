@@ -15,7 +15,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       import opened MicrosoftDafny
       import opened System
 
-      const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
+      const {:extern "System", "String.Empty"} CsStringEmpty: CsString
 
       trait IIndentationFormatter {
         // Given the current indentation at this point

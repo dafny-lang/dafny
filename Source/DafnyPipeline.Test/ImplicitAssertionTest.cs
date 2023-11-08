@@ -161,7 +161,7 @@ method Test(m: map<int, int>, x: int) {
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
 
-    var boogiePrograms = DafnyDriver.Translate(options, dafnyProgram).ToList();
+    var boogiePrograms = CompilerDriver.Translate(options, dafnyProgram).ToList();
     Assert.Single(boogiePrograms);
     var boogieProgram = boogiePrograms[0].Item2;
     var encountered = new List<string>();
