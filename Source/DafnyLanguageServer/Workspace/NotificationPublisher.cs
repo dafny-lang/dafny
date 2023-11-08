@@ -245,11 +245,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var newParams = state.GhostRanges;
       var previousParams = previousState.GhostRanges;
-      foreach (var (uri, current) in newParams) {
-        if (previousParams.TryGetValue(uri, out var previous)) {
-          if (previous.SequenceEqual(current)) {
-            continue;
-          }
+      var uris = previousParams.Keys.Concat(newParams.Keys);
+      foreach (var uri in uris) {
+        var previous = previousParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        var current = newParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        if (previous.SequenceEqual(current)) {
+          continue;
         }
         languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
           Uri = uri,
@@ -258,17 +259,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             Range = r
           }).ToArray(),
         });
-      }
-
-      // If we don't have ghost state anymore, publish empty ghost diagnostics
-      foreach (var (uri, _) in previousParams) {
-        if (!newParams.ContainsKey(uri)) {
-          languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
-            Uri = uri,
-            Version = state.Version,
-            Diagnostics = new List<Diagnostic>()
-          });
-        }
       }
     }
   }
