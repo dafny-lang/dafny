@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -71,12 +72,12 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     var source = @"
 method Foo() ensures false { } ";
     await SetUp(options => {
-      options.Set(ServerCommand.LineVerificationStatus, false);
+      options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
     });
 
     var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
   }
 

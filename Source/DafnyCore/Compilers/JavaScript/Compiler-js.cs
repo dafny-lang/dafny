@@ -29,6 +29,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SeparateCompilation
     };
 
+    public override string ModuleSeparator => "_";
+
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";
@@ -42,7 +44,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.js", wr);
+        EmitRuntimeSource("DafnyRuntimeJs", wr, false);
       }
     }
 
@@ -57,16 +59,17 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      if (!isExtern || libraryName != null) {
+      if (externModule == null || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
 
       string footer = ")(); // end of module " + moduleName;
       var block = wr.NewBlock("(function()", footer);
       var beforeReturnBody = block.Fork(0);
-      if (!isExtern) {
+      if (externModule == null) {
         // create new module here
         beforeReturnBody.WriteLine("let $module = {};");
       } else if (libraryName == null) {
@@ -440,7 +443,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           thn.WriteLine("return \"{0}\";", nm);
           i++;
@@ -454,7 +457,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           cw.Write("return \"{0}\"", nm);
           var sep = " + \"(\" + ";
@@ -1565,7 +1568,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"
+        Contract.Assert(!cl.EnclosingModuleDefinition.TryToAvoidName); // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Reactive.Concurrency;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -26,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
         .AddSingleton<IProjectDatabase, ProjectManagerDatabase>()
-        .AddSingleton<CreateProjectManager>(provider => (boogieEngine, documentIdentifier) => new ProjectManager(
+        .AddSingleton<CreateProjectManager>(provider => (scheduler, cache, documentIdentifier) => new ProjectManager(
           provider.GetRequiredService<DafnyOptions>(),
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
@@ -35,7 +36,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<IGutterIconAndHoverVerificationDetailsManager>(),
           provider.GetRequiredService<CreateCompilationManager>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
-          boogieEngine,
+          scheduler,
+          cache,
           documentIdentifier))
         .AddSingleton<IFileSystem, LanguageServerFilesystem>()
         .AddSingleton<IDafnyParser>(serviceProvider => {

@@ -3,8 +3,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class TriggerGeneratingRewriter : IRewriter {
-  internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
+  private readonly SystemModuleManager systemModuleManager;
+  internal TriggerGeneratingRewriter(ErrorReporter reporter, SystemModuleManager systemModuleManager) : base(reporter) {
     Contract.Requires(reporter != null);
+    this.systemModuleManager = systemModuleManager;
   }
 
   internal override void PostCyclicityResolve(ModuleDefinition definition, ErrorReporter reporter) {
@@ -17,7 +19,7 @@ public class TriggerGeneratingRewriter : IRewriter {
     var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options);
     foreach (var quantifierCollection in finder.quantifierCollections) {
       quantifierCollection.ComputeTriggers(triggersCollector);
-      quantifierCollection.CommitTriggers(Reporter.Options);
+      quantifierCollection.CommitTriggers(Reporter.Options, systemModuleManager);
     }
   }
 }

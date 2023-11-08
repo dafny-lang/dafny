@@ -27,7 +27,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.Iterators,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     const string DafnySetClass = "dafny.DafnySet";
@@ -65,9 +67,6 @@ namespace Microsoft.Dafny.Compilers {
     private string ModulePath;
     private int FileCount = 0;
     private Import ModuleImport;
-    private HashSet<int> tuples = new HashSet<int>();
-    private HashSet<int> functions = new HashSet<int>();
-    private HashSet<int> arrays = new HashSet<int>();
 
     private readonly List<Import> Imports = new List<Import>();
 
@@ -154,7 +153,6 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (formalTypes.Count > 1) {
-        tuples.Add(formalTypes.Count);
         wr.Write($"{DafnyTupleClass(formalTypes.Count)}<{Util.Comma(returnedTypes)}> {collectorVarName} = ");
       } else {
         wr.Write($"{returnedTypes[0]} {collectorVarName} = ");
@@ -269,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var wrVarInit = wr;
       wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
-      AddTupleToSet(L);
+      Contract.Assert(L <= MaxTupleNonGhostDims);
       EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       var wrOuter = wr;
       wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
@@ -302,7 +300,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       if (Options.IncludeRuntime) {
-        EmitRuntimeSource(program, wr);
+        EmitRuntimeSource("DafnyRuntimeJava", wr);
       }
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
@@ -312,23 +310,28 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
     }
 
-    private void EmitRuntimeSource(Program program, ConcreteSyntaxTree wr) {
-      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
-      var files = assembly.GetManifestResourceNames();
-      const string header = "DafnyPipeline.java";
-      // Files in 'files' have the form 'DafnyPipeline.java.dafny.Array.java'
-      foreach (var file in files.Where(f => f.StartsWith(header))) {
-        var parts = file.Split('.');
-        var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
-        var fileNode = wr.NewFile(realName);
-        ReadRuntimeSystem(program, file, fileNode);
-      }
-    }
-
-    // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            return;
+          }
+        case CommonOptionBag.SystemModuleMode.OmitAllOtherModules: {
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
+      }
+
+      foreach (var kv in systemModuleManager.ArrowTypeDecls) {
+        var arity = kv.Key;
+        CreateLambdaFunctionInterface(arity, wr);
+      }
+
+      foreach (var decl in systemModuleManager.SystemModule.TopLevelDecls) {
+        if (decl is ArrayClassDecl classDecl) {
+          var dims = classDecl.Dims;
+          CreateDafnyArrays(dims, wr);
+        }
       }
     }
 
@@ -367,10 +370,11 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
-        return wr;
+        moduleName = "_System";
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
@@ -763,7 +767,6 @@ namespace Microsoft.Dafny.Compilers {
     string ArrayTypeName(Type elType, int dims, ConcreteSyntaxTree wr, IToken tok, bool erased) {
       elType = DatatypeWrapperEraser.SimplifyType(Options, elType);
       if (dims > 1) {
-        arrays.Add(dims);
         if (erased) {
           return DafnyMultiArrayClass(dims);
         } else {
@@ -798,7 +801,6 @@ namespace Microsoft.Dafny.Compilers {
     protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
       Contract.Requires(udt != null);
       if (udt.IsBuiltinArrowType) {
-        functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
 
@@ -815,7 +817,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
-      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
@@ -1267,12 +1269,6 @@ namespace Microsoft.Dafny.Compilers {
       string /*?*/ rhs, ConcreteSyntaxTree wr) {
       // Note that type can be null to represent the native object type.
       // See comment on NativeObjectType.
-      if (type is { AsArrayType: { } }) {
-        arrays.Add(type.AsArrayType.Dims);
-      }
-      if (type is { IsDatatype: true, AsDatatype: TupleTypeDecl tupleDecl }) {
-        tuples.Add(tupleDecl.NonGhostDims);
-      }
       if (type is { IsTypeParameter: true }) {
         EmitSuppression(wr);
       }
@@ -1303,7 +1299,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
         return;
       }
-      wr.Write($"{CollectionTypeUnparameterizedName(ct)}.of(");
+      wr.Write($"{CollectionTypeUnparameterizedName(ct)}.<{BoxedTypeName(ct.Arg, wr, tok)}> of(");
       string sep = "";
       if (ct is SeqType && (!IsJavaPrimitiveType(ct.Arg) || (UnicodeCharEnabled && ct.Arg.IsCharType))) {
         wr.Write(TypeDescriptor(ct.Arg, wr, tok));
@@ -1840,6 +1836,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
+      if (dt is TupleTypeDecl tupleTypeDecl) {
+        // CreateTuple() produces quite different code than this method would
+        // by treating a tuple declaration as just a special case of a datatype.
+        // Compare to the C# compiler which just compiles tuples like datatypes
+        // with a bit of special handling for the name.
+        // This could be changed to match at some point, but it would break
+        // code that relies on the current runtime representation of tuples in Java.
+        CreateTuple(tupleTypeDecl.Dims, wr);
+        return null;
+      }
+
       var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
       return w;
@@ -2159,7 +2166,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -2417,7 +2424,6 @@ namespace Microsoft.Dafny.Compilers {
       } else if (outParams.Count == 1) {
         wr.WriteLine($"return {IdName(outParams[0])};");
       } else {
-        tuples.Add(outParams.Count);
         wr.WriteLine($"return new {DafnyTupleClass(outParams.Count)}<>({Util.Comma(outParams, IdName)});");
       }
     }
@@ -2507,7 +2513,6 @@ namespace Microsoft.Dafny.Compilers {
         var elType = UserDefinedType.ArrayElementType(type);
         var elTypeName = TypeName(elType, wr, tok, true);
         if (at.Dims > 1) {
-          arrays.Add(at.Dims);
           return $"{DafnyMultiArrayClass(at.Dims)}.<{elTypeName}>{TypeMethodName}()";
         } else if (elType.IsBoolType) {
           return $"{DafnyTypeDescriptor}.BOOLEAN_ARRAY";
@@ -2663,9 +2668,6 @@ namespace Microsoft.Dafny.Compilers {
       // TODO: there may be an opportunity to share code with CreateIIFE,
       // which may be worth it given all the necessary coercions.
 
-      if (inTypes.Count != 1) {
-        functions.Add(inTypes.Count);
-      }
       wr.Write('(');
       if (!untyped) {
         wr.Write("({0}<{1}{2}>)", DafnyFunctionIface(inTypes.Count), Util.Comma("", inTypes, t => BoxedTypeName(t, wr, tok) + ", "), BoxedTypeName(resultType, wr, tok));
@@ -2686,7 +2688,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      functions.Add(0);
       wr.Write($"(({DafnyFunctionIface(0)}<{BoxedTypeName(resultType, wr, resultTok)}>)(() ->");
       var w = wr.NewBigExprBlock("", ")).apply()");
       return w;
@@ -3000,26 +3001,6 @@ namespace Microsoft.Dafny.Compilers {
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
-      }
-    }
-
-    protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
-      // Emit tuples
-      foreach (int i in tuples) {
-        if (i <= 20) {
-          continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
-        }
-        CreateTuple(i, wr);
-      }
-
-      // Emit function interfaces
-      foreach (var i in functions) {
-        CreateLambdaFunctionInterface(i, wr);
-      }
-
-      // Emit arrays
-      foreach (var i in arrays) {
-        CreateDafnyArrays(i, wr);
       }
     }
 
@@ -3703,7 +3684,6 @@ namespace Microsoft.Dafny.Compilers {
       // Where to put the array to be wrapped
       ConcreteSyntaxTree wBareArray;
       if (dimensions.Count > 1) {
-        arrays.Add(dimensions.Count);
         wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elementType, wr, tok)}, ");
         foreach (var dim in dimensions) {
           TrExprAsInt(dim, Type.Int, wr, checkRange: true, msg: "Java arrays may be no larger than the maximum 32-bit signed int");
@@ -3743,9 +3723,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      if (boundTypes.Count != 1) {
-        functions.Add(boundTypes.Count);
-      }
       wr.Write("(({0}<{1}{2}>)", DafnyFunctionIface(boundTypes.Count), Util.Comma("", boundTypes, t => BoxedTypeName(t, wr, resultTok) + ", "), BoxedTypeName(resultType, wr, resultTok));
       wr.Write($"({Util.Comma(boundVars)}) -> ");
       var w = wr.Fork();
@@ -3814,10 +3791,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
       wr.WriteLine("new java.util.ArrayList<>();");
-    }
-
-    protected override void AddTupleToSet(int i) {
-      tuples.Add(i);
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
@@ -3917,7 +3890,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (toOrig != null) {
+        to = toOrig;
+      }
+
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }

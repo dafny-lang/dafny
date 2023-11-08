@@ -150,17 +150,15 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        var state = Utils.GetBlockId(node, options);
-        if (state == null) { // cannot map back to Dafny source location
-          return base.VisitBlock(node);
-        }
-        var data = new List<object>
-          { "Block", implementation.Name, state };
         int afterPartition = node.cmds.FindIndex(cmd =>
           cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
         afterPartition = afterPartition > -1 ? afterPartition : 0;
-        node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
-        return node;
+        foreach (var state in Utils.AllBlockIds(node, options)) {
+          var data = new List<object>
+            { "Block", implementation.Name, state };
+          node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
+        }
+        return base.VisitBlock(node);
       }
 
       public override Implementation VisitImplementation(Implementation node) {

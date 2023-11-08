@@ -25,6 +25,10 @@ java {
     withSourcesJar()
 }
 
+sourceSets["main"].java {
+    srcDir("src/main/dafny-generated")
+}
+
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.compilerArgs += ['-Xlint:unchecked']

@@ -106,8 +106,9 @@ Usage: dafny [ option ... ] [ filename ... ]
       `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
 
   /generalTraits:<value>
-      0 (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and classes can extend traits.
-      1 - A trait is a reference type iff it or one of its ancestor traits is 'object'. Any type with members can extend traits.
+      legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+      datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+      full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.
 
   /ntitrace:<value>
       0 (default) - Don't print debug information for the new type system.
@@ -116,6 +117,12 @@ Usage: dafny [ option ... ] [ filename ... ]
   /readsClausesOnMethods:<value>
       0 (default) - Reads clauses on methods are forbidden.
       1 - Reads clauses on methods are permitted (with a default of 'reads *').
+
+  /standardLibraries:<value>
+      0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+      Not compatible with the /unicodeChar:0 option.
 
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.
@@ -667,6 +674,10 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Without pruning, due to the unstable nature of SMT solvers,
                 a change to any part of a Boogie program has the potential 
                 to affect the verification of any other part of the program.
+
+                Only use this if your program contains uses clauses
+                where required, otherwise pruning will break your program.
+                More information can be found here: https://github.com/boogie-org/boogie/blob/afe8eb0ffbb48d593de1ae3bf89712246444daa8/Source/ExecutionEngine/CommandLineOptions.cs#L160
   /printPruned:<file>
                 After pruning, print the Boogie program to the specified file.
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates

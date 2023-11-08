@@ -319,10 +319,10 @@ method CallIts() returns () {
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies, "DefinitionReturnsBeforeVerificationIsComplete.dfy");
       client.OpenDocument(documentItem);
-      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem);
       var definitionTask = RequestDefinition(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.False(verificationTask.IsCompleted);
+      Assert.False(verificationTask.IsCompletedSuccessfully);
       Assert.Same(first, definitionTask);
     }
 

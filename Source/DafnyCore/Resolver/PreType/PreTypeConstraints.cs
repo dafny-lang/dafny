@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
     /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
     /// </summary>
     [CanBeNull]
-    public DPreType FindDefinedPreType(PreType preType) {
+    public DPreType FindDefinedPreType(PreType preType, bool applyAdvice) {
       Contract.Requires(preType != null);
 
       PartiallySolveTypeConstraints();
@@ -89,10 +89,13 @@ namespace Microsoft.Dafny {
         foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
           return super;
         }
-        return null;
+
+        if (applyAdvice) {
+          TryApplyDefaultAdviceFor(proxy);
+        }
       }
 
-      return preType as DPreType;
+      return preType.Normalize() as DPreType;
     }
 
     /// <summary>
@@ -454,6 +457,15 @@ namespace Microsoft.Dafny {
         anythingChanged |= advice.Apply(PreTypeResolver);
       }
       return anythingChanged;
+    }
+
+    bool TryApplyDefaultAdviceFor(PreTypeProxy proxy) {
+      foreach (var advice in defaultAdvice) {
+        if (advice.ApplyFor(proxy, PreTypeResolver)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {

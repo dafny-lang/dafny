@@ -1,0 +1,1 @@
+Emit less nested target code in match-case expressions (nice for readability, and necessary for Java)

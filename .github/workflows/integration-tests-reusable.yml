@@ -76,7 +76,7 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version == 'oldest'
+      if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v3
       with:
         java-version: 8
@@ -95,10 +95,10 @@ jobs:
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         ref: ${{ inputs.ref }}

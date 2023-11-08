@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Set up JDK 18
@@ -38,18 +38,27 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
+      - name: Test DafnyRuntime (C#)
+        run: |
+          cd ./Source/DafnyRuntime
+          make all
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny
-          make test
-          make check-format
+          make all
       - name: Test DafnyRuntimeGo
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeGo
-          make test
-      # This isn't strictly necessary since the Java runtime has to be built into a jar,
-      # which also runs the tests.
-      # But I prefer the simplicity of testing every testable runtime in this workflow
+          make all
       - name: Test DafnyRuntimeJava
-        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
-      
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJava
+          make all
+      - name: Test DafnyRuntimePython
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimePython
+          make all
+      - name: Test DafnyRuntimeJs
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          make all
