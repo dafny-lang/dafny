@@ -3442,7 +3442,7 @@ namespace Microsoft.Dafny.Compilers {
       catchBlock.WriteLine($"var {haltMessageVarName} = Dafny.Sequence<{CharTypeName}>.{CharMethodQualifier}FromString(e.Message);");
       TrStmt(recoveryBody, catchBlock);
     }
-    
+
     protected override void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine(@"
 namespace DafnyProfiling {

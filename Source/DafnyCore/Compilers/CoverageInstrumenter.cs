@@ -12,7 +12,7 @@ public class CoverageInstrumenter {
 
   public CoverageInstrumenter(SinglePassCompiler compiler) {
     this.compiler = compiler;
-    if (compiler.Options?.CoverageLegendFile != null 
+    if (compiler.Options?.CoverageLegendFile != null
         || compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
       legend = new List<(IToken, string)>();
     }
@@ -96,11 +96,14 @@ public class CoverageInstrumenter {
 
   public void PopulateCoverageReport(CoverageReport report) {
     var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
-    foreach (var ((token, description), tally) in legend.Zip(tallies)) {
+    foreach (var ((token, _), tally) in legend.Zip(tallies)) {
       var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
-      // TODO: more intelligent conversion to range token
-      report.LabelCode(new RangeToken(token, token), label);
+      // For now we only identify branches at the line granularity,
+      // which matches what `dafny generate-tests ... --coverage-report` does as well.
+      var rangeToken = new RangeToken(new Token(token.line, 1), new Token(token.line + 1, 0));
+      rangeToken.Uri = token.Uri;
+      report.LabelCode(rangeToken, label);
     }
   }
-  
+
 }

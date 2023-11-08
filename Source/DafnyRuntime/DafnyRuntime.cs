@@ -1948,7 +1948,7 @@ namespace Dafny {
     public HaltException(object message) : base(message.ToString()) {
     }
   }
-  
+
   public class CodeCoverage {
     static uint[] tallies;
     public static void Setup(int size) {

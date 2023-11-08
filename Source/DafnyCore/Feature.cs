@@ -185,7 +185,7 @@ public enum Feature {
 
   [FeatureDescription("All built-in types in runtime library", "#sec-compilation-built-ins")]
   BuiltinsInRuntime,
-  
+
   [FeatureDescription("Runtime coverage report", "#sec-compilation-built-ins")]
   RuntimeCoverageReport
 }

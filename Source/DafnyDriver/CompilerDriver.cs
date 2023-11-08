@@ -564,7 +564,7 @@ namespace Microsoft.Dafny {
           if (compiledCorrectly) {
             var coverageReportDir = options.Get(CommonOptionBag.ExecutionCoverageReport);
             if (coverageReportDir != null) {
-              var coverage  = compiler.GetCoverageAfterRun();
+              var coverage = compiler.GetCoverageAfterRun();
               var coverageReport = new CoverageReport("Test Coverage", "Branches", "_tests_actual", dafnyProgram);
               coverage.PopulateCoverageReport(coverageReport);
               new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
