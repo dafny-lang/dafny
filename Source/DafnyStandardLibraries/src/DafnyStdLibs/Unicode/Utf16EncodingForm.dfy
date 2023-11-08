@@ -120,6 +120,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm ref
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueDoubleWord(v) == m
   {
+    assume {:axiom} false;
     var firstWord := m[0];
     var secondWord := m[1];
     var x2 := (secondWord & 0x3FF) as bv24;

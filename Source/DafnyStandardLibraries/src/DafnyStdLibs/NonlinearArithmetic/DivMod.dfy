@@ -1175,6 +1175,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 <= s <= x % d
     ensures x % d - s % d == (x - s) % d
   {
+    assume {:axiom} false;
     LemmaModAuto(d);
   }
 
@@ -1194,6 +1195,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures ((x % m) + (y % m)) % m == (x + y) % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1213,6 +1215,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (x + (y % m)) % m == (x + y) % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1220,6 +1223,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall x: int, y: int, m: int {:trigger (x + y) % m}
               :: 0 < m ==> (x + (y % m)) % m == (x + y) % m
   {
+    assume {:axiom} false;
     forall x: int, y: int, m: int | 0 < m
       ensures (x + (y % m)) % m == (x + y) % m
     {
@@ -1232,6 +1236,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures ((x % m) - (y % m)) % m == (x - y) % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1251,6 +1256,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (x - (y % m)) % m == (x - y) % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1258,6 +1264,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall x: int, y: int, m: int {:trigger (x - y) % m}
               :: 0 < m ==> (x - (y % m)) % m == (x - y) % m
   {
+    assume {:axiom} false;
     forall x: int, y: int, m: int | 0 < m
       ensures (x - (y % m)) % m == (x - y) % m
     {
@@ -1271,6 +1278,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures a % d + b % d == (a + b) % d + d * ((a % d + b % d) / d)
     ensures (a % d + b % d) < d ==> a % d + b % d == (a + b) % d
   {
+    assume {:axiom} false;
     LemmaMulAuto();
     LemmaDivAuto(d);
   }

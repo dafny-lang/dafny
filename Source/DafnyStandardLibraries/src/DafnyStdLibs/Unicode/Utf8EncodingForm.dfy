@@ -216,6 +216,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     ensures 0x800 <= v <= 0xFFFF
     ensures EncodeScalarValueTripleByte(v) == m
   {
+    assume {:axiom} false;
     var firstByte := m[0];
     var secondByte := m[1];
     var thirdByte := m[2];

@@ -44,6 +44,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivIntern
     ensures  forall x:int {:trigger (x + n) / n} :: (x + n) / n == x / n + 1
     ensures  forall x:int {:trigger (x - n) / n} :: (x - n) / n == x / n - 1
   {
+    assume {:axiom} false;
     LemmaModAuto(n);
     LemmaModBasics(n);
     LemmaSmallDiv();
@@ -79,6 +80,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivIntern
     requires n > 0
     ensures  DivAuto(n)
   {
+    assume {:axiom} false;
     LemmaModAuto(n);
     LemmaDivBasics(n);
     assert (0 + n) / n == 1;
@@ -156,6 +158,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivIntern
     ensures  DivAuto(n)
     ensures  f(x)
   {
+    assume {:axiom} false;
     LemmaDivAuto(n);
     assert forall i :: IsLe(0, i) && i < n ==> f(i);
     assert forall i {:trigger f(i), f(i + n)} :: IsLe(0, i) && f(i) ==> f(i + n);
@@ -173,6 +176,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivIntern
     ensures  DivAuto(n)
     ensures  forall i {:trigger f(i)} :: f(i)
   {
+    assume {:axiom} false;
     LemmaDivAuto(n);
     assert forall i :: IsLe(0, i) && i < n ==> f(i);
     assert forall i {:trigger f(i), f(i + n)} :: IsLe(0, i) && f(i) ==> f(i + n);

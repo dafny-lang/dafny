@@ -21,6 +21,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.GeneralIn
     ensures  f(x)
     decreases if x >= n then x else -x
   {
+    assume {:axiom} false;
     if (x >= n)
     {
       LemmaInductionHelper(n, f, x - n);

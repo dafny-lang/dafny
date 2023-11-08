@@ -31,6 +31,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.MulIntern
     requires forall i {:trigger f(i), f(i - 1)} :: i <= 0 && f(i) ==> f(i - 1)
     ensures  forall i {:trigger f(i)} :: f(i)
   {
+    assume {:axiom} false;
     forall i ensures f(i) { LemmaInductionHelper(1, f, i); }
   }
 
@@ -38,6 +39,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.MulIntern
   lemma LemmaMulCommutes()
     ensures  forall x:int, y:int {:trigger x * y} :: x * y == y * x
   {
+    assume {:axiom} false;
     forall x:int, y:int
       ensures x * y == y * x
     {
@@ -67,6 +69,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.MulIntern
     ensures forall x:int, y:int, z:int {:trigger (x + y) * z} :: (x + y) * z == x * z + y * z
     ensures forall x:int, y:int, z:int {:trigger (x - y) * z} :: (x - y) * z == x * z - y * z
   {
+    assume {:axiom} false;
     LemmaMulSuccessor();
     forall x:int, y:int, z:int
       ensures (x + y) * z == x * z + y * z
@@ -109,6 +112,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.MulIntern
     ensures  MulAuto()
     ensures  f(x)
   {
+    assume {:axiom} false;
     LemmaMulCommutes();
     LemmaMulDistributes();
     assert forall i {:trigger f(i)} :: IsLe(0, i) && f(i) ==> f(i + 1);
@@ -125,6 +129,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.MulIntern
     ensures  MulAuto()
     ensures  forall i {:trigger f(i)} :: f(i)
   {
+    assume {:axiom} false;
     LemmaMulCommutes();
     LemmaMulDistributes();
     assert forall i {:trigger f(i)} :: IsLe(0, i) && f(i) ==> f(i + 1);

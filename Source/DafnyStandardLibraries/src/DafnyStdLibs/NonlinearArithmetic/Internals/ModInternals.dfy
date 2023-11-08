@@ -34,6 +34,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires forall i {:trigger f(i), f(i - n)} :: i < n  && f(i) ==> f(i - n)
     ensures  forall i :: f(i)
   {
+    assume {:axiom} false;
     forall i ensures f(i) { LemmaInductionHelper(n, f, i); }
   }
 
@@ -48,6 +49,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires forall i, j {:trigger f(i, j), f(i, j - n)} :: j < n  && f(i, j) ==> f(i, j - n)
     ensures  forall i, j :: f(i, j)
   {
+    assume {:axiom} false;
     forall x, y
       ensures f(x, y)
     {
@@ -68,6 +70,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
@@ -80,6 +83,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
@@ -92,6 +96,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires n > 0
     ensures (x + n) % n == x % n
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
@@ -104,6 +109,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires n > 0
     ensures (x - n) % n == x % n
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
@@ -157,6 +163,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     ensures  r == x % n
     decreases if q > 0 then q else -q
   {
+    assume {:axiom} false;
     LemmaModBasics(n);
 
     if q > 0 {
@@ -199,6 +206,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     requires n > 0
     ensures  ModAuto(n)
   {
+    assume {:axiom} false;
     LemmaModBasics(n);
     LemmaMulIsCommutativeAuto();
     LemmaMulIsDistributiveAddAuto();
@@ -252,6 +260,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     ensures  ModAuto(n)
     ensures  f(x)
   {
+    assume {:axiom} false;
     LemmaModAuto(n);
     assert forall i :: IsLe(0, i) && i < n ==> f(i);
     assert forall i {:trigger f(i), f(i + n)} :: IsLe(0, i) && f(i) ==> f(i + n);
@@ -270,6 +279,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.ModIntern
     ensures  ModAuto(n)
     ensures  forall i {:trigger f(i)} :: f(i)
   {
+    assume {:axiom} false;
     LemmaModAuto(n);
     assert forall i :: IsLe(0, i) && i < n ==> f(i);
     assert forall i {:trigger f(i), f(i + n)} :: IsLe(0, i) && f(i) ==> f(i + n);

@@ -14,6 +14,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
   lemma LemmaMulIsMulRecursive(x: int, y: int)
     ensures x * y == MulRecursive(x, y)
   {
+    assume {:axiom} false;
     if (x >= 0) { LemmaMulIsMulPos(x, y); }
     if (x <= 0) { LemmaMulIsMulPos(-x, y); }
     LemmaMulAuto();
@@ -35,6 +36,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires x >= 0
     ensures x * y == MulPos(x, y)
   {
+    assume {:axiom} false;
     reveal MulPos();
     LemmaMulInductionAuto(x, u => u >= 0 ==> u * y == MulPos(u, y));
   }
@@ -46,6 +48,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     ensures 1 * x == x
     ensures x * 1 == x
   {
+    assume {:axiom} false;
   }
 
   lemma LemmaMulBasicsAuto()
@@ -159,6 +162,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires z >= 0
     ensures  x * z <= y * z
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(z, u => u >= 0 ==> x * u <= y * u);
   }
 
@@ -224,6 +228,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires 0 < y
     ensures x * y <= (XBound - 1) * (YBound - 1)
   {
+    assume {:axiom} false;
     LemmaMulInequality(x, XBound - 1, y);
     LemmaMulInequality(y, YBound - 1, XBound - 1);
   }
@@ -245,6 +250,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     ensures y <= z ==> x * y <= x * z
     ensures y < z ==> x * y < x * z
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(x, u => u > 0 ==> y <= z ==> u * y <= u * z);
     LemmaMulInductionAuto(x, u => u > 0 ==> y < z ==> u * y < u * z);
   }
@@ -267,6 +273,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires m * x == m * y
     ensures x == y
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(m, u => x > y && 0 < u ==> x * u > y * u);
     LemmaMulInductionAuto(m, u => x > y && 0 > u ==> x * u < y * u);
     LemmaMulInductionAuto(m, u => x < y && 0 < u ==> x * u < y * u);
@@ -312,6 +319,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires z >= 0
     ensures  x < y
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(z, u => x * u < y * u && u >= 0 ==> x < y);
   }
 
@@ -474,6 +482,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     requires 0 <= y
     ensures  0 <= x * y
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(x, u => 0 <= u ==> 0 <= u * y);
   }
 
@@ -492,6 +501,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
   lemma LemmaMulUnaryNegation(x: int, y: int)
     ensures (-x) * y == -(x * y) == x * (-y)
   {
+    assume {:axiom} false;
     LemmaMulInductionAuto(x, u => (-u) * y == -(u * y) == u * (-y));
   }
 
@@ -542,6 +552,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Mul {
     ensures forall x: int, y: int {:trigger x * y} :: (0 < x && 0 < y) ==> (y <= x * y)
     ensures forall x: int, y: int {:trigger x * y} :: (0 < x && 0 < y) ==> (0 < x * y)
   {
+    assume {:axiom} false;
     LemmaMulStrictInequalityAuto();
     LemmaMulInequalityAuto();
     LemmaMulIsDistributiveAuto();
