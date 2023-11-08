@@ -214,7 +214,7 @@ May slow down verification slightly.
 May produce spurious warnings.") {
     IsHidden = true
   };
-  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
+  public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
     "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
   };
@@ -222,7 +222,7 @@ May produce spurious warnings.") {
     "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
     IsHidden = true
   };
-  public static readonly Option<string> ExecutionCoverageReport = new("--test-coverage-report",
+  public static readonly Option<string> ExecutionCoverageReport = new("--coverage-report",
     "Emit execution coverage report to a given directory.") {
     ArgumentHelpName = "directory"
   };

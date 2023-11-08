@@ -1512,12 +1512,12 @@ included in the proof.
 These options can be specified in `dfyconfig.toml`, and this is typically the most convenient way to use them with the IDE.
 
 More detailed information is available using either the `--log-format
-text` or `--coverage-report` option to `dafny verify`. The former will
+text` or `--verification-coverage-report` option to `dafny verify`. The former will
 include a list of proof dependencies (including source location and
 description) alongside every assertion batch in the generated log
 whenever one of the two warning options above is also included. The
 latter will produce a highlighted HTML version of your source code, in
-the same format used by `dafny generate-tests --coverage-report`,
+the same format used by `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
