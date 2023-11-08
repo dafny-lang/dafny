@@ -51,7 +51,7 @@ public class Compilation : IDisposable {
     Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules = new();
 
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
-  private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, ImplementationState>> implementationsPerVerifiable = new();
+  private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, IImplementationTask>> implementationsPerVerifiable = new();
 
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
@@ -241,7 +241,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementations = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
+      var implementationTasksByName = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
         var tasksForVerifiable =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
@@ -249,75 +249,19 @@ public class Compilation : IDisposable {
         updated = true;
         return tasksForVerifiable.ToDictionary(
           t => GetImplementationName(t.Implementation),
-          t => new ImplementationState(t, PublishedVerificationStatus.Stale, Array.Empty<DafnyDiagnostic>(), false));
+          t => t);
       });
       if (updated) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          implementationsPerVerifiable[canVerify].Values.Select(s => s.Task).ToList()));
+          implementationsPerVerifiable[canVerify].Values.ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        var tasks = implementations.Values.Select(t => t.Task).ToList();
-
-        foreach (var task in tasks) {
-          var statusUpdates = task.TryRun();
-          if (statusUpdates == null) {
-            if (task.CacheStatus is Completed completedCache) {
-              foreach (var result in completedCache.Result.VCResults) {
-                updates.OnNext(new BoogieUpdate(canVerify,
-                  task,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                  new BatchCompleted(null /* unused */, result)));
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-              }
-
-              updates.OnNext(new BoogieUpdate(canVerify,
-                task,
-                completedCache));
-            }
-
-            StatusUpdateHandlerFinally();
-            return;
-          }
-
-          var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-          logger.LogDebug(
-            $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
-
-          statusUpdates.Subscribe(
-            update => {
-              try {
-                HandleStatusUpdate(canVerify, task, update);
-              } catch (Exception e) {
-                logger.LogError(e, "Caught exception in statusUpdates OnNext.");
-              }
-            },
-            e => {
-              if (e is not OperationCanceledException) {
-                logger.LogError(e, $"Caught error in statusUpdates observable.");
-              }
-
-              StatusUpdateHandlerFinally();
-            },
-            StatusUpdateHandlerFinally
-          );
-        }
-
-        void StatusUpdateHandlerFinally() {
-          try {
-            var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-            logger.LogDebug(
-              $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
-              $"startingCompilation.version {Input.Version}.");
-            if (remainingJobs == 0) {
-              MarkVerificationFinished();
-            }
-          } catch (Exception e) {
-            logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
-          }
+        foreach (var task in implementationTasksByName.Values) {
+          VerifyTask(canVerify, task);
         }
       }
 
@@ -328,14 +272,82 @@ public class Compilation : IDisposable {
     }
   }
 
+  private void VerifyTask(ICanVerify canVerify, IImplementationTask task)
+  {
+    var statusUpdates = task.TryRun();
+    if (statusUpdates == null)
+    {
+      if (task.CacheStatus is Completed completedCache)
+      {
+        foreach (var result in completedCache.Result.VCResults)
+        {
+          updates.OnNext(new BoogieUpdate(canVerify,
+            task,
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            new BatchCompleted(null /* unused */, result)));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        }
+
+        updates.OnNext(new BoogieUpdate(canVerify,
+          task,
+          completedCache));
+      }
+
+      StatusUpdateHandlerFinally();
+      return;
+    }
+
+    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
+    logger.LogDebug(
+      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
+
+    statusUpdates.Subscribe(
+      update =>
+      {
+        try
+        {
+          HandleStatusUpdate(canVerify, task, update);
+        }
+        catch (Exception e)
+        {
+          logger.LogError(e, "Caught exception in statusUpdates OnNext.");
+        }
+      },
+      e =>
+      {
+        if (e is not OperationCanceledException)
+        {
+          logger.LogError(e, $"Caught error in statusUpdates observable.");
+        }
+
+        StatusUpdateHandlerFinally();
+      },
+      StatusUpdateHandlerFinally
+    );
+  }
+
+  private void StatusUpdateHandlerFinally() {
+    try {
+      var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
+      logger.LogDebug(
+        $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
+        $"startingCompilation.version {Input.Version}.");
+      if (remainingJobs == 0) {
+        MarkVerificationFinished();
+      }
+    } catch (Exception e) {
+      logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
+    }
+  }
+
   public async Task Cancel(FilePosition filePosition) {
     var resolution = await Resolution;
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = implementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName!.Values : Enumerable.Empty<ImplementationState>();
+        ? implementationsPerName!.Values : Enumerable.Empty<IImplementationTask>();
       foreach (var view in implementations) {
-        view.Task.Cancel();
+        view.Cancel();
       }
       verifyingOrVerifiedSymbols.TryRemove(canVerify, out _);
     }

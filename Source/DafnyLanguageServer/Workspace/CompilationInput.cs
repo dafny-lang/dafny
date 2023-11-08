@@ -60,8 +60,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
   }
 
-  public record ImplementationState(IImplementationTask Task, PublishedVerificationStatus Status,
-    IReadOnlyList<DafnyDiagnostic> Diagnostics, bool HitErrorLimit);
-
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }
