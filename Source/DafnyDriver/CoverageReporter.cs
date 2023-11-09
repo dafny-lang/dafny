@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class CoverageReporter {
 
