@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Tomlyn.Model;
 
-namespace DafnyCore.Generic; 
+namespace DafnyCore.Generic;
 
 public static class TomlUtil {
 

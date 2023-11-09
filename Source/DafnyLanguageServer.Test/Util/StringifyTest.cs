@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class StringifyTest {
 
