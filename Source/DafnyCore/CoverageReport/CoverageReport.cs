@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class CoverageReport {
 
