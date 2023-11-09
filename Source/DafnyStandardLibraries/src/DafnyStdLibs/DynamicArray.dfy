@@ -2,7 +2,7 @@ module DafnyStdLibs.DynamicArray {
   import opened BoundedInts
   import opened Wrappers
 
-  export 
+  export
     reveals DynamicArray
     provides
       BoundedInts,
@@ -11,10 +11,10 @@ module DafnyStdLibs.DynamicArray {
       DynamicArray.Repr,
       DynamicArray.Valid?,
       DynamicArray.size,
-      DynamicArray.At, 
-      DynamicArray.Put, 
-      DynamicArray.Push, 
-      DynamicArray.PushFast, 
+      DynamicArray.At,
+      DynamicArray.Put,
+      DynamicArray.Push,
+      DynamicArray.PushFast,
       DynamicArray.PopFast,
       DynamicArray.Ensure
 
@@ -111,7 +111,9 @@ module DafnyStdLibs.DynamicArray {
       {
         newCapacity := DefaultNewCapacity(newCapacity);
       }
-      Realloc(newCapacity);
+      if (newCapacity > capacity) {
+        Realloc(newCapacity);
+      }
     }
 
     /**
