@@ -2,7 +2,7 @@
 
 This project contains the source for the standard libraries
 that are packaged together with the Dafny distribution.
-The libraries in this directory are available automatically 
+The libraries in this directory are available automatically
 when you provide the `--standard-libraries` option.
 No need to `include` any files! For example:
 
@@ -42,6 +42,7 @@ The sections below describe how to use each library:
 - [DafnyStdLibs.Wrappers](src/DafnyStdLibs/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 - [DafnyStdLibs.Relations](src/DafnyStdLibs/Relations) -- properties of relations
 - [DafnyStdLibs.Functions](src/DafnyStdLibs/Functions) -- properties of functions
+- [DafnyStdLibs.Collections](src/DafnyStdLibs/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
 
 We are in the process of importing many more libraries,
 in particular from the existing [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries) GitHub repository.
