@@ -8,7 +8,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Performance;
 
 [Collection("Sequential Collection")]  // Seems to deadlock when run in parallel
 public class ThreadUsageTest : ClientBasedLanguageServerTest {
