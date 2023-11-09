@@ -539,9 +539,6 @@ module DafnyStdLibs.Base64 {
       EncodeUnpadded(DecodeRecursively(fromCharsToIndicesS));
     == { reveal EncodeUnpadded(); }
       assert |fromCharsToIndicesS| % 4 == 0;
-      /*assert |DecodeRecursively(fromCharsToIndicesS)| % 3 == 0 by {
-        DecodeRecursivelyBounds(fromCharsToIndicesS);
-      }*/
       FromIndicesToChars(EncodeRecursively(DecodeRecursively(fromCharsToIndicesS)));
     == { DecodeEncodeRecursively(fromCharsToIndicesS); }
       FromIndicesToChars(fromCharsToIndicesS);
@@ -820,47 +817,6 @@ module DafnyStdLibs.Base64 {
     else
       DecodeUnpadded(s)
   }
-
-  /*
-  opaque function DecodeValidLength(s: seq<char>): int
-    requires s != []
-    requires |s| % 4 == 0
-  {
-    var finalBlockStart := |s| - 4;
-    var sSuffix := s[finalBlockStart..];
-    if Is1Padding(sSuffix) then
-      ((|s| - 4) / 4 * 3) + 2
-    else if Is2Padding(sSuffix) then
-      ((|s| - 4) / 4 * 3) + 1
-    else
-      |s| / 4 * 3
-  }
-
-  lemma DecodeValidHasExpectedLength(s: seq<char>)
-    requires s != []
-    requires |s| % 4 == 0
-    requires IsBase64String(s)
-    ensures |DecodeValid(s)| == DecodeValidLength(s)
-  {
-    reveal DecodeValidLength();
-    reveal DecodeValid();
-    reveal IsBase64String();
-    var finalBlockStart := |s| - 4;
-    var sPrefix, sSuffix := s[..finalBlockStart], s[finalBlockStart..];
-    var b := DecodeValid(s);
-    AboutDecodeValid(s, b);
-    if Is1Padding (sSuffix) {
-      DecodeUnpaddedBounds(sPrefix);
-      assert |b| == ((|s| - 4) / 4 * 3) + 2;
-    } else if Is2Padding(sSuffix) {
-      DecodeUnpaddedBounds(sPrefix);
-      assert |b| == ((|s| - 4) / 4 * 3) + 1;
-    } else {
-      DecodeUnpaddedBounds(s);
-      assert |b| == |s| / 4 * 3;
-    }
-  }
-  */
 
   lemma AboutDecodeValid(s: seq<char>, b: seq<bv8>)
     requires IsBase64String(s) && b == DecodeValid(s)
