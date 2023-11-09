@@ -28,7 +28,8 @@ public class LibraryBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-    Feature.LegacyCLI
+    Feature.LegacyCLI,
+    Feature.RuntimeCoverageReport
   };
 
   // Necessary since Compiler is null
