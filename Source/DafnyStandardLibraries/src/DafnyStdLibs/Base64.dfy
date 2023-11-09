@@ -233,12 +233,43 @@ module DafnyStdLibs.Base64 {
     IndexSeqToBV24ToIndexSeq(s);
   }
 
-  opaque function DecodeRecursively(s: seq<index>): (b: seq<bv8>)
+  opaque function {:vcs_split_on_every_assert} DecodeRecursively(s: seq<index>): (b: seq<bv8>)
     requires |s| % 4 == 0
     decreases |s|
   {
     if |s| == 0 then []
     else DecodeBlock(s[..4]) + DecodeRecursively(s[4..])
+  } by method {
+    var resultLength := |s|/4 * 3;
+    var result := new bv8[resultLength](i => 0);
+    var i := |s|;
+    var j := resultLength;
+
+    reveal DecodeRecursively();
+    while i > 0
+      invariant i % 4 == 0
+      invariant 0 <= i <= |s|
+      invariant i * 3 == j * 4
+      invariant 0 <= j <= resultLength
+      invariant result[j..] == DecodeRecursively(s[i..])
+    {
+      i := i - 4;
+      j := j - 3;
+      var block := DecodeBlock(s[i..i+4]);
+      result[j] := block[0];
+      result[j+1] := block[1];
+      result[j+2] := block[2];
+      //assert result[j+3..] == DecodeRecursively(s[i+4..]);
+      assert s[i..][..4] == s[i..i+4];
+      assert s[i..][4..] == s[i+4..];
+      assert result[j..j+3] == block;
+      calc {
+        DecodeBlock(s[i..i+4]) + DecodeRecursively(s[i+4..]);
+        DecodeBlock(s[i..][..4]) + DecodeRecursively(s[i..][4..]);
+        DecodeRecursively(s[i..]);
+      }
+    }
+    b := result[..];
   }
 
   lemma DecodeRecursivelyBounds(s: seq<index>)
@@ -265,11 +296,42 @@ module DafnyStdLibs.Base64 {
     }
   }
 
-  opaque function EncodeRecursively(b: seq<bv8>): (s: seq<index>)
+  opaque function {:vcs_split_on_every_assert} EncodeRecursively(b: seq<bv8>): (s: seq<index>)
     requires |b| % 3 == 0
   {
     if |b| == 0 then []
     else EncodeBlock(b[..3]) + EncodeRecursively(b[3..])
+  } by method {
+    var resultLength := |b|/3 * 4;
+    var result := new index[resultLength](i => 0);
+    var i := |b|;
+    var j := resultLength;
+
+    reveal EncodeRecursively();
+    while i > 0
+      invariant i % 3 == 0
+      invariant 0 <= i <= |b|
+      invariant i * 4 == j * 3
+      invariant 0 <= j <= resultLength
+      invariant result[j..] == EncodeRecursively(b[i..])
+    {
+      i := i - 3;
+      j := j - 4;
+      var block := EncodeBlock(b[i..i+3]);
+      result[j] := block[0];
+      result[j+1] := block[1];
+      result[j+2] := block[2];
+      result[j+3] := block[3];
+      assert b[i..][..3] == b[i..i+3];
+      assert b[i..][3..] == b[i+3..];
+      assert result[j..j+4] == block;
+      calc {
+        EncodeBlock(b[i..i+3]) + EncodeRecursively(b[i+3..]);
+        EncodeBlock(b[i..][..3]) + EncodeRecursively(b[i..][3..]);
+        EncodeRecursively(b[i..]);
+      }
+    }
+    s := result[..];
   }
 
   lemma EncodeRecursivelyBounds(b: seq<bv8>)
