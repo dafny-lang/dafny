@@ -492,8 +492,8 @@ namespace Microsoft.Dafny {
       foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
         options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
       }
-      
-      if (options.Get(CommonOptionBag.ExecutionCoverageReport) != null 
+
+      if (options.Get(CommonOptionBag.ExecutionCoverageReport) != null
           && options.Backend.UnsupportedFeatures.Contains(Feature.RuntimeCoverageReport)) {
         throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.RuntimeCoverageReport);
       }

@@ -31,7 +31,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ArraysWithMoreThan16Dims,
       Feature.ArrowsWithMoreThan16Arguments,
       Feature.RuntimeCoverageReport,
-      Feature.RuntimeCoverageReport
     };
 
     const string DafnySetClass = "dafny.DafnySet";
