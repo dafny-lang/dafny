@@ -54,8 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
     }
 
-    private static bool FinishedVerifyingUri(IdeState s, Uri uri)
-    {
+    private static bool FinishedVerifyingUri(IdeState s, Uri uri) {
       return s.Status == CompilationStatus.ResolutionSucceeded &&
              s.VerificationResults[uri].Values.All(r =>
                r.PreparationProgress == VerificationPreparationState.Done &&

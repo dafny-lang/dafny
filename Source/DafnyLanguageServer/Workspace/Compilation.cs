@@ -272,15 +272,11 @@ public class Compilation : IDisposable {
     }
   }
 
-  private void VerifyTask(ICanVerify canVerify, IImplementationTask task)
-  {
+  private void VerifyTask(ICanVerify canVerify, IImplementationTask task) {
     var statusUpdates = task.TryRun();
-    if (statusUpdates == null)
-    {
-      if (task.CacheStatus is Completed completedCache)
-      {
-        foreach (var result in completedCache.Result.VCResults)
-        {
+    if (statusUpdates == null) {
+      if (task.CacheStatus is Completed completedCache) {
+        foreach (var result in completedCache.Result.VCResults) {
           updates.OnNext(new BoogieUpdate(canVerify,
             task,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -302,21 +298,15 @@ public class Compilation : IDisposable {
       $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
 
     statusUpdates.Subscribe(
-      update =>
-      {
-        try
-        {
+      update => {
+        try {
           HandleStatusUpdate(canVerify, task, update);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
           logger.LogError(e, "Caught exception in statusUpdates OnNext.");
         }
       },
-      e =>
-      {
-        if (e is not OperationCanceledException)
-        {
+      e => {
+        if (e is not OperationCanceledException) {
           logger.LogError(e, $"Caught error in statusUpdates observable.");
         }
 

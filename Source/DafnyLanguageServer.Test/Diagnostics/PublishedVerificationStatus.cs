@@ -1,7 +1,7 @@
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class PublishedVerificationStatusTests {
   [Fact]
