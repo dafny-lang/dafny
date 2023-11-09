@@ -1439,7 +1439,9 @@ module DafnyStdLibs.Base64 {
     EncodeBV(UInt8sToBVs(u))
   }
 
-  opaque function Decode(s: seq<char>): Result<seq<uint8>, string> {
+  opaque function Decode(s: seq<char>): (b: Result<seq<uint8>, string>)
+    ensures IsBase64String(s) ==> b.Success? // Hard to use without this
+  {
     if IsBase64String(s)
     then
       var b := DecodeValid(s);
@@ -1466,7 +1468,7 @@ module DafnyStdLibs.Base64 {
 
   lemma DecodeEncode(s: seq<char>)
     requires IsBase64String(s)
-    ensures (reveal Decode(); Encode(Decode(s).value) == s)
+    ensures Encode(Decode(s).value) == s
   {
     var b := DecodeValid(s);
     var u := BVsToUInt8s(b);
