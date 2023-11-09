@@ -8,7 +8,7 @@ module DynamicArrayExamples {
   method {:test} InitialCapacity() {
     var arr := new DynamicArray<int>(0, 101);
     for i: int := 0 to 100
-      invariant fresh(arr.data)
+      invariant fresh(arr.Repr)
       invariant arr.Valid?()
       invariant arr.size as int == i
       invariant arr.capacity == 101
@@ -25,7 +25,7 @@ module DynamicArrayExamples {
     assert arr.capacity >= 101;
     assert arr.size == 0;
     for i: int := 0 to 100
-      invariant fresh(arr.data)
+      invariant fresh(arr.Repr)
       invariant arr.Valid?()
       invariant arr.size as int == i
       invariant arr.capacity >= 101
@@ -38,7 +38,7 @@ module DynamicArrayExamples {
     var arr := new DynamicArray<int>(0);
     for i: int := 0 to 1000
       invariant arr.Valid?()
-      invariant fresh(arr.data)
+      invariant fresh(arr.Repr)
       invariant arr.size as int == i
     {
       assert arr.size as int == i;
@@ -52,6 +52,8 @@ module DynamicArrayExamples {
     expect arr.At(30) == 31;
 
     arr.PopFast();
+    arr.PopFast();
     arr.PushFast(3);
+    arr.PushFast(4);
   }
 }
