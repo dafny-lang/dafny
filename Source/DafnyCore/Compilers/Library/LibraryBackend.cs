@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using DafnyCore;
 
-namespace Microsoft.Dafny.Compilers; 
+namespace Microsoft.Dafny.Compilers;
 
 public class LibraryBackend : ExecutableBackend {
   public LibraryBackend(DafnyOptions options) : base(options) {
