@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class NonUniformTestCommand : ILitCommand {
   private NonUniformTestCommand(string reason) {
