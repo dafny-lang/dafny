@@ -1,4 +1,5 @@
-
+include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/BoundedInts.dfy"
+include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/DynamicArray.dfy"
 
 module DynamicArrayExamples {
   import opened DafnyStdLibs.DynamicArray
