@@ -32,6 +32,20 @@ method {:test} TestMyMap() {
   expect greeting == "Hello\nDafny\n";
 }
 
+method {:test} TestGetGreetingSuccess() {
+  var m := new MyMap<string, string>();
+  m.Put("message", "Hello");
+  m.Put("name", "Dafny");
+  var greeting := GetGreeting(m);
+  expect greeting == Some("Hello Dafny");
+}
+
+method {:test} TestGetGreetingFailure() {
+  var m := new MyMap<string, string>();
+  var greeting := GetGreeting(m);
+  expect greeting == None;
+}
+
 method Greet(m: MyMap<string, string>) returns (greeting: string) {
   var o: Option<string> := m.Get("message");
   if o.Some? {
