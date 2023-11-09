@@ -30,13 +30,13 @@ module Base64Examples {
     CheckEncodeDecode(medUints, medBytes);
   }
 
-  // TODO: even this size is too big to practically test for Go
+  // TODO: even this size is too big to practically test for Go and JS
   /*
   method {:test} TestRoundTripBig() {
     // Larger sizes are unfortunately pretty slow. An
     // optimized implementation seems worthwhile.
-    var bigUints := seq(43853, _ => 76);
-    var bigBytes := seq(43853, _ => 45);
+    var bigUints := seq(438530, _ => 76);
+    var bigBytes := seq(438530, _ => 45);
     CheckEncodeDecode(bigUints, bigBytes);
   }
   */
