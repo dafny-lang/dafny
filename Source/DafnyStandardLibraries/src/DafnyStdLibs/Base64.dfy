@@ -8,6 +8,36 @@ module DafnyStdLibs.Base64 {
   import opened Wrappers
   import opened BoundedInts
 
+  export
+    reveals
+      // Functions mentioned in contracts of functions provided below
+      IsBase64Char,
+      index,
+      CharToIndex,
+      IndexToChar,
+      IsBase64String,
+      IsUnpaddedBase64String,
+      Is1Padding,
+      Is2Padding
+    provides
+      // uint8-based API
+      Encode,
+      Decode,
+      // bv8-based API
+      EncodeBV,
+      DecodeBV,
+      // Lemmas
+      EncodeDecode,
+      DecodeEncode,
+      EncodeDecodeBV,
+      DecodeEncodeBV,
+      // Dependencies
+      BoundedInts,
+      Wrappers
+
+  export Internals
+    reveals *
+
   // The maximum index for Base64 is less than 64 (0x40)
   type index = bv6
 
