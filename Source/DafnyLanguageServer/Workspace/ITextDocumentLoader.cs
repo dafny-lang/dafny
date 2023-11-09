@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation, CancellationToken cancellationToken);
 
-    Task<Resolution> ResolveAsync(CompilationInput input,
+    Task<ResolutionResult> ResolveAsync(CompilationInput input,
       Program program,
       CancellationToken cancellationToken);
   }

@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine boogieEngine,
-      Resolution resolution,
+      ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
       var engine = boogieEngine;

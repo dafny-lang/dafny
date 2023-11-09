@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </summary>
   public interface IProgramVerifier {
     Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      Resolution resolution,
+      ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken);
   }

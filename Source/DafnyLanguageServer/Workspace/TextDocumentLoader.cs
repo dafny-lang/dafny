@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return program;
     }
 
-    public async Task<Resolution> ResolveAsync(CompilationInput input,
+    public async Task<ResolutionResult> ResolveAsync(CompilationInput input,
       Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning restore CS1998
     }
 
-    private Resolution ResolveInternal(CompilationInput input, Program program, CancellationToken cancellationToken) {
+    private ResolutionResult ResolveInternal(CompilationInput input, Program program, CancellationToken cancellationToken) {
 
       var errorReporter = (ObservableErrorReporter)program.Reporter;
       if (errorReporter.HasErrors) {
@@ -110,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                                                               v.ShouldVerify).ToList();
       }
 
-      return new Resolution(
+      return new ResolutionResult(
         program,
         newSymbolTable,
         legacySymbolTable,

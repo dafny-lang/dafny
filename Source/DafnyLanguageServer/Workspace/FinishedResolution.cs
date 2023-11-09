@@ -44,8 +44,7 @@ record FinishedResolution(
       StaticDiagnostics = Diagnostics,
       Status = status,
       ResolvedProgram = ResolvedProgram,
-      SymbolTable = SymbolTable
-                    ?? previousState.SymbolTable, // TODO migration seems missing
+      SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = GhostRanges,
       VerificationResults = verificationResults,

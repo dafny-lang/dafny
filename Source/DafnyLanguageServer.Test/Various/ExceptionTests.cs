@@ -94,7 +94,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      Resolution resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
+      ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
 
       if (tests.CrashOnPrepareVerification) {
         throw new TestException("testing crash");
@@ -121,7 +121,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.ParseAsync(reporter, compilation, cancellationToken);
     }
 
-    public Task<Resolution> ResolveAsync(CompilationInput input,
+    public Task<ResolutionResult> ResolveAsync(CompilationInput input,
       Program program,
       CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {

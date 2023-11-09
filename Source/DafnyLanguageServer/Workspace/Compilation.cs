@@ -62,11 +62,11 @@ public class Compilation : IDisposable {
   public IObservable<ICompilationEvent> Updates => updates;
 
   private Program? programAfterParsing;
-  private Program? compiledProgram;
+  private Program? transformedProgram;
   private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
 
   public Task<Program> Program { get; }
-  public Task<Resolution> Resolution { get; }
+  public Task<ResolutionResult> Resolution { get; }
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -105,10 +105,10 @@ public class Compilation : IDisposable {
       errorReporter.Updates.Subscribe(updates);
       staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
         staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
-      compiledProgram = await documentLoader.ParseAsync(errorReporter, Input, cancellationSource.Token);
+      transformedProgram = await documentLoader.ParseAsync(errorReporter, Input, cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
-      programAfterParsing = new Program(cloner, compiledProgram);
+      programAfterParsing = new Program(cloner, transformedProgram);
 
       var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
         kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
@@ -125,15 +125,15 @@ public class Compilation : IDisposable {
     }
   }
 
-  private async Task<Resolution> ResolveAsync() {
+  private async Task<ResolutionResult> ResolveAsync() {
     try {
       await Program;
-      var resolution = await documentLoader.ResolveAsync(Input, compiledProgram!, cancellationSource.Token);
+      var resolution = await documentLoader.ResolveAsync(Input, transformedProgram!, cancellationSource.Token);
 
       updates.OnNext(new FinishedResolution(
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
           kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
-        compiledProgram!,
+        transformedProgram!,
         resolution.SymbolTable,
         resolution.SignatureAndCompletionTable,
         resolution.GhostRanges,
@@ -209,7 +209,7 @@ public class Compilation : IDisposable {
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    Resolution resolution) {
+    ResolutionResult resolution) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -390,8 +390,8 @@ public class Compilation : IDisposable {
       return;
     }
 
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, compiledProgram!.Reporter,
-      compiledProgram.ProofDependencyManager,
+    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, transformedProgram!.Reporter,
+      transformedProgram.ProofDependencyManager,
       new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
       DafnyConsolePrinter.DistillVerificationResult(verificationResult));
   }
@@ -452,9 +452,8 @@ public class Compilation : IDisposable {
     while (lastToken.Next != null) {
       lastToken = lastToken.Next;
     }
-    // TODO: https://github.com/dafny-lang/dafny/issues/3415
+    // TODO: end position doesn't take into account trailing trivia: https://github.com/dafny-lang/dafny/issues/3415
     return new TextEditContainer(new TextEdit[] {
-      // TODO end position doesn't take into account trailing trivia
       new() {NewText = result, Range = new Range(new Position(0,0), lastToken.GetLspPosition())}
     });
 
