@@ -183,10 +183,10 @@ public enum Feature {
   [FeatureDescription("Separate compilation", "sec-compilation")]
   SeparateCompilation,
 
-  [FeatureDescription("All built-in types in runtime library", "#sec-compilation-built-ins")]
+  [FeatureDescription("All built-in types in runtime library", "sec-compilation-built-ins")]
   BuiltinsInRuntime,
 
-  [FeatureDescription("Execution coverage report", "#sec-dafny-test")]
+  [FeatureDescription("Execution coverage report", "sec-dafny-test")]
   RuntimeCoverageReport
 }
 
