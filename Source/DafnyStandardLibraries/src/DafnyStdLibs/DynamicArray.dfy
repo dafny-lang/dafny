@@ -1,6 +1,3 @@
-include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/BoundedInts.dfy"
-include "/Users/rwillems/SourceCode/dafny2/Source/DafnyStandardLibraries/src/DafnyStdLibs/Wrappers.dfy"
-
 module DafnyStdLibs.DynamicArray {
   import opened BoundedInts
   import opened Wrappers
