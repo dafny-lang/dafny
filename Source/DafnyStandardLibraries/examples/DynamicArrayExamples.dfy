@@ -20,8 +20,7 @@ module DynamicArrayExamples {
   method {:test} Ensure() {
     var arr := new DynamicArray<int>(0);
     assert arr.size == 0;
-    var s := arr.Ensure(101 as uint32);
-    assert s;
+    arr.Ensure(101);
     assert arr.capacity >= 101;
     assert arr.size == 0;
     for i: int := 0 to 100
@@ -41,10 +40,7 @@ module DynamicArrayExamples {
       invariant fresh(arr.Repr)
       invariant arr.size as int == i
     {
-      assert arr.size as int == i;
-      var r := arr.Push(i);
-      assert r;
-      assert arr.size as int == i + 1;
+      arr.Push(i);
     }
 
     expect arr.At(30) == 30;
