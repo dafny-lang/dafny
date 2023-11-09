@@ -15,7 +15,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class CachingTest : ClientBasedLanguageServerTest {
   private InMemorySink sink;

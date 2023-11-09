@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 static class CoverageReportCommand {
 

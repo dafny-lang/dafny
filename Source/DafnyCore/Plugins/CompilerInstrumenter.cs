@@ -1,6 +1,6 @@
 using Microsoft.Dafny.Compilers;
 
-namespace Microsoft.Dafny.Plugins; 
+namespace Microsoft.Dafny.Plugins;
 
 /// <summary>
 /// A hook for plugins to customize some of the code generation of other IExecutableBackends.

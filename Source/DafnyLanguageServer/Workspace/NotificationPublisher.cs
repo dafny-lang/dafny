@@ -245,11 +245,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var newParams = state.GhostRanges;
       var previousParams = previousState.GhostRanges;
-      foreach (var (uri, current) in newParams) {
-        if (previousParams.TryGetValue(uri, out var previous)) {
-          if (previous.SequenceEqual(current)) {
-            continue;
-          }
+      var uris = previousParams.Keys.Concat(newParams.Keys);
+      foreach (var uri in uris) {
+        var previous = previousParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        var current = newParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        if (previous.SequenceEqual(current)) {
+          continue;
         }
         languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
           Uri = uri,
