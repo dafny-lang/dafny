@@ -15,8 +15,7 @@ module DafnyStdLibs.DynamicArray {
       DynamicArray.Put,
       DynamicArray.Push,
       DynamicArray.PushFast,
-      DynamicArray.PopFast,
-      DynamicArray.Ensure
+      DynamicArray.PopFast
 
   /**
   The `DynamicArray` module and class define a data structure that has the same performance characteristics of an array, 
@@ -31,7 +30,6 @@ module DafnyStdLibs.DynamicArray {
     ghost var items: seq<A>
     ghost var Repr: set<object>
 
-    const defaultValue: A
     var size: nat
     var capacity: nat
     var data: array<A>
@@ -40,26 +38,22 @@ module DafnyStdLibs.DynamicArray {
       reads this, Repr
     {
       && Repr == {this, data}
-      && capacity != 0
       && data.Length == capacity as int
       && size <= capacity
       && size as int == |items|
       && items == data[..size]
     }
 
-    constructor(defaultValue: A, initialCapacity: nat := 8)
-      requires initialCapacity > 0
+    constructor()
       ensures size == 0
       ensures items == []
       ensures fresh(Repr)
       ensures Valid?()
-      ensures capacity == initialCapacity
     {
-      this.defaultValue := defaultValue;
       items := [];
       size := 0;
-      capacity := initialCapacity;
-      data := new A[initialCapacity](_ => defaultValue);
+      capacity := 0;
+      data := new A[0];
       Repr := {this, data};
     }
 
@@ -89,31 +83,6 @@ module DafnyStdLibs.DynamicArray {
     {
       data[index] := element;
       items := items[index := element];
-    }
-
-    /**
-    Ensure that at least a reserved amount of elements can still be pushed onto the array in constant time
-
-    Returns false only if it was not at all possible to provide the ensurance.
-     */
-    method Ensure(reserved: nat)
-      requires Valid?()
-      ensures Valid?()
-      modifies `capacity, Repr
-      ensures size == old(size)
-      ensures items == old(items)
-      ensures fresh(Repr - old(Repr))
-      ensures reserved <= capacity - size
-    {
-      var newCapacity := capacity;
-      while reserved > newCapacity - size
-        invariant newCapacity >= capacity
-      {
-        newCapacity := DefaultNewCapacity(newCapacity);
-      }
-      if (newCapacity > capacity) {
-        Realloc(newCapacity);
-      }
     }
 
     /**
@@ -167,12 +136,12 @@ module DafnyStdLibs.DynamicArray {
       ensures capacity >= old(capacity)
     {
       if size == capacity {
-        ReallocDefault();
+        ReallocDefault(element);
       }
       PushFast(element);
     }
 
-    method Realloc(newCapacity: nat)
+    method Realloc(defaultValue: A, newCapacity: nat)
       requires Valid?()
       requires newCapacity > capacity
       modifies `capacity, `data, `Repr, data
@@ -187,10 +156,11 @@ module DafnyStdLibs.DynamicArray {
     }
 
     function DefaultNewCapacity(capacity: nat): nat {
-      2 * capacity
+      if capacity == 0 then 8
+      else 2 * capacity
     }
 
-    method ReallocDefault()
+    method ReallocDefault(defaultValue: A)
       requires Valid?()
       modifies `capacity, `data, `Repr, data
       ensures Valid?()
@@ -198,7 +168,7 @@ module DafnyStdLibs.DynamicArray {
       ensures capacity == old(DefaultNewCapacity(capacity))
 
     {
-      Realloc(DefaultNewCapacity(capacity));
+      Realloc(defaultValue, DefaultNewCapacity(capacity));
     }
 
     method CopyFrom(newData: array<A>, count: nat)
