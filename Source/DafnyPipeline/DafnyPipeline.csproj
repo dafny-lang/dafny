@@ -32,20 +32,7 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-notarget.doo">
-      <LogicalName>DafnyStandardLibraries-notarget.doo</LogicalName>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-java.doo">
-      <LogicalName>DafnyStandardLibraries-java.doo</LogicalName>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-cs.doo">
-      <LogicalName>DafnyStandardLibraries-cs.doo</LogicalName>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-js.doo">
-      <LogicalName>DafnyStandardLibraries-js.doo</LogicalName>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\*.doo">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
