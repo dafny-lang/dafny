@@ -22,7 +22,7 @@ public class DafnyFile {
   [CanBeNull] public IToken Origin { get; }
 
   public DafnyFile(IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null, Func<TextReader> getContentOverride = null) {
+    DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null) {
     Uri = uri;
     Origin = origin;
     var filePath = uri.LocalPath;
@@ -37,7 +37,7 @@ public class DafnyFile {
       // cf. IncludeComparer.CompareTo
       CanonicalPath = Canonicalize(filePath).LocalPath;
     } else if (uri.Scheme == "stdin") {
-      getContentOverride = () => options.Input;
+      GetContent = () => options.Input;
       BaseName = "<stdin>";
       CanonicalPath = "<stdin>";
     } else if (uri.Scheme == "dllresource") {
@@ -49,10 +49,9 @@ public class DafnyFile {
     FilePath = CanonicalPath;
 
     var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
-    if (getContentOverride != null) {
+    if (GetContent != null) {
       IsPreverified = false;
       IsPrecompiled = false;
-      GetContent = getContentOverride;
     } else if (Extension == ".dfy" || Extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;

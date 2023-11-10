@@ -4,6 +4,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -86,10 +87,9 @@ namespace DafnyTestGeneration {
     public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
 
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var program = new ProgramParser().ParseFiles(uri.LocalPath,
-        new DafnyFile[] { new(OnDiskFileSystem.Instance, reporter.Options, uri, null,
-          () => new StringReader(source)) },
-        reporter, CancellationToken.None);
+        new DafnyFile[] { new(fs, reporter.Options, uri) }, reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;

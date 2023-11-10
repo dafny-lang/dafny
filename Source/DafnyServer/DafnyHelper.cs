@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
@@ -44,8 +45,9 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] {
-          new(OnDiskFileSystem.Instance, reporter.Options, uri, null, () => new StringReader(source))
+          new(fs, reporter.Options, uri)
         },
         reporter, CancellationToken.None);
 
