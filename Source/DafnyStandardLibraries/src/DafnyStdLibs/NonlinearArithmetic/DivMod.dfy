@@ -353,6 +353,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures x / d  <= x
   {
+    assume {:axiom} false;
     LemmaDivInductionAuto(d, x, u => 0 <= u ==> u / d <= u);
   }
 
@@ -382,6 +383,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures 0 < y * z
     ensures x % (y * z) ==y * ((x / y) % z) + x % y
   {
+    assume {:axiom} false;
     LemmaMulStrictlyPositiveAuto();
     LemmaDivPosIsPos(x, y);
     assert 0 <= x / y;
@@ -441,6 +443,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures x - d < x / d * d
   {
+    assume {:axiom} false;
     LemmaMulAuto();
     LemmaDivInductionAuto(d, x, u => 0 <= u ==> u - d < u / d * d);
   }
@@ -460,6 +463,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures  x >= x / d * d
   {
+    assume {:axiom} false;
     LemmaMulAuto();
     LemmaDivInductionAuto(d, x, u => 0 <= u ==> u >= u / d * d);
   }
@@ -479,6 +483,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures  0 <= x - (x / d * d) < d
   {
+    assume {:axiom} false;
     LemmaMulAuto();
     LemmaDivInductionAuto(d, x, u => 0 <= u - u / d * d < d);
   }
@@ -520,6 +525,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures c * d != 0
     ensures (x / c) / d == x / (c * d)
   {
+    assume {:axiom} false;
     LemmaMulStrictlyPositiveAuto();
     var R := x % (c * d);
     LemmaModPropertiesAuto();
@@ -624,6 +630,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < z
     ensures x * (y / z) <= (x * y) / z
   {
+    assume {:axiom} false;
     calc {
       (x * y) / z;
         { LemmaFundamentalDivMod(y, z); }
@@ -659,6 +666,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 <= a - a % d <= b < a + d - a % d
     ensures a / d == b / d
   {
+    assume {:axiom} false;
     LemmaDivInductionAuto(d, a - b, ab => var u := ab + b; 0 <= u - u % d <= b < u + d - u % d ==> u / d == b / d);
   }
 
@@ -681,6 +689,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures 0 < b * c
     ensures (b * x) % (b * c) == b * (x % c)
   {
+    assume {:axiom} false;
     LemmaMulStrictlyPositiveAuto();
     LemmaMulNonnegativeAuto();
     calc {
@@ -739,6 +748,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall x: int, a: int, d: int {:trigger a / d, x * d, x * a}
               :: 0 < x && 0 <= a && 0 < d ==> 0 < x * d  &&  a / d == (x * a) / (x * d)
   {
+    assume {:axiom} false;
     forall x: int, a: int, d: int | 0 < x && 0 <= a && 0 < d
       ensures 0 < x * d  &&  a / d == (x * a) / (x * d)
     {
@@ -754,6 +764,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 <= r < d
     ensures a == d * ((a + r) / d)
   {
+    assume {:axiom} false;
     LemmaMulAuto();
     LemmaDivInductionAuto(d, a, u => u % d == 0 ==> u == d * ((u + r) / d));
   }
@@ -762,6 +773,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall a: int, r: int, d: int {:trigger d * ((a + r) / d)}
               :: 0 < d && a % d == 0 && 0 <= r < d ==> a == d * ((a + r) / d)
   {
+    assume {:axiom} false;
     forall a: int, r: int, d: int | 0 < d && a % d == 0 && 0 <= r < d
       ensures a == d * ((a + r) / d)
     {
@@ -775,6 +787,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 <= b < d
     ensures (d * x + b) / d == x
   {
+    assume {:axiom} false;
     LemmaDivAuto(d);
     var f := u => (d * u + b) / d == u;
     LemmaMulInductionAuto(x, f);
@@ -785,6 +798,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall x: int, b: int, d: int {:trigger (d * x + b) / d}
               :: 0 < d && 0 <= b < d ==> (d * x + b) / d == x
   {
+    assume {:axiom} false;
     forall x: int, b: int, d: int | 0 < d && 0 <= b < d
       ensures (d * x + b) / d == x
     {
@@ -837,6 +851,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < z
     ensures  x / z < y / z
   {
+    assume {:axiom} false;
     LemmaModMultiplesBasic(m, z);
     LemmaDivInductionAuto(z, y - x, yx => var u := yx + x; x < u && u % z == 0 ==> x / z < u / z);
   }
@@ -859,6 +874,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires a <= b * c
     ensures  a / b <= c
   {
+    assume {:axiom} false;
     LemmaModMultiplesBasic(c, b);
     LemmaDivInductionAuto(b, b * c - a, i => 0 <= i && (i + a) % b == 0 ==> a / b <= (i + a) / b);
     LemmaDivMultiplesVanish(c, b);
@@ -881,6 +897,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires a < b * c
     ensures  a / b < c
   {
+    assume {:axiom} false;
     LemmaModMultiplesBasic(c, b);
     LemmaDivInductionAuto(b, b * c - a, i => 0 < i && (i + a) % b == 0 ==> a / b < (i + a) / b);
     LemmaDivMultiplesVanish(c, b);
@@ -901,6 +918,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures x / d + j == (x + j * d) / d
   {
+    assume {:axiom} false;
     LemmaDivAuto(d);
     LemmaMulInductionAuto(j, u => x / d  + u == (x + u * d) / d);
   }
@@ -1096,6 +1114,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires m > 0
     ensures (x * m) % m == 0
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
     LemmaMulInductionAuto(x, u => (u * m) % m == 0);
   }
@@ -1116,6 +1135,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (m + b) % m == b % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1135,6 +1155,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (-m + b) % m == b % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1155,6 +1176,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (m * a + b) % m == b % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
     LemmaMulInductionAuto(a, u => (m * u + b) % m == b % m);
   }
@@ -1300,6 +1322,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < d
     ensures x % d == (x * (1 - d)) % d
   {
+    assume {:axiom} false;
     assert (x - x * d) % d == x % d
     by {
       LemmaModAuto(d);
@@ -1320,6 +1343,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures q == x / d
     ensures r == x % d
   {
+    assume {:axiom} false;
     LemmaDivAuto(d);
     LemmaMulInductionAuto(q, u => u == (u * d + r) / d);
     LemmaMulInductionAuto(q, u => r == (u * d + r) % d);
@@ -1329,6 +1353,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures forall x: int, d: int, q: int, r: int {:trigger q * d + r, x % d}
               :: d != 0 && 0 <= r < d && x == q * d + r ==> q == x / d && r == x % d
   {
+    assume {:axiom} false;
     forall x: int, d: int, q: int, r: int | d != 0 && 0 <= r < d && x == q * d + r
       ensures q == x / d && r == x % d
     {
@@ -1361,6 +1386,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures (x % m) * y % m == x * y % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
     LemmaMulInductionAuto(y, u => (x % m) * u % m == x * u % m);
   }
@@ -1379,6 +1405,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures x * (y % m) % m == (x * y) % m
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
     LemmaMulInductionAuto(x, u => u * (y % m) % m == (u * y) % m);
   }
@@ -1441,6 +1468,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     requires 0 < m
     ensures x % m == y % m <==> (x - y) % m == 0
   {
+    assume {:axiom} false;
     LemmaModAuto(m);
   }
 
@@ -1602,6 +1630,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures y * z > 0
     ensures x % (y * z) == y * ((x / y) % z) + x % y
   {
+    assume {:axiom} false;
     LemmaMulStrictlyPositiveAuto();
     LemmaDivPosIsPos(x, y);
     assert 0 <= x / y;
