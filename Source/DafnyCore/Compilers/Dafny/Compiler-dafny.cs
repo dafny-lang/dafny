@@ -1267,7 +1267,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       throwGeneralUnsupported();
       throw new InvalidOperationException();
     }

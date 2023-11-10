@@ -1470,7 +1470,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(i.ToString());
     }
 
-    public override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write($"\"{TranslateEscapes(str)}\"");

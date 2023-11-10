@@ -201,7 +201,7 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/comp/CoverageReport.dfy" },
+    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
               })]
     public void LitTest(string path) {

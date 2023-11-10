@@ -2259,7 +2259,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write("\"{0}\"", TranslateEscapes(str, isChar: false));
