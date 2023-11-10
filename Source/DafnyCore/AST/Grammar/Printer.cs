@@ -21,7 +21,8 @@ namespace Microsoft.Dafny {
 
   public enum PrintModes {
     Everything,
-    Serialization, // Serializing the program to a file for lossless loading later
+    DllEmbed,
+    DooFile,
     NoIncludes,
     NoGhost
   }
@@ -201,7 +202,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.WriteLine("// " + options.Version);
         wr.WriteLine("// " + options.Environment);
       }
-      if (options.PrintMode != PrintModes.Serialization) {
+      if (options.PrintMode != PrintModes.DllEmbed && options.PrintMode != PrintModes.DooFile) {
         wr.WriteLine("// {0}", prog.Name);
       }
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
@@ -390,10 +391,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
-            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
-              // This mode is used to losslessly serialize the source program by the C# and Library backends.
+            if (printMode == PrintModes.DllEmbed && !modDecl.ModuleDef.ShouldCompile(compilation)) {
+              // This mode is used to losslessly serialize the source program by the C# backends.
               // Backends don't compile any code for modules not marked for compilation,
               // so it's consistent to skip those modules here too. 
+              continue;
+            }
+            if (printMode == PrintModes.DooFile && !modDecl.ModuleDef.ShouldVerify(compilation)) {
+              // Doo files are always marked as already verified,
+              // so they should not include modules that were not verified (e.g. from include statements)
               continue;
             }
 
@@ -697,7 +703,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
         if (PrintModeSkipGeneral(m.tok, fileBeingPrinted)) { continue; }
-        if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
+        if ((printMode == PrintModes.DllEmbed || printMode == PrintModes.DooFile)
+            && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }

@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+WithInclude.doo(12,9): Error: module Library does not exist
+1 resolution/type errors detected in WithInclude.doo

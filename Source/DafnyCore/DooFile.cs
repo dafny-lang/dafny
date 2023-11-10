@@ -103,7 +103,7 @@ public class DooFile {
 
   public DooFile(Program dafnyProgram) {
     var tw = new StringWriter();
-    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
+    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.DooFile);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
     // It's probably worth serializing a program in a more efficient way first
