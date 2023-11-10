@@ -15,7 +15,8 @@ module DafnyStdLibs.DynamicArray {
       DynamicArray.Put,
       DynamicArray.Push,
       DynamicArray.PushFast,
-      DynamicArray.PopFast
+      DynamicArray.PopFast,
+      DynamicArray.Ensure
 
   /**
   The `DynamicArray` module and class define a data structure that has the same performance characteristics of an array, 
@@ -48,6 +49,7 @@ module DafnyStdLibs.DynamicArray {
       ensures size == 0
       ensures items == []
       ensures fresh(Repr)
+      ensures capacity == 0
       ensures Valid?()
     {
       items := [];
@@ -83,6 +85,31 @@ module DafnyStdLibs.DynamicArray {
     {
       data[index] := element;
       items := items[index := element];
+    }
+
+    /**
+    Ensure that at least a reserved amount of elements can still be pushed onto the array in constant time
+
+    Returns false only if it was not at all possible to provide the ensurance.
+     */
+    method Ensure(reserved: nat, defaultValue: A)
+      requires Valid?()
+      ensures Valid?()
+      modifies `capacity, Repr
+      ensures size == old(size)
+      ensures items == old(items)
+      ensures fresh(Repr - old(Repr))
+      ensures reserved <= capacity - size
+    {
+      var newCapacity := capacity;
+      while reserved > newCapacity - size
+        invariant newCapacity >= capacity
+      {
+        newCapacity := DefaultNewCapacity(newCapacity);
+      }
+      if (newCapacity > capacity) {
+        Realloc(defaultValue, newCapacity);
+      }
     }
 
     /**
