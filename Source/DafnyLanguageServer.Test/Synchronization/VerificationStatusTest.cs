@@ -15,6 +15,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  /// <summary>
+  /// The client does not correctly migrate symbolStatus information,
+  /// so we have to republish it if the positions change.
+  /// </summary>
+  [Fact]
+  public async Task NoClientSideMigrationOfCanVerifies() {
+    var source = @"const x := 3".TrimStart();
+
+    var documentA = await CreateOpenAndWaitForResolve(source);
+    var status = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(1, status.NamedVerifiables.Count);
+    ApplyChange(ref documentA, new Range(0, 0, 0, 12), "");
+    var status2 = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(0, status2.NamedVerifiables.Count);
+  }
+
   [Fact]
   public async Task DoNotMigrateWrongUri() {
     var sourceA = @"
