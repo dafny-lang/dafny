@@ -1,5 +1,7 @@
 
-excludes = ["**/FileIO/**/*.dfy"]
+# The Makefile has its own non-trivial logic for determining which files
+# to include in which mode.
+includes = []
 
 [options]
 # Options that help support more values of consuming context options
