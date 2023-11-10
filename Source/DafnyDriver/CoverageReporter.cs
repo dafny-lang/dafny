@@ -237,15 +237,18 @@ public class CoverageReporter {
       
       foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
         body.Add(new() {
-          $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-          $"class = \"el_package\">{relativePath}</a>",
+          "",
           module.FullName
         });
-        
+
+        var moduleRange = module.RangeToken.ToDafnyRange();
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)
-                                 .Where(span => span.Span.Intersects(module.RangeToken))
+                                  // span.Span.Intersects(module.RangeToken) would be cleaner,
+                                  // but unfortunately coverage span tokens don't currently always
+                                  // have Token.pos set correctly. :(
+                                 .Where(span => moduleRange.Contains(span.Span.ToDafnyRange().Start))
                                  .Count(span => span.Label == label)).OfType<object>());
       }
     }
