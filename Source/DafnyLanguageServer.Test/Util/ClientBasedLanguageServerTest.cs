@@ -190,12 +190,22 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
-      while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
+      while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
       }
     }
 
     return fileVerificationStatus;
+
+    bool FinishedStatus(NamedVerifiableStatus method)
+    {
+      if (allowStale && method.Status == PublishedVerificationStatus.Stale)
+      {
+        return true;
+      }
+
+      return method.Status >= PublishedVerificationStatus.Error;
+    }
   }
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
