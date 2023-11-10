@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refinement; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Refinement;
 
 public class RefinementTests : ClientBasedLanguageServerTest {
   [Fact]

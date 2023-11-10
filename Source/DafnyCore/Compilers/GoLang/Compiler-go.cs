@@ -27,7 +27,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.AllUnderscoreExternalModuleNames
+      Feature.AllUnderscoreExternalModuleNames,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
