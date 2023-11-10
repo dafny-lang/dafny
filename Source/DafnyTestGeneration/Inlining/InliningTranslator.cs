@@ -8,7 +8,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
-namespace DafnyTestGeneration.Inlining; 
+namespace DafnyTestGeneration.Inlining;
 
 public static class InliningTranslator {
   private static bool ShouldProcessForInlining(MemberDecl memberDecl) {

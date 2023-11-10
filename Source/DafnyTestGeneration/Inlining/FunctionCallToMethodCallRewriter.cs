@@ -11,7 +11,7 @@ using Function = Microsoft.Dafny.Function;
 using Program = Microsoft.Dafny.Program;
 
 
-namespace DafnyTestGeneration.Inlining; 
+namespace DafnyTestGeneration.Inlining;
 
 /// <summary>
 /// Change by-method function calls to method calls (after resolution)

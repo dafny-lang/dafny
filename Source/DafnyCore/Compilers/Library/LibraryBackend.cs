@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using DafnyCore;
 
-namespace Microsoft.Dafny.Compilers; 
+namespace Microsoft.Dafny.Compilers;
 
 public class LibraryBackend : ExecutableBackend {
   public LibraryBackend(DafnyOptions options) : base(options) {
@@ -28,7 +28,8 @@ public class LibraryBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-    Feature.LegacyCLI
+    Feature.LegacyCLI,
+    Feature.RuntimeCoverageReport
   };
 
   // Necessary since Compiler is null
