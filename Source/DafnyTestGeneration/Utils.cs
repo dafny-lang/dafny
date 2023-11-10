@@ -86,7 +86,9 @@ namespace DafnyTestGeneration {
     public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
 
-      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(uri.LocalPath,
+        new DafnyFile[] { new(OnDiskFileSystem.Instance, reporter.Options, uri, null,
+          () => new StringReader(source)) },
         reporter, CancellationToken.None);
 
       if (!resolve) {

@@ -45,7 +45,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
     dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, new Uri(name))).ToList();
+          .Select(name => new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(name))).ToList();
     })).ToList();
 
     var failedToParseFiles = new List<string>();
@@ -71,7 +71,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = new DafnyFile(options, new Uri(tempFileName));
+        dafnyFile = new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(tempFileName));
       }
 
       using var content = dafnyFile.GetContent();

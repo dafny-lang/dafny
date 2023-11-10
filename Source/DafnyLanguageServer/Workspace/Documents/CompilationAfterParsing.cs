@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -17,7 +14,7 @@ public class CompilationAfterParsing : Compilation {
     Program program,
     IReadOnlyDictionary<Uri, List<DafnyDiagnostic>> diagnostics,
     Dictionary<Uri, DocumentVerificationTree> verificationTrees)
-    : base(compilation.Options, compilation.Version, compilation.Project, compilation.RootUris) {
+    : base(compilation.Options, compilation.Version, compilation.Project, compilation.RootFiles) {
     ResolutionDiagnostics = diagnostics;
     VerificationTrees = verificationTrees;
     Program = program;

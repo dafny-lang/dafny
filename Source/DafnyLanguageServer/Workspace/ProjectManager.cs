@@ -114,12 +114,15 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   private Compilation CreateInitialCompilation() {
-    var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).ToList();
-    return new Compilation(options, version, Project, rootUris);
+    var rootFiles = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).
+      Select(uri => new DafnyFile(fileSystem, options, uri)).ToList();
+    if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+      rootFiles.Add(new DafnyFile(fileSystem, options, DafnyMain.StandardLibrariesDooUri));
+    }
+    return new Compilation(options, version, Project, rootFiles);
   }
 
   private const int MaxRememberedChanges = 100;
-  private const int MaxRememberedChangedVerifiables = 5;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var migrator = createMigrator(documentChange, CancellationToken.None);

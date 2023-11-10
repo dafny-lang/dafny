@@ -21,7 +21,8 @@ public class DafnyFile {
   public Uri Uri { get; }
   [CanBeNull] public IToken Origin { get; }
 
-  public DafnyFile(DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null, Func<TextReader> getContentOverride = null) {
+  public DafnyFile(IFileSystem fileSystem,
+    DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null, Func<TextReader> getContentOverride = null) {
     Uri = uri;
     Origin = origin;
     var filePath = uri.LocalPath;
@@ -55,7 +56,7 @@ public class DafnyFile {
     } else if (Extension == ".dfy" || Extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
-      if (!File.Exists(filePath)) {
+      if (!fileSystem.Exists(uri)) {
         if (0 < options.VerifySnapshots) {
           // For snapshots, we first create broken DafnyFile without content,
           // then look for the real files and create DafnuFiles for them.
@@ -66,7 +67,7 @@ public class DafnyFile {
         options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
         throw new IllegalDafnyFile(true);
       } else {
-        GetContent = () => new StreamReader(filePath);
+        GetContent = () => fileSystem.ReadFile(uri);
       }
     } else if (Extension == ".doo") {
       IsPreverified = true;
@@ -84,7 +85,7 @@ public class DafnyFile {
 
         dooFile = DooFile.Read(stream);
       } else {
-        if (!File.Exists(filePath)) {
+        if (!fileSystem.Exists(uri)) {
           options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
           throw new IllegalDafnyFile(true);
         }

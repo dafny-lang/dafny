@@ -23,17 +23,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class Compilation {
+    public IReadOnlyList<DafnyFile> RootFiles { get; }
+
     /// <summary>
     /// These do not have to be owned
     /// </summary>
-    public IReadOnlyList<Uri> RootUris { get; }
+    public IEnumerable<Uri> RootUris => RootFiles.Select(d => d.Uri);
     public int Version { get; }
     public DafnyOptions Options { get; }
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
-      this.RootUris = rootUris;
+    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<DafnyFile> rootFiles) {
+      RootFiles = rootFiles;
       Options = options;
       Version = version;
       Project = project;

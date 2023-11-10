@@ -61,7 +61,7 @@ class DafnyDoc {
     var exitValue = ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, new Uri(Path.GetFullPath(name)))).ToList();
+          .Select(name => new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(name)))).ToList();
     })).ToList();
     await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {

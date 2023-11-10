@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
   }
 
   public class DafnyMain {
+    public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {
