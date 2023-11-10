@@ -65,9 +65,7 @@ public class CoverageInstrumenter {
     if (legend != null) {
       wr.Write("DafnyProfiling.CodeCoverage.Setup({0}", legend.Count);
       if (talliesFilePath != null) {
-        wr.Write($", ");
-        throw new ArgumentException($"Apparently a problem on windows: {talliesFilePath}");
-        compiler.EmitStringLiteral(talliesFilePath, true, wr);
+        wr.Write($", @\"{talliesFilePath}\"");
       }
       wr.Write(")");
       compiler.EndStmt(wr);
