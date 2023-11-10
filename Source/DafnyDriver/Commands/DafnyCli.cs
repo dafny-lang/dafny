@@ -31,8 +31,6 @@ public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
-  private static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
-
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
@@ -487,8 +485,8 @@ public static class DafnyCli {
     // only because if they are added first, one might be used as the program name,
     // which is not handled well.
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      options.CliRootSourceUris.Add(StandardLibrariesDooUri);
-      dafnyFiles.Add(new DafnyFile(options, StandardLibrariesDooUri));
+      options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
+      dafnyFiles.Add(new DafnyFile(options, DafnyMain.StandardLibrariesDooUri));
     }
 
     return ExitValue.SUCCESS;

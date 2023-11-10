@@ -1,12 +1,7 @@
 ﻿using System;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
-using Microsoft.Boogie;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -21,10 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// There can be different verification threads that update the state of this object.
   /// </summary>
   public class CompilationInput {
+    public IReadOnlyList<DafnyFile> RootFiles { get; }
+
     /// <summary>
     /// These do not have to be owned
     /// </summary>
-    public IReadOnlyList<Uri> RootUris { get; }
+    public IEnumerable<Uri> RootUris => RootFiles.Select(d => d.Uri);
 
     public override string ToString() {
       return $"URI: {Uri}, Version: {Version}";
@@ -36,8 +33,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public CompilationInput(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<Uri> rootUris) {
-      RootUris = rootUris;
+    public CompilationInput(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<DafnyFile> rootFiles) {
+      RootFiles = rootFiles;
       Options = options;
       Version = version;
       Project = project;

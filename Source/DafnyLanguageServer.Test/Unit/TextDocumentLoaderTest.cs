@@ -79,7 +79,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     private static CompilationInput GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
-      var compilation = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
+      var compilation = new CompilationInput(DafnyOptions.Default, 0,
+        ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()),
+        new[] { new DafnyFile(DafnyOptions.Default, versionedTextDocumentIdentifier.Uri.ToUri()) });
       return compilation;
     }
 
