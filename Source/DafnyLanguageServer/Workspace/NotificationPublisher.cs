@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -66,6 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           continue;
         }
 
+        logger.LogTrace($"Publishing symbol status {current.Stringify()}");
         languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
       }
     }

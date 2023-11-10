@@ -211,7 +211,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
         $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
       var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       await output.WriteLineAsync(
-        $"After waiting for diagnostics, got: {diagnostic}");
+        $"After waiting for diagnostics, got: {diagnostic.Stringify()}");
       throw;
     }
   }
