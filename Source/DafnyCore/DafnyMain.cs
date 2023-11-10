@@ -117,7 +117,7 @@ to also include a directory containing the `z3` executable.
 
       var proverPath = options.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
       if (proverPath is null && options.Verify) {
-        options.OutputWriter.WriteLine(z3NotFoundMessage);
+        await options.OutputWriter.WriteLineAsync(z3NotFoundMessage);
         return (PipelineOutcome.FatalError, new PipelineStatistics());
       }
 
