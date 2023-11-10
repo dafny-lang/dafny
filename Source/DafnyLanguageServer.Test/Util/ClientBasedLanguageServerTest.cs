@@ -200,13 +200,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
-    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
     await Task.Delay(10);
     try {
       var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
       diagnosticsReceiver.ClearQueue();
       return result;
     } catch (InvalidOperationException) {
+      await output.WriteLineAsync("GetLastDiagnosticsParams status was: " + status.Stringify());
       await output.WriteLineAsync(
         $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
       var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
