@@ -10,7 +10,7 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:options "-functionSyntax:4"} DivMod {
+module {:options "-functionSyntax:4"} DafnyStdLibs.DivMod {
 
   import opened DivInternals
   import DivINL = DivInternalsNonlinear

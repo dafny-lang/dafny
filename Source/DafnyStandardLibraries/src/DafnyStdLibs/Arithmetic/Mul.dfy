@@ -13,7 +13,7 @@ heuristics. The latter includes automation and its use requires less effort */
 // This include is necessary since Internals/*Nonlinear.dfy is subject to a separate toml file
 include "Internals/MulInternalsNonlinear.dfy"
 
-module {:options "-functionSyntax:4"} Mul {
+module {:options "-functionSyntax:4"} DafnyStdLibs.Mul {
 
   import MulINL = MulInternalsNonlinear
   import opened MulInternals
