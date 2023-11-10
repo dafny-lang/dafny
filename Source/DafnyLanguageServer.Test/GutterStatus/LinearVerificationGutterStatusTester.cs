@@ -12,6 +12,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -21,7 +22,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
 
   protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
-    verificationStatusGutterReceiver = new();
+    verificationStatusGutterReceiver = new(logger);
 
     void ModifyOptions(DafnyOptions options) {
       options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, true);
