@@ -117,8 +117,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     ensures StructuralView(st, writer).Bytes() == writer.Bytes() + Spec.Structural(st, Spec.View)
   {}
 
-  lemma {:axiom} Assume(b: bool) ensures b
-
   // FIXME refactor below to merge
 
   lemma BracketedToObject(obj: jobject)
@@ -188,9 +186,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   {
     MembersSpec(obj, obj.data, writer)
   } by method {
-    assume {:axiom} false; // STEFAN TODO
+    assume {:axiom} false; // STEFAN TODO // BUG(https://github.com/dafny-lang/dafny/issues/2180)
     wr := MembersImpl(obj, writer);
-    Assume(false); // BUG(https://github.com/dafny-lang/dafny/issues/2180)
   }
 
   function {:opaque} Items(arr: jarray, writer: Writer) : (wr: Writer)
@@ -199,9 +196,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   {
     ItemsSpec(arr, arr.data, writer)
   } by method {
-    assume {:axiom} false; // STEFAN TODO
+    assume {:axiom} false; // STEFAN TODO BUG(https://github.com/dafny-lang/dafny/issues/2180)
     wr := ItemsImpl(arr, writer);
-    Assume(false); // BUG(https://github.com/dafny-lang/dafny/issues/2180)
   }
 
   ghost function MembersSpec(obj: jobject, members: seq<jmember>, writer: Writer) : (wr: Writer)
