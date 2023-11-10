@@ -361,7 +361,7 @@ public class Compilation : IDisposable {
   private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
 
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
-    logger.LogDebug($"Received status {boogieStatus} for {tokenString}, version {Input.Version}");
+    logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     if (boogieStatus is Completed completed) {
       ReportVacuityAndRedundantAssumptionsChecks(implementationTask.Implementation, completed.Result);

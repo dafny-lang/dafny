@@ -13,7 +13,7 @@ public record FileVerificationStatus(
   int? Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
   public override string ToString() {
-    return $"SymbolStatus, {nameof(Uri)}: {Uri}, {nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
+    return $"SymbolStatus, {nameof(Uri)}: {Uri}, {nameof(Version)}: {Version}, {nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
   }
 
   static FileVerificationStatus() {

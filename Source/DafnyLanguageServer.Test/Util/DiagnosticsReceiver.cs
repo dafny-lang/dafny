@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using XunitAssertMessages;
@@ -12,6 +13,9 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
 
 
   static DiagnosticsReceiver() {
+    StringifyUtil.AddGlobalOverride<DocumentUri>((par, writer) => {
+      writer.Write(par.ToString());
+    });
     StringifyUtil.AddGlobalOverride<Diagnostic>((par, writer) => {
       writer.Write(par.ToString());
     });
