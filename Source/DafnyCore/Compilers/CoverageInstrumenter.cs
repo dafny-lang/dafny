@@ -64,7 +64,7 @@ public class CoverageInstrumenter {
     if (legend != null) {
       wr.Write("DafnyProfiling.CodeCoverage.Setup({0}", legend.Count);
       if (talliesFilePath != null) {
-        wr.Write($", \"{talliesFilePath}\"");
+        wr.Write($", @\"{talliesFilePath}\"");
       }
       wr.Write(")");
       compiler.EndStmt(wr);
