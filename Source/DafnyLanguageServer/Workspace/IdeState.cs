@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -164,7 +165,7 @@ public record IdeState(
       case FinishedParsing finishedParsing:
         return UpdateFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
-        return UpdateFinishedResolution(options, finishedResolution);
+        return UpdateFinishedResolution(options, logger, finishedResolution);
       case InternalCompilationException internalCompilationException:
         return UpdateInternalCompilationException(internalCompilationException);
       case NewDiagnostic newDiagnostic:
@@ -237,35 +238,29 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateFinishedResolution(DafnyOptions options, FinishedResolution finishedResolution) {
+  private IdeState UpdateFinishedResolution(DafnyOptions options, ILogger logger, FinishedResolution finishedResolution) {
     var previousState = this;
     var errors = finishedResolution.Diagnostics.Values.SelectMany(x => x).Where(d =>
       d.Severity == DiagnosticSeverity.Error && d.Source != MessageSource.Compiler.ToString()).ToList();
     var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
 
-    SymbolTable? SymbolTable = null;
-    LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable = null;
-    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges = null;
+    var cancellationToken = CancellationToken.None; // TODO ?
+    SymbolTable? symbolTable = null;
+    CompilationUnit compilationUnit;
+    if (errors.Any()) {
+      compilationUnit = new CompilationUnit(Input.Project.Uri, finishedResolution.ResolvedProgram);
+    } else {
+      symbolTable = SymbolTable.CreateFrom(finishedResolution.ResolvedProgram, cancellationToken);
       
-    // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
-    // access a property without potential contract violations. For example, a variable may have an
-    // unresolved type represented by null. However, the contract prohibits the use of the type property
-    // because it must not be null.
-    // if (program.Reporter.HasErrorsUntilResolver) {
-    //   return new CompilationUnit(project.Uri, program);
-    // } else {
-    //     
-    //   var beforeLegacyServerResolution = DateTime.Now;
-    //   var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, program);
-    //   telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
-    // }
-    // var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
-    //
-    // var newSymbolTable = errorReporter.HasErrors
-    //   ? null
-    //   : symbolTableFactory.CreateFrom(program, cancellationToken);
-    //
-    // var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+      var project = Input.Project;
+      var beforeLegacyServerResolution = DateTime.Now;
+      compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
+      // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
+    }
+    var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(compilationUnit, cancellationToken);
+
+    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
+      GetGhostStateDiagnostics(legacySignatureAndCompletionTable, cancellationToken);
     
     var trees = previousState.VerificationTrees;
     if (status == CompilationStatus.ResolutionSucceeded)
@@ -284,8 +279,8 @@ public record IdeState(
         k => k.GroupBy<ICanVerify, Range>(l => l.NameToken.GetLspRange()).ToImmutableDictionary(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
-    var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved
-      ? LegacySignatureAndCompletionTable
+    var signatureAndCompletionTable = legacySignatureAndCompletionTable.Resolved
+      ? legacySignatureAndCompletionTable
       : previousState.SignatureAndCompletionTable;
 
     return previousState with
@@ -293,9 +288,9 @@ public record IdeState(
       StaticDiagnostics = finishedResolution.Diagnostics,
       Status = status,
       ResolvedProgram = ResolvedProgram,
-      SymbolTable = SymbolTable ?? previousState.SymbolTable,
+      SymbolTable = symbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
-      GhostRanges = GhostRanges,
+      GhostRanges = ghostRanges,
       VerificationResults = verificationResults,
       VerificationTrees = trees
     };

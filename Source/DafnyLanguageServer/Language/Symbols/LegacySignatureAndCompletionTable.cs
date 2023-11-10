@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       IsHidden = true
     };
 
-    private readonly ILogger<LegacySignatureAndCompletionTable> logger;
+    private readonly ILogger logger;
 
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public LegacySignatureAndCompletionTable(
-        ILogger<LegacySignatureAndCompletionTable> iLogger,
+        ILogger iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         ImmutableDictionary<Uri, IDictionary<ILegacySymbol, SymbolLocation>> locationsPerUri,
