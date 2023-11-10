@@ -1,7 +1,7 @@
 module ArithmeticExamples {
-  import opened DafnyStdLibs.Logarithm
-  import opened DafnyStdLibs.Power
-  import opened DafnyStdLibs.Mul
+  import opened DafnyStdLibs.Arithmetic.Logarithm
+  import opened DafnyStdLibs.Arithmetic.Power
+  import opened DafnyStdLibs.Arithmetic.Mul
 
   /* log_b(m * n) = log_b(m) + log_b(n) if m and n are also powers of b */
   lemma LogProductRule(b: nat, x: nat, y: nat)

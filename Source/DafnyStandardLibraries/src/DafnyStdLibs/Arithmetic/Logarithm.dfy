@@ -1,4 +1,4 @@
-module {:options "-functionSyntax:4"} DafnyStdLibs.Logarithm {
+module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.Logarithm {
   import opened Mul
   import opened DivMod
   import opened Power

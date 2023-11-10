@@ -8,7 +8,7 @@
 
 /* lemmas and functions in this file are used in the proofs in Mul.dfy */
 
-module {:options "-functionSyntax:4"} DafnyStdLibs.MulInternals {
+module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.MulInternals {
 
   import opened GeneralInternals
   import opened MulInternalsNonlinear
