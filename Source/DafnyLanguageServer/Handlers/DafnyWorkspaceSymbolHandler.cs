@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               Name = name,
               ContainerName = def.Kind.ToString(),
               Kind = FromDafnySymbolKind(def.Kind),
-              Location = Workspace.Util.CreateLocation(def.NameToken)
+              Location = Workspace.DiagnosticUtil.CreateLocation(def.NameToken)
             }, matchDistance);
           }
         }

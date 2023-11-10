@@ -27,7 +27,6 @@ public delegate ProjectManager CreateProjectManager(
   VerificationResultCache verificationCache,
   DafnyProject project);
 
-public record FilePosition(Uri Uri, Position Position);
 
 /// <summary>
 /// Handles operation on a single document.
@@ -104,7 +103,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options.Printer = new OutputLogger(logger);
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var initialCompilation = GetCompilationInput();
-    var initialIdeState = initialCompilation.InitialIdeState(options);
+    var initialIdeState = IdeState.InitialIdeState(initialCompilation);
     latestIdeState = new Lazy<IdeState>(initialIdeState);
 
     observer = createIdeStateObserver(initialIdeState);
@@ -201,7 +200,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
-      latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
+      latestCompilationState = new Lazy<IdeState>(() => previousState.UpdateState(options, logger, ev));
       return latestCompilationState;
     });
   }

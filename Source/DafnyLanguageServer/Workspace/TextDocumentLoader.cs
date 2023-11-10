@@ -90,14 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
-      var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
-
-      var newSymbolTable = errorReporter.HasErrors
-        ? null
-        : symbolTableFactory.CreateFrom(program, cancellationToken);
-
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
+      symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
 
       List<ICanVerify>? verifiables;
       if (errorReporter.HasErrorsUntilResolver) {
@@ -112,9 +105,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return new ResolutionResult(
         program,
-        newSymbolTable,
-        legacySymbolTable,
-        ghostDiagnostics,
         verifiables
       );
     }

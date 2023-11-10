@@ -6,8 +6,6 @@ using System.Collections.Immutable;
 using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -43,20 +41,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Options = options;
       Version = version;
       Project = project;
-    }
-
-    public IdeState InitialIdeState(DafnyOptions options) {
-      var program = new EmptyNode();
-      return new IdeState(Version, this, CompilationStatus.Parsing,
-        program,
-        ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
-        program,
-        SymbolTable.Empty(),
-        LegacySignatureAndCompletionTable.Empty(options, Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
-        Array.Empty<Counterexample>(),
-        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        RootUris.ToImmutableDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
-      );
     }
   }
 

@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -22,6 +21,8 @@ public delegate Compilation CreateCompilation(
   DafnyOptions options,
   ExecutionEngine boogieEngine,
   CompilationInput compilation);
+
+public record FilePosition(Uri Uri, Position Position);
 
 /// <summary>
 /// The compilation of a single document version.
@@ -134,9 +135,6 @@ public class Compilation : IDisposable {
         staticDiagnostics.ToImmutableDictionary(k => k.Key,
           kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList()),
         transformedProgram!,
-        resolution.SymbolTable,
-        resolution.SignatureAndCompletionTable,
-        resolution.GhostRanges,
         resolution.CanVerifies));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
