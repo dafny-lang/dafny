@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -65,6 +66,7 @@ public class CoverageInstrumenter {
       wr.Write("DafnyProfiling.CodeCoverage.Setup({0}", legend.Count);
       if (talliesFilePath != null) {
         wr.Write($", ");
+        throw new ArgumentException($"Apparently a problem on windows: {talliesFilePath}");
         compiler.EmitStringLiteral(talliesFilePath, true, wr);
       }
       wr.Write(")");
