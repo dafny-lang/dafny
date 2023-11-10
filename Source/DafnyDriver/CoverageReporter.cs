@@ -215,7 +215,7 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File" };
+    List<object> header = new() { "File", "Module" };
     header.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
@@ -223,16 +223,34 @@ public class CoverageReporter {
     List<List<object>> body = new();
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+
       body.Add(new() {
         $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-        $"class = \"el_package\">{relativePath}</a>"
+        $"class = \"el_package\">{relativePath}</a>",
+        "All modules"
       });
+      
       body.Last().AddRange(coverageLabels
         .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
-        .Select(label => report.CoverageSpansForFile(sourceFile).Count(span => span.Label == label)).OfType<object>());
+        .Select(label => report.CoverageSpansForFile(sourceFile)
+                               .Count(span => span.Label == label)).OfType<object>());
+      
+      foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
+        body.Add(new() {
+          $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
+          $"class = \"el_package\">{relativePath}</a>",
+          module.FullName
+        });
+        
+        body.Last().AddRange(coverageLabels
+          .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+          .Select(label => report.CoverageSpansForFile(sourceFile)
+                                 .Where(span => span.Span.Intersects(module.RangeToken))
+                                 .Count(span => span.Label == label)).OfType<object>());
+      }
     }
 
-    List<object> footer = new() { "Total" };
+    List<object> footer = new() { "Total", "" };
     footer.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => report.AllFiles().Select(sourceFile =>
@@ -243,8 +261,8 @@ public class CoverageReporter {
     templateText = FileNameRegex.Replace(templateText, report.Name);
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"),
-      TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow))));
+    templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
+    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"), templateText);
   }
 
   /// <summary>

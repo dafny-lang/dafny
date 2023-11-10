@@ -12,6 +12,7 @@ public class CoverageReport {
   private static int nextUniqueId = 0;
 
   private readonly Dictionary<Uri, List<CoverageSpan>> labelsByFile;
+  private readonly Dictionary<Uri, HashSet<ModuleDefinition>> modulesByFile;
   public readonly string Name; // the name to assign to this coverage report
   public readonly string Units; // the units of coverage (plural). This will be written in the coverage report table.
   private readonly string suffix; // user-provided suffix to add to filenames that are part of this report
@@ -31,6 +32,7 @@ public class CoverageReport {
     Units = units;
     this.suffix = suffix;
     labelsByFile = new();
+    modulesByFile = new();
     if (program != null) {
       RegisterFiles(program);
     }
@@ -49,6 +51,10 @@ public class CoverageReport {
   public IEnumerable<CoverageSpan> CoverageSpansForFile(Uri uri) {
     return labelsByFile.GetOrDefault(uri, () => new List<CoverageSpan>());
   }
+  
+  public IEnumerable<ModuleDefinition> ModulesInFile(Uri uri) {
+    return modulesByFile.GetOrDefault(uri, () => new HashSet<ModuleDefinition>());
+  }
 
   public IEnumerable<Uri> AllFiles() {
     return labelsByFile.Keys;
@@ -65,10 +71,17 @@ public class CoverageReport {
   }
 
   private void RegisterFiles(Node astNode) {
-    if (astNode.StartToken.ActualFilename != null && !labelsByFile.ContainsKey(astNode.StartToken.Uri)) {
-      labelsByFile[astNode.StartToken.Uri] = new();
+    if (astNode.StartToken.ActualFilename != null) {
+      var uri = astNode.StartToken.Uri;
+      labelsByFile.GetOrCreate(uri, () => new List<CoverageSpan>());
+      
+      if (astNode is LiteralModuleDecl moduleDecl) {
+        modulesByFile.GetOrCreate(uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
+        
+        RegisterFiles(moduleDecl.ModuleDef);
+      }
     }
-
+    
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
       RegisterFiles(declaration);
     }
