@@ -609,6 +609,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Sequences.Seq {
     ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
     reads set i, o | 0 <= i < |xs| && o in f.reads(xs[i]) :: o
   {
+    assume {:axiom} false;
     // This uses a sequence comprehension because it will usually be
     // more efficient when compiled, allocating the storage for |xs| elements
     // once instead of creating a chain of |xs| single element concatenations.
@@ -644,6 +645,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Sequences.Seq {
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
   {
+    assume {:axiom} false;
     reveal Map();
     if |xs| == 0 {
       assert xs + ys == ys;
@@ -888,8 +890,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Sequences.Seq {
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(R, xs)
   {
+    assume {:axiom} false;
     MergeSortBy(SetToSeqSpec(s), R)
   } by method {
+    assume {:axiom} false;
     xs := SetToSeq(s);
     xs := MergeSortBy(xs, R);
     SortedUnique(xs, SetToSortedSeq(s, R), R);

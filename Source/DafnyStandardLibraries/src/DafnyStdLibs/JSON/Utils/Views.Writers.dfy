@@ -114,7 +114,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Views.Writers {
       ensures fresh(bs)
       ensures bs[..] == Bytes()
     {
-      bs := new byte[length];
+      bs := new byte[0];
       CopyTo(bs);
     }
   }

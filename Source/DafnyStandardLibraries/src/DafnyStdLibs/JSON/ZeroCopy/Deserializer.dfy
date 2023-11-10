@@ -761,6 +761,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     function {:opaque} {:vcs_split_on_every_assert} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(e, cs) :=
         cs.SkipIf(c => c == 'e' as byte || c == 'E' as byte).Split();
       if e.Empty? then

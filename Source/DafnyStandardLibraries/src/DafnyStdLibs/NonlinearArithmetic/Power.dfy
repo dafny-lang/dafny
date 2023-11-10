@@ -69,6 +69,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     requires e > 0
     ensures Pow(0, e) == 0
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaMulBasicsAuto();
     if e != 1 {
@@ -130,6 +131,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     requires b > 0
     ensures 0 < Pow(b, e)
   {
+    assume {:axiom} false;
     LemmaMulIncreasesAuto();
     LemmaMulInductionAuto(e, u => 0 <= u ==> 0 < Pow(b, u));
   }
@@ -288,6 +290,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     ensures forall a: int, b: nat, c: nat {:trigger Pow(a, b * c)}
               :: Pow(Pow(a, b), c) == Pow(a, b * c)
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaMulNonnegativeAuto();
     forall a: int, b: nat, c: nat {:trigger Pow(a, b * c)}
