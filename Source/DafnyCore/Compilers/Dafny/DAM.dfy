@@ -1,8 +1,8 @@
 /* The Dafny Abstract Machine
  * This file specifies:
- * 1. A core language for Dafny based on Levy's fine-grain call-by-value (FG-CBV) calculus
- * 2. A CEK-machine interpreter based on the Hillerstrom-Lindley-Atkey CEK machine for FG-CBV
- * 3. Eventually, a simple type system based on FG-CBV
+ * 1. A core language for Dafny based on call-by-push-value (CBPV)
+ * 2. A novel CEK-machine interpreter (Levy's is a CK machine)
+ * 3. Eventually, a simple type system based on CBPV
  * 4. Eventually, a type soundness result of the CEK-machine w.r.t. the type system
 */ 
 
@@ -16,51 +16,58 @@ datatype Option<A> = None | Some(value: A) {
 
 class Ptr<A> {
   var deref: A
-  constructor(val: A) {
-    deref := val;
+  constructor(expr: A) {
+    deref := expr;
   }
 }
 
-datatype Val =
+datatype Expr =
 // G, x : A+ |- x : A+
   Var(string)
 // G |- true/false : Bool
 | Bool(bool)
 | Int(int)
 // TODO: variant types
-// comps have to be terminal like in FG-CBV / unlike CBPV
-| Lambda(string, Comp)
-//| Tuple(map<string, Comp>)
-//| Ref(Ptr<Val>)
+| Thunk(Stmt)
+| Ref(Ptr<Val>)
 
 // G |- e : D and D |- V : A+ ~> G |- V 
-//type Heap = set<Ptr<Comp>>
+//type Heap = set<Ptr<Stmt>>
 
-datatype Comp =
+datatype Stmt =
 // Intro & Elim for Up(A+)
-  Pure(Val)
-| Bind(lhs: Comp, var_: string, rhs: Comp)
+  Pure(Expr)
+| Bind(lhs: Stmt, var_: string, rhs: Stmt)
 // Elim for bools
-| Ite(guard: Val, then_: Comp, else_: Comp)
+| Ite(guard: Expr, then_: Stmt, else_: Stmt)
 // Intro & Elim for arrows
-| Func(bound: string, body: Comp)
-| Call(func: Comp, arg: Val)
+| Func(bound: string, body: Stmt)
+| Call(func: Stmt, arg: Expr)
 // Intro & Elim for objects/records
-//| Object(record: map<string, Comp>)
-//| Select(object: Comp, field: string)
-// Elim for terminal computations as values
-| Force(ref: Val)
+//| Object(record: map<string, Stmt>)
+//| Select(object: Stmt, field: string)
+// Elim for thunks
+| Force(Expr)
 // Elims for refs
-//| Read(ref: Val)
-//| Write(lhs: Val, rhs: Val)
+| Read(ref: Expr, var_: string, cont: Stmt)
+| Write(l: Expr, r: Expr, cont: Stmt)
 {
     // TODO calculate Heap of a comp
 }
 
+// G |- (e, v) : A iff exists D. G |- e : D and D |- V : A
+datatype Val =
+  Bool(bool)
+| Int(int)
+| Thunk(Env, Stmt)
+| Ref(Ptr<Val>)
+// G |- e : D iff for all x : A in D, G |- e[x] : A
+type Env = map<string, Val>
+
 // 
 datatype Frame =
-  Bind(var_: string, rhs: Comp)
-| Call(arg: Val)
+  Bind(var_: string, rhs: Stmt)
+| Call(arg: Expr)
 //| Select(field: string)
 
 datatype Stack = Empty | Push(top: Frame, rest: Stack) {
@@ -71,30 +78,25 @@ datatype Stack = Empty | Push(top: Frame, rest: Stack) {
     }
 }
 
-// G |- (e, v) : A iff exists D. G |- e : D and D |- V : A
-datatype Closure =
-  Bool(bool)
-| Int(int)
-| Lambda(Env, string, Comp)
-// G |- e : D iff for all x : A in D, G |- e[x] : A
-type Env = map<string, Closure>
-
 // CEK Machine
 // In state = Computation, Environment, stacK
 // (E, C, K) : B-   iff   E |- G  and  G |- C : A-  and  G |- K : A- << B-
-type     In  = (Env, Comp, Stack)
+type     In  = (Env, Stmt, Stack)
 // TODO calculate Heap of In
-datatype Out = Next(In) | Stuck | Terminal
+datatype Out = Next(In) | Stuck | Terminal(Val)
 
-// G |- e : D and D |- v : A implies exists clo s.t. G |- clo : A
-function Eval(env: Env, val: Val): Closure {
-    match val
+function Eval(env: Env, expr: Expr): Val {
+    match expr
     case Var(x) =>
+        // Type soundness will discharge this assumption
         assume {:axiom} x in env;
         env[x]
-    case Bool(b)      => Closure.Bool(b)
-    case Int(i)       => Closure.Int(i)
-    case Lambda(b, f) => Closure.Lambda(env, b, f)
+    case Bool(b)  => Val.Bool(b)
+    case Int(i)   => Val.Int(i)
+    // The Felleisen-Friedman trick: delay
+    // substitution by constructing a closure
+    case Thunk(c) => Val.Thunk(env, c)
+    case Ref(ptr) => Val.Ref(ptr)
 }
 
 // This function either steps the current state or tells you that it's terminal/stuck
@@ -107,14 +109,13 @@ function Step(state: In): Out reads * {
     case Bind(lhs, var_, rhs) =>
         Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)))
     
-    case Pure(val) => (
+    case Pure(expr) => (
         match stack.Pop()
         case Some((Bind(var_, rhs), stack)) =>
-            Next((env[var_ := Eval(env, val)], rhs, stack))
+            Next((env[var_ := Eval(env, expr)], rhs, stack))
         
         case Some(_) => Stuck
-        // Lindley says you have to eval the val if it's a var
-        case None    => Terminal
+        case None    => Terminal(Eval(env, expr))
     )
 
     case Call(func, arg) =>
@@ -126,7 +127,7 @@ function Step(state: In): Out reads * {
             Next((env[bound := Eval(env, arg)], body, stack))
         
         case Some(_) => Stuck
-        case None    => Terminal
+        case None    => Terminal(Val.Thunk(env, comp))
     )
 
     case Ite(guard, then_, else_) => (
@@ -137,13 +138,26 @@ function Step(state: In): Out reads * {
         case _ => Stuck
     )
 
-    // TODO: shadow the existing env like Lindley is not working
-    // Converts lambdas/tuples to functions and records
-    case Force(ref) =>
-        match Eval(env, ref)
-        case Lambda(env, b, f) => Next((env, Func(b, f), stack))
+    // Lexical scope restores the env of the closure
+    case Force(thunk) => (
+        match Eval(env, thunk)
+        case Thunk(env, c) => Next((env, c, stack))
         
         case _        => Stuck
+    )
+    
+    case Read(ref, var_, cont) => (
+        match Eval(env, ref)
+        case Ref(ptr) => Next((env[var_ := ptr.deref], cont, stack))
+        case _        => Stuck
+    )
+
+    case Write(lhs, rhs, cont) => (
+        match Eval(env, lhs)
+        case Ref(ptr) =>
+            (/*ptr.deref := Eval(env, rhs);*/ Next((env, cont, stack)))
+        case _        => Stuck
+    )
 }
 
 // Iterates step
@@ -155,53 +169,35 @@ method Run(s: In) decreases * {
 }
 
 // Initial configuration
-function Initial(comp: Comp): In
+function Initial(comp: Stmt): In
     { (map[], comp, Empty) }
 
+function Let(lhs: Expr, var_ : string, rhs: Stmt): Stmt
+    { Stmt.Call(Func(var_, rhs), lhs) }
+
 method Main() decreases * {
-    /*Run(Initial(
-        Comp.Bind(
-            Pure(Bool(true)),
+    Run(Initial(
+        Stmt.Bind(
+            Pure(Expr.Bool(true)),
             "x",
             Ite(
                 Var("x"),
-                Pure(Bool(false)),
-                Pure(Bool(true))
+                Pure(Expr.Bool(false)),
+                Pure(Expr.Bool(true))
             )
         )
-    ));*/
-    /*Run(Initial(
-        Comp.Call(
-            Comp.Call(
-                Comp.Func(
-                    "x",
-                    Comp.Func(
-                        "y",
-                        Pure(Var("x"))
-                    )
-                ),
-                Bool(true)
-            ),
-            Bool(false)
-        )
-    ));*/
+    ));
     // Verifies that lexical scope works
-    //var ptr := new Ptr(Func("y", Pure(Var("x"))));
-    var fv := Val.Lambda("y", Pure(Var("x")));
-    var fc := Force(Var("f"));
-    var x1 := Val.Int(1);
-    var x2 := Val.Int(2);
-    var z  := Val.Int(0);
+    var fc := Expr.Thunk(Func("y", Pure(Var("x"))));
+    var fv := Force(Var("f"));
+    var x1 := Expr.Int(1);
+    var x2 := Expr.Int(2);
+    var z  := Expr.Int(0);
     Run(Initial(
-        Comp.Call(
-        Comp.Call(
-        Comp.Call(
-        Func("x",
-        Func("f",
-        Func("x",
-            Comp.Call(fc, z)))),
-        x2),
-        fv),
-        x1)
+        Let(x1, "x",
+        Let(fc, "f",
+        Let(x2, "x",
+        Stmt.Call(fv, z))))
     ));
 }
+
