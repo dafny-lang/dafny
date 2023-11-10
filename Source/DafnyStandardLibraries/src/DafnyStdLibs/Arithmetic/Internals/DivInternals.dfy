@@ -16,10 +16,6 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-// These includes are necessary since Internals/*Nonlinear.dfy is subject to a separate toml file
-include "ModInternalsNonlinear.dfy"
-include "DivInternalsNonlinear.dfy"
-
 module {:options "-functionSyntax:4"} DivInternals {
 
   import opened GeneralInternals
