@@ -6058,6 +6058,5 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
-
   }
 }
