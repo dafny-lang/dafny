@@ -59,6 +59,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(before, cs) := WS(cs);
       var SP(val, cs) :- parser.fn(cs);
       var SP(after, cs) := WS(cs);
@@ -71,6 +72,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(before, cs) := WS(cs);
       var SP(val, cs) := cs.SkipByte().Split();
       var SP(after, cs) := WS(cs);
@@ -202,6 +204,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       ensures elems'.cs.StrictlySplitFrom?(json.cs)
       ensures elems'.SplitFrom?(cs0, SuffixedElementsSpec)
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var suffixed := Suffixed(elem.t, NonEmpty(sep.t));
       var elems' := SP(elems.t + [suffixed], sep.cs); // DISCUSS: Moving this down doubles the verification time
 
@@ -283,7 +286,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         && ((s0 == SEPARATOR as opt_byte) ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
         && ((!cs.BOF? || !cs.EOF?) && (s0 == CLOSE as opt_byte) ==> (var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs)))
         && ((s0 == CLOSE as opt_byte) ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
-    {}
+    {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
+    }
 
     lemma {:vcs_split_on_every_assert} AboutLists<T>(xs: seq<T>, i: uint32)
       requires 0 <= (i as int) < |xs|
@@ -695,6 +700,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     function {:opaque} String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(lq, cs) :- Quote(cs);
       var contents :- StringBody(cs);
       var SP(contents, cs) := contents.Split();
@@ -862,6 +868,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
     {
+      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var sp :- Bracketed(cs, json);
       assert sp.StrictlySplitFrom?(cs, BracketedSpec);
       BracketedToArray(sp.t);

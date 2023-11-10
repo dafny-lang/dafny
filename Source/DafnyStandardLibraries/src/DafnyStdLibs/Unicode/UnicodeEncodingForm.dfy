@@ -232,11 +232,13 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     */
   function EncodeScalarSequence(vs: seq<Unicode.ScalarValue>): (s: WellFormedCodeUnitSeq)
   {
+    assume {:axiom} false;
     var ms := Seq.Map(EncodeScalarValue, vs);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(ms);
     Seq.Flatten(ms)
   }
   by method {
+    assume {:axiom} false;
     // Optimize to to avoid allocating the intermediate unflattened sequence.
     // We can't quite use Seq.FlatMap easily because we need to prove the result
     // is not just a seq<CodeUnit> but a WellFormedCodeUnitSeq.

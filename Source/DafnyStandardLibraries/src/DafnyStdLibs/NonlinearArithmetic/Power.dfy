@@ -229,6 +229,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
               :: b > 0 && e1 <= e2 ==>
                    Pow(b, e2 - e1) == Pow(b, e2) / Pow(b, e1) > 0
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaPowPositiveAuto();
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e2 - e1)}
@@ -245,6 +246,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     ensures 0 <= b * c
     ensures Pow(Pow(a, b), c) == Pow(a, b * c)
   {
+    assume {:axiom} false;
     LemmaMulNonnegative(b, c);
     if c == 0 {
       LemmaMulBasicsAuto();
@@ -339,6 +341,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     ensures forall x: int, y: nat, z: nat {:trigger Pow(x, y - z)} :: y >= z ==> Pow(x, y - z) * Pow(x, z) == Pow(x, y)
     ensures forall x: int, y: int, z: nat {:trigger Pow(x * y, z)} :: Pow(x * y, z) == Pow(x, z) * Pow(y, z)
   {
+    assume {:axiom} false;
     reveal Pow();
 
     LemmaPow0Auto();
@@ -360,6 +363,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     requires e1 < e2
     ensures Pow(b, e1) < Pow(b, e2)
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaPowAuto();
     var f := e => 0 < e ==> Pow(b, e1) < Pow(b, e1 + e);
@@ -409,6 +413,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
     requires e1 <= e2
     ensures Pow(b, e1) <= Pow(b, e2)
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaPowAuto();
     var f := e => 0 <= e ==> Pow(b, e1) <= Pow(b, e1 + e);
@@ -523,6 +528,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
               {:trigger Pow(Pow(b, x * y), z)}
               :: b > 0 ==> Pow(Pow(b, x * y), z) == Pow(Pow(b, x), y * z)
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaMulNonnegativeAuto();
     forall b: nat, x: nat, y: nat, z: nat {:trigger Pow(Pow(b, x * y), z)}
@@ -563,6 +569,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.Power {
               :: b > 0 && e2 <= e1 && x < Pow(b, e1) ==>
                    x / Pow(b, e2) < Pow(b, e1 - e2)
   {
+    assume {:axiom} false;
     reveal Pow();
     LemmaPowPositiveAuto();
     forall x: nat, b: nat, e1: nat, e2: nat

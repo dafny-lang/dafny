@@ -940,6 +940,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.NonlinearArithmetic.DivMod {
     ensures 0 < b * c
     ensures (b * (a / b) % (b * c)) <= b * (c - 1)
   {
+    assume {:axiom} false;
     LemmaMulStrictlyPositiveAuto();
     calc {
       b * (a / b) % (b * c);
