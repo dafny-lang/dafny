@@ -86,7 +86,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.DivInternals {
             (-n <= z < 0 && (x - y) / n == x / n - y / n - 1))))
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAux(n: int)
+  lemma {:vcs_split_on_every_assert} /*{:rlimit 3014}*/ LemmaDivAutoAux(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAuto(n)
   {

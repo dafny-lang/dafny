@@ -1488,11 +1488,18 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.DivMod {
   }
 
   lemma LemmaModOrderingAuto()
+    ensures forall k: int, d: int {:trigger d * k}
+              :: 1 < d && 0 < k ==> 0 < d * k
     ensures forall x: int, k: int, d: int {:trigger x % (d * k)}
-              :: 1 < d && 0 < k ==> 0 < d * k && x % d <= x % (d * k)
+              :: 1 < d && 0 < k ==> x % d <= x % (d * k)
   {
-    forall x: int, k: int, d: int | 1 < d && 0 < k
-      ensures d * k > 0 && x % d <= x % (d * k)
+    forall k: int, d: int {:trigger d * k} | (1 < d && 0 < k)
+      ensures 1 < d && 0 < k ==> 0 < d * k
+    {
+      LemmaMulStrictlyIncreases(d, k);
+    }
+    forall x: int, k: int, d: int {:trigger x % (d * k)} | (1 < d && 0 < k)
+      ensures (1 < d && 0 < k) ==> (x % d <= x % (d * k))
     {
       LemmaModOrdering(x, k, d);
     }
@@ -1522,11 +1529,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.DivMod {
   }
 
   lemma LemmaModModAuto()
-    ensures forall x: int, a: int, b: int {:trigger a * b, x % a}
-              :: 0 < a && 0 < b ==> 0 < a * b && (x % (a * b)) % a == x % a
+    ensures forall a: int, b: int {:trigger a * b}
+              :: 0 < a && 0 < b ==> 0 < a * b
+    ensures forall x: int, a: int, b: int {:trigger (x % (a * b)) % a, x % a}
+              :: 0 < a && 0 < b ==> (x % (a * b)) % a == x % a
   {
-    forall x: int, a: int, b: int | 0 < a && 0 < b
+    forall a: int, b: int {:trigger a * b} | 0 < a && 0 < b
       ensures 0 < a * b
+    {
+      LemmaMulStrictlyPositiveAuto();
+    }
+    forall x: int, a: int, b: int | 0 < a && 0 < b
       ensures (x % (a * b)) % a == x % a
     {
       LemmaModMod(x, a, b);
