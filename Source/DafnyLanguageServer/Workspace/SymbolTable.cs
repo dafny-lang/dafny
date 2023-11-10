@@ -43,7 +43,7 @@ public class SymbolTable {
 
     return new SymbolTable(usages, definitions);
   }
-  
+
   public static SymbolTable Empty() {
     return new SymbolTable();
   }

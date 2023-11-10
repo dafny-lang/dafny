@@ -65,7 +65,7 @@ public record IdeState(
       input.RootUris.ToImmutableDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
     );
   }
-  
+
   public const string OutdatedPrefix = "Outdated: ";
 
   public IdeState Migrate(DafnyOptions options, Migrator migrator, int version) {
@@ -155,7 +155,7 @@ public record IdeState(
   public IEnumerable<Uri> GetDiagnosticUris() {
     return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
-  
+
   public IdeState UpdateState(DafnyOptions options, ILogger logger, ICompilationEvent e) {
     switch (e) {
       case BoogieUpdate boogieUpdate:
@@ -177,8 +177,7 @@ public record IdeState(
     }
   }
 
-  private IdeState UpdateScheduledVerification(ScheduledVerification scheduledVerification)
-  {
+  private IdeState UpdateScheduledVerification(ScheduledVerification scheduledVerification) {
     var previousState = this;
 
     var uri = scheduledVerification.CanVerify.Tok.Uri;
@@ -188,29 +187,24 @@ public record IdeState(
     var preparationProgress = new[]
       { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max();
     var verificationResult = new IdeVerificationResult(PreparationProgress: preparationProgress,
-      Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with
-      {
+      Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
-    return previousState with
-    {
+    return previousState with {
       VerificationResults = previousState.VerificationResults.SetItem(uri,
         previousState.VerificationResults[uri].SetItem(range, verificationResult))
     };
   }
 
-  private IdeState UpdateNewDiagnostic(NewDiagnostic newDiagnostic)
-  {
+  private IdeState UpdateNewDiagnostic(NewDiagnostic newDiagnostic) {
     var previousState = this;
 
     // Until resolution is finished, keep showing the old diagnostics. 
-    if (previousState.Status > CompilationStatus.ResolutionStarted)
-    {
+    if (previousState.Status > CompilationStatus.ResolutionStarted) {
       var diagnostics = previousState.StaticDiagnostics.GetValueOrDefault(Uri, ImmutableList<Diagnostic>.Empty);
       var newDiagnostics = diagnostics.Add(newDiagnostic.Diagnostic.ToLspDiagnostic());
-      return previousState with
-      {
+      return previousState with {
         StaticDiagnostics = previousState.StaticDiagnostics.SetItem(Uri, newDiagnostics)
       };
     }
@@ -218,19 +212,16 @@ public record IdeState(
     return previousState;
   }
 
-  private IdeState UpdateInternalCompilationException(InternalCompilationException internalCompilationException)
-  {
+  private IdeState UpdateInternalCompilationException(InternalCompilationException internalCompilationException) {
     var previousState = this;
-    var internalErrorDiagnostic = new Diagnostic
-    {
+    var internalErrorDiagnostic = new Diagnostic {
       Message =
         "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
         internalCompilationException.Exception,
       Severity = DiagnosticSeverity.Error,
       Range = new Range(0, 0, 0, 1)
     };
-    return previousState with
-    {
+    return previousState with {
       Status = CompilationStatus.InternalException,
       StaticDiagnostics =
       ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty.Add(previousState.Input.Uri.ToUri(),
@@ -251,7 +242,7 @@ public record IdeState(
       compilationUnit = new CompilationUnit(Input.Project.Uri, finishedResolution.ResolvedProgram);
     } else {
       symbolTable = SymbolTable.CreateFrom(finishedResolution.ResolvedProgram, cancellationToken);
-      
+
       var project = Input.Project;
       var beforeLegacyServerResolution = DateTime.Now;
       compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
@@ -261,12 +252,10 @@ public record IdeState(
 
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
       GetGhostStateDiagnostics(legacySignatureAndCompletionTable, cancellationToken);
-    
+
     var trees = previousState.VerificationTrees;
-    if (status == CompilationStatus.ResolutionSucceeded)
-    {
-      foreach (var uri in trees.Keys)
-      {
+    if (status == CompilationStatus.ResolutionSucceeded) {
+      foreach (var uri in trees.Keys) {
         trees = trees.SetItem(uri,
           GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, finishedResolution.ResolvedProgram,
             previousState.VerificationTrees[uri]));
@@ -283,8 +272,7 @@ public record IdeState(
       ? legacySignatureAndCompletionTable
       : previousState.SignatureAndCompletionTable;
 
-    return previousState with
-    {
+    return previousState with {
       StaticDiagnostics = finishedResolution.Diagnostics,
       Status = status,
       ResolvedProgram = ResolvedProgram,
@@ -325,15 +313,13 @@ public record IdeState(
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
   }
-  
+
   private IdeState UpdateFinishedParsing(FinishedParsing finishedParsing) {
     var previousState = this;
     var trees = previousState.VerificationTrees;
-    foreach (var uri in trees.Keys)
-    {
+    foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,
-        new DocumentVerificationTree(Program, uri)
-        {
+        new DocumentVerificationTree(Program, uri) {
           Children = trees[uri].Children
         });
     }
@@ -342,8 +328,7 @@ public record IdeState(
       .Where(d => d.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
-    return previousState with
-    {
+    return previousState with {
       Program = Program,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed
         ? finishedParsing.Diagnostics
@@ -353,8 +338,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified)
-  {
+  private IdeState UpdateCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
     var previousState = this;
     var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Implementation);
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
@@ -368,22 +352,19 @@ public record IdeState(
     var names = canVerifyPartsIdentified.Parts.Select(t => Compilation.GetImplementationName(t.Implementation));
     var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
       Implementations: names.ToImmutableDictionary(k => k,
-        k =>
-        {
+        k => {
           var previous = previousImplementations.GetValueOrDefault(k);
           return new IdeImplementationView(range, PublishedVerificationStatus.Queued,
             previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false);
         }));
-    return previousState with
-    {
+    return previousState with {
       VerificationResults = previousState.VerificationResults.SetItem(uri,
         previousState.VerificationResults[uri].SetItem(range, verificationResult))
     };
   }
 
-  private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate)
-  {
+  private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);
 
@@ -399,15 +380,13 @@ public record IdeState(
     var counterExamples = previousState.Counterexamples;
     bool hitErrorLimit = previousView.HitErrorLimit;
     var diagnostics = previousView.Diagnostics;
-    if (boogieUpdate.BoogieStatus is Running)
-    {
+    if (boogieUpdate.BoogieStatus is Running) {
       diagnostics = Array.Empty<Diagnostic>();
       counterExamples = Array.Empty<Counterexample>();
       hitErrorLimit = false;
     }
 
-    if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted)
-    {
+    if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
       counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
       hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       var newDiagnostics =
@@ -419,12 +398,10 @@ public record IdeState(
 
     var view = new IdeImplementationView(range, status, diagnostics.ToList(),
       previousView.HitErrorLimit || hitErrorLimit);
-    return previousState with
-    {
+    return previousState with {
       Counterexamples = counterExamples,
       VerificationResults = previousState.VerificationResults.SetItem(uri,
-        previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with
-        {
+        previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
           Implementations = previousVerificationResult.Implementations.SetItem(name, view)
         }))
     };
