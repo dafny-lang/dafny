@@ -113,12 +113,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   private CompilationInput GetCompilationInput() {
-    var rootUris = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).
-      Select(uri => new DafnyFile(options, uri)).ToList();
+    var rootFiles = Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).
+      Select(uri => new DafnyFile(fileSystem, options, uri)).ToList();
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      rootUris.Add(new DafnyFile(options, DafnyMain.StandardLibrariesDooUri));
+      rootFiles.Add(new DafnyFile(fileSystem, options, DafnyMain.StandardLibrariesDooUri));
     }
-    return new CompilationInput(options, version, Project, rootUris);
+    return new CompilationInput(options, version, Project, rootFiles);
   }
 
   private const int MaxRememberedChanges = 100;

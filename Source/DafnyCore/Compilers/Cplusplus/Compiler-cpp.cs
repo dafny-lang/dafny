@@ -56,7 +56,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.UnicodeChars,
       Feature.ConvertingValuesToStrings,
-      Feature.BuiltinsInRuntime
+      Feature.BuiltinsInRuntime,
+      Feature.RuntimeCoverageReport
     };
 
     private List<DatatypeDecl> datatypeDecls = new();

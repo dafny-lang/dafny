@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -247,8 +248,7 @@ public class ProgramParser {
 
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(systemModuleManager.Options, include.IncludedFilename, include.tok,
-        () => fileSystem.ReadFile(include.IncludedFilename));
+      return new DafnyFile(fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
     } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename}.");
@@ -308,7 +308,8 @@ public class ProgramParser {
   }
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {
-    var files = new[] { new DafnyFile(reporter.Options, uri, null, () => new StringReader(source)) };
+    var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+    var files = new[] { new DafnyFile(fs, reporter.Options, uri) };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

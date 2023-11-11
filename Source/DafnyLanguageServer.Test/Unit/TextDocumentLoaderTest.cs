@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,9 +80,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     private static CompilationInput GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
+      var uri = versionedTextDocumentIdentifier.Uri.ToUri();
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
+      var file = new DafnyFile(fs, DafnyOptions.Default, uri);
       var compilation = new CompilationInput(DafnyOptions.Default, 0,
-        ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()),
-        new[] { new DafnyFile(DafnyOptions.Default, versionedTextDocumentIdentifier.Uri.ToUri()) });
+        ProjectManagerDatabase.ImplicitProject(uri),
+        new[] { file });
       return compilation;
     }
 

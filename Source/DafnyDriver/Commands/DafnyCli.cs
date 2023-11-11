@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Help;
@@ -384,7 +385,7 @@ public static class DafnyCli {
     if (options.UseStdin) {
       var uri = new Uri("stdin:///");
       options.CliRootSourceUris.Add(uri);
-      dafnyFiles.Add(new DafnyFile(options, uri));
+      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, uri));
     } else if (options.CliRootSourceUris.Count == 0) {
       options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
       return ExitValue.PREPROCESSING_ERROR;
@@ -413,7 +414,7 @@ public static class DafnyCli {
       var nameToShow = useRelative ? relative
         : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
       try {
-        var df = new DafnyFile(options, new Uri(Path.GetFullPath(file)));
+        var df = new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)));
         if (options.LibraryFiles.Contains(file)) {
           df.IsPreverified = true;
           df.IsPrecompiled = true;
@@ -486,7 +487,7 @@ public static class DafnyCli {
     // which is not handled well.
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-      dafnyFiles.Add(new DafnyFile(options, DafnyMain.StandardLibrariesDooUri));
+      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
     }
 
     return ExitValue.SUCCESS;

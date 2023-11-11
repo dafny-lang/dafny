@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// The order in which the filesystems are given matters,
 /// when multiple filesystem contain the same file, the first containing filesystem returns it.
 /// </summary>
-class CombinedDirectoryInfo : DirectoryInfoBase {
+public class CombinedDirectoryInfo : DirectoryInfoBase {
   public DirectoryInfoBase[] Parts { get; }
 
   public CombinedDirectoryInfo(DirectoryInfoBase[] parts) {
