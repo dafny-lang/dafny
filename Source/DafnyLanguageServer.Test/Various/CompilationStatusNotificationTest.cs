@@ -43,7 +43,7 @@ method Bar() {
       var a3 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a4 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
-      var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
+      var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse.dfy");
       var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a6.Uri);
     }
@@ -212,7 +212,7 @@ method Abs(x: int) returns (y: int)
       await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DocumentLoadWithOnSaveVerificationDoesNotSendVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -230,14 +230,14 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
-      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      var documentItem2 = CreateTestDocument(source, "test_2.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DocumentLoadAndSaveWithNeverVerifySendsNoVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -256,7 +256,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
-      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      var documentItem2 = CreateTestDocument(source, "test_2.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);

@@ -52,7 +52,7 @@ public class DafnyFile {
     if (GetContent != null) {
       IsPreverified = false;
       IsPrecompiled = false;
-    } else if (Extension == ".dfy" || Extension == ".dfyi") {
+    } else if (uri.Scheme == "untitled" || Extension == ".dfy" || Extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
       if (!fileSystem.Exists(uri)) {
