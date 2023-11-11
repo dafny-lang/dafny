@@ -115,7 +115,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private Compilation CreateInitialCompilation() {
     var rootFiles = new List<DafnyFile>();
-    foreach (var uri in Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris).) {
+    foreach (var uri in Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
       try {
         rootFiles.Add(new DafnyFile(fileSystem, options, uri));
       } catch (IllegalDafnyFile) {
