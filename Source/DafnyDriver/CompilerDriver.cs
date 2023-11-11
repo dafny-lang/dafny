@@ -39,70 +39,11 @@ namespace Microsoft.Dafny {
   public class CompilerDriver : IDisposable {
     private readonly ExecutionEngine engine;
 
-    private CompilerDriver(DafnyOptions dafnyOptions) {
+    public CompilerDriver(DafnyOptions dafnyOptions) {
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
-    public static async Task<int> RunCompiler(DafnyOptions options) {
-      options.RunningBoogieFromCommandLine = true;
-
-      var backend = GetBackend(options);
-      if (backend == null) {
-        return (int)ExitValue.PREPROCESSING_ERROR;
-      }
-      options.Backend = backend;
-
-      var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
-      if (getFilesExitCode != ExitValue.SUCCESS) {
-        return (int)getFilesExitCode;
-      }
-
-      if (options.ExtractCounterexample && options.ModelViewFile == null) {
-        options.Printer.ErrorWriteLine(options.OutputWriter,
-          "*** Error: ModelView file must be specified when attempting counterexample extraction");
-        return (int)ExitValue.PREPROCESSING_ERROR;
-      }
-
-      using var driver = new CompilerDriver(options);
-      ProofDependencyManager depManager = new();
-      var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
-
-      options.XmlSink?.Close();
-
-      if (options.VerificationLoggerConfigs.Any()) {
-        try {
-          VerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
-        } catch (ArgumentException ae) {
-          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
-          exitValue = ExitValue.PREPROCESSING_ERROR;
-        }
-      }
-
-      if (options.Wait) {
-        Console.WriteLine("Press Enter to exit.");
-        Console.ReadLine();
-      }
-
-      return (int)exitValue;
-    }
-
-    private static IExecutableBackend GetBackend(DafnyOptions options) {
-      var backends = options.Plugins.SelectMany(p => p.GetCompilers(options)).ToList();
-      var backend = backends.LastOrDefault(c => c.TargetId == options.CompilerName);
-      if (backend == null) {
-        if (options.CompilerName != null) {
-          var known = String.Join(", ", backends.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(options.ErrorWriter,
-            $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
-        } else {
-          backend = new NoExecutableBackend(options);
-        }
-      }
-
-      return backend;
-    }
-
-    private async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,
+    public async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
       DafnyOptions options, ProofDependencyManager depManager,
       bool lookForSnapshots = true, string programId = null) {
