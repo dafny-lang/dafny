@@ -85,7 +85,7 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
-      uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+      uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var program = new ProgramParser().ParseFiles(uri.LocalPath,
