@@ -197,10 +197,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
     return fileVerificationStatus;
 
-    bool FinishedStatus(NamedVerifiableStatus method)
-    {
-      if (allowStale && method.Status == PublishedVerificationStatus.Stale)
-      {
+    bool FinishedStatus(NamedVerifiableStatus method) {
+      if (allowStale && method.Status == PublishedVerificationStatus.Stale) {
         return true;
       }
 

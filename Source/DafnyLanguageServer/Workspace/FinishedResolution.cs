@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -47,6 +48,7 @@ record FinishedResolution(
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = GhostRanges,
+      Counterexamples = new List<Counterexample>(),
       VerificationResults = verificationResults,
       VerificationTrees = trees
     };
