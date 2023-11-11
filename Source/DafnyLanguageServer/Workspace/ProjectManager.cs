@@ -290,18 +290,18 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       compilation.IncrementJobs();
       var resolution = await compilation.Resolution;
 
-      var verifiables = resolution.CanVerifies?.ToList();
-      if (verifiables == null) {
+      var canVerifies = resolution.CanVerifies?.ToList();
+      if (canVerifies == null) {
         return;
       }
 
       if (uri != null) {
-        verifiables = verifiables.Where(d => d.Tok.Uri == uri).ToList();
+        canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
       }
 
       List<FilePosition> changedVerifiables;
       lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(verifiables, RecentChanges).ToList();
+        changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
       }
 
       int GetPriorityAttribute(ISymbol symbol) {
@@ -317,7 +317,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
         return symbol.Tok.pos;
       }
       var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = verifiables.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
+      var orderedVerifiables = canVerifies.OrderByDescending(GetPriorityAttribute).CreateOrderedEnumerable(
         t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue),
         null, false).CreateOrderedEnumerable(TopToBottomPriority, null, false).ToList();
       logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");

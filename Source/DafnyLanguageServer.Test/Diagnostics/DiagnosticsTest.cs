@@ -97,7 +97,7 @@ module Consumer {
       var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint);
+      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint, allowStale: true);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
       await AssertNoDiagnosticsAreComing(CancellationToken, producer);
