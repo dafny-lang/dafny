@@ -12,7 +12,10 @@ all: check-binary test check-format check-examples
 
 build-binary:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
-	$(DAFNY) build -t:lib src/dfyconfig-arithmetic.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
+# Leaving prints in for debugging any future hits on https://github.com/dafny-lang/dafny/issues/4771
+	$(DAFNY) build -t:lib src/dfyconfig-arithmetic.toml --output:${DOO_FILE_ARITHMETIC_SOURCE} \
+		--print:build/dfyconfig-arithmetic.dfy \
+		--rprint:build/dfyconfig-arithmetic-resolved.dfy
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current

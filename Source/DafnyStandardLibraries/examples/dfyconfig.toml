@@ -1,7 +1,6 @@
 [options]
 standard-libraries = true
 resource-limit = 1000
-# TODO: necessary because Algorithms has warnings in it
-warn-as-errors = false
+warn-as-errors = true
 warn-redundant-assumptions = true
 warn-contradictory-assumptions = true

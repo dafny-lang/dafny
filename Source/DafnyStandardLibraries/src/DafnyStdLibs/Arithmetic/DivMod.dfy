@@ -203,7 +203,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)}
               :: 0 < d &&  R == a%d + b%d - (a+b)%d ==> d*((a+b)/d) - R == d*(a/d) + d*(b/d)
   {
-    forall (a: int, b: int, d: int, R: int | 0< d &&  R == a%d + b%d - (a+b)%d)
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall (a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)} | 0< d &&  R == a%d + b%d - (a+b)%d)
       ensures d*((a+b)/d) - R == d*(a/d) + d*(b/d)
     {
       LemmaDividingSums(a, b, d, R);
@@ -718,7 +719,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, a: int, d: int {:trigger a / d, x * d, x * a}
               :: 0 < x && 0 <= a && 0 < d ==> 0 < x * d  &&  a / d == (x * a) / (x * d)
   {
-    forall x: int, a: int, d: int | 0 < x && 0 <= a && 0 < d
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, a: int, d: int {:trigger x * d, 0 <= a} | 0 < x && 0 <= a && 0 < d
       ensures 0 < x * d  &&  a / d == (x * a) / (x * d)
     {
       LemmaDivMultiplesVanishQuotient(x, a, d);
@@ -741,7 +743,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall a: int, r: int, d: int {:trigger d * ((a + r) / d)}
               :: 0 < d && a % d == 0 && 0 <= r < d ==> a == d * ((a + r) / d)
   {
-    forall a: int, r: int, d: int | 0 < d && a % d == 0 && 0 <= r < d
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall a: int, r: int, d: int {:trigger a + r, r < d} {:trigger a + r, 0 < d} {:trigger 0 <= r, a % d} | 0 < d && a % d == 0 && 0 <= r < d
       ensures a == d * ((a + r) / d)
     {
       LemmaRoundDown(a, r, d);
@@ -764,7 +767,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, b: int, d: int {:trigger (d * x + b) / d}
               :: 0 < d && 0 <= b < d ==> (d * x + b) / d == x
   {
-    forall x: int, b: int, d: int | 0 < d && 0 <= b < d
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, b: int, d: int {:trigger d * x, b < d} {:trigger d * x, 0 <= b} | 0 < d && 0 <= b < d
       ensures (d * x + b) / d == x
     {
       LemmaDivMultiplesVanishFancy(x, b, d);
@@ -930,7 +934,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall a: int, b: int, c: int {:trigger b * (a / b) % (b * c)}
               :: 0 <= a && 0 < b && 0 < c ==> 0 < b * c && (b * (a / b) % (b * c)) <= b * (c - 1)
   {
-    forall a: int, b: int, c: int | 0 <= a && 0 < b && 0 < c
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall a: int, b: int, c: int {:trigger b * c, 0 <= a} | 0 <= a && 0 < b && 0 < c
       ensures 0 < b * c && (b * (a / b) % (b * c)) <= b * (c - 1)
     {
       LemmaPartBound1(a, b, c);
@@ -1197,7 +1202,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, y: int, m: int {:trigger (x + y) % m}
               :: 0 < m ==> (x + (y % m)) % m == (x + y) % m
   {
-    forall x: int, y: int, m: int | 0 < m
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, y: int, m: int {:trigger x + y % m} | 0 < m
       ensures (x + (y % m)) % m == (x + y) % m
     {
       LemmaAddModNoopRight(x, y, m);
@@ -1216,7 +1222,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, y: int, m: int {:trigger (x - y) % m}
               :: 0 < m ==> ((x % m) - (y % m)) % m == (x - y) % m
   {
-    forall x: int, y: int, m: int | 0 < m
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, y: int, m: int {:trigger x % m - y % m} | 0 < m
       ensures ((x % m) - (y % m)) % m == (x - y) % m
     {
       LemmaSubModNoop(x, y, m);
@@ -1235,7 +1242,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, y: int, m: int {:trigger (x - y) % m}
               :: 0 < m ==> (x - (y % m)) % m == (x - y) % m
   {
-    forall x: int, y: int, m: int | 0 < m
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, y: int, m: int {:trigger x - y % m} | 0 < m
       ensures (x - (y % m)) % m == (x - y) % m
     {
       LemmaSubModNoopRight(x, y, m);
@@ -1298,7 +1306,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, d: int, q: int, r: int {:trigger q * d + r, x % d}
               :: d != 0 && 0 <= r < d && x == q * d + r ==> q == x / d && r == x % d
   {
-    forall x: int, d: int, q: int, r: int | d != 0 && 0 <= r < d && x == q * d + r
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, d: int, q: int, r: int {:trigger x / d, q * d, r < d} {:trigger x / d, q * d, 0 <= r}
+       | d != 0 && 0 <= r < d && x == q * d + r
       ensures q == x / d && r == x % d
     {
       LemmaFundamentalDivModConverse(x, d, q, r);
@@ -1569,7 +1579,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
     ensures forall x: int, y: int, z: int {:trigger y * z, x % y}
               :: 0 <= x && 0 < y && 0 < z ==> y * z > 0 && (x % y) % (y * z) < y
   {
-    forall x: int, y: int, z: int | 0 <= x && 0 < y && 0 < z
+    // https://github.com/dafny-lang/dafny/issues/4771
+    forall x: int, y: int, z: int {:trigger y * z, 0 <= x} {:trigger 0 < z, 0 < y, 0 <= x} | 0 <= x && 0 < y && 0 < z
       ensures y * z > 0 && (x % y) % (y * z) < y
     {
       LemmaPartBound2(x, y, z);
