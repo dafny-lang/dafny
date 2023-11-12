@@ -241,14 +241,14 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.Mul {
     ensures forall x: int, XBound: int, y: int, YBound: int {:trigger x * y, (XBound - 1) * (YBound - 1)}
               :: x < XBound && y < YBound && 0 < x && 0 < y ==> x * y <= (XBound - 1) * (YBound - 1)
   {
-    forall (x: int, XBound: int, y: int, YBound: int 
-        // https://github.com/dafny-lang/dafny/issues/4771
-        {:trigger (XBound - 1) * (YBound - 1), x * y} 
-        {:trigger YBound - 1, XBound - 1, 0 < y, 0 < x} 
-        {:trigger YBound - 1, 0 < y, x < XBound} 
-        {:trigger XBound - 1, 0 < x, y < YBound} 
-        {:trigger y < YBound, x < XBound} 
-        | x < XBound && y < YBound && 0 < x && 0 < y)
+    forall (x: int, XBound: int, y: int, YBound: int
+      // https://github.com/dafny-lang/dafny/issues/4771
+      {:trigger (XBound - 1) * (YBound - 1), x * y}
+      {:trigger YBound - 1, XBound - 1, 0 < y, 0 < x}
+      {:trigger YBound - 1, 0 < y, x < XBound}
+      {:trigger XBound - 1, 0 < x, y < YBound}
+      {:trigger y < YBound, x < XBound}
+      | x < XBound && y < YBound && 0 < x && 0 < y)
       ensures x * y <= (XBound - 1) * (YBound - 1)
     {
       LemmaMulStrictUpperBound(x, XBound, y, YBound);

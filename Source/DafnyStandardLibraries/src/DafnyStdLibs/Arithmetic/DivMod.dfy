@@ -1308,7 +1308,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.DivMod {
   {
     // https://github.com/dafny-lang/dafny/issues/4771
     forall x: int, d: int, q: int, r: int {:trigger x / d, q * d, r < d} {:trigger x / d, q * d, 0 <= r}
-       | d != 0 && 0 <= r < d && x == q * d + r
+      | d != 0 && 0 <= r < d && x == q * d + r
       ensures q == x / d && r == x % d
     {
       LemmaFundamentalDivModConverse(x, d, q, r);

@@ -632,7 +632,7 @@ namespace Microsoft.Dafny {
         program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
-      
+
     public static IEnumerable<string> Lines(TextReader reader) {
       return new LinesEnumerable(reader);
     }
@@ -985,7 +985,7 @@ namespace Microsoft.Dafny {
     public LinesEnumerable(TextReader reader) {
       Reader = reader;
     }
-    
+
     public IEnumerator<string> GetEnumerator() {
       return new LinesEnumerator(Reader);
     }
@@ -1002,7 +1002,7 @@ namespace Microsoft.Dafny {
     public LinesEnumerator(TextReader reader) {
       Reader = reader;
     }
-    
+
     public bool MoveNext() {
       Current = Reader.ReadLine();
       return Current != null;
@@ -1012,7 +1012,7 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    public string Current { get; internal set;  }
+    public string Current { get; internal set; }
 
     object IEnumerator.Current => Current;
 

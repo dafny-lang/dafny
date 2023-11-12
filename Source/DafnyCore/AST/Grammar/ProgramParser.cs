@@ -91,7 +91,7 @@ public class ProgramParser {
 
     if (errorReporter.ErrorCount == 0) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
-      
+
       // Capture the original program text before resolution
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.

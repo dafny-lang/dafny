@@ -34,7 +34,7 @@ public class LibraryBackend : ExecutableBackend {
 
   // Necessary since Compiler is null
   public override string ModuleSeparator => ".";
-  
+
   /// <summary>
   /// Serializing the state of the Program passed to this backend,
   /// after resolution, can be problematic.

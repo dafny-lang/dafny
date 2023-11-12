@@ -552,18 +552,18 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Arithmetic.Power {
       assert x / Pow(b, e2) >= Pow(b, e1 - e2);
 
       assert x / Pow(b, e2) * Pow(b, e2) >= Pow(b, e1 - e2) * Pow(b, e2) by
-        { LemmaMulInequality(Pow(b, e1 - e2), x / Pow(b, e2), Pow(b, e2)); }
-      
+      { LemmaMulInequality(Pow(b, e1 - e2), x / Pow(b, e2), Pow(b, e2)); }
+
       assert x - x % Pow(b, e2) >= Pow(b, e1 - e2) * Pow(b, e2) by
-        { LemmaFundamentalDivMod(x, Pow(b, e2));
-          LemmaMulIsCommutativeAuto(); }
-      
+      { LemmaFundamentalDivMod(x, Pow(b, e2));
+        LemmaMulIsCommutativeAuto(); }
+
       assert x - x % Pow(b, e2) >= Pow(b, e1) by
-        { LemmaPowAdds(b, e1 - e2, e2); }
-      
+      { LemmaPowAdds(b, e1 - e2, e2); }
+
       assert x >= Pow(b, e1) by
-        { LemmaModPropertiesAuto(); }
-      
+      { LemmaModPropertiesAuto(); }
+
       //assert false;
     }
   }
