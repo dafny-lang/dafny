@@ -20,12 +20,9 @@ public class CoverageReporter {
   private static readonly Regex UriRegexInversed = new(@"<h1 hidden>([^\n]*)</h1>");
   private static readonly Regex IndexLinkRegex = new(@"\{\{INDEX_LINK\}\}");
   private static readonly Regex LinksToOtherReportsRegex = new(@"\{\{LINKS_TO_OTHER_REPORTS\}\}");
-  private static readonly Regex ByFileTableHeaderRegex = new(@"\{\{BY_FILE_TABLE_HEADER\}\}");
-  private static readonly Regex ByFileTableFooterRegex = new(@"\{\{BY_FILE_TABLE_FOOTER\}\}");
-  private static readonly Regex ByFileTableBodyRegex = new(@"\{\{BY_FILE_TABLE_BODY\}\}");
-  private static readonly Regex ByModuleTableHeaderRegex = new(@"\{\{BY_MODULE_TABLE_HEADER\}\}");
-  private static readonly Regex ByModuleTableFooterRegex = new(@"\{\{BY_MODULE_TABLE_FOOTER\}\}");
-  private static readonly Regex ByModuleTableBodyRegex = new(@"\{\{BY_MODULE_TABLE_BODY\}\}");
+  private static readonly Regex TableHeaderRegex = new(@"\{\{TABLE_HEADER\}\}");
+  private static readonly Regex TableFooterRegex = new(@"\{\{TABLE_FOOTER\}\}");
+  private static readonly Regex TableBodyRegex = new(@"\{\{TABLE_BODY\}\}");
   private static readonly Regex IndexFileNameRegex = new(@"index(.*)\.html");
   private static readonly Regex PosRegexInverse = new("class=\"([a-z]+)\" id=\"([0-9]+):([0-9]+)\"");
   private const string CoverageReportTemplatePath = "coverage_report_template.html";
@@ -221,7 +218,7 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File" };
+    List<object> header = new() { "File", "Module" };
     header.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
@@ -232,7 +229,8 @@ public class CoverageReporter {
 
       body.Add(new() {
         $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-        $"class = \"el_package\">{relativePath}</a>"
+        $"class = \"el_package\">{relativePath}</a>",
+        "All modules"
       });
       
       body.Last().AddRange(coverageLabels
@@ -242,6 +240,7 @@ public class CoverageReporter {
       
       foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
         body.Add(new() {
+          "",
           module.FullName
         });
 
@@ -256,15 +255,7 @@ public class CoverageReporter {
                                  .Count(span => span.Label == label)).OfType<object>());
       }
     }
-    
-    header = new() { "Module" };
-    header.AddRange(coverageLabels
-      .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
-      .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
 
-    body = new();
-    PopulateByModuleTableBody(report, )
-    
     List<object> footer = new() { "Total", "" };
     footer.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
@@ -274,52 +265,10 @@ public class CoverageReporter {
     var templateText = new StreamReader(templateStream).ReadToEnd();
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = FileNameRegex.Replace(templateText, report.Name);
-    
-    templateText = ByFileTableBodyRegex.Replace(templateText, MakeIndexFileTableRow(header));
-    templateText = ByFileTableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    templateText = ByFileTableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
-    
-    templateText = ByModuleTableBodyRegex.Replace(templateText, MakeIndexFileTableRow(header));
-    templateText = ByModuleTableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    templateText = ByModuleTableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
-    
+    templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
+    templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
+    templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
     File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"), templateText);
-  }
-
-  private static void PopulateByModuleTableBody(CoverageReport report, ModuleDefinition module, List<CoverageLabel> coverageLabels, List<List<object>> body) {
-    body.Add(CountsForModule(report, module, coverageLabels).OfType<object>().ToList());
-    
-    foreach (var child in module.TopLevelDecls.OrderBy(decl => decl.Name)) {
-      if (child is LiteralModuleDecl moduleDecl) {
-        PopulateByModuleTableBody(report, moduleDecl.ModuleDef, coverageLabels, body);
-      }
-    }
-  }
-  
-  private static List<int> CountsForModule(CoverageReport report, ModuleDefinition module, List<CoverageLabel> coverageLabels) {
-    if (module.StartToken.Uri != null) {
-      var moduleRange = module.RangeToken.ToDafnyRange();
-      return coverageLabels
-        .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
-        .Select(label => report.CoverageSpansForFile(module.StartToken.Uri)
-          // span.Span.Intersects(module.RangeToken) would be cleaner,
-          // but unfortunately coverage span tokens don't currently always
-          // have Token.pos set correctly. :(
-          .Where(span => moduleRange.Contains(span.Span.ToDafnyRange().Start))
-          .Count(span => span.Label == label)).ToList();
-    } else {
-      var sums = new int[coverageLabels.Count];
-      foreach (var child in module.TopLevelDecls) {
-        if (child is LiteralModuleDecl moduleDecl) {
-          var childModuleCounts = CountsForModule(report, moduleDecl.ModuleDef, coverageLabels);
-          for (var labelIndex = 0; labelIndex < coverageLabels.Count; labelIndex++) {
-            sums[labelIndex] += childModuleCounts[labelIndex];
-          }
-        }
-      }
-
-      return sums.ToList();
-    }
   }
 
   /// <summary>

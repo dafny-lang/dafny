@@ -13,7 +13,6 @@ public class CoverageReport {
 
   private readonly Dictionary<Uri, List<CoverageSpan>> labelsByFile;
   private readonly Dictionary<Uri, HashSet<ModuleDefinition>> modulesByFile;
-  
   public readonly string Name; // the name to assign to this coverage report
   public readonly string Units; // the units of coverage (plural). This will be written in the coverage report table.
   private readonly string suffix; // user-provided suffix to add to filenames that are part of this report
@@ -73,14 +72,14 @@ public class CoverageReport {
 
   private void RegisterFiles(Node astNode) {
     if (astNode.StartToken.ActualFilename != null) {
-      labelsByFile.GetOrCreate(astNode.StartToken.Uri, () => new List<CoverageSpan>());
-    }
-    
-    if (astNode is LiteralModuleDecl moduleDecl) {
-      // Uri may be null for implicit modules
-      modulesByFile.GetOrCreate(astNode.StartToken.Uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
-
-      RegisterFiles(moduleDecl.ModuleDef);
+      var uri = astNode.StartToken.Uri;
+      labelsByFile.GetOrCreate(uri, () => new List<CoverageSpan>());
+      
+      if (astNode is LiteralModuleDecl moduleDecl) {
+        modulesByFile.GetOrCreate(uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
+        
+        RegisterFiles(moduleDecl.ModuleDef);
+      }
     }
     
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
