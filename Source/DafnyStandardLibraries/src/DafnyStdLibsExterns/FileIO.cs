@@ -40,12 +40,12 @@ namespace DafnyStdLibsExterns {
       out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
       bytesRead = Sequence<byte>.Empty;
-      errorMsg = Sequence<char>.Empty;
+      errorMsg = Sequence<Rune>.Empty;
       try {
-        bytesRead = Helpers.SeqFromArray(File.ReadAllBytes(path?.ToVerbatimString()));
+        bytesRead = Helpers.SeqFromArray(File.ReadAllBytes(path?.ToVerbatimString(false)));
         isError = false;
       } catch (Exception e) {
-        errorMsg = Helpers.SeqFromArray(e.ToString().ToCharArray());
+        errorMsg = Sequence<Rune>.UnicodeFromString(e.ToString());
       }
     }
 
@@ -72,14 +72,14 @@ namespace DafnyStdLibsExterns {
     /// </summary>
     public static void INTERNAL_WriteBytesToFile(ISequence<Dafny.Rune> path, ISequence<byte> bytes, out bool isError, out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
-      errorMsg = Sequence<char>.Empty;
+      errorMsg = Sequence<Rune>.Empty;
       try {
-        string pathStr = path?.ToVerbatimString();
+        string pathStr = path?.ToVerbatimString(false);
         CreateParentDirs(pathStr);
         File.WriteAllBytes(pathStr, bytes.CloneAsArray());
         isError = false;
       } catch (Exception e) {
-        errorMsg = Helpers.SeqFromArray(e.ToString().ToCharArray());
+        errorMsg = Sequence<Rune>.UnicodeFromString(e.ToString());
       }
     }
 
