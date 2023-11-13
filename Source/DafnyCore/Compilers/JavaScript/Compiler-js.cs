@@ -1563,6 +1563,14 @@ namespace Microsoft.Dafny.Compilers {
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
+
+      if (udt.ResolvedClass.IsExtern(Options, out var qualification, out var name) && qualification != null) {
+        if (string.IsNullOrEmpty(qualification)) {
+          return name;
+        }
+        return qualification + "." + name;
+      }
+
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.GetCompileName(Options));

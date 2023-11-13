@@ -2450,12 +2450,24 @@ namespace Microsoft.Dafny.Compilers {
       var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
       var sep = "";
-      if (type is UserDefinedType definedType) {
+      if (type is UserDefinedType definedType && NewNeedsTypeDescriptors(definedType.ResolvedClass)) {
         var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
         EmitTypeDescriptorsActuals(typeArguments, tok, wr, ref sep);
       }
       wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
       wr.Write(")");
+    }
+
+    bool NewNeedsTypeDescriptors(TopLevelDecl decl) {
+      if (decl.IsExtern(Options, out _, out _)) {
+        return false;
+      }
+
+      if (decl is NonNullTypeDecl nonNullTypeDecl) {
+        return NewNeedsTypeDescriptors(nonNullTypeDecl.Class);
+      }
+
+      return true;
     }
 
     /// <summary>

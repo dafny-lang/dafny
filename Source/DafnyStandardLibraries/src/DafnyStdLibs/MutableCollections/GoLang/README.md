@@ -1,0 +1,1 @@
+For GoLang, it's difficult to implement a HashMap because GoLang's `map` type takes static type arguments. One option is to have support for `map` in Dafny's GoLang generator. Another is not to use GoLang's `map` and instead use a custom hash map implementation based on arrays.
