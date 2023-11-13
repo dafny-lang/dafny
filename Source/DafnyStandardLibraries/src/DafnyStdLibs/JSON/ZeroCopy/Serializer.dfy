@@ -249,7 +249,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(items, spec)
   { // TR elimination doesn't work for mutually recursive methods, so this
     // function is only used as a spec for Items.
-    //assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     if items == [] then writer
     else
       assert SequenceSpecRequires(v, items[..|items|-1], spec, impl, writer) by {
