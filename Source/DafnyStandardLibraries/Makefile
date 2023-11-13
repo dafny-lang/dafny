@@ -5,52 +5,39 @@ DAFNY = dotnet run --project ../Dafny --no-build --
 DOO_FILE_SOURCE=build/DafnyStandardLibraries-${TARGETLANG}.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
-all: check-binary-all test-examples-all check-format check-examples
+DOO_FILE_ARITHMETIC_SOURCE=build/DafnyStandardLibraries-arithmetic.doo
+DOO_FILE_ARITHMETIC_TARGET=binaries/DafnyStandardLibraries-arithmetic.doo
+
+all: check-binary test check-format check-examples
 
 build-binary:
-	$(DAFNY) build -t:lib src/dfyconfig.toml \
-	  `find ./src -name '*.dfy' ! -name '*-*.dfy'` \
-		`find ./src -name '*-${TARGETLANG}*.dfy'` \
-		--output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/dfyconfig-arithmetic.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
 	diff build/current build/rebuilt
-
-check-binary-all:
-	make check-binary TARGETLANG=notarget
-	make check-binary TARGETLANG=cs
-	make check-binary TARGETLANG=java
-	make check-binary TARGETLANG=js
-	make check-binary TARGETLANG=go
-	make check-binary TARGETLANG=py
+	unzip -o ${DOO_FILE_ARITHMETIC_SOURCE} -d build/current-arithmetic
+	unzip -o ${DOO_FILE_ARITHMETIC_TARGET} -d build/rebuilt-arithmetic
+	diff build/current-arithmetic build/rebuilt-arithmetic
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
-
-update-binary-all:
-	make update-binary TARGETLANG=notarget
-	make update-binary TARGETLANG=cs
-	make update-binary TARGETLANG=java
-	make update-binary TARGETLANG=js
-	make update-binary TARGETLANG=go
-	make update-binary TARGETLANG=py
+	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
 # with deeper coverage of module functionality.
 
-test-examples:
-	$(DAFNY) test -t:${TARGETLANG} examples/dfyconfig.toml `find ./examples -name '*.${TARGETLANG}'` --output:build/stdlibexamples
-
-test-examples-all:
-	make test-examples TARGETLANG=cs
-	make test-examples TARGETLANG=java
-	make test-examples TARGETLANG=js
-	make test-examples TARGETLANG=go
-	make test-examples TARGETLANG=py
-
+test:
+	$(DAFNY) build -t:lib examples/dfyconfig.toml --output:build/stdlibexamples.doo
+	$(DAFNY) test -t:cs build/stdlibexamples.doo examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
+	$(DAFNY) test -t:java build/stdlibexamples.doo examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
+	$(DAFNY) test -t:go build/stdlibexamples.doo examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
+	$(DAFNY) test -t:py build/stdlibexamples.doo examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
+	$(DAFNY) test -t:js build/stdlibexamples.doo examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
+ 
 format:
 	$(DAFNY) format .
 

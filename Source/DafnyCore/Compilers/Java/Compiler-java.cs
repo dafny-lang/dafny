@@ -29,7 +29,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.TuplesWiderThan20,
       Feature.ArraysWithMoreThan16Dims,
-      Feature.ArrowsWithMoreThan16Arguments
+      Feature.ArrowsWithMoreThan16Arguments,
+      Feature.RuntimeCoverageReport,
     };
 
     const string DafnySetClass = "dafny.DafnySet";
@@ -3893,7 +3894,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (toOrig != null) {
+        to = toOrig;
+      }
+
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }

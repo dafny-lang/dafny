@@ -1,6 +1,6 @@
 using Microsoft.Dafny;
 
-namespace DafnyCore.Test; 
+namespace DafnyCore.Test;
 
 public class DafnyProjectTest {
   [Fact]

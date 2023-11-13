@@ -31,7 +31,9 @@ public static class DafnyCli {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
-  private static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
+  private static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries-FileIO-";
+  private static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
+  private static readonly Uri StandardLibrariesArithmeticDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo");
 
   public static int Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
@@ -491,6 +493,12 @@ public static class DafnyCli {
       var stdlibDooUri = new Uri($"{StandardLibrariesDooUriBase}-{targetName}.doo");
       options.CliRootSourceUris.Add(stdlibDooUri);
       dafnyFiles.Add(new DafnyFile(options, stdlibDooUri));
+      
+      options.CliRootSourceUris.Add(StandardLibrariesDooUri);
+      dafnyFiles.Add(new DafnyFile(options, StandardLibrariesDooUri));
+
+      options.CliRootSourceUris.Add(StandardLibrariesArithmeticDooUri);
+      dafnyFiles.Add(new DafnyFile(options, StandardLibrariesArithmeticDooUri));
     }
 
     return ExitValue.SUCCESS;

@@ -1,7 +1,6 @@
 
-# The Makefile has its own non-trivial logic for determining which files
-# to include in which mode.
-includes = []
+# *Nonlinear.dfy in Arithmetic/Internals/ are subject to the options here
+excludes = ["**/Arithmetic/*.dfy", "**/Arithmetic/**/*Internals.dfy"]
 
 [options]
 # Options that help support more values of consuming context options

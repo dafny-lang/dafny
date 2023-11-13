@@ -27,7 +27,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.AllUnderscoreExternalModuleNames
+      Feature.AllUnderscoreExternalModuleNames,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
@@ -3632,7 +3633,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (toOrig != null) {
+        to = toOrig;
+      }
+
       if (to == null) {
         return wr;
       }

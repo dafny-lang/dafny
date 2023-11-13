@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html
+        xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <link rel="stylesheet" href="./.resources/coverage.css" type="text/css"/>
+    <title>BranchCoverage.dfy, Execution Coverage</title>
+</head>
+<body onload="window['PR_TAB_WIDTH']=4">
+<div class="menu" id="menu">
+    <a href="./index_tests_actual.html">Index</a>
+    
+</div>
+<h1>BranchCoverage.dfy, Execution Coverage</h1>
+
+<pre class="source lang-java linenums">
+<span class="na" id="1:1">// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs %S/BranchCoverage2.cs "%s" > "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:js %S/BranchCoverage3.js "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:go %S/BranchCoverage4.go "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:java %S/CodeCoverage.java "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:py %S/BranchCoverage.py "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
+// The Main method is at the end of this file, because that makes it easier to maintain
+// this test file when adding more tests.
+
+// ---------- class constructor ----------
+    
+class MyClass {
+</span><span class="fc" id="14:1">  constructor () {  // 3 times
+</span><span class="na" id="15:1">  }
+}
+
+// ---------- routines that are never called ----------
+
+</span><span class="nc" id="20:1">method NeverCalled() {
+</span><span class="na" id="21:1">  // we get here 0 times
+}
+
+function FunctionNeverCalled(): int {
+  // we get here 0 times
+</span><span class="nc" id="26:1">  75
+</span><span class="na" id="27:1">}
+
+// ---------- if ----------
+
+</span><span class="fc" id="31:1">method M(x: int) returns (y: int) {
+</span><span class="na" id="32:1">  // we get here 3 times
+</span><span class="fc" id="33:1">  if x < 10 {
+</span><span class="na" id="34:1">    return x + 20;  // we get here 1 time
+</span><span class="nc" id="35:1">  } else if x < 20 {  // note: the location between th "else" and the "if" does not get recorded
+</span><span class="na" id="36:1">    return x + 20;  // we get here 0 times
+</span><span class="fc" id="37:1">  } else {
+</span><span class="na" id="38:1">    return 100;  // we get here 2 times
+  }
+}
+
+</span><span class="fc" id="42:1">method N(x: int) returns (y: int) {
+</span><span class="na" id="43:1">  // we get here 3 times
+  y := 100;
+</span><span class="fc" id="45:1">  if x < 10 {
+</span><span class="na" id="46:1">    return x + 20;  // we get here 1 time
+</span><span class="pc" id="47:1">  } else if x < 20 {  // note: the location between th "else" and the "if" does not get recorded
+</span><span class="na" id="48:1">    return x + 20;  // we get here 0 times
+  }  // we get to this implicit else 2 times
+}
+
+
+</span><span class="fc" id="53:1">method P(x: int) {
+</span><span class="na" id="54:1">  // we get here 1 time
+  var y := 100;
+</span><span class="pc" id="56:1">  if * {
+</span><span class="na" id="57:1">    // we get here 0 times, because the compiler picks the other branch, which is empty
+    y := y + 2;
+  }  // we get to the implicit else 1 time
+
+</span><span class="fc" id="61:1">  if * {
+</span><span class="na" id="62:1">    // we get here 1 time
+</span><span class="nc" id="63:1">  } else {
+</span><span class="na" id="64:1">    // we get here 0 times, because the compiler picks the other branch, which is empty
+    y := y + 2;
+  }
+
+  // the following if is all ghost, so there are no branch-coverage locations in it
+  if x < 2 {
+  } else if * {
+  }
+
+</span><span class="nc" id="73:1">  if x < 2 {
+</span><span class="na" id="74:1">    // get here 0 times
+</span><span class="pc" id="75:1">  } else if * {
+</span><span class="na" id="76:1">    // we get here 0 times
+    y := y + 1;
+  }  // implicit else: 1 time
+}
+
+// ---------- if case ----------
+
+</span><span class="fc" id="83:1">method Q(x: int) returns (y: int) {
+</span><span class="na" id="84:1">  // we get here 3 times
+
+  // the following statement is all ghost, so there are no coverage locations in it
+  if {
+    case x < 100 =>
+    case x < 1000 =>
+      assert x < 1_000_000;
+    case 50 <= x =>
+  }
+
+  if
+</span><span class="fc" id="95:1">  case x < 100 =>
+</span><span class="na" id="96:1">    // we get here 1 time
+</span><span class="fc" id="97:1">  case x < 1000 =>
+</span><span class="na" id="98:1">    // we get here 1 time, since the compiler lays down the cases in order
+    return 8;
+</span><span class="fc" id="100:1">  case 50 <= x =>
+</span><span class="na" id="101:1">    // we get here 1 time
+}
+
+// ---------- while ----------
+
+</span><span class="fc" id="106:1">method R(x: int) returns (y: int) {
+</span><span class="na" id="107:1">  // we get here 1 time
+  var i: nat := 0;
+</span><span class="fc" id="109:1">  while i < x {
+</span><span class="na" id="110:1">    // we get here 111 times
+    i := i + 1;
+  }
+
+</span><span class="nc" id="114:1">  while * {
+</span><span class="na" id="115:1">    // we get here 0 times
+    break;
+  }
+
+  while
+    decreases i
+  {
+</span><span class="fc" id="122:1">    case i % 2 == 0 =>
+</span><span class="na" id="123:1">      // we get here 56 times
+</span><span class="fc" id="124:1">      if i == 0 {
+</span><span class="na" id="125:1">        // we get here 1 time
+        break;
+      }  // implicit else: 55 times
+      i := i - 1;
+</span><span class="fc" id="129:1">    case i % 4 == 1 =>
+</span><span class="na" id="130:1">      // we get here 28 times
+      i := i - 1;
+</span><span class="fc" id="132:1">    case 0 < i =>
+</span><span class="na" id="133:1">      // we get here 28 times
+      i := i - 1;
+  }
+
+  return 40;
+}
+
+// ---------- top-level if-then-else ----------
+
+function Fib(n: nat): nat {
+  // we get here 465 times
+</span><span class="fc" id="144:1">  if n < 2 then  // then: 233 times
+    n
+</span><span class="na" id="146:1">  else if false then  // then: 0 times (else-if is omitted)
+</span><span class="pc" id="147:1">    8
+</span><span class="na" id="148:1">  else  // else: 232 times
+    Fib(n - 2) + Fib(n - 1)
+}
+
+// ---------- top-level match expression, match statement, and tail recursion ----------
+
+function {:tailrecursion} Factorial(n: nat): nat {
+  // 11 times
+</span><span class="fc" id="156:1">  match n
+  case 0 => 1  // 1 time
+</span><span class="na" id="158:1">  case _ => n * Factorial(n - 1)  // 10 times
+}
+
+method {:tailrecursion} ComputeFactorial(n: nat, acc: nat) returns (f: nat)
+  ensures f == Factorial(n) * acc
+</span><span class="fc" id="163:1">{
+</span><span class="na" id="164:1">  // 11 times
+  match n
+</span><span class="fc" id="166:1">  case 0 =>  // 1 time
+</span><span class="na" id="167:1">    return acc;
+</span><span class="fc" id="168:1">  case _ =>  // 10 times
+</span><span class="na" id="169:1">    f := ComputeFactorial(n - 1, acc * n);
+}
+
+// ---------- Main ----------
+
+</span><span class="fc" id="174:1">method Main() {
+</span><span class="na" id="175:1">  // we get here 1 time
+
+  var mc := new MyClass();
+  mc := new MyClass();
+  mc := new MyClass();
+
+  var y := M(5);
+  y := M(y);
+  y := M(y);
+
+  y := N(5);
+  y := N(y);
+  y := N(y);
+
+  P(5);
+
+  y := Q(50);
+  y := Q(101);
+  y := Q(1010);
+
+  y := R(111);
+
+  y := Fib(12);
+
+  y := Factorial(10);
+  y := ComputeFactorial(10, 1);
+}
+
+</span></pre>
+<div class="footer">
+    <span class="right">
+        Created with 
+        <a href="https://github.com/dafny-lang/dafny">Dafny</a>
+    </span>
+</div>
+</body>
+</html>
