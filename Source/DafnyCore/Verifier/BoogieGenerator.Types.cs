@@ -22,7 +22,7 @@ using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 

@@ -158,6 +158,10 @@ public class CsharpBackend : ExecutableBackend {
     return RunProcess(psi, outputWriter, errorWriter) == 0;
   }
 
+  public override void PopulateCoverageReport(CoverageReport coverageReport) {
+    compiler.Coverage.PopulateCoverageReport(coverageReport);
+  }
+
   public CsharpBackend(DafnyOptions options) : base(options) {
   }
 }

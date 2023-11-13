@@ -11,7 +11,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
