@@ -36,13 +36,13 @@ namespace DafnyStdLibsExterns {
     /// We output these values individually because Result is not defined in the runtime but instead in library code.
     /// It is the responsibility of library code to construct an equivalent Result value.
     /// </summary>
-    public static void INTERNAL_ReadBytesFromFile(ISequence<char> path, out bool isError, out ISequence<byte> bytesRead,
-      out ISequence<char> errorMsg) {
+    public static void INTERNAL_ReadBytesFromFile(ISequence<Dafny.Rune> path, out bool isError, out ISequence<byte> bytesRead,
+      out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
       bytesRead = Sequence<byte>.Empty;
       errorMsg = Sequence<char>.Empty;
       try {
-        bytesRead = Helpers.SeqFromArray(File.ReadAllBytes(path?.ToString()));
+        bytesRead = Helpers.SeqFromArray(File.ReadAllBytes(path?.ToVerbatimString()));
         isError = false;
       } catch (Exception e) {
         errorMsg = Helpers.SeqFromArray(e.ToString().ToCharArray());
@@ -70,11 +70,11 @@ namespace DafnyStdLibsExterns {
     /// We output these values individually because Result is not defined in the runtime but instead in library code.
     /// It is the responsibility of library code to construct an equivalent Result value.
     /// </summary>
-    public static void INTERNAL_WriteBytesToFile(ISequence<char> path, ISequence<byte> bytes, out bool isError, out ISequence<char> errorMsg) {
+    public static void INTERNAL_WriteBytesToFile(ISequence<Dafny.Rune> path, ISequence<byte> bytes, out bool isError, out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
       errorMsg = Sequence<char>.Empty;
       try {
-        string pathStr = path?.ToString();
+        string pathStr = path?.ToVerbatimString();
         CreateParentDirs(pathStr);
         File.WriteAllBytes(pathStr, bytes.CloneAsArray());
         isError = false;
