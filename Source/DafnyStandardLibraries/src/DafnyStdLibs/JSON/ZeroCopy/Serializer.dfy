@@ -186,7 +186,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   {
     MembersSpec(obj, obj.data, writer)
   } by method {
-    assume {:axiom} false; // STEFAN TODO // BUG(https://github.com/dafny-lang/dafny/issues/2180)
+    assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)
     wr := MembersImpl(obj, writer);
   }
 
@@ -196,7 +196,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   {
     ItemsSpec(arr, arr.data, writer)
   } by method {
-    assume {:axiom} false; // STEFAN TODO BUG(https://github.com/dafny-lang/dafny/issues/2180)
+    assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)
     wr := ItemsImpl(arr, writer);
   }
 
@@ -224,23 +224,68 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   // DISCUSS: Is there a way to avoid passing the ghost `v` around while
   // maintaining the termination argument?  Maybe the lambda for elements will be enough?
 
-  ghost function SequenceSpec<T>(v: Value, items: seq<T>,
+  ghost predicate SequenceSpecRequiresHelper<T>(v: Value, items: seq<T>,
+                                 spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
+                                 writer: Writer, item: T, wr: Writer) 
+    requires item in items
+  {
+    && impl.requires(v, item, wr) 
+    && impl(v, item, wr).Bytes() == wr.Bytes() + spec(item)    
+  }
+
+  ghost predicate SequenceSpecRequires<T>(v: Value, items: seq<T>,
+                                 spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
+                                 writer: Writer) {
+    forall item, wr | item in items :: SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr)
+  }
+
+
+  ghost function {:vcs_split_on_every_assert} SequenceSpec<T>(v: Value, items: seq<T>,
                                  spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
                                  writer: Writer)
     : (wr: Writer)
-    requires forall item, wr | item in items :: impl.requires(v, item, wr)
-    requires forall item, wr | item in items :: impl(v, item, wr).Bytes() == wr.Bytes() + spec(item)
+    requires SequenceSpecRequires(v, items, spec, impl, writer)
     decreases v, 1, items
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(items, spec)
   { // TR elimination doesn't work for mutually recursive methods, so this
     // function is only used as a spec for Items.
-    assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
+    //assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     if items == [] then writer
     else
-      var writer := SequenceSpec(v, items[..|items|-1], spec, impl, writer);
-      assert items == items[..|items|-1] + [items[|items|-1]];
-      SpecProperties.ConcatBytes_Linear(items[..|items|-1], [items[|items|-1]], spec);
-      impl(v, items[|items|-1], writer)
+      assert SequenceSpecRequires(v, items[..|items|-1], spec, impl, writer) by {
+        assert forall item, wr | item in items[..|items|-1] :: SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) by {
+          forall item, wr | item in items[..|items|-1] ensures SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) {
+            assert item in items;
+            assert SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr);
+          }
+        }
+      }
+      var writer' := SequenceSpec(v, items[..|items|-1], spec, impl, writer);
+      assert impl.requires(v, items[|items|-1], writer') by {
+        assert SequenceSpecRequiresHelper(v, items, spec, impl, writer, items[|items|-1], writer') by {
+          assert SequenceSpecRequires(v, items, spec, impl, writer);
+          assert items[|items|-1] in items;
+        }
+      }
+      var wr := impl(v, items[|items|-1], writer');
+      assert wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(items, spec) by {
+        calc {
+          wr.Bytes();
+          { assert wr == impl(v, items[|items|-1], writer'); }
+          impl(v, items[|items|-1], writer').Bytes();
+          { assert SequenceSpecRequires(v, items, spec, impl, writer); assert items[|items|-1] in items; assert SequenceSpecRequiresHelper(v, items, spec, impl, writer, items[|items|-1], writer'); }
+          writer'.Bytes() + spec(items[|items|-1]);
+          { assert writer' == SequenceSpec(v, items[..|items|-1], spec, impl, writer); }
+          writer.Bytes() + Spec.ConcatBytes(items[..|items|-1], spec) + spec(items[|items|-1]);
+          { assert spec(items[|items|-1]) == Spec.ConcatBytes([items[|items|-1]], spec); }
+          writer.Bytes() + Spec.ConcatBytes(items[..|items|-1], spec) + Spec.ConcatBytes([items[|items|-1]], spec);
+          { SpecProperties.ConcatBytes_Linear(items[..|items|-1], [items[|items|-1]], spec); }
+          writer.Bytes() + Spec.ConcatBytes(items[..|items|-1] + [items[|items|-1]], spec);
+          { assert items == items[..|items|-1] + [items[|items|-1]]; }
+          writer.Bytes() + Spec.ConcatBytes(items, spec);
+        }      
+      }
+      wr
   } // No by method block here, because the loop invariant in the method version
     // needs to call `SequenceSpec` and the termination checker gets confused by
     // that.  Instead, see `Sequence`Items above. // DISCUSS

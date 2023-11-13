@@ -29,8 +29,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.Spec {
     if self.Empty? then [] else fT(self.t)
   }
 
-  function ConcatBytes<T>(ts: seq<T>, fT: T --> bytes) : bytes
+  function ConcatBytes<T>(ts: seq<T>, fT: T --> bytes) : (b: bytes)
     requires forall d | d in ts :: fT.requires(d)
+    ensures |ts| == 1 ==> b == fT(ts[0])
   {
     if |ts| == 0 then []
     else fT(ts[0]) + ConcatBytes(ts[1..], fT)
