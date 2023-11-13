@@ -92,6 +92,49 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
                 wr2.Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num)
               else wr2;
     var wr := wr3;
+        
+    assert A1:
+    if num.exp.NonEmpty? then (
+      if num.frac.NonEmpty? then 
+        writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() 
+      else 
+        writer.Append(num.minus).Append(num.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
+    ) else (
+      if num.frac.NonEmpty? then 
+        writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes()
+      else 
+        writer.Append(num.minus).Append(num.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
+    );
+    
+    assert A2: 
+    if num.exp.NonEmpty? then (
+      if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
+    ) else (
+      if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
+    ) by {
+      if num.exp.NonEmpty? {
+        if num.frac.NonEmpty? { 
+          assume {:axiom} false; 
+        } else { 
+          assume {:axiom} false; 
+        }
+      } else {
+        if num.frac.NonEmpty? { 
+          assume {:axiom} false; 
+        } else { 
+          calc {
+            writer.Bytes() + Spec.Number(num);
+            { assert Spec.Number(num) == Spec.View(num.minus) + Spec.View(num.num) + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp); }
+            writer.Bytes() + Spec.View(num.minus) + Spec.View(num.num) + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
+            { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == []; }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + [] + [];
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes();
+          }
+        }
+      }
+    }
+
     calc {
       wr.Bytes();
       { assert wr == wr3; }
@@ -110,13 +153,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
       ) else (
         if num.frac.NonEmpty? then writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() else writer.Append(num.minus).Append(num.num).Bytes()
       );   
-      { assume {:axiom} false; }
+      { reveal A1; }
       if num.exp.NonEmpty? then (
         if num.frac.NonEmpty? then writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
       ) else (
         if num.frac.NonEmpty? then writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() else writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
       );    
-      { assume {:axiom} false; }
+      { reveal A2; }
       if num.exp.NonEmpty? then (
         if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) else writer.Bytes() + Spec.Number(num)
       ) else (
