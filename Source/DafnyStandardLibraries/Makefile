@@ -10,6 +10,10 @@ DOO_FILE_ARITHMETIC_TARGET=binaries/DafnyStandardLibraries-arithmetic.doo
 
 all: check-binary test check-format check-examples
 
+verify:
+	$(DAFNY) verify src/dfyconfig.toml
+	$(DAFNY) verify src/dfyconfig-arithmetic.toml
+
 build-binary:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 	$(DAFNY) build -t:lib src/dfyconfig-arithmetic.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
@@ -36,7 +40,7 @@ test:
 	$(DAFNY) test -t:go build/stdlibexamples.doo examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
 	$(DAFNY) test -t:py build/stdlibexamples.doo examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
 	$(DAFNY) test -t:js build/stdlibexamples.doo examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
- 
+
 format:
 	$(DAFNY) format .
 
