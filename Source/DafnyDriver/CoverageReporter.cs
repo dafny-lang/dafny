@@ -232,12 +232,12 @@ public class CoverageReporter {
         $"class = \"el_package\">{relativePath}</a>",
         "All modules"
       });
-      
+
       body.Last().AddRange(coverageLabels
         .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
         .Select(label => report.CoverageSpansForFile(sourceFile)
                                .Count(span => span.Label == label)).OfType<object>());
-      
+
       foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
         body.Add(new() {
           "",
@@ -248,9 +248,9 @@ public class CoverageReporter {
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)
-                                  // span.Span.Intersects(module.RangeToken) would be cleaner,
-                                  // but unfortunately coverage span tokens don't currently always
-                                  // have Token.pos set correctly. :(
+                                 // span.Span.Intersects(module.RangeToken) would be cleaner,
+                                 // but unfortunately coverage span tokens don't currently always
+                                 // have Token.pos set correctly. :(
                                  .Where(span => moduleRange.Contains(span.Span.ToDafnyRange().Start))
                                  .Count(span => span.Label == label)).OfType<object>());
       }

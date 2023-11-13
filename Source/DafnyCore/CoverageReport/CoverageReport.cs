@@ -51,7 +51,7 @@ public class CoverageReport {
   public IEnumerable<CoverageSpan> CoverageSpansForFile(Uri uri) {
     return labelsByFile.GetOrDefault(uri, () => new List<CoverageSpan>());
   }
-  
+
   public IEnumerable<ModuleDefinition> ModulesInFile(Uri uri) {
     return modulesByFile.GetOrDefault(uri, () => new HashSet<ModuleDefinition>());
   }
@@ -74,14 +74,14 @@ public class CoverageReport {
     if (astNode.StartToken.ActualFilename != null) {
       var uri = astNode.StartToken.Uri;
       labelsByFile.GetOrCreate(uri, () => new List<CoverageSpan>());
-      
+
       if (astNode is LiteralModuleDecl moduleDecl) {
         modulesByFile.GetOrCreate(uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
-        
+
         RegisterFiles(moduleDecl.ModuleDef);
       }
     }
-    
+
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
       RegisterFiles(declaration);
     }
