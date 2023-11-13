@@ -8,6 +8,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Plugins;
 
@@ -196,5 +197,9 @@ public abstract class IExecutableBackend {
 
   public virtual Command GetCommand() {
     return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+  }
+
+  public virtual void PopulateCoverageReport(CoverageReport coverageReport) {
+    throw new NotImplementedException();
   }
 }
