@@ -3,9 +3,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `array` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `array` type.
+ */
 module DafnyStdLibs.Collections.Arrays {
 
   import opened Wrappers

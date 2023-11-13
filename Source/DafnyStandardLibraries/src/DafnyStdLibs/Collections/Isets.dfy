@@ -11,9 +11,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `iset` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `iset` type.
+ */
 module DafnyStdLibs.Collections.Isets {
 
   import opened Functions

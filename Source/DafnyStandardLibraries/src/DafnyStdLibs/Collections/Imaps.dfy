@@ -7,9 +7,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `imap` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `imap` type.
+ */
 module DafnyStdLibs.Collections.Imaps {
 
   import opened Wrappers

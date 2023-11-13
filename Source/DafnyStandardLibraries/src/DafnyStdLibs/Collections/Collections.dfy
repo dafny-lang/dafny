@@ -3,11 +3,11 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module contains submodules each defining useful properties and functions
-  relating to the built-in collection types.
-  */
+/**
+ This module contains submodules each defining useful properties and functions
+ relating to the built-in collection types.
+ */
 module DafnyStdLibs.Collections {
-    // This module currently contains no definitions,
-    // but is defined so that the module comment appears in generated documentation.
+  // This module currently contains no definitions,
+  // but is defined so that the module comment appears in generated documentation.
 }

@@ -7,9 +7,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `map` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `map` type.
+ */
 module DafnyStdLibs.Collections.Maps {
 
   import opened Wrappers

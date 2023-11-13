@@ -11,9 +11,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `set` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `set` type.
+ */
 module DafnyStdLibs.Collections.Sets {
 
   import opened Functions

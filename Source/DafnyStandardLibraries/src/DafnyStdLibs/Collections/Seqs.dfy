@@ -11,9 +11,9 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
- /**
-  This module defines useful properties and functions relating to the built-in `seq` type.
-  */
+/**
+ This module defines useful properties and functions relating to the built-in `seq` type.
+ */
 module DafnyStdLibs.Collections.Seq {
 
   import opened Wrappers
@@ -660,7 +660,7 @@ module DafnyStdLibs.Collections.Seq {
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
   lemma {:opaque} {:vcs_split_on_every_assert}
-    LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
+  LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
