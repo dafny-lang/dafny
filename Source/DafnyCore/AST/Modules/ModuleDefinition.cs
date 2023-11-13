@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class  ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
