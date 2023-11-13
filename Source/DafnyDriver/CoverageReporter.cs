@@ -196,7 +196,10 @@ public class CoverageReporter {
 
   private string MakeIndexFileTableRow(List<object> row) {
     var result = new StringBuilder("<tr>\n");
-    foreach (var cell in row) {
+    foreach (var cell in row.Take(2)) {
+      result.Append($"\t<td class=\"name\">{cell}</td>\n");
+    }
+    foreach (var cell in row.Skip(2)) {
       result.Append($"\t<td class=\"ctr2\">{cell}</td>\n");
     }
     result.Append("</tr>\n");
