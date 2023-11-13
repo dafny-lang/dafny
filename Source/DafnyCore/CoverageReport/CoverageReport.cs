@@ -72,14 +72,15 @@ public class CoverageReport {
 
   private void RegisterFiles(Node astNode) {
     if (astNode.StartToken.ActualFilename != null) {
-      var uri = astNode.StartToken.Uri;
-      labelsByFile.GetOrCreate(uri, () => new List<CoverageSpan>());
-
-      if (astNode is LiteralModuleDecl moduleDecl) {
-        modulesByFile.GetOrCreate(uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
-
-        RegisterFiles(moduleDecl.ModuleDef);
+      labelsByFile.GetOrCreate(astNode.StartToken.Uri, () => new List<CoverageSpan>());
+    }
+    
+    if (astNode is LiteralModuleDecl moduleDecl) {
+      if (astNode.StartToken.ActualFilename != null) {
+        modulesByFile.GetOrCreate(astNode.StartToken.Uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
       }
+
+      RegisterFiles(moduleDecl.ModuleDef);
     }
 
     foreach (var declaration in astNode.Children.OfType<LiteralModuleDecl>()) {
