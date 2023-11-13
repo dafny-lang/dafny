@@ -6,6 +6,8 @@
  * 4. Eventually, a type soundness result of the CEK-machine w.r.t. the type system
 */ 
 
+module {:extern "DAM"} DAM {
+
 datatype Option<A> = None | Some(value: A) {
     predicate IsFailure() { this.None? }
     function PropagateFailure(): Option<A>
@@ -44,8 +46,8 @@ datatype Stmt =
 | Func(bound: string, body: Stmt)
 | Call(func: Stmt, arg: Expr)
 // Intro & Elim for objects/records
-//| Object(record: map<string, Stmt>)
-//| Select(object: Stmt, field: string)
+| Record(fields: map<string, Stmt>)
+| Select(obj: Stmt, field: string)
 // Elim for thunks
 | Force(Expr)
 // Elims for refs
@@ -68,7 +70,7 @@ type Env = map<string, Val>
 datatype Frame =
   Bind(var_: string, rhs: Stmt)
 | Call(arg: Expr)
-//| Select(field: string)
+| Select(field: string)
 
 datatype Stack = Empty | Push(top: Frame, rest: Stack) {
     function Pop(): Option<(Frame, Stack)> {
@@ -125,6 +127,18 @@ function Step(state: In): Out reads * {
         match stack.Pop()
         case Some((Call(arg), stack)) =>
             Next((env[bound := Eval(env, arg)], body, stack))
+        
+        case Some(_) => Stuck
+        case None    => Terminal(Val.Thunk(env, comp))
+    )
+
+    case Select(obj, field) =>
+        Next((env, obj, Push(Frame.Select(field), stack)))
+    
+    case Record(fields) => (
+        match stack.Pop()
+        case Some((Select(field), stack)) =>
+            Next((env, fields[field], stack))
         
         case Some(_) => Stuck
         case None    => Terminal(Val.Thunk(env, comp))
@@ -201,3 +215,10 @@ method Main() decreases * {
     ));
 }
 
+
+
+/*function While(guard: Stmt, body: Stmt) {
+  Call(Fix(Lambda("while",
+    Ite(guard, Then(body, "while"), ))), ());
+}*/
+}
