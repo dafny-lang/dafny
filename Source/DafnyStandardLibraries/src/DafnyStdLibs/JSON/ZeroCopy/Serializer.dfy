@@ -106,10 +106,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   }
 
   // DISCUSS: Can't be opaque, due to the lambda
-  function StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
+  function {:vcs_split_on_every_assert} StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.Structural(st, Spec.View)
   {
-    assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     writer.Append(st.before).Append(st.t).Append(st.after)
   }
 
