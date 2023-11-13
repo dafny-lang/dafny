@@ -1,3 +1,6 @@
+
+excludes = ["**/FileIO/**/*.dfy"]
+
 [options]
 standard-libraries = true
 resource-limit = 10000

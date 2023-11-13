@@ -61,6 +61,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
 
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
+      <LogicalName>DafnyStandardLibraries.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-arithmetic.doo">
       <LogicalName>DafnyStandardLibraries-arithmetic.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
