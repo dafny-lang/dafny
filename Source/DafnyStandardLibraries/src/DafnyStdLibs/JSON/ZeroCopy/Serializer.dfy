@@ -80,7 +80,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(str.rq)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  function {:opaque} {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -106,6 +106,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
         writer.Append(num.minus).Append(num.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
     );
     
+    assert A2a: Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
+
     assert A2: 
     if num.exp.NonEmpty? then (
       if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
@@ -114,19 +116,47 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     ) by {
       if num.exp.NonEmpty? {
         if num.frac.NonEmpty? { 
-          assume {:axiom} false; 
-        } else { 
-          assume {:axiom} false; 
-        }
-      } else {
-        if num.frac.NonEmpty? { 
-          assume {:axiom} false; 
+          calc {
+            writer.Bytes() + Spec.Number(num);
+            { reveal A2a; }
+            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+            { assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Frac(num.frac.t) + Spec.Exp(num.exp.t));
+            { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ((num.frac.t.period.Bytes() + num.frac.t.num.Bytes()) + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()));
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+          }
         } else { 
           calc {
             writer.Bytes() + Spec.Number(num);
-            { assert Spec.Number(num) == Spec.View(num.minus) + Spec.View(num.num) + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp); }
-            writer.Bytes() + Spec.View(num.minus) + Spec.View(num.num) + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
+            { reveal A2a; }
+            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+            { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ([] + Spec.Exp(num.exp.t)); 
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Exp(num.exp.t);
+            { assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes());
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+          }
+        }
+      } else {
+        if num.frac.NonEmpty? { 
+          calc {
+            writer.Bytes() + Spec.Number(num);
+            { reveal A2a; }
+            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));  
+            { assert Spec.Maybe(num.exp, Spec.Exp) == []; assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); }   
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Frac(num.frac.t);
+            { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); }
+            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes();
+          }
+        } else {
+          calc {
+            writer.Bytes() + Spec.Number(num);
+            { reveal A2a; }
+            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));
             { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == []; }
             writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + [] + [];
             writer.Bytes() + num.minus.Bytes() + num.num.Bytes();
