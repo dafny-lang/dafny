@@ -1,30 +1,44 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
-/**
-XXX
-*/
-module {:options "-functionSyntax:4"} DafnyStdLibs.Math {
+
+/** Defines various integer-math functions */
+module DafnyStdLibs.Math {
+
+  /** Minimum of two integers  */
   function Min(a: int, b: int): int
   {
     if a < b
     then a
-    else
-      b
+    else b
   }
 
+  /** Minimum of three integers  */
+  function Min3(a: int, b: int, c: int): int
+  {
+    Min(a, Min(b, c))
+  }
+
+  /** Maximum of two integers  */
   function Max(a: int, b: int): int
   {
     if a < b
     then b
-    else
-      a
+    else a
   }
 
-  function Abs(a: int): (a': int)
-    ensures a' >= 0
+  /** Maximum of three integers  */
+  function Max3(a: int, b: int, c: int): int
   {
-    if a >= 0 then a else -a
+    Max(a, Max(b, c))
+  }
+
+  /** Integer absolute value */
+  function Abs(a: int): int
+  {
+    if a < 0
+    then -a
+    else a
   }
 }

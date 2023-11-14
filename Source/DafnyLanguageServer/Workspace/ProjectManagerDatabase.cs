@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task WaitUntilFinished(TextDocumentIdentifier documentId) {
       // Resolves drive letter capitalisation issues in Windows that occur when this method is called
       // from an in-process client without serializing documentId
       var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
@@ -127,11 +127,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
       var manager = await GetProjectManager(documentId, false);
       if (manager != null) {
-        return await manager.GetLastDocumentAsync();
+        await manager.WaitUntilFinished();
+        return;
       }
 
       logger.LogDebug($"GetLastDocumentAsync returned null for {documentId.Uri}");
-      return null;
+      return;
     }
 
     public Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId) {
