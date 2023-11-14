@@ -118,11 +118,21 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     foreach (var uri in Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
       try {
         rootFiles.Add(new DafnyFile(fileSystem, options, uri));
-      } catch (IllegalDafnyFile) {
+      } catch (IllegalDafnyFile) { // TODO add test, add error reporting
       }
     }
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       rootFiles.Add(new DafnyFile(fileSystem, options, DafnyMain.StandardLibrariesDooUri));
+    }
+
+    foreach (var library in options.Get(CommonOptionBag.Libraries)) {
+      try {
+        rootFiles.Add(new DafnyFile(fileSystem, options, new Uri(library.FullName)) {
+          IsPreverified = true,
+          IsPrecompiled = true,
+        });
+      } catch (IllegalDafnyFile) { // TODO add test, add error reporting
+      }
     }
     return new Compilation(options, version, Project, rootFiles);
   }
