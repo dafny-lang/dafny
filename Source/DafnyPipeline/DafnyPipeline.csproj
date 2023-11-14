@@ -68,6 +68,10 @@
       <LinkBase>DafnyStandardLibraries_js</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.go">
+      <LinkBase>DafnyStandardLibraries_go</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
 
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>

@@ -7,6 +7,7 @@ module ReadBytesFromFile {
   import DafnyStdLibs.FileIO
 
   method {:test} Test() {
+    // TODO: extern function for the expected error prefix
     theMain("examples/FileIO/data.txt", "");
   }
 

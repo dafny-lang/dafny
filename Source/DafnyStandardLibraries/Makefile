@@ -21,10 +21,13 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_ARITHMETIC_SOURCE} -d build/current-arithmetic
 	unzip -o ${DOO_FILE_ARITHMETIC_TARGET} -d build/rebuilt-arithmetic
 	diff build/current-arithmetic build/rebuilt-arithmetic
+	make -C src/DafnyStdLibs/FileIO check-binary-all
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
+	make -C src/DafnyStdLibs/FileIO update-binary-all
+	dotnet build ../Dafny.sln
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
