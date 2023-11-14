@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     }
 
     public void NotificationReceived(TNotification request) {
-      logger.LogError($"Received {request.Stringify()}");
+      logger.LogTrace($"Received {request.Stringify()}");
       notifications.Enqueue(request);
       notificationHistory.Add(request);
       availableNotifications.Release();
