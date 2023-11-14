@@ -24,6 +24,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 
@@ -529,8 +530,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
-      compiler.OnPostCompile();
-
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (options.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
@@ -539,7 +538,7 @@ namespace Microsoft.Dafny {
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      if (targetProgramHasErrors) {
+      if (targetProgramHasErrors || !compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter)) {
         return false;
       }
       // If we got here, compilation succeeded
@@ -591,6 +590,9 @@ namespace Microsoft.Dafny {
     public override string ModuleSeparator => ".";
 
     public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      throw new NotSupportedException();
+    }
+    public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
       throw new NotSupportedException();
     }
 

@@ -64,9 +64,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override void OnPostCompile() {
-    base.OnPostCompile();
+  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     Compiler.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
