@@ -19,6 +19,12 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   import opened Collections.Seq
   import opened Logarithm
 
+  /* 
+  It would be nice to be able to have BASE be a field in a class, so we could dynamically set the value,
+  And we wouldn't have to create a refined module of LittleEndianNat when using it.
+  But then we wouldn't be able to define uint
+  */
+
   function BASE(): nat
     ensures BASE() > 1
 

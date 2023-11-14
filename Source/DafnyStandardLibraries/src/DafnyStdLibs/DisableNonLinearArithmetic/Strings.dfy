@@ -1,3 +1,6 @@
+/**
+The Strings module enables converting between numbers such as nat and int, and String
+ */
 module DafnyStdLibs.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
@@ -12,7 +15,18 @@ module DafnyStdLibs.Strings {
     type CharSet = chars: seq<Char> | |chars| > 1 witness *
     const chars: CharSet
     const base := |chars|
-    const charMap: map<Char, nat> // TODO build from chars? 
+    const charMap: map<Char, nat>
+
+    function CharMapFromChars(): map<Char, nat> {
+       CreateCharMap(map[], 0, chars)
+    }
+
+    function CreateCharMap(m: map<Char, nat>, i: nat, s: seq<Char>): map<Char, nat> 
+      decreases |s| 
+    {
+      if |s| == 0 then m
+      else CreateCharMap(m[s[0] := i], i + 1, s[1..])
+    }
 
     function BASE(): nat {
       base
@@ -60,7 +74,7 @@ module DafnyStdLibs.Strings {
         ToNat(str[..|str| - 1]) * base + charMap[str[|str| - 1]]
     }
 
-    lemma {:induction false} ToNat_bound(str: String)
+    lemma {:induction false} ToNatBound(str: String)
       requires base > 0
       requires forall c | c in str :: c in charMap
       requires forall c | c in str :: charMap[c] < base
@@ -73,7 +87,7 @@ module DafnyStdLibs.Strings {
           ToNat(str);
           ToNat(str[..|str| - 1]) * base + charMap[str[|str| - 1]];
           ToNat(str[..|str| - 1]) * base + (base - 1);
-          { ToNat_bound(str[..|str| - 1]);
+          { ToNatBound(str[..|str| - 1]);
             LemmaMulInequalityAuto(); }
           (Pow(base, |str| - 1) - 1) * base + base - 1;
           { LemmaMulIsDistributiveAuto(); }
@@ -146,10 +160,7 @@ module DafnyStdLibs.Strings {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS
-    const charMap := 
-      map[
-        '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
-      ]
+    const charMap := CharMapFromChars()
   }
 
   module CharStrEscaping refines ParametricEscaping {
@@ -173,7 +184,7 @@ module DafnyStdLibs.Strings {
     requires forall c | c in str :: c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base
     ensures n < Pow(DecimalConversion.base, |str|)
   {
-    DecimalConversion.ToNat_bound(str);
+    DecimalConversion.ToNatBound(str);
     DecimalConversion.ToNat(str)
   }
 
@@ -192,13 +203,6 @@ module DafnyStdLibs.Strings {
     CharStrEscaping.Unescape(str, '\\')
   }
 
-  method Test() { // FIXME {:test}?
-    expect OfInt(0) == "0";
-    expect OfInt(3) == "3";
-    expect OfInt(302) == "302";
-    expect OfInt(-3) == "-3";
-    expect OfInt(-302) == "-302";
-  }
 
   function OfBool(b: bool) : string {
     if b then "true" else "false"
