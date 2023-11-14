@@ -86,7 +86,12 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.Spec {
     Bracketed(arr, (d: jitem) requires d < arr => Item(d))
   }
 
-  function Value(self: Value) : bytes {
+  function Value(self: Value) : (b: bytes)
+    ensures self.String? ==> b == String(self.str)
+    ensures self.Number? ==> b == Number(self.num)
+    ensures self.Object? ==> b == Object(self.obj)
+    ensures self.Array? ==> b == Array(self.arr)
+  {
     match self {
       case Null(n) => View(n)
       case Bool(b) => View(b)
