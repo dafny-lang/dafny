@@ -13,7 +13,7 @@ module DafnyStdLibs.Collections.Arrays {
   import opened Seq
 
   method BinarySearch<T>(a: array<T>, key: T, less: (T, T) -> bool) returns (r: Option<nat>)
-    requires Seq.SortedBy(a[..], (x, y) => less(x, y) || x == y)
+    requires SortedBy((x, y) => less(x, y) || x == y, a[..])
     requires StrictTotalOrdering(less)
     ensures r.Some? ==> r.value < a.Length && a[r.value] == key
     ensures r.None? ==> key !in a[..]
