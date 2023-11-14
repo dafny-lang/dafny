@@ -32,6 +32,7 @@ using static Microsoft.Dafny.GenericErrors;
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private DafnyOptions options;
+    public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     private bool filterOnlyMembers;
 
@@ -80,7 +81,6 @@ namespace Microsoft.Dafny {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
-      triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
@@ -733,6 +733,7 @@ namespace Microsoft.Dafny {
 
       program = p;
       this.forModule = forModule;
+      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options, forModule);
       Type.EnableScopes();
 
       EstablishModuleScope(p.SystemModuleManager.SystemModule, forModule);
@@ -4442,6 +4443,29 @@ namespace Microsoft.Dafny {
     internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
+    public bool DisableNonLinearArithmetic {
+      get {
+        return DetermineDisableNonLinearArithmetic(forModule, options);
+      }
+    }
+
+    public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions)
+    {
+      var nlaAttribute = Attributes.Find(module.Attributes, "disableNonlinearArithmetic");
+      if (nlaAttribute != null)
+      {
+        var value = true;
+        var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;
+        if (arg != null)
+        {
+          Expression.IsBoolLiteral(arg, out value);
+        }
+
+        return value;
+      }
+
+      return dafnyOptions.DisableNLarith;
+    }
 
     internal class IsAllocContext {
       private DafnyOptions options;
