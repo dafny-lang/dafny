@@ -152,7 +152,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     ensures Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)
   {}
 
-  lemma {:vcs_split_on_every_assert} NumberHelper2(num: jnumber, writer: Writer)
+  lemma {:vcs_split_on_every_assert} {:rlimit 5000} NumberHelper2(num: jnumber, writer: Writer)
     ensures 
       if num.exp.NonEmpty? then (
         if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
@@ -469,7 +469,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     // needs to call ItemsSpec and the termination checker gets confused by
     // that.  Instead, see Items above. // DISCUSS
 
-  method MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
+  method {:rlimit 3000} MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
     decreases obj, 1
     ensures wr == MembersSpec(obj, obj.data, writer)
   {

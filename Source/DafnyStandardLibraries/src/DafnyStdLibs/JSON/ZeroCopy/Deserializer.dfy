@@ -54,12 +54,11 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 3000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(before, cs) := WS(cs);
       var SP(val, cs) :- parser.fn(cs);
       var SP(after, cs) := WS(cs);
@@ -68,11 +67,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
 
     type jopt = v: Vs.View | v.Length() <= 1 witness Vs.View.OfBytes([])
 
-    function TryStructural(cs: FreshCursor)
+    function {:rlimit 3000} TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(before, cs) := WS(cs);
       var SP(val, cs) := cs.SkipByte().Split();
       var SP(after, cs) := WS(cs);
@@ -204,7 +202,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       ensures elems'.cs.StrictlySplitFrom?(json.cs)
       ensures elems'.SplitFrom?(cs0, SuffixedElementsSpec)
     {
-     // assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var suffixed := Suffixed(elem.t, NonEmpty(sep.t));
       var elems' := SP(elems.t + [suffixed], sep.cs); // DISCUSS: Moving this down doubles the verification time
 
@@ -278,7 +275,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    lemma AboutTryStructural(cs: FreshCursor)
+    lemma {:rlimit 3000} AboutTryStructural(cs: FreshCursor)
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
@@ -287,7 +284,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         && ((!cs.BOF? || !cs.EOF?) && (s0 == CLOSE as opt_byte) ==> (var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs)))
         && ((s0 == CLOSE as opt_byte) ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     }
 
     lemma {:vcs_split_on_every_assert} AboutLists<T>(xs: seq<T>, i: uint32)
@@ -475,7 +471,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       case OtherError(err) => err
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
+    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 3000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.JSON)
     {
       Core.Structural(cs, Parsers.Parser(Values.Value, Spec.Value)).MapFailure(LiftCursorError)
@@ -697,10 +693,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    function {:opaque} String(cs: FreshCursor): (pr: ParseResult<jstring>)
+    function {:opaque} {:rlimit 3000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(lq, cs) :- Quote(cs);
       var contents :- StringBody(cs);
       var SP(contents, cs) := contents.Split();
@@ -761,7 +756,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     function {:opaque} {:vcs_split_on_every_assert} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
-    //  assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(e, cs) :=
         cs.SkipIf(c => c == 'e' as byte || c == 'E' as byte).Split();
       if e.Empty? then
@@ -869,7 +863,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
     {
-   //   assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var sp :- Bracketed(cs, json);
       assert sp.StrictlySplitFrom?(cs, BracketedSpec);
       BracketedToArray(sp.t);
@@ -982,12 +975,11 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} Object(cs: FreshCursor, json: ValueParser)
+    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 3000} Object(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jobject>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)
     {
-      assume {:axiom} false; // TODO STEFAN RU
       var sp :- Bracketed(cs, json);
       assert sp.StrictlySplitFrom?(cs, BracketedSpec);
       BracketedToObject(sp.t);
