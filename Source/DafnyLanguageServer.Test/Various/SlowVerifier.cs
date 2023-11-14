@@ -22,13 +22,13 @@ class SlowVerifier : IProgramVerifier {
   private readonly DafnyProgramVerifier verifier;
 
   public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-    CompilationAfterResolution compilation, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
-    var program = compilation.Program;
+    ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
+    var program = resolution.ResolvedProgram;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var tasks = await verifier.GetVerificationTasksAsync(engine, compilation, moduleDefinition, cancellationToken);
+    var tasks = await verifier.GetVerificationTasksAsync(engine, resolution, moduleDefinition, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }

@@ -493,6 +493,11 @@ namespace Microsoft.Dafny {
         options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
       }
 
+      if (options.Get(CommonOptionBag.ExecutionCoverageReport) != null
+          && options.Backend.UnsupportedFeatures.Contains(Feature.RuntimeCoverageReport)) {
+        throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.RuntimeCoverageReport);
+      }
+
       var compiler = options.Backend;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -558,6 +563,15 @@ namespace Microsoft.Dafny {
 
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
             targetPaths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
+
+          if (compiledCorrectly) {
+            var coverageReportDir = options.Get(CommonOptionBag.ExecutionCoverageReport);
+            if (coverageReportDir != null) {
+              var coverageReport = new CoverageReport("Execution Coverage", "Branches", "_tests_actual", dafnyProgram);
+              compiler.PopulateCoverageReport(coverageReport);
+              new CoverageReporter(options).SerializeCoverageReports(coverageReport, coverageReportDir);
+            }
+          }
         } else {
           // make sure to give some feedback to the user
           if (options.Verbose) {
