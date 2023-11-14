@@ -48,6 +48,14 @@
       <LogicalName>DafnyStandardLibraries-js.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-go.doo">
+      <LogicalName>DafnyStandardLibraries-go.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-py.doo">
+      <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
       <LinkBase>DafnyStandardLibraries_cs</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
