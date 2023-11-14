@@ -2,13 +2,10 @@ module DafnyStdLibs.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
+  import Arithmetic
 
-  abstract module ParametricConversion {
+  abstract module ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
-    import opened Arithmetic.Mul
-    import opened Arithmetic.DivMod
-    import opened Arithmetic.Power
-    import opened Arithmetic.Logarithm
 
     type Char(==)
     type String = seq<Char>
@@ -17,34 +14,11 @@ module DafnyStdLibs.Strings {
     const base := |chars|
     const charMap: map<Char, nat> // TODO build from chars? 
 
-    // TODO use LittleEndiaNat for digits
-    function Digits(n: nat): (digits: seq<int>)
-      decreases n
-      ensures n == 0 ==> |digits| == 0
-      ensures n > 0 ==> |digits| == Log(base, n) + 1
-      ensures forall d | d in digits :: 0 <= d < base
-    {
-      if n == 0 then
-        assert Pow(base, 0) == 1 by { reveal Pow(); }
-        []
-      else
-        LemmaDivPosIsPosAuto(); LemmaDivDecreasesAuto();
-        var digits' := Digits(n / base);
-        var digits := digits' + [n % base];
-        assert |digits| == Log(base, n) + 1 by {
-          assert |digits| == |digits'| + 1;
-          if n < base {
-            LemmaLog0(base, n);
-            assert n / base == 0 by { LemmaBasicDiv(base); }
-          } else {
-            LemmaLogS(base, n);
-            assert n / base > 0 by { LemmaDivNonZeroAuto(); }
-          }
-        }
-        digits
+    function BASE(): nat {
+      base
     }
 
-    function OfDigits(digits: seq<int>) : (str: String)
+    function OfDigits(digits: seq<uint>) : (str: String)
       requires forall d | d in digits :: 0 <= d < base
       ensures forall c | c in str :: c in chars
       ensures |str| == |digits|
@@ -61,7 +35,7 @@ module DafnyStdLibs.Strings {
       ensures forall c | c in str :: c in chars
     {
       if n == 0 then reveal Log(); [chars[0]]
-      else OfDigits(Digits(n))
+      else LemmaFromNatLen2(n); OfDigits(FromNat(n))
     }
 
     predicate NumberStr(str: String, minus: Char, isDigit: Char -> bool) {
