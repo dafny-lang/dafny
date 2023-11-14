@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// </summary>
     /// <param name="compilation">The document to get the file path of.</param>
     /// <returns>The file path.</returns>
-    public static string GetFilePath(this Compilation compilation) {
+    public static string GetFilePath(this CompilationInput compilation) {
       return GetFilePath(compilation.Uri);
     }
 
