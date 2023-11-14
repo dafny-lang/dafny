@@ -19,7 +19,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
+  private readonly ConcurrentDictionary<Uri, List<string>> fsCache = new();
   private DafnyOptions options;
 
   public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
@@ -63,12 +63,13 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private string GetFileLine(string filename, int lineIndex) {
-    List<string> lines = fsCache.GetOrAdd(filename, key => {
+  private string GetFileLine(Uri uri, int lineIndex) {
+    List<string> lines = fsCache.GetOrAdd(uri, key => {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
-        lines = File.ReadLines(filename).ToList();
+        var reader = new DafnyFile(OnDiskFileSystem.Instance, options, uri).GetContent();
+        lines = Util.Lines(reader).ToList();
       } catch (Exception) {
         lines = new List<string>();
       }
@@ -81,7 +82,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.Filepath, tok.line - 1);
+    string line = GetFileLine(tok.Uri, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);

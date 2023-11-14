@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DafnyCore;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
@@ -90,6 +92,13 @@ public class ProgramParser {
 
     if (errorReporter.ErrorCount == 0) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+
+      // Capture the original program text before resolution
+      // if we're building a .doo file.
+      // See comment on LibraryBackend.DooFile.
+      if (program.Options.Backend is LibraryBackend libBackend) {
+        libBackend.DooFile = new DooFile(program);
+      }
     }
 
     ShowWarningsForIncludeCycles(program);

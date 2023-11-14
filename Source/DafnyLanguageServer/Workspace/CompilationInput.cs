@@ -3,7 +3,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Dynamic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -22,50 +21,45 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// When verification starts, no new instances of Compilation will be created for this version.
   /// There can be different verification threads that update the state of this object.
   /// </summary>
-  public class Compilation {
+  public class CompilationInput {
     public IReadOnlyList<DafnyFile> RootFiles { get; }
-
     /// <summary>
     /// These do not have to be owned
     /// </summary>
     public IEnumerable<Uri> RootUris => RootFiles.Select(d => d.Uri);
+
+    public override string ToString() {
+      return $"URI: {Uri}, Version: {Version}";
+    }
+
+    public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Project.Uri }).Distinct();
+    
     public int Version { get; }
     public DafnyOptions Options { get; }
     public DafnyProject Project { get; }
     public DocumentUri Uri => Project.Uri;
 
-    public Compilation(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<DafnyFile> rootFiles) {
+    public CompilationInput(DafnyOptions options, int version, DafnyProject project, IReadOnlyList<DafnyFile> rootFiles) {
       RootFiles = rootFiles;
       Options = options;
       Version = version;
       Project = project;
     }
 
-    public virtual IEnumerable<DafnyDiagnostic> GetDiagnostics(Uri uri) => Enumerable.Empty<DafnyDiagnostic>();
-
-    public IdeState InitialIdeState(Compilation initialCompilation, DafnyOptions options) {
+    public IdeState InitialIdeState(DafnyOptions options) {
       var program = new EmptyNode();
-      return ToIdeState(new IdeState(initialCompilation.Version, initialCompilation, program,
-        ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty,
-        SymbolTable.Empty(), LegacySignatureAndCompletionTable.Empty(options, initialCompilation.Project), ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>>.Empty,
+      return new IdeState(Version, this, CompilationStatus.Parsing,
+        program,
+        ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
+        program,
+        SymbolTable.Empty(),
+        LegacySignatureAndCompletionTable.Empty(options, Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
         Array.Empty<Counterexample>(),
         ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-        initialCompilation.RootUris.ToDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
-      ));
-    }
-
-    /// <summary>
-    /// Collects information to present to the IDE
-    /// </summary>
-    public virtual IdeState ToIdeState(IdeState previousState) {
-      return previousState with {
-        Compilation = this
-      };
+        RootUris.ToImmutableDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
+      );
     }
   }
-
-  public record ImplementationState(IImplementationTask Task, PublishedVerificationStatus Status,
-    IReadOnlyList<DafnyDiagnostic> Diagnostics, bool HitErrorLimit);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

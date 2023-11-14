@@ -488,6 +488,9 @@ public static class DafnyCli {
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
       dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
+        
+      options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesArithmeticDooUri);
+      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options,DafnyMain.StandardLibrariesArithmeticDooUri));
     }
 
     return ExitValue.SUCCESS;
