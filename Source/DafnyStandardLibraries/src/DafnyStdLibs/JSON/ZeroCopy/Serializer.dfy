@@ -181,6 +181,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
           { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ([] + Spec.Exp(num.exp.t)); 
+          { assert [] + Spec.Exp(num.exp.t) == Spec.Exp(num.exp.t); }
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Exp(num.exp.t);
           { assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes());
@@ -193,7 +194,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
           writer.Bytes() + Spec.Number(num);
           { NumberHelper2a(num, writer); }
           writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));  
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));  
           { assert Spec.Maybe(num.exp, Spec.Exp) == []; assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); }   
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Frac(num.frac.t) + []);
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Frac(num.frac.t);
           { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); }
           writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes();

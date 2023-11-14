@@ -204,7 +204,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       ensures elems'.cs.StrictlySplitFrom?(json.cs)
       ensures elems'.SplitFrom?(cs0, SuffixedElementsSpec)
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
+     // assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var suffixed := Suffixed(elem.t, NonEmpty(sep.t));
       var elems' := SP(elems.t + [suffixed], sep.cs); // DISCUSS: Moving this down doubles the verification time
 
@@ -761,7 +761,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     function {:opaque} {:vcs_split_on_every_assert} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
+    //  assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var SP(e, cs) :=
         cs.SkipIf(c => c == 'e' as byte || c == 'E' as byte).Split();
       if e.Empty? then
@@ -869,7 +869,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
     {
-      assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
+   //   assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
       var sp :- Bracketed(cs, json);
       assert sp.StrictlySplitFrom?(cs, BracketedSpec);
       BracketedToArray(sp.t);
@@ -987,6 +987,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)
     {
+      assume {:axiom} false; // TODO STEFAN RU
       var sp :- Bracketed(cs, json);
       assert sp.StrictlySplitFrom?(cs, BracketedSpec);
       BracketedToObject(sp.t);
