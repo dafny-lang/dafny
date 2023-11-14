@@ -74,7 +74,7 @@ public class CoverageReport {
     if (astNode.StartToken.ActualFilename != null) {
       labelsByFile.GetOrCreate(astNode.StartToken.Uri, () => new List<CoverageSpan>());
     }
-    
+
     if (astNode is LiteralModuleDecl moduleDecl) {
       if (astNode.StartToken.ActualFilename != null) {
         modulesByFile.GetOrCreate(astNode.StartToken.Uri, () => new HashSet<ModuleDefinition>()).Add(moduleDecl.ModuleDef);
