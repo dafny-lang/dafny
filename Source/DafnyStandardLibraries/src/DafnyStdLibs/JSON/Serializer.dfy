@@ -72,7 +72,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
       Failure(o.error)
   }
 
-  function Number(dec: Values.Decimal): Result<jnumber> {
+  function {:vcs_split_on_every_assert} {:rlimit 1000} Number(dec: Values.Decimal): Result<jnumber> {
     var minus: jminus := Sign(dec.n);
     var num: jnum :- Int(Math.Abs(dec.n));
     var frac: Maybe<jfrac> := Empty();

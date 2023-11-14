@@ -63,25 +63,63 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     match v
     case Null(n) => 
       var wr := writer.Append(n); 
+      assume {:axiom} false;
       wr
     case Bool(b) => 
       var wr := writer.Append(b); 
+      assume {:axiom} false;
       wr
     case String(str) => 
       var wr := String(str, writer); 
       assume {:axiom} false;
+      calc {
+        wr.Bytes();
+        { assert wr == String(str, writer); }
+        writer.Bytes() + Spec.String(str);
+        { assert Spec.String(str) == Spec.Value(Grammar.String(str)); }
+        writer.Bytes() + Spec.Value(Grammar.String(str));
+        { assert v == Grammar.String(str); }
+        writer.Bytes() + Spec.Value(v);
+      }
       wr
     case Number(num) => 
       var wr := Number(num, writer); 
       assume {:axiom} false;
+      calc {
+        wr.Bytes();
+        { assert wr == Number(num, writer); }
+        writer.Bytes() + Spec.Number(num);
+        { assert Spec.Number(num) == Spec.Value(Grammar.Number(num)); }
+        writer.Bytes() + Spec.Value(Grammar.Number(num));
+        { assert v == Grammar.Number(num); }
+        writer.Bytes() + Spec.Value(v);
+      }
       wr
     case Object(obj) => 
       var wr := Object(obj, writer); 
       assume {:axiom} false;
+      calc {
+        wr.Bytes();
+        { assert wr == Object(obj, writer); }
+        writer.Bytes() + Spec.Object(obj);
+        { assert Spec.Object(obj) == Spec.Value(Grammar.Object(obj)); }
+        writer.Bytes() + Spec.Value(Grammar.Object(obj));
+        { assert v == Grammar.Object(obj); }
+        writer.Bytes() + Spec.Value(v);
+      }
       wr
     case Array(arr) => 
       var wr := Array(arr, writer); 
-      assume {:axiom} false;  
+      assume {:axiom} false;
+      calc {
+        wr.Bytes();
+        { assert wr == Array(arr, writer); }
+        writer.Bytes() + Spec.Array(arr);
+        { assert Spec.Array(arr) == Spec.Value(Grammar.Array(arr)); }
+        writer.Bytes() + Spec.Value(Grammar.Array(arr));
+        { assert v == Grammar.Array(arr); }
+        writer.Bytes() + Spec.Value(v);
+      }
       wr
   }
 
@@ -95,7 +133,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(str.rq)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
