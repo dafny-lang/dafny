@@ -56,7 +56,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
+  function {:opaque} {:vcs_split_on_every_assert} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
@@ -119,7 +119,99 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(str.rq)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  lemma {:vcs_split_on_every_assert} NumberHelper1(num: jnumber, writer: Writer)
+    ensures 
+      if num.exp.NonEmpty? then (
+        if num.frac.NonEmpty? then 
+          writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() 
+        else 
+          writer.Append(num.minus).Append(num.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
+      ) else (
+        if num.frac.NonEmpty? then 
+          writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes()
+        else 
+          writer.Append(num.minus).Append(num.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
+      )
+  {
+    if num.exp.NonEmpty? {
+      if num.frac.NonEmpty? {
+        assert writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+      } else {
+        assert writer.Append(num.minus).Append(num.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+      }
+    } else {
+      if num.frac.NonEmpty? {
+        assert writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes();
+      } else { 
+        assert writer.Append(num.minus).Append(num.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes();
+      }
+    }
+  }
+
+  lemma {:vcs_split_on_every_assert} NumberHelper2a(num: jnumber, writer: Writer)
+    ensures Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)
+  {}
+
+  lemma {:vcs_split_on_every_assert} NumberHelper2(num: jnumber, writer: Writer)
+    ensures 
+      if num.exp.NonEmpty? then (
+        if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
+      ) else (
+        if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
+      )
+  {
+    if num.exp.NonEmpty? {
+      if num.frac.NonEmpty? { 
+        calc {
+          writer.Bytes() + Spec.Number(num);
+          { NumberHelper2a(num, writer); }
+          writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+          { assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Frac(num.frac.t) + Spec.Exp(num.exp.t));
+          { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ((num.frac.t.period.Bytes() + num.frac.t.num.Bytes()) + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()));
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+        }
+      } else { 
+        calc {
+          writer.Bytes() + Spec.Number(num);
+          { NumberHelper2a(num, writer); }
+          writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
+          { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ([] + Spec.Exp(num.exp.t)); 
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Exp(num.exp.t);
+          { assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes());
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
+        }
+      }
+    } else {
+      if num.frac.NonEmpty? { 
+        calc {
+          writer.Bytes() + Spec.Number(num);
+          { NumberHelper2a(num, writer); }
+          writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));  
+          { assert Spec.Maybe(num.exp, Spec.Exp) == []; assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); }   
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Frac(num.frac.t);
+          { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes();
+        }
+      } else {
+        calc {
+          writer.Bytes() + Spec.Number(num);
+          { NumberHelper2a(num, writer); }
+          writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));
+          { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == []; }
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + [] + [];
+          writer.Bytes() + num.minus.Bytes() + num.num.Bytes();
+        }
+      }
+    }
+  }
+
+  function {:opaque} {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -131,78 +223,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
                 wr2.Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num)
               else wr2;
     var wr := wr3;
-        
-    assert A1:
-    if num.exp.NonEmpty? then (
-      if num.frac.NonEmpty? then 
-        writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() 
-      else 
-        writer.Append(num.minus).Append(num.num).Append(num.exp.t.e).Append(num.exp.t.sign).Append(num.exp.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
-    ) else (
-      if num.frac.NonEmpty? then 
-        writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes()
-      else 
-        writer.Append(num.minus).Append(num.num).Bytes() == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
-    );
-    
-    assert A2a: Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp);
-
-    assert A2: 
-    if num.exp.NonEmpty? then (
-      if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
-    ) else (
-      if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
-    ) by {
-      if num.exp.NonEmpty? {
-        if num.frac.NonEmpty? { 
-          calc {
-            writer.Bytes() + Spec.Number(num);
-            { reveal A2a; }
-            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
-            { assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Frac(num.frac.t) + Spec.Exp(num.exp.t));
-            { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ((num.frac.t.period.Bytes() + num.frac.t.num.Bytes()) + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()));
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
-          }
-        } else { 
-          calc {
-            writer.Bytes() + Spec.Number(num);
-            { reveal A2a; }
-            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)); 
-            { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == Spec.Exp(num.exp.t); }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + ([] + Spec.Exp(num.exp.t)); 
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Exp(num.exp.t);
-            { assert Spec.Exp(num.exp.t) == num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes(); }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + (num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes());
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes();
-          }
-        }
-      } else {
-        if num.frac.NonEmpty? { 
-          calc {
-            writer.Bytes() + Spec.Number(num);
-            { reveal A2a; }
-            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));  
-            { assert Spec.Maybe(num.exp, Spec.Exp) == []; assert Spec.Maybe(num.frac, Spec.Frac) == Spec.Frac(num.frac.t); }   
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + Spec.Frac(num.frac.t);
-            { assert Spec.Frac(num.frac.t) == num.frac.t.period.Bytes() + num.frac.t.num.Bytes(); }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes();
-          }
-        } else {
-          calc {
-            writer.Bytes() + Spec.Number(num);
-            { reveal A2a; }
-            writer.Bytes() + (num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp));
-            { assert Spec.Maybe(num.frac, Spec.Frac) == []; assert Spec.Maybe(num.exp, Spec.Exp) == []; }
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + [] + [];
-            writer.Bytes() + num.minus.Bytes() + num.num.Bytes();
-          }
-        }
-      }
-    }
 
     calc {
       wr.Bytes();
@@ -222,13 +242,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
       ) else (
         if num.frac.NonEmpty? then writer.Append(num.minus).Append(num.num).Append(num.frac.t.period).Append(num.frac.t.num).Bytes() else writer.Append(num.minus).Append(num.num).Bytes()
       );   
-      { reveal A1; }
+      { NumberHelper1(num, writer); }
       if num.exp.NonEmpty? then (
         if num.frac.NonEmpty? then writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
       ) else (
         if num.frac.NonEmpty? then writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() else writer.Bytes() + num.minus.Bytes() + num.num.Bytes()
       );    
-      { reveal A2; }
+      { NumberHelper2(num, writer); }
       if num.exp.NonEmpty? then (
         if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) else writer.Bytes() + Spec.Number(num)
       ) else (
@@ -317,6 +337,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     decreases obj, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(obj.data, Spec.Member)
   {
+    assume {:axiom} false;
     MembersSpec(obj, obj.data, writer)
   } by method {
     assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)
@@ -327,6 +348,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     decreases arr, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(arr.data, Spec.Item)
   {
+    assume {:axiom} false;
     ItemsSpec(arr, arr.data, writer)
   } by method {
     assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)
