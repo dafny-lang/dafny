@@ -91,7 +91,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
       Feature.ForLoops,
-      Feature.Traits
+      Feature.Traits,
+      Feature.RuntimeCoverageReport
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
