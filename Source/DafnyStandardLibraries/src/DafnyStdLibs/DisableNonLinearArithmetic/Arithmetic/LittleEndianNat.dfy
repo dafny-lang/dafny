@@ -114,6 +114,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
     ensures ToNatRight(xs) == First(xs)
   {
     reveal ToNatRight();
+    assert ToNatRight(DropFirst(xs)) == 0;
   }
 
   /* The nat representation of a sequence of length 2 is sum of its first

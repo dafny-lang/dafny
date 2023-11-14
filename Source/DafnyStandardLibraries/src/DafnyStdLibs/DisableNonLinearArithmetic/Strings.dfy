@@ -1,7 +1,4 @@
-// RUN: %verify --disable-nonlinear-arithmetic "%s"
-
-
-module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
+module DafnyStdLibs.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
@@ -15,11 +12,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
 
     type Char(==)
     type String = seq<Char>
+    type CharSet = chars: seq<Char> | |chars| > 1
+    const chars: CharSet
+    const base := |chars|
+    const charMap: map<Char, nat> // TODO build from chars? 
 
-    // FIXME the design in LittleEndianNat makes BASE a module-level constant
-    // instead of a function argument
-    function Digits(n: nat, base: int): (digits: seq<int>)
-      requires base > 1
+    // TODO use LittleEndiaNat for digits
+    function Digits(n: nat): (digits: seq<int>)
       decreases n
       ensures n == 0 ==> |digits| == 0
       ensures n > 0 ==> |digits| == Log(base, n) + 1
@@ -30,7 +29,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
         []
       else
         LemmaDivPosIsPosAuto(); LemmaDivDecreasesAuto();
-        var digits' := Digits(n / base, base);
+        var digits' := Digits(n / base);
         var digits := digits' + [n % base];
         assert |digits| == Log(base, n) + 1 by {
           assert |digits| == |digits'| + 1;
@@ -45,8 +44,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
         digits
     }
 
-    function OfDigits(digits: seq<int>, chars: seq<Char>) : (str: String)
-      requires forall d | d in digits :: 0 <= d < |chars|
+    function OfDigits(digits: seq<int>) : (str: String)
+      requires forall d | d in digits :: 0 <= d < base
       ensures forall c | c in str :: c in chars
       ensures |str| == |digits|
     {
@@ -54,57 +53,53 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
       else
         assert digits[0] in digits;
         assert forall d | d in digits[1..] :: d in digits;
-        [chars[digits[0]]] + OfDigits(digits[1..], chars)
+        [chars[digits[0]]] + OfDigits(digits[1..])
     }
 
-    function OfNat_any(n: nat, chars: seq<Char>) : (str: String)
-      requires |chars| > 1
-      ensures |str| == Log(|chars|, n) + 1
+    function OfNat(n: nat) : (str: String)
+      ensures |str| == Log(base, n) + 1
       ensures forall c | c in str :: c in chars
     {
-      var base := |chars|;
       if n == 0 then reveal Log(); [chars[0]]
-      else OfDigits(Digits(n, base), chars)
+      else OfDigits(Digits(n))
     }
 
-    predicate NumberStr(str: String, minus: Char, is_digit: Char -> bool) {
+    predicate NumberStr(str: String, minus: Char, isDigit: Char -> bool) {
       str != [] ==>
-        && (str[0] == minus || is_digit(str[0]))
-        && forall c | c in str[1..] :: is_digit(c)
+        && (str[0] == minus || isDigit(str[0]))
+        && forall c | c in str[1..] :: isDigit(c)
     }
 
-    function OfInt_any(n: int, chars: seq<Char>, minus: Char) : (str: String)
-      requires |chars| > 1
+    function OfInt(n: int, minus: Char) : (str: String)
       ensures NumberStr(str, minus, c => c in chars)
     {
-      if n >= 0 then OfNat_any(n, chars)
-      else [minus] + OfNat_any(-n, chars)
+      if n >= 0 then OfNat(n)
+      else [minus] + OfNat(-n)
     }
 
-    function {:vcs_split_on_every_assert} ToNat_any(str: String, base: nat, digits: map<Char, nat>) : (n: nat)
-      requires base > 0
-      requires forall c | c in str :: c in digits
+    function {:vcs_split_on_every_assert} ToNat(str: String) : (n: nat)
+      requires forall c | c in str :: c in charMap
     {
       if str == [] then 0
       else
         LemmaMulNonnegativeAuto();
-        ToNat_any(str[..|str| - 1], base, digits) * base + digits[str[|str| - 1]]
+        ToNat(str[..|str| - 1]) * base + charMap[str[|str| - 1]]
     }
 
-    lemma {:induction false} ToNat_bound(str: String, base: nat, digits: map<Char, nat>)
+    lemma {:induction false} ToNat_bound(str: String)
       requires base > 0
-      requires forall c | c in str :: c in digits
-      requires forall c | c in str :: digits[c] < base
-      ensures ToNat_any(str, base, digits) < Pow(base, |str|)
+      requires forall c | c in str :: c in charMap
+      requires forall c | c in str :: charMap[c] < base
+      ensures ToNat(str) < Pow(base, |str|)
     {
       if str == [] {
         reveal Pow();
       } else {
         calc <= {
-          ToNat_any(str, base, digits);
-          ToNat_any(str[..|str| - 1], base, digits) * base + digits[str[|str| - 1]];
-          ToNat_any(str[..|str| - 1], base, digits) * base + (base - 1);
-          { ToNat_bound(str[..|str| - 1], base, digits);
+          ToNat(str);
+          ToNat(str[..|str| - 1]) * base + charMap[str[|str| - 1]];
+          ToNat(str[..|str| - 1]) * base + (base - 1);
+          { ToNat_bound(str[..|str| - 1]);
             LemmaMulInequalityAuto(); }
           (Pow(base, |str| - 1) - 1) * base + base - 1;
           { LemmaMulIsDistributiveAuto(); }
@@ -115,15 +110,14 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
       }
     }
 
-    function ToInt_any(str: String, minus: Char, base: nat, digits: map<Char, nat>) : (s: int)
-      requires base > 0
+    function ToInt(str: String, minus: Char) : (s: int)
       requires str != [minus]
-      requires NumberStr(str, minus, c => c in digits)
+      requires NumberStr(str, minus, c => c in charMap)
     {
-      if [minus] <= str then -(ToNat_any(str[1..], base, digits) as int)
+      if [minus] <= str then -(ToNat(str[1..]) as int)
       else
         assert str == [] || str == [str[0]] + str[1..];
-        ToNat_any(str, base, digits)
+        ToNat(str)
     }
   }
 
@@ -162,53 +156,58 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
     }
   }
 
-  module CharStrConversion refines ParametricConversion {
+  module HexConversion refines ParametricConversion {
     type Char = char
+    const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
+    const chars := HEX_DIGITS
+    const charMap := 
+    map[
+      '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9,
+      'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
+      'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
+    ]
+  }
+
+  module DecimalConversion refines ParametricConversion {
+    type Char = char
+    const DIGITS: seq<char> := "0123456789"
+    const chars := DIGITS
+    const charMap := 
+      map[
+        '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
+      ]
   }
 
   module CharStrEscaping refines ParametricEscaping {
     type Char = char
   }
 
-  const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
-
-  const HEX_TABLE :=
-    map[
-      '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9,
-      'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
-      'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
-    ]
-
-  function OfNat(n: nat, base: int := 10) : (str: string)
-    requires 2 <= base <= 16
-    ensures |str| == Log(base, n) + 1
-    ensures forall c | c in str :: c in HEX_DIGITS[..base]
+  function OfNat(n: nat) : (str: string)
+    ensures |str| == Log(DecimalConversion.base, n) + 1
+    ensures forall c | c in str :: c in DecimalConversion.chars
   {
-    CharStrConversion.OfNat_any(n, HEX_DIGITS[..base])
+    DecimalConversion.OfNat(n)
   }
 
-  function OfInt(n: int, base: int := 10) : (str: string)
-    requires 2 <= base <= 16
-    ensures CharStrConversion.NumberStr(str, '-', c => c in HEX_DIGITS[..base])
+  function OfInt(n: int) : (str: string)
+    ensures DecimalConversion.NumberStr(str, '-', c => c in DecimalConversion.chars)
   {
-    CharStrConversion.OfInt_any(n, HEX_DIGITS[..base], '-')
+    DecimalConversion.OfInt(n, '-')
   }
 
-  function ToNat(str: string, base: int := 10) : (n: nat)
-    requires 2 <= base <= 16
-    requires forall c | c in str :: c in HEX_TABLE && HEX_TABLE[c] as int < base
-    ensures n < Pow(base, |str|)
+  function ToNat(str: string) : (n: nat)
+    requires forall c | c in str :: c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base
+    ensures n < Pow(DecimalConversion.base, |str|)
   {
-    CharStrConversion.ToNat_bound(str, base, HEX_TABLE);
-    CharStrConversion.ToNat_any(str, base, HEX_TABLE)
+    DecimalConversion.ToNat_bound(str);
+    DecimalConversion.ToNat(str)
   }
 
-  function ToInt(str: string, base: int := 10) : (n: int)
+  function ToInt(str: string) : (n: int)
     requires str != "-"
-    requires 2 <= base <= 16
-    requires CharStrConversion.NumberStr(str, '-', (c: char) => c in HEX_TABLE && HEX_TABLE[c] as int < base)
+    requires DecimalConversion.NumberStr(str, '-', (c: char) => c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base)
   {
-    CharStrConversion.ToInt_any(str, '-', base, HEX_TABLE)
+    DecimalConversion.ToInt(str, '-')
   }
 
   function EscapeQuotes(str: string): string {
@@ -220,11 +219,11 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Strings {
   }
 
   method Test() { // FIXME {:test}?
-    expect OfInt(0, 10) == "0";
-    expect OfInt(3, 10) == "3";
-    expect OfInt(302, 10) == "302";
-    expect OfInt(-3, 10) == "-3";
-    expect OfInt(-302, 10) == "-302";
+    expect OfInt(0) == "0";
+    expect OfInt(3) == "3";
+    expect OfInt(302) == "302";
+    expect OfInt(-3) == "-3";
+    expect OfInt(-302) == "-302";
   }
 
   function OfBool(b: bool) : string {
