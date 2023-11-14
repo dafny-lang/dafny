@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Project.Uri }).Distinct();
-    
+
     public int Version { get; }
     public DafnyOptions Options { get; }
     public DafnyProject Project { get; }
