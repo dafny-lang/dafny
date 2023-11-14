@@ -1,21 +1,19 @@
 
-includes = ["*.dfy", "**/*Internals.dfy"]
-# *Nonlinear.dfy in Arithmetic/Internals/ need non-linear arithmetic and are subject to dfyconfig.toml
 
 [options]
 disable-nonlinear-arithmetic = true
 
 # These are necessary since Internals/*Nonlinear.dfy is subject to a separate toml file
 
+# Replace the following lines with "../EnableNonLinearArithmetic/dfyconfig.toml" once it is supported
 library = [
-  "Internals/DivInternalsNonlinear.dfy",
-  "Internals/ModInternalsNonlinear.dfy",
-  "Internals/MulInternalsNonlinear.dfy",
-  "../Collections/Seqs.dfy",
-  # Replace the following three lines with "../../dfyconfig.toml" once it is supported
-  "../Wrappers.dfy",
-  "../Relations.dfy",
-  "../Math.dfy",
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/DivInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/ModInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/MulInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Collections/Seqs.dfy",
+  "../EnableNonLinearArithmetic/Wrappers.dfy",
+  "../EnableNonLinearArithmetic/Relations.dfy",
+  "../EnableNonLinearArithmetic/Math.dfy",
 ]
 
 # (Ideally we would find a way to share configuration between these two project files)

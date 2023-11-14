@@ -11,8 +11,8 @@ DOO_FILE_ARITHMETIC_TARGET=binaries/DafnyStandardLibraries-arithmetic.doo
 all: check-binary test check-format check-examples
 
 build-binary:
-	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
-	$(DAFNY) build -t:lib src/DafnyStdLibs/Arithmetic/dfyconfig.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
+	$(DAFNY) build -t:lib src/DafnyStdLibs/EnableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/DafnyStdLibs/DisableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
