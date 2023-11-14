@@ -151,7 +151,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(source, "GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
-        .OrderBy(counterExample => counterExample.Position)
         .OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal((2, 6), counterExamples[0].Position);
@@ -1553,10 +1552,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       ".TrimStart();
       var documentItem = CreateTestDocument(source, "GetDafnyTypeInfiniteRecursion.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
+      (await RequestCounterExamples(documentItem.Uri)).ToList();
     }
 
-    public CounterExampleTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+    public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

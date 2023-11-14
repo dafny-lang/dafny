@@ -29,7 +29,6 @@ record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificatio
     var diagnostics = previousView.Diagnostics;
     if (BoogieStatus is Running) {
       diagnostics = Array.Empty<Diagnostic>();
-      counterExamples = Array.Empty<Counterexample>();
       hitErrorLimit = false;
     }
 

@@ -333,6 +333,6 @@ method Bar() {
     Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {
   }
 }

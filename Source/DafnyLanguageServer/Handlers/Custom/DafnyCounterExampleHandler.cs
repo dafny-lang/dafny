@@ -37,7 +37,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
           var state = await projectManager.States.Select(s => s.Value).
             Where(s => FinishedVerifyingUri(s, uri)).FirstAsync();
-          logger.LogDebug("counter-example handler retrieved IDE state");
+          logger.LogDebug($"counter-example handler retrieved IDE state, " +
+                          $"canVerify count: {state.VerificationResults[uri].Count}, " +
+                          $"counterExample count: {state.Counterexamples.Count}");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 

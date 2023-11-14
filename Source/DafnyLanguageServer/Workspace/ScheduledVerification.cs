@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 record ScheduledVerification(ICanVerify CanVerify) : ICompilationEvent {
 
-  public IdeState UpdateState(DafnyOptions Options, ILogger logger, IdeState previousState) {
+  public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
     var uri = CanVerify.Tok.Uri;
     var range = CanVerify.NameToken.GetLspRange();
     var previousVerificationResult = previousState.VerificationResults[uri][range];

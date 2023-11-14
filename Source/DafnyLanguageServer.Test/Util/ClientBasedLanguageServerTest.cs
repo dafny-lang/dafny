@@ -190,23 +190,31 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
-      while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
+      while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
       }
     }
 
     return fileVerificationStatus;
+
+    bool FinishedStatus(NamedVerifiableStatus method) {
+      if (allowStale && method.Status == PublishedVerificationStatus.Stale) {
+        return true;
+      }
+
+      return method.Status >= PublishedVerificationStatus.Error;
+    }
   }
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
-    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
     await Task.Delay(10);
     try {
       var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
       diagnosticsReceiver.ClearQueue();
       return result;
     } catch (InvalidOperationException) {
+      await output.WriteLineAsync("GetLastDiagnosticsParams status was: " + status.Stringify());
       await output.WriteLineAsync(
         $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
       var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
