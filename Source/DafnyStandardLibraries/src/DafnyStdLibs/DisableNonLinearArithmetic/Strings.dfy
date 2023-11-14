@@ -12,7 +12,7 @@ module DafnyStdLibs.Strings {
 
     type Char(==)
     type String = seq<Char>
-    type CharSet = chars: seq<Char> | |chars| > 1
+    type CharSet = chars: seq<Char> | |chars| > 1 witness *
     const chars: CharSet
     const base := |chars|
     const charMap: map<Char, nat> // TODO build from chars? 
