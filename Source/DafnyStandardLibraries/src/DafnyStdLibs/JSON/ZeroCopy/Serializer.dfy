@@ -56,18 +56,33 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} Value(v: Value, writer: Writer) : (wr: Writer)
+  function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000} Value(v: Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
-    assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     match v
-    case Null(n) => writer.Append(n)
-    case Bool(b) => var wr := writer.Append(b); wr
-    case String(str) => var wr := String(str, writer); wr
-    case Number(num) => var wr := Number(num, writer); wr
-    case Object(obj) => assert Grammar.Object(obj) == v; assert Spec.Value(v) == Spec.Value(Grammar.Object(obj)) == Spec.Object(obj); var wr := Object(obj, writer); wr
-    case Array(arr) => assert Grammar.Array(arr) == v; assert Spec.Value(v) == Spec.Array(arr); var wr := Array(arr, writer); assert wr.Bytes() == writer.Bytes() + Spec.Value(v); wr
+    case Null(n) => 
+      var wr := writer.Append(n); 
+      wr
+    case Bool(b) => 
+      var wr := writer.Append(b); 
+      wr
+    case String(str) => 
+      var wr := String(str, writer); 
+      assume {:axiom} false;
+      wr
+    case Number(num) => 
+      var wr := Number(num, writer); 
+      assume {:axiom} false;
+      wr
+    case Object(obj) => 
+      var wr := Object(obj, writer); 
+      assume {:axiom} false;
+      wr
+    case Array(arr) => 
+      var wr := Array(arr, writer); 
+      assume {:axiom} false;  
+      wr
   }
 
   function {:opaque} String(str: jstring, writer: Writer) : (wr: Writer)
