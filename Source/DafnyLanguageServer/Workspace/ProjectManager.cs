@@ -245,29 +245,22 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   /// Needs to be thread-safe
   /// </summary>
   /// <returns></returns>
-  public bool CloseDocument(out Task close) {
+  public bool CloseDocument() {
     if (Interlocked.Decrement(ref openFileCount) == 0) {
-      close = CloseAsync();
+      CloseAsync();
       return true;
     }
 
-    close = Task.CompletedTask;
     return false;
   }
 
-  public async Task CloseAsync() {
+  public void CloseAsync() {
     Compilation.Dispose();
     try {
-      await Compilation.Finished;
       observer.OnCompleted();
     } catch (OperationCanceledException) {
     }
     Dispose();
-  }
-
-  public async Task WaitUntilFinished() {
-    logger.LogDebug($"GetLastDocumentAsync passed ProjectManager check for {Project.Uri}");
-    await Compilation.Finished;
   }
 
   public Task<IdeState> GetStateAfterParsingAsync() {
@@ -287,7 +280,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
     try {
-      compilation.IncrementJobs();
       var resolution = await compilation.Resolution;
 
       var canVerifies = resolution.CanVerifies?.ToList();
@@ -338,7 +330,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
     finally {
       logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-      compilation.DecrementJobs();
     }
   }
 
