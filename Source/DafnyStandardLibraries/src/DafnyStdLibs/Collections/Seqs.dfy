@@ -390,6 +390,16 @@ module DafnyStdLibs.Collections.Seq {
   {
   }
 
+  /* If a predicate is true for every member of a sequence as a collection,
+     it is true at every index of the sequence.
+     Useful for converting quantifiers between the two forms
+     to satisfy a precondition in the latter form. */
+  lemma MembershipImpliesIndexing<T>(p: T -> bool, xs: seq<T>)
+    requires forall t | t in xs :: p(t)
+    ensures forall i | 0 <= i < |xs| :: p(xs[i])
+  {
+  }
+
   /**********************************************************
    *
    *  Extrema in Sequences

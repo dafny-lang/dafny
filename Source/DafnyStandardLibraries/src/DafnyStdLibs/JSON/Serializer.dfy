@@ -6,7 +6,7 @@
 XXX
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
-  import Sequences.Seq
+  import Collections.Seq
   import Math
   import opened Wrappers
   import opened BoundedInts

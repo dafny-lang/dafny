@@ -8,7 +8,7 @@ XXX
 abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncodingForm {
   import opened Wrappers
   import Functions
-  import Sequences.Seq
+  import Collections.Seq
   import Unicode
 
   type CodeUnitSeq = seq<CodeUnit>

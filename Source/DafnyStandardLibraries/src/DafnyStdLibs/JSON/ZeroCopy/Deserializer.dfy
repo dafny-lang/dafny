@@ -54,7 +54,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 3000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 10000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
@@ -67,7 +67,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
 
     type jopt = v: Vs.View | v.Length() <= 1 witness Vs.View.OfBytes([])
 
-    function {:rlimit 3000} TryStructural(cs: FreshCursor)
+    function {:rlimit 10000} TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
@@ -275,7 +275,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    lemma {:rlimit 3000} AboutTryStructural(cs: FreshCursor)
+    lemma {:rlimit 10000} AboutTryStructural(cs: FreshCursor)
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
@@ -471,7 +471,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       case OtherError(err) => err
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 3000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
+    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 10000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.JSON)
     {
       Core.Structural(cs, Parsers.Parser(Values.Value, Spec.Value)).MapFailure(LiftCursorError)
@@ -691,9 +691,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     {
       var cs :- cs.AssertChar('\"');
       Success(cs.Split())
-    }
+    } 
 
-    function {:opaque} {:rlimit 3000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
+    function {:opaque} {:rlimit 10000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
       var SP(lq, cs) :- Quote(cs);
@@ -975,7 +975,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 3000} Object(cs: FreshCursor, json: ValueParser)
+    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 10000} Object(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jobject>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)

@@ -6,7 +6,7 @@
 XXX
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
-  import Sequences.Seq
+  import Collections.Seq
   import opened Wrappers
   import opened BoundedInts
   import opened NonlinearArithmetic.Logarithm

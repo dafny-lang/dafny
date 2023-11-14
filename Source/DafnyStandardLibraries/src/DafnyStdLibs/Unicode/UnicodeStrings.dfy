@@ -6,7 +6,7 @@
 XXX
 */
 abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.AbstractUnicodeStrings {
-  import Sequences.Seq
+  import Collections.Seq
   import opened Wrappers
   import opened BoundedInts
 

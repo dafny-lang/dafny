@@ -16,7 +16,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened Errors
   import opened Unicode.UnicodeStrings
   import opened NonlinearArithmetic.Logarithm
-  import Sequences.Seq
+  import Collections.Seq
 
   type bytes = seq<uint8>
   type Result<+T> = SerializationResult<T>

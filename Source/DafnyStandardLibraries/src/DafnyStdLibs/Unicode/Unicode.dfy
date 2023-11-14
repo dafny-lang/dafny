@@ -7,7 +7,7 @@ XXX
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Unicode {
   import opened Wrappers
-  import Sequences.Seq
+  import Collections.Seq
 
   /**
     * Any value in the Unicode codespace (a range of integers from 0 to 10FFFF_16). (Section 3.9 D9-D10)
