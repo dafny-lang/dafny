@@ -92,13 +92,30 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     ensures SplitPrefixMinimalWellFormedCodeUnitSubsequence(m + s) == Some(m)
   {
     var ms := m + s;
-    assert IsMinimalWellFormedCodeUnitSubsequence(ms[..|m|]);
-    var prefix := SplitPrefixMinimalWellFormedCodeUnitSubsequence(ms).Extract();
-    calc ==> {
-      IsMinimalWellFormedCodeUnitSubsequence(m);
-      |prefix| <= |m|;
-      prefix == ms[..|prefix|] == m[..|prefix|] == m;
+    var maybePrefix := SplitPrefixMinimalWellFormedCodeUnitSubsequence(ms);
+    assert maybePrefix.Some? by { assert IsMinimalWellFormedCodeUnitSubsequence(ms[..|m|]); }
+    var prefix := maybePrefix.Extract();
+
+    assert m <= ms;
+    assert prefix <= ms;
+
+    assert m == prefix by {
+      assert |m| == |prefix| by {
+        if |m| < |prefix| {
+          assert false by { assert prefix[..|m|] == m; }
+        } else if |m| > |prefix| {
+          assert false by { assert m[..|prefix|] == prefix; }
+        } else {
+          assert |m| == |prefix|;
+        }
+      }
     }
+
+    // calc ==> {
+    //   IsMinimalWellFormedCodeUnitSubsequence(m);
+    //   |prefix| <= |m|;
+    //   prefix == ms[..|prefix|] == m[..|prefix|] == m;
+    // }
   }
 
   /**
@@ -200,7 +217,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   {
     LemmaPartitionMinimalWellFormedCodeUnitSubsequence(m);
     LemmaSplitPrefixMinimalWellFormedCodeUnitSubsequenceInvertsPrepend(m, s);
-    assert PartitionCodeUnitSequenceChecked(m + s).Some?;
+    // assert PartitionCodeUnitSequenceChecked(m + s).Some?;
   }
 
   /**
@@ -210,7 +227,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     ensures IsWellFormedCodeUnitSequence(Seq.Flatten(ms))
   {
     if |ms| == 0 {
-      assert IsWellFormedCodeUnitSequence(Seq.Flatten(ms));
+      // assert IsWellFormedCodeUnitSequence(Seq.Flatten(ms));
     }
     else {
       var head := ms[0];
@@ -218,7 +235,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
       LemmaFlattenMinimalWellFormedCodeUnitSubsequences(tail);
       var flatTail := Seq.Flatten(tail);
       LemmaPrependMinimalWellFormedCodeUnitSubsequence(head, flatTail);
-      assert IsWellFormedCodeUnitSequence(head + flatTail);
+      // assert IsWellFormedCodeUnitSequence(head + flatTail);
     }
   }
 
@@ -233,10 +250,10 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     var partsST := partsS + partsT;
     Seq.LemmaFlattenConcat(partsS, partsT);
 
-    assert s + t == Seq.Flatten(partsST);
-    assert forall part | part in partsST ::
-        && |part| > 0
-        && IsMinimalWellFormedCodeUnitSubsequence(part);
+    // assert s + t == Seq.Flatten(partsST);
+    // assert forall part | part in partsST ::
+    //     && |part| > 0
+    //     && IsMinimalWellFormedCodeUnitSubsequence(part);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(partsST);
   }
 
