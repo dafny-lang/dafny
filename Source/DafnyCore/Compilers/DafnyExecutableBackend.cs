@@ -37,8 +37,6 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree output) {
-    var o = dafnyCompiler.EmitCallToMain(mainMethod.FullSanitizedName);
-    output.Write(o.ToVerbatimString(false));
   }
 
 }
