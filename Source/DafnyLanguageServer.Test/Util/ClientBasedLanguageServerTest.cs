@@ -189,10 +189,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       return null;
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
-    if (fileVerificationStatus != null && fileVerificationStatus.Version <= documentId.Version) {
+    if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
       while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-
       }
     }
 
@@ -201,6 +200,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
+    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
     await Task.Delay(10);
     try {
       var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
@@ -236,10 +236,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     cancellationSource = new();
     cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
 
-    diagnosticsReceiver = new();
-    compilationStatusReceiver = new();
-    verificationStatusReceiver = new();
-    ghostnessReceiver = new();
+    diagnosticsReceiver = new(logger);
+    compilationStatusReceiver = new(logger);
+    verificationStatusReceiver = new(logger);
+    ghostnessReceiver = new(logger);
     (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
   }
 

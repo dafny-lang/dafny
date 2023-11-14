@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -1555,7 +1556,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
     }
 
-    public CounterExampleTest(ITestOutputHelper output) : base(output) {
+    public CounterExampleTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
     }
   }
 }
