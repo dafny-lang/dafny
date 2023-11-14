@@ -54,7 +54,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 10000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 100000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
@@ -67,7 +67,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
 
     type jopt = v: Vs.View | v.Length() <= 1 witness Vs.View.OfBytes([])
 
-    function {:rlimit 10000} TryStructural(cs: FreshCursor)
+    function {:rlimit 100000} TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
       ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
     {
@@ -753,7 +753,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       else Success(sp)
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
+    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 100000} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
       var SP(e, cs) :=
