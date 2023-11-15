@@ -55,7 +55,6 @@ public class Compilation : IDisposable {
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, IImplementationTask>> implementationsPerVerifiable = new();
 
-  private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   public CompilationInput Input { get; }
   public DafnyProject Project => Input.Project;
@@ -108,7 +107,6 @@ public class Compilation : IDisposable {
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
     verificationTickets.Enqueue(Unit.Default);
-    MarkVerificationFinished();
 
     Program = ParseAsync();
     Resolution = ResolveAsync();
@@ -273,8 +271,6 @@ public class Compilation : IDisposable {
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
       var containingModule = canVerify.ContainingModule;
 
-      IncrementJobs();
-
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
       try {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
@@ -289,10 +285,8 @@ public class Compilation : IDisposable {
             g => (IReadOnlyList<IImplementationTask>)g.ToList());
         });
       } catch (OperationCanceledException) {
-        verificationCompleted.TrySetCanceled();
         throw;
       } catch (Exception e) {
-        verificationCompleted.TrySetException(e);
         updates.OnNext(new InternalCompilationException(e));
         throw;
       }
@@ -323,7 +317,6 @@ public class Compilation : IDisposable {
         }
       }
 
-      DecrementJobs();
     }
     finally {
       verificationTickets.Enqueue(Unit.Default);
@@ -347,7 +340,6 @@ public class Compilation : IDisposable {
           completedCache));
       }
 
-      StatusUpdateHandlerFinally();
       return;
     }
 
@@ -368,24 +360,8 @@ public class Compilation : IDisposable {
           logger.LogError(e, $"Caught error in statusUpdates observable.");
         }
 
-        StatusUpdateHandlerFinally();
-      },
-      StatusUpdateHandlerFinally
-    );
-  }
-
-  private void StatusUpdateHandlerFinally() {
-    try {
-      var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-      logger.LogDebug(
-        $"StatusUpdateHandlerFinally called, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}, " +
-        $"startingCompilation.version {Input.Version}.");
-      if (remainingJobs == 0) {
-        MarkVerificationFinished();
       }
-    } catch (Exception e) {
-      logger.LogCritical(e, "Caught exception while handling finally code of statusUpdates handler.");
-    }
+    );
   }
 
   public async Task Cancel(FilePosition filePosition) {
@@ -401,23 +377,7 @@ public class Compilation : IDisposable {
     }
   }
 
-  public void IncrementJobs() {
-    MarkVerificationStarted();
-    var verifyTaskIncrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug($"Incremented jobs for verifyTask, remaining jobs {verifyTaskIncrementedJobs}, {Input.Uri} version {Input.Version}");
-  }
-
-  public void DecrementJobs() {
-    var remainingJobs = Interlocked.Decrement(ref runningVerificationJobs);
-    logger.LogDebug($"Decremented jobs, remaining jobs {remainingJobs}, {Input.Uri} version {Input.Version}");
-    if (remainingJobs == 0) {
-      logger.LogDebug($"Calling MarkVerificationFinished because there are no remaining verification jobs for {Input.Uri}, version {Input.Version}.");
-      MarkVerificationFinished();
-    }
-  }
-
   private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
@@ -446,39 +406,6 @@ public class Compilation : IDisposable {
 
   public void CancelPendingUpdates() {
     cancellationSource.Cancel();
-  }
-
-  private void MarkVerificationStarted() {
-    logger.LogDebug($"MarkVerificationStarted called for {Input.Uri} version {Input.Version}");
-    if (verificationCompleted.Task.IsCompleted) {
-      verificationCompleted = new TaskCompletionSource();
-    }
-  }
-
-  private void MarkVerificationFinished() {
-    logger.LogDebug($"MarkVerificationFinished called for {Input.Uri} version {Input.Version}");
-    verificationCompleted.TrySetResult();
-  }
-
-  public Task Finished {
-    get {
-      logger.LogDebug($"LastDocument {Input.Uri} will return document version {Input.Version}");
-      return Resolution.ContinueWith(
-        t => {
-          if (t.IsCompletedSuccessfully) {
-#pragma warning disable VSTHRD103
-            return verificationCompleted.Task.ContinueWith(
-              verificationCompletedTask => {
-                logger.LogDebug(
-                  $"LastDocument returning translated compilation {Input.Uri} with status {verificationCompletedTask.Status}");
-                return Task.CompletedTask;
-              }, TaskScheduler.Current).Unwrap();
-#pragma warning restore VSTHRD103
-          }
-
-          return Program;
-        }, TaskScheduler.Current).Unwrap();
-    }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
