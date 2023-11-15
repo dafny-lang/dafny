@@ -36,7 +36,6 @@ public record FilePosition(Uri Uri, Position Position);
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-[SuppressMessage("Usage", "VSTHRD011:Use AsyncLazy<T>")]
 public class ProjectManager : IDisposable {
 
   public const int DefaultThrottleTime = 100;
@@ -82,9 +81,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly IFileSystem fileSystem;
   private readonly ITelemetryPublisher telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
-  private Lazy<Task<IdeState>> latestIdeState;
-  private ReplaySubject<Lazy<IdeState>> states = new(1);
-  public IObservable<Lazy<IdeState>> States => states;
+  private IdeState latestIdeState;
+  private ReplaySubject<IdeState> states = new(1);
+  public IObservable<IdeState> States => states;
 
   public ProjectManager(
     DafnyOptions serverOptions,
@@ -112,7 +111,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var initialCompilation = new CompilationInput(options, version, Project);
     var initialIdeState = initialCompilation.InitialIdeState(options);
-    latestIdeState = new Lazy<Task<IdeState>>(Task.FromResult(initialIdeState));
+    latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
     Compilation = createCompilation(options, boogieEngine, initialCompilation);
@@ -124,13 +123,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var migrator = createMigrator(documentChange, CancellationToken.None);
-    Lazy<Task<IdeState>> lazyPreviousCompilationLastIdeState = latestIdeState;
+
     var upcomingVersion = version + 1;
-    latestIdeState = new Lazy<Task<IdeState>>(async () => {
-      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-      observer.Migrate(options, migrator, upcomingVersion);
-      return (await lazyPreviousCompilationLastIdeState.Value).Migrate(options, migrator, upcomingVersion);
-    });
+    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+    observer.Migrate(options, migrator, upcomingVersion);
+    latestIdeState = latestIdeState.Migrate(options, migrator, upcomingVersion);
+
     StartNewCompilation();
 
     lock (RecentChanges) {
@@ -171,46 +169,40 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       boogieEngine,
       input);
     var migratedUpdates = GetStates(Compilation);
-    states = new ReplaySubject<Lazy<IdeState>>(1);
+    states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =
       migratedUpdates.Do(s => latestIdeState = s).Subscribe(states);
 
     var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
-    var throttledSubscription = throttledUpdates.
-      Select(x => x.Value).Subscribe(observer);
+    var throttledSubscription = throttledUpdates.Subscribe(observer);
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
   }
 
-  private IObservable<Lazy<Task<IdeState>>> GetStates(Compilation compilation) {
+  private IObservable<IdeState> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-#pragma warning disable VSTHRD011
-    var latestCompilationState = new Lazy<Task<IdeState>>(() => {
-      var value = initialState.Value;
-      return Task.FromResult(value with {
-        Input = compilation.Input,
-        VerificationTrees = compilation.RootUris.ToImmutableDictionary(uri => uri,
-          uri => value.VerificationTrees.GetValueOrDefault(uri) ??
-                 new DocumentVerificationTree(new EmptyNode(), uri))
-      });
-    });
+    var latestCompilationState = initialState with {
+      Input = compilation.Input,
+      VerificationTrees = compilation.RootUris.ToImmutableDictionary(uri => uri,
+        uri => initialState.VerificationTrees.GetValueOrDefault(uri) ??
+               new DocumentVerificationTree(new EmptyNode(), uri))
+    };
 
-    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
-      var previousStateTask = latestCompilationState.Value;
+    async Task<IdeState> Update(ICompilationEvent ev) {
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
-      latestCompilationState = new Lazy<Task<IdeState>>(async () => {
-        var previousState = await previousStateTask;
-        return await ev.UpdateState(options, logger, projectDatabase, previousState);
-      });
-      return latestCompilationState;
-    });
+
+      var newState = await ev.UpdateState(options, logger, projectDatabase, latestCompilationState);
+      latestCompilationState = newState;
+      return newState;
+    }
+
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
   }
-#pragma warning restore VSTHRD011
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
     if (AutomaticVerificationMode is VerifyOnMode.Change or VerifyOnMode.ChangeProject) {
@@ -277,12 +269,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public Task<IdeState> GetStateAfterParsingAsync() {
-    return States.Select(l => l.Value).Where(s => s.Status > CompilationStatus.Parsing).FirstAsync().ToTask();
+    return States.Where(s => s.Status > CompilationStatus.Parsing).FirstAsync().ToTask();
   }
 
   public Task<IdeState> GetStateAfterResolutionAsync() {
-    return States.Select(l => l.Value).
-      Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
+    return States.Where(s => s.Status is CompilationStatus.ParsingFailed or > CompilationStatus.ResolutionStarted).FirstAsync().ToTask();
   }
 
   /// <summary>

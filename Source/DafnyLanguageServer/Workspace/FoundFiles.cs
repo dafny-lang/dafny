@@ -12,13 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 record FoundFiles(
   DafnyProject Project,
   IReadOnlyList<DafnyFile> Files,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent 
-{
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
   public async Task<IdeState> UpdateState(DafnyOptions options,
     ILogger logger,
     IProjectDatabase projectDatabase,
-    IdeState previousState) 
-  { 
+    IdeState previousState) {
     var errors = Diagnostics.Values.SelectMany(x => x).
       Where(d => d.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : previousState.Status;
@@ -31,7 +29,7 @@ record FoundFiles(
         ownedUris.Add(file.Uri);
       }
     }
-    
+
     return previousState with {
       OwnedUris = ownedUris,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed ? Diagnostics : previousState.StaticDiagnostics,

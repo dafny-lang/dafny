@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class ProjectDiagnosticsTest : ClientBasedLanguageServerTest {
-  
+
   [Fact]
   public async Task LibraryNotFound() {
     var projectFile = @"
