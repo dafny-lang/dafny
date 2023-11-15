@@ -6,19 +6,15 @@ import (
   filepath "path/filepath"
 )
 
-// type CompanionStruct_Default___ struct{}
-
-// var Companion_Default___ = CompanionStruct_Default___{}
-
 func INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead _dafny.Sequence, errorMsg _dafny.Sequence) {
   p := _dafny.SequenceVerbatimString(path, false)
 	dat, err := os.ReadFile(p)
   if err != nil {
     errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
-    return false, nil, errAsSequence
+    return true, nil, errAsSequence
 	}
   datAsSequence := _dafny.SeqOfBytes(dat)
-  return true, datAsSequence, nil
+  return false, datAsSequence, nil
 }
 
 func INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (isError bool, errorMsg _dafny.Sequence) {
@@ -31,7 +27,7 @@ func INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (is
 	err := os.WriteFile(p, bytesArray, 0644)
   if err != nil {
     errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
-    return false, errAsSequence
+    return true, errAsSequence
 	}
-  return true, nil
+  return false, nil
 }

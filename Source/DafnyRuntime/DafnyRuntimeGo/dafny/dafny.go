@@ -526,7 +526,7 @@ func SeqOfBytes(values []byte) Sequence {
   for i, v := range values {
     arr[i] = v
   }
-  return SeqFromArray(arr, true)
+  return SeqFromArray(arr, false)
 }
 
 // SeqOfString converts the given string into a sequence of characters.
