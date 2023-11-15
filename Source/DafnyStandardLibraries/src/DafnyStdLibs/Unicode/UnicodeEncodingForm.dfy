@@ -85,6 +85,30 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   //
 
   /**
+   * If minimal well-formed code unique subsequences `m1` and `m2` are prefixes of `s`, then they are equal.
+   */
+  lemma LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(
+    s: CodeUnitSeq, m1: MinimalWellFormedCodeUnitSeq, m2: MinimalWellFormedCodeUnitSeq
+  )
+    decreases |s|, |m1|, |m2|
+    requires m1 <= s
+    requires m2 <= s
+    ensures m1 == m2
+  {
+    // Handle only the |m1| <= |m2| case explicitly
+    if |m1| > |m2| {
+      LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(s, m2, m1);
+    } else {
+      assert m1 <= m2;
+      assert m1 == m2 by {
+        if m1 < m2 {
+          assert false by { assert m1 == m2[..|m1|]; }
+        }
+      }
+    }
+  }
+
+  /**
     * If `ms` is the concatenation of a minimal well-formed code unit subsequence `m` and a code unit sequence `s`,
     * then the shortest minimal well-formed code unit subsequence prefix of `ms` is simply `m`.
     */
@@ -98,18 +122,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
 
     assert m <= ms;
     assert prefix <= ms;
-
-    assert m == prefix by {
-      assert |m| == |prefix| by {
-        if |m| < |prefix| {
-          assert false by { assert prefix[..|m|] == m; }
-        } else if |m| > |prefix| {
-          assert false by { assert m[..|prefix|] == prefix; }
-        } else {
-          assert |m| == |prefix|;
-        }
-      }
-    }
+    LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(ms, m, prefix);
 
     // calc ==> {
     //   IsMinimalWellFormedCodeUnitSubsequence(m);

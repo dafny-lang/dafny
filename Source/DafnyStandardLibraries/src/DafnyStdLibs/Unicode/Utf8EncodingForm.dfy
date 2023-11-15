@@ -213,7 +213,9 @@ module DafnyStdLibs.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     (y << 6) | x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
+  function
+    {:rlimit 115000}
+    DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 3
     ensures 0x800 <= v <= 0xFFFF
     ensures EncodeScalarValueTripleByte(v) == m
@@ -228,7 +230,9 @@ module DafnyStdLibs.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     (z << 12) | (y << 6) | x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
+  function
+    {:rlimit 4000}
+    DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 4
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueQuadrupleByte(v) == m

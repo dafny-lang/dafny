@@ -114,7 +114,9 @@ module DafnyStdLibs.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
     x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
+  function
+    {:rlimit 1200}
+    DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 2
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueDoubleWord(v) == m
