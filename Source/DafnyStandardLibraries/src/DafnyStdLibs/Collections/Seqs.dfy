@@ -14,7 +14,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `seq` type.
  */
-module DafnyStdLibs.Collections.Seq {
+module DafnyStdLibs.Collections.Seqs {
 
   import opened Wrappers
   import opened Relations
@@ -837,8 +837,8 @@ module DafnyStdLibs.Collections.Seq {
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
   lemma SortedUnique<T>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
-    requires SortedBy(xs, R)
-    requires SortedBy(ys, R)
+    requires SortedBy(R, xs)
+    requires SortedBy(R, ys)
     requires TotalOrdering(R)
     requires multiset(xs) == multiset(ys)
     ensures xs == ys
@@ -861,19 +861,19 @@ module DafnyStdLibs.Collections.Seq {
   ghost function SetToSortedSeqSpec<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
-    ensures SortedBy(xs, R)
+    ensures SortedBy(R, xs)
   {
-    MergeSortBy(SetToSeqSpec(s), R)
+    MergeSortBy(R, SetToSeqSpec(s))
   }
 
   /* Converts a set to a sequence that is ordered w.r.t. a given total order (compiled). */
   method SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
-    ensures SortedBy(xs, R)
+    ensures SortedBy(R, xs)
   {
     xs := SetToSeq(s);
-    xs := MergeSortBy(xs, R);
+    xs := MergeSortBy(R, xs);
     SortedUnique(xs, SetToSortedSeqSpec(s, R), R);
   }
 
@@ -883,10 +883,10 @@ module DafnyStdLibs.Collections.Seq {
    ***************************** */
 
   //Splits a sequence in two, sorts the two subsequences (recursively), and merges the two sorted sequences using `MergeSortedWith`
-  function MergeSortBy<T>(a: seq<T>, lessThanOrEq: (T, T) -> bool): (result :seq<T>)
+  function MergeSortBy<T>(lessThanOrEq: (T, T) -> bool, a: seq<T>): (result :seq<T>)
     requires TotalOrdering(lessThanOrEq)
     ensures multiset(a) == multiset(result)
-    ensures SortedBy(result, lessThanOrEq)
+    ensures SortedBy(lessThanOrEq, result)
   {
     if |a| <= 1 then
       a
@@ -896,52 +896,19 @@ module DafnyStdLibs.Collections.Seq {
 
       assert a == left + right;
 
-      var leftSorted := MergeSortBy(left, lessThanOrEq);
-      var rightSorted := MergeSortBy(right, lessThanOrEq);
+      var leftSorted := MergeSortBy(lessThanOrEq, left);
+      var rightSorted := MergeSortBy(lessThanOrEq, right);
 
       MergeSortedWith(leftSorted, rightSorted, lessThanOrEq)
   }
 
-  ghost predicate SortedBy<T>(a: seq<T>, lessThan: (T, T) -> bool) {
-    forall i, j | 0 <= i < j < |a| :: lessThan(a[i], a[j])
-  }
-
-  /* An element in an ordered set is called minimal, if it is less than every element of the set. */
-  ghost predicate IsMinimum<T>(R: (T, T) -> bool, m: T, s: set<T>) {
-    m in s && forall y: T | y in s :: R(m, y)
-  }
-
-  /* Any totally ordered set contains a unique minimal element. */
-  lemma LemmaUniqueMinimum<T(!new)>(R: (T, T) -> bool, s: set<T>) returns (m: T)
-    requires |s| > 0 && TotalOrdering(R)
-    ensures IsMinimum(R, m, s) && (forall n: T | IsMinimum(R, n, s) :: m == n)
-  {
-    var x :| x in s;
-    if s == {x} {
-      m := x;
-    } else {
-      var m' := LemmaUniqueMinimum(R, s - {x});
-      if
-      case R(m', x) => m := m';
-      case R(x, m') => m := x;
-    }
-  }
-
-  lemma LemmaNewFirstElementStillSortedBy<T>(x: T, s: seq<T>, lessThan: (T, T) -> bool)
-    requires SortedBy(s, lessThan)
-    requires |s| == 0 || lessThan(x, s[0])
-    requires TotalOrdering(lessThan)
-    ensures SortedBy([x] + s, lessThan)
-  {}
-
-
   // Helper function for MergeSortBy
   function {:tailrecursion} MergeSortedWith<T>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
-    requires SortedBy(left, lessThanOrEq)
-    requires SortedBy(right, lessThanOrEq)
+    requires SortedBy(lessThanOrEq, left)
+    requires SortedBy(lessThanOrEq, right)
     requires TotalOrdering(lessThanOrEq)
     ensures multiset(left + right) == multiset(result)
-    ensures SortedBy(result, lessThanOrEq)
+    ensures SortedBy(lessThanOrEq, result)
   {
     if |left| == 0 then
       right
@@ -959,4 +926,11 @@ module DafnyStdLibs.Collections.Seq {
 
       [right[0]] + MergeSortedWith(left, right[1..], lessThanOrEq)
   }
+
+  lemma LemmaNewFirstElementStillSortedBy<T>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
+    requires SortedBy(lessOrEqual, s)
+    requires |s| == 0 || lessOrEqual(newFirst, s[0])
+    requires TotalOrdering(lessOrEqual)
+    ensures SortedBy(lessOrEqual, [newFirst] + s)
+  {}
 }
