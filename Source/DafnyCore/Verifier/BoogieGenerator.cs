@@ -862,7 +862,7 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+    public static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
       if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
