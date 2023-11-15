@@ -10,7 +10,7 @@ module StringsExamples {
     expect OfInt(-302) == "-302";
   }
 
-  // The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
+  // TODO The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
   // method {:test} TestToInt() {
   //   expect ToInt("0") == 0;
   //   expect ToInt("3") == 3;
@@ -27,6 +27,7 @@ module StringsExamples {
     expect OfNat(3123123213102) == "3123123213102";
   }
 
+  // TODO The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
   // method {:test} TestToNat() {
   //   expect ToNat("0") == 0;
   //   expect ToNat("1") == 1;

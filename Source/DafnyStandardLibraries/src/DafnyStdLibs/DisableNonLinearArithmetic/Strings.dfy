@@ -20,13 +20,13 @@ module DafnyStdLibs.Strings {
     function CharMapFromChars(): (r: map<Char, uint>)
       ensures forall c | c in chars :: c in r
     {
-       CreateCharMap(0, chars)
+      CreateCharMap(0, chars)
     }
 
     function CreateCharMap(i: nat, s: seq<Char>): (r: map<Char, uint>)
       requires i + |s| == base
       ensures forall c <- s :: c in r
-      decreases |s| 
+      decreases |s|
     {
       if |s| == 0 then map[]
       else CreateCharMap(i + 1, s[1..])[s[0] := i]
@@ -152,22 +152,22 @@ module DafnyStdLibs.Strings {
     type Char = char
     const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
     const chars := HEX_DIGITS
-    const charMap := 
-    map[
-      '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9,
-      'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
-      'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
-    ]
+    const charMap :=
+      map[
+        '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9,
+        'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
+        'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
+      ]
   }
 
   module DecimalConversion refines ParametricConversion {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS
-    const charMap := 
-    map[
-      '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
-    ]
+    const charMap :=
+      map[
+        '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
+      ]
     // const charMap := CharMapFromChars()
   }
 
