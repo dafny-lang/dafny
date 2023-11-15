@@ -3,7 +3,10 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Implements low-level (zero-copy) deserialization (utf-8 bytes to JSON syntax trees).
+Proves that the deserializer is sound, but not complete w.r.t. the functional specification
+defined in `ConcreteSyntax.Spec`: if a value is deserialized successfully, then 
+re-serializing recovers the original bytestring.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   module Core {

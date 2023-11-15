@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Implements high-level serialization (JSON values to utf-8 bytes).
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   import Collections.Seq

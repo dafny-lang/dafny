@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Defines different types of errors that can occur during serialization and deserialization.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Errors {
   import Wrappers

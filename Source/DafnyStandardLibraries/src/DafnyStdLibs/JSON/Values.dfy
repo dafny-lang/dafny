@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Defines abstract datatype value trees that represent strings.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Values {
   datatype Decimal =

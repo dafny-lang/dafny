@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Defines concrete syntax trees that capture details of punctuation and blanks and represent strings.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Grammar {
   import opened BoundedInts

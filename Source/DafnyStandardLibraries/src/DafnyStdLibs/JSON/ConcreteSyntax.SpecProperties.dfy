@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Defines a simple functional specification of a serializer.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.SpecProperties {
   import opened BoundedInts
@@ -35,12 +35,11 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.SpecPrope
     ensures Spec.ConcatBytes(ts, pt0) == Spec.ConcatBytes(ts, pt1)
   {}
 
-  lemma {:induction ts0} ConcatBytes_Linear<T>(ts0: seq<T>, ts1: seq<T>, pt: T --> bytes)
+  lemma {:induction ts0} {:rlimit 10000} ConcatBytes_Linear<T>(ts0: seq<T>, ts1: seq<T>, pt: T --> bytes)
     requires forall d | d in ts0 :: pt.requires(d)
     requires forall d | d in ts1 :: pt.requires(d)
     ensures Spec.ConcatBytes(ts0 + ts1, pt) == Spec.ConcatBytes(ts0, pt) + Spec.ConcatBytes(ts1, pt)
   {
-    assume {:axiom} false; // TODO STEFAN RESOURCE UNITS
     if |ts0| == 0 {
       assert [] + ts1 == ts1;
     } else {

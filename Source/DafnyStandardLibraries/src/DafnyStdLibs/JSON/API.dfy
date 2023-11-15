@@ -3,7 +3,9 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+The high-level API of the JSON library. This version is built on top of the low-level (zero-copy) API.
+This API is more convenient to use, but it is unverified and less efficient. It produces abstract datatype 
+value trees that represent strings using Dafny's built-in `string` type.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
   import opened BoundedInts
@@ -13,6 +15,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
   import Deserializer
   import ZeroCopy = ZeroCopy.API
 
+  /* Serialization (JSON values to utf-8 bytes) */
   function {:opaque} Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>)
   {
     var js :- Serializer.JSON(js);
@@ -32,6 +35,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
     len := ZeroCopy.SerializeInto(js, bs);
   }
 
+  /* Deserialization (utf-8 bytes to JSON values) */
   function {:opaque} Deserialize(bs: seq<byte>) : (js: DeserializationResult<Values.JSON>)
   {
     var js :- ZeroCopy.Deserialize(bs);

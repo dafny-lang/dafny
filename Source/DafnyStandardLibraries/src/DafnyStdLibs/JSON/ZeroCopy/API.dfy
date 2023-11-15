@@ -3,7 +3,9 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+The low-level (zero-copy) API of the JSON library. This version is efficient, verified and allows incremental
+changes, but is more cumbersome to use. This API operates on concrete syntax trees that capture details of 
+punctuation and blanks and represent strings using unescaped, undecoded utf-8 byte sequences.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
   import opened BoundedInts
@@ -14,6 +16,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
   import Serializer
   import Deserializer
 
+  /* Serialization (JSON syntax trees to utf-8 bytes) */
   function {:opaque} Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)
     ensures bs == Success(Spec.JSON(js))
   {
@@ -37,6 +40,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
     len := Serializer.SerializeTo(js, bs);
   }
 
+  /* Deserialization (utf-8 bytes to JSON syntax trees) */
   function {:opaque} Deserialize(bs: seq<byte>) : (js: DeserializationResult<Grammar.JSON>)
     ensures js.Success? ==> bs == Spec.JSON(js.value)
   {
