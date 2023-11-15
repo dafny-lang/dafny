@@ -37,6 +37,10 @@ module UnicodeExamples {
     import opened DafnyStdLibs.Wrappers
     import opened Helpers
 
+    method {:test} TestEmptySequenceIsWellFormed() {
+      expect IsWellFormedCodeUnitSequence([]);
+    }
+
     const TEST_SCALAR_VALUES: seq<(ScalarValue, WellFormedCodeUnitSeq)> := [
       // One byte: dollar sign
       (0x0024, [0x24]),
@@ -90,6 +94,10 @@ module UnicodeExamples {
     import opened DafnyStdLibs.Wrappers
     import opened Helpers
 
+    method {:test} TestEmptySequenceIsWellFormed() {
+      expect IsWellFormedCodeUnitSequence([]);
+    }
+
     const TEST_SCALAR_VALUES: seq<(ScalarValue, WellFormedCodeUnitSeq)> := [
       // One code unit: dollar sign
       (0x0024, [0x0024]),
@@ -106,6 +114,17 @@ module UnicodeExamples {
       }
     }
 
+    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
+      expect !IsMinimalWellFormedCodeUnitSubsequence([]);
+    }
+
+    method {:test} TestMinimalWellFormedCodeUnitSubsequences() {
+      for i := 0 to |TEST_SCALAR_VALUES| {
+        var pair := TEST_SCALAR_VALUES[i];
+        expect IsMinimalWellFormedCodeUnitSubsequence(pair.1);
+      }
+    }
+
     // Because surrogate code points are not Unicode scalar values, isolated UTF-16 code units in the range
     // D800_16 .. DFFF_16 are ill-formed. (Section 3.9 D91)
     const TEST_ILL_FORMED_SEQUENCES: seq<CodeUnitSeq> := [
@@ -119,10 +138,6 @@ module UnicodeExamples {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
         AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
       }
-    }
-
-    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
-      expect !IsMinimalWellFormedCodeUnitSubsequence([]);
     }
   }
 
@@ -154,6 +169,11 @@ module UnicodeExamples {
     method {:test} TestFromUTF16Checked() {
       expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Some(currenciesStr);
       expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]) == None;
+    }
+
+    method {:test} TestASCIIToUnicode() {
+      expect UnicodeStrings.ASCIIToUTF8("foobar") == [0x66, 0x6F, 0x6F, 0x62, 0x61, 0x72];
+      expect UnicodeStrings.ASCIIToUTF16("foobar") == [0x66, 0x6F, 0x6F, 0x62, 0x61, 0x72];
     }
   }
 
