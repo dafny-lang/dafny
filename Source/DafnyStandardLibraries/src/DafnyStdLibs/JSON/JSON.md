@@ -13,17 +13,9 @@ See the Unicode module if you need to read or produce JSON text in other encodin
 
 ## Library usage
 
-The tutorial in [`JSONExamples.dfy`](./././examples/JSON/JSONExamples.dfy) shows how to import the library, call the high-level API, and use the low-level API to make localized modifications to a partial parse of a JSON AST. The main entry points are `API.Serialize` (to go from a JSON value to utf-8 bytes), and `API.Deserialize` (for the reverse operation):
+The tutorial in [`JSONExamples.dfy`](././././examples/JSON/JSONExamples.dfy) shows how to import the library, call the high-level API, and use the low-level API to make localized modifications to a partial parse of a JSON AST. The main entry points are `API.Serialize` (to go from a JSON value to utf-8 bytes), and `API.Deserialize` (for the reverse operation):
 
-<!-- %check-verify %save tmp-json.dfy -->
 ```dafny
-include "API.dfy"
-include "Wrappers.dfy"
-include "Values.dfy"
-include "./Wrappers.dfy"
-// Or "..WithUnicodeChar.dfy" if you are using --unicode-char:true
-include "./Unicode/UnicodeStringsWithoutUnicodeChar.dfy"
-
 import API = DafnyStdLibs.JSON.API
 import opened DafnyStdLibs.Unicode.UnicodeStrings
 import opened DafnyStdLibs.JSON.Values
