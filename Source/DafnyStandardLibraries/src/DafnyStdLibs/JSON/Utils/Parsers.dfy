@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Contains definitions of well-formedness for parsers (stating that they must consume part of their input). 
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Parsers {
   import opened BoundedInts

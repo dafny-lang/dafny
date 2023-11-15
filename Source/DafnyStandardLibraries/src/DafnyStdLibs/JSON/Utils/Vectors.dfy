@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Implements resizable arrays (the C++ standard library calls them vectors).
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Vectors {
   import opened BoundedInts

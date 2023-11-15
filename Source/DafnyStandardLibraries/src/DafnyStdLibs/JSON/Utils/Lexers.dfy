@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Contains a state machine that recognizes quoted strings and skips over backslash-escaped quotes.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Lexers {
   module Core {

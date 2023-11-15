@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-XXX
+Implements slices over byte strings whose bounds are representable as `int32` native integers.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Views.Core {
   import opened BoundedInts
