@@ -6,7 +6,7 @@
 /*
  * Private API - these are intentionally not exported from the module and should not be used elsewhere
  */
-module {:extern "DafnyStdLibs_FileIOInternalExterns"} DafnyStdLibs.FileIOInternalExterns {
+module {:compile false} {:extern "DafnyStdLibs_FileIOInternalExterns"} DafnyStdLibs.FileIOInternalExterns {
   method
     {:extern}
   INTERNAL_ReadBytesFromFile(path: string)
