@@ -1,6 +1,6 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
 /** This module provides various kinds of failure-compatible datatypes, including Option.

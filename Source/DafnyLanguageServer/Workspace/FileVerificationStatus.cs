@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MediatR;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -12,7 +13,11 @@ public record FileVerificationStatus(
   int? Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
   public override string ToString() {
-    return $"{nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
+    return $"SymbolStatus, {nameof(Uri)}: {Uri}, {nameof(Version)}: {Version}, {nameof(NamedVerifiables)}: {string.Join(", ", NamedVerifiables)}";
+  }
+
+  static FileVerificationStatus() {
+    StringifyUtil.AddGlobalOverride<FileVerificationStatus>((status, writer) => writer.Write(status.ToString()));
   }
 
   public virtual bool Equals(FileVerificationStatus? other) {

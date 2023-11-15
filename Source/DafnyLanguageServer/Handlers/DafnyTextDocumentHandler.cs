@@ -74,14 +74,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     /// <summary>
     /// Can be called in parallel
     /// </summary>
-    public override async Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogDebug("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        await projects.CloseDocumentAsync(notification.TextDocument);
+        projects.CloseDocument(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Value;
+      return Task.FromResult(Unit.Value);
     }
 
     public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {

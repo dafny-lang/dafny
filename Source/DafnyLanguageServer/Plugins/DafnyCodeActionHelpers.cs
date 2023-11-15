@@ -114,7 +114,7 @@ public static class DafnyCodeActionHelpers {
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
-    var endToken = GetMatchingEndToken(input.Program!, input.Uri, line, col);
+    var endToken = GetMatchingEndToken(input.Program!, input.Uri.ToUri(), line, col);
     if (endToken == null) {
       return (null, "", "");
     }
@@ -133,7 +133,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="line">The line of the opening brace</param>
   /// <param name="col">The column of the opening brace</param>
   /// <returns>The token of a matching closing brace, typically the `ÈndTok` of a BlockStmt</returns>
-  private static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, int line, int col) {
+  private static IToken? GetMatchingEndToken(Node program, Uri documentUri, int line, int col) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     IToken? tokenFound = null;
@@ -143,12 +143,12 @@ public static class DafnyCodeActionHelpers {
       }
 
       if (n.StartToken.line != 0 &&
-          (n.StartToken.Uri.ToString() != documentUri
+          (n.StartToken.Uri != documentUri
            || n.StartToken.line > line || line > n.EndToken.line)) {
         return false; // Outside of the current scope
       }
 
-      if (n is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
+      if (n is Method method && method.tok.Uri == documentUri && method.Body != null &&
           method.StartToken.line <= line && line <= method.EndToken.line &&
           GetMatchingEndToken(line, col, method.Body) is { } token) {
         tokenFound = token;

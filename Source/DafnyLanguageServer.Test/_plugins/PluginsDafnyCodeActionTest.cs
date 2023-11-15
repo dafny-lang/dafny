@@ -1,6 +1,5 @@
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Plugins;
-using Microsoft.Boogie;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,7 +16,7 @@ namespace PluginsDafnyCodeActionTest {
 
   public class DummyDafnyCodeActionProvider : DafnyCodeActionProvider {
     public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
-      var token = input.Program.GetStartOfFirstFileToken();
+      var token = ((Program)input.Program).GetStartOfFirstFileToken();
       return new DafnyCodeAction[] {
         new InstantDafnyCodeAction("Insert file header", new DafnyCodeActionEdit[] {
           new DafnyCodeActionEdit(new RangeToken(token, token).ToDafnyRange(), "/*First comment*/")
