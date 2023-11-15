@@ -4,9 +4,10 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class ProjectDiagnosticsTest : ClientBasedLanguageServerTest {
+  
   [Fact]
   public async Task LibraryNotFound() {
     var projectFile = @"
@@ -19,8 +20,7 @@ library = [""doesNotExist.dfy""]
     Assert.Contains("msg", diagnostics[0].Message);
   }
 
-  public ProjectDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) 
-    : base(output, dafnyLogLevel)
-  {
+  public ProjectDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
+    : base(output, dafnyLogLevel) {
   }
 }

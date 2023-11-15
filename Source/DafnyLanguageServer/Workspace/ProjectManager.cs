@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -35,6 +36,7 @@ public record FilePosition(Uri Uri, Position Position);
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
+[SuppressMessage("Usage", "VSTHRD011:Use AsyncLazy<T>")]
 public class ProjectManager : IDisposable {
 
   public const int DefaultThrottleTime = 100;
@@ -79,7 +81,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
   private readonly ITelemetryPublisher telemetryPublisher;
-  private Lazy<IdeState> latestIdeState;
+  private readonly IProjectDatabase projectDatabase;
+  private Lazy<Task<IdeState>> latestIdeState;
   private ReplaySubject<Lazy<IdeState>> states = new(1);
   public IObservable<Lazy<IdeState>> States => states;
 
@@ -89,6 +92,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
     ITelemetryPublisher telemetryPublisher,
+    IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
     CustomStackSizePoolTaskScheduler scheduler,
@@ -96,6 +100,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     DafnyProject project) {
     Project = project;
     this.telemetryPublisher = telemetryPublisher;
+    this.projectDatabase = projectDatabase;
     this.serverOptions = serverOptions;
     this.fileSystem = fileSystem;
     this.createCompilation = createCompilation;
@@ -105,9 +110,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
-    var initialCompilation = GetCompilationInput();
+    var initialCompilation = new CompilationInput(options, version, Project);
     var initialIdeState = initialCompilation.InitialIdeState(options);
-    latestIdeState = new Lazy<IdeState>(initialIdeState);
+    latestIdeState = new Lazy<Task<IdeState>>(Task.FromResult(initialIdeState));
 
     observer = createIdeStateObserver(initialIdeState);
     Compilation = createCompilation(options, boogieEngine, initialCompilation);
@@ -115,40 +120,16 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = Disposable.Empty;
   }
 
-  private CompilationInput GetCompilationInput() {
-    var rootFiles = new List<DafnyFile>();
-    foreach (var uri in Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
-      var file = DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, uri);
-      if (file != null) {
-        rootFiles.Add(file);
-      }
-    }
-    if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      rootFiles.Add(DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
-      rootFiles.Add(DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
-    }
-
-    foreach (var library in options.Get(CommonOptionBag.Libraries)) {
-      var file = DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, new Uri(library.FullName));
-      if (file != null) {
-        file.IsPreverified = true;
-        file.IsPrecompiled = true;
-        rootFiles.Add(file);
-      }
-    }
-    return new CompilationInput(options, version, Project, rootFiles);
-  }
-
   private const int MaxRememberedChanges = 100;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var migrator = createMigrator(documentChange, CancellationToken.None);
-    Lazy<IdeState> lazyPreviousCompilationLastIdeState = latestIdeState;
+    Lazy<Task<IdeState>> lazyPreviousCompilationLastIdeState = latestIdeState;
     var upcomingVersion = version + 1;
-    latestIdeState = new Lazy<IdeState>(() => {
+    latestIdeState = new Lazy<Task<IdeState>>(async () => {
       // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
       observer.Migrate(options, migrator, upcomingVersion);
-      return lazyPreviousCompilationLastIdeState.Value.Migrate(options, migrator, upcomingVersion);
+      return (await lazyPreviousCompilationLastIdeState.Value).Migrate(options, migrator, upcomingVersion);
     });
     StartNewCompilation();
 
@@ -184,7 +165,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription.Dispose();
 
     Compilation.Dispose();
-    var input = GetCompilationInput();
+    var input = new CompilationInput(options, version, Project);
     Compilation = createCompilation(
       options,
       boogieEngine,
@@ -203,28 +184,33 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     Compilation.Start();
   }
 
-  private IObservable<Lazy<IdeState>> GetStates(Compilation compilation) {
+  private IObservable<Lazy<Task<IdeState>>> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-    var latestCompilationState = new Lazy<IdeState>(() => {
+#pragma warning disable VSTHRD011
+    var latestCompilationState = new Lazy<Task<IdeState>>(() => {
       var value = initialState.Value;
-      return value with {
+      return Task.FromResult(value with {
         Input = compilation.Input,
-        VerificationTrees = compilation.Input.RootUris.ToImmutableDictionary(uri => uri,
+        VerificationTrees = compilation.RootUris.ToImmutableDictionary(uri => uri,
           uri => value.VerificationTrees.GetValueOrDefault(uri) ??
                  new DocumentVerificationTree(new EmptyNode(), uri))
-      };
+      });
     });
 
     return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => {
-      var previousState = latestCompilationState.Value;
+      var previousStateTask = latestCompilationState.Value;
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
-      latestCompilationState = new Lazy<IdeState>(() => ev.UpdateState(options, logger, previousState));
+      latestCompilationState = new Lazy<Task<IdeState>>(async () => {
+        var previousState = await previousStateTask;
+        return await ev.UpdateState(options, logger, projectDatabase, previousState);
+      });
       return latestCompilationState;
     });
   }
+#pragma warning restore VSTHRD011
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
     if (AutomaticVerificationMode is VerifyOnMode.Change or VerifyOnMode.ChangeProject) {

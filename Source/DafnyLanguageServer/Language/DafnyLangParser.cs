@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(CompilationInput compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(Compilation compilation, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
 
-        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, compilation.Reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);

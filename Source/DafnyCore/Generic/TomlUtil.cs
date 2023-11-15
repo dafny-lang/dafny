@@ -10,7 +10,7 @@ namespace DafnyCore.Generic;
 
 public static class TomlUtil {
 
-  public static bool TryGetValueFromToml(ErrorReporter reporter, IToken origin, string sourceDir, string tomlPath, 
+  public static bool TryGetValueFromToml(ErrorReporter reporter, IToken origin, string sourceDir, string tomlPath,
     Type type, object tomlValue, out object value) {
     if (tomlValue == null) {
       value = null;

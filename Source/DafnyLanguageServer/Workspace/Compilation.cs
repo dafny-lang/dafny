@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -9,9 +10,9 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -35,6 +36,7 @@ public delegate Compilation CreateCompilation(
 public class Compilation : IDisposable {
 
   private readonly ILogger logger;
+  private readonly IFileSystem fileSystem;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
 
@@ -56,6 +58,7 @@ public class Compilation : IDisposable {
   private TaskCompletionSource verificationCompleted = new();
   private readonly DafnyOptions options;
   public CompilationInput Input { get; }
+  public DafnyProject Project => Input.Project;
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<ICompilationEvent> updates = new();
@@ -68,8 +71,19 @@ public class Compilation : IDisposable {
   public Task<Program> Program { get; }
   public Task<ResolutionResult> Resolution { get; }
 
+  public ErrorReporter Reporter => errorReporter;
+
+  public IReadOnlyList<DafnyFile> RootFiles { get; set; }
+
+  /// <summary>
+  /// These do not have to be owned
+  /// </summary>
+  public IEnumerable<Uri> RootUris => RootFiles.Select(d => d.Uri);
+  public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Input.Project.Uri }).Distinct();
+
   public Compilation(
     ILogger<Compilation> logger,
+    IFileSystem fileSystem,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
     DafnyOptions options,
@@ -82,7 +96,14 @@ public class Compilation : IDisposable {
 
     this.documentLoader = documentLoader;
     this.logger = logger;
+    this.fileSystem = fileSystem;
     this.verifier = verifier;
+
+    errorReporter = new ObservableErrorReporter(options, Project.Uri);
+    errorReporter.Updates.Subscribe(updates);
+    staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
+      staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
+
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
@@ -94,18 +115,55 @@ public class Compilation : IDisposable {
   }
 
   public void Start() {
+    Project.Errors.CopyDiagnostics(errorReporter);
+    RootFiles = GetFiles();
+    var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
+      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+    updates.OnNext(new FoundFiles(Project, RootFiles, diagnosticsCopy));
     started.TrySetResult();
+  }
+
+  private IReadOnlyList<DafnyFile> GetFiles() {
+    var result = new List<DafnyFile>();
+
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
+      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, uri);
+      if (file != null) {
+        result.Add(file);
+      }
+    }
+    if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+      result.Add(DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
+      result.Add(DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+    }
+
+    foreach (var library in options.Get(CommonOptionBag.Libraries)) {
+      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, new Uri(library.FullName));
+      if (file != null) {
+        file.IsPreverified = true;
+        file.IsPrecompiled = true;
+        result.Add(file);
+      }
+    }
+
+    var projectPath = Project.Uri.LocalPath;
+    if (projectPath.EndsWith(DafnyProject.FileName)) {
+      var projectDirectory = Path.GetDirectoryName(projectPath)!;
+      var filesMessage = string.Join("\n", result.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
+      if (filesMessage.Any()) {
+        errorReporter.Info(MessageSource.Parser, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
+      } else {
+        errorReporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, Project.StartingToken, "Project references no files");
+      }
+    }
+
+    return result;
   }
 
   private async Task<Program> ParseAsync() {
     try {
       await started.Task;
-      var uri = Input.Uri.ToUri();
-      var errorReporter = new ObservableErrorReporter(options, uri);
-      errorReporter.Updates.Subscribe(updates);
-      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
-        staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
-      transformedProgram = await documentLoader.ParseAsync(errorReporter, Input, cancellationSource.Token);
+      transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);
@@ -450,6 +508,7 @@ public class Compilation : IDisposable {
   }
 
   private bool disposed;
+  private readonly ObservableErrorReporter errorReporter;
 
   public void Dispose() {
     if (disposed) {

@@ -25,6 +25,7 @@ public record IdeVerificationResult(VerificationPreparationState PreparationProg
 /// </summary>
 public record IdeState(
   int Version,
+  ISet<Uri> OwnedUris, // TODO include project Uri
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,

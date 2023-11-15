@@ -145,7 +145,7 @@ public class DooFile {
       object libraryValue = null;
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
         // TODO fix Console.Out
-        if (!TomlUtil.TryGetValueFromToml(reporter,  origin, null,
+        if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return false;
         }

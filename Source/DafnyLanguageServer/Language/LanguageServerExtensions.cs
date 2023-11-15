@@ -42,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton(CreateVerifier)
         .AddSingleton<CreateCompilation>(serviceProvider => (options, engine, compilation) => new Compilation(
           serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
           options, engine, compilation

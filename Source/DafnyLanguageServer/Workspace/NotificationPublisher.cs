@@ -18,28 +18,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly LanguageServerFilesystem filesystem;
     private readonly ILanguageServerFacade languageServer;
-    private readonly IProjectDatabase projectManagerDatabase;
     private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer,
-      IProjectDatabase projectManagerDatabase,
+    public NotificationPublisher(
+      ILogger<NotificationPublisher> logger,
+      ILanguageServerFacade languageServer,
       DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
-      this.projectManagerDatabase = projectManagerDatabase;
       this.options = options;
       this.filesystem = filesystem;
     }
 
-    public async Task PublishNotifications(IdeState previousState, IdeState state) {
+    public void PublishNotifications(IdeState previousState, IdeState state) {
       if (state.Version < previousState.Version) {
         return;
       }
 
-      await PublishDiagnostics(state);
+      PublishDiagnostics(state);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
-      foreach (var uri in state.Input.RootUris) {
+      foreach (var uri in state.OwnedUris) {
         PublishGutterIcons(uri, state);
       }
     }
@@ -58,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishSymbolProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Input.RootUris) {
+      foreach (var uri in state.OwnedUris) {
         var previous = GetFileVerificationStatus(previousState, uri);
         var current = GetFileVerificationStatus(state, uri);
 
@@ -71,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishGlobalProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Input.RootAndProjectUris) {
+      foreach (var uri in state.OwnedUris) {
         // TODO, still have to check for ownedness
 
         var current = state.Status;
@@ -118,15 +117,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
-    private async Task PublishDiagnostics(IdeState state) {
+    private void PublishDiagnostics(IdeState state) {
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = state.GetDiagnosticUris().Concat(state.Input.RootUris).Distinct();
+      var sources = state.GetDiagnosticUris().Concat(state.OwnedUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
         var current = state.GetDiagnosticsForUri(uri);
-        var uriProject = await projectManagerDatabase.GetProject(uri);
-        var ownedUri = uriProject.Equals(state.Input.Project);
+        var ownedUri = state.OwnedUris.Contains(uri);
         if (ownedUri) {
           if (uri == state.Input.Project.Uri) {
             // Delay publication of project diagnostics,
