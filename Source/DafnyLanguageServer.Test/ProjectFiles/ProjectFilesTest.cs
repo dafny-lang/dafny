@@ -19,6 +19,38 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
   /// Previously this could cause two project managers for the same project to be created.
   /// </summary>
   [Fact]
+  public async Task ProducerLibrary() {
+    var libraryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var producerSource = @"
+module Producer {
+  const x := 3
+}".TrimStart();
+    Directory.CreateDirectory(libraryDirectory);
+    var producerPath = Path.Combine(libraryDirectory, "producer.dfy");
+    await File.WriteAllTextAsync(producerPath, producerSource);
+    var consumerSource = @"
+module Consumer {
+  import opened Producer
+  const y := x + 2
+}".TrimStart();
+
+    var projectFileSource = $@"
+[options]
+library = [""{producerPath}""]".TrimStart();
+
+    var consumerDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(consumerDirectory);
+    await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
+    var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  /// <summary>
+  /// Previously this could cause two project managers for the same project to be created.
+  /// </summary>
+  [Fact]
   public async Task OpenTwoFilesThenIntroduceProjectFile() {
     var tempDirectory = Path.GetRandomFileName();
     var producerMarkup = @"
