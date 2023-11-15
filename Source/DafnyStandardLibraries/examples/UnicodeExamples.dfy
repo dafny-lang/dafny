@@ -57,6 +57,17 @@ module UnicodeExamples {
       }
     }
 
+    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
+      expect !IsMinimalWellFormedCodeUnitSubsequence([]);
+    }
+
+    method {:test} TestMinimalWellFormedCodeUnitSubsequences() {
+      for i := 0 to |TEST_SCALAR_VALUES| {
+        var pair := TEST_SCALAR_VALUES[i];
+        expect IsMinimalWellFormedCodeUnitSubsequence(pair.1);
+      }
+    }
+
     // Examples taken from description of Table 3-7.
     const TEST_ILL_FORMED_SEQUENCES: seq<CodeUnitSeq> := [
       // C0 is not well-formed as a first byte
@@ -70,10 +81,6 @@ module UnicodeExamples {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
         AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
       }
-    }
-
-    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
-      expect !IsMinimalWellFormedCodeUnitSubsequence([]);
     }
   }
 
@@ -147,6 +154,20 @@ module UnicodeExamples {
     method {:test} TestFromUTF16Checked() {
       expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Some(currenciesStr);
       expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]) == None;
+    }
+  }
+
+  module Utf8EncodingSchemeExamples {
+    import opened DafnyStdLibs.Unicode.Base
+    import opened DafnyStdLibs.Unicode.Utf8EncodingForm
+    import EncodingScheme = DafnyStdLibs.Unicode.Utf8EncodingScheme
+    import opened DafnyStdLibs.Wrappers
+    import opened Helpers
+
+    const currenciesUtf8: CodeUnitSeq := [0x24] + [0xC2, 0xA3] + [0xE2, 0x82, 0xAC] + [0xF0, 0x9F, 0x92, 0xB0]
+
+    method {:test} TestSerializeDeserialize() {
+      expect EncodingScheme.Deserialize(EncodingScheme.Serialize(currenciesUtf8)) == currenciesUtf8;
     }
   }
 }
