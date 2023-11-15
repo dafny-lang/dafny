@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(Compilation compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(CompilationInput compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;

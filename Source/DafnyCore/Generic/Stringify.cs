@@ -8,7 +8,14 @@ using System.IO;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 using Overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>;
+
 public static class StringifyUtil {
+
+  private static Dictionary<System.Type, Action<object, TextWriter>> globalOverrides = new();
+
+  public static void AddGlobalOverride<T>(Action<T, TextWriter> write) {
+    globalOverrides.Add(typeof(T), (o, w) => write((T)o, w));
+  }
 
   public static Overrides EmptyOverrides() {
     return ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
@@ -19,9 +26,9 @@ public static class StringifyUtil {
   }
 
   public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false,
-    IReadOnlyDictionary<System.Type, Action<object, TextWriter>>? overrides = null) {
+    ImmutableDictionary<System.Type, Action<object, TextWriter>>? overrides = null) {
 
-    overrides = ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
+    overrides ??= ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
 
     void Helper(ImmutableHashSet<object> visited, object? value, int indentation) {
       if (value == null) {
@@ -31,6 +38,12 @@ public static class StringifyUtil {
 
       if (value is string) {
         writer.Write($"\"{value}\"");
+        return;
+      }
+      var type = value.GetType();
+      var globalOverride = globalOverrides.GetValueOrDefault(type);
+      if (globalOverride != null) {
+        globalOverride(value, writer);
         return;
       }
 
@@ -54,7 +67,6 @@ public static class StringifyUtil {
         return;
       }
 
-      var type = value.GetType();
       var isKeyValuePair = type.Name == "KeyValuePair`2";
       if (type.Namespace?.StartsWith("System") == true && !isKeyValuePair) {
         writer.Write(value);

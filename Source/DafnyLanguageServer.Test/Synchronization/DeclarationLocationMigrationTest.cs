@@ -181,9 +181,9 @@ class A {
         new Range((3, 19), (3, 22)),
         change
       );
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True(TryFindSymbolDeclarationByName(document, "GetX", out var location));
+      var state = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
+      Assert.NotNull(state);
+      Assert.True(TryFindSymbolDeclarationByName(state, "GetX", out var location));
       Assert.Equal(new Range((3, 11), (3, 15)), location.Name);
       Assert.Equal(new Range((3, 2), (5, 2)), location.Declaration);
     }

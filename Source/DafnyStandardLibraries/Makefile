@@ -10,6 +10,10 @@ DOO_FILE_ARITHMETIC_TARGET=binaries/DafnyStandardLibraries-arithmetic.doo
 
 all: check-binary test check-format check-examples
 
+verify:
+	$(DAFNY) verify src/dfyconfig.toml
+	$(DAFNY) verify src/dfyconfig-arithmetic.toml
+
 build-binary:
 	$(DAFNY) build -t:lib src/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 	$(DAFNY) build -t:lib src/dfyconfig-arithmetic.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
@@ -33,13 +37,26 @@ update-binary: build-binary
 # We will likely want a test directory as well,
 # with deeper coverage of module functionality.
 
-test:
+test-cs:
 	$(DAFNY) test -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
+
+test-java:
 	$(DAFNY) test -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
+
+test-go:
 	$(DAFNY) test -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
+
+test-py:
 	$(DAFNY) test -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
+
+test-js:
 	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
- 
+
+test: test-cs test-java test-go test-py test-js
+
+# We only generate coverage from the C# tests
+coverage: test-cs
+
 format:
 	$(DAFNY) format .
 
