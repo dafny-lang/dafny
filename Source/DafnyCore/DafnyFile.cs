@@ -21,20 +21,6 @@ public class DafnyFile {
   public Uri Uri { get; }
   [CanBeNull] public IToken Origin { get; }
 
-  public static DafnyFile CreateAndValidateFile2(IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null) {
-    var batchReporter = new BatchErrorReporter(options);
-    var result = CreateAndValidateFile(batchReporter, fileSystem, options, uri, origin);
-    foreach (var message in batchReporter.AllMessages) {
-      options.Printer.ErrorWriteLine(options.OutputWriter, message.Message);
-    }
-
-    if (result == null) {
-      throw new IllegalDafnyFile(batchReporter.HasErrors);
-    }
-    return result;
-  }
-
   public static DafnyFile CreateAndValidateFile(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null) {
     var filePath = uri.LocalPath;
@@ -84,7 +70,7 @@ public class DafnyFile {
           return null;
         }
 
-        reporter.Error(MessageSource.Project, origin, $"*** Error: file {filePathForErrors} not found");
+        reporter.Error(MessageSource.Project, origin, $"File {filePathForErrors} not found");
         return null;
       }
 
@@ -106,7 +92,7 @@ public class DafnyFile {
         dooFile = DooFile.Read(stream);
       } else {
         if (!fileSystem.Exists(uri)) {
-          reporter.Error(MessageSource.Project, origin, $"*** Error: file {filePathForErrors} not found");
+          reporter.Error(MessageSource.Project, origin, $"File {filePathForErrors} not found");
           return null;
         }
 
@@ -194,7 +180,7 @@ public class DafnyFile {
 
   private static string GetDafnySourceAttributeText(string dllPath) {
     if (!File.Exists(dllPath)) {
-      throw new IllegalDafnyFile();
+      return null;
     }
     using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
     using var dllPeReader = new PEReader(dllFs);
