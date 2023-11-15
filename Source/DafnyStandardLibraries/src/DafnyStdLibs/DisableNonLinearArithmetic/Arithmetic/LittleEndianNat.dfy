@@ -28,7 +28,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   function BASE(): nat
     ensures BASE() > 1
 
-  type uint = i: int | 0 <= i < BASE()
+  type uint = i: nat | 0 <= i < BASE()
 
   //////////////////////////////////////////////////////////////////////////////
   //

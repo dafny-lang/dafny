@@ -15,17 +15,21 @@ module DafnyStdLibs.Strings {
     type CharSet = chars: seq<Char> | |chars| > 1 witness *
     const chars: CharSet
     const base := |chars|
-    const charMap: map<Char, nat>
+    const charMap: map<Char, uint>
 
-    function CharMapFromChars(): map<Char, nat> {
-       CreateCharMap(map[], 0, chars)
+    function CharMapFromChars(): (r: map<Char, uint>)
+      ensures forall c | c in chars :: c in r
+    {
+       CreateCharMap(0, chars)
     }
 
-    function CreateCharMap(m: map<Char, nat>, i: nat, s: seq<Char>): map<Char, nat> 
+    function CreateCharMap(i: nat, s: seq<Char>): (r: map<Char, uint>)
+      requires i + |s| == base
+      ensures forall c <- s :: c in r
       decreases |s| 
     {
-      if |s| == 0 then m
-      else CreateCharMap(m[s[0] := i], i + 1, s[1..])
+      if |s| == 0 then map[]
+      else CreateCharMap(i + 1, s[1..])[s[0] := i]
     }
 
     function BASE(): nat {
@@ -41,7 +45,7 @@ module DafnyStdLibs.Strings {
       else
         assert digits[0] in digits;
         assert forall d | d in digits[1..] :: d in digits;
-        [chars[digits[0]]] + OfDigits(digits[1..])
+        OfDigits(digits[1..]) + [chars[digits[0]]]
     }
 
     function OfNat(n: nat) : (str: String)
@@ -98,7 +102,7 @@ module DafnyStdLibs.Strings {
       }
     }
 
-    function ToInt(str: String, minus: Char) : (s: int)
+    function ToInt(str: String, minus: Char): (s: int)
       requires str != [minus]
       requires NumberStr(str, minus, c => c in charMap)
     {
@@ -160,7 +164,11 @@ module DafnyStdLibs.Strings {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS
-    const charMap := CharMapFromChars()
+    const charMap := 
+    map[
+      '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
+    ]
+    // const charMap := CharMapFromChars()
   }
 
   module CharStrEscaping refines ParametricEscaping {
@@ -190,7 +198,7 @@ module DafnyStdLibs.Strings {
 
   function ToInt(str: string) : (n: int)
     requires str != "-"
-    requires DecimalConversion.NumberStr(str, '-', (c: char) => c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base)
+    requires DecimalConversion.NumberStr(str, '-', (c: char) => c in DecimalConversion.charMap)
   {
     DecimalConversion.ToInt(str, '-')
   }
