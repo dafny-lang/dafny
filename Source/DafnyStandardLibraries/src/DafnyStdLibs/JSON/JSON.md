@@ -13,7 +13,7 @@ See the Unicode module if you need to read or produce JSON text in other encodin
 
 ## Library usage
 
-The tutorial in [`JSONExamples.dfy`](././././examples/JSON/JSONExamples.dfy) shows how to import the library, call the high-level API, and use the low-level API to make localized modifications to a partial parse of a JSON AST. The main entry points are `API.Serialize` (to go from a JSON value to utf-8 bytes), and `API.Deserialize` (for the reverse operation):
+The tutorial in [`JSONExamples.dfy`](../../../examples/JSON/JSONExamples.dfy) shows how to import the library, call the high-level API, and use the low-level API to make localized modifications to a partial parse of a JSON AST. The main entry points are `API.Serialize` (to go from a JSON value to utf-8 bytes), and `API.Deserialize` (for the reverse operation):
 
 ```dafny
 import API = DafnyStdLibs.JSON.API
