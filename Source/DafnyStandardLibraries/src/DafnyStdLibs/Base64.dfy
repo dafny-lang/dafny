@@ -702,6 +702,9 @@ module DafnyStdLibs.Base64 {
          reveal SeqToBV24();
          reveal IndexSeqToBV24();
          reveal BV24ToIndexSeq();
+         assert d'[0] == IndexToChar(CharToIndex(s[0]));
+         assert d'[1] == IndexToChar(CharToIndex(s[1]));
+         assert d'[2] == IndexToChar(CharToIndex(s[2]));
        }
       [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), IndexToChar(CharToIndex(s[2])), '='];
     == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); CharToIndexToChar(s[2]); }
