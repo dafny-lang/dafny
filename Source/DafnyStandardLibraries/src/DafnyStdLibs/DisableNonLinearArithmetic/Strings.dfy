@@ -17,21 +17,6 @@ module DafnyStdLibs.Strings {
     const base := |chars|
     const charMap: map<Char, uint>
 
-    function CharMapFromChars(): (r: map<Char, uint>)
-      ensures forall c | c in chars :: c in r
-    {
-      CreateCharMap(0, chars)
-    }
-
-    function CreateCharMap(i: nat, s: seq<Char>): (r: map<Char, uint>)
-      requires i + |s| == base
-      ensures forall c <- s :: c in r
-      decreases |s|
-    {
-      if |s| == 0 then map[]
-      else CreateCharMap(i + 1, s[1..])[s[0] := i]
-    }
-
     function BASE(): nat {
       base
     }
@@ -174,7 +159,6 @@ module DafnyStdLibs.Strings {
       map[
         '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
       ]
-    // const charMap := CharMapFromChars()
   }
 
   module CharStrEscaping refines ParametricEscaping {
