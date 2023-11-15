@@ -14,7 +14,7 @@ public class ProjectDiagnosticsTest : ClientBasedLanguageServerTest {
 library = [""doesNotExist.dfy""]
 ".TrimStart();
 
-    var project = CreateAndOpenTestDocument(projectFile);
+    var project = CreateAndOpenTestDocument(projectFile, DafnyProject.FileName);
     var diagnostics = await GetLastDiagnostics(project);
     Assert.Contains("msg", diagnostics[0].Message);
   }
