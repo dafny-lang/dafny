@@ -4,10 +4,10 @@
  *******************************************************************************/
 
 /**
- * A concrete implementation of `AbstractUnicodeStrings` for `--unicode-char:true`,
- * defining functions for converting between strings and UTF-8/UTF-16.
- * See the `AbstractUnicodeStrings` module for details.
- */
+  * A concrete implementation of `AbstractUnicodeStrings` for `--unicode-char:true`,
+  * defining functions for converting between strings and UTF-8/UTF-16.
+  * See the `AbstractUnicodeStrings` module for details.
+  */
 module DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings {
 
   import Base

@@ -85,8 +85,8 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   //
 
   /**
-   * If minimal well-formed code unique subsequences `m1` and `m2` are prefixes of `s`, then they are equal.
-   */
+    * If minimal well-formed code unique subsequences `m1` and `m2` are prefixes of `s`, then they are equal.
+    */
   lemma LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(
     s: CodeUnitSeq, m1: MinimalWellFormedCodeUnitSeq, m2: MinimalWellFormedCodeUnitSeq
   )

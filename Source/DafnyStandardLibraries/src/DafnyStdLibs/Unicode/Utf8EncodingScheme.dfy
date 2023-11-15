@@ -57,7 +57,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     */
   lemma
     {:rlimit 3000}
-    LemmaDeserializeSerialize(b: seq<byte>)
+  LemmaDeserializeSerialize(b: seq<byte>)
     ensures Serialize(Deserialize(b)) == b
   {
     calc {
