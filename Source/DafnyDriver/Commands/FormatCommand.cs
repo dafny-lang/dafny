@@ -68,7 +68,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = DafnyFile.CreateAndValidateFile(new ConsoleErrorReporter(options),
+        dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
           OnDiskFileSystem.Instance, options, new Uri(tempFileName));
       }
 
@@ -156,7 +156,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
 
   public static IEnumerable<DafnyFile> GetFilesForFolder(DafnyOptions options, string folderPath) {
     return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-      .Select(name => DafnyFile.CreateAndValidateFile(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance,
+      .Select(name => DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance,
         options, new Uri(name)));
   }
 }

@@ -21,7 +21,7 @@ public class DafnyFile {
   public Uri Uri { get; }
   [CanBeNull] public IToken Origin { get; }
 
-  public static DafnyFile CreateAndValidateFile(ErrorReporter reporter, IFileSystem fileSystem,
+  public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null) {
     var filePath = uri.LocalPath;
 

@@ -108,29 +108,29 @@ public class Compilation : IDisposable {
 
   public void Start() {
     Project.Errors.CopyDiagnostics(errorReporter);
-    RootFiles = GetFiles();
+    RootFiles = DetermineRootFiles();
     var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
       kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
     updates.OnNext(new FoundFiles(Project, RootFiles!, diagnosticsCopy));
     started.TrySetResult();
   }
 
-  private IReadOnlyList<DafnyFile> GetFiles() {
+  private IReadOnlyList<DafnyFile> DetermineRootFiles() {
     var result = new List<DafnyFile>();
 
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
-      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, uri, Project.StartingToken);
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
     }
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      result.Add(DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
-      result.Add(DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
     }
 
     foreach (var library in options.Get(CommonOptionBag.Libraries)) {
-      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, new Uri(library.FullName), Project.StartingToken);
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, new Uri(library.FullName), Project.StartingToken);
       if (file != null) {
         file.IsPreverified = true;
         file.IsPrecompiled = true;
