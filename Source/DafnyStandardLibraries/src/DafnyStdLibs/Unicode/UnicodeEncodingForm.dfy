@@ -230,7 +230,6 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   {
     LemmaPartitionMinimalWellFormedCodeUnitSubsequence(m);
     LemmaSplitPrefixMinimalWellFormedCodeUnitSubsequenceInvertsPrepend(m, s);
-    // assert PartitionCodeUnitSequenceChecked(m + s).Some?;
   }
 
   /**
@@ -263,10 +262,6 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     var partsST := partsS + partsT;
     Seqs.LemmaFlattenConcat(partsS, partsT);
 
-    // assert s + t == Seqs.Flatten(partsST);
-    // assert forall part | part in partsST ::
-    //     && |part| > 0
-    //     && IsMinimalWellFormedCodeUnitSubsequence(part);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(partsST);
   }
 

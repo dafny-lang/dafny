@@ -17,8 +17,6 @@
   * TODO: this should refine an abstract UnicodeEncodingScheme module
   * that states lemmas/conditions about Serialize and Deserialize
   * which refining modules would prove about their own implementations.
-  * Proving those lemmas are easier to write using `calc`,
-  * but that runs into <https://github.com/dafny-lang/dafny/issues/1639>.
   */
 module DafnyStdLibs.Unicode.Utf8EncodingScheme {
   import opened Wrappers

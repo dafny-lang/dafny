@@ -4,11 +4,11 @@
  *******************************************************************************/
 
 /**
-  * This module implements basic functionality of Unicode 14.0.
+  * This module implements basic functionality of Unicode 15.1.0.
   */
 module DafnyStdLibs.Unicode.Base {
   /**
-    * Any value in the Unicode codespace (a range of integers from 0 to 10FFFF_16). (Section 3.9 D9-D10)
+    * Any value in the Unicode codespace (a range of integers from 0 to 10FFFF_16). (Section 3.4 D9-D10)
     */
   type CodePoint = i: bv24 | 0 <= i <= 0x10FFFF
 
