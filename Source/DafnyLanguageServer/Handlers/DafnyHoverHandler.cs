@@ -40,10 +40,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      IdeState? state;
-      try {
-        state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
-      } catch (OperationCanceledException) {
+      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      if (state == null) {
+        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
+        return null;
+      }
+      if (state.Status == CompilationStatus.ParsingFailed) {
         return new Hover {
           Contents = new MarkedStringsOrMarkupContent(new MarkupContent {
             Kind = MarkupKind.Markdown,
@@ -51,10 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           })
         };
       }
-      if (state == null) {
-        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
-        return null;
-      }
+
       var diagnosticHoverContent = GetDiagnosticsHover(state, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
       var (symbol, symbolHoverContent) = GetStaticHoverContent(request, state);
       if (diagnosticHoverContent == null && symbolHoverContent == null) {
@@ -70,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
       IDeclarationOrUsage? declarationOrUsage =
-        state.Program.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        state.ResolvedProgram.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
       if (declarationOrUsage is IHasUsages usage) {
@@ -87,8 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var options = state.Program is Program program ? program.Reporter.Options : DafnyOptions.Default;
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(options, symbol) : null;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(state.Input.Options, symbol) : null;
       return (symbol, symbolHoverContent);
     }
 

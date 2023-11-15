@@ -1,5 +1,3 @@
-
-
 [options]
 disable-nonlinear-arithmetic = true
 
@@ -15,7 +13,6 @@ library = [
   "../EnableNonLinearArithmetic/Relations.dfy",
   "../EnableNonLinearArithmetic/Math.dfy",
 ]
-
 # (Ideally we would find a way to share configuration between these two project files)
 
 # Options that help support more values of consuming context options

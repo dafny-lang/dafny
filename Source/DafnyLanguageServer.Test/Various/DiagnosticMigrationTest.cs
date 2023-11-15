@@ -23,7 +23,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
     var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
-    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
   }
 
   [Fact]
@@ -99,7 +99,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
-    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.Equal(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
     Assert.Equal(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
   }
@@ -135,7 +135,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
     var resolutionDiagnostics1 = await GetNextDiagnostics(documentItem);
-    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
 
     // Check that no other resolution diagnostics came in by fixing verification and getting new verification diagnostics.
@@ -159,7 +159,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
 
     var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
-    Assert.Equal(CompilationAfterResolution.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     var verificationDiagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Equal(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);

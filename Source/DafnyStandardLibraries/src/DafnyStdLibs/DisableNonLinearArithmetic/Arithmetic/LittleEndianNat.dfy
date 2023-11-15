@@ -16,7 +16,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   import opened DivMod
   import opened Mul
   import opened Power
-  import opened Collections.Seq
+  import opened Collections.Seqs
   import opened Logarithm
 
   /* 
