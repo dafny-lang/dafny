@@ -21,7 +21,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   import opened Wrappers
 
   import Functions
-  import Collections.Seq
+  import Collections.Seqs
   import opened Base
 
   type CodeUnitSeq = seq<CodeUnit>
@@ -136,7 +136,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     * or None if no such partition exists.
     */
   function PartitionCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeParts: Option<seq<MinimalWellFormedCodeUnitSeq>>)
-    ensures maybeParts.Some? ==> Seq.Flatten(maybeParts.Extract()) == s
+    ensures maybeParts.Some? ==> Seqs.Flatten(maybeParts.Extract()) == s
     decreases |s|
   {
     if s == [] then Some([])
@@ -177,7 +177,7 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     * subsequences.
     */
   function PartitionCodeUnitSequence(s: WellFormedCodeUnitSeq): (parts: seq<MinimalWellFormedCodeUnitSeq>)
-    ensures Seq.Flatten(parts) == s
+    ensures Seqs.Flatten(parts) == s
   {
     PartitionCodeUnitSequenceChecked(s).Extract()
   }
@@ -237,16 +237,16 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     * The concatenation of minimal well-formed code unit subsequences is itself a well-formed code unit sequence.
     */
   lemma LemmaFlattenMinimalWellFormedCodeUnitSubsequences(ms: seq<MinimalWellFormedCodeUnitSeq>)
-    ensures IsWellFormedCodeUnitSequence(Seq.Flatten(ms))
+    ensures IsWellFormedCodeUnitSequence(Seqs.Flatten(ms))
   {
     if |ms| == 0 {
-      // assert IsWellFormedCodeUnitSequence(Seq.Flatten(ms));
+      // assert IsWellFormedCodeUnitSequence(Seqs.Flatten(ms));
     }
     else {
       var head := ms[0];
       var tail := ms[1..];
       LemmaFlattenMinimalWellFormedCodeUnitSubsequences(tail);
-      var flatTail := Seq.Flatten(tail);
+      var flatTail := Seqs.Flatten(tail);
       LemmaPrependMinimalWellFormedCodeUnitSubsequence(head, flatTail);
       // assert IsWellFormedCodeUnitSequence(head + flatTail);
     }
@@ -261,9 +261,9 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     var partsS := PartitionCodeUnitSequence(s);
     var partsT := PartitionCodeUnitSequence(t);
     var partsST := partsS + partsT;
-    Seq.LemmaFlattenConcat(partsS, partsT);
+    Seqs.LemmaFlattenConcat(partsS, partsT);
 
-    // assert s + t == Seq.Flatten(partsST);
+    // assert s + t == Seqs.Flatten(partsST);
     // assert forall part | part in partsST ::
     //     && |part| > 0
     //     && IsMinimalWellFormedCodeUnitSubsequence(part);
@@ -275,20 +275,20 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     */
   function EncodeScalarSequence(vs: seq<ScalarValue>): (s: WellFormedCodeUnitSeq)
   {
-    var ms := Seq.Map(EncodeScalarValue, vs);
+    var ms := Seqs.Map(EncodeScalarValue, vs);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(ms);
-    Seq.Flatten(ms)
+    Seqs.Flatten(ms)
   }
   by method {
     // Optimize to to avoid allocating the intermediate unflattened sequence.
-    // We can't quite use Seq.FlatMap easily because we need to prove the result
-    // is not just a seq<CodeUnit> but a WellFormedCodeUnitSeq.
+    // We can't quite use Seqs.FlatMap easily because we need to prove the result
+    // is not just a seq<CodeUnit> but a WellFormedCodeUnitSeqs.
     // TODO: We can be even more efficient by using a JSON.Utils.Vectors.Vector instead.
     s := [];
     ghost var unflattened: seq<MinimalWellFormedCodeUnitSeq> := [];
     for i := |vs| downto 0
-      invariant unflattened == Seq.Map(EncodeScalarValue, vs[i..])
-      invariant s == Seq.Flatten(unflattened)
+      invariant unflattened == Seqs.Map(EncodeScalarValue, vs[i..])
+      invariant s == Seqs.Flatten(unflattened)
     {
       var next: MinimalWellFormedCodeUnitSeq := EncodeScalarValue(vs[i]);
       unflattened := [next] + unflattened;
@@ -304,12 +304,12 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     ensures EncodeScalarSequence(vs) == s
   {
     var parts := PartitionCodeUnitSequence(s);
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seqs.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
-      Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      Seqs.Flatten(parts);
+      { assert parts == Seqs.Map(EncodeScalarValue, vs); }
+      Seqs.Flatten(Seqs.Map(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
     vs
@@ -336,12 +336,12 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
       return None;
     }
     var parts := maybeParts.value;
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seqs.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
-      Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      Seqs.Flatten(parts);
+      { assert parts == Seqs.Map(EncodeScalarValue, vs); }
+      Seqs.Flatten(Seqs.Map(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
     return Some(vs);

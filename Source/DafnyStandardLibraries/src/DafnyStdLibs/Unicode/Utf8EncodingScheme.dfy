@@ -24,7 +24,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
   import opened Wrappers
 
   import BoundedInts
-  import Collections.Seq
+  import Collections.Seqs
   import Utf8EncodingForm
 
   type byte = BoundedInts.uint8
@@ -34,7 +34,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     */
   function Serialize(s: Utf8EncodingForm.CodeUnitSeq): (b: seq<byte>)
   {
-    Seq.Map(c => c as byte, s)
+    Seqs.Map(c => c as byte, s)
   }
 
   /**
@@ -42,7 +42,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     */
   function Deserialize(b: seq<byte>): (s: Utf8EncodingForm.CodeUnitSeq)
   {
-    Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b)
+    Seqs.Map(b => b as Utf8EncodingForm.CodeUnit, b)
   }
 
   /**
@@ -63,11 +63,11 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     calc {
       Serialize(Deserialize(b));
     == // Definitions of Serialize, Deserialize
-      Seq.Map(c => c as byte, Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b));
+      Seqs.Map(c => c as byte, Seqs.Map(b => b as Utf8EncodingForm.CodeUnit, b));
     == // Compositionality of Map
-      Seq.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);
+      Seqs.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);
     == // Simplify map
-      Seq.Map(b => b, b);
+      Seqs.Map(b => b, b);
     == // Identity function
       b;
     }

@@ -7,10 +7,6 @@
  * This module implements basic functionality of Unicode 14.0.
  */
 module DafnyStdLibs.Unicode.Base {
-  import opened Wrappers
-
-  import Collections.Seq
-
   /**
     * Any value in the Unicode codespace (a range of integers from 0 to 10FFFF_16). (Section 3.9 D9-D10)
     */
