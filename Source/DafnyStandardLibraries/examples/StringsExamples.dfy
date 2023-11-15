@@ -11,13 +11,13 @@ module StringsExamples {
   }
 
   // TODO The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
-  // method {:test} TestToInt() {
-  //   expect ToInt("0") == 0;
-  //   expect ToInt("3") == 3;
-  //   expect ToInt("302") == 302;
-  //   expect ToInt("-3") == -3;
-  //   expect ToInt("-302") == -302;
-  // }
+  method {:test} TestToInt() {
+    expect ToInt("0") == 0;
+    expect ToInt("3") == 3;
+    expect ToInt("302") == 302;
+    expect ToInt("-3") == -3;
+    expect ToInt("-302") == -302;
+  }
 
   method {:test} TestOfNat() {
     expect OfNat(0) == "0";
@@ -27,14 +27,13 @@ module StringsExamples {
     expect OfNat(3123123213102) == "3123123213102";
   }
 
-  // TODO The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
-  // method {:test} TestToNat() {
-  //   expect ToNat("0") == 0;
-  //   expect ToNat("1") == 1;
-  //   expect ToNat("3") == 3;
-  //   expect ToNat("302") == 302;
-  //   expect ToNat("3123123213102") == 3123123213102;
-  // }
+  method {:vcs_split_on_every_assert} {:test} TestToNat() {
+    expect ToNat("0") == 0;
+    expect ToNat("1") == 1;
+    expect ToNat("3") == 3;
+    expect ToNat("302") == 302;
+    expect ToNat("3123123213102") == 3123123213102;
+  }
 
   method {:test} TestEscapeQuotes() {
     expect EscapeQuotes("this message has single \' quotes \' ") == "this message has single \\\' quotes \\\' ";

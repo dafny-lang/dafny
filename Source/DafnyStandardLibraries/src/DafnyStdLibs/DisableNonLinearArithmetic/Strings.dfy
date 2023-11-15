@@ -38,7 +38,7 @@ module DafnyStdLibs.Strings {
 
     function OfDigits(digits: seq<uint>) : (str: String)
       requires forall d | d in digits :: 0 <= d < base
-      ensures forall c | c in str :: c in chars
+      ensures forall c <- str :: c in chars
       ensures |str| == |digits|
     {
       if digits == [] then []
@@ -50,27 +50,33 @@ module DafnyStdLibs.Strings {
 
     function OfNat(n: nat) : (str: String)
       ensures |str| == Log(base, n) + 1
-      ensures forall c | c in str :: c in chars
+      ensures forall c <- str :: c in chars
     {
       if n == 0 then reveal Log(); [chars[0]]
       else LemmaFromNatLen2(n); OfDigits(FromNat(n))
     }
 
-    predicate NumberStr(str: String, minus: Char, isDigit: Char -> bool) {
+    predicate OfNumberStr(str: String, minus: Char) {
       str != [] ==>
-        && (str[0] == minus || isDigit(str[0]))
-        && forall c | c in str[1..] :: isDigit(c)
+        && (str[0] == minus || str[0] in chars)
+        && forall c <- str[1..] :: c in chars
+    }
+
+    predicate ToNumberStr(str: String, minus: Char) {
+      str != [] ==>
+        && (str[0] == minus || str[0] in charMap)
+        && forall c <- str[1..] :: c in charMap
     }
 
     function OfInt(n: int, minus: Char) : (str: String)
-      ensures NumberStr(str, minus, c => c in chars)
+      ensures OfNumberStr(str, minus)
     {
       if n >= 0 then OfNat(n)
       else [minus] + OfNat(-n)
     }
 
     function {:vcs_split_on_every_assert} ToNat(str: String) : (n: nat)
-      requires forall c | c in str :: c in charMap
+      requires forall c <- str :: c in charMap
     {
       if str == [] then 0
       else
@@ -80,8 +86,8 @@ module DafnyStdLibs.Strings {
 
     lemma {:induction false} ToNatBound(str: String)
       requires base > 0
-      requires forall c | c in str :: c in charMap
-      requires forall c | c in str :: charMap[c] < base
+      requires forall c <- str :: c in charMap
+      requires forall c <- str :: charMap[c] < base
       ensures ToNat(str) < Pow(base, |str|)
     {
       if str == [] {
@@ -104,7 +110,7 @@ module DafnyStdLibs.Strings {
 
     function ToInt(str: String, minus: Char): (s: int)
       requires str != [minus]
-      requires NumberStr(str, minus, c => c in charMap)
+      requires ToNumberStr(str, minus)
     {
       if [minus] <= str then -(ToNat(str[1..]) as int)
       else
@@ -183,13 +189,13 @@ module DafnyStdLibs.Strings {
   }
 
   function OfInt(n: int) : (str: string)
-    ensures DecimalConversion.NumberStr(str, '-', c => c in DecimalConversion.chars)
+    ensures DecimalConversion.OfNumberStr(str, '-')
   {
     DecimalConversion.OfInt(n, '-')
   }
 
   function ToNat(str: string) : (n: nat)
-    requires forall c | c in str :: c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base
+    requires forall c <- str :: c in DecimalConversion.charMap && DecimalConversion.charMap[c] as int < DecimalConversion.base
     ensures n < Pow(DecimalConversion.base, |str|)
   {
     DecimalConversion.ToNatBound(str);
@@ -198,7 +204,7 @@ module DafnyStdLibs.Strings {
 
   function ToInt(str: string) : (n: int)
     requires str != "-"
-    requires DecimalConversion.NumberStr(str, '-', (c: char) => c in DecimalConversion.charMap)
+    requires DecimalConversion.ToNumberStr(str, '-')
   {
     DecimalConversion.ToInt(str, '-')
   }
