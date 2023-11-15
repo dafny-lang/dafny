@@ -103,7 +103,7 @@
   }
 
   method {:test} TestSorting() {
-    expect MergeSortBy(Reverse(s), (x, y) => x <= y) == s;
+    expect MergeSortBy((x, y) => x <= y, Reverse(s)) == s;
 
     var asSet := ToSet(s);
     var asSortedSeq := SetToSortedSeq(asSet, (x, y) => x <= y);
