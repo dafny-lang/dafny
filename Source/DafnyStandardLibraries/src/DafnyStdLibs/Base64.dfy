@@ -98,7 +98,7 @@ module DafnyStdLibs.Base64 {
     else (c - 65 as char) as index
   }
 
-  lemma {:vcs_split_on_every_assert} CharToIndexToChar(c: char)
+  lemma {:rlimit 2000} {:vcs_split_on_every_assert} CharToIndexToChar(c: char)
     requires IsBase64Char(c)
     ensures IndexToChar(CharToIndex(c)) == c
   {
@@ -1210,7 +1210,7 @@ module DafnyStdLibs.Base64 {
     AboutDecodeValid(s, DecodeValid(s));
   }
 
-  lemma DecodeValidEncode1Padding(s: seq<char>)
+  lemma {:rlimit 12000} DecodeValidEncode1Padding(s: seq<char>)
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is1Padding(s[(|s| - 4)..])
@@ -1446,7 +1446,7 @@ module DafnyStdLibs.Base64 {
     seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
   }
 
-  lemma UInt8sToBVsToUInt8s(u: seq<uint8>)
+  lemma {:rlimit 8000} UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
     // TODO: reduce resource use
