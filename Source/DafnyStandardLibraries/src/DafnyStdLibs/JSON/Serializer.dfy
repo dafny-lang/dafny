@@ -6,7 +6,7 @@
 Implements high-level serialization (JSON values to utf-8 bytes).
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
-  import Collections.Seq
+  import Collections.Seqs
   import Math
   import opened Wrappers
   import opened BoundedInts
@@ -113,7 +113,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
     MkStructural(Grammar.COMMA)
 
   function Object(obj: seq<(string, Values.JSON)>): Result<jobject> {
-    var items :- Seq.MapWithResult(v requires v in obj => KeyValue(v), obj);
+    var items :- Seqs.MapWithResult(v requires v in obj => KeyValue(v), obj);
     Success(Bracketed(MkStructural(LBRACE),
                       MkSuffixedSequence(items, COMMA),
                       MkStructural(RBRACE)))
@@ -121,7 +121,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
 
 
   function Array(arr: seq<Values.JSON>): Result<jarray> {
-    var items :- Seq.MapWithResult(v requires v in arr => Value(v), arr);
+    var items :- Seqs.MapWithResult(v requires v in arr => Value(v), arr);
     Success(Bracketed(MkStructural(LBRACKET),
                       MkSuffixedSequence(items, COMMA),
                       MkStructural(RBRACKET)))

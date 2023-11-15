@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 /**
-Defines a simple functional specification of a serializer.
+Defines a simple functional specification of a JSON serializer.
 */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.SpecProperties {
   import opened BoundedInts

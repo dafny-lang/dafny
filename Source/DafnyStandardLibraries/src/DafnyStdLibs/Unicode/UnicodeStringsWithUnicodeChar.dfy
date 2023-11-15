@@ -54,17 +54,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeStrings refine
     ensures ToUTF8Checked(s).Some?
   {
     assume {:axiom} false;
-    var asCodeUnits := Seq.Map(CharAsUnicodeScalarValue, s);
+    var asCodeUnits := Seqs.Map(CharAsUnicodeScalarValue, s);
     var asUtf8CodeUnits := Utf8EncodingForm.EncodeScalarSequence(asCodeUnits);
-    var asBytes := Seq.Map(cu => cu as uint8, asUtf8CodeUnits);
+    var asBytes := Seqs.Map(cu => cu as uint8, asUtf8CodeUnits);
     Some(asBytes)
   }
 
   function FromUTF8Checked(bs: seq<uint8>): Option<string> {
     assume {:axiom} false;
-    var asCodeUnits := Seq.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
+    var asCodeUnits := Seqs.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
     var utf32 :- Utf8EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
-    var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
+    var asChars := Seqs.Map(CharFromUnicodeScalarValue, utf32);
     Some(asChars)
   }
 
@@ -72,17 +72,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeStrings refine
     ensures ToUTF16Checked(s).Some?
   {
     assume {:axiom} false;
-    var asCodeUnits := Seq.Map(CharAsUnicodeScalarValue, s);
+    var asCodeUnits := Seqs.Map(CharAsUnicodeScalarValue, s);
     var asUtf16CodeUnits := Utf16EncodingForm.EncodeScalarSequence(asCodeUnits);
-    var asBytes := Seq.Map(cu => cu as uint16, asUtf16CodeUnits);
+    var asBytes := Seqs.Map(cu => cu as uint16, asUtf16CodeUnits);
     Some(asBytes)
   }
 
   function FromUTF16Checked(bs: seq<uint16>): Option<string> {
     assume {:axiom} false;
-    var asCodeUnits := Seq.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
+    var asCodeUnits := Seqs.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
     var utf32 :- Utf16EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
-    var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
+    var asChars := Seqs.Map(CharFromUnicodeScalarValue, utf32);
     Some(asChars)
   }
 }

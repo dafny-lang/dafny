@@ -12,15 +12,15 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened Wrappers
   import opened Errors
   import opened Unicode.UnicodeStrings
-  import opened NonlinearArithmetic.Logarithm
-  import Collections.Seq
+  import opened Arithmetic.Logarithm
+  import Collections.Seqs
 
   type bytes = seq<uint8>
   type Result<+T> = SerializationResult<T>
 
   function EscapeUnicode(c: uint16): seq<uint16> {
     var sStr := Str.OfNat(c as nat, 16);
-    Seq.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
+    Seqs.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
     var s := ASCIIToUTF16(sStr);
     assert |s| <= 4 by {
       assert c as nat <= 0xFFFF;
