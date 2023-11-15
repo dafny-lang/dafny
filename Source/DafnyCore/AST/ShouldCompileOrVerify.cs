@@ -24,6 +24,14 @@ public static class ShouldCompileOrVerify {
       // https://github.com/dafny-lang/dafny/issues/4009
       return true;
     }
+
+    if (program.Options.Backend?.TargetId != "lib") {
+      bool compileIt = true;
+      if (Attributes.ContainsBool(module.Attributes, "compile", ref compileIt) && !compileIt) {
+        return false;
+      }
+    }
+
     return program.UrisToCompile.Contains(module.Tok.Uri);
   }
 

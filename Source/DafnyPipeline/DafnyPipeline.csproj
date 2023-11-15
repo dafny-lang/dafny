@@ -72,6 +72,10 @@
       <LinkBase>DafnyStandardLibraries_go</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.py">
+      <LinkBase>DafnyStandardLibraries_py</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
 
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
