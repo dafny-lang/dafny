@@ -123,12 +123,6 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
     assert m <= ms;
     assert prefix <= ms;
     LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(ms, m, prefix);
-
-    // calc ==> {
-    //   IsMinimalWellFormedCodeUnitSubsequence(m);
-    //   |prefix| <= |m|;
-    //   prefix == ms[..|prefix|] == m[..|prefix|] == m;
-    // }
   }
 
   /**
@@ -247,7 +241,6 @@ abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
       LemmaFlattenMinimalWellFormedCodeUnitSubsequences(tail);
       var flatTail := Seqs.Flatten(tail);
       LemmaPrependMinimalWellFormedCodeUnitSubsequence(head, flatTail);
-      // assert IsWellFormedCodeUnitSequence(head + flatTail);
     }
   }
 
