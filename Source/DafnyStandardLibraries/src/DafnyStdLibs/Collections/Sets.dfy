@@ -135,7 +135,7 @@ module DafnyStdLibs.Collections.Sets {
   }
 
   /* Map an injective function to each element of a set. */
-  function {:opaque} Map<X(!new), Y>(xs: set<X>, f: X-->Y): (ys: set<Y>)
+  function {:opaque} Map<X(!new), Y>(f: X --> Y, xs: set<X>): (ys: set<Y>)
     reads f.reads
     requires forall x {:trigger f.requires(x)} :: f.requires(x)
     requires Injective(f)
@@ -166,7 +166,7 @@ module DafnyStdLibs.Collections.Sets {
 
   /* Construct a set using elements of another set for which a function returns
   true. */
-  function {:opaque} Filter<X(!new)>(xs: set<X>, f: X~>bool): (ys: set<X>)
+  function {:opaque} Filter<X(!new)>(f: X ~> bool, xs: set<X>): (ys: set<X>)
     reads set x, o | x in xs && o in f.reads(x) :: o
     requires forall x {:trigger f.requires(x)} {:trigger x in xs} :: x in xs ==> f.requires(x)
     ensures forall y {:trigger f(y)}{:trigger y in xs} :: y in ys <==> y in xs && f(y)
