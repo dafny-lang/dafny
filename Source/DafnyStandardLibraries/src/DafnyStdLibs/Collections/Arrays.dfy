@@ -10,7 +10,7 @@ module DafnyStdLibs.Collections.Arrays {
 
   import opened Wrappers
   import opened Relations
-  import opened Seq
+  import opened Seqs
 
   method BinarySearch<T>(a: array<T>, key: T, less: (T, T) -> bool) returns (r: Option<nat>)
     requires SortedBy((x, y) => less(x, y) || x == y, a[..])

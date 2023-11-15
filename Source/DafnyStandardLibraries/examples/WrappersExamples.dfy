@@ -89,10 +89,10 @@ method {:test} TestOptionUtilities() {
   expect Some("body once told me").ToOutcome("the world is gonna roll me") == Pass;
   expect stringNone.ToOutcome("the world is gonna roll me") == Fail("the world is gonna roll me");
 
-  var convertor := (x: Option<string>) => 
-    match x
-    case None => Pass
-    case Some(value) => Fail("Not expected: " + value);
+  var convertor := (x: Option<string>) =>
+      match x
+      case None => Pass
+      case Some(value) => Fail("Not expected: " + value);
 
   expect Some("thing").Map(convertor) == Fail("Not expected: thing");
   expect None.Map(convertor) == Pass;
@@ -173,10 +173,10 @@ method {:test} TestResultUtilities() {
   expect stringSuccess.ToOutcome() == Pass;
   expect stringFailure.ToOutcome() == Fail("I can't find my keys!");
 
-  var toErrorOption := (x: Result<string, string>) => 
-    match x
-    case Success(_) => None
-    case Failure(error) => Some(error);
+  var toErrorOption := (x: Result<string, string>) =>
+      match x
+      case Success(_) => None
+      case Failure(error) => Some(error);
 
   expect stringSuccess.Map(toErrorOption) == None;
   expect stringFailure.Map(toErrorOption) == Some("I can't find my keys!");
@@ -233,7 +233,7 @@ method {:test} TestNeed() {
   var fs := new MyFilesystem();
   :- expect fs.CreateFile("test.txt");
   :- expect fs.WriteFile("test.txt", "12345678910");
-  
+
   var c :- expect whatIsCharacterFive(fs, "test.txt");
   :- expect whatIsCharacterFive'(fs, "test.txt");
 
@@ -254,16 +254,16 @@ method {:test} TestOutcomeUtilities() {
   expect stringPass.ToResult(42) == Success(42);
   expect stringFail.ToResult(42) == Failure("I'm too tired");
 
-  var toErrorOption := (x: Outcome<string>) => 
-    match x
-    case Pass => None
-    case Fail(error) => Some(error);
+  var toErrorOption := (x: Outcome<string>) =>
+      match x
+      case Pass => None
+      case Fail(error) => Some(error);
 
   expect stringPass.Map(toErrorOption) == None;
   expect stringFail.Map(toErrorOption) == Some("I'm too tired");
 
   var exaggerator := error => "ATTENTION: " + error;
-  
+
   expect stringPass.MapFailure(exaggerator, 42) == Success(42);
   expect stringFail.MapFailure(exaggerator, 42) == Failure("ATTENTION: I'm too tired");
 }
