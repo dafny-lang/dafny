@@ -103,11 +103,4 @@ module DafnyStdLibs.Relations {
   ghost predicate SortedBy<T>(lessOrEqual: (T, T) -> bool, xs: seq<T>) {
     forall i, j | 0 <= i < j < |xs| :: lessOrEqual(xs[i], xs[j])
   }
-
-  lemma LemmaNewFirstElementStillSortedBy<T>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
-    requires SortedBy(lessOrEqual, s)
-    requires |s| == 0 || lessOrEqual(newFirst, s[0])
-    requires TotalOrdering(lessOrEqual)
-    ensures SortedBy(lessOrEqual, [newFirst] + s)
-  {}
 }
