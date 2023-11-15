@@ -1,6 +1,6 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
 module CollectionsExamples {
@@ -9,7 +9,7 @@ module CollectionsExamples {
   // but they also use AssertAndExpect to prove some of the simpler cases as well.
   // If and when we have some way of measuring "specification coverage",
   // this pattern should help with that kind of coverage as well.
-  // 
+  //
   // There are lots of small test methods here,
   // which besides following the general best practice
   // of testing one or perhaps a couple of related things at once,
@@ -195,22 +195,4 @@ module CollectionsExamples {
     }
   }
 
-  module Helpers {
-
-    import opened DafnyStdLibs.Wrappers
-
-    // This should be moved somewhere more central at some point,
-    // perhaps even into a utilities library.
-    // Or tweak /testContracts to support this use case better.
-    method AssertAndExpect(p: bool, maybeMsg: Option<string> := None) requires p {
-      match maybeMsg {
-        case None => {
-          expect p;
-        }
-        case Some(msg) => {
-          expect p, msg;
-        }
-      }
-    }
-  }
 }
