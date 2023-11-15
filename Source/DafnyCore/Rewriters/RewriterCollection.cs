@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public static class RewriterCollection {
 

@@ -862,7 +862,7 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+    public static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
       if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
@@ -3994,8 +3994,7 @@ namespace Microsoft.Dafny {
           "it may have read effects");
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
-          {
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
           false, null);

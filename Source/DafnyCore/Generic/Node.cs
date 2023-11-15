@@ -53,6 +53,16 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
+  public IEnumerable<IToken> CoveredTokens {
+    get {
+      var token = StartToken;
+      while (token.Prev != EndToken) {
+        yield return token;
+        token = token.Next;
+      }
+    }
+  }
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -170,7 +180,7 @@ public abstract class Node : INode {
       return matches[^1].Value;
     }
 
-    if (StartToken.Prev.val is "|" or "{") {
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
         return matches[^1].Value;

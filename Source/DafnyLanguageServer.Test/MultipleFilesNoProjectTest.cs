@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class MultipleFilesNoProjectTest : ClientBasedLanguageServerTest {
   [Fact]
@@ -38,7 +38,7 @@ method Bar() {
 
     var consumer2 = CreateTestDocument(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
     await client.OpenDocumentAndWaitAsync(consumer2, CancellationToken);
-    var consumer2Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer2);
+    var consumer2Diagnostics = await GetLastDiagnostics(consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
     client.CloseDocument(producerItem);

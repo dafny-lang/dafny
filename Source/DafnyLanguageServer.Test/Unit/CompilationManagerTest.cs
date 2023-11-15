@@ -7,19 +7,18 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class CompilationManagerTest {
   [Fact]
   public async Task CancelUnstartedCompilationLeadsToCancelledTasks() {
     var dafnyOptions = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
-    var compilationManager = new CompilationManager(new Mock<ILogger<CompilationManager>>().Object,
+    var compilationManager = new Compilation(new Mock<ILogger<Compilation>>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
-      new Mock<IGutterIconAndHoverVerificationDetailsManager>().Object,
       dafnyOptions,
-      null, new Compilation(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }), null);
+      null, new CompilationInput(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }));
     compilationManager.CancelPendingUpdates();
-    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedCompilation);
+    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.Program);
   }
 }
