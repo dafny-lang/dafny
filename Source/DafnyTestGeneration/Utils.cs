@@ -89,7 +89,7 @@ namespace DafnyTestGeneration {
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var program = new ProgramParser().ParseFiles(uri.LocalPath,
-        new DafnyFile[] { new(fs, reporter.Options, uri) }, reporter, CancellationToken.None);
+        new[] { DafnyFile.CreateAndValidateFile(reporter, fs, reporter.Options, uri) }, reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;

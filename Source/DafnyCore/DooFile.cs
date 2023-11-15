@@ -116,14 +116,17 @@ public class DooFile {
   private DooFile() {
   }
 
-  public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
+  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, Command currentCommand,
+    IToken origin) {
     if (currentCommand == null) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+      reporter.Error(MessageSource.Project, origin,
+        $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
       return false;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+      reporter.Error(MessageSource.Project, origin,
+        $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;
     }
 
@@ -141,6 +144,7 @@ public class DooFile {
 
       object libraryValue = null;
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
+        // TODO fix Console.Out
         if (!TomlUtil.TryGetValueFromToml(Console.Out, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return false;

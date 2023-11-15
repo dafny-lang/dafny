@@ -256,13 +256,7 @@ public class ProgramParser {
   }
 
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    try {
-      return new DafnyFile(fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
-    } catch (IllegalDafnyFile) {
-      errorReporter.Error(MessageSource.Parser, include.tok,
-        $"Unable to open the include {include.IncludedFilename}.");
-      return null;
-    }
+    return DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
   }
 
   ///<summary>
@@ -318,7 +312,8 @@ public class ProgramParser {
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-    var files = new[] { new DafnyFile(fs, reporter.Options, uri) };
+    var file = DafnyFile.CreateAndValidateFile(reporter, fs, reporter.Options, uri);
+    var files = file == null ? Array.Empty<DafnyFile>() : new[] { file };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

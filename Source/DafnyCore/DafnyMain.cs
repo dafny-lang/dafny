@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     public bool ProcessingError { get; }
 
     public IllegalDafnyFile(bool processingError = false) {
-      this.ProcessingError = processingError;
+      ProcessingError = processingError;
     }
   }
 

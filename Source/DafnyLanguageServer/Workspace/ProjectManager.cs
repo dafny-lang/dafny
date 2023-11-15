@@ -14,11 +14,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Location = OmniSharp.Extensions.LanguageServer.Protocol.Models.Location;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -116,23 +118,22 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private CompilationInput GetCompilationInput() {
     var rootFiles = new List<DafnyFile>();
     foreach (var uri in Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
-      try {
-        rootFiles.Add(new DafnyFile(fileSystem, options, uri));
-      } catch (IllegalDafnyFile) { // TODO add test, add error reporting
+      var file = DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, uri);
+      if (file != null) {
+        rootFiles.Add(file);
       }
     }
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      rootFiles.Add(new DafnyFile(fileSystem, options, DafnyMain.StandardLibrariesDooUri));
-      rootFiles.Add(new DafnyFile(fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      rootFiles.Add(DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
+      rootFiles.Add(DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
     }
 
     foreach (var library in options.Get(CommonOptionBag.Libraries)) {
-      try {
-        rootFiles.Add(new DafnyFile(fileSystem, options, new Uri(library.FullName)) {
-          IsPreverified = true,
-          IsPrecompiled = true,
-        });
-      } catch (IllegalDafnyFile) { // TODO add test, add error reporting
+      var file = DafnyFile.CreateAndValidateFile(Project.Errors, fileSystem, options, new Uri(library.FullName));
+      if (file != null) {
+        file.IsPreverified = true;
+        file.IsPrecompiled = true;
+        rootFiles.Add(file);
       }
     }
     return new CompilationInput(options, version, Project, rootFiles);

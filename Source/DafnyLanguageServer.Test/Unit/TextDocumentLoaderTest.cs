@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
       var uri = versionedTextDocumentIdentifier.Uri.ToUri();
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
-      var file = new DafnyFile(fs, DafnyOptions.Default, uri);
+      var file = DafnyFile.CreateAndValidateFile(new ErrorReporterSink(DafnyOptions.Default), fs, DafnyOptions.Default, uri);
       var compilation = new CompilationInput(DafnyOptions.Default, 0,
         ProjectManagerDatabase.ImplicitProject(uri),
         new[] { file });

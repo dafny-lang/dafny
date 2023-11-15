@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
+    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);

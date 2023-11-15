@@ -385,7 +385,7 @@ public static class DafnyCli {
     if (options.UseStdin) {
       var uri = new Uri("stdin:///");
       options.CliRootSourceUris.Add(uri);
-      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, uri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidateFile(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri));
     } else if (options.CliRootSourceUris.Count == 0) {
       options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
       return ExitValue.PREPROCESSING_ERROR;
@@ -414,24 +414,26 @@ public static class DafnyCli {
       var nameToShow = useRelative ? relative
         : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
       try {
-        var df = new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)));
-        if (options.LibraryFiles.Contains(file)) {
-          df.IsPreverified = true;
-          df.IsPrecompiled = true;
+        var consoleErrorReporter = new ConsoleErrorReporter(options);
+        var df = DafnyFile.CreateAndValidateFile(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)));
+        if (df == null) {
+          if (consoleErrorReporter.HasErrors) {
+            return ExitValue.PREPROCESSING_ERROR;
+          }
+        } else {
+          if (options.LibraryFiles.Contains(file)) {
+            df.IsPreverified = true;
+            df.IsPrecompiled = true;
+          }
+          if (!filesSeen.Add(df.CanonicalPath)) {
+            continue; // silently ignore duplicate
+          }
+          dafnyFiles.Add(df);
+          isDafnyFile = true;
         }
-        if (!filesSeen.Add(df.CanonicalPath)) {
-          continue; // silently ignore duplicate
-        }
-        dafnyFiles.Add(df);
-        isDafnyFile = true;
       } catch (ArgumentException e) {
         options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: ", nameToShow, e.Message);
         return ExitValue.PREPROCESSING_ERROR;
-      } catch (IllegalDafnyFile e) {
-        if (e.ProcessingError) {
-          return ExitValue.PREPROCESSING_ERROR;
-        }
-        // Fall through and try to handle the file as an "other file"
       } catch (Exception e) {
         options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: {1}", nameToShow, e.Message);
         return ExitValue.PREPROCESSING_ERROR;
@@ -486,11 +488,12 @@ public static class DafnyCli {
     // only because if they are added first, one might be used as the program name,
     // which is not handled well.
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+      var reporter = new ConsoleErrorReporter(options);
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidateFile(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
 
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesArithmeticDooUri);
-      dafnyFiles.Add(new DafnyFile(OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidateFile(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesArithmeticDooUri));
     }
 
     return ExitValue.SUCCESS;

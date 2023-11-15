@@ -46,9 +46,8 @@ namespace Microsoft.Dafny {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] {
-          new(fs, reporter.Options, uri)
-        },
+      var file = DafnyFile.CreateAndValidateFile(reporter, fs, reporter.Options, uri);
+      var program = new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;

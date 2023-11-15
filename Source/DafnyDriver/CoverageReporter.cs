@@ -317,7 +317,7 @@ public class CoverageReporter {
   }
 
   private string HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
-    var dafnyFile = new DafnyFile(OnDiskFileSystem.Instance, options, uri);
+    var dafnyFile = DafnyFile.CreateAndValidateFile(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri);
     var source = dafnyFile.GetContent().ReadToEnd();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
