@@ -164,7 +164,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           var tp = i < e.TypeApplication_AtEnclosingClass.Count
             ? 
               (e.Member.EnclosingClass is DefaultClassDecl ?
-                // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl and does
+                // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl
+                // and does not have type arguments
                 null :
                 e.Member.EnclosingClass.TypeArgs[i]  
               )
