@@ -71,7 +71,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishGlobalProgress(IdeState previousState, IdeState state) {
       foreach (var uri in state.OwnedUris) {
-        // TODO, still have to check for ownedness
 
         var current = state.Status;
         var previous = previousState.Status;

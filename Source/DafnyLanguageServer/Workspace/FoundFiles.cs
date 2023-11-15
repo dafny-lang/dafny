@@ -29,6 +29,7 @@ record FoundFiles(
         ownedUris.Add(file.Uri);
       }
     }
+    ownedUris.Add(Project.Uri);
 
     return previousState with {
       OwnedUris = ownedUris,
@@ -36,7 +37,8 @@ record FoundFiles(
       Status = status,
       VerificationTrees = Files.ToImmutableDictionary(
         file => file.Uri,
-        file => new DocumentVerificationTree(previousState.Program, file.Uri))
+        file => previousState.VerificationTrees.GetValueOrDefault(file.Uri) ??
+                new DocumentVerificationTree(previousState.Program, file.Uri))
     };
   }
 }

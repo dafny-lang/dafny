@@ -127,7 +127,7 @@ public class Compilation : IDisposable {
     var result = new List<DafnyFile>();
 
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
-      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, uri);
+      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
@@ -138,7 +138,7 @@ public class Compilation : IDisposable {
     }
 
     foreach (var library in options.Get(CommonOptionBag.Libraries)) {
-      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, new Uri(library.FullName));
+      var file = DafnyFile.CreateAndValidateFile(errorReporter, fileSystem, options, new Uri(library.FullName), Project.StartingToken);
       if (file != null) {
         file.IsPreverified = true;
         file.IsPrecompiled = true;

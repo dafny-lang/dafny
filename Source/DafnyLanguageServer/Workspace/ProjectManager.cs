@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -15,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -185,9 +183,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var initialState = latestIdeState;
     var latestCompilationState = initialState with {
       Input = compilation.Input,
-      VerificationTrees = compilation.RootUris.ToImmutableDictionary(uri => uri,
-        uri => initialState.VerificationTrees.GetValueOrDefault(uri) ??
-               new DocumentVerificationTree(new EmptyNode(), uri))
     };
 
     async Task<IdeState> Update(ICompilationEvent ev) {
