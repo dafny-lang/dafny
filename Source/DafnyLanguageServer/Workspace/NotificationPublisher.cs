@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishSymbolProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.OwnedUris) {
+      foreach (var uri in state.OwnedUris.Concat(previousState.OwnedUris).Distinct()) {
         var previous = GetFileVerificationStatus(previousState, uri);
         var current = GetFileVerificationStatus(state, uri);
 
@@ -184,7 +184,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var errors = state.StaticDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var tree = state.VerificationTrees[uri];
+      var tree = state.VerificationTrees.GetValueOrDefault(uri);
+      if (tree == null) {
+        return;
+      }
 
       var linesCount = tree.Range.End.Line + 1;
       var fileVersion = filesystem.GetVersion(uri);

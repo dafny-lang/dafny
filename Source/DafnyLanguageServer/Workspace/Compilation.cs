@@ -65,20 +65,14 @@ public class Compilation : IDisposable {
 
   private Program? programAfterParsing;
   private Program? transformedProgram;
-  private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
+  private readonly IDisposable staticDiagnosticsSubscription;
 
   public Task<Program> Program { get; }
   public Task<ResolutionResult> Resolution { get; }
 
   public ErrorReporter Reporter => errorReporter;
 
-  public IReadOnlyList<DafnyFile> RootFiles { get; set; }
-
-  /// <summary>
-  /// These do not have to be owned
-  /// </summary>
-  public IEnumerable<Uri> RootUris => RootFiles.Select(d => d.Uri);
-  public IEnumerable<Uri> RootAndProjectUris => RootUris.Concat(new[] { Input.Project.Uri }).Distinct();
+  public IReadOnlyList<DafnyFile>? RootFiles { get; set; }
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -117,7 +111,7 @@ public class Compilation : IDisposable {
     RootFiles = GetFiles();
     var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
       kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
-    updates.OnNext(new FoundFiles(Project, RootFiles, diagnosticsCopy));
+    updates.OnNext(new FoundFiles(Project, RootFiles!, diagnosticsCopy));
     started.TrySetResult();
   }
 

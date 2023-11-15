@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootFiles = compilation.RootFiles;
+        var rootFiles = compilation.RootFiles!;
         List<DafnyFile> dafnyFiles = new();
         foreach (var rootFile in rootFiles) {
           try {
