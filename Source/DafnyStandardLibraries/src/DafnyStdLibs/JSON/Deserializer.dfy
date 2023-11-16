@@ -17,7 +17,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
   import Values
   import Spec
   import opened Errors
-  import opened Utils.Vectors
+  import opened DynamicArray
   import opened Grammar
   import opened Utils.Views.Core
 
