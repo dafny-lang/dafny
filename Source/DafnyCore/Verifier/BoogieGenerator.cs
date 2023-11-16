@@ -4457,7 +4457,7 @@ namespace Microsoft.Dafny {
     }
 
     public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions) {
-      var nlaAttribute = Attributes.Find(module.Attributes, "disableNonlinearArithmetic");
+      var nlaAttribute = Attributes.Find(module.Attributes, "disable_nonlinear_arithmetic");
       if (nlaAttribute != null) {
         var value = true;
         var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;
