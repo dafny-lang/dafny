@@ -19,9 +19,9 @@ build-binary:
 		--output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
-	unzip -o ${DOO_FILE_SOURCE} -d build/current
-	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
-	diff build/current build/rebuilt
+	unzip -o ${DOO_FILE_SOURCE} -d ../../../build/current
+	unzip -o ${DOO_FILE_TARGET} -d ../../../build/rebuilt
+	diff ../../../build/current ../../../build/rebuilt
 
 check-binary-all:
 	make check-binary TARGETLANG=notarget

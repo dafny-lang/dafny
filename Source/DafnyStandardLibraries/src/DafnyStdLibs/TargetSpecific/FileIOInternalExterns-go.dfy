@@ -6,10 +6,10 @@
 /*
  * Private API - these are intentionally not exported from the module and should not be used elsewhere
  */
-module 
+module
   {:compile false}
-  {:extern "DafnyStdLibs_FileIOInternalExterns"} 
-  {:dummyImportMember "INTERNAL__ReadBytesFromFile", false} 
+{:extern "DafnyStdLibs_FileIOInternalExterns"}
+{:dummyImportMember "INTERNAL__ReadBytesFromFile", false}
 DafnyStdLibs.FileIOInternalExterns {
   method
     {:extern}

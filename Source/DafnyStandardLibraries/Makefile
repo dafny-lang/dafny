@@ -25,12 +25,12 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_ARITHMETIC_SOURCE} -d build/current-arithmetic
 	unzip -o ${DOO_FILE_ARITHMETIC_TARGET} -d build/rebuilt-arithmetic
 	diff build/current-arithmetic build/rebuilt-arithmetic
-	make -C src/DafnyStdLibs/FileIO check-binary-all
+	make -C src/DafnyStdLibs/TargetSpecific check-binary-all
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
-	make -C src/DafnyStdLibs/FileIO update-binary-all
+	make -C src/DafnyStdLibs/TargetSpecific update-binary-all
 # Rebuild Dafny to pick up the new embedded assets
 	dotnet build ../Dafny.sln
 

@@ -8,10 +8,10 @@
  */
 module DafnyStdLibs.FileIOInternalExterns {
   method
-  INTERNAL_ReadBytesFromFile(path: string)
+    INTERNAL_ReadBytesFromFile(path: string)
     returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string)
 
   method
-  INTERNAL_WriteBytesToFile(path: string, bytes: seq<bv8>)
+    INTERNAL_WriteBytesToFile(path: string, bytes: seq<bv8>)
     returns (isError: bool, errorMsg: string)
 }
