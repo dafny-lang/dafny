@@ -1999,6 +1999,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
           Boogie.Expr total = CanCallAssumption(e.Seq);
+          total = BplAnd(total, FreeSeqFacts(e));
           if (e.E0 != null) {
             total = BplAnd(total, CanCallAssumption(e.E0));
           }
@@ -2119,6 +2120,34 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
                 }
               }
               break;
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+            case BinaryExpr.ResolvedOpcode.Union:
+              var subset = Expression.CreateSubset(e.E1, e.E0);
+              var equality = Expression.CreateEq(e.E0, Expression.CreateUnion(Expression.CreateSetDifference(e.E0, e.E1), e.E1), e.E0.Type);
+              // B <= A ==> A == (A - B) + B
+              var s0 = BplImp(TrExpr(subset), TrExpr((equality)));
+
+              var disjoint = Expression.CreateDisjoint(e.E0, e.E1);
+              var difference = Expression.CreateSetDifference(e.E0, e.E1);
+              var intersection = Expression.CreateIntersection(e.E0, e.E1);
+              // A!!B ==> (A - B) + (A * B) == A
+              //return BplImp(TrExpr(disjoint), TrExpr(Expression.CreateEq(Expression.CreateUnion(difference, intersection), e.E0, e.E0.Type)));
+              // (A - B) + (A * B) == A
+              return BplAnd(s0, TrExpr(Expression.CreateEq(Expression.CreateUnion(difference, intersection), e.E0, e.E0.Type)));
+            case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+              //(A - B) + (A * B) == A
+              return TrExpr(Expression.CreateEq(e.E0, Expression.CreateMultisetUnion(Expression.CreateMultisetDifference(e.E0, e.E1), Expression.CreateMultisetIntersection(e.E0, e.E1)), e.E0.Type));
+            case BinaryExpr.ResolvedOpcode.Concat:
+              // (a+b)[..|a|] == a
+              var seqsel0 = new SeqSelectExpr(e.tok, false, e, null,
+                Expression.CreateCardinality(e.E0, null), null);
+              seqsel0.Type = e.Type;
+              // (a+b)[|a|..] == b
+              var seqsel1 = new SeqSelectExpr(e.tok, false, e,
+                Expression.CreateCardinality(e.E0, null), null, null);
+              seqsel1.Type = e.Type;
+              return BplAnd(TrExpr(Expression.CreateEq(seqsel0, e.E0, e.E0.Type)), TrExpr(Expression.CreateEq(seqsel1, e.E1, e.E0.Type)));
             default:
               break;
           }
@@ -2311,6 +2340,40 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           total = BplAnd(total, CanCallAssumption(e));
         }
         return total;
+      }
+
+      private Expr FreeSeqFacts(SeqSelectExpr e) {
+
+        if (!e.Seq.Type.IsArrayType &&
+            !e.SelectOne && (e.E0 != null || e.E1 != null)) {
+          if (e.E0 != null && e.E1 == null) {
+            //a[x..] -> a == a[..x] + a[x..]
+            var seqsel = new SeqSelectExpr(e.tok, false, e.Seq, null, e.E0, e.CloseParen);
+            seqsel.Type = e.Seq.Type; //can this be done in constructor?
+            return TrExpr(Expression.CreateEq(e.Seq, Expression.CreateConcat(seqsel, e), e.Seq.Type));
+          } else if (e.E0 == null && e.E1 != null) {
+            //a[..x] -> a == a[..x] + a[x..]
+            var seqsel = new SeqSelectExpr(e.tok, false, e.Seq, e.E1, null, e.CloseParen);
+            seqsel.Type = e.Seq.Type;
+            return TrExpr(Expression.CreateEq(e.Seq, Expression.CreateConcat(e, seqsel), e.Seq.Type));
+          } else if (e.E0 != null && e.E1 != null) {
+            //a[x..y] -> a[..y] == a[..x] + a[x..y] & a[x..] == a[x..y] + a[y..]
+            var seqsel0 = new SeqSelectExpr(e.tok, false, e.Seq, null, e.E1, e.CloseParen);
+            seqsel0.Type = e.Seq.Type;
+            var seqsel1 = new SeqSelectExpr(e.tok, false, e.Seq, null, e.E0, e.CloseParen);
+            seqsel1.Type = e.Seq.Type;
+            var a0 = Expression.CreateEq(seqsel0,
+              Expression.CreateConcat(seqsel1, e), e.Seq.Type);
+            var seqsel2 = new SeqSelectExpr(e.tok, false, e.Seq, e.E0, null, e.CloseParen);
+            seqsel2.Type = e.Seq.Type;
+            var seqsel3 = new SeqSelectExpr(e.tok, false, e.Seq, e.E1, null, e.CloseParen);
+            seqsel3.Type = e.Seq.Type;
+            var a1 = Expression.CreateEq(seqsel2,
+              Expression.CreateConcat(e, seqsel3), e.Seq.Type);
+            return BplAnd(TrExpr(a0), TrExpr(a1));
+          }
+        }
+        return Expr.True;
       }
     }
   }

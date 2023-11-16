@@ -310,6 +310,46 @@ public abstract class Expression : TokenNode {
     return s;
   }
 
+  public static Expression CreateUnion(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
+  public static Expression CreateSubset(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Subset;  // resolve here
+    s.Type = Type.Bool;  // resolve here
+    return s;
+  }
+
+  public static Expression CreateDisjoint(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Disjoint, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Disjoint;  // resolve here
+    s.Type = Type.Bool;  // resolve here
+    return s;
+  }
+
+  public static Expression CreateIntersection(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Intersection;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
   /// <summary>
   /// Create a resolved expression of the form "e0 - e1".
   /// Optimization: If either "e0" or "e1" is the literal denoting the empty multiset, then just return "e0".
@@ -331,6 +371,26 @@ public abstract class Expression : TokenNode {
     return s;
   }
 
+  public static Expression CreateMultisetUnion(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetUnion;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
+  public static Expression CreateMultisetIntersection(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetIntersection;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
   /// <summary>
   /// Create a resolved expression of the form "|e|"
   /// </summary>
@@ -340,8 +400,18 @@ public abstract class Expression : TokenNode {
     Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
     var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
-      Type = systemModuleManager.Nat()
+      Type = systemModuleManager != null ? systemModuleManager.Nat() : Type.Int
     };
+    return s;
+  }
+
+  public static Expression CreateConcat(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
     return s;
   }
 
