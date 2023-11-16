@@ -29,6 +29,8 @@ jobs:
         with:
           java-version: 18
           distribution: corretto
+      - name: Set up goimports
+        run: go get golang.org/x/tools/cmd/goimports@latest
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
