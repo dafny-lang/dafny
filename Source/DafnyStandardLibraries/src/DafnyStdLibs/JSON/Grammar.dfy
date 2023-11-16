@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Defines concrete syntax trees that capture details of punctuation and blanks and represent strings.
-*/
+ Defines concrete syntax trees that capture details of punctuation and blanks and represent.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Grammar {
   import opened BoundedInts
   import opened Utils.Views.Core

@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements high-level serialization (JSON values to utf-8 bytes).
-*/
+ Implements high-level serialization (JSON values to utf-8 bytes).
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   import Collections.Seqs
   import Math

@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-XXX
-*/
+ XXX
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened BoundedInts
   import opened Utils.Str
