@@ -1,15 +1,20 @@
 
+# This Makefile builds the individual DafnyStandardLibraries-<target>.doo
+# binary files, containing libraries that are defined differently for
+# different target languages.
+# Currently this is only FileIO, but the source file naming pattern
+# used here should work for others as well.
+# DafnyStandardLibraries-notarget is used for non-compiled contexts
+# such as `dafny verify`.
+
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../../../../Dafny --no-build --
 
 DOO_FILE_SOURCE=../../../build/DafnyStandardLibraries-${TARGETLANG}.doo
 DOO_FILE_TARGET=../../../binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
-all: check-binary-all test-examples-all check-format check-examples
-
 build-binary:
 	$(DAFNY) build -t:lib dfyconfig.toml \
-	  `find . -name '*.dfy' ! -name '*-*.dfy'` \
 		`find . -name '*-${TARGETLANG}*.dfy'` \
 		--output:${DOO_FILE_SOURCE}
 

@@ -31,6 +31,7 @@ update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
 	make -C src/DafnyStdLibs/FileIO update-binary-all
+# Rebuild Dafny to pick up the new embedded assets
 	dotnet build ../Dafny.sln
 
 # For now we only have examples and no dedicated tests.
