@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements functions to convert between (big-endian) strings and numbers.
-*/
+ Implements functions to convert between (big-endian) strings and numbers.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Str {
   import opened Wrappers
   import opened Arithmetic.Power

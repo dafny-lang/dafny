@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Defines different types of errors that can occur during serialization and deserialization.
-*/
+ Defines different types of errors that can occur during serialization and deserialization.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Errors {
   import Wrappers
   import opened BoundedInts

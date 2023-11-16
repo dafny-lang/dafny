@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements high-level deserialization (utf-8 bytes to JSON values).
-*/
+ Implements high-level deserialization (utf-8 bytes to JSON values).
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
   import opened Collections.Seqs
   import opened Wrappers

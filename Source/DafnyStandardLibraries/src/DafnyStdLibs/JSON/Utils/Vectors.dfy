@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements resizable arrays (the C++ standard library calls them vectors).
-*/
+ Implements resizable arrays (the C++ standard library calls them vectors).
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Vectors {
   import opened BoundedInts
   import opened Wrappers

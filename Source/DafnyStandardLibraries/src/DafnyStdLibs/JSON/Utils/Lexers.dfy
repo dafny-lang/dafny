@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Contains a state machine that recognizes quoted strings and skips over backslash-escaped quotes.
-*/
+ Contains a state machine that recognizes quoted strings and skips over backslash-escaped quotes.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Lexers {
   module Core {
     import opened Wrappers

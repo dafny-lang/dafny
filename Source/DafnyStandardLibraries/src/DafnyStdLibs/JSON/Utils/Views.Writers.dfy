@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements slices over byte strings whose bounds are representable as `int32` native integers.
-*/
+ Implements slices over byte strings whose bounds are representable as `int32` native integers.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Views.Writers {
   import opened BoundedInts
   import opened Wrappers

@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Defines a simple functional specification of a JSON serializer.
-*/
+ Defines a simple functional specification of a JSON serializer.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.Spec {
   import opened BoundedInts
   import Vs = Utils.Views.Core

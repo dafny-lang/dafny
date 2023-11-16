@@ -2,11 +2,12 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements low-level (zero-copy) serialization (JSON syntax trees to utf-8 bytes).
-Proves that the serializer is sound and complete w.r.t. the functional specification
-defined in `ConcreteSyntax.Spec.dfy`.
-*/
+ Implements low-level (zero-copy) serialization (JSON syntax trees to utf-8 bytes).
+ Proves that the serializer is sound and complete w.r.t. the functional specification
+ defined in `ConcreteSyntax.Spec.dfy`.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   import opened BoundedInts
   import opened Wrappers

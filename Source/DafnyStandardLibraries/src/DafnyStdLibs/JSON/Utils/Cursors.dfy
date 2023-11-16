@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Implements slices augmented with an inner pointer tracking a position.
-*/
+ Implements slices augmented with an inner pointer tracking a position.
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Cursors {
   import opened BoundedInts
   import opened Wrappers

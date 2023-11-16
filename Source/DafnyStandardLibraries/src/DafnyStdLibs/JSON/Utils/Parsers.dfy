@@ -2,9 +2,10 @@
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
+
 /**
-Contains definitions of well-formedness for parsers (stating that they must consume part of their input). 
-*/
+ Contains definitions of well-formedness for parsers (stating that they must consume part of their input). 
+ */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Parsers {
   import opened BoundedInts
   import opened Wrappers
