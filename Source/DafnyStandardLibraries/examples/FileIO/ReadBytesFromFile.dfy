@@ -8,7 +8,7 @@ module ReadBytesFromFile {
 
   method {:test} Test() {
     // TODO: extern function for the expected error prefix
-    theMain("examples/FileIO/data.txt", "");
+    theMain("examples/FileIO/../FileIO/data.txt", "");
   }
 
   method theMain(dataPath: string, expectedErrorPrefix: string) {

@@ -65,7 +65,7 @@ The build process applies `dafny format` to all source.
 
 The standard libraries are built together into a multiple `DafnyStandardLibraries*.doo` files,
 which are included as embedded resources in `DafnyPipeline.dll`.
-These are then added as additional implicit input when `--standard-libraries` is switched on.
+These are then added as additional implicit source files when `--standard-libraries` is switched on.
 Having multiple files allows some code to be verified with different flags,
 such as `--disable-nonlinear-arithmetic`.
 This doesn't affect the end user experience, as Dafny checks that each `.doo` file
@@ -81,9 +81,9 @@ using the `build`, `translate`, `run` or `test` Dafny CLI commands
 (or the equivalent modes of the legacy CLI).
 
 There is also a `DafnyStandardLibraries-notarget.doo` file used when NOT compiling,
-which provides only the abstract interface declaration.
+which provides only the bodyless interface declaration.
 Each of the `.doo` files for the target languages
-replace the abstract interface with the actual implementation, backed by externs.
+replace the bodyless declarations with the actual implementations, backed by externs.
 The current approach is sound but will not scale well in the future,
 since it repeatedly verifies the common code that consumes the abstract interface
 for each target language.
@@ -136,7 +136,7 @@ inflict on consumers.
 ## Importing from dafny-lang/libraries
 
 There are a couple of things to watch out for when importing libraries from the
-[dafny-lang/libraries]() repository:
+[dafny-lang/libraries](https://github.com/dafny-lang/libraries) repository:
 
 * Several libraries have two copies in `dafny-lang/libraries`: one under `src`,
   and one under `src/dafny`. The latter is a copy refactored to nest all modules under a top-level

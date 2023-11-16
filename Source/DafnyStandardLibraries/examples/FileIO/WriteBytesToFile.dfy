@@ -8,7 +8,7 @@ module WriteBytesToFile {
 
   method {:test} Test() {
     // TODO: extern function for the expected error prefix
-    theMain("build/fileioexamples", "");
+    theMain("build/../build/fileioexamples", "");
   }
 
   method {:rlimit 2000} theMain(outputDir: string, expectedErrorPrefix: string) {

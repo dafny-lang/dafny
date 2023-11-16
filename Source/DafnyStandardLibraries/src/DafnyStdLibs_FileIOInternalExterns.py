@@ -3,6 +3,7 @@
 import traceback
 import os
 import os.path
+import pathlib
 import _dafny
 
 class default__:
@@ -25,7 +26,7 @@ class default__:
     contents_bytes = bytes(contents)
 
     try:
-      os.makedirs(os.path.basename(path_str), exist_ok=True)
+      pathlib.Path(path_str).parent.mkdir(parents=True, exist_ok=True)
 
       with open(path_str, mode="wb") as file:
           contents = file.write(contents_bytes)
