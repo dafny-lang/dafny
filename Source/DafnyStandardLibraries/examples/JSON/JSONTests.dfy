@@ -7,7 +7,7 @@ abstract module Wrapper {
   import opened DafnyStdLibs.JSON.Errors
 
   type JSON
-  
+
   method Deserialize(bs: bytes) returns (js: DeserializationResult<JSON>)
   method SpecSerialize(js: JSON) returns (bs: SerializationResult<bytes>)
   method Serialize(js: JSON) returns (bs: SerializationResult<bytes>)

@@ -161,9 +161,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     }
 
     opaque function BracketedFromParts(ghost cs: Cursor,
-                                          open: Split<Structural<jopen>>,
-                                          elems: Split<seq<TSuffixedElement>>,
-                                          close: Split<Structural<jclose>>)
+                                       open: Split<Structural<jopen>>,
+                                       elems: Split<seq<TSuffixedElement>>,
+                                       close: Split<Structural<jclose>>)
       : (sp: Split<TBracketed>)
       requires Grammar.NoTrailingSuffix(elems.t)
       requires open.StrictlySplitFrom?(cs, c => Spec.Structural(c, SpecView))
@@ -190,10 +190,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     }
 
     opaque function AppendWithSuffix(ghost cs0: FreshCursor,
-                                        ghost json: ValueParser,
-                                        elems: Split<seq<TSuffixedElement>>,
-                                        elem: Split<TElement>,
-                                        sep: Split<Structural<jcomma>>)
+                                     ghost json: ValueParser,
+                                     elems: Split<seq<TSuffixedElement>>,
+                                     elem: Split<TElement>,
+                                     sep: Split<Structural<jcomma>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -244,10 +244,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     }
 
     opaque function {:rlimit 10000} {:vcs_split_on_every_assert} AppendLast(ghost cs0: FreshCursor,
-                                                               ghost json: ValueParser,
-                                                               elems: Split<seq<TSuffixedElement>>,
-                                                               elem: Split<TElement>,
-                                                               sep: Split<Structural<jclose>>)
+                                                                            ghost json: ValueParser,
+                                                                            elems: Split<seq<TSuffixedElement>>,
+                                                                            elem: Split<TElement>,
+                                                                            sep: Split<Structural<jclose>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
@@ -695,7 +695,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     {
       var cs :- cs.AssertChar('\"');
       Success(cs.Split())
-    } 
+    }
 
     opaque function {:rlimit 10000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
@@ -887,7 +887,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     }
 
     opaque function KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
-                                         colon: Split<Structural<jcolon>>, v: Split<Value>)
+                                      colon: Split<Structural<jcolon>>, v: Split<Value>)
       : (sp: Split<jKeyValue>)
       requires k.StrictlySplitFrom?(cs, Spec.String)
       requires colon.StrictlySplitFrom?(k.cs, c => Spec.Structural(c, SpecView))

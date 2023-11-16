@@ -35,9 +35,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   function String(str: string): Result<jstring> {
     var bs :- Spec.EscapeToUTF8(str);
     var o := CheckLength(bs, StringTooLong(str));
-    if o.Pass? then 
+    if o.Pass? then
       Success(Grammar.JString(Grammar.DOUBLEQUOTE, View.OfBytes(bs), Grammar.DOUBLEQUOTE))
-    else 
+    else
       Failure(o.error)
   }
 
@@ -67,9 +67,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   function Int(n: int): Result<View> {
     var bs := Int'(n);
     var o := CheckLength(bs, IntTooLarge(n));
-    if o.Pass? then 
+    if o.Pass? then
       Success(View.OfBytes(bs))
-    else 
+    else
       Failure(o.error)
   }
 

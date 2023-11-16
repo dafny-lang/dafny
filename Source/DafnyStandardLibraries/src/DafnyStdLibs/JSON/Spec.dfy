@@ -47,8 +47,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
        case 0x0D => ASCIIToUTF16("\\r")  // carriage return
        case 0x09 => ASCIIToUTF16("\\t")  // tab
        case c =>
-      if c < 0x001F then ASCIIToUTF16("\\u") + EscapeUnicode(c)
-      else [str[start]])
+         if c < 0x001F then ASCIIToUTF16("\\u") + EscapeUnicode(c)
+         else [str[start]])
       + Escape(str, start + 1)
   }
 
@@ -90,7 +90,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   function Number(dec: Decimal): Result<bytes> {
     Success(IntToBytes(dec.n) +
             (if dec.e10 == 0 then []
-            else ASCIIToUTF8("e") + IntToBytes(dec.e10)))
+             else ASCIIToUTF8("e") + IntToBytes(dec.e10)))
   }
 
   function KeyValue(kv: (string, JSON)): Result<bytes> {
