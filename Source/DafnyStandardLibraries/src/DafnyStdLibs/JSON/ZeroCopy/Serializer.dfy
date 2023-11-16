@@ -10,7 +10,7 @@ defined in `ConcreteSyntax.Spec.dfy`.
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   import opened BoundedInts
   import opened Wrappers
-  import opened Seq = Utils.Seq
+  import opened Seqs = Collections.Seqs
   import opened Errors
   import ConcreteSyntax.Spec
   import ConcreteSyntax.SpecProperties
@@ -51,7 +51,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   function {:opaque} JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.JSON(js)
   {
-    Seq.Assoc2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
+    Seqs.LemmaConcatIsAssociative2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
     writer
     .Append(js.before)
     .Then(wr => Value(js.t, wr))
@@ -303,7 +303,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     StructuralViewEns(obj.l, writer);
     var wr := Members(obj, wr);
     var wr := StructuralView(obj.r, wr);
-    Seq.Assoc2(writer.Bytes(), Spec.Structural<View>(obj.l, Spec.View), Spec.ConcatBytes(obj.data, Spec.Member), Spec.Structural<View>(obj.r, Spec.View));
+    Seqs.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(obj.l, Spec.View), Spec.ConcatBytes(obj.data, Spec.Member), Spec.Structural<View>(obj.r, Spec.View));
     assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member);
     assert Spec.Bracketed(obj, Spec.Member) == Spec.Object(obj) by { BracketedToObject(obj); }
     wr
@@ -332,7 +332,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     StructuralViewEns(arr.l, writer);
     var wr := Items(arr, wr);
     var wr := StructuralView(arr.r, wr);
-    Seq.Assoc2(writer.Bytes(), Spec.Structural<View>(arr.l, Spec.View), Spec.ConcatBytes(arr.data, Spec.Item), Spec.Structural<View>(arr.r, Spec.View));
+    Seqs.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(arr.l, Spec.View), Spec.ConcatBytes(arr.data, Spec.Item), Spec.Structural<View>(arr.r, Spec.View));
     assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(arr, Spec.Item);
     assert Spec.Bracketed(arr, Spec.Item) == Spec.Array(arr) by { BracketedToArray(arr); }
     wr
@@ -373,7 +373,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
       var wr := MembersSpec(obj, butLast, writer);
       var wr := Member(obj, last, wr);
       assert wr.Bytes() == writer.Bytes() + (Spec.ConcatBytes(butLast, Spec.Member) + Spec.ConcatBytes([last], Spec.Member)) by {
-        Seq.Assoc(writer.Bytes(), Spec.ConcatBytes(butLast, Spec.Member), Spec.ConcatBytes([last], Spec.Member));
+        Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.ConcatBytes(butLast, Spec.Member), Spec.ConcatBytes([last], Spec.Member));
       }
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Member);
       wr
@@ -463,7 +463,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
       var wr := ItemsSpec(arr, butLast, writer);
       var wr := Item(arr, last, wr);
       assert wr.Bytes() == writer.Bytes() + (Spec.ConcatBytes(butLast, Spec.Item) + Spec.ConcatBytes([last], Spec.Item)) by {
-        Seq.Assoc(writer.Bytes(), Spec.ConcatBytes(butLast, Spec.Item), Spec.ConcatBytes([last], Spec.Item));
+        Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.ConcatBytes(butLast, Spec.Item), Spec.ConcatBytes([last], Spec.Item));
       }
       SpecProperties.ConcatBytes_Linear(butLast, [last], Spec.Item);
       wr
@@ -520,20 +520,20 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     var wr := StructuralView(m.t.colon, wr);
     var wr := Value(m.t.v, wr);
     assert wr.Bytes() == writer.Bytes() + (Spec.String(m.t.k) + Spec.Structural<View>(m.t.colon, Spec.View) + Spec.Value(m.t.v)) by {
-      Seq.Assoc2( writer.Bytes(), Spec.String(m.t.k), Spec.Structural<View>(m.t.colon, Spec.View), Spec.Value(m.t.v));
+      Seqs.LemmaConcatIsAssociative2( writer.Bytes(), Spec.String(m.t.k), Spec.Structural<View>(m.t.colon, Spec.View), Spec.Value(m.t.v));
     }
     var wr := if m.suffix.Empty? then wr else StructuralView(m.suffix.t, wr);
     assert wr.Bytes() == writer.Bytes() + Spec.KeyValue(m.t) + Spec.CommaSuffix(m.suffix) by {
       if m.suffix.Empty? {
         Neutral(Spec.KeyValue(m.t));
-        Seq.Assoc'(writer.Bytes(), Spec.KeyValue(m.t), []);
+        Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.KeyValue(m.t), []);
       }
       else {
         assert Spec.StructuralView(m.suffix.t) == Spec.CommaSuffix(m.suffix);
       }
     }
     assert wr.Bytes() == writer.Bytes() + (Spec.KeyValue(m.t) + Spec.CommaSuffix(m.suffix)) by {
-      Seq.Assoc(writer.Bytes(), Spec.KeyValue(m.t), Spec.CommaSuffix(m.suffix));
+      Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.KeyValue(m.t), Spec.CommaSuffix(m.suffix));
     }
     wr
   }
@@ -546,7 +546,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     var wr := Value(m.t, writer);
     var wr := if m.suffix.Empty? then wr else StructuralView(m.suffix.t, wr);
     assert wr.Bytes() == writer.Bytes() + (Spec.Value(m.t) + Spec.CommaSuffix(m.suffix)) by {
-      Seq.Assoc(writer.Bytes(), Spec.Value(m.t), Spec.CommaSuffix(m.suffix));
+      Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.Value(m.t), Spec.CommaSuffix(m.suffix));
     }
     wr
   }

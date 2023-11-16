@@ -9,7 +9,18 @@ track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
 library = [
-  "build/DafnyStandardLibrary-arithmetic.doo"
+  "DafnyStdLibs/Arithmetic/DivMod.dfy",
+  "DafnyStdLibs/Arithmetic/Logarithm.dfy",
+  "DafnyStdLibs/Arithmetic/Mul.dfy",
+  "DafnyStdLibs/Arithmetic/Power.dfy",
+  "DafnyStdLibs/Arithmetic/Power2.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/DivInternals.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/DivInternalsNonlinear.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/GeneralInternals.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/ModInternals.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/ModInternalsNonlinear.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/MulInternals.dfy",
+  "DafnyStdLibs/Arithmetic/Internals/MulInternalsNonlinear.dfy",
 ]
 
 # Options important for sustainable development

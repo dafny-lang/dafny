@@ -18,7 +18,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     import opened Utils.Parsers
     import opened Grammar
     import Errors
-    import opened Seq = Utils.Seq
+    import opened Collections.Seqs
 
 
     type JSONError = Errors.DeserializationError
@@ -176,11 +176,11 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         Spec.Structural(open.t, SpecView) + open.cs.Bytes();
         { assert open.cs.Bytes() == SuffixedElementsSpec(elems.t) + elems.cs.Bytes(); }
         Spec.Structural(open.t, SpecView) + (SuffixedElementsSpec(elems.t) + elems.cs.Bytes());
-        { Seq.Assoc'(Spec.Structural(open.t, SpecView), SuffixedElementsSpec(elems.t), elems.cs.Bytes()); }
+        { Seqs.LemmaConcatIsAssociative(Spec.Structural(open.t, SpecView), SuffixedElementsSpec(elems.t), elems.cs.Bytes()); }
         Spec.Structural(open.t, SpecView) + SuffixedElementsSpec(elems.t) + elems.cs.Bytes();
         { assert elems.cs.Bytes() == Spec.Structural(close.t, SpecView) + close.cs.Bytes(); }
         Spec.Structural(open.t, SpecView) + SuffixedElementsSpec(elems.t) + (Spec.Structural(close.t, SpecView) + close.cs.Bytes());
-        { Seq.Assoc'(Spec.Structural(open.t, SpecView) + SuffixedElementsSpec(elems.t), Spec.Structural(close.t, SpecView), close.cs.Bytes()); }
+        { Seqs.LemmaConcatIsAssociative(Spec.Structural(open.t, SpecView) + SuffixedElementsSpec(elems.t), Spec.Structural(close.t, SpecView), close.cs.Bytes()); }
         Spec.Structural(open.t, SpecView) + SuffixedElementsSpec(elems.t) + Spec.Structural(close.t, SpecView) + close.cs.Bytes();
         Spec.Bracketed(sp.t, SuffixedElementSpec) + close.cs.Bytes();
       }
@@ -214,10 +214,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
             assert cs0.Bytes() == SuffixedElementsSpec(elems.t) + elems.cs.Bytes();
             assert elems.cs.Bytes() == ElementSpec(suffixed.t) + elem.cs.Bytes();
             assert elem.cs.Bytes() == Spec.CommaSuffix(suffixed.suffix) + sep.cs.Bytes();
-            Seq.Assoc'(SuffixedElementsSpec(elems.t), ElementSpec(suffixed.t), elem.cs.Bytes());
-            Seq.Assoc'(SuffixedElementsSpec(elems.t) + ElementSpec(suffixed.t), Spec.CommaSuffix(suffixed.suffix), sep.cs.Bytes());
+            Seqs.LemmaConcatIsAssociative(SuffixedElementsSpec(elems.t), ElementSpec(suffixed.t), elem.cs.Bytes());
+            Seqs.LemmaConcatIsAssociative(SuffixedElementsSpec(elems.t) + ElementSpec(suffixed.t), Spec.CommaSuffix(suffixed.suffix), sep.cs.Bytes());
           }
-          Seq.Assoc(SuffixedElementsSpec(elems.t), ElementSpec(suffixed.t), Spec.CommaSuffix(suffixed.suffix));
+          Seqs.LemmaConcatIsAssociative(SuffixedElementsSpec(elems.t), ElementSpec(suffixed.t), Spec.CommaSuffix(suffixed.suffix));
         }
         assert SuffixedElementsSpec(elems.t) + (ElementSpec(suffixed.t) + Spec.CommaSuffix(suffixed.suffix)) + sep.cs.Bytes() == SuffixedElementsSpec(elems'.t) + sep.cs.Bytes() by {
           assert SuffixedElementsSpec(elems.t) + SuffixedElementSpec(suffixed) == SuffixedElementsSpec(elems.t + [suffixed]) by {
@@ -801,9 +801,9 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
           assert minus.cs.Bytes() == Spec.View(num.t) + num.cs.Bytes();
           assert num.cs.Bytes() == Spec.Maybe(frac.t, Spec.Frac) + frac.cs.Bytes();
           assert frac.cs.Bytes() == Spec.Maybe(exp.t, Spec.Exp) + exp.cs.Bytes();
-          Seq.Assoc'(Spec.View(minus.t), Spec.View(num.t), num.cs.Bytes());
-          Seq.Assoc'(Spec.View(minus.t) + Spec.View(num.t), Spec.Maybe(frac.t, Spec.Frac), frac.cs.Bytes());
-          Seq.Assoc'(Spec.View(minus.t) + Spec.View(num.t) + Spec.Maybe(frac.t, Spec.Frac), Spec.Maybe(exp.t, Spec.Exp), exp.cs.Bytes());
+          Seqs.LemmaConcatIsAssociative(Spec.View(minus.t), Spec.View(num.t), num.cs.Bytes());
+          Seqs.LemmaConcatIsAssociative(Spec.View(minus.t) + Spec.View(num.t), Spec.Maybe(frac.t, Spec.Frac), frac.cs.Bytes());
+          Seqs.LemmaConcatIsAssociative(Spec.View(minus.t) + Spec.View(num.t) + Spec.Maybe(frac.t, Spec.Frac), Spec.Maybe(exp.t, Spec.Exp), exp.cs.Bytes());
         }
       }
       assert sp.StrictlySplitFrom?(cs, Spec.Number);
@@ -903,8 +903,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
           assert cs.Bytes() == Spec.String(k.t) + k.cs.Bytes();
           assert k.cs.Bytes() == Spec.Structural(colon.t, SpecView) + colon.cs.Bytes();
           assert colon.cs.Bytes() == Spec.Value(v.t) + v.cs.Bytes();
-          Seq.Assoc'(Spec.String(k.t), Spec.Structural(colon.t, SpecView), colon.cs.Bytes());
-          Seq.Assoc'(Spec.String(k.t) + Spec.Structural(colon.t, SpecView), Spec.Value(v.t), v.cs.Bytes());
+          Seqs.LemmaConcatIsAssociative(Spec.String(k.t), Spec.Structural(colon.t, SpecView), colon.cs.Bytes());
+          Seqs.LemmaConcatIsAssociative(Spec.String(k.t) + Spec.Structural(colon.t, SpecView), Spec.Value(v.t), v.cs.Bytes());
         }
       }
       assert sp.StrictlySplitFrom?(cs, ElementSpec);

@@ -73,11 +73,22 @@ module DafnyStdLibs.Collections.Seqs {
   {
   }
 
-  /* The concatenation of sequences is associative. */
+  /* The concatenation of sequences is associative (three arguments). */
   lemma LemmaConcatIsAssociative<T>(xs: seq<T>, ys: seq<T>, zs: seq<T>)
-    ensures xs + (ys + zs) == (xs + ys) + zs
+    ensures xs + (ys + zs) == xs + ys + zs == (xs + ys) + zs
   {
   }
+
+  /* The concatenation of sequences is associative (four arguments). */
+  lemma LemmaConcatIsAssociative2<T>(a: seq<T>, b: seq<T>, c: seq<T>, d: seq<T>)
+    ensures a + b + c + d == a + (b + c + d)
+  {
+  }
+
+  /* The empty sequence is the neutral element of the concatenation operation. */
+  lemma Neutral(l: seq)
+    ensures l == l + []
+  {}
 
   /**********************************************************
    *

@@ -11,7 +11,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened Values
   import opened Wrappers
   import opened Errors
-  import opened Unicode.UnicodeStrings
+  import opened Unicode.UnicodeStringsWithUnicodeChar
   import opened Arithmetic.Logarithm
   import Collections.Seqs
 
