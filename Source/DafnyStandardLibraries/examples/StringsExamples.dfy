@@ -10,14 +10,14 @@ module StringsExamples {
     expect OfInt(-302) == "-302";
   }
 
-  // TODO The requires clauses of these calls cause the verifier to hang, even though they seem rather trivial
-  method {:test} TestToInt() {
-    expect ToInt("0") == 0;
-    expect ToInt("3") == 3;
-    expect ToInt("302") == 302;
-    expect ToInt("-3") == -3;
-    expect ToInt("-302") == -302;
-  }
+  // Fails on Java because of a translation bug: https://github.com/dafny-lang/dafny/issues/4791
+  // method {:test} TestToInt() {
+  //   expect ToInt("0") == 0;
+  //   expect ToInt("3") == 3;
+  //   expect ToInt("302") == 302;
+  //   expect ToInt("-3") == -3;
+  //   expect ToInt("-302") == -302;
+  // }
 
   method {:test} TestOfNat() {
     expect OfNat(0) == "0";
@@ -27,13 +27,14 @@ module StringsExamples {
     expect OfNat(3123123213102) == "3123123213102";
   }
 
-  method {:vcs_split_on_every_assert} {:test} TestToNat() {
-    expect ToNat("0") == 0;
-    expect ToNat("1") == 1;
-    expect ToNat("3") == 3;
-    expect ToNat("302") == 302;
-    expect ToNat("3123123213102") == 3123123213102;
-  }
+  // Fails on Java because of a translation bug: https://github.com/dafny-lang/dafny/issues/4791
+  // method {:vcs_split_on_every_assert} {:test} TestToNat() {
+  //   expect ToNat("0") == 0;
+  //   expect ToNat("1") == 1;
+  //   expect ToNat("3") == 3;
+  //   expect ToNat("302") == 302;
+  //   expect ToNat("3123123213102") == 3123123213102;
+  // }
 
   method {:test} TestEscapeQuotes() {
     expect EscapeQuotes("this message has single \' quotes \' ") == "this message has single \\\' quotes \\\' ";
@@ -41,8 +42,8 @@ module StringsExamples {
   }
 
   method {:test} TestUnescapeQuotes() {
-    expect UnescapeQuotes("this message has single \\\' quotes \\\' ") == Success("this message has single \' quotes \' ");
-    expect UnescapeQuotes("this message has double \\\" quotes \\\" ") == Success("this message has double \" quotes \" ");
+    expect UnescapeQuotes("this message has single \\\' quotes \\\' ") == Some("this message has single \' quotes \' ");
+    expect UnescapeQuotes("this message has double \\\" quotes \\\" ") == Some("this message has double \" quotes \" ");
   }
 
   method {:test} TestOfBool() {

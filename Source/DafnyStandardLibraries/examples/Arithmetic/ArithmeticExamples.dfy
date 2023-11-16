@@ -52,9 +52,10 @@ module ArithmeticExamples {
       expect SeqExtendMultiple([3, 0, 2, 3], 3) == [3, 0, 2, 3, 0, 0];
     }
 
-    // method {:test} TestFromNatWithLen() {
-    //   expect FromNatWithLen(100, 4) == [1, 0, 0, 0];
-    // }
+    method {:test} TestFromNatWithLen() {
+      reveal Pow();
+      expect FromNatWithLen(100, 4) == [0, 0, 1, 0];
+    }
 
     method {:test} TestSeqZero() {
       expect SeqZero(3) == [0, 0, 0];

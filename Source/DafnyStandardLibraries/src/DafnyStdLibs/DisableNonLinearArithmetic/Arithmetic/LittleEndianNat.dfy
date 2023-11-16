@@ -19,16 +19,10 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   import opened Collections.Seqs
   import opened Logarithm
 
-  /* 
-  It would be nice to be able to have BASE be a field in a class, so we could dynamically set the value,
-  And we wouldn't have to create a refined module of LittleEndianNat when using it.
-  But then we wouldn't be able to define uint
-  */
-
   function BASE(): nat
     ensures BASE() > 1
 
-  type uint = i: nat | 0 <= i < BASE()
+  type digit = i: nat | 0 <= i < BASE()
 
   //////////////////////////////////////////////////////////////////////////////
   //
@@ -37,7 +31,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a sequence to a nat beginning with the least significant position. */
-  function {:opaque} ToNatRight(xs: seq<uint>): nat
+  function {:opaque} ToNatRight(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -46,7 +40,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a sequence to a nat beginning with the most significant position. */
-  function {:opaque} ToNatLeft(xs: seq<uint>): nat
+  function {:opaque} ToNatLeft(xs: seq<digit>): nat
   {
     if |xs| == 0 then 0
     else
@@ -56,7 +50,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Given the same sequence, ToNatRight and ToNatLeft return the same nat. */
-  lemma {:vcs_split_on_every_assert} LemmaToNatLeftEqToNatRight(xs: seq<uint>)
+  lemma {:vcs_split_on_every_assert} LemmaToNatLeftEqToNatRight(xs: seq<digit>)
     ensures ToNatRight(xs) == ToNatLeft(xs)
   {
     reveal ToNatRight();
@@ -101,11 +95,11 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   lemma LemmaToNatLeftEqToNatRightAuto()
-    ensures forall xs: seq<uint> :: ToNatRight(xs) == ToNatLeft(xs)
+    ensures forall xs: seq<digit> :: ToNatRight(xs) == ToNatLeft(xs)
   {
     reveal ToNatRight();
     reveal ToNatLeft();
-    forall xs: seq<uint>
+    forall xs: seq<digit>
       ensures ToNatRight(xs) == ToNatLeft(xs)
     {
       LemmaToNatLeftEqToNatRight(xs);
@@ -114,7 +108,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence of length 1 is its first (and only)
   position. */
-  lemma LemmaSeqLen1(xs: seq<uint>)
+  lemma LemmaSeqLen1(xs: seq<digit>)
     requires |xs| == 1
     ensures ToNatRight(xs) == First(xs)
   {
@@ -124,7 +118,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence of length 2 is sum of its first
   position and the product of its second position and BASE(). */
-  lemma LemmaSeqLen2(xs: seq<uint>)
+  lemma LemmaSeqLen2(xs: seq<digit>)
     requires |xs| == 2
     ensures ToNatRight(xs) == First(xs) + xs[1] * BASE()
   {
@@ -133,7 +127,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Appending a zero does not change the nat representation of the sequence. */
-  lemma LemmaSeqAppendZero(xs: seq<uint>)
+  lemma LemmaSeqAppendZero(xs: seq<digit>)
     ensures ToNatRight(xs + [0]) == ToNatRight(xs)
   {
     reveal ToNatLeft();
@@ -150,7 +144,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence is bounded by BASE() to the power of
   the sequence length. */
-  lemma LemmaSeqNatBound(xs: seq<uint>)
+  lemma LemmaSeqNatBound(xs: seq<digit>)
     ensures ToNatRight(xs) < Pow(BASE(), |xs|)
   {
     reveal Pow();
@@ -183,7 +177,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence can be calculated using the nat
   representation of its prefix. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqPrefix(xs: seq<uint>, i: nat)
+  lemma {:vcs_split_on_every_assert} LemmaSeqPrefix(xs: seq<digit>, i: nat)
     requires 0 <= i <= |xs|
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
@@ -211,7 +205,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   /* If there is an inequality between the most significant positions of two
   sequences, then there is an inequality between the nat representations of
   those sequences. Helper lemma for LemmaSeqNeq. */
-  lemma LemmaSeqMswInequality(xs: seq<uint>, ys: seq<uint>)
+  lemma LemmaSeqMswInequality(xs: seq<digit>, ys: seq<digit>)
     requires |xs| == |ys| > 0
     requires Last(xs) < Last(ys)
     ensures ToNatRight(xs) < ToNatRight(ys)
@@ -234,7 +228,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* Two sequences do not have the same nat representations if their prefixes
   do not have the same nat representations. Helper lemma for LemmaSeqNeq. */
-  lemma LemmaSeqPrefixNeq(xs: seq<uint>, ys: seq<uint>, i: nat)
+  lemma LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
     requires 0 <= i <= |xs| == |ys|
     requires ToNatRight(xs[..i]) != ToNatRight(ys[..i])
     ensures ToNatRight(xs) != ToNatRight(ys)
@@ -263,7 +257,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* If two sequences of the same length are not equal, their nat
   representations are not equal. */
-  lemma LemmaSeqNeq(xs: seq<uint>, ys: seq<uint>)
+  lemma LemmaSeqNeq(xs: seq<digit>, ys: seq<digit>)
     requires |xs| == |ys|
     requires xs != ys
     ensures ToNatRight(xs) != ToNatRight(ys)
@@ -294,7 +288,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* If the nat representations of two sequences of the same length are equal
   to each other, the sequences are the same. */
-  lemma LemmaSeqEq(xs: seq<uint>, ys: seq<uint>)
+  lemma LemmaSeqEq(xs: seq<digit>, ys: seq<digit>)
     requires |xs| == |ys|
     requires ToNatRight(xs) == ToNatRight(ys)
     ensures xs == ys
@@ -309,7 +303,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence and its least significant position are
   congruent. */
-  lemma LemmaSeqLswModEquivalence(xs: seq<uint>)
+  lemma LemmaSeqLswModEquivalence(xs: seq<digit>)
     requires |xs| >= 1
     ensures IsModEquivalent(ToNatRight(xs), First(xs), BASE())
   {
@@ -337,7 +331,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Converts a nat to a sequence. */
-  function {:opaque} FromNat(n: nat): (xs: seq<uint>)
+  function {:opaque} FromNat(n: nat): (xs: seq<digit>)
   {
     if n == 0 then []
     else
@@ -420,7 +414,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a specified length. */
-  function {:opaque} SeqExtend(xs: seq<uint>, n: nat): (ys: seq<uint>)
+  function {:opaque} SeqExtend(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires |xs| <= n
     ensures |ys| == n
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -430,7 +424,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Extends a sequence to a length that is a multiple of n. */
-  function {:opaque} SeqExtendMultiple(xs: seq<uint>, n: nat): (ys: seq<uint>)
+  function {:opaque} SeqExtendMultiple(xs: seq<digit>, n: nat): (ys: seq<digit>)
     requires n > 0
     ensures |ys| % n == 0
     ensures ToNatRight(ys) == ToNatRight(xs)
@@ -446,7 +440,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Converts a nat to a sequence of a specified length. */
-  function {:opaque} FromNatWithLen(n: nat, len: nat): (xs: seq<uint>)
+  function {:opaque} FromNatWithLen(n: nat, len: nat): (xs: seq<digit>)
     requires Pow(BASE(), len) > n
     ensures |xs| == len
     ensures ToNatRight(xs) == n
@@ -458,7 +452,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* If the nat representation of a sequence is zero, then the sequence is a
   sequence of zeros. */
-  lemma LemmaSeqZero(xs: seq<uint>)
+  lemma LemmaSeqZero(xs: seq<digit>)
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {
@@ -474,7 +468,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Generates a sequence of zeros of a specified length. */
-  function {:opaque} SeqZero(len: nat): (xs: seq<uint>)
+  function {:opaque} SeqZero(len: nat): (xs: seq<digit>)
     ensures |xs| == len
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
     ensures ToNatRight(xs) == 0
@@ -488,7 +482,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   /* If we start with a sequence, convert it to a nat, and convert it back to a
   sequence with the same length as the original sequence, we get the same
   sequence we started with. */
-  lemma LemmaSeqNatSeq(xs: seq<uint>)
+  lemma LemmaSeqNatSeq(xs: seq<digit>)
     ensures Pow(BASE(), |xs|) > ToNatRight(xs)
     ensures FromNatWithLen(ToNatRight(xs), |xs|) == xs
   {
@@ -513,7 +507,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   //////////////////////////////////////////////////////////////////////////////
 
   /* Adds two sequences. */
-  function {:opaque} SeqAdd(xs: seq<uint>, ys: seq<uint>): (seq<uint>, nat)
+  function {:opaque} SeqAdd(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqAdd(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -530,7 +524,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* SeqAdd returns the same value as converting the sequences to nats, then
   adding them. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqAdd(xs: seq<uint>, ys: seq<uint>, zs: seq<uint>, cout: nat)
+  lemma {:vcs_split_on_every_assert} LemmaSeqAdd(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
@@ -570,7 +564,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
   }
 
   /* Subtracts two sequences. */
-  function {:opaque} SeqSub(xs: seq<uint>, ys: seq<uint>): (seq<uint>, nat)
+  function {:opaque} SeqSub(xs: seq<digit>, ys: seq<digit>): (seq<digit>, nat)
     requires |xs| == |ys|
     ensures var (zs, cout) := SeqSub(xs, ys);
             |zs| == |xs| && 0 <= cout <= 1
@@ -587,7 +581,7 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   /* SeqSub returns the same value as converting the sequences to nats, then
   subtracting them. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqSub(xs: seq<uint>, ys: seq<uint>, zs: seq<uint>, cout: nat)
+  lemma {:vcs_split_on_every_assert} LemmaSeqSub(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqSub(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|) == ToNatRight(zs)
