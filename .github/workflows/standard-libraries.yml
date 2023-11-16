@@ -15,7 +15,7 @@ jobs:
 
   build:
     needs: check-deep-tests
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Dafny
