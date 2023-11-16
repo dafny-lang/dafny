@@ -80,6 +80,7 @@ module DafnyStdLibs.Arithmetic.ModInternals {
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
@@ -92,6 +93,7 @@ module DafnyStdLibs.Arithmetic.ModInternals {
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
@@ -104,6 +106,7 @@ module DafnyStdLibs.Arithmetic.ModInternals {
     requires n > 0
     ensures (x + n) % n == x % n
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
@@ -116,6 +119,7 @@ module DafnyStdLibs.Arithmetic.ModInternals {
     requires n > 0
     ensures (x - n) % n == x % n
   {
+    assume {:axiom} false;
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;

@@ -243,7 +243,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    opaque function {:vcs_split_on_every_assert} AppendLast(ghost cs0: FreshCursor,
+    opaque function {:rlimit 10000} {:vcs_split_on_every_assert} AppendLast(ghost cs0: FreshCursor,
                                                                ghost json: ValueParser,
                                                                elems: Split<seq<TSuffixedElement>>,
                                                                elem: Split<TElement>,

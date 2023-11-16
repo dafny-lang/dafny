@@ -45,6 +45,7 @@ The sections below describe how to use each library:
 - [DafnyStdLibs.Collections](src/DafnyStdLibs/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
 - DafnyStdLibs.DynamicArray -- an array that can grow and shrink
 - [DafnyStdLibs.Base64](src/DafnyStdLibs/Base64) -- base-64 encoding and decoding
+- [DafnyStdLibs.JSON](src/DafnyStdLibs/JSON) -- JSON serialization and deserialization
 
 We are in the process of importing many more libraries,
 in particular from the existing [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries) GitHub repository.
