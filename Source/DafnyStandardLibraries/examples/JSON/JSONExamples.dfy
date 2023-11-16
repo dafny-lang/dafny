@@ -7,13 +7,13 @@
 module {:options "-functionSyntax:4"} AbstractSyntax {
   import DafnyStdLibs.JSON.API
   import opened DafnyStdLibs.JSON.Values
-  import opened DafnyStdLibs.JSON.Wrappers
+  import opened DafnyStdLibs.Wrappers
 
 /// Note that you will need to include one of the two files that defines UnicodeStrings
 /// according to whether you are using --unicode-char:false or --unicode-char:true.
 /// See ../../Unicode/UnicodeStrings.dfy for more details.
 
-  import opened DafnyStdLibs.Unicode.UnicodeStrings
+  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
 
 /// The high-level API works with fairly simple datatype values that contain native Dafny
 /// strings:
@@ -127,7 +127,7 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
 
 module {:options "-functionSyntax:4"} ConcreteSyntax {
   import DafnyStdLibs.JSON.ZeroCopy.API
-  import opened DafnyStdLibs.Unicode.UnicodeStrings
+  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
   import opened DafnyStdLibs.JSON.Grammar
   import opened DafnyStdLibs.Wrappers
 
@@ -213,7 +213,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
 
 /// All that remains is to write the recursive traversal:
 
-  import DafnyStdLibs.JSON.Seq
+  import DafnyStdLibs.Collections.Seqs
 
   function ReplaceNull(js: Value, replacement: Value): Value {
     match js
