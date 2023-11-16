@@ -9,24 +9,13 @@ track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
 library = [
-  "DafnyStdLibs/Arithmetic/DivMod.dfy",
-  "DafnyStdLibs/Arithmetic/Logarithm.dfy",
-  "DafnyStdLibs/Arithmetic/Mul.dfy",
-  "DafnyStdLibs/Arithmetic/Power.dfy",
-  "DafnyStdLibs/Arithmetic/Power2.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/DivInternals.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/DivInternalsNonlinear.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/GeneralInternals.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/ModInternals.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/ModInternalsNonlinear.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/MulInternals.dfy",
-  "DafnyStdLibs/Arithmetic/Internals/MulInternalsNonlinear.dfy",
+  "../binaries/DafnyStandardLibraries-arithmetic.doo"
 ]
 
 # Options important for sustainable development
 # of the libraries themselves.
 resource-limit = 1000
-warn-as-errors = false
+warn-as-errors = true
 # These give too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = false

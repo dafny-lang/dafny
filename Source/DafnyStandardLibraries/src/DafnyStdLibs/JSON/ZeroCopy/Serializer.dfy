@@ -413,8 +413,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     if items == [] then writer
     else
       assert SequenceSpecRequires(v, items[..|items|-1], spec, impl, writer) by {
-        assert forall item, wr | item in items[..|items|-1] :: SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) by {
-          forall item, wr | item in items[..|items|-1] ensures SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) {
+        assert forall item, wr {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] :: SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) by {
+          forall item, wr {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] ensures SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) {
             assert item in items;
             assert SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr);
           }
