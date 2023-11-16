@@ -1,11 +1,10 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
-/**
-XXX
-*/
-module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
+
+// Definition of the UTF-16 Unicode Encoding Form, as specified in Section 3.9 D91.
+module DafnyStdLibs.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
   type CodeUnit = bv16
 
   //
@@ -61,13 +60,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm ref
   // See Table 3-5. UTF-16 Bit Distribution.
   //
 
-  function EncodeScalarValue(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValue(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
   {
     if 0x0 <= v <= 0xD7FF || 0xE000 <= v <= 0xFFFF then EncodeScalarValueSingleWord(v)
     else EncodeScalarValueDoubleWord(v)
   }
 
-  function EncodeScalarValueSingleWord(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValueSingleWord(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
     requires
       || 0x0 <= v <= 0xD7FF
       || 0xE000 <= v <= 0xFFFF
@@ -78,7 +77,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm ref
     [firstWord]
   }
 
-  function EncodeScalarValueDoubleWord(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValueDoubleWord(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
     requires 0x10000 <= v <= 0x10FFFF
     ensures |m| == 2
     ensures IsWellFormedDoubleCodeUnitSequence(m)
@@ -96,13 +95,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm ref
     [firstWord, secondWord]
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
   {
     if |m| == 1 then DecodeMinimalWellFormedCodeUnitSubsequenceSingleWord(m)
     else assert |m| == 2; DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m)
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceSingleWord(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequenceSingleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 1
     ensures
       || 0x0 <= v <= 0xD7FF
@@ -111,23 +110,24 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf16EncodingForm ref
   {
     var firstWord := m[0];
     var x := firstWord as bv16;
-    assert EncodeScalarValueSingleWord(x as Unicode.ScalarValue) == m;
-    x as Unicode.ScalarValue
+    assert EncodeScalarValueSingleWord(x as ScalarValue) == m;
+    x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function
+    {:rlimit 1200}
+  DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 2
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueDoubleWord(v) == m
   {
-    assume {:axiom} false;
     var firstWord := m[0];
     var secondWord := m[1];
     var x2 := (secondWord & 0x3FF) as bv24;
     var x1 := (firstWord & 0x3F) as bv24;
     var w := ((firstWord & 0x3C0) >> 6) as bv24;
     var u := (w + 1) as bv24;
-    var v := (u << 16) | (x1 << 10) | x2 as Unicode.ScalarValue;
+    var v := (u << 16) | (x1 << 10) | x2 as ScalarValue;
     assert {:split_here} true;
     assert EncodeScalarValueDoubleWord(v) == m;
     v

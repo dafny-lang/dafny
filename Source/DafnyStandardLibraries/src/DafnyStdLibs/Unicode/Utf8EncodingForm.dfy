@@ -1,11 +1,13 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
+
 /**
-XXX
-*/
-module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
+  * The Unicode encoding form that assigns each Unicode scalar value to an unsigned byte sequence of one to four bytes
+  * in length, as specified in Table 3-6 and Table 3-7.
+  */
+module DafnyStdLibs.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
   type CodeUnit = bv8
 
   //
@@ -108,7 +110,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
   // See Table 3-6. UTF-8 Bit Distribution of the Unicode Standard 14.0.
   //
 
-  function EncodeScalarValue(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValue(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
   {
     if v <= 0x7F then EncodeScalarValueSingleByte(v)
     else if v <= 0x7FF then EncodeScalarValueDoubleByte(v)
@@ -116,7 +118,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     else EncodeScalarValueQuadrupleByte(v)
   }
 
-  function EncodeScalarValueSingleByte(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValueSingleByte(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
     requires 0 <= v <= 0x7F
     ensures |m| == 1
     ensures IsWellFormedSingleCodeUnitSequence(m)
@@ -128,7 +130,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     [firstByte]
   }
 
-  function EncodeScalarValueDoubleByte(v: Unicode.ScalarValue): (s: CodeUnitSeq)
+  function EncodeScalarValueDoubleByte(v: ScalarValue): (s: CodeUnitSeq)
     requires 0x80 <= v <= 0x7FF
     ensures |s| == 2
     ensures IsWellFormedDoubleCodeUnitSequence(s)
@@ -142,7 +144,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     [firstByte, secondByte]
   }
 
-  function EncodeScalarValueTripleByte(v: Unicode.ScalarValue): (s: CodeUnitSeq)
+  function EncodeScalarValueTripleByte(v: ScalarValue): (s: CodeUnitSeq)
     requires 0x800 <= v <= 0xFFFF
     ensures |s| == 3
     ensures IsWellFormedTripleCodeUnitSequence(s)
@@ -158,7 +160,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     [firstByte, secondByte, thirdByte]
   }
 
-  function EncodeScalarValueQuadrupleByte(v: Unicode.ScalarValue): (s: CodeUnitSeq)
+  function EncodeScalarValueQuadrupleByte(v: ScalarValue): (s: CodeUnitSeq)
     requires 0x10000 <= v <= 0x10FFFF
     ensures |s| == 4
     ensures IsWellFormedQuadrupleCodeUnitSequence(s)
@@ -181,7 +183,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     [firstByte, secondByte, thirdByte, fourthByte]
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
   {
     if |m| == 1 then DecodeMinimalWellFormedCodeUnitSubsequenceSingleByte(m)
     else if |m| == 2 then DecodeMinimalWellFormedCodeUnitSubsequenceDoubleByte(m)
@@ -189,17 +191,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     else assert |m| == 4; DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m)
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceSingleByte(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequenceSingleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 1
     ensures 0 <= v <= 0x7F
     ensures EncodeScalarValueSingleByte(v) == m
   {
     var firstByte := m[0];
     var x := firstByte as bv7;
-    x as Unicode.ScalarValue
+    x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceDoubleByte(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequenceDoubleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 2
     ensures 0x80 <= v <= 0x7FF
     ensures EncodeScalarValueDoubleByte(v) == m
@@ -208,15 +210,16 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     var secondByte := m[1];
     var y := (firstByte & 0x1F) as bv24;
     var x := (secondByte & 0x3F) as bv24;
-    (y << 6) | x as Unicode.ScalarValue
+    (y << 6) | x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function
+    {:rlimit 115000}
+  DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 3
     ensures 0x800 <= v <= 0xFFFF
     ensures EncodeScalarValueTripleByte(v) == m
   {
-    assume {:axiom} false;
     var firstByte := m[0];
     var secondByte := m[1];
     var thirdByte := m[2];
@@ -224,15 +227,16 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     var y := (secondByte & 0x3F) as bv24;
     var x := (thirdByte & 0x3F) as bv24;
     assert {:split_here} true;
-    (z << 12) | (y << 6) | x as Unicode.ScalarValue
+    (z << 12) | (y << 6) | x as ScalarValue
   }
 
-  function DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function
+    {:rlimit 4000}
+  DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 4
     ensures 0x10000 <= v <= 0x10FFFF
     ensures EncodeScalarValueQuadrupleByte(v) == m
   {
-    assume {:axiom} false;
     var firstByte := m[0];
     var secondByte := m[1];
     var thirdByte := m[2];
@@ -243,6 +247,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.Utf8EncodingForm refi
     var y := (thirdByte & 0x3F) as bv24;
     var x := (fourthByte & 0x3F) as bv24;
     assert {:split_here} true;
-    (u1 << 18) | (u2 << 16) | (z << 12) | (y << 6) | x as Unicode.ScalarValue
+    (u1 << 18) | (u2 << 16) | (z << 12) | (y << 6) | x as ScalarValue
   }
 }

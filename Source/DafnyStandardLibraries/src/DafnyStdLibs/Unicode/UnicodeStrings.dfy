@@ -1,12 +1,29 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
+
 /**
-XXX
-*/
-abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.AbstractUnicodeStrings {
+  * This abstract module is an interface for converting
+  * between the Dafny `string` type and sequences of UTF-8 and UTF-16
+  * codepoints, where codepoints are represents as bounded ints
+  * (`uint8` and `uint16`).
+  *
+  * Because the `--unicode-char` option changes the meaning
+  * of the `char` type and hence the `string` type,
+  * this module must be implemented differently for each option value.
+  * Currently, the only available implementation is for `--unicode-char:true`,
+  * and the implementation for `--unicode-char:false` is upcoming.
+  *
+  * If you also want to maintain code that works for either `--unicode-char` value,
+  * implement your logic in an abstract module that imports this one.
+  * Then define a refining module for each `--unicode-char` value you wish to support,
+  * each of which imports the appropriate implementation of AbstractUnicodeStrings.
+  */
+abstract module DafnyStdLibs.Unicode.AbstractUnicodeStrings {
+
   import Collections.Seqs
+
   import opened Wrappers
   import opened BoundedInts
 

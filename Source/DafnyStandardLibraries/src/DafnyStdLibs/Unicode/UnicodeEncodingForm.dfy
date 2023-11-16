@@ -1,15 +1,28 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
+
 /**
-XXX
-*/
-abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncodingForm {
+  * A Unicode encoding form assigns each Unicode scalar value to a unique code unit sequence.
+  *
+  * A concrete `UnicodeEncodingForm` MUST define the following:
+  *  - The type `CodeUnit`.
+  *  - The predicate `IsMinimalWellFormedCodeUnitSubsequence`, which defines the set of encodings of scalar values,
+  *    known as "minimal well-formed code unit subsequences".
+  *  - The function `SplitPrefixMinimalWellFormedCodeUnitSubsequence`, which defines the algorithm by which to parse
+  *    a minimal well-formed code unit subsequence from the beginning of a code unit sequence.
+  *  - The function `EncodeScalarValue`, which defines the mapping from scalar values to minimal well-formed code unit
+  *    subsequences.
+  *  - The function `DecodeMinimalWellFormedCodeUnitSubsequence`, which defines the mapping from minimal well-formed
+  *    code unit subsequences to scalar values.
+  */
+abstract module DafnyStdLibs.Unicode.UnicodeEncodingForm {
   import opened Wrappers
+
   import Functions
   import Collections.Seqs
-  import Unicode
+  import opened Base
 
   type CodeUnitSeq = seq<CodeUnit>
   type WellFormedCodeUnitSeq = s: CodeUnitSeq
@@ -59,17 +72,41 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     *
     * TODO: enforce that implementations satisfy Functions.Injective
     */
-  function EncodeScalarValue(v: Unicode.ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
+  function EncodeScalarValue(v: ScalarValue): (m: MinimalWellFormedCodeUnitSeq)
 
   /**
     * Returns the scalar value that this encoding form assigns to the given minimal well-formed code unit subsequence.
     */
-  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: Unicode.ScalarValue)
+  function DecodeMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     ensures EncodeScalarValue(v) == m
 
   //
   // End abstract items.
   //
+
+  /**
+    * If minimal well-formed code unique subsequences `m1` and `m2` are prefixes of `s`, then they are equal.
+    */
+  lemma LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(
+    s: CodeUnitSeq, m1: MinimalWellFormedCodeUnitSeq, m2: MinimalWellFormedCodeUnitSeq
+  )
+    decreases |s|, |m1|, |m2|
+    requires m1 <= s
+    requires m2 <= s
+    ensures m1 == m2
+  {
+    // Handle only the |m1| <= |m2| case explicitly
+    if |m1| > |m2| {
+      LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(s, m2, m1);
+    } else {
+      assert m1 <= m2;
+      assert m1 == m2 by {
+        if m1 < m2 {
+          assert false by { assert m1 == m2[..|m1|]; }
+        }
+      }
+    }
+  }
 
   /**
     * If `ms` is the concatenation of a minimal well-formed code unit subsequence `m` and a code unit sequence `s`,
@@ -79,13 +116,13 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     ensures SplitPrefixMinimalWellFormedCodeUnitSubsequence(m + s) == Some(m)
   {
     var ms := m + s;
-    assert IsMinimalWellFormedCodeUnitSubsequence(ms[..|m|]);
-    var prefix := SplitPrefixMinimalWellFormedCodeUnitSubsequence(ms).Extract();
-    calc ==> {
-      IsMinimalWellFormedCodeUnitSubsequence(m);
-      |prefix| <= |m|;
-      prefix == ms[..|prefix|] == m[..|prefix|] == m;
-    }
+    var maybePrefix := SplitPrefixMinimalWellFormedCodeUnitSubsequence(ms);
+    assert maybePrefix.Some? by { assert IsMinimalWellFormedCodeUnitSubsequence(ms[..|m|]); }
+    var prefix := maybePrefix.Extract();
+
+    assert m <= ms;
+    assert prefix <= ms;
+    LemmaUniquePrefixMinimalWellFormedCodeUnitSeq(ms, m, prefix);
   }
 
   /**
@@ -187,7 +224,6 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
   {
     LemmaPartitionMinimalWellFormedCodeUnitSubsequence(m);
     LemmaSplitPrefixMinimalWellFormedCodeUnitSubsequenceInvertsPrepend(m, s);
-    assert PartitionCodeUnitSequenceChecked(m + s).Some?;
   }
 
   /**
@@ -197,7 +233,7 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     ensures IsWellFormedCodeUnitSequence(Seqs.Flatten(ms))
   {
     if |ms| == 0 {
-      assert IsWellFormedCodeUnitSequence(Seqs.Flatten(ms));
+      // assert IsWellFormedCodeUnitSequence(Seqs.Flatten(ms));
     }
     else {
       var head := ms[0];
@@ -205,7 +241,6 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
       LemmaFlattenMinimalWellFormedCodeUnitSubsequences(tail);
       var flatTail := Seqs.Flatten(tail);
       LemmaPrependMinimalWellFormedCodeUnitSubsequence(head, flatTail);
-      assert IsWellFormedCodeUnitSequence(head + flatTail);
     }
   }
 
@@ -220,25 +255,19 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     var partsST := partsS + partsT;
     Seqs.LemmaFlattenConcat(partsS, partsT);
 
-    assert s + t == Seqs.Flatten(partsST);
-    assert forall part | part in partsST ::
-        && |part| > 0
-        && IsMinimalWellFormedCodeUnitSubsequence(part);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(partsST);
   }
 
   /**
     * Returns the well-formed Unicode string that is the encoding of the given scalar value sequence.
     */
-  function EncodeScalarSequence(vs: seq<Unicode.ScalarValue>): (s: WellFormedCodeUnitSeq)
+  function EncodeScalarSequence(vs: seq<ScalarValue>): (s: WellFormedCodeUnitSeq)
   {
-    assume {:axiom} false;
     var ms := Seqs.Map(EncodeScalarValue, vs);
     LemmaFlattenMinimalWellFormedCodeUnitSubsequences(ms);
     Seqs.Flatten(ms)
   }
   by method {
-    assume {:axiom} false;
     // Optimize to to avoid allocating the intermediate unflattened sequence.
     // We can't quite use Seqs.FlatMap easily because we need to prove the result
     // is not just a seq<CodeUnit> but a WellFormedCodeUnitSeqs.
@@ -259,7 +288,7 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
   /**
     * Returns the scalar value sequence encoded by the given well-formed Unicode string.
     */
-  function DecodeCodeUnitSequence(s: WellFormedCodeUnitSeq): (vs: seq<Unicode.ScalarValue>)
+  function DecodeCodeUnitSequence(s: WellFormedCodeUnitSeq): (vs: seq<ScalarValue>)
     ensures EncodeScalarSequence(vs) == s
   {
     var parts := PartitionCodeUnitSequence(s);
@@ -278,7 +307,7 @@ abstract module {:options "-functionSyntax:4"} DafnyStdLibs.Unicode.UnicodeEncod
     * Returns the scalar value sequence encoded by the given code unit sequence, or None if the given Unicode string
     * is not well-formed.
     */
-  function DecodeCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeVs: Option<seq<Unicode.ScalarValue>>)
+  function DecodeCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeVs: Option<seq<ScalarValue>>)
     ensures IsWellFormedCodeUnitSequence(s) ==>
               && maybeVs.Some?
               && maybeVs.Extract() == DecodeCodeUnitSequence(s)

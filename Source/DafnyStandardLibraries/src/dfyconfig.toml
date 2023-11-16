@@ -16,5 +16,6 @@ library = [
 # of the libraries themselves.
 resource-limit = 1000
 warn-as-errors = false
-warn-redundant-assumptions = true
-warn-contradictory-assumptions = true
+# These give too many false positives right now, but should be enabled in the future
+warn-redundant-assumptions = false
+warn-contradictory-assumptions = false
