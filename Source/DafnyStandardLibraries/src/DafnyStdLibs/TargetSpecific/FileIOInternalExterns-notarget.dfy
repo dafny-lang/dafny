@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 /*
- * Private API - these are intentionally not exported from the main FileIO module and should not be used elsewhere
+ * Private API - these should not be used elsewhere
  */
 module DafnyStdLibs.FileIOInternalExterns {
   method

@@ -11,7 +11,7 @@ module WriteBytesToFile {
     theMain("build/fileioexamples", "");
   }
 
-  method theMain(outputDir: string, expectedErrorPrefix: string) {
+  method {:rlimit 2000} theMain(outputDir: string, expectedErrorPrefix: string) {
 
       // Happy paths: write files to the output dir. (The %diff LIT commands check that we wrote the correct content.)
     {

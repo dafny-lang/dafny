@@ -4,8 +4,11 @@
  *******************************************************************************/
 
 /*
- * Private API - these are intentionally not exported from the module and should not be used elsewhere
+ * Private API - these should not be used elsewhere
  */
+// {:compile false} is necessary here since otherwise the translation to Python
+// will create a DafnyStdLibs_FileIOInternalExterns.py source file as well,
+// which the embedded version can't easily override.
 module {:compile false} DafnyStdLibs.FileIOInternalExterns {
   method
     {:extern}
