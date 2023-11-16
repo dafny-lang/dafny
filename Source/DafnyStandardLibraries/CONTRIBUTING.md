@@ -63,10 +63,10 @@ The build process applies `dafny format` to all source.
 
 ### Packaging
 
-The standard libraries are built together into a multiple `DafnyStandardLibraries*.doo` files,
+The standard libraries are built together into multiple `DafnyStandardLibraries*.doo` files,
 which are included as embedded resources in `DafnyPipeline.dll`.
 These are then added as additional implicit source files when `--standard-libraries` is switched on.
-Having multiple files allows some code to be verified with different flags,
+Having multiple `.doo` files allows each of them to be verified with different flags,
 such as `--disable-nonlinear-arithmetic`.
 This doesn't affect the end user experience, as Dafny checks that each `.doo` file
 is compatible with the current set of options independently,
