@@ -27,6 +27,7 @@ using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
+using VC;
 
 namespace Microsoft.Dafny {
 
@@ -55,12 +56,6 @@ namespace Microsoft.Dafny {
       var getFilesExitCode = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
       if (getFilesExitCode != ExitValue.SUCCESS) {
         return (int)getFilesExitCode;
-      }
-
-      if (options.ExtractCounterexample && options.ModelViewFile == null) {
-        options.Printer.ErrorWriteLine(options.OutputWriter,
-          "*** Error: ModelView file must be specified when attempting counterexample extraction");
-        return (int)ExitValue.PREPROCESSING_ERROR;
       }
 
       using var driver = new CompilerDriver(options);
@@ -187,7 +182,7 @@ namespace Microsoft.Dafny {
         Util.PrintFunctionCallGraph(dafnyProgram);
       }
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
-        PrintCounterexample(options, options.ModelViewFile);
+        PrintCounterexample(options);
       }
       return exitValue;
     }
@@ -196,17 +191,28 @@ namespace Microsoft.Dafny {
     /// Extract the counterexample corresponding to the first failing
     /// assertion and print it to the console
     /// </summary>
-    private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
-      var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
+    private static void PrintCounterexample(DafnyOptions options) {
+      var firstCounterexample = (options.Printer as DafnyConsolePrinter).VerificationResults
+        .Select(result => result.Result)
+        .Where(result => result.Outcome == ConditionGeneration.Outcome.Errors)
+        .Select(result => result.Counterexamples)
+        .Where(counterexampleList => counterexampleList != null)
+        .Select(counterexampleList => counterexampleList.FirstOrDefault(counterexample => counterexample.Model != null))
+        .FirstOrDefault(counterexample => counterexample != null);
+      if (firstCounterexample == null) {
+        return;
+      }
+      var model = new DafnyModel(firstCounterexample.Model, options);
+      var initialState = model.States.FirstOrDefault(state => state.IsInitialState);
+      if (initialState == null) {
+        return;
+      }
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      foreach (var state in model.States.Where(state => !state.IsInitialState)) {
-        options.OutputWriter.WriteLine(state.FullStateName + ":");
-        var vars = state.ExpandedVariableSet(-1);
-        foreach (var variable in vars) {
-          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
-                                   $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                                   $"{variable.Value}");
-        }
+      var vars = initialState.ExpandedVariableSet(-1);
+      foreach (var variable in vars) {
+        options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
+                                       $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+                                       $"{variable.Value}");
       }
     }
 

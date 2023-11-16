@@ -43,7 +43,8 @@ public static class DafnyCommands {
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
-    CommonOptionBag.VerificationCoverageReport
+    CommonOptionBag.VerificationCoverageReport,
+    CommonOptionBag.ExtractCounterexample
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {

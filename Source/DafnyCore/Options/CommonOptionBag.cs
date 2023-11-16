@@ -291,6 +291,11 @@ See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibrarie
 Not compatible with the --unicode-char:false option.
 ");
 
+  public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
+    @"
+If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
+  };
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
@@ -475,6 +480,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       });
 
+    DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
+      options.ExtractCounterexample = value;
+      options.EnhancedErrorMessages = 1;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
@@ -522,8 +532,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       OptimizeErasableDatatypeWrapper,
       AddCompileSuffix,
       SystemModule,
-      ExecutionCoverageReport
-    );
+      ExecutionCoverageReport,
+      ExtractCounterexample
+      );
   }
 
   public static readonly Option<bool> FormatPrint = new("--print",

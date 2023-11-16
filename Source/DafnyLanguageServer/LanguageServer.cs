@@ -54,13 +54,6 @@ namespace Microsoft.Dafny.LanguageServer {
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
       dafnyOptions.ModelViewFile = "-";
-
-      dafnyOptions.ProverOptions.AddRange(new List<string>()
-      {
-        "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6
-        "O:model.completion=true",
-        "O:model_evaluator.completion=true"
-      });
     }
 
     public static async Task Start(DafnyOptions dafnyOptions) {
