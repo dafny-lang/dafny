@@ -6,12 +6,12 @@
 /*
  * Private API - these should not be used elsewhere
  */
-module 
-// This attribute isn't strictly necessary because it's possible
-// to split the implementation of a Dafny module
-// across multiple Go files under the same path.
-// But it makes debugging the translated output a little clearer. 
-{:compile false}
+module
+  // This attribute isn't strictly necessary because it's possible
+  // to split the implementation of a Dafny module
+  // across multiple Go files under the same path.
+  // But it makes debugging the translated output a little clearer.
+  {:compile false}
 {:extern "DafnyStdLibs_FileIOInternalExterns"}
 {:dummyImportMember "INTERNAL__ReadBytesFromFile", false}
 DafnyStdLibs.FileIOInternalExterns {
