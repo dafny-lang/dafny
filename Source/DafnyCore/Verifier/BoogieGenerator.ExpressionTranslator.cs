@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -10,7 +11,7 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     public class ExpressionTranslator {
       private DafnyOptions options;
-      
+
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Boogie.Expr _the_heap_expr;
       public Boogie.Expr HeapExpr {
@@ -1943,6 +1944,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             name = "rlimit";
           } else if (name == "synthesize") {
             name = "extern";
+          }
+
+          if (name == "rlimit" && parms.Count > 0 && parms[0] is Boogie.LiteralExpr litExpr && litExpr.isBigNum) {
+            parms[0] = new Boogie.LiteralExpr(litExpr.tok, litExpr.asBigNum * BigNum.FromInt(1000), litExpr.Immutable);
           }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
