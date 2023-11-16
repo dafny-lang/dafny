@@ -43,13 +43,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     return Success(writer.length);
   }
 
-  function {:opaque} Text(js: JSON) : (wr: Writer)
+  opaque function Text(js: JSON) : (wr: Writer)
     ensures wr.Bytes() == Spec.JSON(js)
   {
     JSON(js)
   }
 
-  function {:opaque} JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
+  opaque function JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.JSON(js)
   {
     Seqs.LemmaConcatIsAssociative2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
@@ -59,7 +59,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
+  opaque function {:vcs_split_on_every_assert} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
@@ -112,7 +112,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
       wr
   }
 
-  function {:opaque} String(str: jstring, writer: Writer) : (wr: Writer)
+  opaque function String(str: jstring, writer: Writer) : (wr: Writer)
     decreases str, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.String(str)
   {
@@ -217,7 +217,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     }
   }
 
-  function {:opaque} {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  opaque function {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -296,7 +296,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     }
   }
 
-  function {:opaque} Object(obj: jobject, writer: Writer) : (wr: Writer)
+  opaque function Object(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Object(obj)
   {
@@ -325,7 +325,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     }
   }
 
-  function {:opaque} Array(arr: jarray, writer: Writer) : (wr: Writer)
+  opaque function Array(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Array(arr)
   {
@@ -339,18 +339,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     wr
   }
 
-  function {:opaque} Members(obj: jobject, writer: Writer) : (wr: Writer)
+  opaque function Members(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(obj.data, Spec.Member)
   {
-    assume {:axiom} false;
     MembersSpec(obj, obj.data, writer)
   } by method {
     assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)
     wr := MembersImpl(obj, writer);
   }
 
-  function {:opaque} Items(arr: jarray, writer: Writer) : (wr: Writer)
+  opaque function Items(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(arr.data, Spec.Item)
   {
@@ -512,7 +511,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     ensures xs[..j][..i] == xs[..i]
   {}
 
-  function {:opaque} Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
+  opaque function Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
     requires m < obj
     decreases obj, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Member(m)
@@ -539,7 +538,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
     wr
   }
 
-  function {:opaque} Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
+  opaque function Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
     requires m < arr
     decreases arr, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Item(m)

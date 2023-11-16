@@ -18,7 +18,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
   import Deserializer
 
   /* Serialization (JSON syntax trees to utf-8 bytes) */
-  function {:opaque} Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)
+  opaque function Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)
     ensures bs == Success(Spec.JSON(js))
   {
     Success(Serializer.Text(js).Bytes())
@@ -42,7 +42,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
   }
 
   /* Deserialization (utf-8 bytes to JSON syntax trees) */
-  function {:opaque} Deserialize(bs: seq<byte>) : (js: DeserializationResult<Grammar.JSON>)
+  opaque function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Grammar.JSON>)
     ensures js.Success? ==> bs == Spec.JSON(js.value)
   {
     Deserializer.API.OfBytes(bs)

@@ -7,12 +7,13 @@ abstract module Wrapper {
   import opened DafnyStdLibs.JSON.Errors
 
   type JSON
+  
   method Deserialize(bs: bytes) returns (js: DeserializationResult<JSON>)
   method SpecSerialize(js: JSON) returns (bs: SerializationResult<bytes>)
   method Serialize(js: JSON) returns (bs: SerializationResult<bytes>)
   method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON)
 
-  method TestBytestring(bs: bytes, indent: string) {
+  method {:test} TestBytestring(bs: bytes, indent: string) {
     var js  :- expect Deserialize(bs);
     // print indent, "=> ", js, "\n";
     var bs'  :- expect Serialize(js);
@@ -23,12 +24,12 @@ abstract module Wrapper {
     Check(bs, js, bs', sbs', js');
   }
 
-  method TestString(str: string, indent: string) {
+  method {:test} TestString(str: string, indent: string) {
     var bs :- expect ToUTF8Checked(str);
     TestBytestring(bs, indent);
   }
 
-  method TestStrings(vectors: seq<string>) {
+  method {:test} TestStrings(vectors: seq<string>) {
     for i := 0 to |vectors| {
       var input := vectors[i];
       var idx := Str.OfInt(i);
@@ -61,7 +62,7 @@ module JSON.Tests.ZeroCopyWrapper refines Wrapper {
     bs := Success(Spec.JSON(js));
   }
 
-  method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
+  method {:test} Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
     expect sbs' == bs' == bs;
     expect js' == js; // This doesn't hold in general, since the views could be different
   }
@@ -88,15 +89,14 @@ module AbstractSyntaxWrapper refines Wrapper {
     bs := Spec.JSON(js);
   }
 
-  method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
+  method {:test} Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
     expect sbs' == bs'; // Serializing changes number representations, escapes, and spacing, so no == bs
     expect js' == js;
   }
 }
 
 module JSON.Tests {
-
-  import opened DafnyStdLibs.JSON.Seq
+  import opened DafnyStdLibs.Collections.Seqs
 
   const VECTORS := [
     "true",
@@ -125,7 +125,7 @@ module JSON.Tests {
 
     // Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
     // We should have these kinds of tests direclty in the Unicode module too.
-    "\"" + Seq.Repeat('a', 100_000) + "\""
+    "\"" + Seqs.Repeat('a', 100_000) + "\""
   ]
 
   method Main() {

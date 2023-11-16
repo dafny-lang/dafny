@@ -17,14 +17,12 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
   import ZeroCopy = ZeroCopy.API
 
   /* Serialization (JSON values to utf-8 bytes) */
-  function {:opaque} Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>)
-  {
+  opaque function Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>) {
     var js :- Serializer.JSON(js);
     ZeroCopy.Serialize(js)
   }
 
-  method SerializeAlloc(js: Values.JSON) returns (bs: SerializationResult<array<byte>>)
-  {
+  method SerializeAlloc(js: Values.JSON) returns (bs: SerializationResult<array<byte>>) {
     var js :- Serializer.JSON(js);
     bs := ZeroCopy.SerializeAlloc(js);
   }
@@ -37,8 +35,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
   }
 
   /* Deserialization (utf-8 bytes to JSON values) */
-  function {:opaque} Deserialize(bs: seq<byte>) : (js: DeserializationResult<Values.JSON>)
-  {
+  opaque function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Values.JSON>) {
     var js :- ZeroCopy.Deserialize(bs);
     Deserializer.JSON(js)
   }

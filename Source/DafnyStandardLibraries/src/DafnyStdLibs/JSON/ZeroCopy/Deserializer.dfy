@@ -31,14 +31,14 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     // BUG(https://github.com/dafny-lang/dafny/issues/2179)
     const SpecView := (v: Vs.View) => Spec.View(v)
 
-    function {:opaque} Get(cs: FreshCursor, err: JSONError): (pr: ParseResult<jchar>)
+    opaque function Get(cs: FreshCursor, err: JSONError): (pr: ParseResult<jchar>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var cs :- cs.Get(err);
       Success(cs.Split())
     }
 
-    function {:opaque} WS(cs: FreshCursor): (sp: Split<jblanks>)
+    opaque function WS(cs: FreshCursor): (sp: Split<jblanks>)
       ensures sp.SplitFrom?(cs, SpecView)
       ensures sp.cs.SuffixOf?(cs)
       ensures !cs.BOF? ==> sp.cs.StrictSuffixOf?(cs)
@@ -58,7 +58,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       return Cursor(cs.s, cs.beg, point', cs.end).Split();
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 1000000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
+    opaque function {:vcs_split_on_every_assert} {:rlimit 1000000} Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
       requires forall cs :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
@@ -144,7 +144,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Spec.ConcatBytes(ts, SuffixedElementSpec)
     }
 
-    function {:opaque} Open(cs: FreshCursor)
+    opaque function Open(cs: FreshCursor)
       : (pr: ParseResult<jopen>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecViewOpen)
     {
@@ -152,7 +152,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    function {:opaque} Close(cs: FreshCursor)
+    opaque function Close(cs: FreshCursor)
       : (pr: ParseResult<jclose>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecViewClose)
     {
@@ -160,7 +160,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    function {:opaque} BracketedFromParts(ghost cs: Cursor,
+    opaque function BracketedFromParts(ghost cs: Cursor,
                                           open: Split<Structural<jopen>>,
                                           elems: Split<seq<TSuffixedElement>>,
                                           close: Split<Structural<jclose>>)
@@ -189,7 +189,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       sp
     }
 
-    function {:opaque} AppendWithSuffix(ghost cs0: FreshCursor,
+    opaque function AppendWithSuffix(ghost cs0: FreshCursor,
                                         ghost json: ValueParser,
                                         elems: Split<seq<TSuffixedElement>>,
                                         elem: Split<TElement>,
@@ -243,7 +243,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} AppendLast(ghost cs0: FreshCursor,
+    opaque function {:vcs_split_on_every_assert} AppendLast(ghost cs0: FreshCursor,
                                                                ghost json: ValueParser,
                                                                elems: Split<seq<TSuffixedElement>>,
                                                                elem: Split<TElement>,
@@ -297,7 +297,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
 
     // The implementation and proof of this function is more painful than
     // expected due to the tail recursion.
-    function {:vcs_split_on_every_assert} {:opaque} {:tailrecursion} Elements(
+    opaque function {:vcs_split_on_every_assert} {:tailrecursion} Elements(
       ghost cs0: FreshCursor,
       json: ValueParser,
       open: Split<Structural<jopen>>,
@@ -418,7 +418,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} Bracketed(cs: FreshCursor, json: ValueParser)
+    opaque function {:vcs_split_on_every_assert} Bracketed(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TBracketed>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, BracketedSpec)
@@ -475,13 +475,13 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       case OtherError(err) => err
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 10000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
+    opaque function {:vcs_split_on_every_assert} {:rlimit 10000} JSON(cs: Cursors.FreshCursor) : (pr: DeserializationResult<Cursors.Split<JSON>>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.JSON)
     {
       Core.Structural(cs, Parsers.Parser(Values.Value, Spec.Value)).MapFailure(LiftCursorError)
     }
 
-    function {:opaque} Text(v: View) : (jsr: DeserializationResult<JSON>)
+    opaque function Text(v: View) : (jsr: DeserializationResult<JSON>)
       ensures jsr.Success? ==> v.Bytes() == Spec.JSON(jsr.value)
     {
       var SP(text, cs) :- JSON(Cursors.Cursor.OfView(v));
@@ -492,7 +492,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(text)
     }
 
-    function {:opaque} OfBytes(bs: bytes) : (jsr: DeserializationResult<JSON>)
+    opaque function OfBytes(bs: bytes) : (jsr: DeserializationResult<JSON>)
       ensures jsr.Success? ==> bs == Spec.JSON(jsr.value)
     {
       :- Need(|bs| < TWO_TO_THE_32, Errors.IntOverflow);
@@ -516,7 +516,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
 
     import ConcreteSyntax.SpecProperties
 
-    function {:vcs_split_on_every_assert} {:opaque} Value(cs: FreshCursor) : (pr: ParseResult<Value>)
+    opaque function {:vcs_split_on_every_assert} Value(cs: FreshCursor) : (pr: ParseResult<Value>)
       decreases cs.Length(), 1
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Value)
     {
@@ -628,7 +628,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         Success(sp)
     }
 
-    function {:opaque} ValueParser(cs: FreshCursor) : (p: ValueParser)
+    opaque function ValueParser(cs: FreshCursor) : (p: ValueParser)
       decreases cs.Length(), 0
       ensures cs.SplitFrom?(p.cs)
     {
@@ -646,7 +646,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     import opened Core
     import opened Utils.Cursors
 
-    function {:opaque} Constant(cs: FreshCursor, expected: bytes) : (pr: ParseResult<Vs.View>)
+    opaque function Constant(cs: FreshCursor, expected: bytes) : (pr: ParseResult<Vs.View>)
       requires |expected| < TWO_TO_THE_32
       ensures pr.Success? ==> pr.value.t.Bytes() == expected
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, _ => expected)
@@ -667,7 +667,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
     import opened Utils.Parsers
     import opened Core
 
-    function {:opaque} StringBody(cs: Cursor): (pr: CursorResult<JSONError>)
+    opaque function StringBody(cs: Cursor): (pr: CursorResult<JSONError>)
       ensures pr.Success? ==> pr.value.AdvancedFrom?(cs)
     {
       cs.SkipWhileLexer(Strings.StringBody, StringBodyLexerStart)
@@ -697,7 +697,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     } 
 
-    function {:opaque} {:rlimit 10000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
+    opaque function {:rlimit 10000} String(cs: FreshCursor): (pr: ParseResult<jstring>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.String)
     {
       var SP(lq, cs) :- Quote(cs);
@@ -711,18 +711,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   module Numbers {
     import opened BoundedInts
     import opened Wrappers
-
     import opened Grammar
     import opened Utils.Cursors
     import opened Core
 
-    function {:opaque} Digits(cs: FreshCursor) : (sp: Split<jdigits>)
+    opaque function Digits(cs: FreshCursor) : (sp: Split<jdigits>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipWhile(Digit?).Split()
     }
 
-    function {:opaque} NonEmptyDigits(cs: FreshCursor) : (pr: ParseResult<jnum>)
+    opaque function NonEmptyDigits(cs: FreshCursor) : (pr: ParseResult<jnum>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := Digits(cs);
@@ -730,26 +729,26 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(sp)
     }
 
-    function {:opaque} NonZeroInt(cs: FreshCursor) : (pr: ParseResult<jint>)
+    opaque function NonZeroInt(cs: FreshCursor) : (pr: ParseResult<jint>)
       requires cs.Peek() != '0' as opt_byte
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       NonEmptyDigits(cs)
     }
 
-    function {:opaque} OptionalMinus(cs: FreshCursor) : (sp: Split<jminus>)
+    opaque function OptionalMinus(cs: FreshCursor) : (sp: Split<jminus>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipIf(c => c == '-' as byte).Split()
     }
 
-    function {:opaque} OptionalSign(cs: FreshCursor) : (sp: Split<jsign>)
+    opaque function OptionalSign(cs: FreshCursor) : (sp: Split<jsign>)
       ensures sp.SplitFrom?(cs, SpecView)
     {
       cs.SkipIf(c => c == '-' as byte || c == '+' as byte).Split()
     }
 
-    function {:opaque} TrimmedInt(cs: FreshCursor) : (pr: ParseResult<jint>)
+    opaque function TrimmedInt(cs: FreshCursor) : (pr: ParseResult<jint>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := cs.SkipIf(c => c == '0' as byte).Split();
@@ -757,7 +756,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       else Success(sp)
     }
 
-    function {:opaque} {:vcs_split_on_every_assert} {:rlimit 100000} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
+    opaque function {:vcs_split_on_every_assert} {:rlimit 100000} Exp(cs: FreshCursor) : (pr: ParseResult<Maybe<jexp>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, exp => Spec.Maybe(exp, Spec.Exp))
     {
       var SP(e, cs) :=
@@ -771,7 +770,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         Success(SP(NonEmpty(JExp(e, sign, num)), cs))
     }
 
-    function {:opaque} Frac(cs: FreshCursor) : (pr: ParseResult<Maybe<jfrac>>)
+    opaque function Frac(cs: FreshCursor) : (pr: ParseResult<Maybe<jfrac>>)
       ensures pr.Success? ==> pr.value.SplitFrom?(cs, frac => Spec.Maybe(frac, Spec.Frac))
     {
       var SP(period, cs) :=
@@ -783,7 +782,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         Success(SP(NonEmpty(JFrac(period, num)), cs))
     }
 
-    function {:opaque} NumberFromParts(
+    opaque function NumberFromParts(
       ghost cs: Cursor,
       minus: Split<jminus>, num: Split<jint>,
       frac: Split<Maybe<jfrac>>, exp: Split<Maybe<jexp>>
@@ -808,13 +807,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
         }
       }
       assert sp.StrictlySplitFrom?(cs, Spec.Number);
-
-
-
       sp
     }
 
-    function {:opaque} Number(cs: FreshCursor) : (pr: ParseResult<jnumber>)
+    opaque function Number(cs: FreshCursor) : (pr: ParseResult<jnumber>)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Number)
     {
       var minus := OptionalMinus(cs);
@@ -838,7 +834,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Spec.Value(t)
     }
 
-    function {:opaque} Element(cs: FreshCursor, json: ValueParser) : (pr: ParseResult<TElement>)
+    opaque function Element(cs: FreshCursor, json: ValueParser) : (pr: ParseResult<TElement>)
     {
       json.fn(cs)
     }
@@ -862,7 +858,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} Array(cs: FreshCursor, json: ValueParser)
+    opaque function {:vcs_split_on_every_assert} Array(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jarray>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Array)
@@ -890,7 +886,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Success(cs.Split())
     }
 
-    function {:opaque} KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
+    opaque function KeyValueFromParts(ghost cs: Cursor, k: Split<jstring>,
                                          colon: Split<Structural<jcolon>>, v: Split<Value>)
       : (sp: Split<jKeyValue>)
       requires k.StrictlySplitFrom?(cs, Spec.String)
@@ -916,7 +912,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       Spec.KeyValue(t)
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} Element(cs: FreshCursor, json: ValueParser)
+    opaque function {:vcs_split_on_every_assert} Element(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<TElement>)
     {
       var k :- Strings.String(cs);
@@ -979,7 +975,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       }
     }
 
-    function {:vcs_split_on_every_assert} {:opaque} {:rlimit 10000} Object(cs: FreshCursor, json: ValueParser)
+    opaque function {:vcs_split_on_every_assert} {:rlimit 10000} Object(cs: FreshCursor, json: ValueParser)
       : (pr: ParseResult<jobject>)
       requires cs.SplitFrom?(json.cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, Spec.Object)
