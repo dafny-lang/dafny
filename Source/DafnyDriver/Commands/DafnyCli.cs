@@ -489,8 +489,8 @@ public static class DafnyCli {
     // only because if they are added first, one might be used as the program name,
     // which is not handled well.
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      if (options.CompilerName != "lib") {
-        var targetName = options.CompilerName == null || options.CompilerName != "lib" ? options.CompilerName : "notarget";
+      if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        var targetName = options.CompilerName ?? "notarget";
         var stdlibDooUri = new Uri($"{StandardLibrariesDooUriBase}-{targetName}.doo");
         options.CliRootSourceUris.Add(stdlibDooUri);
         dafnyFiles.Add(new DafnyFile(options, stdlibDooUri));

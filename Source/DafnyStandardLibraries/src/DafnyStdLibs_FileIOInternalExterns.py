@@ -13,11 +13,11 @@ class default__:
       with open(path_str, mode="rb") as file:
           contents = file.read()
           contents_seq = _dafny.Seq(contents)
-          return (False, contents_seq, None)
+          return (False, contents_seq, _dafny.Seq())
     except:
       exc_str = traceback.format_exc()
       exc_seq = _dafny.Seq(exc_str)
-      return (True, None, exc_seq)
+      return (True, _dafny.Seq(), exc_seq)
   
   @staticmethod
   def INTERNAL__WriteBytesToFile(path, contents):
@@ -29,7 +29,7 @@ class default__:
 
       with open(path_str, mode="wb") as file:
           contents = file.write(contents_bytes)
-          return (False, None)
+          return (False, _dafny.Seq())
     except:
       exc_str = traceback.format_exc()
       exc_seq = _dafny.Seq(exc_str)

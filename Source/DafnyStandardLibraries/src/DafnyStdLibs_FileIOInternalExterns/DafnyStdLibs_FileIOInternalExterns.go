@@ -11,10 +11,10 @@ func INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead 
 	dat, err := os.ReadFile(p)
   if err != nil {
     errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
-    return true, nil, errAsSequence
+    return true, _dafny.EmptySeq, errAsSequence
 	}
   datAsSequence := _dafny.SeqOfBytes(dat)
-  return false, datAsSequence, nil
+  return false, datAsSequence, _dafny.EmptySeq
 }
 
 func INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (isError bool, errorMsg _dafny.Sequence) {
@@ -29,5 +29,5 @@ func INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (is
     errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
     return true, errAsSequence
 	}
-  return false, nil
+  return false, _dafny.EmptySeq
 }

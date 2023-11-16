@@ -25,11 +25,12 @@ DafnyStdLibsExterns.FileIO = (function() {
     const emptySeq = _dafny.Seq.of();
     try {
       const readOpts = { encoding: null };  // read as buffer, not string
-      const buf = fs.readFileSync(path, readOpts);
+      const pathStr = path.toVerbatimString(false)
+      const buf = fs.readFileSync(pathStr, readOpts);
       const readBytes = _dafny.Seq.from(buf.valueOf(), byte => new BigNumber(byte));
       return [false, readBytes, emptySeq];
     } catch (e) {
-      const errorMsg = _dafny.Seq.from(e.stack);
+      const errorMsg = _dafny.Seq.UnicodeFromString(e.stack);
       return [true, emptySeq, errorMsg];
     }
   }
@@ -47,8 +48,9 @@ DafnyStdLibsExterns.FileIO = (function() {
   $module.INTERNAL_WriteBytesToFile = function(path, bytes) {
     try {
       const buf = buffer.Buffer.from(bytes);
-      createParentDirs(path);
-      fs.writeFileSync(path, buf);  // no need to specify encoding because data is a Buffer
+      const pathStr = path.toVerbatimString(false)
+      createParentDirs(pathStr);
+      fs.writeFileSync(pathStr, buf);  // no need to specify encoding because data is a Buffer
       return [false, _dafny.Seq.of()];
     } catch (e) {
       const errorMsg = _dafny.Seq.from(e.stack);
