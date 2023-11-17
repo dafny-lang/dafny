@@ -384,7 +384,7 @@ public static class DafnyCli {
     if (options.UseStdin) {
       var uri = new Uri("stdin:///");
       options.CliRootSourceUris.Add(uri);
-      dafnyFiles.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken));
     } else if (options.CliRootSourceUris.Count == 0) {
       options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
       return ExitValue.PREPROCESSING_ERROR;
@@ -414,7 +414,7 @@ public static class DafnyCli {
         : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
       try {
         var consoleErrorReporter = new ConsoleErrorReporter(options);
-        var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)));
+        var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
         if (df == null) {
           if (consoleErrorReporter.HasErrors) {
             return ExitValue.PREPROCESSING_ERROR;
@@ -492,14 +492,14 @@ public static class DafnyCli {
         var targetName = options.CompilerName ?? "notarget";
         var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
         options.CliRootSourceUris.Add(stdlibDooUri);
-        dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri));
+        dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli));
       }
 
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli));
 
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesArithmeticDooUri);
-      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesArithmeticDooUri, Token.Cli));
     }
 
     return ExitValue.SUCCESS;

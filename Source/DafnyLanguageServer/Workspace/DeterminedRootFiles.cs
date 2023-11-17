@@ -9,9 +9,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-record FoundFiles(
+record DeterminedRootFiles(
   DafnyProject Project,
-  IReadOnlyList<DafnyFile> Files,
+  IReadOnlyList<DafnyFile> Roots,
   ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
   public async Task<IdeState> UpdateState(DafnyOptions options,
     ILogger logger,
@@ -22,7 +22,7 @@ record FoundFiles(
     var status = errors.Any() ? CompilationStatus.ParsingFailed : previousState.Status;
 
     var ownedUris = new HashSet<Uri>();
-    foreach (var file in Files) {
+    foreach (var file in Roots) {
       var uriProject = await projectDatabase.GetProject(file.Uri);
       var ownedUri = uriProject.Equals(Project);
       if (ownedUri) {
@@ -35,7 +35,7 @@ record FoundFiles(
       OwnedUris = ownedUris,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed ? Diagnostics : previousState.StaticDiagnostics,
       Status = status,
-      VerificationTrees = Files.ToImmutableDictionary(
+      VerificationTrees = Roots.ToImmutableDictionary(
         file => file.Uri,
         file => previousState.VerificationTrees.GetValueOrDefault(file.Uri) ??
                 new DocumentVerificationTree(previousState.Program, file.Uri))

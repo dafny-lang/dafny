@@ -103,31 +103,42 @@ public class Compilation : IDisposable {
   public void Start() {
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
-    var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
-      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
-    updates.OnNext(new FoundFiles(Project, RootFiles!, diagnosticsCopy));
+    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
+  }
+
+  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
+    return staticDiagnostics.ToImmutableDictionary(k => k.Key,
+      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
   }
 
   private IReadOnlyList<DafnyFile> DetermineRootFiles() {
     var result = new List<DafnyFile>();
 
-    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(Options.CliRootSourceUris)) {
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
       var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
     }
+
+    foreach (var uri in Options.CliRootSourceUris) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli);
+      if (file != null) {
+        result.Add(file);
+      }
+    }
+
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
         Options.CliRootSourceUris.Add(stdlibDooUri);
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri));
+        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
       }
 
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri));
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesArithmeticDooUri, Project.StartingToken));
     }
 
     foreach (var library in Options.Get(CommonOptionBag.Libraries)) {
@@ -161,9 +172,7 @@ public class Compilation : IDisposable {
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);
 
-      var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
-        kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
-      updates.OnNext(new FinishedParsing(programAfterParsing, diagnosticsCopy));
+      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopy()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;

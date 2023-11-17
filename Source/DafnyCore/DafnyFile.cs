@@ -22,7 +22,7 @@ public class DafnyFile {
   [CanBeNull] public IToken Origin { get; }
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, [CanBeNull] IToken origin = null) {
+    DafnyOptions options, Uri uri, IToken origin) {
     var filePath = uri.LocalPath;
 
     origin ??= Token.NoToken;
@@ -66,11 +66,10 @@ public class DafnyFile {
         if (0 < options.VerifySnapshots) {
           // For snapshots, we first create broken DafnyFile without content,
           // then look for the real files and create DafnuFiles for them.
-          // TODO prevent creating the broken DafnyFiles for snapshots
-          return null;
+          return new DafnyFile(extension, canonicalPath, baseName, null, uri, origin);
         }
 
-        reporter.Error(MessageSource.Project, origin, $"File {filePathForErrors} not found");
+        reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
         return null;
       }
 
@@ -92,7 +91,7 @@ public class DafnyFile {
         dooFile = DooFile.Read(stream);
       } else {
         if (!fileSystem.Exists(uri)) {
-          reporter.Error(MessageSource.Project, origin, $"File {filePathForErrors} not found");
+          reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
           return null;
         }
 

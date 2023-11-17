@@ -44,6 +44,7 @@ method Bar() {
       var a4 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a5 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
       var a7 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a7.Uri);

@@ -312,7 +312,7 @@ public class ProgramParser {
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-    var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri);
+    var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
     var files = file == null ? Array.Empty<DafnyFile>() : new[] { file };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
