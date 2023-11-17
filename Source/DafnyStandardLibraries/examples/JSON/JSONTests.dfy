@@ -1,7 +1,7 @@
 // TODO: Test for Java and other target languages too
 
 abstract module Wrapper {
-  import DafnyStdLibs.JSON.Utils.Str
+  import DafnyStdLibs.Strings
   import opened DafnyStdLibs.BoundedInts
   import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
   import opened DafnyStdLibs.JSON.Errors

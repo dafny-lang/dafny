@@ -725,8 +725,10 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := Digits(cs);
-      :- Need(!sp.t.Empty?, OtherError(Errors.EmptyNumber));
-      Success(sp)
+      if sp.t.Empty? then 
+        Failure(OtherError(Errors.EmptyNumber))
+      else 
+        Success(sp)
     }
 
     opaque function NonZeroInt(cs: FreshCursor) : (pr: ParseResult<jint>)
