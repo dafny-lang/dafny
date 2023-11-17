@@ -1,6 +1,7 @@
 
-# *Nonlinear.dfy in Arithmetic/Internals/ are subject to the options here
-excludes = ["**/Arithmetic/*.dfy", "**/Arithmetic/**/*Internals.dfy"]
+# The Makefile has its own non-trivial logic for determining which files
+# to include in which mode.
+includes = []
 
 [options]
 # Options that help support more values of consuming context options
@@ -13,6 +14,9 @@ reads-clauses-on-methods = true
 # of the libraries themselves.
 resource-limit = 1000
 warn-as-errors = true
-# These give too many false positives right now, but should be enabled in the future
-warn-redundant-assumptions = false
-warn-contradictory-assumptions = false
+warn-redundant-assumptions = true
+warn-contradictory-assumptions = true
+
+library = [
+  "../EnableNonLinearArithmetic/Wrappers.dfy"
+]

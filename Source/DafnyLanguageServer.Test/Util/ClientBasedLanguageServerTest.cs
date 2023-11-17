@@ -298,7 +298,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verificationStatus{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     try {
