@@ -275,6 +275,7 @@ public record IdeState(
     SymbolTable? symbolTable = null;
     CompilationUnit compilationUnit;
     if (errors.Any()) {
+      // TODO add symbol table migration?
       compilationUnit = new CompilationUnit(Input.Project.Uri, finishedResolution.ResolvedProgram);
     } else {
       symbolTable = SymbolTable.CreateFrom(finishedResolution.ResolvedProgram, cancellationToken);
@@ -311,7 +312,7 @@ public record IdeState(
     return previousState with {
       StaticDiagnostics = finishedResolution.Diagnostics,
       Status = status,
-      ResolvedProgram = ResolvedProgram,
+      ResolvedProgram = finishedResolution.ResolvedProgram,
       SymbolTable = symbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = ghostRanges,
@@ -365,7 +366,7 @@ public record IdeState(
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
     return previousState with {
-      Program = Program,
+      Program = finishedParsing.Program,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed
         ? finishedParsing.Diagnostics
         : previousState.StaticDiagnostics,
