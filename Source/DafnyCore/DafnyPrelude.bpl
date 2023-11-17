@@ -1092,6 +1092,34 @@ axiom (forall<T> s: Seq T, n: int, k: int ::
   { Seq#Index(s, k), Seq#Drop(s,n) }
   0 <= n && n <= k && k < Seq#Length(s) ==>
     Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
+    
+axiom (forall<T> s, t: Seq T, n: int ::
+  { Seq#Take(Seq#Append(s, t), n) }
+  { Seq#Drop(Seq#Append(s, t), n) }
+  n == Seq#Length(s)
+  ==>
+  Seq#Take(Seq#Append(s, t), n) == s &&
+ Seq#Drop(Seq#Append(s, t), n) == t);
+
+//axiom (forall<T> s, t: Seq T ::
+//  { Seq#Append(s, t) }
+//  Seq#Take(Seq#Append(s, t), Seq#Length(s)) == s &&
+//  Seq#Drop(Seq#Append(s, t), Seq#Length(s)) == t);
+
+axiom (forall<T> s: Seq T, n: int ::
+{ Seq#Take(s, n)}
+{ Seq#Drop(s, n)}
+n >= 0 && n < Seq#Length(s)
+==> Seq#Append(Seq#Take(s,n), Seq#Drop(s,n)) == s);
+  
+ //Set Axiom
+ axiom (forall<T> s,t: Set T ::
+ { Set#Difference(s, t)}
+ s == Set#Union(Set#Difference(s,t), Set#Intersection(s,t))); 
+ 
+  axiom (forall<T> s,t: MultiSet T ::
+  { MultiSet#Difference(s, t)}
+  s == MultiSet#Union(MultiSet#Difference(s,t), MultiSet#Intersection(s,t))); 
 
 function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
