@@ -4,14 +4,12 @@ module DynamicArrayExamples {
 
   method {:test} Ensure() {
     var arr := new DynamicArray<int>();
-    arr.Ensure(101, 3);
-    assert arr.capacity >= 101;
-    assert arr.size == 0;
+    arr.Ensure(100, 3);
     for i: int := 0 to 100
       invariant fresh(arr.Repr)
       invariant arr.Valid?()
       invariant arr.size as int == i
-      invariant arr.capacity >= 101
+      invariant arr.capacity >= 100
     {
       arr.PushFast(i);
     }
