@@ -23,10 +23,8 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
-using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
-using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
 
@@ -441,7 +439,7 @@ namespace Microsoft.Dafny {
 
       var compiler = options.Backend;
 
-      var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
@@ -529,48 +527,6 @@ namespace Microsoft.Dafny {
 
     public void Dispose() {
       engine.Dispose();
-    }
-  }
-
-  class NoExecutableBackend : IExecutableBackend {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
-    public override string TargetName => throw new NotSupportedException();
-    public override bool IsStable => throw new NotSupportedException();
-    public override string TargetExtension => throw new NotSupportedException();
-    public override string PublicIdProtect(string name) {
-      throw new NotSupportedException();
-    }
-
-    public override bool TextualTargetIsExecutable => throw new NotSupportedException();
-
-    public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
-    public override string ModuleSeparator => ".";
-
-    public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-      throw new NotSupportedException();
-    }
-
-    public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
-      throw new NotSupportedException();
-    }
-
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-      ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      throw new NotSupportedException();
-    }
-
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
-      string pathsFilename,
-      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-      TextWriter errorWriter) {
-      throw new NotSupportedException();
-    }
-
-    public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
-      throw new NotSupportedException();
-    }
-
-    public NoExecutableBackend([NotNull] DafnyOptions options) : base(options) {
     }
   }
 }
