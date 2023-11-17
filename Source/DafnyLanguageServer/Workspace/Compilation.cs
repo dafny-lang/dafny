@@ -125,6 +125,13 @@ public class Compilation : IDisposable {
       }
     }
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        var targetName = options.CompilerName ?? "notarget";
+        var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
+        options.CliRootSourceUris.Add(stdlibDooUri);
+        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, options, stdlibDooUri));
+      }
+
       result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
       result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
     }

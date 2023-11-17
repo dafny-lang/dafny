@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
+    public static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
     public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
     public static readonly Uri StandardLibrariesArithmeticDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo");
 

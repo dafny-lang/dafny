@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Help;
@@ -489,6 +488,13 @@ public static class DafnyCli {
     // which is not handled well.
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       var reporter = new ConsoleErrorReporter(options);
+      if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        var targetName = options.CompilerName ?? "notarget";
+        var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
+        options.CliRootSourceUris.Add(stdlibDooUri);
+        dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri));
+      }
+
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
       dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri));
 
