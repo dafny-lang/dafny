@@ -26,7 +26,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.SeparateCompilation
+      Feature.SeparateCompilation,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
@@ -44,7 +45,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.js", wr);
+        EmitRuntimeSource("DafnyRuntimeJs", wr, false);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_js", wr, false);
       }
     }
 
@@ -59,16 +63,17 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      if (!isExtern || libraryName != null) {
+      if (externModule == null || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
 
       string footer = ")(); // end of module " + moduleName;
       var block = wr.NewBlock("(function()", footer);
       var beforeReturnBody = block.Fork(0);
-      if (!isExtern) {
+      if (externModule == null) {
         // create new module here
         beforeReturnBody.WriteLine("let $module = {};");
       } else if (libraryName == null) {

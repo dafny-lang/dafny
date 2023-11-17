@@ -479,6 +479,8 @@ In particular, it accepts the `--target` option that specifies the programming l
 - `--output` - gives the folder and filename root for compilation artifacts
 - `--methods-to-test` - the value is a (.NET) regular expression that is matched against the fully
   qualified name of the method; only those methods that match are tested
+- `--coverage-report` - the value is a directory in which Dafny will save an html coverage report highlighting parts of
+  the program that execution of the tests covered.
 
 The order in which the tests are run is not specified.
 
@@ -1512,12 +1514,13 @@ included in the proof.
 These options can be specified in `dfyconfig.toml`, and this is typically the most convenient way to use them with the IDE.
 
 More detailed information is available using either the `--log-format
-text` or `--coverage-report` option to `dafny verify`. The former will
+text` or `--verification-coverage-report` option to `dafny verify`. The former will
 include a list of proof dependencies (including source location and
 description) alongside every assertion batch in the generated log
 whenever one of the two warning options above is also included. The
 latter will produce a highlighted HTML version of your source code, in
-the same format used by `dafny generate-tests --coverage-report`,
+the same format used by `dafny test --coverage-report`
+and `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
@@ -1620,7 +1623,18 @@ included by default and must be explicitly requested using `--include-runtime`. 
 To be compilable to an executable program, a Dafny program must contain a `Main` entry point, as described [here](#sec-user-guide-main).
 
 
-### 13.8.1. `extern` declarations {#sec-extern-decls}
+### 13.8.1.1 Built-in declarations {#sec-compilation-built-ins}
+
+Dafny includes several built-in types such as tuples, arrays, arrows (functions), and the `nat` subset type.
+The supporting target language code for these declarations could be emitted on-demand,
+but these could then become multiple definitions of the same symbols when compiling multiple components separately. 
+Instead, all such built-ins up to a pre-configured maximum size are included in most of the runtime libraries.
+This means that when compiling to certain target languages, the use of such built-ins above these maximum sizes,
+such as tuples with more than 20 elements, is not supported.
+See the [Supported features by target language](#sec-supported-features-by-target-language) table
+for the details on these limits.
+
+### 13.8.2. `extern` declarations {#sec-extern-decls}
 
 A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
@@ -1733,7 +1747,7 @@ Detailed description of the `dafny build` and `dafny run` commands and
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
-### 13.8.2. Placeholder modules
+### 13.8.2. Replaceable modules
 To enable easily customising runtime behavior across an entire Dafny program, Dafny has placeholder modules. Here follows an example:
 
 <!-- %check-run -->
@@ -1757,9 +1771,9 @@ module ConcreteFoo replaces Foo {
 // ConcreteFoo can be swapped out for different replacements of Foo, to customize runtime behavior.
 ```
 
-When replacing a placeholder module, the same rules apply as when refining an abstract module. However, unlike an abstract module, a placeholder module can be used as if it is a concrete module. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
+When replacing a replaceable module, the same rules apply as when refining an abstract module. However, unlike an abstract module, a placeholder module can be used as if it is a concrete module. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
 
-Placeholder modules are particularly useful for defining behavior that depends on which target language Dafny is translated to.
+Replaceable modules are particularly useful for defining behavior that depends on which target language Dafny is translated to.
 
 ### 13.8.3. C\#
 

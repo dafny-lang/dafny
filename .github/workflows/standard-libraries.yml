@@ -15,11 +15,11 @@ jobs:
 
   build:
     needs: check-deep-tests
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Set up JDK 18
@@ -30,7 +30,7 @@ jobs:
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
-        run: make z3-ubuntu
+        run: make z3-mac
       - run: npm install bignumber.js
       - name: Test DafnyStandardLibraries
         run: make -C Source/DafnyStandardLibraries all

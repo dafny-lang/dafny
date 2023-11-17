@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 datatype Block<Hash,Transaction,VProof> =
   Block(prevBlockHash:Hash, txs:seq<Transaction>, proof:VProof)

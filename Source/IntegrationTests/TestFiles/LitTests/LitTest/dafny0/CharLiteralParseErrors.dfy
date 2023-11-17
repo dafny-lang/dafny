@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --unicode-char=false
+
 
 // Ensuring that the special support for surrogate pairs in character literals
 // doesn't allow character literals with multiple Unicode scalar values

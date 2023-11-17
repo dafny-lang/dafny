@@ -1021,8 +1021,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
-      if (method.Reads.Expressions != null) {
-        PrintFrameSpecLine("reads", method.Reads, ind);
+      var readsExpressions = method.Reads.Expressions;
+      if (readsExpressions != null) {
+        var isDefault = readsExpressions.Count == 1 && readsExpressions[0].E is WildcardExpr;
+        if (!isDefault) {
+          PrintFrameSpecLine("reads", method.Reads, ind);
+        }
       }
       if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod, ind);

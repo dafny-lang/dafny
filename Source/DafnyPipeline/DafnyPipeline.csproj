@@ -32,40 +32,98 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-notarget.doo">
+      <LogicalName>DafnyStandardLibraries-notarget.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-java.doo">
+      <LogicalName>DafnyStandardLibraries-java.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-cs.doo">
+      <LogicalName>DafnyStandardLibraries-cs.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-js.doo">
+      <LogicalName>DafnyStandardLibraries-js.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-go.doo">
+      <LogicalName>DafnyStandardLibraries-go.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-py.doo">
+      <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
+      <LinkBase>DafnyStandardLibraries_cs</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.java">
+      <LinkBase>DafnyStandardLibraries_java</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.js">
+      <LinkBase>DafnyStandardLibraries_js</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.go">
+      <LinkBase>DafnyStandardLibraries_go</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.py">
+      <LinkBase>DafnyStandardLibraries_py</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\**\*.java">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-arithmetic.doo">
+      <LogicalName>DafnyStandardLibraries-arithmetic.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
-      <LogicalName>DafnyRuntime.cs</LogicalName>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java">
+      <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntime.go">
-      <LogicalName>DafnyRuntime.go</LogicalName>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\DafnyRuntimeFromDafny.go">
-      <LogicalName>DafnyRuntimeFromDafny.go</LogicalName>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
-      <LogicalName>DafnyRuntime.h</LogicalName>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\dafny-generated\**\*.java">
+      <LinkBase>DafnyRuntimeJava</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.2.0.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
-      <LogicalName>DafnyRuntime.js</LogicalName>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
+      <LinkBase>DafnyRuntimeCsharp</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeSystemModule.cs">
+      <LinkBase>DafnyRuntimeCsharp</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\**\*.go" Exclude="..\DafnyRuntime\DafnyRuntimeGo\**\*_test.go">
+      <LinkBase>DafnyRuntimeGo</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeCpp\**\*.h">
+      <LinkBase>DafnyRuntimeCpp</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
-      <LogicalName>DafnyRuntime.py</LogicalName>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeCpp\**\*.cpp">
+      <LinkBase>DafnyRuntimeCpp</LinkBase>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJs\**\*.js">
+      <LinkBase>DafnyRuntimeJs</LinkBase>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimePython\**\*.py">
+      <LinkBase>DafnyRuntimePython</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" LinkBase="DafnyRuntimeRust">

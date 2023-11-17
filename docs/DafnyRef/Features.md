@@ -37,11 +37,15 @@
 | [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |  X  |
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
-| [Tuples with more than 20 arguments](#sec-tuple-types) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Tuples with more than 20 arguments](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Arrays with more than 16 dimensions](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Arrow types with more than 16 arguments](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
 | [Unicode chars](##sec-characters) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Converting values to strings](#sec-print-statement) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Legacy CLI without commands](#sec-dafny-commands) |  X  |  X  |  X  |  X  |  X  |  X  |  |
 | [Separate compilation](#sec-compilation) |  X  |  |  X  |  X  |  X  |  X  |  X  |
+| [All built-in types in runtime library](#sec-compilation-built-ins) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [Execution coverage report](#sec-dafny-test) |  X  |  |  |  |  |  |  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 datatype D = A
 

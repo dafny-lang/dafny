@@ -862,7 +862,7 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+    public static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
       if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
@@ -3419,14 +3419,15 @@ namespace Microsoft.Dafny {
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
+        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, desc));
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
+        proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
       }
 
-      proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
       return cmd;
     }
 
@@ -3993,8 +3994,7 @@ namespace Microsoft.Dafny {
           "it may have read effects");
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
-          {
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
           false, null);

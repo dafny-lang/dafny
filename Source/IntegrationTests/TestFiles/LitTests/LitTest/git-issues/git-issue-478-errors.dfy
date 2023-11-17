@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // The LibA and LibB examples are the same, except for the order of declarations.
 //

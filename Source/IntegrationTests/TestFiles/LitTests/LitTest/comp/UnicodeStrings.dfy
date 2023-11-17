@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --unicode-char
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --unicode-char
 
 method AssertAndExpect(p: bool) 
   requires p

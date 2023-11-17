@@ -20,8 +20,6 @@ using Microsoft.Dafny;
 using System.CommandLine;
 using static Microsoft.Dafny.ParseErrors;
 COMPILER Dafny
-/*--------------------------------------------------------------------------*/
-
 
 /*--------------------------------------------------------------------------*/
 CHARACTERS

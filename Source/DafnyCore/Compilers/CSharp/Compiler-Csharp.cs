@@ -24,7 +24,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
@@ -71,19 +73,39 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
+
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        wr.WriteLine("using System.IO;");
+      }
+
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
       Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
       }
-      EmitDafnySourceAttribute(program, wr);
 
-      if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
+      if (program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        EmitDafnySourceAttribute(program, wr);
       }
 
+      if (Options.IncludeRuntime) {
+        EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
+      }
+
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        EmitCoverageReportInstrumentation(program, wr);
+      }
     }
 
     /// <summary>
@@ -119,16 +141,40 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            break;
+          }
+        case CommonOptionBag.SystemModuleMode.OmitAllOtherModules: {
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      // The declarations below would normally be omitted if we aren't compiling the system module,
+      // but they are all marked as "internal", so they have to be included in each separately-compiled assembly.
+      // In particular, FuncExtensions contain extension methods for the System.Func<> family of delegates,
+      // and extension methods always only apply within the current assembly.
+      //
+      // Instead we just make sure to guard them with "#if ISDAFNYRUNTIMELIB" when compiling the system module,
+      // so they don't become duplicates when --include-runtime is used.
+      // See comment at the top of DafnyRuntime.cs.
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
+
+      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
       EmitFuncExtensions(systemModuleManager, wr);
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
     }
 
     // Generates casts for functions of those arities present in the program, like:
@@ -220,7 +266,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       return wr.NewBlock($"namespace {IdProtect(moduleName)}", " // end of " + $"namespace {IdProtect(moduleName)}");
     }
 
@@ -3399,5 +3446,30 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, catchBlock);
     }
 
+    protected void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
+      wr.WriteLine(@"
+namespace DafnyProfiling {
+  public class CodeCoverage {
+    static uint[] tallies;
+    static string talliesFileName;
+    public static void Setup(int size, string theTalliesFileName) {
+      tallies = new uint[size];
+      talliesFileName = theTalliesFileName;
+    }
+    public static void TearDown() {
+      using TextWriter talliesWriter = new StreamWriter(
+        new FileStream(talliesFileName, FileMode.Create));
+      for (var i = 0; i < tallies.Length; i++) {
+        talliesWriter.WriteLine(""{0}"", tallies[i]);
+      }
+      tallies = null;
+    }
+    public static bool Record(int id) {
+      tallies[id]++;
+      return true;
+    }
+  }
+}");
+    }
   }
 }

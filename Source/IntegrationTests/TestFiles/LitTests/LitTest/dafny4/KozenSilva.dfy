@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Dafny versions of examples from "Practical Coinduction" by Kozen and Silva.
 // The comments in this file explain some things about Dafny and its support for

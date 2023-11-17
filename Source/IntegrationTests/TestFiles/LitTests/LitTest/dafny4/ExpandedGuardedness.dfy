@@ -1,5 +1,5 @@
 // UNSUPPORTED: windows
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 method Main() // Windows not supported because of Java that does not pass the check as expected on the CI
 {
   PrintStream("Up", Up(19));

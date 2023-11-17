@@ -34,6 +34,9 @@ jobs:
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
+    - name: Check whitespace and style
+      working-directory: dafny
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
     - name: Get Boogie Version
       run: |
         sudo apt-get update
@@ -51,9 +54,6 @@ jobs:
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
-    - name: Check whitespace and style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends

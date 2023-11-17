@@ -11,18 +11,18 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ProjectFileErrorIsShown() {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
-    await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(2, diagnostics.Diagnostics.Count());
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
-    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
+    var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
+    var diagnostics = await GetLastDiagnostics(projectFile, DiagnosticSeverity.Error);
+    Assert.Single(diagnostics);
+    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.First().Range);
+    Assert.Contains("contains the following errors", diagnostics.First().Message);
   }
 
   [Fact]
@@ -37,9 +37,8 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
     Assert.Equal(2, diagnostics.Diagnostics.Count());
     Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
-    Assert.Contains("contains the following errors", diagnostics.Diagnostics.First().Message);
-    Assert.Equal(@"Files referenced by project are:
-ProjectFileErrorIsShownFromDafnyFile.dfy", diagnostics.Diagnostics.ElementAt(1).Message);
+    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains("contains the following errors"));
+    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains($"Files referenced by project are:{Environment.NewLine}ProjectFileErrorIsShownFromDafnyFile.dfy"));
   }
 
   /// <summary>

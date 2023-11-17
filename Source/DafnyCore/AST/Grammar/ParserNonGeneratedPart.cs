@@ -6,7 +6,7 @@ using System.Diagnostics.Contracts;
 using System.Threading;
 using static Microsoft.Dafny.ParseErrors;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public partial class Parser {
 

@@ -9,7 +9,7 @@ using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
 
-namespace DafnyCore; 
+namespace DafnyCore;
 
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.

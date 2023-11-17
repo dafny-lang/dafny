@@ -16,7 +16,7 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
 using Tomlyn.Model;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
   public const string FileName = "dfyconfig.toml";

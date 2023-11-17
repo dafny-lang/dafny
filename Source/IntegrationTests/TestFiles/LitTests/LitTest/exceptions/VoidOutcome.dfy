@@ -1,5 +1,5 @@
-// RUN: %dafny "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 // Does not test anything Exceptions-related, but is included by other tests
 
 trait VoidOutcome {

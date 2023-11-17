@@ -207,6 +207,17 @@ public class MultiBackendTest {
         if (result != 0) {
           success = false;
         }
+
+        if (compiler.TargetId == "cs") {
+          // C# is a bit unusual in that the runtime behaves a little differently
+          // depending on whether it is included as source or referenced as DafnyRuntime.dll
+          // (because of "#ifdef ISDAFNYRUNTIMELIB" directives - see DafnyRuntime.cs).
+          // This should be enabled for any other backends that have similar divergence.
+          result = RunWithCompiler(options, compiler, expectedOutput, checkFile, false);
+          if (result != 0) {
+            success = false;
+          }
+        }
       }
     }
 
@@ -298,14 +309,38 @@ public class MultiBackendTest {
     return !compileOptions.Contains(name);
   }
 
-  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
-    output.WriteLine($"Executing on {backend.TargetName}...");
+  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile, bool includeRuntime = true) {
+    output.Write($"Executing on {backend.TargetName}");
+    if (!includeRuntime) {
+      output.Write(" (with --include-runtime:false)");
+    }
+    output.WriteLine("...");
+
+    // Build to a dedicated temporary directory to make sure tests don't interfere with each other.
+    // The path will be something like "<user temp directory>/<random name>/<random name>"
+    // to ensure that all artifacts are put in a dedicated directory,
+    // which just "<user temp directory>/<random name>" would not.
+    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    Directory.CreateDirectory(tempOutputDirectory);
+
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
       $"--target:{backend.TargetId}",
+      $"--build:{tempOutputDirectory}",
       options.TestFile!,
     }.Concat(options.OtherArgs);
+    if (!includeRuntime) {
+      // We have to provide the path to DafnyRuntime.dll manually, since the program will be run
+      // in the directory containing the DLL built from Dafny code, not the Dafny distribution.
+      if (backend.TargetId != "cs") {
+        throw new ArgumentException("--include-runtime:false is currently only supported for the C# backend");
+      }
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var runtimePath = Path.Join(libPath, "DafnyRuntime.dll");
+      dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false", "--input", runtimePath });
+    }
 
     var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);

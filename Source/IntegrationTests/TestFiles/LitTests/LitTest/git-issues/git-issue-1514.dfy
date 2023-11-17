@@ -1,7 +1,6 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --standard-libraries --relax-definite-assignment
 
-include "Wrappers.dfy"
-import opened Wrappers
+import opened DafnyStdLibs.Wrappers
 
 trait Foo<C, D> {
   function Bar(a: C): (r: D)

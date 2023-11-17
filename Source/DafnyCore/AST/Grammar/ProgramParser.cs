@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
+using DafnyCore;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
@@ -64,8 +65,7 @@ public class ProgramParser {
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
-        cancellationToken
-      );
+        cancellationToken);
       if (parseResult.ErrorReporter.ErrorCount != 0) {
         logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
       }
@@ -90,6 +90,13 @@ public class ProgramParser {
 
     if (errorReporter.ErrorCount == 0) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+
+      // Capture the original program text before resolution
+      // if we're building a .doo file.
+      // See comment on LibraryBackend.DooFile.
+      if (program.Options.Backend is LibraryBackend libBackend) {
+        libBackend.DooFile = new DooFile(program);
+      }
     }
 
     ShowWarningsForIncludeCycles(program);
@@ -230,8 +237,7 @@ public class ProgramParser {
         top.GetContent,
         top.Origin,
         top.Uri,
-        cancellationToken
-      );
+        cancellationToken);
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
@@ -276,9 +282,9 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner with the given Errors sink.
   ///</summary>
-  private static DfyParseResult ParseFile(DafnyOptions options, string /*!*/ s, Uri /*!*/ uri, CancellationToken cancellationToken) {
+  private static DfyParseResult ParseFile(DafnyOptions options, string /*!*/ content, Uri /*!*/ uri, CancellationToken cancellationToken) {
     var batchErrorReporter = new BatchErrorReporter(options);
-    Parser parser = SetupParser(s, uri, batchErrorReporter, cancellationToken);
+    Parser parser = SetupParser(content, uri, batchErrorReporter, cancellationToken);
     parser.Parse();
 
     if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
@@ -289,7 +295,8 @@ public class ProgramParser {
     return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
-  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, ErrorReporter /*!*/ errorReporter, CancellationToken cancellationToken) {
+  private static Parser SetupParser(string s /*!*/, Uri uri /*!*/,
+    ErrorReporter errorReporter /*!*/, CancellationToken cancellationToken) {
     Contract.Requires(s != null);
     Contract.Requires(uri != null);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);

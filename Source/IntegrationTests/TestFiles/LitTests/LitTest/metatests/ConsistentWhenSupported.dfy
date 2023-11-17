@@ -12,7 +12,7 @@
 
 // New way:
 
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 iterator EmptyIterator() yields (r: bool) 
   ensures false

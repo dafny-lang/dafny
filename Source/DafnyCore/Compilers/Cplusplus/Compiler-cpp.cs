@@ -55,7 +55,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RunAllTests,
       Feature.MethodSynthesis,
       Feature.UnicodeChars,
-      Feature.ConvertingValuesToStrings
+      Feature.ConvertingValuesToStrings,
+      Feature.BuiltinsInRuntime,
+      Feature.RuntimeCoverageReport
     };
 
     private List<DatatypeDecl> datatypeDecls = new();
@@ -118,10 +120,8 @@ namespace Microsoft.Dafny.Compilers {
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
 
-      var rt = wr.NewFile("DafnyRuntime.h");
-
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+        EmitRuntimeSource("DafnyRuntimeCpp", wr);
       }
 
     }
@@ -159,7 +159,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);

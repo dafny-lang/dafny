@@ -1,4 +1,4 @@
-namespace Microsoft.Dafny.Compilers; 
+namespace Microsoft.Dafny.Compilers;
 
 public class WrapException {
 

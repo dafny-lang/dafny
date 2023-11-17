@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // A Dafny rendition of an F* version of QuickSort (included at the bottom of this file).
 // Unlike the F* version, Dafny also proves termination and does not use any axioms.  However,
