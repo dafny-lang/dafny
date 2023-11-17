@@ -20,18 +20,14 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate Compilation CreateCompilation(
-  DafnyOptions options,
   ExecutionEngine boogieEngine,
   CompilationInput compilation);
 
 /// <summary>
-/// The compilation of a single document version.
-/// The document will be parsed, resolved, translated to Boogie and verified.
+/// The compilation of a single version of a program
+/// After calling Start, the document will be parsed and resolved.
 ///
-/// Compilation may be configured to pause after translation,
-/// requiring a call to Compilation.VerifySymbol for the document to be verified.
-///
-/// Compilation is agnostic to document updates, it does not handle the migration of old document state.
+/// To verify a symbol, VerifySymbol must be called.
 /// </summary>
 public class Compilation : IDisposable {
 
@@ -55,7 +51,7 @@ public class Compilation : IDisposable {
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, IImplementationTask>> implementationsPerVerifiable = new();
 
-  private readonly DafnyOptions options;
+  private DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
   public DafnyProject Project => Input.Project;
   private readonly ExecutionEngine boogieEngine;
@@ -79,11 +75,9 @@ public class Compilation : IDisposable {
     IFileSystem fileSystem,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    DafnyOptions options,
     ExecutionEngine boogieEngine,
     CompilationInput input
     ) {
-    this.options = options;
     Input = input;
     this.boogieEngine = boogieEngine;
 
@@ -92,7 +86,7 @@ public class Compilation : IDisposable {
     this.fileSystem = fileSystem;
     this.verifier = verifier;
 
-    errorReporter = new ObservableErrorReporter(options, Project.Uri);
+    errorReporter = new ObservableErrorReporter(Options, Project.Uri);
     errorReporter.Updates.Subscribe(updates);
     staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
       staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
@@ -118,26 +112,26 @@ public class Compilation : IDisposable {
   private IReadOnlyList<DafnyFile> DetermineRootFiles() {
     var result = new List<DafnyFile>();
 
-    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(options.CliRootSourceUris)) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, uri, Project.StartingToken);
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem).Concat(Options.CliRootSourceUris)) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
     }
-    if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-      if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
-        var targetName = options.CompilerName ?? "notarget";
+    if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
-        options.CliRootSourceUris.Add(stdlibDooUri);
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, options, stdlibDooUri));
+        Options.CliRootSourceUris.Add(stdlibDooUri);
+        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri));
       }
 
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesDooUri));
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, DafnyMain.StandardLibrariesArithmeticDooUri));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri));
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesArithmeticDooUri));
     }
 
-    foreach (var library in options.Get(CommonOptionBag.Libraries)) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, options, new Uri(library.FullName), Project.StartingToken);
+    foreach (var library in Options.Get(CommonOptionBag.Libraries)) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library.FullName), Project.StartingToken);
       if (file != null) {
         file.IsPreverified = true;
         file.IsPrecompiled = true;
@@ -379,7 +373,7 @@ public class Compilation : IDisposable {
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
+    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     if (boogieStatus is Completed completed) {

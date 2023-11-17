@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
         CustomStackSizePoolTaskScheduler.Create(0, 0));
       var compilation = new Compilation(new Mock<ILogger<Compilation>>().Object, new Mock<IFileSystem>().Object, textDocumentLoader,
-        new Mock<IProgramVerifier>().Object, DafnyOptions.Default, engine, input);
+        new Mock<IProgramVerifier>().Object, engine, input);
       compilation.RootFiles = new[] { file };
       return compilation;
     }

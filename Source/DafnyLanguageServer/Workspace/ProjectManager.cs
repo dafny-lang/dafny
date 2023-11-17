@@ -107,12 +107,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
-    var initialCompilation = new CompilationInput(options, version, Project);
-    var initialIdeState = initialCompilation.InitialIdeState(options);
+    var compilationInput = new CompilationInput(options, version, Project);
+    var initialIdeState = compilationInput.InitialIdeState(options);
     latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
-    Compilation = createCompilation(options, boogieEngine, initialCompilation);
+    Compilation = createCompilation(boogieEngine, compilationInput);
 
     observerSubscription = Disposable.Empty;
   }
@@ -161,10 +161,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     Compilation.Dispose();
     var input = new CompilationInput(options, version, Project);
-    Compilation = createCompilation(
-      options,
-      boogieEngine,
-      input);
+    Compilation = createCompilation(boogieEngine, input);
     var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =

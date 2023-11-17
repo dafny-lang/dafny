@@ -17,7 +17,6 @@ public class CompilationManagerTest {
       new Mock<IFileSystem>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
-      dafnyOptions,
       null, new CompilationInput(dafnyOptions, 0,
         new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }));
     compilationManager.CancelPendingUpdates();

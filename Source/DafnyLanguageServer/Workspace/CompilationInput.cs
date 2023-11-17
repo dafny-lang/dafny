@@ -11,22 +11,14 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
-
   /// <summary>
-  /// Internal representation of a specific version of a Dafny document.
-  ///
-  /// Only one instance should exist of a specific version.
-  /// Asynchronous compilation tasks use this instance to synchronise on.
-  ///
-  /// When verification starts, no new instances of Compilation will be created for this version.
-  /// There can be different verification threads that update the state of this object.
+  /// Contains all the inputs of a Compilation
   /// </summary>
   public class CompilationInput {
 
     public override string ToString() {
       return $"URI: {Uri}, Version: {Version}";
     }
-
 
     public int Version { get; }
     public DafnyOptions Options { get; }
