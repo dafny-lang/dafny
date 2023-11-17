@@ -1946,8 +1946,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             name = "extern";
           }
 
-          if (name == "rlimit" && parms.Count > 0 && parms[0] is Boogie.LiteralExpr litExpr && litExpr.isBigNum) {
-            parms[0] = new Boogie.LiteralExpr(litExpr.tok, litExpr.asBigNum * BigNum.FromInt(1000), litExpr.Immutable);
+          // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
+          // derived from command-line rlimit settings.
+          if (!hasNewRLimit && name == "rlimit" && parms.Count > 0 && parms[0] is Boogie.LiteralExpr litExpr && litExpr.isBigNum) {
+            parms[0] = new Boogie.LiteralExpr(
+              litExpr.tok,
+              BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
+              litExpr.Immutable);
           }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
