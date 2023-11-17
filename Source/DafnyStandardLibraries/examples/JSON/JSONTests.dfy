@@ -32,7 +32,7 @@ abstract module Wrapper {
   method {:test} TestStrings(vectors: seq<string>) {
     for i := 0 to |vectors| {
       var input := vectors[i];
-      var idx := Str.OfInt(i);
+      var idx := Strings.OfInt(i);
       var indent := seq(|idx| + 1, _ => ' ');
       print "[", idx, "]: ", input, "\n";
       TestString(input, indent);
