@@ -1,1 +1,1 @@
-Introduce placeholder modules, which can be used to help define Dafny applications that translate to multiple target languages.
+Introduce replaceable modules, which can be used to help define Dafny applications that translate to multiple target languages.

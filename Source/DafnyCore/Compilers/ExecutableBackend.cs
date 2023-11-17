@@ -40,7 +40,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
           Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
-            "A replaceable module may only be replaced once.");
+            "a replaceable module may only be replaced once.");
         } else {
           target.Replacement = compiledModule.Replacement ?? compiledModule;
         }
@@ -48,7 +48,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
       if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
         Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-          "When producing executable code, replaceable modules must be replaced somewhere in the program");
+          $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
       }
     }
   }

@@ -63,7 +63,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public Implements Implements; // full qualified ID of the refinement parent, null if no refinement base
+  public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)

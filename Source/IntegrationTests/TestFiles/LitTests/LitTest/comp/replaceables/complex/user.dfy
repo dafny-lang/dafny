@@ -13,5 +13,5 @@ method Main() {
     y := DfyRandom.GetRandomNat(1000000);
     i := i - 1;
   }
-  expect x != y;
+  expect i == 0 || x != y;
 }

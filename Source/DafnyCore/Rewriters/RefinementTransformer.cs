@@ -194,7 +194,7 @@ namespace Microsoft.Dafny {
         var refinementTarget = m.Implements.Target;
         if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
           Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Tok,
-            "It is not possible to refine a replaceable module");
+            "replaceable module cannot be refined");
 
           return;
         }
