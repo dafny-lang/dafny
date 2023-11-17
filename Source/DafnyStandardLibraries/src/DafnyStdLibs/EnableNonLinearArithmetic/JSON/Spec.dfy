@@ -20,8 +20,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   type Result<+T> = SerializationResult<T>
 
   function EscapeUnicode(c: uint16): seq<uint16> {
-    assume {:axiom} false; // BUG due to lost generalisation in String library: would like to call OfNat(c as nat, 16) below
-    var sStr := OfNat(c as nat);
+    var sStr := Strings.HexConversion.OfNat(c as nat);
     Seqs.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
     var s := ASCIIToUTF16(sStr);
     assert |s| <= 4 by {
