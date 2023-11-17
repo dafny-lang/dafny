@@ -33,9 +33,8 @@ public class CachingParser : ProgramParser {
 
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
     var uriBytes = Encoding.UTF8.GetBytes(uri + "\0");
-    var startingBytes = new[] { Convert.ToByte(parseAsDooFile) }.Concat(uriBytes).ToArray();
 
-    var (newReader, hash) = ComputeHashFromReader(startingBytes, reader, HashAlgorithm.Create("SHA256")!);
+    var (newReader, hash) = ComputeHashFromReader(uriBytes, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
       result = base.ParseFile(options, () => newReader, uri, cancellationToken);
