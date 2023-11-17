@@ -14,7 +14,7 @@ track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
 library = [
-  "../binaries/DafnyStandardLibraries-arithmetic.doo"
+  "../../../binaries/DafnyStandardLibraries-arithmetic.doo"
 ]
 
 # Options important for sustainable development
