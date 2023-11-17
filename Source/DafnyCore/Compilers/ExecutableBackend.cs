@@ -41,7 +41,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
           Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
-            "a replaceable module may only be replaced once.");
+            "a replaceable module may only be replaced once");
         } else {
           target.Replacement = compiledModule.Replacement ?? compiledModule;
         }
