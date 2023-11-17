@@ -220,7 +220,7 @@ public class DooFile {
     options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
-  
+
   /// Checks that the library option ==> the local option.
   /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
   /// Generally the right check for options that weaken guarantees.
