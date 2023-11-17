@@ -25,30 +25,32 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_ARITHMETIC_SOURCE} -d build/current-arithmetic
 	unzip -o ${DOO_FILE_ARITHMETIC_TARGET} -d build/rebuilt-arithmetic
 	diff build/current-arithmetic build/rebuilt-arithmetic
+	make -C src/DafnyStdLibs/TargetSpecific check-binary-all
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
+	make -C src/DafnyStdLibs/TargetSpecific update-binary-all
+# Rebuild Dafny to pick up the new embedded assets
+	dotnet build ../Dafny.sln
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
 # with deeper coverage of module functionality.
-build-examples:
-	$(DAFNY) build -t:lib examples/dfyconfig.toml --output:build/stdlibexamples.doo
 
-test-cs: build-examples
+test-cs:
 	$(DAFNY) test -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
 
-test-java: build-examples
+test-java:
 	$(DAFNY) test -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
 
-test-go: build-examples
+test-go:
 	$(DAFNY) test -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
 
-test-py: build-examples
+test-py:
 	$(DAFNY) test -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
 
-test-js: build-examples
+test-js:
 	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
 
 test: test-cs test-java test-go test-py test-js

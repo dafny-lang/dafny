@@ -62,6 +62,9 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimePython", wr);
       }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_py", wr);
+      }
 
       Imports.Add(DafnyRuntimeModule);
       EmitImports(null, wr);
