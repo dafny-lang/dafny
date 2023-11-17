@@ -1,11 +1,9 @@
-using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -15,9 +13,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
-  /// <summary>
-  /// Previously this could cause two project managers for the same project to be created.
-  /// </summary>
   [Fact]
   public async Task ProducerLibrary() {
     var libraryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -26,7 +21,7 @@ module Producer {
   const x := 3
 }".TrimStart();
     Directory.CreateDirectory(libraryDirectory);
-    var producerPath = Path.Combine(libraryDirectory, "producer.dfy");
+    var producerPath = Path.Combine(libraryDirectory, "producer.dfy").Replace("\\", "/");
     await File.WriteAllTextAsync(producerPath, producerSource);
     var consumerSource = @"
 module Consumer {
