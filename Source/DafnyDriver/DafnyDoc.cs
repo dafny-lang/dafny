@@ -59,10 +59,8 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
-      return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(name)))).ToList();
-    })).ToList();
+    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
     await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;

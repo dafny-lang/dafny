@@ -7,10 +7,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// of a <see cref="CompilationInput"/> to the LSP client.
   /// </summary>
   public interface INotificationPublisher {
-    /// <summary>
-    /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
-    /// </summary>
-    /// <param name="state">The document whose diagnostics should be published.</param>
-    Task PublishNotifications(IdeState previousState, IdeState state);
+    void PublishNotifications(IdeState previousState, IdeState state);
   }
 }

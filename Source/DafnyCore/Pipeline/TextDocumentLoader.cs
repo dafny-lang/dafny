@@ -1,12 +1,9 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -22,56 +19,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILogger<ITextDocumentLoader> logger;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
-    private readonly ISymbolTableFactory symbolTableFactory;
-    private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
     protected TextDocumentLoader(
       ILogger<ITextDocumentLoader> documentLoader,
       IDafnyParser parser,
-      ISymbolResolver symbolResolver,
-      ISymbolTableFactory symbolTableFactory,
-      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector) {
+      ISymbolResolver symbolResolver) {
       this.logger = documentLoader;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
-      this.symbolTableFactory = symbolTableFactory;
-      this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
     }
 
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      ISymbolTableFactory symbolTableFactory,
-      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ILogger<ITextDocumentLoader> logger
       ) {
-      return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
+      return new TextDocumentLoader(logger, parser, symbolResolver);
     }
 
-    public async Task<Program> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation, CancellationToken cancellationToken) {
+    public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ParseInternal(errorReporter, compilation, cancellationToken), cancellationToken
+        async () => parser.Parse(compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
-    }
-
-    private Program ParseInternal(ErrorReporter errorReporter, CompilationInput compilation,
-      CancellationToken cancellationToken) {
-      var program = parser.Parse(compilation, errorReporter, cancellationToken);
-      compilation.Project.Errors.CopyDiagnostics(program.Reporter);
-      var projectPath = compilation.Project.Uri.LocalPath;
-      if (projectPath.EndsWith(DafnyProject.FileName)) {
-        var projectDirectory = Path.GetDirectoryName(projectPath)!;
-        var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
-        if (filesMessage.Any()) {
-          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
-        } else {
-          program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
-        }
-      }
-
-      return program;
     }
 
     public async Task<ResolutionResult> ResolveAsync(CompilationInput input,

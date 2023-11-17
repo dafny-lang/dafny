@@ -25,8 +25,8 @@ module Base64Examples {
   }
 
   method {:test} TestRoundTripMedium() {
-    var medUints := seq(512, _ => 22);
-    var medBytes := seq(512, _ => 22);
+    var medUints := seq(512, i => (i % 256) as uint8);
+    var medBytes := seq(512, i => (i % 256) as bv8);
     CheckEncodeDecode(medUints, medBytes);
   }
 

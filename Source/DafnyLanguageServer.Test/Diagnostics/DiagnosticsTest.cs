@@ -97,7 +97,7 @@ module Consumer {
       var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint);
+      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint, allowStale: true);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
       await AssertNoDiagnosticsAreComing(CancellationToken, producer);
@@ -718,7 +718,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal("Project", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);

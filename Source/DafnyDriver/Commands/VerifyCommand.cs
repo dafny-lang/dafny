@@ -19,7 +19,7 @@ public static class VerifyCommand {
         options.TrackVerificationCoverage = true;
       }
       options.Compile = false;
-      return CompilerDriver.RunCompiler(options);
+      return DafnyCli.RunCompiler(options);
     });
     return result;
   }
@@ -43,7 +43,7 @@ static class ResolveCommand {
     DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
-      return CompilerDriver.RunCompiler(options);
+      return DafnyCli.RunCompiler(options);
     });
     return result;
   }

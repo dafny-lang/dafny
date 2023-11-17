@@ -330,7 +330,7 @@ method Bar() {
     var consumer3 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
-    Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
+    Assert.Contains("not found", consumer3Diagnostics[0].Message);
   }
 
   public MultipleFilesProjectTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {

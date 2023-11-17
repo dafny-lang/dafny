@@ -48,7 +48,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       );
     }
 
-
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = new Dictionary<AstElement, ILocalizableSymbol>();
       foreach (var symbol in compilationUnit.GetAllDescendantsAndSelf()) {

@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DafnyCore;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
@@ -90,6 +92,13 @@ public class ProgramParser {
 
     if (errorReporter.ErrorCount == 0) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+
+      // Capture the original program text before resolution
+      // if we're building a .doo file.
+      // See comment on LibraryBackend.DooFile.
+      if (program.Options.Backend is LibraryBackend libBackend) {
+        libBackend.DooFile = new DooFile(program);
+      }
     }
 
     ShowWarningsForIncludeCycles(program);
@@ -247,13 +256,7 @@ public class ProgramParser {
   }
 
   private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    try {
-      return new DafnyFile(fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
-    } catch (IllegalDafnyFile) {
-      errorReporter.Error(MessageSource.Parser, include.tok,
-        $"Unable to open the include {include.IncludedFilename}.");
-      return null;
-    }
+    return DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
   }
 
   ///<summary>
@@ -309,7 +312,8 @@ public class ProgramParser {
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-    var files = new[] { new DafnyFile(fs, reporter.Options, uri) };
+    var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+    var files = file == null ? Array.Empty<DafnyFile>() : new[] { file };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

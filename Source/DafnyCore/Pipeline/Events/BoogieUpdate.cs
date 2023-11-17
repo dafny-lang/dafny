@@ -11,7 +11,7 @@ using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public record BoogieUpdate(ICanVerify CanVerify, IImplementationTask Task, IVerificationStatus BoogieStatus)
+public record BoogieUpdate(ICanVerify CanVerify, IImplementationTask ImplementationTask, IVerificationStatus BoogieStatus)
   : ICompilationEvent {
 
 }

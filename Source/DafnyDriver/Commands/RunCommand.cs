@@ -59,7 +59,7 @@ public static class RunCommand {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return CompilerDriver.RunCompiler(options);
+      return DafnyCli.RunCompiler(options);
     });
     return result;
   }

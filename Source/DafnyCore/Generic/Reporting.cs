@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
+    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);
@@ -66,13 +66,13 @@ namespace Microsoft.Dafny {
           errorLine += "\n";
         }
 
+        Options.OutputWriter.Write(errorLine);
+
         if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok != Token.NoToken) {
           TextWriter tw = new StringWriter();
           new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
           Options.OutputWriter.Write(tw.ToString());
         }
-
-        Options.OutputWriter.Write(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = previousColor;

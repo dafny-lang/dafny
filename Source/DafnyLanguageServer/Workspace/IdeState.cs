@@ -29,6 +29,7 @@ public record IdeVerificationResult(VerificationPreparationState PreparationProg
 /// </summary>
 public record IdeState(
   int Version,
+  ISet<Uri> OwnedUris,
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
@@ -54,7 +55,9 @@ public record IdeState(
 
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
-    return new IdeState(input.Version, input, CompilationStatus.Parsing,
+    return new IdeState(input.Version, ImmutableHashSet<Uri>.Empty,
+      input,
+      CompilationStatus.Parsing,
       program,
       ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
       program,
@@ -62,19 +65,22 @@ public record IdeState(
       LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
       Array.Empty<Counterexample>(),
       ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      input.RootUris.ToImmutableDictionary(uri => uri, uri => new DocumentVerificationTree(program, uri))
+      ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
     );
   }
 
   public const string OutdatedPrefix = "Outdated: ";
 
-  public IdeState Migrate(DafnyOptions options, Migrator migrator, int version) {
+  public IdeState Migrate(DafnyOptions options, Migrator migrator, int newVersion, bool clientSide) {
     var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
 
+    var verificationResults = clientSide
+      ? VerificationResults
+      : MigrateImplementationViews(migrator, VerificationResults);
     return this with {
-      Version = version,
+      Version = newVersion,
       Status = CompilationStatus.Parsing,
       VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -156,8 +162,10 @@ public record IdeState(
     return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 
-  public IdeState UpdateState(DafnyOptions options, ILogger logger, ICompilationEvent e) {
+  public async Task<IdeState> UpdateState(DafnyOptions options, ILogger logger, IProjectDatabase projectDatabase, ICompilationEvent e) {
     switch (e) {
+      case DeterminedRootFiles determinedRootFiles:
+        return await UpdateDeterminedRootFiles(options, logger, projectDatabase, determinedRootFiles);
       case BoogieUpdate boogieUpdate:
         return UpdateBoogieUpdate(options, logger, boogieUpdate);
       case CanVerifyPartsIdentified canVerifyPartsIdentified:
@@ -175,6 +183,34 @@ public record IdeState(
       default:
         throw new ArgumentOutOfRangeException(nameof(e));
     }
+  }
+
+  private async Task<IdeState> UpdateDeterminedRootFiles(DafnyOptions options, ILogger logger,
+    IProjectDatabase projectDatabase, DeterminedRootFiles determinedRootFiles) {
+
+    var errors = determinedRootFiles.Diagnostics.Values.SelectMany(x => x).
+      Where(d => d.Severity == DiagnosticSeverity.Error);
+    var status = errors.Any() ? CompilationStatus.ParsingFailed : this.Status;
+
+    var ownedUris = new HashSet<Uri>();
+    foreach (var file in determinedRootFiles.Roots) {
+      var uriProject = await projectDatabase.GetProject(file.Uri);
+      var ownedUri = uriProject.Equals(determinedRootFiles.Project);
+      if (ownedUri) {
+        ownedUris.Add(file.Uri);
+      }
+    }
+    ownedUris.Add(determinedRootFiles.Project.Uri);
+
+    return this with {
+      OwnedUris = ownedUris,
+      StaticDiagnostics = status == CompilationStatus.ParsingFailed ? determinedRootFiles.Diagnostics : this.StaticDiagnostics,
+      Status = status,
+      VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
+        file => file.Uri,
+        file => this.VerificationTrees.GetValueOrDefault(file.Uri) ??
+                new DocumentVerificationTree(this.Program, file.Uri))
+    };
   }
 
   private IdeState UpdateScheduledVerification(ScheduledVerification scheduledVerification) {
@@ -368,7 +404,7 @@ public record IdeState(
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);
 
-    var name = Compilation.GetImplementationName(boogieUpdate.Task.Implementation);
+    var name = Compilation.GetImplementationName(boogieUpdate.ImplementationTask.Implementation);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
     var uri = boogieUpdate.CanVerify.Tok.Uri;
     var range = boogieUpdate.CanVerify.NameToken.GetLspRange();
@@ -390,7 +426,7 @@ public record IdeState(
       counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
       hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       var newDiagnostics =
-        GetDiagnosticsFromResult(options, previousState, boogieUpdate.Task, batchCompleted.VcResult).ToArray();
+        GetDiagnosticsFromResult(options, previousState, boogieUpdate.ImplementationTask, batchCompleted.VcResult).ToArray();
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
       logger.LogTrace(
         $"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
@@ -410,16 +446,16 @@ public record IdeState(
   private void UpdateGutterIconTrees(BoogieUpdate update, DafnyOptions options, ILogger logger) {
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
     if (update.BoogieStatus is Running) {
-      gutterIconManager.ReportVerifyImplementationRunning(this, update.Task.Implementation);
+      gutterIconManager.ReportVerifyImplementationRunning(this, update.ImplementationTask.Implementation);
     }
 
     if (update.BoogieStatus is BatchCompleted batchCompleted) {
       gutterIconManager.ReportAssertionBatchResult(this,
-        new AssertionBatchResult(update.Task.Implementation, batchCompleted.VcResult));
+        new AssertionBatchResult(update.ImplementationTask.Implementation, batchCompleted.VcResult));
     }
 
     if (update.BoogieStatus is Completed completed) {
-      var tokenString = BoogieGenerator.ToDafnyToken(true, update.Task.Implementation.tok).TokenToString(options);
+      var tokenString = BoogieGenerator.ToDafnyToken(true, update.ImplementationTask.Implementation.tok).TokenToString(options);
       var verificationResult = completed.Result;
       // Sometimes, the boogie status is set as Completed
       // but the assertion batches were not reported yet.
@@ -430,10 +466,10 @@ public record IdeState(
         logger.LogDebug(
           $"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {this.Version}");
         gutterIconManager.ReportAssertionBatchResult(this,
-          new AssertionBatchResult(update.Task.Implementation, result));
+          new AssertionBatchResult(update.ImplementationTask.Implementation, result));
       }
 
-      gutterIconManager.ReportEndVerifyImplementation(this, update.Task.Implementation, verificationResult);
+      gutterIconManager.ReportEndVerifyImplementation(this, update.ImplementationTask.Implementation, verificationResult);
     }
   }
 

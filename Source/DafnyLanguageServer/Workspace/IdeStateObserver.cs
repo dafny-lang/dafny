@@ -37,9 +37,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     var ideState = initialState with {
       Version = LastPublishedState.Version + 1
     };
-#pragma warning disable VSTHRD002
-    notificationPublisher.PublishNotifications(LastPublishedState, ideState).Wait();
-#pragma warning restore VSTHRD002
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
@@ -52,11 +50,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
         return;
       }
 
-      // To prevent older updates from being sent after newer ones, we can only run one PublishNotifications at a time.
-      // So we wait for it here to finish, and the lock in this method prevents more than one from running at a time.
-#pragma warning disable VSTHRD002
-      notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
-#pragma warning restore VSTHRD002
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
       logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
     }
@@ -64,7 +58,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
 
   public void Migrate(DafnyOptions options, Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
-      LastPublishedState = LastPublishedState.Migrate(options, migrator, version);
+      LastPublishedState = LastPublishedState.Migrate(options, migrator, version, true);
       logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }

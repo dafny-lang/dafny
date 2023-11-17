@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             var uri = new Uri(Path.GetFullPath(f));
-            snapshots.Add(new DafnyFile(OnDiskFileSystem.Instance, options, uri));
+            snapshots.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli));
             options.CliRootSourceUris.Add(uri);
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, depManager, false, programId);
