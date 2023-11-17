@@ -11,7 +11,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
   import Math
   import opened Wrappers
   import opened BoundedInts
-  import opened Utils.Str
+  import opened Strings
   import Values
   import Spec
   import opened Errors
@@ -45,23 +45,25 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
     View.OfBytes(if n < 0 then ['-' as byte] else [])
   }
 
-  module ByteStrConversion refines Str.ParametricConversion {
+  module ByteStrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
+
     type Char = uint8
+
+    const chars := [
+      '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
+      '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
+      '8' as uint8, '9' as uint8
+    ]
   }
 
-  const DIGITS := [
-    '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
-    '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
-    '8' as uint8, '9' as uint8
-  ]
-
+  const DIGITS := ByteStrConversion.chars
   const MINUS := '-' as uint8
 
   function Int'(n: int): (str: bytes)
     ensures forall c | c in str :: c in DIGITS || c == MINUS
   {
-    ByteStrConversion.OfInt_any(n, DIGITS, MINUS)
+    ByteStrConversion.OfInt(n, MINUS)
   }
 
   function Int(n: int): Result<View> {

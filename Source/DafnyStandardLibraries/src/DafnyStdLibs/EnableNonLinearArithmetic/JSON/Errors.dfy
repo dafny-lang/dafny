@@ -9,7 +9,7 @@
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Errors {
   import Wrappers
   import opened BoundedInts
-  import Utils.Str
+  import Strings
 
   datatype DeserializationError =
     | UnterminatedSequence
@@ -52,7 +52,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Errors {
     function ToString() : string {
       match this
       case OutOfMemory => "Out of memory"
-      case IntTooLarge(i: int) => "Integer too large: " + Str.OfInt(i)
+      case IntTooLarge(i: int) => "Integer too large: " + Strings.OfInt(i)
       case StringTooLong(s: string) => "String too long: " + s
       case InvalidUnicode => "Invalid Unicode sequence"
     }

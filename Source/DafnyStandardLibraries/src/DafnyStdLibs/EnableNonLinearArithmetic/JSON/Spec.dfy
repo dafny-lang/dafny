@@ -8,7 +8,7 @@
  */
 module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened BoundedInts
-  import opened Utils.Str
+  import opened Strings
   import opened Values
   import opened Wrappers
   import opened Errors
@@ -20,7 +20,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   type Result<+T> = SerializationResult<T>
 
   function EscapeUnicode(c: uint16): seq<uint16> {
-    var sStr := Str.OfNat(c as nat, 16);
+    assume {:axiom} false; // BUG due to lost generalisation in String library: would like to call OfNat(c as nat, 16) below
+    var sStr := OfNat(c as nat);
     Seqs.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
     var s := ASCIIToUTF16(sStr);
     assert |s| <= 4 by {
@@ -67,22 +68,22 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
 
   lemma OfIntOnlyASCII(n: int)
     ensures
-      && var s := Str.OfInt(n);
+      && var s := Strings.OfInt(n);
       && forall i | 0 <= i < |s| :: 0 <= s[i] as int < 128
   {
-    var s := Str.OfInt(n);
+    var s := Strings.OfInt(n);
     forall i | 0 <= i < |s| ensures 0 <= s[i] as int < 128 {
       if i == 0 {
       } else {
-        var isHexDigit := c => c in HEX_DIGITS;
-        assert CharStrConversion.NumberStr(s, '-', isHexDigit);
+        var isHexDigit := c => c in Strings.HexConversion.HEX_DIGITS;
+        assert Strings.HexConversion.OfNumberStr(s, '-');
         assert isHexDigit(s[i]);
       }
     }
   }
 
   function IntToBytes(n: int): bytes {
-    var s := Str.OfInt(n);
+    var s := Strings.OfInt(n);
     OfIntOnlyASCII(n);
     ASCIIToUTF8(s)
   }

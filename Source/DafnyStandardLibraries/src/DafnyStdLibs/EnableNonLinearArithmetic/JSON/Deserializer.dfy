@@ -12,7 +12,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
   import opened BoundedInts
   import opened Arithmetic.Logarithm
   import opened Arithmetic.Power
-  import opened Utils.Str
+  import opened Strings
   import opened Unicode.UnicodeStringsWithUnicodeChar
   import Values
   import Spec
@@ -30,26 +30,35 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
     UnsupportedEscape(FromUTF16Checked(code).GetOr("Couldn't decode UTF-16"))
   }
 
-  module Uint16StrConversion refines Str.ParametricConversion {
+  module Uint16StrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
 
     type Char = uint16
-  }
 
-  const HEX_TABLE_16: map<Uint16StrConversion.Char, nat> :=
+    const chars := [
+      '0' as uint16, '1' as uint16, '2' as uint16, '3' as uint16, '4' as uint16,
+      '5' as uint16, '6' as uint16, '7' as uint16, '8' as uint16, '9' as uint16,
+      'a' as uint16, 'b' as uint16, 'c' as uint16, 'd' as uint16, 'e' as uint16, 'f' as uint16,
+      'A' as uint16, 'B' as uint16, 'C' as uint16, 'D' as uint16, 'E' as uint16, 'F' as uint16
+    ]
+
+    const charToDigit :=
     map[
       '0' as uint16 := 0, '1' as uint16 := 1, '2' as uint16 := 2, '3' as uint16 := 3, '4' as uint16 := 4,
       '5' as uint16 := 5, '6' as uint16 := 6, '7' as uint16 := 7, '8' as uint16 := 8, '9' as uint16 := 9,
       'a' as uint16 := 0xA, 'b' as uint16 := 0xB, 'c' as uint16 := 0xC, 'd' as uint16 := 0xD, 'e' as uint16 := 0xE, 'f' as uint16 := 0xF,
       'A' as uint16 := 0xA, 'B' as uint16 := 0xB, 'C' as uint16 := 0xC, 'D' as uint16 := 0xD, 'E' as uint16 := 0xE, 'F' as uint16 := 0xF
     ]
+  }
 
-  function ToNat16(str: Uint16StrConversion.String): uint16
+  const HEX_TABLE_16 := Uint16StrConversion.charToDigit
+
+  function {:vcs_split_on_every_assert} {:rlimit 10000} ToNat16(str: Uint16StrConversion.String): uint16
     requires |str| <= 4
     requires forall c | c in str :: c in HEX_TABLE_16
   {
-    Uint16StrConversion.ToNat_bound(str, 16, HEX_TABLE_16);
-    var hd := Uint16StrConversion.ToNat_any(str, 16, HEX_TABLE_16);
+    Uint16StrConversion.ToNatBound(str);
+    var hd := Uint16StrConversion.ToNat(str);
     assert hd < 0x1_0000 by { reveal Pow(); }
     hd as uint16
   }
@@ -98,22 +107,30 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
     FromUTF16Checked(unescaped).ToResult(DeserializationError.InvalidUnicode)
   }
 
-  module ByteStrConversion refines Str.ParametricConversion {
+  module ByteStrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
-    type Char = byte
-  }
 
-  const DIGITS :=
-    map[
+    type Char = byte
+
+    const chars := [
+      '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
+      '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
+      '8' as uint8, '9' as uint8
+    ]
+
+    const charToDigit := map[
       '0' as uint8 := 0, '1' as uint8 := 1, '2' as uint8 := 2, '3' as uint8 := 3,
       '4' as uint8 := 4, '5' as uint8 := 5, '6' as uint8 := 6, '7' as uint8 := 7,
       '8' as uint8 := 8, '9' as uint8 := 9
     ]
+  }
+
+  const DIGITS := ByteStrConversion.charToDigit
 
   const MINUS := '-' as uint8
 
   function ToInt(sign: jsign, n: jnum): DeserializationResult<int> {
-    var n: int := ByteStrConversion.ToNat_any(n.Bytes(), 10, DIGITS);
+    var n: int := ByteStrConversion.ToNat(n.Bytes());
     Success(if sign.Char?('-') then -n else n)
   }
 
