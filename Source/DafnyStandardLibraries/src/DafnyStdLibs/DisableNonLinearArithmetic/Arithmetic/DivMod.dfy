@@ -7,7 +7,7 @@
  *******************************************************************************/
 
 /* Every lemma comes in 2 forms: 'LemmaProperty' and 'LemmaPropertyAuto'. The
-former takes arguments and may be emore stable and less reliant on Z3
+former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort*/
 
 module DafnyStdLibs.Arithmetic.DivMod {
