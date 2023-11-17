@@ -48,7 +48,7 @@ method Bar() {
     await client.OpenDocumentAndWaitAsync(consumer3, CancellationToken);
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
-    Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
+    Assert.Contains("not found", consumer3Diagnostics[0].Message);
   }
 
   public MultipleFilesNoProjectTest(ITestOutputHelper output) : base(output) {
