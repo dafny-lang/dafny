@@ -2687,6 +2687,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("var ");
           PrintCasePattern(e.Lhs);
           wr.Write(" :- ");
+        } else {
+          wr.Write(":- ");
         }
         PrintExpression(e.Rhs, true);
         wr.Write("; ");
