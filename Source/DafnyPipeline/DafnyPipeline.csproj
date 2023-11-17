@@ -32,6 +32,51 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-notarget.doo">
+      <LogicalName>DafnyStandardLibraries-notarget.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-java.doo">
+      <LogicalName>DafnyStandardLibraries-java.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-cs.doo">
+      <LogicalName>DafnyStandardLibraries-cs.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-js.doo">
+      <LogicalName>DafnyStandardLibraries-js.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-go.doo">
+      <LogicalName>DafnyStandardLibraries-go.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-py.doo">
+      <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
+      <LinkBase>DafnyStandardLibraries_cs</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.java">
+      <LinkBase>DafnyStandardLibraries_java</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.js">
+      <LinkBase>DafnyStandardLibraries_js</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.go">
+      <LinkBase>DafnyStandardLibraries_go</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.py">
+      <LinkBase>DafnyStandardLibraries_py</LinkBase>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

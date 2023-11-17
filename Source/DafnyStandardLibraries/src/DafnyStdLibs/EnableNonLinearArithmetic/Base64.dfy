@@ -1449,7 +1449,7 @@ module DafnyStdLibs.Base64 {
     seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
   }
 
-  lemma {:rlimit 1000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
+  lemma {:vcs_split_on_every_assert} {:rlimit 1000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
     // TODO: reduce resource use

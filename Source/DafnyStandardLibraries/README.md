@@ -30,6 +30,13 @@ When using this option with commands like `dafny translate`, `dafny build`, or `
 the contents of the standard libraries will be automatically included in the translated source code as well.
 We do not yet provide any separately-compiled artifacts with this code.
 
+Some libraries are dependent on target language utilities, such as `FileIO`.
+When `--standard-libraries` is on,
+the translation process will also include some additional supporting target language source files,
+just as the runtime source is emitted unless `--include-runtime` is off.
+These libraries may not be available for all supported languages,
+and are simply not defined when translating to those languages.
+
 Because the standard libraries are already pre-verified, `--standard-libraries` is not compatible with all options,
 since mixing and matching some options that affect verification across different components is not always safe.
 In particular, `--standard-libraries` currently cannot be used together with `--unicode-char:false`.
