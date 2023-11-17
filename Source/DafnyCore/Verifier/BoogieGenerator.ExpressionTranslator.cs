@@ -789,9 +789,13 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
-                    Boogie.Expr body = Boogie.Expr.Imp(oInSet, Boogie.Expr.And(oNotNull, oIsFresh));
-                    var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
-                    return new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, trigger, body);
+                    Boogie.Expr notNullBody = Boogie.Expr.Imp(oInSet, oNotNull);
+                    Boogie.Expr freshBody = Boogie.Expr.Imp(oInSet, oIsFresh);
+                    var notNullTrigger = BplTrigger(oNotNull);
+                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, notNullTrigger, notNullBody);
+                    var freshTrigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
+                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, freshTrigger, freshBody);
+                    return Boogie.Expr.And(notNullPred, freshPred);
                   } else if (eeType is SeqType) {
                     // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                     Boogie.Variable iVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$i", Boogie.Type.Int));
