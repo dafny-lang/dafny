@@ -18,7 +18,7 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
 /// The high-level API works with fairly simple datatype values that contain native Dafny
 /// strings:
 
-  method {:test} Test() {
+  method {:test} {:rlimit 100000} Test() {
 
 /// Use `API.Deserialize` to deserialize a byte string.
 ///
@@ -135,7 +135,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
 /// encoding: each node contains pointers to parts of a string, such that
 /// concatenating the fields of all nodes reconstructs the serialized value.
 
-  method {:test} Test() {
+  method {:test} {:rlimit 100000} Test() {
 
 /// The low-level API exposes the same functions and methods as the high-level
 /// one, but the type that they consume and produce is `Grammar.JSON` (defined

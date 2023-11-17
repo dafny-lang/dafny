@@ -1,6 +1,6 @@
 // TODO: Test for Java and other target languages too
 
-abstract module Wrapper {
+abstract module JSON.Tests.Wrapper {
   import DafnyStdLibs.Strings
   import opened DafnyStdLibs.BoundedInts
   import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
@@ -13,7 +13,7 @@ abstract module Wrapper {
   method Serialize(js: JSON) returns (bs: SerializationResult<bytes>)
   method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON)
 
-  method {:test} TestBytestring(bs: bytes, indent: string) {
+  method TestBytestring(bs: bytes, indent: string) {
     var js  :- expect Deserialize(bs);
     // print indent, "=> ", js, "\n";
     var bs'  :- expect Serialize(js);
@@ -24,12 +24,12 @@ abstract module Wrapper {
     Check(bs, js, bs', sbs', js');
   }
 
-  method {:test} TestString(str: string, indent: string) {
+  method TestString(str: string, indent: string) {
     var bs :- expect ToUTF8Checked(str);
     TestBytestring(bs, indent);
   }
 
-  method {:test} TestStrings(vectors: seq<string>) {
+  method TestStrings(vectors: seq<string>) {
     for i := 0 to |vectors| {
       var input := vectors[i];
       var idx := Strings.OfInt(i);
@@ -62,13 +62,13 @@ module JSON.Tests.ZeroCopyWrapper refines Wrapper {
     bs := Success(Spec.JSON(js));
   }
 
-  method {:test} Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
+  method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
     expect sbs' == bs' == bs;
     expect js' == js; // This doesn't hold in general, since the views could be different
   }
 }
 
-module AbstractSyntaxWrapper refines Wrapper {
+module JSON.Tests.AbstractSyntaxWrapper refines Wrapper {
   import opened DafnyStdLibs.Wrappers
   import DafnyStdLibs.JSON.Grammar
   import DafnyStdLibs.JSON.API
@@ -89,7 +89,7 @@ module AbstractSyntaxWrapper refines Wrapper {
     bs := Spec.JSON(js);
   }
 
-  method {:test} Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
+  method Check(bs: bytes, js: JSON, bs': bytes, sbs': bytes, js': JSON) {
     expect sbs' == bs'; // Serializing changes number representations, escapes, and spacing, so no == bs
     expect js' == js;
   }
@@ -128,7 +128,7 @@ module JSON.Tests {
     "\"" + Seqs.Repeat('a', 100_000) + "\""
   ]
 
-  method Main() {
+  method {:test} Main() {
     ZeroCopyWrapper.TestStrings(VECTORS);
     AbstractSyntaxWrapper.TestStrings(VECTORS);
   }
