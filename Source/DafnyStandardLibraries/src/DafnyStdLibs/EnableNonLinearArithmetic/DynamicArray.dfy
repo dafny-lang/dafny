@@ -95,7 +95,7 @@ module DafnyStdLibs.DynamicArray {
     method Ensure(reserved: nat, defaultValue: A)
       requires Valid?()
       ensures Valid?()
-      modifies `capacity, Repr
+      modifies Repr
       ensures size == old(size)
       ensures items == old(items)
       ensures fresh(Repr - old(Repr))
@@ -135,7 +135,7 @@ module DafnyStdLibs.DynamicArray {
     method PushFast(element: A)
       requires Valid?()
       requires size < capacity
-      modifies Repr, `size, `items
+      modifies Repr
       ensures Valid?()
       ensures fresh(Repr - old(Repr))
       ensures size == old(size) + 1

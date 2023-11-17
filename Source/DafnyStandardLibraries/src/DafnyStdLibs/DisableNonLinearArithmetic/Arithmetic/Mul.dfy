@@ -10,9 +10,6 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-// This include is necessary since Internals/*Nonlinear.dfy is subject to a separate toml file
-include "Internals/MulInternalsNonlinear.dfy"
-
 module DafnyStdLibs.Arithmetic.Mul {
 
   import MulINL = MulInternalsNonlinear
