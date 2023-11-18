@@ -781,7 +781,8 @@ namespace Microsoft.Dafny {
                   var freshLabel = ((FreshExpr)e).AtLabel;
                   var eeType = e.E.Type.NormalizeExpand();
                   if (eeType is SetType) {
-                    // generate:  (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> $o != null && !old($Heap)[$o,alloc])
+                    // generate:  (forall $o: ref :: { $o != null } X[Box($o)] ==> $o != null) &&
+                    //            (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> !old($Heap)[$o,alloc])
                     // OR, if X[Box($o)] is rewritten into smaller parts, use the less good trigger old($Heap)[$o,alloc]
                     Boogie.Variable oVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$o", predef.RefType));
                     Boogie.Expr o = new Boogie.IdentifierExpr(GetToken(opExpr), oVar);
