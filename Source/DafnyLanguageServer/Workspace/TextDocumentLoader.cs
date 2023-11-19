@@ -48,30 +48,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
     }
 
-    public async Task<Program> ParseAsync(ErrorReporter errorReporter, CompilationInput compilation, CancellationToken cancellationToken) {
+    public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ParseInternal(errorReporter, compilation, cancellationToken), cancellationToken
+        async () => parser.Parse(compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
-    }
-
-    private Program ParseInternal(ErrorReporter errorReporter, CompilationInput compilation,
-      CancellationToken cancellationToken) {
-      var program = parser.Parse(compilation, errorReporter, cancellationToken);
-      compilation.Project.Errors.CopyDiagnostics(program.Reporter);
-      var projectPath = compilation.Project.Uri.LocalPath;
-      if (projectPath.EndsWith(DafnyProject.FileName)) {
-        var projectDirectory = Path.GetDirectoryName(projectPath)!;
-        var filesMessage = string.Join("\n", compilation.RootUris.Select(uri => Path.GetRelativePath(projectDirectory, uri.LocalPath)));
-        if (filesMessage.Any()) {
-          program.Reporter.Info(MessageSource.Parser, compilation.Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
-        } else {
-          program.Reporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, compilation.Project.StartingToken, "Project references no files");
-        }
-      }
-
-      return program;
     }
 
     public async Task<ResolutionResult> ResolveAsync(CompilationInput input,
