@@ -35,7 +35,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Compiler.Compile(dafnyProgram, output);
   }
 
-  private void InstantiatePlaceholders(Program dafnyProgram) {
+  protected void InstantiatePlaceholders(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         var target = compiledModule.Implements.Target.Def;
@@ -54,7 +54,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  private void ProcessOuterModules(Program dafnyProgram) {
+  protected void ProcessOuterModules(Program dafnyProgram) {
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
     foreach (var outerModule in outerModules) {
