@@ -416,7 +416,6 @@ module DafnyStdLibs.Arithmetic.Power {
     requires e1 <= e2
     ensures Pow(b, e1) <= Pow(b, e2)
   {
-    assume {:axiom} false;
     reveal Pow();
     LemmaPowAuto();
     var f := e => 0 <= e ==> Pow(b, e1) <= Pow(b, e1 + e);
