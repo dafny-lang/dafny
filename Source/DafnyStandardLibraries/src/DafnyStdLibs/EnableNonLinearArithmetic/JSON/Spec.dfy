@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 /**
- XXX
+ Defines a high-level specification of a JSON serializer.
  */
 module DafnyStdLibs.JSON.Spec {
   import Collections.Seqs

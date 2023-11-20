@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 /**
- Defines a simple functional specification of a JSON serializer.
+ Defines a low-level specification of a JSON serializer.
  */
 module DafnyStdLibs.JSON.ConcreteSyntax.Spec {
   import Vs = Utils.Views.Core

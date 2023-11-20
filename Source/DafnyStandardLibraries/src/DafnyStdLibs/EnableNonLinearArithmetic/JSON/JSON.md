@@ -48,7 +48,7 @@ method Test(){
 
 ## What is verified?
 
-The zero-copy serializer is proved sound and complete against a simple functional specification found in [`ConcreteSyntax.Spec.dfy`](ConcreteSyntax.Spec.dfy). The low-level deserializer is proven sound, but not complete, against that same specification: if a value is deserialized successfully, then re-serializing recovers the original bytestring.
+The low-level (zero-copy) serializer is proven sound and complete against a simple functional specification found in [`ConcreteSyntax.Spec.dfy`](ConcreteSyntax.Spec.dfy). The high-level deserializer is proven sound, but not complete, against that same specification: if a value is deserialized successfully, then re-serializing recovers the original bytestring.
 
 ### Useful submodules
 
