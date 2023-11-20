@@ -2275,7 +2275,7 @@ and what information it produces about the verification process.
   future. For now, it takes precedence over `-arith`.)
 
   The behavior of `disable-nonlinear-arithmetic` can be turned on and off on a per-module basis 
-  by placing the attribute `{:disable-nonlinear-arithmetic}` after the module keyword.
+  by placing the attribute [`{:disable-nonlinear-arithmetic}`](#sec-disable-nonlinear-arithmetic) after the module keyword.
   The attribute optionally takes the value `false` to enable nonlinear arithmetic.
 
 * `--manual-lemma-induction` - diables automatic inducntion for lemmas

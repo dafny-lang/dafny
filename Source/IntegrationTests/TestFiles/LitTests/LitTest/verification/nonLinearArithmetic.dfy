@@ -1,4 +1,5 @@
 // RUN: ! %verify "%s" --disable-nonlinear-arithmetic --resource-limit 1000 > "%t"
+// RUN: ! %verify "%s" --resource-limit 1000 >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Power0 {
