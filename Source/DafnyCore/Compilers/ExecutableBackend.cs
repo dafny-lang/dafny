@@ -30,12 +30,12 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-    InstantiatePlaceholders(dafnyProgram);
+    InstantiateReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
     Compiler.Compile(dafnyProgram, output);
   }
 
-  protected void InstantiatePlaceholders(Program dafnyProgram) {
+  protected void InstantiateReplaceableModules(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         var target = compiledModule.Implements.Target.Def;
