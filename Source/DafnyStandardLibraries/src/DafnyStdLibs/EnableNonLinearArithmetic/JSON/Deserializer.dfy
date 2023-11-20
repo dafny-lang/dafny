@@ -6,7 +6,9 @@
 /**
  Implements high-level deserialization (utf-8 bytes to JSON values).
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
+module DafnyStdLibs.JSON.Deserializer {
+  import Values
+  import Spec
   import opened Collections.Seqs
   import opened Wrappers
   import opened BoundedInts
@@ -14,8 +16,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Deserializer {
   import opened Arithmetic.Power
   import opened Strings
   import opened Unicode.UnicodeStringsWithUnicodeChar
-  import Values
-  import Spec
   import opened Errors
   import opened DynamicArray
   import opened Grammar

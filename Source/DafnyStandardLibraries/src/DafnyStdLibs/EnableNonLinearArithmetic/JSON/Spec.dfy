@@ -6,7 +6,8 @@
 /**
  XXX
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
+module DafnyStdLibs.JSON.Spec {
+  import Collections.Seqs
   import opened BoundedInts
   import opened Strings
   import opened Values
@@ -14,7 +15,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
   import opened Errors
   import opened Unicode.UnicodeStringsWithUnicodeChar
   import opened Arithmetic.Logarithm
-  import Collections.Seqs
 
   type bytes = seq<uint8>
   type Result<+T> = SerializationResult<T>
@@ -40,7 +40,7 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Spec {
     else
       (match str[start]
        case 0x22 => ASCIIToUTF16("\\\"") // quotation mark
-       case 0x5C => ASCIIToUTF16("\\\\")  // reverse solidus
+       case 0x5C => ASCIIToUTF16("\\\\") // reverse solidus
        case 0x08 => ASCIIToUTF16("\\b")  // backspace
        case 0x0C => ASCIIToUTF16("\\f")  // form feed
        case 0x0A => ASCIIToUTF16("\\n")  // line feed

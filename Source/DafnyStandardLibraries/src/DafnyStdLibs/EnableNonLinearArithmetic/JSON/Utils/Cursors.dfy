@@ -6,7 +6,7 @@
 /**
  Implements slices augmented with an inner pointer tracking a position.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Cursors {
+module DafnyStdLibs.JSON.Utils.Cursors {
   import opened BoundedInts
   import opened Wrappers
   import opened Vs = Views.Core

@@ -6,7 +6,7 @@
 /**
  Implements slices over byte strings whose bounds are representable as `int32` native integers.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Utils.Views.Writers {
+module DafnyStdLibs.JSON.Utils.Views.Writers {
   import opened BoundedInts
   import opened Wrappers
   import opened Core

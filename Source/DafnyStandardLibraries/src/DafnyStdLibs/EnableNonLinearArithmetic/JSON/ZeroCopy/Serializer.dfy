@@ -8,16 +8,16 @@
  Proves that the serializer is sound and complete w.r.t. the functional specification
  defined in `ConcreteSyntax.Spec.dfy`.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
+module DafnyStdLibs.JSON.ZeroCopy.Serializer {
+  import ConcreteSyntax.Spec
+  import ConcreteSyntax.SpecProperties
   import opened BoundedInts
   import opened Wrappers
   import opened Seqs = Collections.Seqs
   import opened Errors
-  import ConcreteSyntax.Spec
-  import ConcreteSyntax.SpecProperties
   import opened Grammar
   import opened Utils.Views.Writers
-  import opened Vs = Utils.Views.Core // DISCUSS: Module naming convention?
+  import opened Vs = Utils.Views.Core
 
   method Serialize(js: JSON) returns (rbs: SerializationResult<array<byte>>)
     ensures rbs.Success? ==> fresh(rbs.value)
@@ -277,7 +277,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
   {}
 
   // FIXME refactor below to merge
-
   lemma BracketedToObject(obj: jobject)
     ensures Spec.Bracketed(obj, Spec.Member) == Spec.Object(obj)
   {
@@ -383,7 +382,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Serializer {
 
   // DISCUSS: Is there a way to avoid passing the ghost `v` around while
   // maintaining the termination argument?  Maybe the lambda for elements will be enough?
-
   ghost predicate SequenceSpecRequiresHelper<T>(v: Value, items: seq<T>,
                                                 spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
                                                 writer: Writer, item: T, wr: Writer)

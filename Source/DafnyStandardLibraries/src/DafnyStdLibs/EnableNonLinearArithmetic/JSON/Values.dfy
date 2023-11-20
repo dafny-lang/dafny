@@ -6,7 +6,7 @@
 /**
  Defines abstract datatype value trees that represent strings.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Values {
+module DafnyStdLibs.JSON.Values {
   datatype Decimal =
     Decimal(n: int, e10: int) // (n) * 10^(e10)
 

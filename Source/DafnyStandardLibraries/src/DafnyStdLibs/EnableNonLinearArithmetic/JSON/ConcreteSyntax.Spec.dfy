@@ -6,9 +6,9 @@
 /**
  Defines a simple functional specification of a JSON serializer.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.Spec {
-  import opened BoundedInts
+module DafnyStdLibs.JSON.ConcreteSyntax.Spec {
   import Vs = Utils.Views.Core
+  import opened BoundedInts
   import opened Grammar
 
   function View(v: Vs.View) : bytes {

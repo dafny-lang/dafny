@@ -9,7 +9,7 @@
  defined in `ConcreteSyntax.Spec`: if a value is deserialized successfully, then 
  re-serializing recovers the original bytestring.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
+module DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   module Core {
     import opened BoundedInts
     import opened Wrappers
@@ -501,20 +501,17 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   }
 
   module Values {
-    import opened BoundedInts
-    import opened Wrappers
-
-    import opened Grammar
-    import opened Utils.Cursors
-    import opened Core
-
     import Strings
     import Numbers
     import Objects
     import Arrays
     import Constants
-
     import ConcreteSyntax.SpecProperties
+    import opened BoundedInts
+    import opened Wrappers
+    import opened Grammar
+    import opened Utils.Cursors
+    import opened Core
 
     opaque function {:vcs_split_on_every_assert} Value(cs: FreshCursor) : (pr: ParseResult<Value>)
       decreases cs.Length(), 1
@@ -641,7 +638,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   module Constants {
     import opened BoundedInts
     import opened Wrappers
-
     import opened Grammar
     import opened Core
     import opened Utils.Cursors
@@ -659,7 +655,6 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   module Strings {
     import opened Wrappers
     import opened BoundedInts
-
     import opened Grammar
     import opened Utils.Cursors
     import opened LC = Utils.Lexers.Core
@@ -873,8 +868,8 @@ module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.Deserializer {
   }
 
   module ObjectParams refines SequenceParams {
-    import opened Wrappers
     import Strings
+    import opened Wrappers
 
     type TElement = jKeyValue
 

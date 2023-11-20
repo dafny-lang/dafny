@@ -8,13 +8,13 @@
  This API is more convenient to use, but it is unverified and less efficient. It produces abstract datatype 
  value trees that represent strings using Dafny's built-in `string` type.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.API {
-  import opened BoundedInts
-  import opened Errors
+module DafnyStdLibs.JSON.API {
   import Values
   import Serializer
   import Deserializer
   import ZeroCopy = ZeroCopy.API
+  import opened BoundedInts
+  import opened Errors
 
   /* Serialization (JSON values to utf-8 bytes) */
   opaque function Serialize(js: Values.JSON) : (bs: SerializationResult<seq<byte>>) {

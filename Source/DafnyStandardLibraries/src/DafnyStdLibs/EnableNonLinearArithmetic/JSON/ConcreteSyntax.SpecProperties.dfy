@@ -6,11 +6,11 @@
 /**
  Defines a simple functional specification of a JSON serializer.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ConcreteSyntax.SpecProperties {
-  import opened BoundedInts
-  import Vs = Utils.Views.Core
-  import opened Grammar
+module DafnyStdLibs.JSON.ConcreteSyntax.SpecProperties {
   import Spec
+  import Vs = Utils.Views.Core
+  import opened BoundedInts
+  import opened Grammar
 
   ghost predicate Bracketed_Morphism_Requires<D, S>(bracketed: Bracketed<Vs.View, D, S, Vs.View>, pd0: Suffixed<D, S> --> bytes, pd1: Suffixed<D, S> --> bytes) {
     && (forall d | d < bracketed :: pd0.requires(d))

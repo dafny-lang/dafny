@@ -8,14 +8,15 @@
  changes, but is more cumbersome to use. This API operates on concrete syntax trees that capture details of 
  punctuation and blanks and represent strings using unescaped, undecoded utf-8 byte sequences.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.ZeroCopy.API {
-  import opened BoundedInts
-  import opened Wrappers
-  import opened Errors
+module DafnyStdLibs.JSON.ZeroCopy.API {
   import Grammar
   import ConcreteSyntax.Spec
   import Serializer
   import Deserializer
+  import opened BoundedInts
+  import opened Wrappers
+  import opened Errors
+
 
   /* Serialization (JSON syntax trees to utf-8 bytes) */
   opaque function Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)

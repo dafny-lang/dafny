@@ -6,14 +6,14 @@
 /**
  Implements high-level serialization (JSON values to utf-8 bytes).
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Serializer {
+module DafnyStdLibs.JSON.Serializer {
   import Collections.Seqs
   import Math
+  import Values
+  import Spec
   import opened Wrappers
   import opened BoundedInts
   import opened Strings
-  import Values
-  import Spec
   import opened Errors
   import opened DynamicArray
   import opened Grammar

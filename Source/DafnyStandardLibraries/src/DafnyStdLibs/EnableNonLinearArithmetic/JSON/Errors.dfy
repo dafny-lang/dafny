@@ -6,10 +6,10 @@
 /**
  Defines different types of errors that can occur during serialization and deserialization.
  */
-module {:options "-functionSyntax:4"} DafnyStdLibs.JSON.Errors {
+module DafnyStdLibs.JSON.Errors {
   import Wrappers
-  import opened BoundedInts
   import Strings
+  import opened BoundedInts
 
   datatype DeserializationError =
     | UnterminatedSequence
