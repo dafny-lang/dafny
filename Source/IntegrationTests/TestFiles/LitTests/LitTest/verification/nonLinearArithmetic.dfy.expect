@@ -1,0 +1,5 @@
+Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown unknown)
+ 
+nonLinearArithmetic.dfy(96,8): Verification inconclusive (Power3.LemmaPowSubAddCancel (correctness))
+
+Dafny program verifier finished with 15 verified, 0 errors, 1 inconclusive
