@@ -137,18 +137,25 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
+      DocumentUri uri;
       if (filePath == null) {
         var index = Interlocked.Increment(ref fileIndex);
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
       }
-      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
-        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+
+      if (filePath.StartsWith("untitled:")) {
+        uri = DocumentUri.Parse(filePath);
+      } else {
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
+          filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+        }
+        filePath = Path.GetFullPath(filePath);
+        uri = DocumentUri.FromFileSystemPath(filePath);
       }
-      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
+        Uri = uri,
         Version = version
       };
     }
