@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </summary>
   public interface ITextDocumentLoader {
 
-    Task<Program> ParseAsync(ErrorReporter reporter, CompilationInput compilation, CancellationToken cancellationToken);
+    Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken);
 
     Task<ResolutionResult> ResolveAsync(CompilationInput input,
       Program program,
