@@ -82,7 +82,7 @@ public record IdeState(
     return this with {
       Version = newVersion,
       Status = CompilationStatus.Parsing,
-      VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
+      VerificationResults = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
