@@ -71,11 +71,11 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    private static readonly TaskScheduler largeThreadScheduler =
+    public static readonly CustomStackSizePoolTaskScheduler LargeThreadScheduler =
       CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
 
     public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None,
-      TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
+      TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, LargeThreadScheduler);
 
     public static string Resolve(Program program) {
       if (program.Options.NoResolve || program.Options.NoTypecheck) {
