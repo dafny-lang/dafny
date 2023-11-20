@@ -1,5 +1,3 @@
-// TODO: Test for Java and other target languages too
-
 abstract module JSON.Tests.Wrapper {
   import DafnyStdLibs.Strings
   import opened DafnyStdLibs.BoundedInts
@@ -123,8 +121,10 @@ module JSON.Tests {
 
     "[true, false , null, { \"some\" : \"string\", \"and\": [ \"a number\", -123.456e-18 ] } ]  ",
 
-    // Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
-    // We should have these kinds of tests direclty in the Unicode module too.
+    /** 
+     Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
+     We should have these kinds of tests direclty in the Unicode module too.
+     */
     "\"" + Seqs.Repeat('a', 100_000) + "\""
   ]
 

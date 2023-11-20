@@ -49,10 +49,10 @@ The sections below describe how to use each library:
 - [DafnyStdLibs.Wrappers](src/DafnyStdLibs/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 - [DafnyStdLibs.Relations](src/DafnyStdLibs/Relations) -- properties of relations
 - [DafnyStdLibs.Functions](src/DafnyStdLibs/Functions) -- properties of functions
-- [DafnyStdLibs.Collections](src/DafnyStdLibs/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
+- [DafnyStdLibs.Collections](src/DafnyStdLibs/EnableNonLinearArithmetic/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
 - DafnyStdLibs.DynamicArray -- an array that can grow and shrink
-- [DafnyStdLibs.Base64](src/DafnyStdLibs/Base64) -- base-64 encoding and decoding
-- [DafnyStdLibs.JSON](src/DafnyStdLibs/JSON) -- JSON serialization and deserialization
+- [DafnyStdLibs.Base64](src/DafnyStdLibs/EnableNonLinearArithmetic/Base64) -- base-64 encoding and decoding
+- [DafnyStdLibs.JSON](src/DafnyStdLibs/EnableNonLinearArithmetic/JSON) -- JSON serialization and deserialization
 
 We are in the process of importing many more libraries,
 in particular from the existing [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries) GitHub repository.

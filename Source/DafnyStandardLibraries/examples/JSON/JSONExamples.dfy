@@ -1,39 +1,37 @@
-/// This library offers two APIs: a high-level one (giving abstract value trees
-/// with no concrete syntactic details) and a low-level one (including all
-/// information about blanks, separator positions, character escapes, etc.).
-///
-/// ## High-level API (JSON values)
+/** 
+ This library offers two APIs: a high-level one (giving abstract value trees
+ with no concrete syntactic details) and a low-level one (including all
+ information about blanks, separator positions, character escapes, etc.).
+ */
 
+/** High-level API (JSON values) */
 module {:options "-functionSyntax:4"} AbstractSyntax {
   import DafnyStdLibs.JSON.API
   import opened DafnyStdLibs.JSON.Values
   import opened DafnyStdLibs.Wrappers
-
-/// Note that you will need to include one of the two files that defines UnicodeStrings
-/// according to whether you are using --unicode-char:false or --unicode-char:true.
-/// See ../../Unicode/UnicodeStrings.dfy for more details.
-
   import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
 
-/// The high-level API works with fairly simple datatype values that contain native Dafny
-/// strings:
-
+  /** 
+   The high-level API works with fairly simple datatype values that contain 
+   native Dafny strings. 
+   */
   method {:test} {:rlimit 100000} Test() {
 
-/// Use `API.Deserialize` to deserialize a byte string.
-///
-/// For example, here is how to decode the JSON test `"[true]"`.  (We need to
-/// convert from Dafny's native strings to byte strings because Dafny does not
-/// have syntax for byte strings; in a real application, we would be reading and
-/// writing raw bytes directly from disk or from the network instead).
-
+    /**
+     Use `API.Deserialize` to deserialize a byte string.
+     For example, here is how to decode the JSON test `"[true]"`. (We need to
+     convert from Dafny's native strings to byte strings because Dafny does not
+     have syntax for byte strings; in a real application, we would be reading and
+     writing raw bytes directly from disk or from the network instead).
+     */
     var SIMPLE_JS :- expect ToUTF8Checked("[true]");
     var SIMPLE_VALUE := Array([Bool(true)]);
     expect API.Deserialize(SIMPLE_JS) == Success(SIMPLE_VALUE);
 
-/// Here is a larger object, written using a verbatim string (with `@"`).  In
-/// verbatim strings `""` represents a single double-quote character):
-
+    /** 
+     Here is a larger object, written using a verbatim string (with `@"`).
+     In verbatim strings `""` represents a single double-quote character): 
+     */
     var CITIES_JS :- expect ToUTF8Checked(@"{
         ""Cities"": [
           {
@@ -79,23 +77,25 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
              ]);
     expect API.Deserialize(CITIES_JS) == Success(CITIES_VALUE);
 
-/// Serialization works similarly, with `API.Serialize`.  For this first example
-/// the generated string matches what we started with exactly:
-
+    /** 
+     Serialization works similarly, with `API.Serialize`. For this first example
+     the generated string matches what we started with exactly:
+     */
     expect API.Serialize(SIMPLE_VALUE) == Success(SIMPLE_JS);
 
-/// For more complex object, the generated layout may not be exactly the same; note in particular how the representation of numbers and the whitespace have changed.
-
+    /** 
+     For more complex object, the generated layout may not be exactly the same; 
+     note in particular how the representation of numbers and the whitespace have changed.
+    */
     var EXPECTED :- expect ToUTF8Checked(
       @"{""Cities"":[{""Name"":""Boston"",""Founded"":1630,""Population"":689386,""Area (km2)"":45842e-1},{""Name"":""Rome"",""Founded"":-753,""Population"":2873e3,""Area (km2)"":1285},{""Name"":""Paris"",""Founded"":null,""Population"":2161e3,""Area (km2)"":23835e-1}]}"
     );
-
     expect API.Serialize(CITIES_VALUE) == Success(EXPECTED);
 
-/// Additional methods are defined in `API.dfy` to serialize an object into an
-/// existing buffer or into an array.  Below is the smaller example from the
-/// README, as a sanity check:
-
+    /** 
+     Additional methods are defined in `API.dfy` to serialize an object into an
+     existing buffer or into an array. Below is the smaller example as a sanity check:
+     */
     var CITY_JS :- expect ToUTF8Checked(@"{""Cities"": [{
       ""Name"": ""Boston"",
       ""Founded"": 1630,
@@ -120,30 +120,33 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
   }
 }
 
-/// ## Low-level API (concrete syntax)
-///
-/// If you care about low-level performance, or about preserving existing
-/// formatting as much as possible, you may prefer to use the lower-level API:
+/** Low-level API (concrete syntax) */
 
+/** 
+ If you care about low-level performance, or about preserving existing
+ formatting as much as possible, you may prefer to use the lower-level API:
+ */
 module {:options "-functionSyntax:4"} ConcreteSyntax {
   import DafnyStdLibs.JSON.ZeroCopy.API
   import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
   import opened DafnyStdLibs.JSON.Grammar
   import opened DafnyStdLibs.Wrappers
+  import DafnyStdLibs.Collections.Seqs
 
-/// The low-level API works with ASTs that record all details of formatting and
-/// encoding: each node contains pointers to parts of a string, such that
-/// concatenating the fields of all nodes reconstructs the serialized value.
-
+  /** 
+   The low-level API works with ASTs that record all details of formatting and
+   encoding: each node contains pointers to parts of a string, such that
+   concatenating the fields of all nodes reconstructs the serialized value.
+  */ 
   method {:test} {:rlimit 100000} Test() {
 
-/// The low-level API exposes the same functions and methods as the high-level
-/// one, but the type that they consume and produce is `Grammar.JSON` (defined
-/// in `Grammar.dfy` as a `Grammar.Value` surrounded by optional whitespace)
-/// instead of `Values.JSON` (defined in `Values.dfy`).  Since `Grammar.JSON` contains
-/// all formatting information, re-serializing an object produces the original
-/// value:
-
+    /** 
+     The low-level API exposes the same functions and methods as the high-level
+     one, but the type that they consume and produce is `Grammar.JSON` (defined
+     in `Grammar.dfy` as a `Grammar.Value` surrounded by optional whitespace)
+     instead of `Values.JSON` (defined in `Values.dfy`). Since `Grammar.JSON` contains
+     all formatting information, re-serializing an object produces the original value:
+     */ 
     var CITIES :- expect ToUTF8Checked(@"{
         ""Cities"": [
           {
@@ -168,25 +171,27 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     var deserialized :- expect API.Deserialize(CITIES);
     expect API.Serialize(deserialized) == Success(CITIES);
 
-/// Since the formatting is preserved, it is also possible to write
-/// minimally-invasive transformations over an AST.  For example, let's replace
-/// `null` in the object above with `"Unknown"`.
-///
-/// First, we construct a JSON value for the string `"Unknown"`; this could be
-/// done by hand using `View.OfBytes()`, but using `API.Deserialize` is even
-/// simpler:
+    /** 
+     Since the formatting is preserved, it is also possible to write
+     minimally-invasive transformations over an AST. For example, let's replace
+     `null` in the object above with `"Unknown"`. First, we construct a JSON 
+     value for the string `"Unknown"`; this could be done by hand using 
+     `View.OfBytes()`, but using `API.Deserialize` is even simpler:
+    */
     var UNKNOWN_JS :- expect ToUTF8Checked(@"""Unknown""");
     var UNKNOWN :- expect API.Deserialize(UNKNOWN_JS);
 
-/// `UNKNOWN` is of type `Grammar.JSON`, which contains optional whitespace and
-/// a `Grammar.Value` under the name `UNKNOWN.t`, which we can use in the
-/// replacement:
-
+    /** 
+     `UNKNOWN` is of type `Grammar.JSON`, which contains optional whitespace and
+     a `Grammar.Value` under the name `UNKNOWN.t`, which we can use in the
+     replacement:
+    */
     var without_null := deserialized.(t := ReplaceNull(deserialized.t, UNKNOWN.t));
 
-/// Then, if we reserialize, we see that all formatting (and, in fact, all of
-/// the serialization work) has been reused:
-
+    /** 
+     Then, if we reserialize, we see that all formatting (and, in fact, all of
+     the serialization work) has been reused:
+    */
     var expected_js :- expect ToUTF8Checked(@"{
         ""Cities"": [
           {
@@ -211,28 +216,21 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     expect actual_js == expected_js;
   }
 
-/// All that remains is to write the recursive traversal:
-
-  import DafnyStdLibs.Collections.Seqs
-
+  /** All that remains is to write the recursive traversal: */ 
   function ReplaceNull(js: Value, replacement: Value): Value {
     match js
-
-/// Non-recursive cases are untouched:
-
+    /** Non-recursive cases are untouched: */ 
     case Bool(_) => js
     case String(_) => js
     case Number(_) => js
-
-/// `Null` is replaced with the new `replacement` value:
-
+    /** `Null` is replaced with the new `replacement` value: */ 
     case Null(_) => replacement
-
-/// … and objects and arrays are traversed recursively (only the data part of is
-/// traversed: other fields record information about the formatting of braces,
-/// square brackets, and whitespace, and can thus be reused without
-/// modifications):
-
+    /** 
+     … and objects and arrays are traversed recursively (only the data part of is
+     traversed: other fields record information about the formatting of braces,
+     square brackets, and whitespace, and can thus be reused without
+     modifications):
+    */
     case Object(obj) =>
       Object(obj.(data := MapSuffixedSequence(obj.data, (s: Suffixed<jKeyValue, jcomma>) requires s in obj.data =>
                                                 s.t.(v := ReplaceNull(s.t.v, replacement)))))
@@ -241,13 +239,14 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
                                                ReplaceNull(s.t, replacement))))
   }
 
-/// Note that well-formedness criteria on the low-level AST are enforced using
-/// subset types, which is why we need a bit more work to iterate over the
-/// sequences of key-value paris and of values in objects and arrays.
-/// Specifically, we need to prove that mapping over these sequences doesn't
-/// introduce dangling punctuation (`NoTrailingSuffix`).  We package this
-/// reasoning into a `MapSuffixedSequence` function:
-
+  /** 
+   Note that well-formedness criteria on the low-level AST are enforced using
+   subset types, which is why we need a bit more work to iterate over the
+   sequences of key-value paris and of values in objects and arrays.
+   Specifically, we need to prove that mapping over these sequences doesn't
+   introduce dangling punctuation (`NoTrailingSuffix`). We package this
+   reasoning into a `MapSuffixedSequence` function:
+  */
   function MapSuffixedSequence<D, S>(sq: SuffixedSequence<D, S>, fn: Suffixed<D, S> --> D)
     : SuffixedSequence<D, S>
     requires forall suffixed | suffixed in sq :: fn.requires(suffixed)
@@ -272,7 +271,3 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     sq'
   }
 }
-
-/// The examples in this file can be run with `Dafny -compile:4 -runAllTests:1`
-/// (the tests produce no output, but their calls to `expect` will be checked
-/// dynamically).
