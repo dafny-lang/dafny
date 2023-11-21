@@ -352,7 +352,6 @@ module DafnyStdLibs.JSON.ZeroCopy.Serializer {
     decreases arr, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(arr.data, Spec.Item)
   {
-    assume {:axiom} false;
     ItemsSpec(arr, arr.data, writer)
   } by method {
     assume {:axiom} false; // BUG(https://github.com/dafny-lang/dafny/issues/2180)

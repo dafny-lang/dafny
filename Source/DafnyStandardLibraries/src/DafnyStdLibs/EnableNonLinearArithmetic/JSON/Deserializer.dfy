@@ -57,7 +57,7 @@ module DafnyStdLibs.JSON.Deserializer {
     requires |str| <= 4
     requires forall c | c in str :: c in HEX_TABLE_16
   {
-    assume {:axiom} false; // BUG: Fix Verification Inconclusive
+    assume {:axiom} false; // BUG Verification inconclusive
     Uint16StrConversion.ToNatBound(str);
     var hd := Uint16StrConversion.ToNat(str);
     assert hd < 0x1_0000 by { reveal Pow(); }

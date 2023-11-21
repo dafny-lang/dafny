@@ -1297,7 +1297,6 @@ module DafnyStdLibs.Arithmetic.DivMod {
     ensures q == x / d
     ensures r == x % d
   {
-    assume {:axiom} false;
     LemmaDivAuto(d);
     LemmaMulInductionAuto(q, u => u == (u * d + r) / d);
     LemmaMulInductionAuto(q, u => r == (u * d + r) % d);

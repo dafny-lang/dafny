@@ -529,7 +529,6 @@ abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
   {
-    assume {:axiom} false;
     reveal SeqAdd();
     if |xs| == 0 {
       reveal ToNatRight();
