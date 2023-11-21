@@ -59,6 +59,7 @@ public class CsharpBackend : ExecutableBackend {
       "System.Runtime.Numerics",
       "System.Collections",
       "System.Collections.Immutable",
+      "System.Collections.Concurrent",
       "System.Console"
     };
     compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)));
