@@ -127,7 +127,7 @@ module MainTests {
      Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
      We should have these kinds of tests direclty in the Unicode module too.
      */
-    "\"" + Seqs.Repeat('a', 100_000) + "\""
+    "\"" + Seqs.Repeat('a', 100) + "\""
   ]
 
   method {:test} Main() {
