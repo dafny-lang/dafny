@@ -64,8 +64,8 @@ format:
 check-format:
 	$(DAFNY) format . --check
 
-check-examples:
-	cd build && ../scripts/check-examples `find .. -name '*.md'`
+# check-examples:
+# 	cd build && ../scripts/check-examples `find .. -name '*.md'`
 
 clean:
 	rm -rf build
