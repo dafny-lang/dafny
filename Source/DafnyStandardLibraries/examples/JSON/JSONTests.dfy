@@ -1,4 +1,4 @@
-abstract module JSON.Tests.Wrapper {
+abstract module AbstractWrapper {
   import DafnyStdLibs.Strings
   import opened DafnyStdLibs.BoundedInts
   import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
@@ -39,7 +39,7 @@ abstract module JSON.Tests.Wrapper {
   }
 }
 
-module JSON.Tests.ZeroCopyWrapper refines Wrapper {
+module ZeroCopyWrapper refines AbstractWrapper {
   import opened DafnyStdLibs.Wrappers
   import DafnyStdLibs.JSON.Grammar
   import DafnyStdLibs.JSON.ZeroCopy.API
@@ -66,7 +66,7 @@ module JSON.Tests.ZeroCopyWrapper refines Wrapper {
   }
 }
 
-module JSON.Tests.AbstractSyntaxWrapper refines Wrapper {
+module AbstractSyntaxWrapper refines AbstractWrapper {
   import opened DafnyStdLibs.Wrappers
   import DafnyStdLibs.JSON.Grammar
   import DafnyStdLibs.JSON.API
@@ -93,7 +93,9 @@ module JSON.Tests.AbstractSyntaxWrapper refines Wrapper {
   }
 }
 
-module JSON.Tests {
+module MainTests {
+  import ZeroCopyWrapper
+  import AbstractSyntaxWrapper
   import opened DafnyStdLibs.Collections.Seqs
 
   const VECTORS := [
