@@ -18,6 +18,12 @@ namespace Microsoft.Dafny {
   public class PrecedenceLinter : IRewriter {
     private CompilationData compilation;
     internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      // Don't perform linting on doo files in general,
+      // since the source has already been processed.
+      if (moduleDefinition.tok.Uri != null && moduleDefinition.tok.Uri.LocalPath.EndsWith(".doo")) {
+        return;
+      }
+      
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
           var visitor = new PrecedenceLinterVisitor(compilation, Reporter);
