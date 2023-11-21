@@ -198,7 +198,6 @@ public static class DafnyCli {
         }
       }
 
-      dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       dafnyOptions.UsingNewCli = true;
       context.ExitCode = await continuation(dafnyOptions, context);
