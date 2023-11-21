@@ -55,7 +55,7 @@ jobs:
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
       run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
