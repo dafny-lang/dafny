@@ -567,8 +567,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.IsAbstract) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         wr.Write("abstract ");
+      }
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -579,8 +582,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Implements != null) {
+        wr.Write("refines {0} ", module.Implements.Target);
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
