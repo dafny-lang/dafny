@@ -52,7 +52,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this.EnclosingModuleDefinition;
-    sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
+    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;

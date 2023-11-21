@@ -1747,7 +1747,35 @@ Detailed description of the `dafny build` and `dafny run` commands and
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
 
-### 13.8.3. C\#
+### 13.8.3. Replaceable modules
+To enable easily customising runtime behavior across an entire Dafny program, Dafny has placeholder modules. Here follows an example:
+
+<!-- %check-run -->
+```dafny
+replaceable module Foo {
+  method Bar() returns (i: int) 
+    ensures i >= 2
+}
+
+method Main() {
+  var x := Foo.Bar();
+  print x;
+}
+// At this point, the program can be verified but not run.
+
+module ConcreteFoo replaces Foo {
+  method Bar() returns (i: int) {
+    return 3; // Main will print 3.
+  }
+}
+// ConcreteFoo can be swapped out for different replacements of Foo, to customize runtime behavior.
+```
+
+When replacing a replaceable module, the same rules apply as when refining an abstract module. However, unlike an abstract module, a placeholder module can be used as if it is a concrete module. When executing code, using for example `dafny run` or `dafny translate`, any program that contains a placeholder module must also contain a replacement of this placeholder. When using `dafny verify`, placeholder modules do not have to be replaced.
+
+Replaceable modules are particularly useful for defining behavior that depends on which target language Dafny is translated to.
+
+### 13.8.4. C\#
 
 For a simple Dafny-only program, the translation step converts a `A.dfy` file into `A.cs`;
 the build step then produces a `A.dll`, which can be used as a library or as an executable (run using `dotnet A.dll`).
@@ -1768,7 +1796,7 @@ which is then compiled by `dotnet` to a `.dll`.
 Examples of how to integrate C# libraries and source code with Dafny source code
 are contained in [this separate document](integration-cs/IntegrationCS).
 
-### 13.8.4. Java
+### 13.8.5. Java
 
 The Dafny-to-Java compiler translation phase writes out the translated files of a file _A_`.dfy`
 to a directory _A_`-java`. 
@@ -1790,7 +1818,7 @@ but not if dafny is only doing translation.
 Examples of how to integrate Java source code and libraries with Dafny source
 are contained in [this separate document](integration-java/IntegrationJava).
 
-### 13.8.5. Javascript
+### 13.8.6. Javascript
 
 The Dafny-to-Javascript compiler translates all the given `.dfy` files into a single `.js` file, 
 which can then be run using `node`. (Javascript has no compilation step). 
@@ -1804,7 +1832,7 @@ Or, in one step,
 Examples of how to integrate Javascript libraries and source code with Dafny source
 are contained in [this separate document](integration-js/IntegrationJS).
 
-### 13.8.6. Go
+### 13.8.7. Go
 
 The Dafny-to-Go compiler translates all the given `.dfy` files into a single
 `.go` file in `A-go/src/A.go`; the output folder can be specified with the 
@@ -1828,7 +1856,7 @@ change, though the `./A` alternative will still be supported.
 Examples of how to integrate Go source code and libraries with Dafny source
 are contained in [this separate document](integration-go/IntegrationGo).
 
-### 13.8.7. Python
+### 13.8.8. Python
 
 The Dafny-to-Python compiler is still under development. However, simple
 Dafny programs can be built and run as follows. The Dafny-to-Python
@@ -1846,7 +1874,7 @@ In one step:
 Examples of how to integrate Python libraries and source code with Dafny source
 are contained in [this separate document](integration-py/IntegrationPython).
 
-### 13.8.8. C++
+### 13.8.9. C++
 
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
@@ -1866,7 +1894,7 @@ implementation.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 
-### 13.8.9. Supported features by target language {#sec-supported-features-by-target-language}
+### 13.8.10. Supported features by target language {#sec-supported-features-by-target-language}
 
 Some Dafny features are not supported by every target language.
 The table below shows which features are supported by each backend.

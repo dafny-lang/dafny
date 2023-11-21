@@ -37,7 +37,7 @@ using System.Threading;
 
 -->namespace
 
-public class Parser {
+public partial class Parser {
 -->constants
   const bool _T = true;
   const bool _x = false;
