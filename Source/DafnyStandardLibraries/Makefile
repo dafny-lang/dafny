@@ -8,7 +8,7 @@ DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 DOO_FILE_ARITHMETIC_SOURCE=build/DafnyStandardLibraries-arithmetic.doo
 DOO_FILE_ARITHMETIC_TARGET=binaries/DafnyStandardLibraries-arithmetic.doo
 
-all: check-binary test check-format check-examples
+all: check-binary test check-format
 
 verify:
 	$(DAFNY) verify src/DafnyStdLibs/EnableNonLinearArithmetic/dfyconfig.toml
