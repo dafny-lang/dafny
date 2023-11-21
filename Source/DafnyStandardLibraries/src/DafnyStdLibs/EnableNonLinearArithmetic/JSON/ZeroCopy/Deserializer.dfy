@@ -720,9 +720,9 @@ module DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, SpecView)
     {
       var sp := Digits(cs);
-      if sp.t.Empty? then 
+      if sp.t.Empty? then
         Failure(OtherError(Errors.EmptyNumber))
-      else 
+      else
         Success(sp)
     }
 

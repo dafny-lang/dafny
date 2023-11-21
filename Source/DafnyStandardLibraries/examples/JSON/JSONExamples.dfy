@@ -137,7 +137,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
    The low-level API works with ASTs that record all details of formatting and
    encoding: each node contains pointers to parts of a string, such that
    concatenating the fields of all nodes reconstructs the serialized value.
-  */ 
+  */
   method {:test} {:rlimit 100000} Test() {
 
     /** 
@@ -146,7 +146,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
      in `Grammar.dfy` as a `Grammar.Value` surrounded by optional whitespace)
      instead of `Values.JSON` (defined in `Values.dfy`). Since `Grammar.JSON` contains
      all formatting information, re-serializing an object produces the original value:
-     */ 
+     */
     var CITIES :- expect ToUTF8Checked(@"{
         ""Cities"": [
           {
@@ -216,14 +216,14 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     expect actual_js == expected_js;
   }
 
-  /** All that remains is to write the recursive traversal: */ 
+  /** All that remains is to write the recursive traversal: */
   function ReplaceNull(js: Value, replacement: Value): Value {
     match js
-    /** Non-recursive cases are untouched: */ 
+    /** Non-recursive cases are untouched: */
     case Bool(_) => js
     case String(_) => js
     case Number(_) => js
-    /** `Null` is replaced with the new `replacement` value: */ 
+    /** `Null` is replaced with the new `replacement` value: */
     case Null(_) => replacement
     /** 
      … and objects and arrays are traversed recursively (only the data part of is
