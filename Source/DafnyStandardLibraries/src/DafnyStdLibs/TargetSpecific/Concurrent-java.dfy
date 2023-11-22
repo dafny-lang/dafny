@@ -1,6 +1,6 @@
-module {:extern "DafnyStdLibsExterns", "Concurrent"} DafnyStdLibs.Concurrent refines ConcurrentInterface {
+module {:extern "DafnyStdLibsExterns.Concurrent"} DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
-  class {:extern} MutableMap<K(==), V(==)> ... {
+  class {:extern "MutableMap"} MutableMap<K(==), V(==)> ... {
 
     constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
       ensures this.inv == inv
@@ -28,7 +28,7 @@ module {:extern "DafnyStdLibsExterns", "Concurrent"} DafnyStdLibs.Concurrent ref
 
   }
 
-  class {:extern} AtomicBox<T> ... {
+  class {:extern "AtomicBox"} AtomicBox<T> ... {
 
     constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
       requires inv(t)
