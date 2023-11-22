@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
     private CompilationData compilation;
+    // Don't perform linting on doo files in general, since the source has already been processed.
     internal override void PostResolve(ModuleDefinition moduleDefinition) {
       if (moduleDefinition.tok.Uri != null && moduleDefinition.tok.Uri.LocalPath.EndsWith(".doo")) {
         return;
@@ -110,6 +111,24 @@ namespace Microsoft.Dafny {
       // that is, we inspect line and column information.
 
       if (expr is BinaryExpr bin && (bin.Op == BinaryExpr.Opcode.Imp || bin.Op == BinaryExpr.Opcode.Exp || bin.Op == BinaryExpr.Opcode.Iff)) {
+        // For
+        //   a)  LHS ==> RHS
+        //   b)  LHS ==>
+        //         RHS-somewhere-on-this-line
+        // use LHS.StartToken as the left margin.
+        // For
+        //   c)  LHS0 &&
+        //       LHS1 ==> RHS
+        // use expr.tok (that is, the location of ==>) as the left margin. This is bound to generate a warning.
+        // For
+        //   d)  LHS0 &&
+        //       LHS1 ==>
+        //         RHS-somewhere-on-this-line
+        //   e)  LHS0 &&
+        //       LHS1
+        //       ==>
+        //         RHS-somewhere-on-this-line
+        // use LHS.StartToken as the left margin.
         VisitLhsComponent(expr.tok, bin.E0,
           bin.E0.StartToken.line == expr.tok.line ? bin.E0.StartToken.col :
           bin.E1.StartToken.line == expr.tok.line ? expr.tok.col :

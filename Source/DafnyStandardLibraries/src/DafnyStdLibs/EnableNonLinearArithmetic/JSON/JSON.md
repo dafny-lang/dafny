@@ -18,7 +18,7 @@ The tutorial in [`JSONExamples.dfy`](../../../examples/JSON/JSONExamples.dfy) sh
 <!-- %check-verify -->
 ```dafny
 import API = DafnyStdLibs.JSON.API
-import opened DafnyStdLibs.Unicode.UnicodeStrings
+import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
 import opened DafnyStdLibs.JSON.Values
 import opened DafnyStdLibs.Wrappers
 
