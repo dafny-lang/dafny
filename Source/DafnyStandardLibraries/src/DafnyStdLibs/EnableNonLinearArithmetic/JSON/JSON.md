@@ -60,10 +60,6 @@ Most of the contents of the `Utils/` directory are not specific to JSON. They ar
 
 - [`Lexers.dfy`](Utils/Lexers.dfy) contains a state machine that recognizes quoted strings and skips over backslash-escaped quotes.  State-machine-based lexers are used in `Cursors.dfy` to skip over complex constructs (like quoted strings), though in practice the low-level parser uses a custom function-by-method to speed up this specific case.
 
-- [`Vectors.dfy`](Utils/Vectors.dfy) implements resizable arrays (the C++ standard library calls them vectors).  This module is reasonably close to being generally useful, but the way it tracks references needs to be revised if it if to be used for storing reference types.  It would also be good to generalize the index type that it uses (at the moment, it only accepts `int32` indices).
-
-- [`Str.dfy`](Utils/Str.dfy) implements functions to convert between (big-endian) strings and numbers. This module shares similarities with [LittleEndianNat.dfy](./Collections/LittleEndianNat.dfy) (except for the digit order), although `LittleEndianNat.dfy` makes the base a module parameter instead of a function argument.
-
 - [`Parsers.dfy`](Utils/Parsers.dfy) has definitions of well-formedness for parsers (stating that they must consume part of their input).  This file would have to be significantly expanded to create a composable library of parsing combinators to be useful as part of the main library.
 
 ## Caveats
