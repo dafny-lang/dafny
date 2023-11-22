@@ -5,6 +5,7 @@ import DafnyStdLibs.Wrappers.*;
 
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
@@ -33,8 +34,9 @@ public class MutableMap<K, V> {
 
     public dafny.DafnySet<dafny.Tuple2<K, V>> Items() {
         Set<Map.Entry<K, V>> set = map.entrySet();
-        set.forEach(e -> dafny.Tuple2.create(e.getKey(), e.getValue()));
-        return new dafny.DafnySet(set);
+        Set<dafny.Tuple2<K, V>> tupleSet = new HashSet<dafny.Tuple2<K, V>>();
+        set.forEach(e -> tupleSet.add(dafny.Tuple2.create(e.getKey(), e.getValue())));
+        return new dafny.DafnySet(tupleSet);
     }
 
     public void Put(K k, V v) {
