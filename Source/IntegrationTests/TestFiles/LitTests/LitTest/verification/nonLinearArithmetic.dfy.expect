@@ -1,13 +1,7 @@
-Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown unknown)
+nonLinearArithmetic.dfy(97,8): Verification out of resource (Power3.LemmaPowSubAddCancel (correctness))
 
-nonLinearArithmetic.dfy(97,8): Verification inconclusive (Power3.LemmaPowSubAddCancel (correctness))
+Dafny program verifier finished with 15 verified, 0 errors, 1 out of resource
+nonLinearArithmetic.dfy(21,8): Verification out of resource (Power0.LemmaPowSubAddCancel (correctness))
+nonLinearArithmetic.dfy(97,8): Verification out of resource (Power3.LemmaPowSubAddCancel (correctness))
 
-Dafny program verifier finished with 15 verified, 0 errors, 1 inconclusive
-Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown unknown)
-
-Prover error: Unexpected prover response (getting info about 'unknown' response): (:reason-unknown unknown)
-
-nonLinearArithmetic.dfy(21,8): Verification inconclusive (Power0.LemmaPowSubAddCancel (correctness))
-nonLinearArithmetic.dfy(97,8): Verification inconclusive (Power3.LemmaPowSubAddCancel (correctness))
-
-Dafny program verifier finished with 14 verified, 0 errors, 2 inconclusives
+Dafny program verifier finished with 14 verified, 0 errors, 2 out of resource
