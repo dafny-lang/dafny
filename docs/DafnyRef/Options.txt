@@ -496,6 +496,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   /printWithUniqueIds : print augmented information that uniquely
                    identifies variables
   /printUnstructured : with /print option, desugars all structured statements
+  /printPassive :  with /print option, prints passive version of program
   /printDesugared : with /print option, desugars calls
   /printLambdaLifting : with /print option, desugars lambda lifting
 
