@@ -12,3 +12,9 @@ currently C#, Java, JavaScript, Go and Python.
 For other backends, the `FileIO` module is simply not defined,
 so attempting to compile code that uses it to them will result
 in resolution errors.
+
+# Concurrent
+
+Dafny has no notion of concurrency, but we supply some tools to support using
+generated code in an concurrent environment. They should be used with caution,
+as the verifier is unable to ensure proper usage.
