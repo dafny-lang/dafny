@@ -17,6 +17,13 @@ using static Microsoft.Dafny.Compilers.CompilerErrors;
 
 
 namespace Microsoft.Dafny.Compilers {
+
+  static class SinglePassCompilerExtensions {
+    public static bool CanCompile(this ModuleDefinition module) {
+      return module.ModuleKind == ModuleKindEnum.Concrete;
+    }
+  }
+
   public abstract class SinglePassCompiler {
     public DafnyOptions Options { get; }
 
@@ -1449,7 +1456,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
-      if (module.IsAbstract) {
+      if (!module.CanCompile()) {
         // the purpose of an abstract module is to skip compilation
         return;
       }
@@ -1788,7 +1795,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (!string.IsNullOrEmpty(name)) {
         foreach (var module in program.CompileModules) {
-          if (module.IsAbstract) {
+          if (!module.CanCompile()) {
             // the purpose of an abstract module is to skip compilation
             continue;
           }
@@ -1814,7 +1821,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       foreach (var module in program.CompileModules) {
-        if (module.IsAbstract) {
+        if (!module.CanCompile()) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
@@ -1854,7 +1861,7 @@ namespace Microsoft.Dafny.Compilers {
 
       mainMethod = null;
       foreach (var module in program.CompileModules) {
-        if (module.IsAbstract) {
+        if (!module.CanCompile()) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }

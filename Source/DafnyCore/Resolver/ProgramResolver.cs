@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -82,7 +83,6 @@ public class ProgramResolver {
       rewriter.PostResolve(Program);
     }
   }
-
 
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {
     classMembers[topLevelDeclWithMembers] = memberDictionary;
@@ -197,7 +197,7 @@ public class ProgramResolver {
     foreach (ModuleDefinition m in program.CompileModules) {
       var compileIt = true;
       Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (m.IsAbstract || !compileIt) {
+      if (!m.CanCompile() || !compileIt) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
@@ -224,17 +224,18 @@ public class ProgramResolver {
   private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     var module = literalDecl.ModuleDef;
-    if (module.RefinementQId != null) {
-      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, module.RefinementQId, out var other);
-      module.RefinementQId.Root = other;
+    if (module.Implements != null) {
+      var refinementTarget = module.Implements.Target;
+      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, refinementTarget, out var other);
+      refinementTarget.Root = other;
       if (!res) {
-        Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(),
-          $"module {module.RefinementQId} named as refinement base does not exist");
+        Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
+          $"module {module.Implements} named as refinement base does not exist");
       } else {
-        declarationPointers.AddOrUpdate(other, v => module.RefinementQId.Root = v, Util.Concat);
+        declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
-          Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(), "module cannot refine itself: {0}",
-            module.RefinementQId.ToString());
+          Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(), "module cannot refine itself: {0}",
+            module.Implements.Target.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(literalDecl, other);
@@ -267,9 +268,9 @@ public class ProgramResolver {
 
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
+      if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
-          "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+          "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
       }
     }
