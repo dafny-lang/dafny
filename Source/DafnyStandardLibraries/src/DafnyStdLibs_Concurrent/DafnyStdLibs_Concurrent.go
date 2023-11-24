@@ -1,21 +1,12 @@
-// Package ExternConcurrent
-// Dafny module ExternConcurrent compiled into Go
-
-package ExternConcurrent
+package DafnyStdLibs_Concurrent
 
 import (
   _dafny "dafny"
-  os "os"
   sync "sync"
-  _System "System_"
+  DafnyStdLibs_Wrappers "DafnyStdLibs_Wrappers"
 )
-var _ _dafny.Dummy__
-var _ = os.Args
-var _ _System.Dummy__
 
 type Dummy__ struct{}
-
-
 
 // Definition of class MutableMap
 type MutableMap struct {
@@ -111,13 +102,13 @@ func (_this *MutableMap) Items() _dafny.Set {
     return _dafny.SetOf(items[:]...)
   }
 }
-func (_this *MutableMap) Get(k interface{}) Option {
+func (_this *MutableMap) Get(k interface{}) DafnyStdLibs_Wrappers.Option {
   {
     value, ok := _this.Internal.Load(k)
     if ok {
-      return Companion_Option_.Create_Some_(value)
+      return DafnyStdLibs_Wrappers.Companion_Option_.Create_Some_(value)
     } else {
-      return Companion_Option_.Create_None_()
+      return DafnyStdLibs_Wrappers.Companion_Option_.Create_None_()
     }
   }
 }
@@ -131,7 +122,7 @@ func (_this *MutableMap) Remove(k interface{}) {
     _this.Internal.Delete(k)
   }
 }
-func (_this *MutableMap) Cardinality() _dafny.Int {
+func (_this *MutableMap) Size() _dafny.Int {
   {
     var c _dafny.Int = _dafny.Zero
 
@@ -285,145 +276,3 @@ func (_this *Lock) Unlock() {
   }
 }
 // End of class Lock
-
-// Definition of datatype Option
-type Option struct {
-  Data_Option_
-}
-
-func (_this Option) Get_() Data_Option_ {
-  return _this.Data_Option_
-}
-
-type Data_Option_ interface {
-  isOption()
-}
-
-type CompanionStruct_Option_ struct {
-}
-var Companion_Option_ = CompanionStruct_Option_ {
-}
-
-type Option_None struct {
-}
-
-func (Option_None) isOption() {}
-
-func (CompanionStruct_Option_) Create_None_() Option {
-  return Option{Option_None{}}
-}
-
-func (_this Option) Is_None() bool {
-  _, ok := _this.Get_().(Option_None)
-  return ok
-}
-
-type Option_Some struct {
-  Value interface{}
-}
-
-func (Option_Some) isOption() {}
-
-func (CompanionStruct_Option_) Create_Some_(Value interface{}) Option {
-  return Option{Option_Some{Value}}
-}
-
-func (_this Option) Is_Some() bool {
-  _, ok := _this.Get_().(Option_Some)
-  return ok
-}
-
-func (CompanionStruct_Option_) Default() Option {
-  return Companion_Option_.Create_None_()
-}
-
-func (_this Option) Dtor_value() interface{} {
-  return _this.Get_().(Option_Some).Value
-}
-
-func (_this Option) String() string {
-  switch data := _this.Get_().(type) {
-    case nil: return "null"
-    case Option_None: {
-      return "ExternConcurrent.Option.None"
-    }
-    case Option_Some: {
-      return "ExternConcurrent.Option.Some" + "(" + _dafny.String(data.Value) + ")"
-    }
-    default: {
-      return "<unexpected>"
-    }
-  }
-}
-
-func (_this Option) Equals(other Option) bool {
-  switch data1 := _this.Get_().(type) {
-    case Option_None: {
-      _, ok := other.Get_().(Option_None)
-      return ok
-    }
-    case Option_Some: {
-      data2, ok := other.Get_().(Option_Some)
-      return ok && _dafny.AreEqual(data1.Value, data2.Value)
-    }
-    default: {
-      return false; // unexpected
-    }
-  }
-}
-
-func (_this Option) EqualsGeneric(other interface{}) bool {
-  typed, ok := other.(Option)
-  return ok && _this.Equals(typed)
-}
-
-func Type_Option_() _dafny.TypeDescriptor {
-  return type_Option_{}
-}
-
-type type_Option_ struct {
-}
-
-func (_this type_Option_) Default() interface{} {
-  return Companion_Option_.Default();
-}
-
-func (_this type_Option_) String() string {
-  return "ExternConcurrent.Option"
-}
-func (_this Option) ParentTraits_() []*_dafny.TraitID {
-  return [](*_dafny.TraitID){};
-}
-var _ _dafny.TraitOffspring = Option{}
-
-func (_this Option) UnwrapOr(default_ interface{}) interface{} {
-  {
-    var _source0 Option = _this
-    _ = _source0
-    if (_source0.Is_None()) {
-      return default_
-    } else {
-      var _0___mcc_h0 interface{} = _source0.Get_().(Option_Some).Value
-      _ = _0___mcc_h0
-      var _1_v interface{} = _0___mcc_h0
-      _ = _1_v
-      return _1_v
-    }
-  }
-}
-func (_this Option) IsFailure() bool {
-  {
-    return (_this).Is_None()
-  }
-}
-func (_this Option) PropagateFailure() Option {
-  {
-    return Companion_Option_.Create_None_()
-  }
-}
-func (_this Option) Extract() interface{} {
-  {
-    return (_this).Dtor_value()
-  }
-}
-// End of datatype Option

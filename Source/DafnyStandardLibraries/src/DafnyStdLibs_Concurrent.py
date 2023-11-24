@@ -1,62 +1,12 @@
-import sys
 import threading
 from typing import Callable, Any, TypeVar, NamedTuple
 from math import floor
 from itertools import count
 
-import module_
 import _dafny
-import System_
+import DafnyStdLibs_Wrappers
 
-# Module: ExternConcurrent
-
-
-class Option:
-    @classmethod
-    def default(cls, ):
-        return lambda: Option_None()
-    def __ne__(self, __o: object) -> bool:
-        return not self.__eq__(__o)
-    @property
-    def is_None(self) -> bool:
-        return isinstance(self, Option_None)
-    @property
-    def is_Some(self) -> bool:
-        return isinstance(self, Option_Some)
-    def UnwrapOr(self, default):
-        source0_ = self
-        if source0_.is_None:
-            return default
-        elif True:
-            d_0___mcc_h0_ = source0_.value
-            d_1_v_ = d_0___mcc_h0_
-            return d_1_v_
-
-    def IsFailure(self):
-        return (self).is_None
-
-    def PropagateFailure(self):
-        return Option_None()
-
-    def Extract(self):
-        return (self).value
-
-
-class Option_None(Option, NamedTuple('None_', [])):
-    def __dafnystr__(self) -> str:
-        return f'ExternConcurrent.Option.None'
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Option_None)
-    def __hash__(self) -> int:
-        return super().__hash__()
-
-class Option_Some(Option, NamedTuple('Some', [('value', Any)])):
-    def __dafnystr__(self) -> str:
-        return f'ExternConcurrent.Option.Some({_dafny.string_of(self.value)})'
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Option_Some) and self.value == __o.value
-    def __hash__(self) -> int:
-        return super().__hash__()
+# Module: DafnyStdLibs_Concurrent
 
 
 class MutableMap:
@@ -99,9 +49,9 @@ class MutableMap:
             v = self.map.get(k)
         except KeyError:
             self.lock.Unlock()
-            return Option_None()
+            return DafnyStdLibs_Wrappers.Option_None()
         self.lock.Unlock()
-        return Option_Some(v)
+        return DafnyStdLibs_Wrappers.Option_Some(v)
 
     def Remove(self, k):
         self.lock.Lock__()

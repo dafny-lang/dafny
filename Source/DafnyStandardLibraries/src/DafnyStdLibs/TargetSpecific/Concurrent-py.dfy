@@ -1,4 +1,4 @@
-module {:extern} DafnyStdLibs.Concurrent refines ConcurrentInterface {
+module {:compile false} DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

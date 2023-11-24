@@ -22,6 +22,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
 
     method Put(t: T)
       requires inv(t)
+      modifies this
       ensures Valid()
   }
 
@@ -53,6 +54,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
     method Put(k: K, v: V)
       requires Valid()
       requires inv(k, v)
+      modifies this
       ensures Valid()
 
     method Get(k: K) returns (r: Option<V>)
@@ -62,6 +64,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
     method Remove(k: K)
       requires Valid()
       requires exists v :: inv(k,v)
+      modifies this
       ensures Valid()
 
     method Size() returns (c: nat)
