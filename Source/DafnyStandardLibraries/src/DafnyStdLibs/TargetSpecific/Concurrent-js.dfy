@@ -1,6 +1,6 @@
 module DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
- class MutableMap<K(==), V(==)> ... {
+  class MutableMap<K(==), V(==)> ... {
 
     var internal: map<K, V>
 
@@ -39,7 +39,7 @@ module DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
     method Values() returns (values: set<V>)
     {
-      reveal Contained(); 
+      reveal Contained();
       values := internal.Values;
     }
 
@@ -75,7 +75,7 @@ module DafnyStdLibs.Concurrent refines ConcurrentInterface {
       // only here to mollify the auditor
       reveal Contained();
       assert Contained();
-    
+
       c := |internal|;
     }
 

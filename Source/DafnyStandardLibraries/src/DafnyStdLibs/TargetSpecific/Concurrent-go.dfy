@@ -1,8 +1,8 @@
 module
   {:compile false}
-  {:extern "DafnyStdLibs_Concurrent"}
-  {:dummyImportMember "Dummy__", true} 
-  DafnyStdLibs.Concurrent refines ConcurrentInterface {
+{:extern "DafnyStdLibs_Concurrent"}
+{:dummyImportMember "Dummy__", true}
+DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
