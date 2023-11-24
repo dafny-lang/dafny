@@ -21,7 +21,7 @@ public class MutableMap<K, V> {
     }
 
     public dafny.DafnySet<K> Keys() {
-        return new dafny.DafnySet(Collections.list(map.keys()));
+        return new dafny.DafnySet<K>(Collections.list(map.keys()));
     }
 
     public boolean HasKey(K k) {
@@ -29,14 +29,14 @@ public class MutableMap<K, V> {
     }
 
     public dafny.DafnySet<V> Values() {
-        return new dafny.DafnySet(map.values());
+        return new dafny.DafnySet<V>(map.values());
     }
 
     public dafny.DafnySet<dafny.Tuple2<K, V>> Items() {
         Set<Map.Entry<K, V>> set = map.entrySet();
         Set<dafny.Tuple2<K, V>> tupleSet = new HashSet<dafny.Tuple2<K, V>>();
         set.forEach(e -> tupleSet.add(dafny.Tuple2.create(e.getKey(), e.getValue())));
-        return new dafny.DafnySet(tupleSet);
+        return new dafny.DafnySet<dafny.Tuple2<K, V>>(tupleSet);
     }
 
     public void Put(K k, V v) {
