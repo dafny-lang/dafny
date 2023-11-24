@@ -44,7 +44,7 @@ public class MutableMap<K, V> {
     }
 
     public DafnyStdLibs.Wrappers.Option<V> Get(K k) {
-        var v = map.get(k);
+        V v = map.get(k);
         if (v == null) {
             return DafnyStdLibs.Wrappers.Option.create_None(td_V);
         } else {
