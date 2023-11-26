@@ -1055,7 +1055,7 @@ method NotTerminating() {
 }
 ```
 
-This verifies instantly. This gives use a strategy to bisect, or do binary search to find the assertion that slows everything down.
+This verifies instantly. This gives us a strategy to bisect, or do binary search to find the assertion that slows everything down.
 Now, we move the `assume false;` below the next assertion:
 
 <!-- %no-check -->
@@ -1376,7 +1376,7 @@ assert c != 5/a;     // Correctness
 Well-formedness is proved at the same time as correctness, except for
 [well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
 which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
-For the rest of this section, we don't diifferentiate between well-formedness assertions and correctness assertions.
+For the rest of this section, we don't differentiate between well-formedness assertions and correctness assertions.
 
 We can also classify the assertions extracted by Dafny in a few categories:
 
