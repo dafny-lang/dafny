@@ -63,7 +63,6 @@ public class ProgramParser {
 
       var parseResult = ParseFileWithErrorHandling(
         errorReporter.Options,
-        dafnyFile.IsPrerefined,
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
@@ -107,13 +106,12 @@ public class ProgramParser {
   }
 
   private DfyParseResult ParseFileWithErrorHandling(DafnyOptions options,
-    bool parseAsDooFile,
     Func<TextReader> getContent,
     IToken origin,
     Uri uri,
     CancellationToken cancellationToken) {
     try {
-      return ParseFile(options, parseAsDooFile, getContent, uri, cancellationToken);
+      return ParseFile(options, getContent, uri, cancellationToken);
     } catch (IOException e) {
       if (origin == null) {
         throw;
@@ -237,7 +235,6 @@ public class ProgramParser {
       cancellationToken.ThrowIfCancellationRequested();
       var parseIncludeResult = ParseFileWithErrorHandling(
         errorReporter.Options,
-        top.IsPrerefined,
         top.GetContent,
         top.Origin,
         top.Uri,
@@ -265,12 +262,12 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  protected virtual DfyParseResult ParseFile(DafnyOptions options, bool parseAsDooFile, Func<TextReader> getReader,
+  protected virtual DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = getReader();
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-    return ParseFile(options, parseAsDooFile, text, uri, cancellationToken);
+    return ParseFile(options, text, uri, cancellationToken);
   }
 
   ///<summary>
@@ -279,9 +276,9 @@ public class ProgramParser {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner with the given Errors sink.
   ///</summary>
-  private static DfyParseResult ParseFile(DafnyOptions options, bool parseAsDooFile, string /*!*/ content, Uri /*!*/ uri, CancellationToken cancellationToken) {
+  private static DfyParseResult ParseFile(DafnyOptions options, string /*!*/ content, Uri /*!*/ uri, CancellationToken cancellationToken) {
     var batchErrorReporter = new BatchErrorReporter(options);
-    Parser parser = SetupParser(parseAsDooFile, content, uri, batchErrorReporter, cancellationToken);
+    Parser parser = SetupParser(content, uri, batchErrorReporter, cancellationToken);
     parser.Parse();
 
     if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
@@ -292,7 +289,7 @@ public class ProgramParser {
     return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
-  private static Parser SetupParser(bool parseAsDooFile, string s /*!*/, Uri uri /*!*/,
+  private static Parser SetupParser(string s /*!*/, Uri uri /*!*/,
     ErrorReporter errorReporter /*!*/, CancellationToken cancellationToken) {
     Contract.Requires(s != null);
     Contract.Requires(uri != null);
@@ -307,7 +304,7 @@ public class ProgramParser {
     var errors = new Errors(errorReporter);
 
     var scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-    return new Parser(errorReporter.Options, parseAsDooFile, scanner, errors, cancellationToken);
+    return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
   public Program Parse(string source, Uri uri, ErrorReporter reporter) {

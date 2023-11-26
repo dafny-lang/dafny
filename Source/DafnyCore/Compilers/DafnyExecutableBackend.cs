@@ -29,6 +29,8 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   }
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    InstantiateReplaceableModules(dafnyProgram);
+    ProcessOuterModules(dafnyProgram);
     ((DafnyCompiler)compiler).Start();
     compiler.Compile(dafnyProgram, new ConcreteSyntaxTree());
     var dast = ((DafnyCompiler)compiler).Build();
