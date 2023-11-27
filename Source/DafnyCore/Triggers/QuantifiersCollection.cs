@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.Triggers {
       CollectAndShareTriggers(triggersCollector);
       TrimInvalidTriggers();
       BuildDependenciesGraph();
-      if (SuppressMatchingLoops() && RewriteMatchingLoop()) {
+      if (SuppressMatchingLoops() && RewriteMatchingLoop(triggersCollector)) {
         CollectWithoutShareTriggers(triggersCollector);
         TrimInvalidTriggers();
         SuppressMatchingLoops();
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.Triggers {
       return foundloop;
     }
 
-    bool RewriteMatchingLoop() {
+    bool RewriteMatchingLoop(TriggersCollector triggersCollector) {
       if (expr is QuantifierExpr) {
         QuantifierExpr quantifier = (QuantifierExpr)expr;
         var l = new List<QuantifierWithTriggers>();
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.Triggers {
         bool rewritten = false;
         foreach (var q in quantifiers) {
           if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
-            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options);
+            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options, triggersCollector.ForModule);
             var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
             splits.Add(qq);
             l.Add(new QuantifierWithTriggers(qq));
