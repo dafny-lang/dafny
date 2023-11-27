@@ -28,6 +28,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       k = WhatKind;
     }
 
+    // If this function is opaque due to the opaque keyword, include it.
+    k = (IsOpaque && !Attributes.Contains(Attributes, "opaque")) ? "opaque " + k : k;
     return HasStaticKeyword ? "static " + k : k;
   }
 
@@ -59,7 +61,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute && !HasAxiomAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 

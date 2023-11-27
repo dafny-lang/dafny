@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
         }
         return new FunctionCallExpr(e.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel) {
           Function = function,
-          Type = e.Type, // TODO: this may not work with type parameters.
+          Type = e.Type.Subst(typeMap),
           TypeApplication_AtEnclosingClass = SubstituteTypeList(typeApplicationAtEnclosingClass), // resolve here
           TypeApplication_JustFunction = SubstituteTypeList(e.TypeApplication_JustFunction), // resolve here
           IsByMethodCall = e.IsByMethodCall

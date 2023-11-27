@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 method Main() {
     print "Hello, World! Best, Dafny\n";

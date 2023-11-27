@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 type MyType<T> = x: T | true witness * // this used to not compile (C#, Java, Go) -- issue #3883
 type MyInt<T> = x: int | true witness *

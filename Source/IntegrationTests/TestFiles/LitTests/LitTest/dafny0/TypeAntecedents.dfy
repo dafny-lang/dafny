@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" --expect-exit-code=4 -- --warn-deprecation=false --relax-definite-assignment
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation=false --relax-definite-assignment
 
 
 // -------- This is an example of what was once logically (although not trigger-ly) unsound ---

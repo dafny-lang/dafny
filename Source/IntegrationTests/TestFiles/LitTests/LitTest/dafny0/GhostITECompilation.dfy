@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --function-syntax:4 --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --function-syntax:4 --relax-definite-assignment
 
 function F(x: nat, ghost y: nat): nat
 {

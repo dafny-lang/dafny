@@ -567,8 +567,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.IsAbstract) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         wr.Write("abstract ");
+      }
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -579,8 +582,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Implements != null) {
+        wr.Write("refines {0} ", module.Implements.Target);
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
@@ -1018,8 +1021,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
-      if (method.Reads.Expressions != null) {
-        PrintFrameSpecLine("reads", method.Reads, ind);
+      var readsExpressions = method.Reads.Expressions;
+      if (readsExpressions != null) {
+        var isDefault = readsExpressions.Count == 1 && readsExpressions[0].E is WildcardExpr;
+        if (!isDefault) {
+          PrintFrameSpecLine("reads", method.Reads, ind);
+        }
       }
       if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod, ind);

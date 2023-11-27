@@ -32,6 +32,7 @@ using static Microsoft.Dafny.GenericErrors;
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private DafnyOptions options;
+    public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     private bool filterOnlyMembers;
 
@@ -80,7 +81,6 @@ namespace Microsoft.Dafny {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
-      triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
@@ -733,6 +733,7 @@ namespace Microsoft.Dafny {
 
       program = p;
       this.forModule = forModule;
+      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options, forModule);
       Type.EnableScopes();
 
       EstablishModuleScope(p.SystemModuleManager.SystemModule, forModule);
@@ -862,7 +863,7 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+    public static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
       if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
@@ -1424,12 +1425,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Implementation AddImplementationWithVerboseName(IToken tok, Procedure proc, List<Variable> inParams,
+    private Implementation AddImplementationWithAttributes(IToken tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
-      AddVerboseName(impl, proc.VerboseName);
+      AddVerboseNameAttribute(impl, proc.VerboseName);
+      if (DisableNonLinearArithmetic) {
+        AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
+      }
       sink.AddTopLevelDeclaration(impl);
       return impl;
     }
@@ -2353,7 +2357,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
-      AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseNameAttribute(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -2377,7 +2381,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        AddImplementationWithVerboseName(GetToken(ctor), proc, implInParams,
+        AddImplementationWithAttributes(GetToken(ctor), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 
@@ -2912,13 +2916,17 @@ namespace Microsoft.Dafny {
       return $"{fullName} ({kindDescription[kind]})";
     }
 
-    private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
+    private static void AddVerboseNameAttribute(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
       var verboseName = MethodVerboseName(dafnyName, kind);
-      AddVerboseName(boogieDecl, verboseName);
+      AddVerboseNameAttribute(boogieDecl, verboseName);
     }
 
-    private static void AddVerboseName(Bpl.NamedDeclaration targetDecl, string verboseName) {
+    private static void AddVerboseNameAttribute(Bpl.NamedDeclaration targetDecl, string verboseName) {
       targetDecl.AddAttribute("verboseName", new object[] { verboseName });
+    }
+
+    private static void AddSmtOptionAttribute(Bpl.NamedDeclaration targetDecl, string name, string value) {
+      targetDecl.AddAttribute("smt_option", new object[] { name, value });
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
@@ -3994,8 +4002,7 @@ namespace Microsoft.Dafny {
           "it may have read effects");
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
-          {
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
           false, null);
@@ -4443,6 +4450,26 @@ namespace Microsoft.Dafny {
     internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
+    public bool DisableNonLinearArithmetic {
+      get {
+        return DetermineDisableNonLinearArithmetic(forModule, options);
+      }
+    }
+
+    public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions) {
+      var nlaAttribute = Attributes.Find(module.Attributes, "disable_nonlinear_arithmetic");
+      if (nlaAttribute != null) {
+        var value = true;
+        var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;
+        if (arg != null) {
+          Expression.IsBoolLiteral(arg, out value);
+        }
+
+        return value;
+      }
+
+      return dafnyOptions.DisableNLarith;
+    }
 
     internal class IsAllocContext {
       private DafnyOptions options;

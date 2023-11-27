@@ -17,6 +17,13 @@ using static Microsoft.Dafny.Compilers.CompilerErrors;
 
 
 namespace Microsoft.Dafny.Compilers {
+
+  static class SinglePassCompilerExtensions {
+    public static bool CanCompile(this ModuleDefinition module) {
+      return module.ModuleKind == ModuleKindEnum.Concrete;
+    }
+  }
+
   public abstract class SinglePassCompiler {
     public DafnyOptions Options { get; }
 
@@ -167,12 +174,14 @@ namespace Microsoft.Dafny.Compilers {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
-    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
     /// </summary>
-    protected virtual void DependOnModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName) { }
+    protected virtual void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/) { }
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
@@ -805,8 +814,9 @@ namespace Microsoft.Dafny.Compilers {
     /// Needed in languages where either
     ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
     ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
+    /// "toOrig" is passed to represent the original, unsubstituted type, which is useful for detecting boxing situations in Java
     /// </summary>
-    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type/*?*/ toOrig = null) {
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }
@@ -816,9 +826,13 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
+    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner, Type/*?*/ toOrig = null) {
+      if (toOrig == null) {
+        toOrig = to;
+      }
+
       var result = new ConcreteSyntaxTree();
-      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      EmitCoercionIfNecessary(from, to, tok, result, toOrig).Append(inner);
       return result;
     }
 
@@ -1442,14 +1456,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
-      if (module.IsAbstract) {
+      if (!module.CanCompile()) {
         // the purpose of an abstract module is to skip compilation
         return;
       }
 
       DetectAndMarkCapitalizationConflicts(module);
 
-      var moduleIsExtern = false;
+      ModuleDefinition externModule = null;
       string libraryName = null;
       if (!Options.DisallowExterns) {
         var args = Attributes.FindExpressions(module.Attributes, "extern");
@@ -1458,16 +1472,16 @@ namespace Microsoft.Dafny.Compilers {
             libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
           }
 
-          moduleIsExtern = true;
+          externModule = module;
         }
       }
 
       if (!module.ShouldCompile(program.Compilation)) {
-        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, moduleIsExtern, libraryName);
+        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
         return;
       }
 
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, moduleIsExtern, libraryName, programNode);
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
@@ -1781,7 +1795,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (!string.IsNullOrEmpty(name)) {
         foreach (var module in program.CompileModules) {
-          if (module.IsAbstract) {
+          if (!module.CanCompile()) {
             // the purpose of an abstract module is to skip compilation
             continue;
           }
@@ -1807,7 +1821,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       foreach (var module in program.CompileModules) {
-        if (module.IsAbstract) {
+        if (!module.CanCompile()) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
@@ -1847,7 +1861,7 @@ namespace Microsoft.Dafny.Compilers {
 
       mainMethod = null;
       foreach (var module in program.CompileModules) {
-        if (module.IsAbstract) {
+        if (!module.CanCompile()) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
@@ -5290,6 +5304,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var wrArgumentList = new ConcreteSyntaxTree();
         var wTypeDescriptorArguments = new ConcreteSyntaxTree();
+        var typeSubst = TypeParameter.SubstitutionMap(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         string sep = "";
         Contract.Assert(dtv.Ctor.EnclosingDatatype.TypeArgs.Count == dtv.InferredTypeArgs.Count);
         WriteTypeDescriptors(dtv.Ctor.EnclosingDatatype, dtv.InferredTypeArgs, wTypeDescriptorArguments, ref sep);
@@ -5298,7 +5313,7 @@ namespace Microsoft.Dafny.Compilers {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
-            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
+            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst), toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
             EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
             sep = ", ";
           }
@@ -5733,21 +5748,18 @@ namespace Microsoft.Dafny.Compilers {
       IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
       if (!boundVarType.Equals(collectionElementType, true) &&
-          boundVarType.NormalizeExpand(true) is UserDefinedType
-          {
+          boundVarType.NormalizeExpand(true) is UserDefinedType {
             TypeArgs: var typeArgs,
             ResolvedClass:
-            SubsetTypeDecl
-            {
+            SubsetTypeDecl {
               TypeArgs: var typeParametersArgs,
               Var: var variable,
               Constraint: var constraint
             }
           }) {
-        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
-          {
-            ResolvedClass: SubsetTypeDecl
-          } normalizedVariableType) {
+        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType {
+          ResolvedClass: SubsetTypeDecl
+        } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
               inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
@@ -6053,6 +6065,5 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
-
   }
 }

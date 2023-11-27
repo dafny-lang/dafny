@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /dprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --print:-
+
 
 method M0(x: int, y: int)
 {

@@ -1,5 +1,5 @@
-// RUN: %exits-with 0 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 trait A {
   predicate f()

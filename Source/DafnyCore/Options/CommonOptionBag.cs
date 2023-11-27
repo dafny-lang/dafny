@@ -214,13 +214,17 @@ May slow down verification slightly.
 May produce spurious warnings.") {
     IsHidden = true
   };
-  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
-    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+  public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
+    "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
   };
   public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
     "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
     IsHidden = true
+  };
+  public static readonly Option<string> ExecutionCoverageReport = new("--coverage-report",
+    "Emit execution coverage report to a given directory.") {
+    ArgumentHelpName = "directory"
   };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
@@ -327,6 +331,11 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
     DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
 0 (default) - Don't print debug information for the new type system.
 1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
+    DafnyOptions.RegisterLegacyUi(UseStandardLibraries, DafnyOptions.ParseBoolean, "Language feature selection", "standardLibraries", @"
+0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false);
     DafnyOptions.RegisterLegacyUi(PluginOption, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
     DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
 
@@ -512,7 +521,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       UseStandardLibraries,
       OptimizeErasableDatatypeWrapper,
       AddCompileSuffix,
-      SystemModule
+      SystemModule,
+      ExecutionCoverageReport
     );
   }
 

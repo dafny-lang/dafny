@@ -37,11 +37,9 @@ to check things are provable are reasonable,
 and it's fine if `dafny test` only ends up checking that verification succeeds,
 but avoid non-ghost code that cannot be compiled.
 
-The support for measuring runtime test coverage of Dafny code
-is not complete enough to be applied easily to this project,
-but will be added as soon as possible.
-In the meantime, please ensure your testing coverage
-is at least greater than 0%!
+To see the runtime coverage of the examples and tests,
+run `make coverage` and then open the 
+`build/testcoverage/<most recent timestamp>/index_tests_actual.html` file.
 
 ### Documentation
 
@@ -65,19 +63,39 @@ The build process applies `dafny format` to all source.
 
 ### Packaging
 
-For now all standard libraries are built together into a single `DafnyStandardLibraries.doo` file,
-which is included as an embedded resource in `DafnyPipeline.dll`.
-That will likely need to change as more libraries are imported,
-in particular https://github.com/dafny-lang/libraries/tree/master/src/NonlinearArithmetic
-which needs to build with `--disable-nonlinear-arithmetic`.
-It will be fairly straightforward to build multiple `.doo` files that are all added
-with the `--standard-libraries` option, but the build process will need to be tweaked to support that.
+The standard libraries are built together into multiple `DafnyStandardLibraries*.doo` files,
+which are included as embedded resources in `DafnyPipeline.dll`.
+These are then added as additional implicit source files when `--standard-libraries` is switched on.
+Having multiple `.doo` files allows each of them to be verified with different flags,
+such as `--disable-nonlinear-arithmetic`.
+This doesn't affect the end user experience, as Dafny checks that each `.doo` file
+is compatible with the current set of options independently,
+and the source of the definitions doesn't matter to the code consuming them.
 
-### External code
+Some standard libraries depend on `{:extern}`-ally implemented functionality, such as `FileIO`.
+Because the `{:extern}` attribute needs to be defined differently for different backends,
+the build creates a `DafnyStandardLibraries-<target id>.doo` file
+for each supported target language.
+Each is included only when compiling to that target language, 
+using the `build`, `translate`, `run` or `test` Dafny CLI commands
+(or the equivalent modes of the legacy CLI).
 
-Several standard libraries will need to depend on `{:extern}`-ally implemented functionality.
-The plan is to include such code in each backend's runtime,
-but adding this to the build process is currently blocked on https://github.com/dafny-lang/dafny/issues/511.
+There is also a `DafnyStandardLibraries-notarget.doo` file used when NOT compiling,
+which provides only the bodyless interface declaration.
+Each of the `.doo` files for the target languages
+replace the bodyless declarations with the actual implementations, backed by externs.
+The current approach is sound but will not scale well in the future,
+since it repeatedly verifies the common code that consumes the abstract interface
+for each target language.
+A [pending language enhancement](https://github.com/dafny-lang/dafny/pull/4681) will likely address this point.
+
+All target language files in this project are also embedded in the `DafnyPipeline.dll`.
+When `--standard-libraries` is switched on,
+these source files are automatically emitted when compiling,
+just like the contents of each backend's runtime.
+
+See [Makefile](Makefile) and [src/DafnyStdLibs/TargetSpecific/Makefile](src/DafnyStdLibs/TargetSpecific/Makefile) for more details.
+
 
 ### On brittleness
 
@@ -118,7 +136,7 @@ inflict on consumers.
 ## Importing from dafny-lang/libraries
 
 There are a couple of things to watch out for when importing libraries from the
-[dafny-lang/libraries]() repository:
+[dafny-lang/libraries](https://github.com/dafny-lang/libraries) repository:
 
 * Several libraries have two copies in `dafny-lang/libraries`: one under `src`,
   and one under `src/dafny`. The latter is a copy refactored to nest all modules under a top-level

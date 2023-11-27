@@ -25,9 +25,9 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
 
   protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
-      verificationStatusGutterReceivers[i] = new();
+      verificationStatusGutterReceivers[i] = new(logger);
     }
-    verificationStatusGutterReceiver = new();
+    verificationStatusGutterReceiver = new(logger);
     (client, Server) = await Initialize(options =>
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 method M0(t: map<int, int>, k: int)
   requires k in t

@@ -9,7 +9,7 @@ using Bpl = Microsoft.Boogie;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
@@ -100,7 +100,7 @@ public partial class BoogieGenerator {
     var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
       Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
       false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
-    AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
+    AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 
     if (InsertChecksums) {
@@ -283,7 +283,7 @@ public partial class BoogieGenerator {
     if (EmitImplementation(f.Attributes)) {
       // emit the impl only when there are proof obligations.
       QKeyValue kv = etran.TrAttributes(f.Attributes, null);
-      var impl = AddImplementationWithVerboseName(GetToken(f), proc,
+      var impl = AddImplementationWithAttributes(GetToken(f), proc,
         Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
         implOutParams,
         locals, implBody, kv);

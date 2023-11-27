@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // This program shows how to model a program that reads twice from a shared non-decreasing counter.
 // This encoding requires the user to provide an invariant for each program point.

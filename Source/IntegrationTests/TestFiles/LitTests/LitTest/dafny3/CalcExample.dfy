@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Here is a function "f" and three axioms (that is, unproved lemmas) about "f":
 

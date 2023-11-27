@@ -1,11 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -37,25 +34,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(Compilation compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(Compilation compilation, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootSourceUris = compilation.RootUris;
+        var rootFiles = compilation.RootFiles!;
         List<DafnyFile> dafnyFiles = new();
-        foreach (var rootSourceUri in rootSourceUris) {
+        foreach (var rootFile in rootFiles) {
           try {
-            dafnyFiles.Add(new DafnyFile(reporter.Options, rootSourceUri, null, () => fileSystem.ReadFile(rootSourceUri)));
+            dafnyFiles.Add(rootFile);
             if (logger.IsEnabled(LogLevel.Trace)) {
-              logger.LogTrace($"Parsing file with uri {rootSourceUri} and content\n{fileSystem.ReadFile(rootSourceUri).ReadToEnd()}");
+              logger.LogTrace($"Parsing file with uri {rootFile.Uri} and content\n{rootFile.GetContent().ReadToEnd()}");
             }
           } catch (IOException) {
-            logger.LogError($"Tried to parse file {rootSourceUri} that could not be found");
+            logger.LogError($"Tried to parse file {rootFile} that could not be found");
           }
         }
 
-        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, reporter, cancellationToken);
+        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, compilation.Reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);

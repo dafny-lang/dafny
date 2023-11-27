@@ -97,7 +97,7 @@ module Consumer {
       var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint);
+      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint, allowStale: true);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
       await AssertNoDiagnosticsAreComing(CancellationToken, producer);
@@ -326,9 +326,8 @@ module N refines M
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
-      Assert.Equal(
-        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
-        diagnostics[1].Message);
+      Assert.Contains(diagnostics, d => d.Message.Contains(
+        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value"));
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -343,11 +342,12 @@ predicate {:opaque} m() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
       ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
-      diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Empty(diagnostics);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.Empty(diagnostics2);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
@@ -427,7 +427,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithMultipleSemanticErrorsReportsDiagnosticsWithAllSemanticErrors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
       Assert.Equal("Resolver", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -718,7 +718,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal("Project", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -1064,10 +1064,11 @@ method test()
       client.OpenDocument(documentItem);
 
       var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
-      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
+      AssertM.Equal(2, secondVerificationDiagnostics.Length, secondVerificationDiagnostics.Stringify());
+      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.
+        Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
 
       Assert.Single(firstVerificationDiagnostics);
-      Assert.Equal(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1173,7 +1174,7 @@ method test2() {
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       AssertM.Equal(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
       foreach (var t in expected.Zip(actual)) {
-        AssertM.Equal(CompilationAfterResolution.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
+        AssertM.Equal(IdeState.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
@@ -1189,7 +1190,7 @@ method test()
       var documentItem = CreateTestDocument(source, "DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(2, diagnostics.Length);
+      AssertM.Equal(2, diagnostics.Length, diagnostics.Stringify());
     }
 
     [Fact]

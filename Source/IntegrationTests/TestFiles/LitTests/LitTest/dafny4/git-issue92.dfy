@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 datatype d = D(i:int)
 ghost predicate p(s:int, y:int)

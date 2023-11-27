@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 trait Base {}
 class Derived extends Base { var n: int constructor() { n := 0; } }

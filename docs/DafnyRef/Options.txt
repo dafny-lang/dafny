@@ -118,6 +118,12 @@ Usage: dafny [ option ... ] [ filename ... ]
       0 (default) - Reads clauses on methods are forbidden.
       1 - Reads clauses on methods are permitted (with a default of 'reads *').
 
+  /standardLibraries:<value>
+      0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+      Not compatible with the /unicodeChar:0 option.
+
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.
       1 - Print type-inference debug information.
@@ -490,6 +496,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   /printWithUniqueIds : print augmented information that uniquely
                    identifies variables
   /printUnstructured : with /print option, desugars all structured statements
+  /printPassive :  with /print option, prints passive version of program
   /printDesugared : with /print option, desugars calls
   /printLambdaLifting : with /print option, desugars lambda lifting
 
@@ -768,7 +775,7 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Limit the number of seconds spent trying to verify
                 each procedure
   /rlimit:<num>
-                Limit the Z3 resource spent trying to verify each procedure
+                Limit the Z3 resource spent trying to verify each procedure.
   /errorTrace:<n>
                 0 - no Trace labels in the error output,
                 1 (default) - include useful Trace labels in error output,

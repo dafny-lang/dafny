@@ -79,6 +79,11 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
+
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        wr.WriteLine("using System.IO;");
+      }
+
       if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
         wr.WriteLine("#endif");
       }
@@ -94,7 +99,13 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
       }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
+      }
 
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        EmitCoverageReportInstrumentation(program, wr);
+      }
     }
 
     /// <summary>
@@ -154,7 +165,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
@@ -255,7 +266,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       return wr.NewBlock($"namespace {IdProtect(moduleName)}", " // end of " + $"namespace {IdProtect(moduleName)}");
     }
 
@@ -3434,5 +3446,30 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, catchBlock);
     }
 
+    protected void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
+      wr.WriteLine(@"
+namespace DafnyProfiling {
+  public class CodeCoverage {
+    static uint[] tallies;
+    static string talliesFileName;
+    public static void Setup(int size, string theTalliesFileName) {
+      tallies = new uint[size];
+      talliesFileName = theTalliesFileName;
+    }
+    public static void TearDown() {
+      using TextWriter talliesWriter = new StreamWriter(
+        new FileStream(talliesFileName, FileMode.Create));
+      for (var i = 0; i < tallies.Length; i++) {
+        talliesWriter.WriteLine(""{0}"", tallies[i]);
+      }
+      tallies = null;
+    }
+    public static bool Record(int id) {
+      tallies[id]++;
+      return true;
+    }
+  }
+}");
+    }
   }
 }

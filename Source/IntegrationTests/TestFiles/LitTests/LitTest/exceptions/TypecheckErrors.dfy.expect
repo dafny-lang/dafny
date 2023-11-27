@@ -1,7 +1,5 @@
 TypecheckErrors.dfy(7,28): Error: incorrect argument type for method in-parameter 'n' (expected nat, found string)
 TypecheckErrors.dfy(8,28): Error: incorrect argument type for method in-parameter 'n' (expected nat, found string)
-TypecheckErrors.dfy(14,8): Error: Duplicate local-variable name: a
-TypecheckErrors.dfy(16,8): Error: Duplicate local-variable name: b
 TypecheckErrors.dfy(39,10): Error: member IsFailure does not exist in BadOutcome1?, in :- statement
 TypecheckErrors.dfy(43,10): Error: member 'PropagateFailure' does not exist in trait 'BadOutcome2'
 TypecheckErrors.dfy(43,10): Error: The right-hand side of ':-', which is of type 'BadOutcome2?', must have functions 'IsFailure()', 'PropagateFailure()', and 'Extract()'
@@ -11,4 +9,4 @@ TypecheckErrors.dfy(71,4): Error: member IsFailure does not exist in BadVoidOutc
 TypecheckErrors.dfy(75,4): Error: member 'PropagateFailure' does not exist in trait 'BadVoidOutcome2'
 TypecheckErrors.dfy(75,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome2?', must have functions 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'
 TypecheckErrors.dfy(79,4): Error: number of lhs (0) must match number of rhs (1) for a rhs type (BadVoidOutcome3?) with member Extract
-13 resolution/type errors detected in TypecheckErrors.dfy
+11 resolution/type errors detected in TypecheckErrors.dfy

@@ -15,6 +15,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  /// <summary>
+  /// The client does not correctly migrate symbolStatus information,
+  /// so we have to republish it if the positions change.
+  /// </summary>
+  [Fact]
+  public async Task NoClientSideMigrationOfCanVerifies() {
+    var source = @"const x := 3".TrimStart();
+
+    var documentA = await CreateOpenAndWaitForResolve(source);
+    var status = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(1, status.NamedVerifiables.Count);
+    ApplyChange(ref documentA, new Range(0, 0, 0, 12), "");
+    var status2 = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(0, status2.NamedVerifiables.Count);
+  }
+
   [Fact]
   public async Task DoNotMigrateWrongUri() {
     var sourceA = @"
@@ -334,8 +350,11 @@ function fib(n: nat): nat {
     // Delete the end of the Foo range, so Foo() becomes F()
     ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
 
-    var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(1, translatedStatusAfter.NamedVerifiables.Count);
+    var translatedStatusAfter1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(0, translatedStatusAfter1.NamedVerifiables.Count);
+
+    var translatedStatusAfter2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(1, translatedStatusAfter2.NamedVerifiables.Count);
   }
 
   [Fact]
@@ -634,7 +653,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [Fact]
-  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+  public async Task RefiningDeclarationStatusIsNotFoldedIntoTheBase() {
     var source = @"
 abstract module BaseModule {
   method Foo() returns (x: int) ensures x > 2 
