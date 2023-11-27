@@ -56,17 +56,24 @@ namespace Concurrent {
     public class AtomicBox<T> {
 
         private T val;
+        private Lock l;
 
         public AtomicBox(T t) {
             val = t;
+            l = new Lock();
         }
 
         public void Put(T t) {
+            l.__Lock();
             val = t;
+            l.Unlock();
         }
 
         public T Get() {
-            return val;
+            l.__Lock();
+            var r = val;
+            l.Unlock();
+            return r;
         }
     }
 

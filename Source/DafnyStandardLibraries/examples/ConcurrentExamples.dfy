@@ -6,6 +6,10 @@ module ConcurrentExamples {
 
   const p1: nat -> bool := _ => true
   const p2: (nat, nat) -> bool := (_, _) => true
+  const p3: (char, nat) -> bool := (_, _) => true
+  const p4: (Copy, nat) -> bool := (_, _) => true
+  // const p5: (object?, nat) -> bool := (_, _) => true
+
 
   datatype Copy = A | B
 
@@ -74,31 +78,6 @@ module ConcurrentExamples {
       match copy
       case A => r := secondaryA.Get(slot);
       case B => r := secondaryB.Get(slot);
-    }
-
-    method EverythingElse()
-      requires Valid()
-      modifies primary
-      ensures Valid()
-    {
-      assert primary.inv(0,0);
-      primary.Remove(0);
-      var keys := primary.Keys();
-      print keys, "\n";
-      var used := primary.HasKey(0);
-      print used, "\n";
-      var values := primary.Values();
-      print values, "\n";
-      var items := primary.Items();
-      print items, "\n";
-      primary.Put(0, 0);
-      primary.Put(1, 1);
-      items := primary.Items();
-      print items, "\n";
-      print |items|, "\n";
-      var card := primary.Size();
-      print card, "\n";
-      var card' := primary.Size();
     }
   }
 
@@ -174,4 +153,33 @@ module ConcurrentExamples {
     var v := mmap.Get(0);
     expect(v == Some(0));
   }
+
+  method {:test} TestChar() {
+    var mmap := new MutableMap(p3);
+    var b := mmap.HasKey('A');
+    expect(!b);
+    mmap.Put('A', 0);
+    b := mmap.HasKey('A');
+    expect(b);
+  }
+
+  method {:test} TestDt() {
+    var mmap := new MutableMap(p4);
+    var b := mmap.HasKey(A);
+    expect(!b);
+    mmap.Put(A, 0);
+    b := mmap.HasKey(A);
+    expect(b);
+  }
+
+  // does not work everywhere
+  // method {:test} TestObject() {
+  //   var mmap := new MutableMap(p5);
+  //   var b := mmap.HasKey(null);
+  //   expect(!b);
+  //   mmap.Put(null, 0);
+  //   b := mmap.HasKey(null);
+  //   expect(b);
+  // }
+
 }
