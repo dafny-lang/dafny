@@ -4,8 +4,7 @@
 // RUN: %resolve --rprint:- --reads-clauses-on-methods:true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// Confirming that reads clauses on methods that weren't in the original source
-// are not printed, EXCEPT for when the feature is enabled AND printing the resolved program.
+// Confirming that default reads clauses on methods are not explicitly printed.
 // Worth testing because of having to set the default of `reads *` during resolution.
 
 module JustMethods {

@@ -267,7 +267,6 @@ module JustMethods {
    */
   method SomeMethod(x: int) returns (y: int)
     requires true
-    reads *
     modifies {}
     ensures true
     decreases x
