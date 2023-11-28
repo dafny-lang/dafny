@@ -7,7 +7,7 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
-class NoExecutableBackend : IExecutableBackend {
+public class NoExecutableBackend : IExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
   public override string TargetName => throw new NotSupportedException();
   public override bool IsStable => throw new NotSupportedException();

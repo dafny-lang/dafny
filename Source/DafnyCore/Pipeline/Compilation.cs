@@ -12,6 +12,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -63,6 +64,10 @@ public class Compilation : IDisposable {
   private Program? transformedProgram;
   private readonly IDisposable staticDiagnosticsSubscription;
 
+  private bool disposed;
+  private readonly ObservableErrorReporter errorReporter;
+  private IExecutableBackend backend;
+
   public Task<Program> Program { get; }
   public Task<ResolutionResult> Resolution { get; }
 
@@ -103,8 +108,26 @@ public class Compilation : IDisposable {
   public void Start() {
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
+    backend = GetBackend();
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
+  }
+  
+  private IExecutableBackend GetBackend() {
+    if (Options.CompilerName == null) {
+      return new NoExecutableBackend(Options);
+    }
+    var backends = Options.Plugins.SelectMany(p => p.GetCompilers(Options)).ToList();
+    var result = backends.LastOrDefault(c => c.TargetId == Options.CompilerName);
+    if (result == null) {
+      var known = String.Join(", ", backends.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
+
+      var hint = Options.CompilerName.StartsWith("-t") || Options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "";
+      errorReporter.Info(MessageSource.Parser, Project.StartingToken, 
+        $"no compiler found for target \"{Options.CompilerName}\"{hint}; expecting one of {known}");
+    }
+
+    return result;
   }
 
   private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
@@ -433,9 +456,6 @@ public class Compilation : IDisposable {
     });
 
   }
-
-  private bool disposed;
-  private readonly ObservableErrorReporter errorReporter;
 
   public void Dispose() {
     if (disposed) {
