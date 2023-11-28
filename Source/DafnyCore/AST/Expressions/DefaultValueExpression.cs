@@ -74,7 +74,7 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
     this.ResolvedExpression = s.Substitute(this.formal.DefaultValue);
     visited[this] = WorkProgress.Done;
 
-    this.ResolvedExpression.Type = this.Type;
+    //this.ResolvedExpression.Type = this.Type;
   }
 
   class DefaultValueSubstituter : Substituter {
