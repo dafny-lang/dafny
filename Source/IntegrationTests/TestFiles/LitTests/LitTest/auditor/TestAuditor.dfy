@@ -1,8 +1,8 @@
-// RUN: %baredafny audit --report-file "%t.md" "%s"
-// RUN: %baredafny audit --report-file "%t.md" --compare-report "%s"
-// RUN: %baredafny audit --report-file "%t.html" "%s"
-// RUN: %baredafny audit --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
-// RUN: %baredafny audit --use-basename-for-filename "%s" > "%t"
+// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.md" "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.md" --compare-report "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t.html" "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
+// RUN: %baredafny audit --reads-clauses-on-methods --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.md.expect" "%t.md"
 // RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
 // RUN: %diff "%s.html.expect" "%t.html"
@@ -111,6 +111,25 @@ abstract module M {
 
 opaque function f(): int {
   0
+}
+
+// A method that's safe for concurrent use because it doesn't touch the
+// heap.
+method {:concurrent} ConcurrentMethod(x: int) returns (r: int) 
+  reads {}
+{
+  return x;
+}
+
+class Box {
+  ghost var value: int
+}
+
+ghost method {:concurrent} AssumedConcurrentMethod(xBox: Box)
+  reads {:assume_concurrent} xBox
+  modifies {:assume_concurrent} xBox
+{
+  xBox.value := xBox.value + 1;
 }
 
 method {:axiom} AxiomWithStuffInIt(x: int) returns (r: int) {
