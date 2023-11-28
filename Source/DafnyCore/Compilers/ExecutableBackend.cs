@@ -30,10 +30,36 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    InstantiateReplaceableModules(dafnyProgram);
+    ProcessOuterModules(dafnyProgram);
+    Compiler.Compile(dafnyProgram, output);
+  }
+
+  protected void InstantiateReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        var target = compiledModule.Implements.Target.Def;
+        if (target.Replacement != null) {
+          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
+            "a replaceable module may only be replaced once");
+        } else {
+          target.Replacement = compiledModule.Replacement ?? compiledModule;
+        }
+      }
+
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+        Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+      }
+    }
+  }
+
+  protected void ProcessOuterModules(Program dafnyProgram) {
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
     foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), false, false,
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
         null, null, null);
       newRoot.EnclosingModule = rootUserModule;
       rootUserModule = newRoot;
@@ -47,7 +73,6 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
-    Compiler.Compile(dafnyProgram, output);
   }
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
