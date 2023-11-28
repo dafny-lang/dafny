@@ -877,8 +877,12 @@ public partial class BoogieGenerator {
 
       var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
       var trbody = etranBody.TrExpr(bodyWithSubst);
+      // Traits as datatypes might require boxing
+      var conclusion = etranBody.TrExpr(new BinaryExpr(Token.NoToken, BinaryExpr.ResolvedOpcode.EqCommon,
+        new BoogieWrapper(funcAppl, f.ResultType), bodyWithSubst
+      ));
       tastyVegetarianOption = BplAnd(etranBody.CanCallAssumption(bodyWithSubst),
-        BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
+        BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), conclusion));
     }
 
     QKeyValue kv = null;
