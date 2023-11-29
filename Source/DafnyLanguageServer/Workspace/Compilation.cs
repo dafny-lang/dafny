@@ -426,7 +426,7 @@ public class Compilation : IDisposable {
     }
 
     // Make sure that we capture the legacy include tokens
-    while (firstToken.Prev is {line: >= 1, Filepath: var filePath} && filePath == firstToken.Filepath) {
+    while (firstToken.Prev is { line: >= 1, Filepath: var filePath } && filePath == firstToken.Filepath) {
       firstToken = firstToken.Prev;
     }
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,

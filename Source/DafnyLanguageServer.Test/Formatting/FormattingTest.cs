@@ -17,7 +17,7 @@ public class FormattingTest : ClientBasedLanguageServerTest {
   public override async Task InitializeAsync() {
     await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
-  
+
   [Fact]
   public async Task GitIssue4827() {
     var source = @"
