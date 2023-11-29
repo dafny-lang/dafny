@@ -1,4 +1,4 @@
-// RUN: %verify --type-system-refresh "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Str(s: string) {

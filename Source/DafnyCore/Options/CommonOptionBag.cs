@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 public class CommonOptionBag {
 
   public static readonly Option<bool> ManualTriggerOption =
-    new("--manual-trigger", "Do not generate {:trigger} annotations for user-level quantifiers") {
+    new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
       IsHidden = true
     };
 

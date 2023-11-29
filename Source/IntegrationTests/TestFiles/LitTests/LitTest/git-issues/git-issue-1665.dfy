@@ -3,10 +3,10 @@
 // RUN: %diff "%s.expect" "%t".raw.dfy
 
 // Check that original program successfully verifies (exit code 0):
-// RUN: %verify "%s" > "%t".1
+// RUN: %verify --relax-definite-assignment "%s" > "%t".1
 
 // Check that produced rprinted program also successfuly verifies:
-// RUN: %verify "%t".raw.dfy > "%t".2
+// RUN: %verify  --relax-definite-assignment "%t".raw.dfy > "%t".2
 
 // Check that verification results are the same:
 // RUN: %diff "%t".1 "%t".2

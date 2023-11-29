@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --type-system-refresh "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Even = u | u % 2 == 0
