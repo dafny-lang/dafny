@@ -21,7 +21,7 @@ public static class BuildCommand {
       options.Compile = true;
       options.RunAfterCompile = false;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return DafnyCli.RunCompiler(options);
+      return new DafnyCli(options).RunCompiler();
     });
     return result;
   }

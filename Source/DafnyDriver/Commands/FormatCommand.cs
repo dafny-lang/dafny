@@ -33,7 +33,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = DafnyBackwardsCompatibleCli.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }

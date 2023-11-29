@@ -20,6 +20,7 @@ public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_E
 public record ParsedOptions(DafnyOptions DafnyOptions) : ILegacyParseArguments;
 record ExitImmediately(ExitValue ExitValue) : ILegacyParseArguments;
 
+// TODO reduce usages
 public static class DafnyBackwardsCompatibleCli {
 
   public static int Main(string[] args) {
@@ -55,7 +56,8 @@ public static class DafnyBackwardsCompatibleCli {
     });
   }
 
-  private static async Task<int> RunLegacyCompiler(DafnyOptions options) {
+  // TODO reduce useages
+  public static async Task<int> RunLegacyCompiler(DafnyOptions options) {
 
     options.RunningBoogieFromCommandLine = true;
 

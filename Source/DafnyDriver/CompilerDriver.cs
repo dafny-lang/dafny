@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void WriteModuleStats(DafnyOptions options, TextWriter output, IDictionary<string, PipelineStatistics> moduleStats) {
+    public static void WriteProgramVerificationSummary(DafnyOptions options, TextWriter output, IDictionary<string, PipelineStatistics> moduleStats) {
       var statSum = new PipelineStatistics();
       foreach (var stats in moduleStats) {
         statSum.VerifiedCount += stats.Value.VerifiedCount;
@@ -296,7 +296,7 @@ namespace Microsoft.Dafny {
       bool compiled = true;
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
-          WriteModuleStats(options, options.OutputWriter, moduleStats);
+          WriteProgramVerificationSummary(options, options.OutputWriter, moduleStats);
           if ((options.Compile && verified && !options.UserConstrainedProcsToCheck) || options.ForceCompile) {
             compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= options.SpillTargetCode && verified && !options.UserConstrainedProcsToCheck) || 3 <= options.SpillTargetCode) {
@@ -304,7 +304,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case PipelineOutcome.Done:
-          WriteModuleStats(options, options.OutputWriter, moduleStats);
+          WriteProgramVerificationSummary(options, options.OutputWriter, moduleStats);
           if (options.ForceCompile || 3 <= options.SpillTargetCode) {
             compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, options.ForceCompile);
           }

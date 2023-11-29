@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Help;
@@ -15,18 +16,60 @@ using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
+using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
-public static class DafnyCli {
+class TelemetryPublisher : ITelemetryPublisher {
+  private readonly ILogger<ITelemetryPublisher> logger;
+
+  public TelemetryPublisher(ILogger<ITelemetryPublisher> logger) {
+    this.logger = logger;
+  }
+
+  public void PublishTelemetry(ImmutableDictionary<string, object> data) {
+    // TODO throw new NotImplementedException();
+  }
+
+  // TODO make ITelemetryPublisher abstract class and move this there.
+  public void PublishUnhandledException(Exception e) {
+    logger.LogError(e, "exception occurred");
+    PublishTelemetry(ImmutableDictionary.Create<string, object>().
+      Add("kind", ITelemetryPublisher.TelemetryEventKind.UnhandledException).
+      Add("payload", e.ToString()));
+  }
+}
+
+public class DafnyCli {
+  private readonly DafnyOptions options;
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
   
 
-  private static CreateCompilation createCompilation = null;
+  private readonly CreateCompilation createCompilation;
 
-  public static async Task<int> RunCompiler(DafnyOptions options) {
+  public DafnyCli(DafnyOptions options) {
+    this.options = options;
+
+    var fileSystem = OnDiskFileSystem.Instance;
+    ILoggerFactory factory = new LoggerFactory();
+    var telemetryPublisher = new TelemetryPublisher(factory.CreateLogger<ITelemetryPublisher>());
+    createCompilation = (engine, input) => new Compilation(factory.CreateLogger<Compilation>(), fileSystem,
+      new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
+        new DafnyLangParser(this.options, fileSystem, telemetryPublisher, 
+          factory.CreateLogger<DafnyLangParser>(), 
+          factory.CreateLogger<CachingParser>()),
+        new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), 
+          factory.CreateLogger<CachingResolver>(), 
+          telemetryPublisher)), new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), 
+      engine, input);
+  }
+
+  public async Task<int> RunCompiler() {
 
     options.RunningBoogieFromCommandLine = true;
     
@@ -43,6 +86,12 @@ public static class DafnyCli {
       }
     });
     compilation.Start();
+    
+    
+    await compilation.Resolution;
+    
+    CompilerDriver.WriteProgramVerificationSummary(options, /* TODO ErrorWriter? */ options.OutputWriter, ImmutableDictionary<string, PipelineStatistics>.Empty);
+    
     var exitValue = er.ErrorCount > 0 ? ExitValue.COMPILE_ERROR : ExitValue.SUCCESS;
     return (int)exitValue;
 

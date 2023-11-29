@@ -6,11 +6,11 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class TelemetryPublisher : ITelemetryPublisher {
+  public class LspTelemetryPublisher : ITelemetryPublisher {
     private readonly ILanguageServerFacade languageServer;
-    private readonly ILogger<TelemetryPublisher> logger;
+    private readonly ILogger<LspTelemetryPublisher> logger;
 
-    public TelemetryPublisher(ILanguageServerFacade languageServer, ILogger<TelemetryPublisher> logger) {
+    public LspTelemetryPublisher(ILanguageServerFacade languageServer, ILogger<LspTelemetryPublisher> logger) {
       this.languageServer = languageServer;
       this.logger = logger;
     }

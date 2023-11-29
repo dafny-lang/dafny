@@ -31,10 +31,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       symbolResolver = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
-      textDocumentLoader = TextDocumentLoader.Create(
+      textDocumentLoader = new TextDocumentLoader(
+        logger.Object,
         parser.Object,
-        symbolResolver.Object,
-        logger.Object
+        symbolResolver.Object
       );
     }
 

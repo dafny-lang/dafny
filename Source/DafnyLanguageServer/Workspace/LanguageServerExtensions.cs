@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<LegacySignatureAndCompletionTable>>(),
           changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
+        .AddSingleton<ITelemetryPublisher, LspTelemetryPublisher>();
     }
   }
 }

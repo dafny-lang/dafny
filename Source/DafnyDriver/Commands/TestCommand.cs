@@ -37,7 +37,7 @@ static class TestCommand {
       options.RunAllTests = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       options.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
-      return DafnyCli.RunCompiler(options);
+      return new DafnyCli(options).RunCompiler();
     });
     return result;
   }
