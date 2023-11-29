@@ -162,24 +162,40 @@ public class CallDependency : ProofDependency {
   }
 }
 
+public enum AssumptionForm {
+  AssumeStatement,
+  AssertStatement,
+  LetBinding,
+  VariableDeclaration,
+  IfBinding,
+  AssignSuchThatConstaint,
+  CalcStep,
+  CalcResult,
+  ForallEnsures,
+  ForallRange,
+  LoopInvariant,
+  AlternativeGuard,
+  Other,
+}
+
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
   public override RangeToken Range =>
     Expr.RangeToken;
 
   public override string Description =>
-    comment ?? $"assume {OriginalString()}";
+    comment ?? OriginalString();
 
   private readonly string comment;
 
   public Expression Expr { get; }
 
-  public bool IsAssumeStatement { get; }
+  public AssumptionForm Form { get; }
 
-  public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
+  public AssumptionDependency(AssumptionForm assumptionForm, string comment, Expression expr) {
     this.comment = comment;
     this.Expr = expr;
-    this.IsAssumeStatement = isAssumeStatement;
+    this.Form = assumptionForm;
   }
 }
 

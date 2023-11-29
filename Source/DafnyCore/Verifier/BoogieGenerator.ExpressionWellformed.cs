@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using DafnyCore.Verifier;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
@@ -1384,7 +1385,7 @@ namespace Microsoft.Dafny {
           CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
           CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
-          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
+          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding", AssumptionForm.LetBinding));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran, "let expression result");
 
@@ -1428,7 +1429,7 @@ namespace Microsoft.Dafny {
           var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
           var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(rhs_prime)));
-          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint"));
+          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint", AssumptionForm.AssignSuchThatConstaint));
           builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(letBody_prime)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
@@ -1443,7 +1444,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
           CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
-          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
+          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression", AssumptionForm.LetBinding));
           builder.Add(TrAssumeCmd(letBody.tok, etran.CanCallAssumption(letBody)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));

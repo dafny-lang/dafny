@@ -36,10 +36,7 @@ public class ProofDependencyWarnings {
     var unusedObligations = unusedDependencies.OfType<ProofObligationDependency>();
     var unusedRequires = unusedDependencies.OfType<RequiresDependency>();
     var unusedEnsures = unusedDependencies.OfType<EnsuresDependency>();
-    var unusedAssumeStatements =
-      unusedDependencies
-        .OfType<AssumptionDependency>()
-        .Where(d => d is AssumptionDependency ad && ad.IsAssumeStatement);
+    var unusedAssumptions = unusedDependencies.OfType<AssumptionDependency>();
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
       foreach (var dependency in unusedObligations) {
         if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
@@ -56,14 +53,15 @@ public class ProofDependencyWarnings {
 
     if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
       foreach (var dep in unusedRequires) {
-        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary requires clause");
+        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary (or partly unnecessary) requires clause");
       }
 
-      foreach (var dep in unusedAssumeStatements) {
+      foreach (var dep in unusedAssumptions) {
         if (ShouldWarnUnused(dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary assumption");
+          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary (or partly unnecessary) {dep.Description}");
         }
       }
+
     }
   }
 
@@ -123,7 +121,9 @@ public class ProofDependencyWarnings {
   /// Some assumptions that don't show up in the dependency list
   /// are innocuous. In particular, `assume true` is often used
   /// as a place to attach attributes such as `{:split_here}`.
-  /// Don't warn about such assumptions.
+  /// Don't warn about such assumptions. Also don't warn about
+  /// assumptions coming from places other than `assume` and `assert`
+  /// statements
   /// </summary>
   /// <param name="dep">the dependency to examine</param>
   /// <returns>false to skip warning about the absence of this
@@ -133,6 +133,10 @@ public class ProofDependencyWarnings {
       if (assumeDep.Expr is not null &&
           Expression.IsBoolLiteral(assumeDep.Expr, out var lit) &&
           lit == true) {
+        return false;
+      }
+
+      if (assumeDep.Form != AssumptionForm.AssumeStatement && assumeDep.Form != AssumptionForm.AssertStatement) {
         return false;
       }
     }
