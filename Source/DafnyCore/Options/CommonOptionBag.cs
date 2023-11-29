@@ -8,17 +8,17 @@ using Microsoft.Dafny.Compilers;
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
-  
+
   public static readonly Option<bool> ManualTriggerOption =
     new("--manual-trigger", "Do not generate {:trigger} annotations for user-level quantifiers") {
       IsHidden = true
     };
-  
+
   public static readonly Option<bool> ShowInference =
     new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
       IsHidden = true
     };
-  
+
   public enum AssertionShowMode { None, Implicit, All }
   public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
     "Show hints on locations where implicit assertions occur");
@@ -305,11 +305,11 @@ Not compatible with the --unicode-char:false option.
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
     });
-    
+
     DafnyOptions.RegisterLegacyBinding(ManualTriggerOption, (options, value) => {
       options.AutoTriggers = !value;
     });
-    
+
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
 go - Compile to Go.
