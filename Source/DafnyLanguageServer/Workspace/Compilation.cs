@@ -425,7 +425,7 @@ public class Compilation : IDisposable {
       return null;
     }
 
-    // Make sure we capture the legacy include tokens
+    // Make sure that we capture the legacy include tokens
     while (firstToken.Prev is {line: >= 1, Filepath: var filePath} && filePath == firstToken.Filepath) {
       firstToken = firstToken.Prev;
     }
