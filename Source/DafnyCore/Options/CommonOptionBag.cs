@@ -8,7 +8,12 @@ using Microsoft.Dafny.Compilers;
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
-
+  
+  public static readonly Option<bool> ShowInference =
+    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+      IsHidden = true
+    };
+  
   public enum AssertionShowMode { None, Implicit, All }
   public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
     "Show hints on locations where implicit assertions occur");
@@ -292,6 +297,10 @@ Not compatible with the --unicode-char:false option.
 ");
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+      options.PrintTooltips = value;
+    });
+    
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
 go - Compile to Go.
@@ -341,7 +350,7 @@ Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false
 
     DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
-    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.PrintOption, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
 
     DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
@@ -484,6 +493,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      ShowInference,
       Check,
       Libraries,
       Output,
