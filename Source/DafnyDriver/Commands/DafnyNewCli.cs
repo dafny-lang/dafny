@@ -48,7 +48,7 @@ public class DafnyCli {
   private readonly DafnyOptions options;
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-  
+
 
   private readonly CreateCompilation createCompilation;
 
@@ -60,19 +60,19 @@ public class DafnyCli {
     var telemetryPublisher = new TelemetryPublisher(factory.CreateLogger<ITelemetryPublisher>());
     createCompilation = (engine, input) => new Compilation(factory.CreateLogger<Compilation>(), fileSystem,
       new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
-        new DafnyLangParser(this.options, fileSystem, telemetryPublisher, 
-          factory.CreateLogger<DafnyLangParser>(), 
+        new DafnyLangParser(this.options, fileSystem, telemetryPublisher,
+          factory.CreateLogger<DafnyLangParser>(),
           factory.CreateLogger<CachingParser>()),
-        new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), 
-          factory.CreateLogger<CachingResolver>(), 
-          telemetryPublisher)), new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), 
+        new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(),
+          factory.CreateLogger<CachingResolver>(),
+          telemetryPublisher)), new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()),
       engine, input);
   }
 
   public async Task<int> RunCompiler() {
 
     options.RunningBoogieFromCommandLine = true;
-    
+
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     var compilation = createCompilation(executionEngine, input);
@@ -86,12 +86,11 @@ public class DafnyCli {
       }
     });
     compilation.Start();
-    
-    
+
     await compilation.Resolution;
-    
+
     CompilerDriver.WriteProgramVerificationSummary(options, /* TODO ErrorWriter? */ options.OutputWriter, ImmutableDictionary<string, PipelineStatistics>.Empty);
-    
+
     var exitValue = er.ErrorCount > 0 ? ExitValue.COMPILE_ERROR : ExitValue.SUCCESS;
     return (int)exitValue;
 
@@ -241,6 +240,13 @@ public class DafnyCli {
       dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       dafnyOptions.UsingNewCli = true;
+      if (dafnyOptions.DafnyProject == null) {
+        var uri = dafnyOptions.CliRootSourceUris.First();
+        dafnyOptions.DafnyProject = new DafnyProject {
+          Includes = Array.Empty<string>(),
+          Uri = uri
+        };
+      }
       context.ExitCode = await continuation(dafnyOptions, context);
     }
 

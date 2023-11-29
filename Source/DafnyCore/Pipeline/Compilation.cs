@@ -112,7 +112,7 @@ public class Compilation : IDisposable {
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
   }
-  
+
   private IExecutableBackend GetBackend() {
     if (Options.CompilerName == null) {
       return new NoExecutableBackend(Options);
@@ -123,7 +123,7 @@ public class Compilation : IDisposable {
       var known = String.Join(", ", backends.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
 
       var hint = Options.CompilerName.StartsWith("-t") || Options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "";
-      errorReporter.Info(MessageSource.Parser, Project.StartingToken, 
+      errorReporter.Info(MessageSource.Parser, Project.StartingToken,
         $"no compiler found for target \"{Options.CompilerName}\"{hint}; expecting one of {known}");
     }
 

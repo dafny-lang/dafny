@@ -71,19 +71,19 @@ public static class DafnyBackwardsCompatibleCli {
     if (getFilesExitCode != ExitValue.SUCCESS) {
       return (int)getFilesExitCode;
     }
-    
+
     if (options.ExtractCounterexample && options.ModelViewFile == null) {
       options.Printer.ErrorWriteLine(options.OutputWriter,
         "*** Error: ModelView file must be specified when attempting counterexample extraction");
       return (int)ExitValue.PREPROCESSING_ERROR;
     }
-    
+
     using var driver = new CompilerDriver(options);
     ProofDependencyManager depManager = new();
     var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
-    
+
     options.XmlSink?.Close();
-    
+
     if (options.VerificationLoggerConfigs.Any()) {
       try {
         VerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
