@@ -900,7 +900,6 @@ Examples:
 ```dafny
 allocated(c)
 allocated({c1,c2})
-allocated@L(c)
 ```
 
 For any expression `e`, the expression `allocated(e)` evaluates to `true`
