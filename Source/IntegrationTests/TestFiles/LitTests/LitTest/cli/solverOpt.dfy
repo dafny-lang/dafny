@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args --boogie -trace --solver-option BATCH_MODE=true "%s" > "%t"
+// RUN: %exits-with 4 %verify --boogie -trace --solver-option BATCH_MODE=true "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Running in batch mode.
 method M(x: int) {
