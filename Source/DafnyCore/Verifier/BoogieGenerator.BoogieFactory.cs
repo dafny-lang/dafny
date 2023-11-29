@@ -210,10 +210,10 @@ namespace Microsoft.Dafny {
     // and then adds information to track that assumption as a potential
     // proof dependency.
     private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
-      string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
+      string comment = null, AssumptionForm assumptionForm = AssumptionForm.Other, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(assumptionForm, comment, dafnyExpr));
       return cmd;
     }
 

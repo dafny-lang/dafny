@@ -168,6 +168,22 @@ public class CallDependency : ProofDependency {
   }
 }
 
+public enum AssumptionForm {
+  AssumeStatement,
+  AssertStatement,
+  LetBinding,
+  VariableDeclaration,
+  IfBinding,
+  AssignSuchThatConstaint,
+  CalcStep,
+  CalcResult,
+  ForallEnsures,
+  ForallRange,
+  LoopInvariant,
+  AlternativeGuard,
+  Other,
+}
+
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
   public override RangeToken Range =>
