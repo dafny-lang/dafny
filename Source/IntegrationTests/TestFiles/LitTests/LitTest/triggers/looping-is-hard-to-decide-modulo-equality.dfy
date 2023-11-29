@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file shows cases where loops could hide behind equalities. In all three
