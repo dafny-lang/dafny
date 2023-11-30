@@ -495,7 +495,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
-        { ManualTriggerOption, DooFile.CheckOptionMatches},
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
@@ -503,6 +502,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      ManualTriggerOption,
       ShowInference,
       Check,
       Libraries,

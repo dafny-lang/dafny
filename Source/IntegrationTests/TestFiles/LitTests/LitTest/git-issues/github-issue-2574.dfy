@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-snippets --relax-definite-assignment "%s" > "%t.raw"
+// RUN: %exits-with 4 %baredafny verify --use-basename-for-filename "%s" > "%t.raw"
 // RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff %s.expect %t
 module Spec {
