@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --warn-deprecation false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Problem 2 concerns an interpreter for the language of S and K combinators.

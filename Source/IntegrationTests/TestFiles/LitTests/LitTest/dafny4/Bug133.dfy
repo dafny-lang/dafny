@@ -1,4 +1,4 @@
-// RUN: %dafny /noNLarith /compile:0 "%s" > "%t"
+// RUN: %verify --disable-nonlinear-arithmetic "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Math__div_def_i {

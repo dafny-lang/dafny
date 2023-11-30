@@ -1,6 +1,6 @@
-// RUN: %baredafny verify %args --function-syntax:3 --print:- "%s" > "%t"
-// RUN: %baredafny verify %args --function-syntax:experimentalDefaultGhost --print:- "%s" >> "%t"
-// RUN: %baredafny verify %args --function-syntax:experimentalDefaultCompiled --print:- "%s" >> "%t"
+// RUN: %verify --function-syntax:3 --print:- "%s" > "%t"
+// RUN: %verify --function-syntax:experimentalDefaultGhost --print:- "%s" >> "%t"
+// RUN: %verify --function-syntax:experimentalDefaultCompiled --print:- "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function F0(): int
