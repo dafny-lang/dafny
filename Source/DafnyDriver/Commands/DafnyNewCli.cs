@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
@@ -11,6 +12,8 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -77,6 +80,8 @@ public class DafnyCli {
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     var compilation = createCompilation(executionEngine, input);
 
+    ConcurrentBag<IImplementationTask> tasksToVerify = new();
+    var statSum = new PipelineStatistics();
     var er = new ConsoleErrorReporter(options);
     compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
@@ -84,12 +89,68 @@ public class DafnyCli {
         er.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       }
+
+      if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
+        foreach (var part in canVerifyPartsIdentified.Parts) {
+          tasksToVerify.Add(part);
+        }
+      }
+
+      if (ev is BoogieUpdate boogieUpdate) {
+        if (boogieUpdate.BoogieStatus is BatchCompleted completed) {
+          switch (completed.VcResult.outcome) {
+            case ProverInterface.Outcome.Valid:
+            case ProverInterface.Outcome.Bounded:
+              statSum.VerifiedCount += 1;
+              break;
+            case ProverInterface.Outcome.Invalid:
+              statSum.ErrorCount += 1;
+              break;
+            case ProverInterface.Outcome.TimeOut:
+              statSum.TimeoutCount += 1;
+              break;
+            case ProverInterface.Outcome.OutOfMemory:
+              statSum.OutOfMemoryCount += 1;
+              break;
+            case ProverInterface.Outcome.OutOfResource:
+              statSum.OutOfResourceCount += 1;
+              break;
+            case ProverInterface.Outcome.Undetermined:
+              statSum.InconclusiveCount += 1;
+              break;
+            default:
+              throw new ArgumentOutOfRangeException();
+          }
+        }
+      }
     });
     compilation.Start();
 
-    await compilation.Resolution;
+    var resolution = await compilation.Resolution;
+    var canVerifies = resolution.CanVerifies?.ToList();
 
-    CompilerDriver.WriteProgramVerificationSummary(options, /* TODO ErrorWriter? */ options.OutputWriter, ImmutableDictionary<string, PipelineStatistics>.Empty);
+    ConcurrentBag<IImplementationTask> completedTasks = new();
+    var completedCanVerifyUpdates = compilation.Updates.
+      Where(u => u is BoogieUpdate boogieUpdate && 
+                 boogieUpdate.BoogieStatus is Completed).
+      Do(u => {
+        if (u is BoogieUpdate boogieUpdate &&
+            boogieUpdate.BoogieStatus is Completed) {
+          completedTasks.Add(boogieUpdate.ImplementationTask);
+        }
+      }).Select(_ => completedTasks.Count);
+    
+    if (canVerifies != null) {
+      foreach (var canVerify in canVerifies) {
+        await compilation.VerifyCanVerify(canVerify, false);
+      }
+    }
+
+    await completedCanVerifyUpdates.Where(i => 
+      completedTasks.Count == tasksToVerify.Count).FirstAsync().ToTask();
+
+
+    CompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
     var exitValue = er.ErrorCount > 0 ? ExitValue.COMPILE_ERROR : ExitValue.SUCCESS;
     return (int)exitValue;

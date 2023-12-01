@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
       return first;
     }
 
-    private static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
+    public static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
       if (!options.Verify && stats.ErrorCount == 0) {
         output.WriteLine();
         output.Write("{0} did not attempt verification", options.DescriptiveToolName);

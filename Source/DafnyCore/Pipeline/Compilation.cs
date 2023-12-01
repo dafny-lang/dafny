@@ -245,7 +245,7 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifySymbol(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -268,17 +268,27 @@ public class Compilation : IDisposable {
       return false;
     }
 
+    return await VerifyCanVerify(canVerify, onlyPrepareVerificationForGutterTests);
+  }
+
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, bool onlyPrepareVerificationForGutterTests)
+  {
+    var resolution = await Resolution;
     var containingModule = canVerify.ContainingModule;
-    if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
+    if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation))
+    {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))
+    {
       return false;
     }
+
     updates.OnNext(new ScheduledVerification(canVerify));
 
-    if (onlyPrepareVerificationForGutterTests) {
+    if (onlyPrepareVerificationForGutterTests)
+    {
       await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
       return true;
     }
