@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --warn-missing-constructor-parentheses "%s" > "%t"
+// RUN: %verify --warn-missing-constructor-parentheses "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module WithWarning {

@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny {
       // (or verified at all) using a different solver.
       SetZ3Option("smt.arith.solver", "2");
 
-      if (DisableNLarith || 3 <= ArithMode) {
+      if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }
     }
