@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --warn-deprecation false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class N

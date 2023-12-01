@@ -54,6 +54,12 @@
 
 * Definition contains loop with no body. MUST provide a body.
 
+### Member `AssumedConcurrentMethod`
+
+* Reads clause has `{:assume_concurrent}` attribute. MUST manually review and test in a concurrent setting.
+
+* Modifies clause has `{:assume_concurrent}` attribute. MUST manually review and test in a concurrent setting.
+
 ### Member `AxiomWithStuffInIt`
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.

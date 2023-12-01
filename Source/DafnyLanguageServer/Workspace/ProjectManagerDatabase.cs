@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return;
         }
 
-        if (manager.CloseDocument()) {
+        if (manager.CloseDocument(documentId.Uri.ToUri())) {
           managersByProject.Remove(manager.Project.Uri, out _);
         }
       }
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               projectManagerForFile.CloseAsync();
               managersByProject.Remove(project.Uri);
             } else {
-              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument();
+              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
               if (previousProjectHasNoDocuments) {
                 // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args --default-function-opacity autoRevealDependencies "%s" > "%t"
+// RUN: %exits-with 4 %verify --default-function-opacity autoRevealDependencies "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function power(b: int, n: nat): int

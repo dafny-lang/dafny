@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
+// RUN: %resolve "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate P0(A: bool, B: bool, C: bool) {
