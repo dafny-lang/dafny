@@ -8,23 +8,23 @@ abstract module DafnyStdLibs.ConcurrentInterface {
   class Lock {
 
     /**
-     * Acquires the lock.
-     *
-     * If this concurrent execution already holds the lock,
-     * increments the hold count for this execution.
-     * If not, blocks until the lock is no longer held.
-     */
+      * Acquires the lock.
+      *
+      * If this concurrent execution already holds the lock,
+      * increments the hold count for this execution.
+      * If not, blocks until the lock is no longer held.
+      */
     method Lock()
 
     /**
-     * Releases the lock.
-     *
-     * If this concurrent execution currently holds the lock,
-     * decrements the hold count for this execution.
-     * If this count becomes zero, releases the lock.
-     *
-     * Has no effect if the lock was not currently held by this concurrent execution.
-     */
+      * Releases the lock.
+      *
+      * If this concurrent execution currently holds the lock,
+      * decrements the hold count for this execution.
+      * If this count becomes zero, releases the lock.
+      *
+      * Has no effect if the lock was not currently held by this concurrent execution.
+      */
     method Unlock()
   }
 
