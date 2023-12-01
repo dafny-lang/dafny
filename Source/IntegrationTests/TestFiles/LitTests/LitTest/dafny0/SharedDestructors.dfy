@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Dt =

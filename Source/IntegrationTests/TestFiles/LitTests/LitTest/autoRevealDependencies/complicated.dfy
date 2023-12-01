@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --default-function-opacity autoRevealDependencies "%s" > "%t"
+// RUN: %verify --default-function-opacity autoRevealDependencies "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P(z: int, i: int, j: int, k: int) 

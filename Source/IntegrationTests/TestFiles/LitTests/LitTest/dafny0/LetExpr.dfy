@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:0 /deprecation:0 "%t.dprint.dfy" >> "%t"
+// RUN: %exits-with 4 %verify --warn-deprecation false --relax-definite-assignment --print "%t.print.dfy" "%s" > "%t"
+// RUN: %resolve --warn-deprecation false "%t.print.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M0(n: int)

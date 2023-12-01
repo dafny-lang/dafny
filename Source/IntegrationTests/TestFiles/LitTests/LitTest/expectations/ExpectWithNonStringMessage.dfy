@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %verify --unicode-char false "%s" > "%t"
 // RUN: ! %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:go "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"

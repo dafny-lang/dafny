@@ -59,10 +59,8 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
-      return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, new Uri(Path.GetFullPath(name)))).ToList();
-    })).ToList();
+    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
     await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
@@ -227,17 +225,22 @@ class DafnyDoc {
       info.HtmlSummary = Row(Link(module.FullName, module.Name), DashShortDocstring(module));
     }
     var details = new StringBuilder();
-    var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
+    var modifier = moduleDef.ModuleKind switch {
+      ModuleKindEnum.Abstract => "abstract ",
+      ModuleKindEnum.Replaceable => "replaceable ",
+      _ => ""
+    };
 
     string refineText = "";
-    if (moduleDef.RefinementQId != null) {
-      refineText = (" refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName));
+    if (moduleDef.Implements != null) {
+      var kind = moduleDef.Implements.Kind == ImplementationKind.Replacement ? "replaces" : "refines";
+      refineText = ($" {kind} {QualifiedNameWithLinks(moduleDef.Implements.Target.Decl.FullDafnyName)}");
     }
     details.Append(MainStart("full"));
 
     if (module != null) {
       details.Append(AttrString(moduleDef.Attributes));
-      details.Append(Code(abs + "module " + moduleDef.Name + refineText));
+      details.Append(Code(modifier + "module " + moduleDef.Name + refineText));
       details.Append(br);
       details.Append(eol);
     } else {

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /typeSystemRefresh:1 /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Str(s: string) {

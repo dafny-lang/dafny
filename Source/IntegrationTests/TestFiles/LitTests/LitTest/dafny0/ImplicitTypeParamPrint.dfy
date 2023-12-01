@@ -1,7 +1,7 @@
 // NONUNIFORM: Multiple tests in one, fairly C# specific
-// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /rprint:"%t.dfy" "%s"
-// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /printMode:DllEmbed /rprint:"%t1.dfy" "%t.dfy"
-// RUN: %dafny /env:0 /compile:3 /printMode:DllEmbed /rprint:"%t2.dfy" "%t1.dfy" > "%t"
+// RUN: %resolve --rprint "%t.dfy" "%s"
+// RUN: %resolve --print-mode Serialization --rprint "%t1.dfy" "%t.dfy"
+// RUN: %run --print-mode Serialization --rprint "%t2.dfy" "%t1.dfy" > "%t"
 // RUN: %diff "%t1.dfy" "%t2.dfy"
 // RUN: %diff "%s.expect" "%t"
 

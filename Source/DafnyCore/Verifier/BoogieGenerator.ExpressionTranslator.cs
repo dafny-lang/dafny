@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -10,6 +11,7 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     public class ExpressionTranslator {
       private DafnyOptions options;
+
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Boogie.Expr _the_heap_expr;
       public Boogie.Expr HeapExpr {
@@ -781,7 +783,8 @@ namespace Microsoft.Dafny {
                   var freshLabel = ((FreshExpr)e).AtLabel;
                   var eeType = e.E.Type.NormalizeExpand();
                   if (eeType is SetType) {
-                    // generate:  (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> $o != null && !old($Heap)[$o,alloc])
+                    // generate:  (forall $o: ref :: { $o != null } X[Box($o)] ==> $o != null) &&
+                    //            (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> !old($Heap)[$o,alloc])
                     // OR, if X[Box($o)] is rewritten into smaller parts, use the less good trigger old($Heap)[$o,alloc]
                     Boogie.Variable oVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$o", predef.RefType));
                     Boogie.Expr o = new Boogie.IdentifierExpr(GetToken(opExpr), oVar);
@@ -789,9 +792,13 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
-                    Boogie.Expr body = Boogie.Expr.Imp(oInSet, Boogie.Expr.And(oNotNull, oIsFresh));
-                    var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
-                    return new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, trigger, body);
+                    Boogie.Expr notNullBody = Boogie.Expr.Imp(oInSet, oNotNull);
+                    Boogie.Expr freshBody = Boogie.Expr.Imp(oInSet, oIsFresh);
+                    var notNullTrigger = BplTrigger(oNotNull);
+                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, notNullTrigger, notNullBody);
+                    var freshTrigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
+                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), new List<Variable> { oVar }, freshTrigger, freshBody);
+                    return Boogie.Expr.And(notNullPred, freshPred);
                   } else if (eeType is SeqType) {
                     // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                     Boogie.Variable iVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$i", Boogie.Type.Int));
@@ -923,7 +930,7 @@ namespace Microsoft.Dafny {
                     return TrToFunctionCall(GetToken(binaryExpr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
                   } else if (e.E0.Type.IsBigOrdinalType) {
                     return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
-                  } else if (isReal || !options.DisableNLarith) {
+                  } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
                     bOpcode = BinaryOperator.Opcode.Lt;
                     break;
@@ -940,7 +947,7 @@ namespace Microsoft.Dafny {
                     var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
                     var eq = Boogie.Expr.Eq(e0, e1);
                     return BplOr(eq, less);
-                  } else if (isReal || !options.DisableNLarith) {
+                  } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
                     bOpcode = BinaryOperator.Opcode.Le;
                     break;
@@ -955,7 +962,7 @@ namespace Microsoft.Dafny {
                     var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
                     var eq = Boogie.Expr.Eq(e1, e0);
                     return BplOr(eq, less);
-                  } else if (isReal || !options.DisableNLarith) {
+                  } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
                     bOpcode = BinaryOperator.Opcode.Ge;
                     break;
@@ -967,7 +974,7 @@ namespace Microsoft.Dafny {
                     return TrToFunctionCall(GetToken(binaryExpr), "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
                   } else if (e.E0.Type.IsBigOrdinalType) {
                     return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
-                  } else if (isReal || !options.DisableNLarith) {
+                  } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
                     bOpcode = BinaryOperator.Opcode.Gt;
                     break;
@@ -982,7 +989,7 @@ namespace Microsoft.Dafny {
                     return TrToFunctionCall(GetToken(binaryExpr), "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
                   } else if (e.E0.Type.IsCharType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "char#Plus", predef.CharType, e0, e1, liftLit);
-                  } else if (!isReal && options.DisableNLarith) {
+                  } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_add_boogie", Boogie.Type.Int, e0, e1, liftLit);
                   } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
                     return TrToFunctionCall(GetToken(binaryExpr), "Add", Boogie.Type.Int, oe0, oe1, liftLit);
@@ -998,7 +1005,7 @@ namespace Microsoft.Dafny {
                     return TrToFunctionCall(GetToken(binaryExpr), "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
                   } else if (e.E0.Type.IsCharType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "char#Minus", predef.CharType, e0, e1, liftLit);
-                  } else if (!isReal && options.DisableNLarith) {
+                  } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_sub_boogie", Boogie.Type.Int, e0, e1, liftLit);
                   } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
                     return TrToFunctionCall(GetToken(binaryExpr), "Sub", Boogie.Type.Int, oe0, oe1, liftLit);
@@ -1010,7 +1017,7 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Mul:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "mul_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-                  } else if (!isReal && options.DisableNLarith) {
+                  } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_mul_boogie", Boogie.Type.Int, e0, e1, liftLit);
                   } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                     return TrToFunctionCall(GetToken(binaryExpr), "Mul", Boogie.Type.Int, oe0, oe1, liftLit);
@@ -1022,7 +1029,7 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Div:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "div_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-                  } else if (!isReal && options.DisableNLarith && !isReal) {
+                  } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic && !isReal) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_div_boogie", Boogie.Type.Int, e0, e1, liftLit);
                   } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                     return TrToFunctionCall(GetToken(binaryExpr), "Div", Boogie.Type.Int, e0, oe1, liftLit);
@@ -1038,7 +1045,7 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Mod:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "mod_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-                  } else if (options.DisableNLarith && !isReal) {
+                  } else if (BoogieGenerator.DisableNonLinearArithmetic && !isReal) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_mod_boogie", Boogie.Type.Int, e0, e1, liftLit);
                   } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                     return TrToFunctionCall(GetToken(binaryExpr), "Mod", Boogie.Type.Int, e0, oe1, liftLit);
@@ -1943,6 +1950,15 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           } else if (name == "synthesize") {
             name = "extern";
           }
+
+          // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
+          // derived from command-line rlimit settings.
+          if (!hasNewRLimit && name == "rlimit" && parms.Count > 0 && parms[0] is Boogie.LiteralExpr litExpr && litExpr.isBigNum) {
+            parms[0] = new Boogie.LiteralExpr(
+              litExpr.tok,
+              BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
+              litExpr.Immutable);
+          }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
         return kv;
@@ -2094,7 +2110,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               }
             case BinaryExpr.ResolvedOpcode.Mul:
               if (7 <= BoogieGenerator.options.ArithMode) {
-                if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && !BoogieGenerator.options.DisableNLarith) {
+                if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && !BoogieGenerator.DisableNonLinearArithmetic) {
                   // Produce a useful fact about the associativity of multiplication. It is a bit dicey to do as an axiom.
                   // Change (k*A)*B or (A*k)*B into (A*B)*k, where k is a numeric literal
                   var left = e.E0.Resolved as BinaryExpr;

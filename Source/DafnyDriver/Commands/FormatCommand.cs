@@ -43,10 +43,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
 
     var exitValue = ExitValue.SUCCESS;
     Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
-    dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => {
-      return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, new Uri(name))).ToList();
-    })).ToList();
+    dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => GetFilesForFolder(options, folderPath))).ToList();
 
     var failedToParseFiles = new List<string>();
     var emptyFiles = new List<string>();
@@ -71,7 +68,8 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = new DafnyFile(options, new Uri(tempFileName));
+        dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
+          OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
 
       using var content = dafnyFile.GetContent();
@@ -154,5 +152,11 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     }
 
     return exitValue;
+  }
+
+  public static IEnumerable<DafnyFile> GetFilesForFolder(DafnyOptions options, string folderPath) {
+    return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
+      .Select(name => DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance,
+        options, new Uri(name), Token.Cli));
   }
 }
