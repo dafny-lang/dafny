@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -23,6 +24,13 @@ public class DafnyFile {
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, IToken origin) {
+
+    if (uri.Scheme == "doo") {
+      var uriString = uri.ToString();
+      var dots = uriString.Substring("doo://".Length).Split(".");
+      uri = new Uri(dots[0] + "://" + string.Join('.', dots.Skip(1)));
+    }
+
     var filePath = uri.LocalPath;
 
     origin ??= Token.NoToken;
