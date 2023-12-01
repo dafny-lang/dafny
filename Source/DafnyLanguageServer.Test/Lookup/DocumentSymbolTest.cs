@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -10,6 +11,56 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
+
+    [Fact]
+    public async Task NamelessClass() {
+      var source = @"class {
+  function Foo(): int
+  function Bar(): int
+}";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
+      Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
+      Assert.True(symbols.All(s => !string.IsNullOrEmpty(s.Name)));
+    }
+
+    [Fact]
+    public async Task NamelessModule() {
+      var source = @"module {
+  function Foo(): int
+  function Bar(): int
+}";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
+
+    [Fact]
+    public async Task NoCrashOnJustFunction() {
+      var source = "function";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
+
+    private static void SymbolsAreValid(List<DocumentSymbol> symbols) {
+      Assert.True(symbols.All(s => s.Range.Start.Line >= 0));
+      Assert.True(symbols.All(s => s.SelectionRange.Start.Line >= 0));
+      Assert.True(symbols.All(s => !string.IsNullOrEmpty(s.Name)));
+    }
+
+    [Fact]
+    public async Task NamelessFunction() {
+      var source = "function(): int";
+      var documentItem = CreateAndOpenTestDocument(source);
+
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      SymbolsAreValid(symbols);
+    }
 
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {

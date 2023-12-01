@@ -21,15 +21,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
-  public class IllegalDafnyFile : Exception {
-    public bool ProcessingError { get; }
-
-    public IllegalDafnyFile(bool processingError = false) {
-      this.ProcessingError = processingError;
-    }
-  }
-
   public class DafnyMain {
+    public static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
+    public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
+    public static readonly Uri StandardLibrariesArithmeticDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo");
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

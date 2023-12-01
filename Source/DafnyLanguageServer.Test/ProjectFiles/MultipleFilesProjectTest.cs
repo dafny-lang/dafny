@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
@@ -37,7 +38,8 @@ method Bar() {
 
     var diagnostics1 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
     var diagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    var diagnostics = new[] { diagnostics1, diagnostics2 };
+    var diagnostics3 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics = new[] { diagnostics1, diagnostics2, diagnostics3 };
     Assert.Single(diagnostics1.Diagnostics);
     Assert.Single(diagnostics2.Diagnostics);
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("char"));
@@ -75,7 +77,7 @@ method Bar() {
 
   [Fact]
   public async Task OnDiskProducerVerificationErrorsChangeProject() {
-    await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject));
+    await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject));
 
     var producerSource = @"
 method Foo(x: int) 
@@ -99,16 +101,17 @@ method Bar() {
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "OnDiskProducerVerificationErrors_consumer1.dfy"));
 
-    var diagnostics = await GetAllDiagnostics(CancellationToken);
-    try {
-      Assert.Single(diagnostics[consumer.Uri]);
-      Assert.Contains("assertion might not hold", diagnostics[consumer.Uri].First().Message);
-      Assert.Single(diagnostics[producerUri]);
-      Assert.Contains("assertion might not hold", diagnostics[producerUri].First().Message);
-    } catch (Exception) {
-      await output.WriteLineAsync($"diagnostics: {diagnostics.Stringify()}");
-      throw;
-    }
+    var producer = new TextDocumentItem() {
+      Version = null,
+      Uri = producerUri
+    };
+    var consumerDiagnostics = await GetLastDiagnostics(consumer);
+    var producerDiagnostics = await GetLastDiagnostics(producer);
+
+    Assert.Single(consumerDiagnostics);
+    Assert.Contains("assertion might not hold", consumerDiagnostics.First().Message);
+    Assert.Single(producerDiagnostics);
+    Assert.Contains("assertion might not hold", producerDiagnostics.First().Message);
   }
 
   [Fact]
@@ -249,7 +252,7 @@ warn-shadowing = true
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     var sourceFile = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "src/file.dfy"));
 
-    var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Equal(2, diagnostics1.Count(d => d.Severity <= DiagnosticSeverity.Warning));
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
@@ -318,7 +321,7 @@ method Bar() {
     Assert.Single(producerDiagnostics2); // File has no code
 
     var consumer2 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer2.dfy"));
-    var consumer2Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer2);
+    var consumer2Diagnostics = await GetLastDiagnostics(consumer2);
     Assert.True(consumer2Diagnostics.Length > 1);
 
     client.CloseDocument(producerItem);
@@ -327,7 +330,7 @@ method Bar() {
     var consumer3 = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(Directory.GetCurrentDirectory(), "consumer3.dfy"));
     var consumer3Diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, consumer3);
     Assert.Single(consumer3Diagnostics);
-    Assert.Contains("Unable to open", consumer3Diagnostics[0].Message);
+    Assert.Contains("not found", consumer3Diagnostics[0].Message);
   }
 
   public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {

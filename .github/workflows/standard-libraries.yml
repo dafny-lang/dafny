@@ -1,0 +1,37 @@
+name: Build and Test Dafny Standard Libraries
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+
+  build:
+    needs: check-deep-tests
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up JDK 18
+        uses: actions/setup-java@v3
+        with:
+          java-version: 18
+          distribution: corretto
+      - name: Build Dafny
+        run: dotnet build Source/Dafny.sln
+      - name: Get Z3
+        run: make z3-mac
+      - run: npm install bignumber.js
+      - name: Test DafnyStandardLibraries
+        run: make -C Source/DafnyStandardLibraries all
+      

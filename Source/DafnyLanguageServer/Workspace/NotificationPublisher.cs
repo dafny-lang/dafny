@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -7,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -16,27 +18,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILogger<NotificationPublisher> logger;
     private readonly LanguageServerFilesystem filesystem;
     private readonly ILanguageServerFacade languageServer;
-    private readonly IProjectDatabase projectManagerDatabase;
     private readonly DafnyOptions options;
 
-    public NotificationPublisher(ILogger<NotificationPublisher> logger, ILanguageServerFacade languageServer,
-      IProjectDatabase projectManagerDatabase,
+    public NotificationPublisher(
+      ILogger<NotificationPublisher> logger,
+      ILanguageServerFacade languageServer,
       DafnyOptions options, LanguageServerFilesystem filesystem) {
       this.logger = logger;
       this.languageServer = languageServer;
-      this.projectManagerDatabase = projectManagerDatabase;
       this.options = options;
       this.filesystem = filesystem;
     }
 
-    public async Task PublishNotifications(IdeState previousState, IdeState state) {
+    public void PublishNotifications(IdeState previousState, IdeState state) {
       if (state.Version < previousState.Version) {
         return;
       }
 
-      await PublishDiagnostics(state);
+      PublishDiagnostics(state);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
+      foreach (var uri in state.OwnedUris) {
+        PublishGutterIcons(uri, state);
+      }
     }
 
     private void PublishProgress(IdeState previousState, IdeState state) {
@@ -53,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishSymbolProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
+      foreach (var uri in state.OwnedUris.Concat(previousState.OwnedUris).Distinct()) {
         var previous = GetFileVerificationStatus(previousState, uri);
         var current = GetFileVerificationStatus(state, uri);
 
@@ -66,11 +70,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishGlobalProgress(IdeState previousState, IdeState state) {
-      foreach (var uri in state.Compilation.RootUris) {
-        // TODO, still have to check for ownedness
+      foreach (var uri in state.OwnedUris) {
 
-        var current = GetGlobalProgress(state);
-        var previous = GetGlobalProgress(previousState);
+        var current = state.Status;
+        var previous = previousState.Status;
 
         if (Equals(current, previous)) {
           continue;
@@ -83,29 +86,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Message = null
         });
       }
-
-    }
-
-    private CompilationStatus GetGlobalProgress(IdeState state) {
-      var errors = state.ResolutionDiagnostics.Values.SelectMany(x => x).
-        Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-      if (state.Compilation is CompilationAfterResolution) {
-        if (errors.Any(d => d.Source == MessageSource.Resolver.ToString())) {
-          return CompilationStatus.ResolutionFailed;
-        }
-
-        return CompilationStatus.ResolutionSucceeded;
-      }
-
-      if (state.Compilation is CompilationAfterParsing) {
-        if (errors.Any(d => d.Source == MessageSource.Parser.ToString())) {
-          return CompilationStatus.ParsingFailed;
-        }
-
-        return CompilationStatus.ResolutionStarted;
-      }
-
-      return CompilationStatus.Parsing;
     }
 
     private FileVerificationStatus GetFileVerificationStatus(IdeState state, Uri uri) {
@@ -116,31 +96,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
+      const PublishedVerificationStatus nothingToVerifyStatus = PublishedVerificationStatus.Correct;
       var status = result.PreparationProgress switch {
         VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
         VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
         VerificationPreparationState.Done =>
-            new[] { PublishedVerificationStatus.Correct }. // If there is nothing to verify, show correct
-              Concat(result.Implementations.Values.Select(v => v.Status)).Min(),
+          result.Implementations.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
         _ => throw new ArgumentOutOfRangeException()
       };
 
       return new(canVerify, status);
     }
 
-    private readonly Dictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
+    public static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
+      var max = new[] { first, second }.Max();
+      var min = new[] { first, second }.Min();
+      return max >= PublishedVerificationStatus.Error ? min : max;
+    }
 
-    private async Task PublishDiagnostics(IdeState state) {
+    private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
+
+    private void PublishDiagnostics(IdeState state) {
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = state.GetDiagnosticUris().Concat(state.Compilation.RootUris).Distinct();
+      var sources = state.GetDiagnosticUris().Concat(state.OwnedUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
         var current = state.GetDiagnosticsForUri(uri);
-        var uriProject = await projectManagerDatabase.GetProject(uri);
-        var ownedUri = uriProject.Equals(state.Compilation.Project);
+        var ownedUri = state.OwnedUris.Contains(uri);
         if (ownedUri) {
-          if (uri == state.Compilation.Project.Uri) {
+          if (uri == state.Input.Project.Uri) {
             // Delay publication of project diagnostics,
             // since it also serves as a bucket for diagnostics from unowned files
             projectDiagnostics.AddRange(current);
@@ -162,7 +147,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      PublishForUri(state.Compilation.Project.Uri, projectDiagnostics.ToArray());
+      PublishForUri(state.Input.Project.Uri, projectDiagnostics.ToArray());
 
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
@@ -171,7 +156,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics[publishUri] = diagnostics;
           } else {
             // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
-            publishedDiagnostics.Remove(publishUri);
+            publishedDiagnostics.TryRemove(publishUri, out _);
           }
 
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
@@ -185,17 +170,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
-    public void PublishGutterIcons(Uri uri, IdeState state, bool verificationStarted) {
-      if (!options.Get(ServerCommand.LineVerificationStatus)) {
+
+    private void PublishGutterIcons(Uri uri, IdeState state) {
+      if (!options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus)) {
         return;
       }
 
-      var errors = state.ResolutionDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
+      if (state.Status == CompilationStatus.Parsing) {
+        return;
+      }
+
+      bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
+
+      var errors = state.StaticDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var tree = state.VerificationTrees[uri];
+      var tree = state.VerificationTrees.GetValueOrDefault(uri);
+      if (tree == null) {
+        return;
+      }
 
       var linesCount = tree.Range.End.Line + 1;
       var fileVersion = filesystem.GetVersion(uri);
+      if (linesCount == 0) {
+        return;
+      }
+
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         DocumentUri.From(uri),
         fileVersion,
@@ -206,11 +205,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
       if (logger.IsEnabled(LogLevel.Trace)) {
         var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
-        logger.LogDebug($"Sending gutter icons for compilation {state.Compilation.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
+        logger.LogDebug($"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
                         $"icons: {icons}\n" +
                         $"stacktrace:\n{Environment.StackTrace}");
-      };
-
+      }
 
       lock (previouslyPublishedIcons) {
         var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
@@ -245,11 +243,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var newParams = state.GhostRanges;
       var previousParams = previousState.GhostRanges;
-      foreach (var (uri, current) in newParams) {
-        if (previousParams.TryGetValue(uri, out var previous)) {
-          if (previous.SequenceEqual(current)) {
-            continue;
-          }
+      var uris = previousParams.Keys.Concat(newParams.Keys);
+      foreach (var uri in uris) {
+        var previous = previousParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        var current = newParams.GetValueOrDefault(uri) ?? Enumerable.Empty<Range>().ToList();
+        if (previous.SequenceEqual(current)) {
+          continue;
         }
         languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
           Uri = uri,

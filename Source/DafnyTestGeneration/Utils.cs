@@ -4,10 +4,12 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
@@ -29,7 +31,7 @@ namespace DafnyTestGeneration {
         () => {
           var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
           program.Reporter.Options.PrintInstrumented = true;
-          ret = Translator
+          ret = BoogieGenerator
             .Translate(program, program.Reporter)
             .ToList().ConvertAll(tuple => tuple.Item2);
           program.Reporter.Options.PrintInstrumented = oldPrintInstrumented;
@@ -83,10 +85,11 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
-      uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+      uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
-      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
-        reporter, CancellationToken.None);
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var program = new ProgramParser().ParseFiles(uri.LocalPath,
+        new[] { DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken) }, reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;
@@ -130,14 +133,25 @@ namespace DafnyTestGeneration {
     /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
     public static string GetBlockId(Block block, DafnyOptions options) {
-      var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
+      return AllBlockIds(block, options).FirstOrDefault((string)null);
+    }
+
+    /// <summary>
+    /// Extract string mapping this basic block to locations in Dafny code.
+    /// </summary>
+    [ItemCanBeNull]
+    public static List<string> AllBlockIds(Block block, DafnyOptions options) {
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
+      var state = block.cmds.OfType<AssumeCmd>()
+        .Where(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&
                  cmd.Attributes.Params != null &&
                  cmd.Attributes.Params.Count() == 1)
-        ?.Attributes.Params[0].ToString();
-      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
-      return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
+        .Select(
+          cmd => cmd.Attributes.Params[0].ToString())
+        .Select(cmd => Regex.Replace(cmd, @"\s+", "") + uniqueId);
+      return state.ToList();
     }
 
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
@@ -169,7 +183,7 @@ namespace DafnyTestGeneration {
     public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
       HashSet<MemberDecl> allInlinedDeclarations = new();
       if (decl is LiteralModuleDecl moduleDecl) {
-        foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {
+        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
           allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
         }
       }

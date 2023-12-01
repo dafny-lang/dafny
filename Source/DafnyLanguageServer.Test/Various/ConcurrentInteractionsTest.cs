@@ -55,7 +55,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
       var documentItem = CreateTestDocument(source, "VerificationErrorDetectedAfterCanceledSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
@@ -154,10 +154,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(resolutionDiagnostics);
 
-      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var verificationDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -191,7 +191,6 @@ method Multiply(x: int, y: int) returns (product: int)
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
-        await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {

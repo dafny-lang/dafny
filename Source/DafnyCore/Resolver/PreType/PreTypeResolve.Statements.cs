@@ -783,9 +783,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
+      if (s.AssumeToken != null) {
+        ResolveAttributes(s.AssumeToken, resolutionContext, false);
+      }
+
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
@@ -999,7 +1007,7 @@ namespace Microsoft.Dafny {
       }
       TopLevelDeclWithMembers failureSupportingType = null;
       if (firstPreType != null) {
-        Constraints.PartiallySolveTypeConstraints();
+        Constraints.FindDefinedPreType(firstPreType, true);
         failureSupportingType = (firstPreType.Normalize() as DPreType)?.Decl as TopLevelDeclWithMembers;
         if (failureSupportingType != null) {
           if (failureSupportingType.Members.Find(x => x.Name == "IsFailure") == null) {

@@ -5,9 +5,9 @@ namespace Microsoft.Dafny {
   internal class BoogieStmtListBuilder {
     public DafnyOptions Options { get; }
     public StmtListBuilder builder;
-    public Translator tran;
+    public BoogieGenerator tran;
 
-    public BoogieStmtListBuilder(Translator tran, DafnyOptions options) {
+    public BoogieStmtListBuilder(BoogieGenerator tran, DafnyOptions options) {
       builder = new Boogie.StmtListBuilder();
       this.tran = tran;
       this.Options = options;

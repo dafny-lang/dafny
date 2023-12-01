@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -13,6 +14,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
   // Add '//Replace<n>:' to edit a line multiple times
+
+  [Fact]
+  public async Task GitIssue4656GutterIconsResolutionError() {
+    await VerifyTrace(@"
+   :method Test() {
+/!\:  assert x == 1;
+   :}", false, intermediates: false);
+  }
 
   [Fact]
   public async Task GitIssue4432GutterIconsOnly() {
@@ -71,12 +80,12 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     var source = @"
 method Foo() ensures false { } ";
     await SetUp(options => {
-      options.Set(ServerCommand.LineVerificationStatus, false);
+      options.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
     });
 
     var documentItem = CreateTestDocument(source, "NoGutterNotificationsReceivedWhenTurnedOff.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
   }
 
@@ -124,7 +133,7 @@ method Foo() ensures false { } ";
  .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  |  | :predicate F(i: int) {

@@ -48,11 +48,11 @@ namespace Microsoft.Dafny {
         } else {
           // nothing to substitute
         }
-      } else if (expr is Translator.BoogieWrapper) {
-        var e = (Translator.BoogieWrapper)expr;
+      } else if (expr is BoogieGenerator.BoogieWrapper) {
+        var e = (BoogieGenerator.BoogieWrapper)expr;
         var ty = e.Type.Subst(typeMap);
         if (ty != e.Type) {
-          return new Translator.BoogieWrapper(e.Expr, ty);
+          return new BoogieGenerator.BoogieWrapper(e.Expr, ty);
         }
       } else if (expr is WildcardExpr) {
         // nothing to substitute
@@ -402,8 +402,8 @@ namespace Microsoft.Dafny {
           Type = resolvedExpression.Type
         };
 
-      } else if (expr is Translator.BoogieFunctionCall) {
-        var e = (Translator.BoogieFunctionCall)expr;
+      } else if (expr is BoogieGenerator.BoogieFunctionCall) {
+        var e = (BoogieGenerator.BoogieFunctionCall)expr;
         bool anythingChanged = false;
         var newTyArgs = new List<Type>();
         foreach (var arg in e.TyArgs) {
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny {
           newArgs.Add(newArg);
         }
         if (anythingChanged) {
-          newExpr = new Translator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
+          newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
 
       } else {
@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new BoogieGenerator.SubstLetExpr(letExpr.tok, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 

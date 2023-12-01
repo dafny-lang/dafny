@@ -611,6 +611,7 @@ namespace Microsoft.Dafny {
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         e.ResolvedExpression = DesugarElephantExpr(e, resolutionContext);
+        ResolveExpression(e.ResolvedExpression, resolutionContext);
         e.PreType = e.ResolvedExpression.PreType;
         Constraints.AddGuardedConstraint(() => {
           if (e.Rhs.PreType.NormalizeWrtScope() is DPreType receiverPreType) {
@@ -1029,7 +1030,7 @@ namespace Microsoft.Dafny {
     /// "receiverPreType" is an unresolved proxy type and that, after solving more type constraints, "receiverPreType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName) {
+    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, bool reportErrorOnMissingMember = true) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
@@ -1045,7 +1046,9 @@ namespace Microsoft.Dafny {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
         if (!resolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
-          if (memberName == "_ctor") {
+          if (!reportErrorOnMissingMember) {
+            // don't report any error
+          } else if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
             ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
@@ -1057,7 +1060,9 @@ namespace Microsoft.Dafny {
           return (member, dReceiver);
         }
       }
-      ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      if (reportErrorOnMissingMember) {
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
       return (null, null);
     }
 
@@ -1085,8 +1090,11 @@ namespace Microsoft.Dafny {
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a MemberSelectExpr whose .Member is a Method.</param>
     /// <param name="complain"></param>
+    /// <param name="specialOpaqueHackAllowance">If "true", treats an expression "f" where "f" is an instance function, as "this.f", even though
+    /// there is no "this" in scope. This seems like a terrible hack, because it breaks scope invariants about the AST. But, for now, it's here
+    /// to mimic what the legacy resolver does.</param>
     Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
-      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true, bool specialOpaqueHackAllowance = false) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -1135,7 +1143,7 @@ namespace Microsoft.Dafny {
             (TopLevelDeclWithMembers)member.EnclosingClass, true);
           receiver.PreType = Type2PreType(receiver.Type);
         } else {
-          if (!scope.AllowInstance) {
+          if (!scope.AllowInstance && !specialOpaqueHackAllowance) {
             if (complain) {
               ReportError(expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             } else {
@@ -1592,7 +1600,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<ModuleResolver.MethodCallInformation>() == null || allowMethodCall);
 
-      Contract.Assert(e.MethodCallInfo == null); // this will be set below if the ApplySuffix is a method call
+      if (e.MethodCallInfo != null) {
+        return e.MethodCallInfo;
+      }
 
       Expression r = null;  // upon success, the expression to which the ApplySuffix resolves
       var errorCount = ErrorCount;
@@ -1618,7 +1628,7 @@ namespace Microsoft.Dafny {
       }
       if (r == null) {
         // e.Lhs denotes a function value, or at least it's used as if it were
-        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType);
+        var dp = Constraints.FindDefinedPreType(e.Lhs.PreType, false);
         if (dp != null && DPreType.IsArrowType(dp.Decl)) {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
@@ -2028,9 +2038,6 @@ namespace Microsoft.Dafny {
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
 
-      if (CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is ICallable caller && caller.EnclosingModule == datatypeDecl.EnclosingModuleDefinition) {
-        caller.EnclosingModule.CallGraph.AddEdge(caller, datatypeDecl);
-      }
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
@@ -2140,7 +2147,7 @@ namespace Microsoft.Dafny {
 
       var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure");
       var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure");
-      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract");
+      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", reportErrorOnMissingMember: expectExtract);
 
       if (keyword != null) {
         if (memberIsFailure == null || (memberExtract != null) != expectExtract) {

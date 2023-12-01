@@ -39,14 +39,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<ITelemetryPublisher>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
-        .AddSingleton<IGutterIconAndHoverVerificationDetailsManager, GutterIconAndHoverVerificationDetailsManager>()
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilationManager>(serviceProvider => (options, engine, compilation, migratedVerificationTree) => new CompilationManager(
-          serviceProvider.GetRequiredService<ILogger<CompilationManager>>(),
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
+          serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
-          serviceProvider.GetRequiredService<IGutterIconAndHoverVerificationDetailsManager>(),
-          options, engine, compilation, migratedVerificationTree
+          engine, compilation
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();

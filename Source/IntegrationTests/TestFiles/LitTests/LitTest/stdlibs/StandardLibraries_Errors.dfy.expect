@@ -1,0 +1,12 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier finished with 1 verified, 0 errors
+StandardLibraries_Errors.dfy(20,29): Error: module DafnyStdLibs does not exist (position 0 in path DafnyStdLibs.Wrappers)
+1 resolution/type errors detected in StandardLibraries_Errors.dfy
+CLI: Error: cannot load DafnyStandardLibraries-notarget.doo: --unicode-char is set locally to False, but the library was built with True
+CLI: Error: cannot load DafnyStandardLibraries.doo: --unicode-char is set locally to False, but the library was built with True
+CLI: Error: cannot load DafnyStandardLibraries-arithmetic.doo: --unicode-char is set locally to False, but the library was built with True
+Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.
+Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.
+Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.

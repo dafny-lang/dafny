@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class PruneIfNotUsedSinceLastPruneCache<TKey, TValue>
   where TValue : class

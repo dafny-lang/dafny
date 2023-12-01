@@ -29,7 +29,7 @@ public class AddByMethodRewriter : IRewriter {
 
   private void AddByMethod(TopLevelDecl d) {
     if (d is LiteralModuleDecl moduleDecl) {
-      moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+      moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(AddByMethod);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.OfType<Function>().ForEach(AddByMethod);
     }

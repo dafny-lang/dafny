@@ -4,5 +4,5 @@ repos:
     -   id: dotnet-format
         name: dotnet-format
         language: system
-        entry: dotnet tool run dotnet-format --folder -w --include
+        entry: dotnet format whitespace Source/Dafny.sln --include
         types_or: ["c#"]

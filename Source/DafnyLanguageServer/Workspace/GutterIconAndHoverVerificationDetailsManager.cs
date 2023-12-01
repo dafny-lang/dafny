@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -11,37 +11,21 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverVerificationDetailsManager {
-  private readonly DafnyOptions options;
-  private readonly ILogger<GutterIconAndHoverVerificationDetailsManager> logger;
-  private readonly INotificationPublisher notificationPublisher;
+public class GutterIconAndHoverVerificationDetailsManager {
 
-  public GutterIconAndHoverVerificationDetailsManager(ILogger<GutterIconAndHoverVerificationDetailsManager> logger,
-    INotificationPublisher notificationPublisher,
-    DafnyOptions options) {
+  public static readonly Option<bool> LineVerificationStatus = new("--notify-line-verification-status", @"
+(experimental, API will change)
+Send notifications about the verification status of each line in the program.
+".TrimStart());
+
+  private readonly ILogger logger;
+
+  public GutterIconAndHoverVerificationDetailsManager(ILogger logger) {
     this.logger = logger;
-    this.notificationPublisher = notificationPublisher;
-    this.options = options;
   }
 
-  /// <summary>
-  /// Fills up the document with empty verification diagnostics, one for each top-level declarations
-  /// Possibly migrates previous diagnostics
-  /// </summary>
-  public void RecomputeVerificationTrees(CompilationAfterParsing compilation) {
-    foreach (var uri in compilation.VerificationTrees.Keys) {
-      compilation.VerificationTrees[uri] = UpdateTree(options, compilation, compilation.VerificationTrees[uri]);
-    }
-  }
-
-  private static DocumentVerificationTree UpdateTree(DafnyOptions options, CompilationAfterParsing parsedCompilation, DocumentVerificationTree rootVerificationTree) {
+  public static DocumentVerificationTree UpdateTree(DafnyOptions options, Program program, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
-
-    if (parsedCompilation is not CompilationAfterResolution) {
-      return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
-        Children = rootVerificationTree.Children
-      };
-    }
 
     List<VerificationTree> result = new List<VerificationTree>();
 
@@ -66,7 +50,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
       }
     }
 
-    foreach (var module in parsedCompilation.Program.Modules()) {
+    foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
@@ -163,7 +147,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
       }
     }
 
-    return new DocumentVerificationTree(parsedCompilation.Program, rootVerificationTree.Uri) {
+    return new DocumentVerificationTree(program, rootVerificationTree.Uri) {
       Children = result
     };
   }
@@ -173,12 +157,12 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// to its original method tree.
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
-  public virtual void ReportImplementationsBeforeVerification(CompilationAfterResolution compilation, ICanVerify canVerify, Implementation[] implementations) {
+  public virtual void ReportImplementationsBeforeVerification(IdeState state, ICanVerify canVerify, Implementation[] implementations) {
     var uri = canVerify.Tok.Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(state.Program, uri);
 
     if (logger.IsEnabled(LogLevel.Debug)) {
-      logger.LogDebug($"ReportImplementationsBeforeVerification for ${compilation.Project.Uri}, version {compilation.Version}, implementations: " +
+      logger.LogDebug($"ReportImplementationsBeforeVerification for ${state.Uri}, version {state.Version}, implementations: " +
                       $"{string.Join(", ", implementations.Select(i => i.Name))}");
     }
 
@@ -199,7 +183,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
 
       targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", state, implementation);
         continue;
       }
 
@@ -207,6 +191,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
                            implementation.Name;
       newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
+        implementation.VerboseName,
         implementation.Name,
         targetMethodNode.Filename,
         targetMethodNode.Uri,
@@ -234,27 +219,16 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   }
 
   /// <summary>
-  /// Triggers sending of the current verification diagnostics to the client
-  /// </summary>
-  public void PublishGutterIcons(CompilationAfterParsing compilation, Uri uri, bool verificationStarted) {
-    if (options.Get(ServerCommand.LineVerificationStatus)) {
-      lock (LockProcessing) {
-        notificationPublisher.PublishGutterIcons(uri, compilation.InitialIdeState(compilation, options), verificationStarted);
-      }
-    }
-  }
-
-  /// <summary>
   /// Called when the verifier starts verifying an implementation
   /// </summary>
-  public void ReportVerifyImplementationRunning(CompilationAfterResolution compilation, Implementation implementation) {
+  public void ReportVerifyImplementationRunning(IdeState state, Implementation implementation) {
     var uri = ((IToken)implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees[uri];
 
     lock (LockProcessing) {
       var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportVerifyImplementationRunning", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportVerifyImplementationRunning", state, implementation);
       } else {
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
@@ -268,7 +242,6 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
         }
 
         targetMethodNode.PropagateChildrenErrorsUp();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
@@ -276,14 +249,14 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  public void ReportEndVerifyImplementation(CompilationAfterResolution compilation, Implementation implementation, VerificationResult verificationResult) {
+  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation, VerificationResult verificationResult) {
 
     var uri = ((IToken)implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = state.VerificationTrees[uri];
 
     var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
     if (targetMethodNode == null) {
-      NoMethodNodeAtLogging(tree, "ReportEndVerifyImplementation", compilation, implementation);
+      NoMethodNodeAtLogging(tree, "ReportEndVerifyImplementation", state, implementation);
     } else if (implementationNode == null) {
       logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
     } else {
@@ -311,17 +284,16 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
 
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
 
-  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, CompilationAfterResolution compilation, Implementation implementation) {
+  private void NoMethodNodeAtLogging(VerificationTree tree, string methodName, IdeState state, Implementation implementation) {
     var position = implementation.tok.GetLspPosition();
     var availableMethodNodes = string.Join(",", tree!.Children.Select(vt =>
       $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
     logger.LogDebug(
-      $"No method found in {methodName}, in document {compilation.Uri} and filename {tree.Filename}, " +
+      $"No method found in {methodName}, in document {state.Uri} and filename {tree.Filename}, " +
       $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
       $"Available nodes: " + availableMethodNodes);
   }
@@ -329,9 +301,9 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
   /// <summary>
   /// Called when a split is finished to be verified
   /// </summary>
-  public void ReportAssertionBatchResult(CompilationAfterResolution compilation, AssertionBatchResult batchResult) {
+  public void ReportAssertionBatchResult(IdeState ideState, AssertionBatchResult batchResult) {
     var uri = ((IToken)batchResult.Implementation.tok).Uri;
-    var tree = compilation.VerificationTrees[uri];
+    var tree = ideState.VerificationTrees[uri];
 
     lock (LockProcessing) {
       var implementation = batchResult.Implementation;
@@ -339,7 +311,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);
       if (targetMethodNode == null) {
-        NoMethodNodeAtLogging(tree, "ReportAssertionBatchResult", compilation, implementation);
+        NoMethodNodeAtLogging(tree, "ReportAssertionBatchResult", ideState, implementation);
       } else if (implementationNode == null) {
         logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {
@@ -354,7 +326,7 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
 
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount);
+        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.coveredElements.ToList());
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -409,30 +381,22 @@ public class GutterIconAndHoverVerificationDetailsManager : IGutterIconAndHoverV
         foreach (var (assertCmd, outcome) in perAssertOutcome) {
           var status = GetNodeStatus(outcome);
           perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
-          IToken? secondaryToken = Translator.ToDafnyToken(counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+          IToken? secondaryToken = BoogieGenerator.ToDafnyToken(true, counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
             counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
             null);
           if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertEnsuresCmd.Ensures.tok), status, secondaryToken, " ensures", "_ensures");
           } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertRequiresCmd.Call.tok), status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
           } else {
-            AddChildOutcome(counterexample, assertCmd, Translator.ToDafnyToken(assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+            AddChildOutcome(counterexample, assertCmd, BoogieGenerator.ToDafnyToken(true, assertCmd.tok), status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
           }
         }
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        PublishGutterIcons(compilation, uri, true);
       }
     }
   }
-
-  public void SetAllUnvisitedMethodsAsVerified(CompilationAfterResolution compilation, ICanVerify canVerify) {
-    var tree = compilation.VerificationTrees[canVerify.Tok.Uri];
-    var verifyTree = tree.Children.First(f => f.Position == canVerify.Tok.GetLspPosition());
-    verifyTree.SetVerifiedIfPending();
-  }
-
 
   /// <summary>
   /// Given an implementation, returns the top-level verification tree.

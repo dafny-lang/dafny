@@ -185,9 +185,7 @@ namespace Microsoft.Dafny {
         signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
         if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out var p, reporter)) {
-          if (alias.Signature == null) {
-            alias.Signature = p;
-          }
+          alias.Signature ??= p;
         } else {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
@@ -821,8 +819,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(mods != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false);
+      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), ModuleKindEnum.Abstract, true, null, null, null);
       mod.Height = height;
       foreach (var kv in p.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
@@ -986,7 +983,7 @@ namespace Microsoft.Dafny {
           ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
-          if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
+          if (def.ModuleKind == ModuleKindEnum.Concrete && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
             reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(),
               "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
@@ -1131,12 +1128,14 @@ namespace Microsoft.Dafny {
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
       // * desugar functions used in reads clauses
+      // * fills in "reads *" clauses on methods, when --reads-clauses-on-methods is used
       // * compute .BodySurrogate for body-less loops
       // * discovers bounds
       // * builds the module's call graph.
       // * compute and checks ghosts (this makes use of bounds discovery, as done above)
       // * for newtypes, figure out native types
       // * for datatypes, check that shared destructors are in agreement in ghost matters
+      // * for methods, check that any reads clause is used correctly
       // * for functions and methods, determine tail recursion
       // ----------------------------------------------------------------------------
 
@@ -1149,6 +1148,19 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(this);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
+      }
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+        // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
+        // Note that `reads *` is the right default for backwards-compatibility,
+        // but we may want to infer a sensible default like decreases clauses instead in the future.
+        foreach (var declaration in ModuleDefinition.AllCallables(declarations)) {
+          if (declaration is Method { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
+              !readsExpressions.Any()) {
+            var star = new FrameExpression(method.tok, new WildcardExpr(method.tok) { Type = SystemModuleManager.ObjectSetType() }, null);
+            readsExpressions.Add(star);
+          }
+        }
       }
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -1548,7 +1560,7 @@ namespace Microsoft.Dafny {
           }
 
           if (cl is not ClassLikeDecl) {
-            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // non-reference, non-trait types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1559,7 +1571,7 @@ namespace Microsoft.Dafny {
             continue;
           }
           if (cl is TraitDecl traitDecl) {
-            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+            if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete) {
               // check for static consts, and check for instance fields in non-reference traits
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
@@ -1585,7 +1597,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+              if (!isAnExport && cl.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                 CheckIsOkayWithoutRHS(f, false);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {
@@ -1858,7 +1870,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
+            prefixLemma.RecursiveCallParameters(com.tok, prefixLemma.TypeArgs, prefixLemma.Ins, null,
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
@@ -1934,6 +1946,29 @@ namespace Microsoft.Dafny {
               ComputeGhostInterest(method.Body, method.IsGhost, method.IsLemmaLike ? "a " + method.WhatKind : null, method);
               CheckExpression(method.Body, this, method);
               new TailRecursion(reporter).DetermineTailRecursion(method);
+            }
+
+            // check that any reads clause is used correctly
+            var readsClausesOnMethodsEnabled = Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+            foreach (FrameExpression fe in method.Reads.Expressions) {
+              if (method.IsLemmaLike) {
+                reporter.Error(MessageSource.Resolver, fe.tok,
+                  "{0}s are not allowed to have reads clauses (they are allowed to read all memory locations)", method.WhatKind);
+              } else if (!readsClausesOnMethodsEnabled) {
+                reporter.Error(MessageSource.Resolver, fe.tok,
+                  "reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`");
+              } else if (method.IsGhost) {
+                DisallowNonGhostFieldSpecifiers(fe);
+              }
+            }
+
+            // check that any modifies clause is used correctly
+            foreach (FrameExpression fe in method.Mod.Expressions) {
+              if (method.IsLemmaLike) {
+                reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", method.WhatKind);
+              } else if (method.IsGhost) {
+                DisallowNonGhostFieldSpecifiers(fe);
+              }
             }
 
           } else if (member is Function function) {

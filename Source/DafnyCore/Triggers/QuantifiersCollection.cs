@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.Triggers {
       CollectAndShareTriggers(triggersCollector);
       TrimInvalidTriggers();
       BuildDependenciesGraph();
-      if (SuppressMatchingLoops() && RewriteMatchingLoop()) {
+      if (SuppressMatchingLoops() && RewriteMatchingLoop(triggersCollector)) {
         CollectWithoutShareTriggers(triggersCollector);
         TrimInvalidTriggers();
         SuppressMatchingLoops();
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.Triggers {
       return foundloop;
     }
 
-    bool RewriteMatchingLoop() {
+    bool RewriteMatchingLoop(TriggersCollector triggersCollector) {
       if (expr is QuantifierExpr) {
         QuantifierExpr quantifier = (QuantifierExpr)expr;
         var l = new List<QuantifierWithTriggers>();
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.Triggers {
         bool rewritten = false;
         foreach (var q in quantifiers) {
           if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
-            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options);
+            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options, triggersCollector.ForModule);
             var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
             splits.Add(qq);
             l.Add(new QuantifierWithTriggers(qq));
@@ -264,6 +264,7 @@ namespace Microsoft.Dafny.Triggers {
           list.Add(q);
           splits.Add(q.quantifier);
         }
+
         this.quantifiers = list;
         Contract.Assert(this.expr is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
         ((QuantifierExpr)this.expr).SplitQuantifier = splits;
@@ -286,7 +287,7 @@ namespace Microsoft.Dafny.Triggers {
       return expr;
     }
 
-    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader) {
+    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader, SystemModuleManager systemModuleManager) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
@@ -313,7 +314,9 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         foreach (var candidate in q.Candidates) {
-          q.quantifier.Attributes = new Attributes("trigger", candidate.Terms.Select(t => t.Expr).ToList(), q.quantifier.Attributes);
+          q.quantifier.Attributes = new Attributes("trigger",
+            candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),
+            q.quantifier.Attributes);
         }
 
         AddTriggersToMessage("Selected triggers:", q.Candidates, msg, indent);
@@ -363,9 +366,9 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal void CommitTriggers(DafnyOptions options) {
+    internal void CommitTriggers(DafnyOptions options, SystemModuleManager systemModuleManager) {
       foreach (var q in quantifiers) {
-        CommitOne(options, q, quantifiers.Count > 1);
+        CommitOne(options, q, quantifiers.Count > 1, systemModuleManager);
       }
     }
   }
