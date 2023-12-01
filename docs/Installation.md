@@ -206,6 +206,7 @@ To set up Dafny to compile to Go:
    * Linux: `sudo apt install golang`
    * Mac: `brew install golang`
 * Install `goimports` from [https://pkg.go.dev/golang.org/x/tools/cmd/goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+   * `go install golang.org/x/tools/cmd/goimports@latest`
 * Make sure `go` and `goimports` are on your path
 
 To separately compile and run your program for Go:

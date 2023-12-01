@@ -90,7 +90,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     Compiler.Coverage.WriteLegendFile();
     return true;
   }
