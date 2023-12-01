@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /compile:0 /dprint:"%t.dprint.dfy" "%s" > "%t"
-// RUN: %dafny /noVerify "%t.dprint.dfy" >> "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --print:"%t.dprint.dfy" "%s" > "%t"
+// RUN: %resolve "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // For a body-less loop specification, a local variable or

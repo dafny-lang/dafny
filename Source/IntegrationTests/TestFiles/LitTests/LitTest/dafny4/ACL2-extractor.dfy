@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 /proverOpt:O:smt.qi.eager_threshold=30 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --warn-deprecation false --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This is the Extractor Problem from section 11.8 of the ACL2 book,

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --warn-deprecation false --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Node {

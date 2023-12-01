@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  /noNLarith /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %verify --disable-nonlinear-arithmetic "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate P(x:int)
