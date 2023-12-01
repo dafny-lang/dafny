@@ -58,7 +58,7 @@ class MutableMap:
         self.map.pop(k, None)
         self.lock.Unlock()
 
-    def Cardinality(self):
+    def Size(self):
         self.lock.Lock__()
         l = len(self.map)
         self.lock.Unlock()

@@ -4,7 +4,7 @@ Note that because these modules are implemented with target-language utilities,
 they are only defined for a subset of the Dafny backends:
 currently C#, Java, JavaScript, Go and Python.
 For other backends, the modules are simply not defined,
-so attempting to compile code that uses it to them will result
+so attempting to compile code that uses it will result
 in resolution errors.
 
 ## File I/O

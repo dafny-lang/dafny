@@ -147,11 +147,13 @@ module ConcurrentExamples {
     expect(!b);
   }
 
-  method {:test} TestCardinality() {
+  method {:test} TestSize() {
     var mmap := new MutableMap(p2);
+    var size := mmap.Size();
+    expect(size == 0);
     mmap.Put(0, 0);
-    var v := mmap.Get(0);
-    expect(v == Some(0));
+    size := mmap.Size();
+    expect(size == 1);
   }
 
   method {:test} TestChar() {
