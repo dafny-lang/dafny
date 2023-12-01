@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --solver-path="%z3" "%s" > "%t"
+// RUN: %verify --solver-path="%z3" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // UNSUPPORTED: windows
 method m() {

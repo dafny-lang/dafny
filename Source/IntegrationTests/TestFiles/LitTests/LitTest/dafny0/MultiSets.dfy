@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %exits-with 4 %verify --warn-deprecation false --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method test1()

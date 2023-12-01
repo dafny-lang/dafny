@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --unicode-char false "%s" > "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"
 // RUN: %exits-with 3 %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:js "%s" >> "%t"
