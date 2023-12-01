@@ -22,7 +22,7 @@ generated code in an concurrent environment.
 They allow mutable state to be shared between concurrent executions of Dafny code,
 which is particularly useful for caching.
 
-The types in this library do not model their mutable state as part of
+Most of the types in this library do not model their mutable state as part of
 Dafny's model of the heap,
 since Dafny's model currently assumes only sequential access.
 Instead, they model their state as implicit non-determinism.

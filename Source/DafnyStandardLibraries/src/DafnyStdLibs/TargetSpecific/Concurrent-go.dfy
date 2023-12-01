@@ -48,11 +48,11 @@ DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
   class {:extern} Lock ... {
 
-    constructor {:extern} () {}
+    constructor {:extern} {:axiom} ()
 
-    method {:extern} Lock() {}
+    method {:extern} {:axiom} Lock()
 
-    method {:extern} Unlock() {}
+    method {:extern} {:axiom} Unlock()
 
   }
 }

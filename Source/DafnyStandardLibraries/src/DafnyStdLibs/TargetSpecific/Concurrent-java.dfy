@@ -44,11 +44,11 @@ module {:extern "DafnyStdLibsExterns.Concurrent"} DafnyStdLibs.Concurrent refine
 
   class {:extern "Lock"} Lock ... {
 
-    constructor {:extern} () {}
+    constructor {:extern} {:axiom} ()
 
-    method {:extern} Lock() {}
+    method {:extern} {:axiom} Lock()
 
-    method {:extern} Unlock() {}
+    method {:extern} {:axiom} Unlock()
 
   }
 }

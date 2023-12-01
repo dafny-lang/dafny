@@ -3,29 +3,37 @@ abstract module DafnyStdLibs.ConcurrentInterface {
   import opened Wrappers
 
   /**
-    * A reentrant lock to provide mutual exclusion.
+    * A lock to provide mutual exclusion.
+    *
+    * Note this lock is not reentrant, and its methods have preconditions
+    * to ensure they are called in matching pairs.
     */
   class Lock {
 
+    // This is really "thread-local" state.
+    // {:concurrent} will not allow the use of Locks because of it,
+    // but that's a good thing because Locks by themselves cannot make
+    // verification sound under concurrent execution.
+    ghost var isLocked: bool
+
+    constructor()
+      ensures !isLocked
+
     /**
      * Acquires the lock.
-     *
-     * If this concurrent execution already holds the lock,
-     * increments the hold count for this execution.
-     * If not, blocks until the lock is no longer held.
      */
-    method Lock()
+    method Lock() 
+      requires !isLocked
+      modifies this
+      ensures isLocked
 
     /**
      * Releases the lock.
-     *
-     * If this concurrent execution currently holds the lock,
-     * decrements the hold count for this execution.
-     * If this count becomes zero, releases the lock.
-     *
-     * Has no effect if the lock was not currently held by this concurrent execution.
      */
     method Unlock()
+      requires isLocked
+      modifies this
+      ensures !isLocked
   }
 
   /**

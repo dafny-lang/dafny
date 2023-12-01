@@ -114,11 +114,21 @@ module DafnyStdLibs.Concurrent refines ConcurrentInterface {
 
   class Lock ... {
 
-    constructor() {}
+    constructor() {
+      isLocked := false;
+    }
 
-    method Lock() {}
+    method Lock() {
+      // Written this way so that we don't get a warning about
+      // "requires !isLocked" being an unnecessary precondition.
+      isLocked := !isLocked;
+    }
 
-    method Unlock() {}
+    method Unlock() {
+      // Written this way so that we don't get a warning about
+      // "requires isLocked" being an unnecessary precondition.
+      isLocked := !isLocked;
+    }
 
   }
 
