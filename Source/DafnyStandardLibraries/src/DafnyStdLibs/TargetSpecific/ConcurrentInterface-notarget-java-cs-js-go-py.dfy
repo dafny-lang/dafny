@@ -20,16 +20,16 @@ abstract module DafnyStdLibs.ConcurrentInterface {
       ensures !isLocked
 
     /**
-     * Acquires the lock.
-     */
-    method Lock() 
+      * Acquires the lock.
+      */
+    method Lock()
       requires !isLocked
       modifies this
       ensures isLocked
 
     /**
-     * Releases the lock.
-     */
+      * Releases the lock.
+      */
     method Unlock()
       requires isLocked
       modifies this

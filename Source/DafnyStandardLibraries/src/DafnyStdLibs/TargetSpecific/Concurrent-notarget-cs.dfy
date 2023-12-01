@@ -44,7 +44,7 @@ module {:extern} {:compile false} DafnyStdLibs.Concurrent refines ConcurrentInte
 
   class {:extern} Lock ... {
 
-    constructor {:extern} {:axiom} () 
+    constructor {:extern} {:axiom} ()
 
     method {:extern} {:axiom} Lock()
 
