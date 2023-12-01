@@ -355,8 +355,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public void Dispose() {
     boogieEngine.Dispose();
-    ideStateUpdateScheduler.Dispose();
-    observerSubscription.Dispose();
     Compilation.Dispose();
+    observerSubscription.Dispose();
+    // Dispose the update scheduler after the observer subscription, to prevent accessing a disposed object.
+    ideStateUpdateScheduler.Dispose();
   }
 }

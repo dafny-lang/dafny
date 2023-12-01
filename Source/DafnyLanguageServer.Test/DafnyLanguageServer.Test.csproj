@@ -124,6 +124,9 @@
     <None Update="Synchronization\TestFiles\ProofDependencies\dfyconfig.toml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Formatting\TestFiles\empty.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

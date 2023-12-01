@@ -653,7 +653,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [Fact]
-  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+  public async Task RefiningDeclarationStatusIsNotFoldedIntoTheBase() {
     var source = @"
 abstract module BaseModule {
   method Foo() returns (x: int) ensures x > 2 

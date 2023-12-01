@@ -1,0 +1,1 @@
+Verification of the `{:concurrent}` attribute on methods now allows non-empty `reads` and `modifies` clauses with the `{:assume_concurrent}` attribute.

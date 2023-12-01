@@ -149,38 +149,10 @@ public class DafnyCli {
     await completedCanVerifyUpdates.Where(i => 
       completedTasks.Count == tasksToVerify.Count).FirstAsync().ToTask();
 
-
     CompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
     var exitValue = er.ErrorCount > 0 ? ExitValue.COMPILE_ERROR : ExitValue.SUCCESS;
     return (int)exitValue;
-
-    // var getFilesExitCode = GetDafnyFiles(options, out var dafnyFiles, out var otherFiles);
-    // if (getFilesExitCode != ExitValue.SUCCESS) {
-    //   return (int)getFilesExitCode;
-    // }
-    //
-    // if (options.ExtractCounterexample && options.ModelViewFile == null) {
-    //   options.Printer.ErrorWriteLine(options.OutputWriter,
-    //     "*** Error: ModelView file must be specified when attempting counterexample extraction");
-    //   return (int)ExitValue.PREPROCESSING_ERROR;
-    // }
-    //
-    // using var driver = new CompilerDriver(options);
-    // ProofDependencyManager depManager = new();
-    // var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
-    //
-    // options.XmlSink?.Close();
-    //
-    // if (options.VerificationLoggerConfigs.Any()) {
-    //   try {
-    //     VerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
-    //   } catch (ArgumentException ae) {
-    //     options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
-    //     exitValue = ExitValue.PREPROCESSING_ERROR;
-    //   }
-    // }
-
   }
 
   private static void AddCommand(Command command) {

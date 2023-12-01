@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:cs "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:java "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:go "%s" >> "%t"

@@ -11,7 +11,7 @@ public class NoExecutableBackend : IExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
   public override string TargetName => throw new NotSupportedException();
   public override bool IsStable => throw new NotSupportedException();
-  public override string TargetExtension => throw new NotSupportedException();
+  public override string TargetExtension => "doesNotExist";
   public override string PublicIdProtect(string name) {
     throw new NotSupportedException();
   }
