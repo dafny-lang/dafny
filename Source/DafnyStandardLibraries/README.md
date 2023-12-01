@@ -50,7 +50,7 @@ The sections below describe how to use each library:
 - [DafnyStdLibs.Relations](src/DafnyStdLibs/Relations) -- properties of relations
 - [DafnyStdLibs.Functions](src/DafnyStdLibs/Functions) -- properties of functions
 - [DafnyStdLibs.Collections](src/DafnyStdLibs/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
-- [DafnyStdLibs.Concurrent](src/DafnyStdLibs/Concurrent) -- a lock, a box, and a map
+- [DafnyStdLibs.Concurrent](src/DafnyStdLibs/Concurrent) -- types for using Dafny in concurrent environments
 - DafnyStdLibs.DynamicArray -- an array that can grow and shrink
 - [DafnyStdLibs.Base64](src/DafnyStdLibs/Base64) -- base-64 encoding and decoding
 

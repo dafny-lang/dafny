@@ -2,15 +2,39 @@ abstract module DafnyStdLibs.ConcurrentInterface {
 
   import opened Wrappers
 
+  /**
+    * A reentrant lock to provide mutual exclusion.
+    */
   class Lock {
 
+    /**
+     * Acquires the lock.
+     *
+     * If this concurrent execution already holds the lock,
+     * increments the hold count for this execution.
+     * If not, blocks until the lock is no longer held.
+     */
     method Lock()
 
+    /**
+     * Releases the lock.
+     *
+     * If this concurrent execution currently holds the lock,
+     * decrements the hold count for this execution.
+     * If this count becomes zero, releases the lock.
+     *
+     * Has no effect if the lock was not currently held by this concurrent execution.
+     */
     method Unlock()
   }
 
+  /**
+    * A mutable wrapper for a single value that is safe to access
+    * by multiple concurrent executions.
+    */
   class AtomicBox<T> {
 
+    // Invariant on values this box may hold
     ghost const inv: T -> bool
 
     ghost predicate Valid()
@@ -26,8 +50,16 @@ abstract module DafnyStdLibs.ConcurrentInterface {
       ensures Valid()
   }
 
+  /**
+    * A mutable wrapper for a map that is safe to access
+    * by multiple concurrent executions.
+    * 
+    * Functionally equivalent to an AtomicBox<map<K, V>>
+    * but will be much more efficient in practice.
+    */
   class MutableMap<K(==), V(==)> {
 
+    // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
     ghost var knownKeys: set<K>
     ghost var knownValues: set<V>
