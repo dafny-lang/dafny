@@ -1,0 +1,1 @@
+Added a comprehensive test for test generation and fixed a bug that prevented test generation to process function-by-method declarations

@@ -2,23 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Dafny;
 using Tomlyn.Model;
+using Type = System.Type;
 
-namespace DafnyCore.Generic; 
+namespace DafnyCore.Generic;
 
 public static class TomlUtil {
 
-  public static bool TryGetValueFromToml(TextWriter errorWriter, string sourceDir, string tomlPath, Type type, object tomlValue, out object value) {
+  public static bool TryGetValueFromToml(ErrorReporter reporter, IToken origin, string sourceDir, string tomlPath,
+    Type type, object tomlValue, out object value) {
     if (tomlValue == null) {
       value = null;
       return false;
     }
 
     if (type.IsAssignableFrom(typeof(List<string>))) {
-      return TryGetListValueFromToml<string>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
+      return TryGetListValueFromToml<string>(reporter, origin, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
     }
     if (type.IsAssignableFrom(typeof(List<FileInfo>))) {
-      return TryGetListValueFromToml<FileInfo>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
+      return TryGetListValueFromToml<FileInfo>(reporter, origin, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
     }
 
     if (tomlValue is string tomlString) {
@@ -46,8 +49,7 @@ public static class TomlUtil {
         value = tomlValue.ToString();
         return true;
       }
-      errorWriter.WriteLine(
-        $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
+      reporter.Error(MessageSource.Project, origin, $"property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
       value = null;
       return false;
     }
@@ -56,10 +58,10 @@ public static class TomlUtil {
     return true;
   }
 
-  private static bool TryGetListValueFromToml<T>(TextWriter errorWriter, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
+  private static bool TryGetListValueFromToml<T>(ErrorReporter reporter, IToken origin, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
     var success = true;
     value = tomlValue.Select((e, i) => {
-      if (TryGetValueFromToml(errorWriter, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
+      if (TryGetValueFromToml(reporter, origin, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
         return (T)elementValue;
       }
       success = false;

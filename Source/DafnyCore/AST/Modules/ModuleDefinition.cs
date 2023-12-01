@@ -9,12 +9,32 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
+public enum ModuleKindEnum {
+  Concrete,
+  Abstract,
+  Replaceable
+}
+
+public enum ImplementationKind {
+  Refinement,
+  Replacement
+}
+
+public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
+
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+
+  /// <summary>
+  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
+  /// and use it to set this field. 
+  /// </summary>
+  [FilledInDuringResolution]
+  public ModuleDefinition Replacement { get; set; }
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
-  public readonly Name NameNode; // (Last segment of the) module name
+  public Name NameNode; // (Last segment of the) module name
 
   public override IToken Tok => NameNode.StartToken;
 
@@ -31,7 +51,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   }
   public string FullName {
     get {
-      if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
+      if (EnclosingModule == null || EnclosingModule.TryToAvoidName) {
         return Name;
       } else {
         return EnclosingModule.FullName + "." + Name;
@@ -43,11 +63,11 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public readonly Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-  public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
+  public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
-  public readonly bool IsAbstract;
+  public readonly ModuleKindEnum ModuleKind;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
-  private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+  private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
 
   public DefaultClassDecl DefaultClass { get; set; }
 
@@ -119,18 +139,16 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : this(cloner, original) {
     NameNode = name;
-    IsBuiltinName = true;
   }
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
-    IsBuiltinName = original.IsBuiltinName;
     NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
 
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
-    IsAbstract = original.IsAbstract;
-    RefinementQId = original.RefinementQId == null ? null : new ModuleQualifiedId(cloner, original.RefinementQId);
+    ModuleKind = original.ModuleKind;
+    Implements = original.Implements == null ? null : original.Implements with { Target = new ModuleQualifiedId(cloner, original.Implements.Target) };
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -155,19 +173,17 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     }
   }
 
-  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
-    bool isBuiltinName) : base(tok) {
+  public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+    Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
     this.EnclosingModule = parent;
-    this.RefinementQId = refinementQId;
-    this.IsAbstract = isAbstract;
+    this.Implements = implements;
+    this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
-    this.IsBuiltinName = isBuiltinName;
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
@@ -180,7 +196,14 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public virtual bool IsDefaultModule => false;
 
+  public virtual bool TryToAvoidName => false;
+
   private string sanitizedName = null;
+
+  public void ClearNameCache() {
+    sanitizedName = null;
+    compileName = null;
+  }
 
   public string SanitizedName {
     get {
@@ -204,16 +227,35 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   string compileName;
 
   public string GetCompileName(DafnyOptions options) {
-    if (compileName == null) {
-      var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
-      var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
-      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-        compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
-      } else if (externArgs != null) {
-        compileName = Name + nonExternSuffix;
+    if (compileName != null) {
+      return compileName;
+    }
+
+    if (Replacement != null) {
+      return Replacement.GetCompileName(options);
+    }
+
+    var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+    var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
+    if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+      compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+    } else if (externArgs != null) {
+      compileName = Name + nonExternSuffix;
+    } else {
+
+      if (IsBuiltinName) {
+        compileName = Name;
+      } else if (EnclosingModule is { TryToAvoidName: false }) {
+        // Include all names in the module tree path, to disambiguate when compiling
+        // a flat list of modules.
+        // Use an "underscore-escaped" character as a module name separator, since
+        // underscores are already used as escape characters in SanitizeName()
+        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
       } else {
-        compileName = SanitizedName + nonExternSuffix;
+        compileName = NonglobalVariable.SanitizeName(Name);
       }
+
+      compileName += nonExternSuffix;
     }
 
     return compileName;
@@ -379,7 +421,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Concat(DefaultClasses).
     Concat(SourceDecls).
     Concat(PrefixNamedModules.Any() ? PrefixNamedModules.Select(m => m.Module) : ResolvedPrefixNamedModules).
-    Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
+    Concat(Implements == null ? Enumerable.Empty<Node>() : new Node[] { Implements.Target });
 
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
@@ -412,7 +454,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string exportSetName = null) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -463,7 +505,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies,
+        exportSetName == null ? Name : $"{Name} export {exportSetName}", exportSetName != null);
     }
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
@@ -600,8 +643,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     foreach (var (name, prefixNamedModules) in prefixModulesByFirstPart) {
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
-      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
-        false, null, this, null, false);
+      var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), ModuleKindEnum.Concrete,
+        false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
       // Use an empty cloneId because these are empty module declarations.
@@ -676,7 +719,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;
-    sig.IsAbstract = IsAbstract;
+    sig.IsAbstract = ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(VisibilityScope);
 
@@ -988,7 +1031,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
           }
         }
 
-        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy || inheritsFromObject);
         traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
         return inheritsFromObject;
       }

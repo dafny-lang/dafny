@@ -17,7 +17,7 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public async Task Test() {
-      Assert.Equal(0, await DafnyDriver.MainWithWriters(output, output,
+      Assert.Equal(0, await DafnyCli.MainWithWriters(output, output,
         TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
     }
 

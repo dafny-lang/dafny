@@ -43,7 +43,7 @@ namespace XUnitExtensions.Lit {
 
     private static readonly Dictionary<string, Func<string, LitTestConfiguration, ILitCommand>> CommandParsers = new();
     static ILitCommand() {
-      CommandParsers.Add("RUN:", RunCommand.Parse);
+      CommandParsers.Add("RUN:", LitRunCommand.Parse);
       CommandParsers.Add("UNSUPPORTED:", UnsupportedCommand.Parse);
       CommandParsers.Add("XFAIL:", XFailCommand.Parse);
       CommandParsers.Add("NONUNIFORM:", NonUniformTestCommand.Parse);

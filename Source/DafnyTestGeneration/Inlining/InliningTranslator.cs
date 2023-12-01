@@ -4,10 +4,11 @@
 #nullable disable
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
-namespace DafnyTestGeneration.Inlining; 
+namespace DafnyTestGeneration.Inlining;
 
 public static class InliningTranslator {
   private static bool ShouldProcessForInlining(MemberDecl memberDecl) {
@@ -43,6 +44,8 @@ public static class InliningTranslator {
     boogieProgram = MergeBoogiePrograms(boogiePrograms);
     // Finally, create bodies for the Call$$ procedures that call out to Impl$$ procedures
     boogieProgram = new AddImplementationsForCallsRewriter(options).VisitProgram(boogieProgram);
+    // Remove proof dependency ids because they lead to errors when attempting inlining
+    boogieProgram = new ProofDependencyIdRemover().VisitProgram(boogieProgram);
     return true;
   }
 
@@ -73,6 +76,26 @@ public static class InliningTranslator {
     }
     toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
     return program;
+  }
+
+  private class ProofDependencyIdRemover : StandardVisitor {
+    public override Absy Visit(Absy node) {
+      if (node is ICarriesAttributes carriesAttributes) {
+        carriesAttributes.Attributes = RemoveIdAttribute(carriesAttributes.Attributes, "id");
+      }
+      return base.Visit(node);
+    }
+
+    private QKeyValue RemoveIdAttribute(QKeyValue attributes, string attributeName) {
+      if (attributes == null) {
+        return null;
+      }
+      if (attributes.Key == attributeName) {
+        return RemoveIdAttribute(attributes.Next, attributeName);
+      }
+      attributes.Next = RemoveIdAttribute(attributes.Next, attributeName);
+      return attributes;
+    }
   }
 
 }

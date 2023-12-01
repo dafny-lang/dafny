@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class NonUniformTestCommand : ILitCommand {
   private NonUniformTestCommand(string reason) {

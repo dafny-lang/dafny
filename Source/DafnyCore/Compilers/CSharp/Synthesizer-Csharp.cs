@@ -317,7 +317,7 @@ public class CsharpSynthesizer {
   /// </summary>
   internal static void EmitMultiMatcher(ConcreteSyntaxTree dafnyNamespace) {
     const string multiMatcher = @"
-    class MultiMatcher {
+    internal class MultiMatcher {
 
       private readonly Func<object[], bool> predicate;
       private readonly int argumentCount;

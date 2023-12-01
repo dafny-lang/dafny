@@ -115,4 +115,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public abstract DafnySymbolKind Kind { get; }
+  public abstract string GetDescription(DafnyOptions options);
 }

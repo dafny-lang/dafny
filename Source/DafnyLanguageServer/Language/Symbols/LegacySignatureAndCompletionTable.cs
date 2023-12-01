@@ -3,8 +3,10 @@ using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,6 +18,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents the symbol table
   /// </summary>
   public class LegacySignatureAndCompletionTable {
+
+    public static readonly Option<bool> MigrateSignatureAndCompletionTable = new("--migrate-signature-and-completion-table", () => true) {
+      IsHidden = true
+    };
+
     private readonly ILogger<LegacySignatureAndCompletionTable> logger;
 
     // TODO Guard the properties from changes
@@ -54,16 +61,27 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved: false);
     }
 
+    private static readonly ConditionalWeakTable<DafnyOptions, SystemModuleManager> systemModuleManagers = new();
+
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var errorReporter = new DiagnosticErrorReporter(options, uri);
+      var outerModule = new DefaultModuleDefinition();
+      var errorReporter = new ObservableErrorReporter(options, uri);
       var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
+
+      SystemModuleManager manager;
+      lock (options) {
+        if (!systemModuleManagers.TryGetValue(options, out manager!)) {
+          manager = new SystemModuleManager(options);
+          systemModuleManagers.Add(options, manager);
+        }
+      }
+
       var emptyProgram = new Program(
                            uri.ToString(),
         new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
+        manager,
         errorReporter, compilation
       );
       return emptyProgram;

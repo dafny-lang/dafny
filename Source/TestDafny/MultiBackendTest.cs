@@ -74,7 +74,9 @@ public class MultiBackendTest {
       with.HelpWriter = errorWriter;
     });
     var parseResult = parser.ParseArguments<ForEachCompilerOptions, FeaturesOptions, ForEachResolverOptions>(args);
+#pragma warning disable VSTHRD002
     parseResult.WithParsed<ForEachCompilerOptions>(options => { result = ForEachCompiler(options); })
+#pragma warning restore VSTHRD002
       .WithParsed<FeaturesOptions>(options => { result = Task.FromResult(GenerateCompilerTargetSupportTable(options)); })
       .WithParsed<ForEachResolverOptions>(options => { result = ForEachResolver(options); });
 
@@ -95,9 +97,9 @@ public class MultiBackendTest {
   );
 
   private async Task<int> ForEachCompiler(ForEachCompilerOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
-    var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
+    var pluginParseResult = CommonOptionBag.PluginOption.Parse(options.OtherArgs.ToArray());
+    var pluginArguments = pluginParseResult.GetValueForOption(CommonOptionBag.PluginOption);
+    var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
@@ -136,10 +138,11 @@ public class MultiBackendTest {
           (int)options.RefreshExitCode)
       );
     }
-    foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
+    foreach (var resolutionOption in resolutionOptions) {
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
+
+      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -151,6 +154,7 @@ public class MultiBackendTest {
           break;
         }
       }
+
       // Chop off the "Dafny program verifier finished with..." trailer
       var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
       var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
@@ -162,7 +166,8 @@ public class MultiBackendTest {
 
       // We expect verification to return exit code 0.
       if (exitCode != resolutionOption.ExpectedExitCode) {
-        await output.WriteLineAsync($"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
+        await output.WriteLineAsync(
+          $"Verification failed with exit code {exitCode} (expected {resolutionOption.ExpectedExitCode}). Output:");
         await output.WriteLineAsync(outputString);
         await output.WriteLineAsync("Error:");
         await output.WriteLineAsync(error);
@@ -176,8 +181,8 @@ public class MultiBackendTest {
     var commonExpectedOutput = await File.ReadAllTextAsync(expectFile);
 
     var success = true;
-    foreach (var plugin in dafnyOptions.Plugins) {
-      foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
+    foreach (var plugin in plugins) {
+      foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
         if (!compiler.IsStable) {
           // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
           // Such as empty constructors with ensures clauses, generated from iterators
@@ -189,8 +194,9 @@ public class MultiBackendTest {
         string? checkFile = null;
         var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
         if (File.Exists(expectFileForBackend)) {
-          expectedOutput = File.ReadAllText(expectFileForBackend);
+          expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
         }
+
         var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
         if (File.Exists(checkFileForBackend)) {
           checkFile = checkFileForBackend;
@@ -200,6 +206,17 @@ public class MultiBackendTest {
         if (result != 0) {
           success = false;
         }
+
+        if (compiler.TargetId == "cs") {
+          // C# is a bit unusual in that the runtime behaves a little differently
+          // depending on whether it is included as source or referenced as DafnyRuntime.dll
+          // (because of "#ifdef ISDAFNYRUNTIMELIB" directives - see DafnyRuntime.cs).
+          // This should be enabled for any other backends that have similar divergence.
+          result = await RunWithCompiler(options, compiler, expectedOutput, checkFile, false);
+          if (result != 0) {
+            success = false;
+          }
+        }
       }
     }
 
@@ -207,16 +224,12 @@ public class MultiBackendTest {
       await output.WriteLineAsync(
         "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
       return 0;
-    } else {
-      return -1;
     }
+
+    return -1;
   }
 
   public async Task<int> ForEachResolver(ForEachResolverOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
-      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
-    var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
-
     // We also use --(r|b)print to catch bugs with valid but unprintable programs.
     string fileName = Path.GetFileName(options.TestFile!);
     var testDir = Path.GetDirectoryName(options.TestFile!);
@@ -233,16 +246,16 @@ public class MultiBackendTest {
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
-      new ResolutionSetting("legacy", new string[] { }, new string[] { ".expect" },
+      new("legacy", new string[] { }, new string[] { ".expect" },
         options.ExpectExitCode ?? 0),
-      new ResolutionSetting("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+      new("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
-      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
-
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
+
+      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
@@ -288,20 +301,45 @@ public class MultiBackendTest {
     var compileOptions = new List<Option> {
       CommonOptionBag.SpillTranslation,
       CommonOptionBag.OptimizeErasableDatatypeWrapper,
-      CommonOptionBag.AddCompileSuffix
+      CommonOptionBag.AddCompileSuffix,
+      RunCommand.MainOverride,
     }.Select(o => o.Name);
 
     return !compileOptions.Contains(name);
   }
 
-  private async Task<int> RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
-    await output.WriteLineAsync($"Executing on {backend.TargetName}...");
+  private async Task<int> RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile, bool includeRuntime = true) {
+    await output.WriteAsync($"Executing on {backend.TargetName}");
+    if (!includeRuntime) {
+      await output.WriteAsync(" (with --include-runtime:false)");
+    }
+    await output.WriteLineAsync("...");
+
+    // Build to a dedicated temporary directory to make sure tests don't interfere with each other.
+    // The path will be something like "<user temp directory>/<random name>/<random name>"
+    // to ensure that all artifacts are put in a dedicated directory,
+    // which just "<user temp directory>/<random name>" would not.
+    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    Directory.CreateDirectory(tempOutputDirectory);
+
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
       $"--target:{backend.TargetId}",
+      $"--build:{tempOutputDirectory}",
       options.TestFile!,
     }.Concat(options.OtherArgs);
+    if (!includeRuntime) {
+      // We have to provide the path to DafnyRuntime.dll manually, since the program will be run
+      // in the directory containing the DLL built from Dafny code, not the Dafny distribution.
+      if (backend.TargetId != "cs") {
+        throw new ArgumentException("--include-runtime:false is currently only supported for the C# backend");
+      }
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var runtimePath = Path.Join(libPath, "DafnyRuntime.dll");
+      dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false", "--input", runtimePath });
+    }
 
     var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
@@ -330,7 +368,7 @@ public class MultiBackendTest {
       outputLines.AddRange(ReadAllLines(outputString));
       outputLines.AddRange(ReadAllLines(error));
       var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
-      var (checkResult, checkOutput, checkError) = OutputCheckCommand.Execute(outputLines, checkDirectives);
+      var (checkResult, checkOutput, checkError) = await OutputCheckCommand.Execute(outputLines, checkDirectives);
       if (checkResult != 0) {
         await output.WriteLineAsync($"OutputCheck on {checkFile} failed:");
         await output.WriteLineAsync(checkOutput);
@@ -358,23 +396,22 @@ public class MultiBackendTest {
   }
 
   private static async Task<(int, string, string)> RunDafny(IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
+    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = await DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = await DafnyCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
   }
-
 
   private static Task<(int, string, string)> RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
     if (dafnyCLIPath == null) {
       return RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
+    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
+    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
 
     return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);
   }
@@ -426,7 +463,7 @@ public class MultiBackendTest {
   private int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
     var dafnyOptions = ParseDafnyOptions(featuresOptions.OtherArgs);
     if (dafnyOptions == null) {
-      return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      return (int)ExitValue.PREPROCESSING_ERROR;
     }
 
     var allCompilers = dafnyOptions.Plugins

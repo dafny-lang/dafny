@@ -1,0 +1,31 @@
+[options]
+disable-nonlinear-arithmetic = true
+
+# These are necessary since Internals/*Nonlinear.dfy is subject to a separate toml file
+
+# Replace the following lines with "../EnableNonLinearArithmetic/dfyconfig.toml" once it is supported
+library = [
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/DivInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/ModInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Arithmetic/Internals/MulInternalsNonlinear.dfy",
+  "../EnableNonLinearArithmetic/Collections/Seqs.dfy",
+  "../EnableNonLinearArithmetic/Wrappers.dfy",
+  "../EnableNonLinearArithmetic/Relations.dfy",
+  "../EnableNonLinearArithmetic/Math.dfy",
+]
+# (Ideally we would find a way to share configuration between these two project files)
+
+# Options that help support more values of consuming context options
+# (mostly turning on any more restrictive verification)
+track-print-effects = true
+enforce-determinism = true
+reads-clauses-on-methods = true
+
+# Options important for sustainable development
+# of the libraries themselves.
+resource-limit = 1000
+warn-as-errors = true
+
+# Compromise: some proofs break with these turned on
+warn-redundant-assumptions = false
+warn-contradictory-assumptions = false

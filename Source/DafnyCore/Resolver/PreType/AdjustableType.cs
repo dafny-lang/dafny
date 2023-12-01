@@ -41,6 +41,19 @@ public class AdjustableType : TypeProxy {
     return ty;
   }
 
+  public static Type NormalizeSansBottom(Expression expr) {
+    return NormalizeSansBottom(expr.UnnormalizedType);
+  }
+
+  public static Type NormalizeSansBottom(IVariable variable) {
+    return NormalizeSansBottom(variable.UnnormalizedType);
+  }
+
+  public static Type NormalizeSansBottom(Type unnormalizedType) {
+    var normalizedType = AdjustableType.NormalizeSansAdjustableType(unnormalizedType);
+    return (normalizedType as AdjustableType)?.T ?? normalizedType;
+  }
+
   public static string ToStringAsAdjustableType(Type type) {
     type = NormalizeSansAdjustableType(type);
     if (type is AdjustableType utp) {
@@ -117,21 +130,6 @@ public class BottomTypePlaceholder : TypeProxy {
     var baseName = base.TypeName(options, context, parseAble);
     if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
       return $"/*\\bot*/{baseName}";
-    } else {
-      return baseName;
-    }
-  }
-}
-
-public class ExactTypePlaceholder : TypeProxy {
-  public ExactTypePlaceholder(Type baseType) {
-    T = baseType;
-  }
-
-  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    var baseName = base.TypeName(options, context, parseAble);
-    if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-      return $"/*exact*/{baseName}";
     } else {
       return baseName;
     }

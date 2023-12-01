@@ -157,6 +157,21 @@ namespace Microsoft.Dafny {
                 var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
+            } else if (expr is NameSegment or ExprDotName) {
+              if (expr is NameSegment) {
+                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+              } else {
+                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+              }
+              var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+              if (callee == null) {
+              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+                //The revealed member is a function
+                ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+              } else {
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
+                s.ResolvedStatements.Add(call);
+              }
             } else {
               ResolveExpression(expr, revealResolutionContext);
             }
@@ -322,7 +337,7 @@ namespace Microsoft.Dafny {
         var s = (IfStmt)stmt;
         if (s.Guard != null) {
           ResolveExpression(s.Guard, resolutionContext);
-          ConstrainTypeExprBool(s.Guard, "if statement", "condition is expected to be of type bool, but is {0}");
+          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
         scope.PushMarker();
@@ -383,8 +398,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
-        } else {
-          ReportWarning(s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 
@@ -751,7 +764,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -770,9 +783,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
+      if (s.AssumeToken != null) {
+        ResolveAttributes(s.AssumeToken, resolutionContext, false);
+      }
+
       var lhsSimpleVariables = new HashSet<IVariable>();
       foreach (var lhs in s.Lhss) {
-        CheckIsLvalue(lhs.Resolved, resolutionContext);
+        if (lhs.Resolved != null) {
+          CheckIsLvalue(lhs.Resolved, resolutionContext);
+        } else {
+          Contract.Assert(ErrorCount > 0);
+        }
         if (lhs.Resolved is IdentifierExpr ide) {
           if (lhsSimpleVariables.Contains(ide.Var)) {
             // syntactically forbid duplicate simple-variables on the LHS
@@ -986,7 +1007,7 @@ namespace Microsoft.Dafny {
       }
       TopLevelDeclWithMembers failureSupportingType = null;
       if (firstPreType != null) {
-        Constraints.PartiallySolveTypeConstraints();
+        Constraints.FindDefinedPreType(firstPreType, true);
         failureSupportingType = (firstPreType.Normalize() as DPreType)?.Decl as TopLevelDeclWithMembers;
         if (failureSupportingType != null) {
           if (failureSupportingType.Members.Find(x => x.Name == "IsFailure") == null) {
@@ -1354,7 +1375,7 @@ namespace Microsoft.Dafny {
       // first, resolve the guards
       foreach (var alternative in alternatives) {
         ResolveExpression(alternative.Guard, resolutionContext);
-        alternative.Guard.PreType = ConstrainResultToBoolFamily(alternative.Guard.tok, "if/while case", "condition is expected to be of type bool, but is {0}");
+        ConstrainExpressionToBoolFamily(alternative.Guard, "condition is expected to be of type bool, but is {0}");
       }
 
       if (loopToCatchBreaks != null) {

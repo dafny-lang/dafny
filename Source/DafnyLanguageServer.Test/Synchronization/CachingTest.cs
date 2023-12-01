@@ -15,7 +15,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class CachingTest : ClientBasedLanguageServerTest {
   private InMemorySink sink;
@@ -100,10 +100,10 @@ const tuple2 := (3,2)
 
     await AssertNoDiagnosticsAreComing(CancellationToken);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple3: (int, int, bool) := (1,2,3) \n");
-    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Single(diagnostics2);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
-    var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var diagnostics3 = await GetLastDiagnostics(documentItem);
     Assert.Equal(2, diagnostics3.Length);
   }
 
@@ -330,7 +330,7 @@ module ChangedClonedId {
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "notCached.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
-    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(documentItem1);
     Assert.Empty(diagnostics1.Where(d => d.Severity == DiagnosticSeverity.Error));
 
     ApplyChange(ref documentItem1, new Range(2, 0, 2, 0), "//comment\n");

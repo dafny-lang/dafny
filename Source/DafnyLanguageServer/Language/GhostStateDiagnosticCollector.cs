@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// diagnostics may overlap with each other, creating a large list of hover texts.
   /// </remarks>
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
+
+    public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
+      @"
+(experimental, API will change)
+Send notifications that indicate which lines are ghost.".TrimStart());
+
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly DafnyOptions options;
@@ -31,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
       LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.Get(ServerCommand.GhostIndicators)) {
+      if (!options.Get(GhostIndicators)) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
@@ -44,7 +45,9 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+      var program = new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;
@@ -61,8 +64,8 @@ namespace Microsoft.Dafny {
     }
 
     private bool Translate() {
-      boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
+      boogiePrograms = BoogieGenerator.Translate(dafnyProgram, reporter,
+          new BoogieGenerator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
       return true;
     }
 
