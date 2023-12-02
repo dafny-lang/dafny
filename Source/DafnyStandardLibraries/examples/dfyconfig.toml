@@ -1,5 +1,7 @@
 [options]
 standard-libraries = true
+# TODO: Can't require this or else the default set of options
+# isn't compatible with standard libraries
 reads-clauses-on-methods = true
 resource-limit = 1000
 warn-as-errors = true
