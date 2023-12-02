@@ -1,5 +1,6 @@
 [options]
 standard-libraries = true
+reads-clauses-on-methods = true
 resource-limit = 1000
 warn-as-errors = true
 warn-redundant-assumptions = true

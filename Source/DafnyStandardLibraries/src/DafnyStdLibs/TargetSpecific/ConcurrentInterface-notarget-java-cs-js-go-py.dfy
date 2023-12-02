@@ -24,6 +24,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
       */
     method Lock()
       requires !isLocked
+      reads this
       modifies this
       ensures isLocked
 
@@ -32,6 +33,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
       */
     method Unlock()
       requires isLocked
+      reads this
       modifies this
       ensures !isLocked
   }
@@ -45,17 +47,13 @@ abstract module DafnyStdLibs.ConcurrentInterface {
     // Invariant on values this box may hold
     ghost const inv: T -> bool
 
-    ghost predicate Valid()
-      reads this
-
     method Get() returns (t: T)
-      requires Valid()
+      reads {}
       ensures inv(t)
 
     method Put(t: T)
+      reads {}
       requires inv(t)
-      modifies this
-      ensures Valid()
   }
 
   /**
@@ -69,45 +67,38 @@ abstract module DafnyStdLibs.ConcurrentInterface {
 
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
-    ghost var knownKeys: set<K>
-    ghost var knownValues: set<V>
-
-    ghost predicate Valid()
-      reads this
 
     method Keys() returns (keys: set<K>)
-      requires Valid()
-      ensures forall k :: k in keys ==> exists v :: v in knownValues && inv(k,v)
+      reads {}
+      ensures forall k <- keys :: exists v :: inv(k, v)
 
     method HasKey(k: K) returns (used: bool)
-      requires Valid()
-      ensures used ==> exists v :: v in knownValues && inv(k,v)
+      reads {}
+      ensures used ==> exists v :: inv(k, v)
 
     method Values() returns (values: set<V>)
-      requires Valid()
-      ensures forall v :: v in values ==> exists k :: k in knownKeys && inv(k,v)
+      reads {}
+      ensures forall v <- values :: exists k :: inv(k,v)
 
     method Items() returns (items: set<(K,V)>)
-      requires Valid()
-      ensures forall t :: t in items ==> inv(t.0, t.1)
+      reads {}
+      ensures forall t <- items :: inv(t.0, t.1)
 
     method Put(k: K, v: V)
-      requires Valid()
+      reads {}
       requires inv(k, v)
-      modifies this
-      ensures Valid()
 
     method Get(k: K) returns (r: Option<V>)
-      requires Valid()
+      reads {}
       ensures r.Some? ==> inv(k, r.value)
 
     method Remove(k: K)
-      requires Valid()
-      requires exists v :: inv(k,v)
-      modifies this
-      ensures Valid()
+      reads {}
+      // TODO: this isn't really necessary, if it's not true
+      // then Remove(k) will just never have any effect
+      requires exists v :: inv(k, v)  
 
     method Size() returns (c: nat)
-      requires Valid()
+      reads {}
   }
 }

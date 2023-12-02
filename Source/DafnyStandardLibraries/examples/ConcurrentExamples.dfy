@@ -14,14 +14,14 @@ module ConcurrentExamples {
   datatype Copy = A | B
 
   class Application {
-    var mutex: Lock
-    var box: AtomicBox<nat>
-    var primary: MutableMap<nat, nat>
-    var secondaryA: MutableMap<nat, nat>
-    var secondaryB: MutableMap<nat, nat>
+    const mutex: Lock
+    const box: AtomicBox<nat>
+    const primary: MutableMap<nat, nat>
+    const secondaryA: MutableMap<nat, nat>
+    const secondaryB: MutableMap<nat, nat>
 
     constructor ()
-      ensures Valid()
+      ensures ValidLockState()
       ensures fresh({mutex, box, primary, secondaryA, secondaryB})
     {
       mutex := new Lock();
@@ -32,33 +32,37 @@ module ConcurrentExamples {
     }
 
     ghost predicate Valid()
-      reads this`box, this`primary, this`secondaryA, this`secondaryB, this.box, this.primary, this.secondaryA, this.secondaryB
     {
       box.inv == p1 && primary.inv == p2 && secondaryA.inv == p2 && secondaryB.inv == p2
-      && box.Valid() && primary.Valid() && secondaryA.Valid() && secondaryB.Valid()
     }
 
-    method Write(n: nat)
+    ghost predicate ValidLockState()
+      reads this.mutex
+    {
+      Valid() && !mutex.isLocked
+    }
+
+    method {:concurrent} Write(n: nat)
+      reads {}
       requires Valid()
-      modifies box
-      ensures Valid()
     {
       box.Put(n);
     }
 
-    method Commit(slot: nat)
+    method {:concurrent} Commit(slot: nat)
+      reads {}
       requires Valid()
-      modifies primary
       ensures Valid()
     {
       var value := box.Get();
       primary.Put(slot, value);
     }
 
-    method Propagate(slot: nat)
-      requires Valid()
-      modifies secondaryA, secondaryB
-      ensures Valid()
+    method {:concurrent} Propagate(slot: nat)
+      reads {:assume_concurrent} mutex
+      requires ValidLockState()
+      modifies {:assume_concurrent} mutex
+      ensures ValidLockState()
     {
       mutex.Lock();
       var val := primary.Get(slot);
@@ -72,8 +76,8 @@ module ConcurrentExamples {
       mutex.Unlock();
     }
 
-    method Read(copy: Copy, slot: nat) returns (r: Option<nat>)
-      requires Valid()
+    method {:concurrent} Read(copy: Copy, slot: nat) returns (r: Option<nat>)
+      reads {}
     {
       match copy
       case A => r := secondaryA.Get(slot);
