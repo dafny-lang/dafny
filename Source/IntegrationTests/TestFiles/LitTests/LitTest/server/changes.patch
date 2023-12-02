@@ -1,0 +1,232 @@
+diff --git a/Source/DafnyCore/DafnyConsolePrinter.cs b/Source/DafnyCore/DafnyConsolePrinter.cs
+index a2b67f1e3..3fc930aa3 100644
+--- a/Source/DafnyCore/DafnyConsolePrinter.cs
++++ b/Source/DafnyCore/DafnyConsolePrinter.cs
+@@ -35,13 +35,14 @@ public class DafnyConsolePrinter : ConsolePrinter {
+     ConditionGeneration.Outcome Outcome,
+     TimeSpan RunTime,
+     int ResourceCount,
+-    List<VCResultLogEntry> VCResults);
++    List<VCResultLogEntry> VCResults,
++    List<Counterexample> Counterexamples);
+   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
+ 
+   public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+     return new VerificationResultLogEntry(
+       verificationResult.Outcome, verificationResult.End - verificationResult.Start,
+-      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
++      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
+   }
+ 
+   private static VCResultLogEntry DistillVCResult(VCResult r) {
+diff --git a/Source/DafnyCore/DafnyOptions.cs b/Source/DafnyCore/DafnyOptions.cs
+index d0cea7b56..5bcdf4477 100644
+--- a/Source/DafnyCore/DafnyOptions.cs
++++ b/Source/DafnyCore/DafnyOptions.cs
+@@ -728,6 +728,7 @@ namespace Microsoft.Dafny {
+ 
+         case "extractCounterexample":
+           ExtractCounterexample = true;
++          EnhancedErrorMessages = 1;
+           return true;
+ 
+         case "verificationLogger":
+@@ -1147,6 +1148,13 @@ namespace Microsoft.Dafny {
+       SetZ3Option("type_check", "true");
+       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
+       SetZ3Option("smt.delay_units", "true");
++      SetZ3Option("model_evaluator.completion", "true");
++      SetZ3Option("model.completion", "true");
++      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
++        SetZ3Option("model_compress", "false");
++      } else {
++        SetZ3Option("model.compact", "false");
++      }
+ 
+       // This option helps avoid "time travelling triggers".
+       // See: https://github.com/dafny-lang/dafny/discussions/3362
+@@ -1418,10 +1426,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
+ 
+ /extractCounterexample
+     If verification fails, report a detailed counterexample for the
+-    first failing assertion. Requires specifying the /mv:<file> option as well
+-    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
+-    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
+-    /proverOpt:O:model.completion=true.
++    first failing assertion (experimental).
+ 
+ ---- Compilation options ---------------------------------------------------
+ 
+diff --git a/Source/DafnyCore/Options/CommonOptionBag.cs b/Source/DafnyCore/Options/CommonOptionBag.cs
+index acb24f9c1..3927c72a3 100644
+--- a/Source/DafnyCore/Options/CommonOptionBag.cs
++++ b/Source/DafnyCore/Options/CommonOptionBag.cs
+@@ -264,6 +264,11 @@ Allow Dafny code to depend on the standard libraries included with the Dafny dis
+ See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+ Not compatible with the --unicode-char:false option.
+ ");
++  
++  public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
++    @"
++If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
++  };
+ 
+   static CommonOptionBag() {
+     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
+@@ -441,6 +446,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
+           options.DefiniteAssignmentLevel = value ? 1 : 4;
+         }
+       });
++    
++    DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
++      options.ExtractCounterexample = value;
++      options.EnhancedErrorMessages = 1;
++    });
+ 
+     DooFile.RegisterLibraryChecks(
+       new Dictionary<Option, DooFile.OptionCheck>() {
+@@ -486,7 +496,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
+       DefaultFunctionOpacity,
+       UseStandardLibraries,
+       OptimizeErasableDatatypeWrapper,
+-      AddCompileSuffix
++      AddCompileSuffix,
++      ExtractCounterexample
+     );
+   }
+ 
+diff --git a/Source/DafnyCore/Options/DafnyCommands.cs b/Source/DafnyCore/Options/DafnyCommands.cs
+index 77b9a91d4..3f15e5f97 100644
+--- a/Source/DafnyCore/Options/DafnyCommands.cs
++++ b/Source/DafnyCore/Options/DafnyCommands.cs
+@@ -43,7 +43,8 @@ public static class DafnyCommands {
+     CommonOptionBag.WarnContradictoryAssumptions,
+     CommonOptionBag.WarnRedundantAssumptions,
+     CommonOptionBag.NoTimeStampForCoverageReport,
+-    CommonOptionBag.VerificationCoverageReport
++    CommonOptionBag.VerificationCoverageReport,
++    CommonOptionBag.ExtractCounterexample
+   }.ToList();
+ 
+   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
+diff --git a/Source/DafnyDriver/CompilerDriver.cs b/Source/DafnyDriver/CompilerDriver.cs
+index e636e5c54..0f5e1ebff 100644
+--- a/Source/DafnyDriver/CompilerDriver.cs
++++ b/Source/DafnyDriver/CompilerDriver.cs
+@@ -26,6 +26,7 @@ using System.Diagnostics;
+ using JetBrains.Annotations;
+ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
+ using Microsoft.Dafny.Plugins;
++using VC;
+ 
+ namespace Microsoft.Dafny {
+ 
+@@ -56,12 +57,6 @@ namespace Microsoft.Dafny {
+         return (int)getFilesExitCode;
+       }
+ 
+-      if (options.ExtractCounterexample && options.ModelViewFile == null) {
+-        options.Printer.ErrorWriteLine(options.OutputWriter,
+-          "*** Error: ModelView file must be specified when attempting counterexample extraction");
+-        return (int)ExitValue.PREPROCESSING_ERROR;
+-      }
+-
+       using var driver = new CompilerDriver(options);
+       ProofDependencyManager depManager = new();
+       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
+@@ -186,7 +181,7 @@ namespace Microsoft.Dafny {
+         Util.PrintFunctionCallGraph(dafnyProgram);
+       }
+       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
+-        PrintCounterexample(options, options.ModelViewFile);
++        PrintCounterexample(options);
+       }
+       return exitValue;
+     }
+@@ -195,17 +190,28 @@ namespace Microsoft.Dafny {
+     /// Extract the counterexample corresponding to the first failing
+     /// assertion and print it to the console
+     /// </summary>
+-    private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
+-      var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
++    private static void PrintCounterexample(DafnyOptions options) {
++      var firstCounterexample = (options.Printer as DafnyConsolePrinter).VerificationResults
++        .Select(result => result.Result)
++        .Where(result => result.Outcome == ConditionGeneration.Outcome.Errors)
++        .Select(result => result.Counterexamples)
++        .Where(counterexampleList => counterexampleList != null)
++        .Select(counterexampleList => counterexampleList.FirstOrDefault(counterexample => counterexample.Model != null))
++        .FirstOrDefault(counterexample => counterexample != null);
++      if (firstCounterexample == null) {
++        return;
++      }
++      var model = new DafnyModel(firstCounterexample.Model, options);
++      var initialState = model.States.FirstOrDefault(state => state.IsInitialState);
++      if (initialState == null) {
++        return;
++      }
+       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
+-      foreach (var state in model.States.Where(state => !state.IsInitialState)) {
+-        options.OutputWriter.WriteLine(state.FullStateName + ":");
+-        var vars = state.ExpandedVariableSet(-1);
+-        foreach (var variable in vars) {
+-          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
+-                                   $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+-                                   $"{variable.Value}");
+-        }
++      var vars = initialState.ExpandedVariableSet(-1);
++      foreach (var variable in vars) {
++        options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
++                                       $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
++                                       $"{variable.Value}");
+       }
+     }
+ 
+diff --git a/Source/DafnyLanguageServer/LanguageServer.cs b/Source/DafnyLanguageServer/LanguageServer.cs
+index 73bbe302c..eccb22000 100644
+--- a/Source/DafnyLanguageServer/LanguageServer.cs
++++ b/Source/DafnyLanguageServer/LanguageServer.cs
+@@ -54,13 +54,6 @@ namespace Microsoft.Dafny.LanguageServer {
+       //      A dash means write to the textwriter instead of a file.
+       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
+       dafnyOptions.ModelViewFile = "-";
+-
+-      dafnyOptions.ProverOptions.AddRange(new List<string>()
+-      {
+-        "O:model_compress=false", // Replaced by "O:model.compact=false" if z3's version is > 4.8.6
+-        "O:model.completion=true",
+-        "O:model_evaluator.completion=true"
+-      });
+     }
+ 
+     public static async Task Start(DafnyOptions dafnyOptions) {
+diff --git a/Source/DafnyTestGeneration/ProgramModification.cs b/Source/DafnyTestGeneration/ProgramModification.cs
+index fbfc60566..5bceb6ea9 100644
+--- a/Source/DafnyTestGeneration/ProgramModification.cs
++++ b/Source/DafnyTestGeneration/ProgramModification.cs
+@@ -84,25 +84,6 @@ namespace DafnyTestGeneration {
+     /// Setup DafnyOptions to prepare for counterexample extraction
+     /// </summary>
+     private static void SetupForCounterexamples(DafnyOptions options) {
+-      // Figure out the Z3 version in use:
+-      var proverOptions = new SMTLibSolverOptions(options);
+-      proverOptions.Parse(options.ProverOptions);
+-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
+-      // Based on Z3 version, determine the options to use:
+-      var optionsToAdd = new List<string>() {
+-        "O:model_evaluator.completion=true",
+-        "O:model.completion=true"
+-      };
+-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+-        optionsToAdd.Add("O:model_compress=false");
+-      } else {
+-        optionsToAdd.Add("O:model.compact=false");
+-      }
+-      // (Re)set the options necessary for counterexample extraction:
+-      foreach (var option in optionsToAdd) {
+-        options.ProverOptions.RemoveAll(o => o.Split("=") == option.Split("="));
+-        options.ProverOptions.Add(option);
+-      }
+       options.NormalizeNames = false;
+       options.EmitDebugInformation = true;
+       options.ErrorTrace = 1;

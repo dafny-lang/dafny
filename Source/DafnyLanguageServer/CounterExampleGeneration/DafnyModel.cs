@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
@@ -41,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
     // maps width to a unique object representing bitvector type of such width 
     private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
+    private readonly List<Model.Func> bitvectorFunctions = new();
 
     // the model will begin assigning characters starting from this utf value
     private const int FirstCharacterUtfValue = 65; // 'A'
@@ -150,24 +152,24 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private string PrettyPrintChar(int UTFCode) {
       switch (UTFCode) {
         case 0:
-          return "'\\0'";
+          return "\\0";
         case 9:
-          return "'\\t'";
+          return "\\t";
         case 10:
-          return "'\\n'";
+          return "\\n";
         case 13:
-          return "'\\r'";
+          return "\\r";
         case 34:
-          return "'\\\"'";
+          return "\\\"";
         case 39:
-          return "'\\\''";
+          return "\\\'";
         case 92:
-          return "'\\\\'";
+          return "\\\\";
         default:
           if ((UTFCode >= 32) && (UTFCode <= 126)) {
-            return $"'{Convert.ToChar(UTFCode)}'";
+            return $"{Convert.ToChar(UTFCode)}";
           }
-          return $"'\\u{UTFCode:X4}'";
+          return $"\\u{UTFCode:X4}";
       }
     }
 
@@ -206,6 +208,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         if (!bvFuncName.IsMatch(func.Name)) {
           continue;
         }
+        bitvectorFunctions.Add(func);
 
         int width = int.Parse(func.Name[6..]);
         if (!bitvectorTypes.ContainsKey(width)) {
@@ -233,8 +236,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// </summary>
     public static bool IsUserVariableName(string name) =>
       !name.Contains("$") && !name.Contains("##");
-
-    public bool ElementIsNull(Model.Element element) => element == fNull.GetConstant();
 
     /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
@@ -297,7 +298,105 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       return result;
     }
 
-    public void GetExpansion(PartialState state, PartialValue value) {
+    /// <summary>
+    /// If the provided <param name="element"></param> represents a literal in Dafny, return that literal.
+    /// Otherwise, return null.
+    /// </summary>
+    public Expression GetLiteralExpression(Model.Element element) {
+      if (element == fNull.GetConstant()) {
+        // TODO: check that this is how you write a null literal
+        return new LiteralExpr(Token.NoToken);
+      }
+
+      if (element is not Model.Real && element is Model.Number number) {
+        return new LiteralExpr(Token.NoToken, BigInteger.Parse(number.Numeral));
+      }
+
+      if (element is Model.Real real) {
+        return new LiteralExpr(Token.NoToken, BigDec.FromString(real.ToString()));
+      }
+
+      if (element is Model.Boolean boolean) {
+        return new LiteralExpr(Token.NoToken, boolean.Value);
+      }
+
+      if (element.Kind == Model.ElementKind.DataValue) {
+        var datatypeValue = (Model.DatatypeValue)element;
+        switch (datatypeValue.ConstructorName) {
+          case "-":
+            return new NegationExpression(Token.NoToken,
+              GetLiteralExpression(datatypeValue.Arguments.First()));
+          case "/":
+            return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Div,
+              GetLiteralExpression(datatypeValue.Arguments[0]),
+              GetLiteralExpression(datatypeValue.Arguments[1]));
+        }
+      }
+
+      var unboxedValue = fU2Int.OptEval(element);
+      unboxedValue ??= fU2Bool.OptEval(element);
+      unboxedValue ??= fU2Real.OptEval(element);
+      if (unboxedValue != null) {
+        return GetLiteralExpression(unboxedValue);
+      }
+
+      if (fCharToInt.OptEval(element) != null) {
+        if (int.TryParse(((Model.Integer)fCharToInt.OptEval(element)).Numeral,
+              out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
+          return new CharLiteralExpr(Token.NoToken, PrettyPrintChar(UTFCode));
+        }
+      }
+
+      foreach (var bitvectorFunction in bitvectorFunctions) {
+        if (bitvectorFunction.OptEval(element) != null) {
+          return new LiteralExpr(Token.NoToken,
+            BigInteger.Parse((bitvectorFunction.OptEval(element) as Model.Number)?.Numeral));
+        }
+      }
+
+      return null;
+    }
+
+    public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue value) {
+      var literalExpr = GetLiteralExpression(value.Element);
+      if (literalExpr != null) {
+        value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value.definition, literalExpr));
+        yield break;
+      }
+      // If this partial value is a primitive but we don't know its exact representation,
+      // we must assume that it is different from all other primitives of the same type
+      ModelFuncWrapper otherValuesFunction = null;
+      switch (value.Type) {
+        case BitvectorType bitvectorType: {
+          var funcName = "U_2_bv" + bitvectorType.Width;
+          if (Model.HasFunc(funcName)) {
+            otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+          }
+          break;
+        }
+        case CharType:
+          otherValuesFunction = fCharToInt;
+          break;
+        case RealType:
+          otherValuesFunction = fU2Real;
+          break;
+        case BoolType:
+          otherValuesFunction = fU2Bool;
+          break;
+        case IntType: {
+          otherValuesFunction = fU2Int;
+          break;
+        }
+      }
+      if (otherValuesFunction != null) {
+        foreach (var otherInteger in otherValuesFunction.Apps) {
+          value.AddConstraint(new BinaryExpr(
+            Token.NoToken,
+            BinaryExpr.Opcode.Neq,
+            value.definition,
+            GetLiteralExpression(otherInteger.Args[0])));
+        }
+      }
       foreach (var funcTuple in value.Element.References) {
         if (funcTuple.Func == fSeqLength.func) {
           
@@ -306,144 +405,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         } // etc.
       }
     }
-
-    /// <summary>
-    /// Get the Dafny type of the value indicated by <param name="element"></param>
-    /// This is in contrast to ReconstructType, which returns the type indicated by the element itself.
-    /// This method tries to extract the base type (so seq<char> instead of string)
-    /// </summary>
-    /*private Type GetDafnyType(Model.Uninterpreted element) {
-      var finalResult = UnknownType;
-      foreach (var typeElement in GetIsResults(element)) {
-        var reconstructedType = ReconstructType(typeElement);
-        if (reconstructedType is not UserDefinedType userDefinedType) {
-          return reconstructedType;
-        }
-        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
-          finalResult = userDefinedType;
-        }
-      }
-      var seqOperation = fSeqAppend.AppWithResult(element);
-      seqOperation ??= fSeqDrop.AppWithResult(element);
-      seqOperation ??= fSeqTake.AppWithResult(element);
-      seqOperation ??= fSeqUpdate.AppWithResult(element);
-      if (seqOperation != null) {
-        return GetDafnyType(seqOperation.Args[0]);
-      }
-      seqOperation = fSeqBuild.AppWithResult(element);
-      if (seqOperation != null) {
-        return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1])));
-      }
-      seqOperation = fSeqCreate.AppWithResult(element);
-      seqOperation ??= fSeqEmpty.AppWithResult(element);
-      if (seqOperation != null) {
-        return new SeqType(ReconstructType(seqOperation.Args.First()));
-      }
-      var setOperation = fSetUnion.AppWithResult(element);
-      setOperation ??= fSetIntersection.AppWithResult(element);
-      setOperation ??= fSetDifference.AppWithResult(element);
-      if (setOperation != null) {
-        return GetDafnyType(setOperation.Args[0]);
-      }
-      setOperation = fSetUnionOne.AppWithResult(element);
-      if (setOperation != null) {
-        return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1])));
-      }
-      setOperation = fSetEmpty.AppWithResult(element);
-      if (setOperation != null) {
-        var setElement = fSetSelect.AppWithArg(0, element);
-        if (setElement != null) {
-          return new SetType(true, GetDafnyType(setElement.Args[1]));
-        }
-        // not possible to infer the type argument in this case if type encoding is Arguments
-        return new SetType(true, UnknownType);
-      }
-      var mapOperation = fMapBuild.AppWithResult(element);
-      if (mapOperation != null) {
-        return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
-      }
-      var unboxedTypes = fIsBox.AppsWithArg(0, element)
-        .Where(tuple => ((Model.Boolean)tuple.Result).Value)
-        .Select(tuple => tuple.Args[1]).ToList();
-      if (unboxedTypes.Count == 1) {
-        return ReconstructType(unboxedTypes[0]);
-      }
-      if (fCharToInt.OptEval(element) != null) {
-        return Type.Char;
-      }
-      if (finalResult != UnknownType) {
-        return finalResult;
-      }
-      var dtypeElement = fDtype.OptEval(element);
-      return dtypeElement != null ? ReconstructType(dtypeElement) : finalResult;
-    }*/
-
-    /// <summary>
-    /// Reconstruct Dafny type from an element that represents a type in Z3
-    /// </summary>
-    private Type ReconstructType(Model.Element typeElement) {
-      if (typeElement == null) {
-        return UnknownType;
-      }
-      var fullName = GetTrueTypeName(typeElement);
-      if (fullName != null && fullName.Length > 7 && fullName[..7].Equals("Tclass.")) {
-        return new UserDefinedType(new Token(), fullName[7..], null);
-      }
-      switch (fullName) {
-        case "TInt":
-          return Type.Int;
-        case "TBool":
-          return Type.Bool;
-        case "TReal":
-          return Type.Real;
-        case "TChar":
-          return Type.Char;
-      }
-      if (fBv.AppWithResult(typeElement) != null) {
-        return new BitvectorType(options, ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
-      }
-
-      Type fallBackType = UnknownType; // to be returned in the event all else fails
-      if (fullName != null) { // this means this is a type variable
-        fallBackType = new UserDefinedType(new Token(), fullName, null);
-      }
-      var tagElement = fTag.OptEval(typeElement);
-      if (tagElement == null) {
-        return fallBackType;
-      }
-      var tagName = GetTrueTypeName(tagElement);
-      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
-                              tagName != "TagSet" &&
-                              tagName != "TagBitVector" &&
-                              tagName != "TagMap")) {
-        return fallBackType;
-      }
-      var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
-        AppWithResult(typeElement)?.
-        Args.Select(ReconstructType).ToList();
-      if (typeArgs == null) {
-        return new UserDefinedType(new Token(), tagName.Substring(9), null);
-      }
-
-      switch (tagName) {
-        case "TagSeq":
-          return new SeqType(typeArgs.First());
-        case "TagMap":
-          return new MapType(true, typeArgs[0], typeArgs[1]);
-        case "TagSet":
-          return new SetType(true, typeArgs.First());
-        default:
-          tagName = tagName.Substring(9);
-          if (tagName.StartsWith("_System.___hFunc") ||
-              tagName.StartsWith("_System.___hTotalFunc") ||
-              tagName.StartsWith("_System.___hPartialFunc")) {
-            return new ArrowType(new Token(), typeArgs.SkipLast(1).ToList(),
-              typeArgs.Last());
-          }
-          return new UserDefinedType(new Token(), tagName, typeArgs);
-      }
-    }
-
+    
     /// <summary>
     /// Extract the string representation of the element.
     /// Return "" if !IsPrimitive(elt, state) unless elt is a datatype,
@@ -515,6 +477,143 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           return "";
       }
     }*/
+
+    /// <summary>
+    /// Get the Dafny type of the value indicated by <param name="element"></param>
+    /// This is in contrast to ReconstructType, which returns the type indicated by the element itself.
+    /// This method tries to extract the base type (so seq<char> instead of string)
+    /// </summary>
+    private Type GetDafnyType(Model.Uninterpreted element) {
+      var finalResult = UnknownType;
+      foreach (var typeElement in GetIsResults(element)) {
+        var reconstructedType = ReconstructType(typeElement);
+        if (reconstructedType is not UserDefinedType userDefinedType) {
+          return reconstructedType;
+        }
+        if (finalResult.Name.EndsWith("?") || finalResult == UnknownType) {
+          finalResult = userDefinedType;
+        }
+      }
+      var seqOperation = fSeqAppend.AppWithResult(element);
+      seqOperation ??= fSeqDrop.AppWithResult(element);
+      seqOperation ??= fSeqTake.AppWithResult(element);
+      seqOperation ??= fSeqUpdate.AppWithResult(element);
+      if (seqOperation != null) {
+        return GetDafnyType(seqOperation.Args[0]);
+      }
+      seqOperation = fSeqBuild.AppWithResult(element);
+      if (seqOperation != null) {
+        return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1])));
+      }
+      seqOperation = fSeqCreate.AppWithResult(element);
+      seqOperation ??= fSeqEmpty.AppWithResult(element);
+      if (seqOperation != null) {
+        return new SeqType(ReconstructType(seqOperation.Args.First()));
+      }
+      var setOperation = fSetUnion.AppWithResult(element);
+      setOperation ??= fSetIntersection.AppWithResult(element);
+      setOperation ??= fSetDifference.AppWithResult(element);
+      if (setOperation != null) {
+        return GetDafnyType(setOperation.Args[0]);
+      }
+      setOperation = fSetUnionOne.AppWithResult(element);
+      if (setOperation != null) {
+        return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1])));
+      }
+      setOperation = fSetEmpty.AppWithResult(element);
+      if (setOperation != null) {
+        var setElement = fSetSelect.AppWithArg(0, element);
+        if (setElement != null) {
+          return new SetType(true, GetDafnyType(setElement.Args[1]));
+        }
+        // not possible to infer the type argument in this case if type encoding is Arguments
+        return new SetType(true, UnknownType);
+      }
+      var mapOperation = fMapBuild.AppWithResult(element);
+      if (mapOperation != null) {
+        return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
+      }
+      var unboxedTypes = fIsBox.AppsWithArg(0, element)
+        .Where(tuple => ((Model.Boolean)tuple.Result).Value)
+        .Select(tuple => tuple.Args[1]).ToList();
+      if (unboxedTypes.Count == 1) {
+        return ReconstructType(unboxedTypes[0]);
+      }
+      if (fCharToInt.OptEval(element) != null) {
+        return Type.Char;
+      }
+      if (finalResult != UnknownType) {
+        return finalResult;
+      }
+      var dtypeElement = fDtype.OptEval(element);
+      return dtypeElement != null ? ReconstructType(dtypeElement) : finalResult;
+    }
+
+    /// <summary>
+    /// Reconstruct Dafny type from an element that represents a type in Z3
+    /// </summary>
+    private Type ReconstructType(Model.Element typeElement) {
+      if (typeElement == null) {
+        return UnknownType;
+      }
+      var fullName = GetTrueTypeName(typeElement);
+      if (fullName != null && fullName.Length > 7 && fullName[..7].Equals("Tclass.")) {
+        return new UserDefinedType(new Token(), fullName[7..], null);
+      }
+      switch (fullName) {
+        case "TInt":
+          return Type.Int;
+        case "TBool":
+          return Type.Bool;
+        case "TReal":
+          return Type.Real;
+        case "TChar":
+          return Type.Char;
+      }
+      if (fBv.AppWithResult(typeElement) != null) {
+        return new BitvectorType(options, ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+      }
+
+      Type fallBackType = UnknownType; // to be returned in the event all else fails
+      if (fullName != null) { // this means this is a type variable
+        fallBackType = new UserDefinedType(new Token(), fullName, null);
+      }
+      var tagElement = fTag.OptEval(typeElement);
+      if (tagElement == null) {
+        return fallBackType;
+      }
+      var tagName = GetTrueTypeName(tagElement);
+      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
+                              tagName != "TagSet" &&
+                              tagName != "TagBitVector" &&
+                              tagName != "TagMap")) {
+        return fallBackType;
+      }
+      var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
+        AppWithResult(typeElement)?.
+        Args.Select(ReconstructType).ToList();
+      if (typeArgs == null) {
+        return new UserDefinedType(new Token(), tagName.Substring(9), null);
+      }
+
+      switch (tagName) {
+        case "TagSeq":
+          return new SeqType(typeArgs.First());
+        case "TagMap":
+          return new MapType(true, typeArgs[0], typeArgs[1]);
+        case "TagSet":
+          return new SetType(true, typeArgs.First());
+        default:
+          tagName = tagName.Substring(9);
+          if (tagName.StartsWith("_System.___hFunc") ||
+              tagName.StartsWith("_System.___hTotalFunc") ||
+              tagName.StartsWith("_System.___hPartialFunc")) {
+            return new ArrowType(new Token(), typeArgs.SkipLast(1).ToList(),
+              typeArgs.Last());
+          }
+          return new UserDefinedType(new Token(), tagName, typeArgs);
+      }
+    }
 
     /// <summary>
     /// Find a char value that is different from any other value

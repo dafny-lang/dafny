@@ -1,0 +1,310 @@
+*** MODEL
+@@undefined@@38513176@@ -> 
+$_ModifiesFrame -> 
+$_ModifiesFrame@0 -> T@U!val!26
+$_reverifyPost -> 
+$decr_init$loop#00 -> 
+$decr_init$loop#00@0 -> 1
+$decr$loop#00 -> 
+$decr$loop#00@0 -> 
+$decr$loop#00@1 -> 1
+$FunctionContextHeight -> 0
+$Heap -> T@U!val!13
+$PreLoopHeap$loop#0 -> 
+$w$loop#0 -> 
+$w$loop#0@0 -> true
+alloc -> T@U!val!3
+allocName -> T@U!val!4
+b#0@0 -> false
+b#0@1 -> false
+b#0@2 -> false
+boolType -> T@T!val!0
+BoxType -> T@T!val!3
+charType -> T@T!val!6
+class.Patterns.Simple? -> T@U!val!5
+field$p -> T@U!val!9
+i#0 -> 
+i#0@0 -> 0
+i#0@1 -> 0
+i#0@2 -> 0
+intType -> T@T!val!1
+n#2 -> 
+n#2@0 -> 0
+null -> T@U!val!24
+Patterns.Simple.p -> T@U!val!10
+realType -> T@T!val!2
+refType -> T@T!val!4
+s#0 -> T@U!val!14
+TagChar -> T@U!val!1
+Tagclass.Patterns.Simple -> T@U!val!7
+Tagclass.Patterns.Simple? -> T@U!val!6
+TagSeq -> T@U!val!2
+TChar -> T@U!val!0
+Tclass.Patterns.Simple -> T@U!val!12
+Tclass.Patterns.Simple? -> T@U!val!11
+this -> T@U!val!15
+tytagFamily$Simple -> T@U!val!8
+$Box -> {
+  T@T!val!6 T@U!val!19 -> T@U!val!22
+  T@T!val!6 T@U!val!21 -> T@U!val!20
+  else -> T@U!val!22
+}
+$HeapSucc -> {
+  T@U!val!13 T@U!val!13 -> true
+  else -> true
+}
+$Is -> {
+  T@T!val!4 T@U!val!15 T@U!val!11 -> true
+  T@T!val!4 T@U!val!15 T@U!val!12 -> true
+  T@T!val!5 T@U!val!14 T@U!val!25 -> true
+  T@T!val!5 T@U!val!18 T@U!val!25 -> true
+  T@T!val!6 T@U!val!19 T@U!val!0 -> true
+  T@T!val!6 T@U!val!21 T@U!val!0 -> true
+  else -> true
+}
+$IsAlloc -> {
+  T@T!val!4 T@U!val!15 T@U!val!11 T@U!val!13 -> true
+  T@T!val!4 T@U!val!15 T@U!val!12 T@U!val!13 -> true
+  T@T!val!5 T@U!val!14 T@U!val!25 T@U!val!13 -> true
+  T@T!val!5 T@U!val!18 T@U!val!25 T@U!val!13 -> true
+  T@T!val!6 T@U!val!19 T@U!val!0 T@U!val!13 -> true
+  T@T!val!6 T@U!val!21 T@U!val!0 T@U!val!13 -> true
+  else -> true
+}
+$IsAllocBox -> {
+  T@T!val!3 T@U!val!20 T@U!val!0 T@U!val!13 -> true
+  T@T!val!3 T@U!val!22 T@U!val!0 T@U!val!13 -> true
+  else -> true
+}
+$IsBox -> {
+  T@T!val!3 T@U!val!20 T@U!val!0 -> true
+  T@T!val!3 T@U!val!22 T@U!val!0 -> true
+  else -> true
+}
+$IsGhostField -> {
+  T@T!val!0 T@U!val!3 -> true
+  T@T!val!5 T@U!val!10 -> false
+  else -> false
+}
+$IsGoodHeap -> {
+  T@U!val!13 -> true
+  else -> true
+}
+$IsHeapAnchor -> {
+  T@U!val!13 -> true
+  else -> true
+}
+$Unbox -> {
+  T@T!val!0 T@U!val!27 -> true
+  T@T!val!5 T@U!val!17 -> T@U!val!18
+  T@T!val!6 T@U!val!20 -> T@U!val!21
+  T@T!val!6 T@U!val!22 -> T@U!val!19
+  else -> T@U!val!18
+}
+bool_2_U -> {
+  false -> false
+  true -> true
+  else -> true
+}
+char#FromInt -> {
+  63 -> T@U!val!19
+  else -> T@U!val!19
+}
+char#ToInt -> {
+  T@U!val!19 -> 63
+  else -> 63
+}
+ControlFlow -> {
+  0 0 -> 33
+  0 10 -> 8
+  0 11 -> 10
+  0 14 -> 11
+  0 28 -> 14
+  0 29 -> 28
+  0 30 -> 29
+  0 33 -> 30
+  0 8 -> (- 7)
+  else -> 29
+}
+Ctor -> {
+  T@T!val!0 -> 0
+  T@T!val!1 -> 1
+  T@T!val!2 -> 2
+  T@T!val!3 -> 3
+  T@T!val!4 -> 4
+  T@T!val!5 -> 6
+  T@T!val!6 -> 7
+  T@T!val!7 -> 5
+  else -> 0
+}
+DeclName -> {
+  T@T!val!0 T@U!val!3 -> T@U!val!4
+  T@T!val!5 T@U!val!10 -> T@U!val!9
+  else -> T@U!val!4
+}
+DeclType -> {
+  T@T!val!5 T@U!val!10 -> T@U!val!5
+  else -> T@U!val!5
+}
+dtype -> {
+  T@U!val!15 -> T@U!val!11
+  else -> T@U!val!11
+}
+FDim -> {
+  T@T!val!0 T@U!val!3 -> 0
+  T@T!val!5 T@U!val!10 -> 0
+  else -> 0
+}
+FieldOfDecl -> {
+  T@T!val!5 T@U!val!5 T@U!val!9 -> T@U!val!10
+  else -> T@U!val!10
+}
+int_2_U -> {
+  else -> T@U!val!0
+}
+Inv0_TSeq -> {
+  T@U!val!25 -> T@U!val!0
+  else -> T@U!val!0
+}
+lambda#1 -> {
+  T@U!val!24 T@U!val!13 T@U!val!3 false -> T@U!val!26
+  else -> T@U!val!26
+}
+Lit -> {
+  T@T!val!0 false -> false
+  T@T!val!3 T@U!val!22 -> T@U!val!22
+  T@T!val!6 T@U!val!19 -> T@U!val!19
+  else -> T@U!val!19
+}
+LitInt -> {
+  0 -> 0
+  1 -> 1
+  else -> 1
+}
+MapType0Select -> {
+  T@T!val!0 T@T!val!3 T@U!val!16 T@U!val!3 -> T@U!val!27
+  T@T!val!5 T@T!val!3 T@U!val!16 T@U!val!10 -> T@U!val!17
+  else -> T@U!val!17
+}
+MapType0Store -> {
+  else -> T@U!val!0
+}
+MapType0Type -> {
+  T@T!val!3 -> T@T!val!7
+  else -> T@T!val!7
+}
+MapType0TypeInv0 -> {
+  T@T!val!7 -> T@T!val!3
+  else -> T@T!val!3
+}
+MapType1Select -> {
+  T@T!val!4 T@T!val!7 T@U!val!13 T@U!val!15 -> T@U!val!16
+  else -> T@U!val!16
+}
+MapType1Store -> {
+  else -> T@U!val!0
+}
+MapType2Select -> {
+  else -> T@U!val!0
+}
+MapType2Store -> {
+  else -> T@U!val!0
+}
+real_2_U -> {
+  else -> T@U!val!0
+}
+real_pow -> {
+  else -> 0.0
+}
+Seq#Empty -> {
+  else -> T@U!val!0
+}
+Seq#Index -> {
+  T@T!val!3 T@U!val!14 0 -> T@U!val!20
+  T@T!val!3 T@U!val!18 0 -> T@U!val!22
+  else -> T@U!val!20
+}
+Seq#Length -> {
+  T@T!val!3 T@U!val!14 -> 1
+  T@T!val!3 T@U!val!18 -> 1
+  else -> 1
+}
+SeqType -> {
+  T@T!val!3 -> T@T!val!5
+  else -> T@T!val!5
+}
+SeqTypeInv0 -> {
+  T@T!val!5 -> T@T!val!3
+  else -> T@T!val!3
+}
+Tag -> {
+  T@U!val!0 -> T@U!val!1
+  T@U!val!11 -> T@U!val!6
+  T@U!val!12 -> T@U!val!7
+  T@U!val!25 -> T@U!val!2
+  else -> T@U!val!1
+}
+TagFamily -> {
+  T@U!val!11 -> T@U!val!8
+  T@U!val!12 -> T@U!val!8
+  else -> T@U!val!8
+}
+tickleBool -> {
+  false -> true
+  true -> true
+  else -> true
+}
+TSeq -> {
+  T@U!val!0 -> T@U!val!25
+  else -> T@U!val!25
+}
+U_2_bool -> {
+  false -> false
+  true -> true
+  else -> false
+}
+U_2_int -> {
+  else -> 0
+}
+U_2_real -> {
+  else -> 0.0
+}
+UOrdering2 -> {
+  else -> false
+}
+UOrdering3 -> {
+  else -> false
+}
+*** STATE <initial>
+  $_ModifiesFrame -> 
+  $_reverifyPost -> 
+  $decr_init$loop#00 -> 
+  $decr$loop#00 -> 
+  $Heap -> T@U!val!13
+  $PreLoopHeap$loop#0 -> 
+  $w$loop#0 -> 
+  b#0 -> 
+  i#0 -> 
+  n#2 -> 
+  s#0 -> T@U!val!14
+  this -> T@U!val!15
+*** END_STATE
+*** STATE counterexample_commandline.dfy(21,8): initial state
+  $_ModifiesFrame -> T@U!val!26
+*** END_STATE
+*** STATE counterexample_commandline.dfy(22,22)
+  $_reverifyPost -> false
+  i#0 -> 0
+*** END_STATE
+*** STATE counterexample_commandline.dfy(23,12): after some loop iterations
+  $decr_init$loop#00 -> 1
+  $decr$loop#00 -> 
+  $PreLoopHeap$loop#0 -> T@U!val!13
+  $w$loop#0 -> true
+  i#0 -> 0
+*** END_STATE
+*** STATE counterexample_commandline.dfy(30,32)
+  $decr$loop#00 -> 1
+  b#0 -> false
+*** END_STATE
+*** END_MODEL

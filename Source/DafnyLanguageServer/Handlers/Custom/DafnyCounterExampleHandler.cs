@@ -96,10 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         HashSet<PartialValue> vars = state.ExpandedVariableSet(counterExampleDepth);
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
-          vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
-            variable => variable.Value
-          )
+          state.AsAssumption().ToString()
         );
       }
     }

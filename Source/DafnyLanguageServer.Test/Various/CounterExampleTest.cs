@@ -5,6 +5,7 @@ using Microsoft.Dafny.LanguageServer.Handlers.Custom;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -60,7 +61,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal((2, 6), counterExamples[0].Position);
-      Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
+      var regex = new Regex("assume y == (-?[0-9]+);");
+      StringAssert.Matches(counterExamples.First().Assumption, regex);
+      var y = BigInteger.Parse(regex.Match(counterExamples.First().Assumption).Groups[1].Value);
+      Assert.True(y.CompareTo(BigInteger.Zero) <= 0);
     }
 
     [Theory]
@@ -80,7 +84,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Equal((2, 6), counterExamples[0].Position);
-      Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
+      var regex = new Regex("assume y == (-?[0-9]+);");
+      StringAssert.Matches(counterExamples.First().Assumption, regex);
+      var y = BigInteger.Parse(regex.Match(counterExamples.First().Assumption).Groups[1].Value);
+      Assert.True(y.CompareTo(BigInteger.Zero) <= 0);
     }
 
     [Theory]
@@ -103,9 +110,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.Equal((3, 18), counterExamples[1].Position);
       Assert.Equal((4, 14), counterExamples[2].Position);
-      Assert.True(counterExamples[2].Variables.ContainsKey("x:int"));
-      Assert.True(counterExamples[2].Variables.ContainsKey("y:int"));
-      Assert.True(counterExamples[2].Variables.ContainsKey("z:int"));
+      Assert.Contains("x == ", counterExamples[2].Assumption);
+      Assert.Contains("y == ", counterExamples[2].Assumption);
+      Assert.Contains("z == ", counterExamples[2].Assumption);
     }
 
     [Theory]
@@ -155,10 +162,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal((2, 6), counterExamples[0].Position);
-      Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
+      Assert.Contains("y == ", counterExamples[0].Assumption);
       Assert.Equal((7, 6), counterExamples[1].Position);
-      Assert.True(counterExamples[1].Variables.ContainsKey("a:int"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("b:int"));
+      Assert.Contains("a == ", counterExamples[1].Assumption);
+      Assert.Contains("b == ", counterExamples[1].Assumption);
     }
 
     [Theory]
@@ -175,9 +182,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("r:real"));
-      Assert.Equal("1.0", counterExamples[0].Variables["r:real"]);
+      Assert.Equal("assume r == 1.0;", counterExamples.First().Assumption);
+    }
+    
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task SpecificInteger(Action<DafnyOptions> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method a(i:int) {
+        assert i != 25;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source, "integer.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
+        OrderBy(counterexample => counterexample.Position).ToArray();
+      Assert.Single(counterExamples);
+      Assert.Equal("assume i == 25;", counterExamples.First().Assumption);
     }
 
     [Theory]
@@ -194,9 +216,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("r:real"));
-      StringAssert.Matches(counterExamples[0].Variables["r:real"], new Regex("[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+"));
+      StringAssert.Matches(counterExamples.First().Assumption, new Regex("assume r == [0-9]+\\.[0-9]+ / [0-9]+\\.[0-9]+;"));
     }
 
     [Theory]
@@ -216,9 +236,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      Assert.Equal("(v := 0.0)", counterExamples[0].Variables["v:_module.Value"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
+      // Assert.Equal("(v := 0.0)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
     [Theory]
@@ -238,9 +259,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      Assert.Equal("(with_underscore_ := 42)", counterExamples[0].Variables["v:_module.Value"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
+      // Assert.Equal("(with_underscore_ := 42)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
     [Theory]
@@ -260,9 +282,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      StringAssert.Matches(counterExamples[0].Variables["v:_module.Value"], new Regex("\\(v := [0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
+      // StringAssert.Matches(counterExamples[0].Variables["v:_module.Value"], new Regex("\\(v := [0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
     [Theory]
@@ -282,9 +305,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
-      Assert.Equal("(next := n)", counterExamples[0].Variables["n:_module.Node"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
+      // Assert.Equal("(next := n)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
     [Theory]
@@ -304,9 +328,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
-      StringAssert.Matches(counterExamples[0].Variables["n:_module.Node"], new Regex("\\(next := @[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
+      // StringAssert.Matches(counterExamples[0].Variables["n:_module.Node"], new Regex("\\(next := @[0-9]+\\)"));
     }
 
     [Theory]
@@ -326,9 +351,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
-      Assert.Equal("(next := null)", counterExamples[0].Variables["n:_module.Node"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("n:_module.Node"));
+      // Assert.Equal("(next := null)", counterExamples[0].Variables["n:_module.Node"]);
     }
 
     [Theory]
@@ -355,14 +381,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("amount:int"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("amount:int"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("this:_module.BankAccountUnsafe"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("this:_module.BankAccountUnsafe"));
-      StringAssert.Matches(counterExamples[0].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := [0-9]+\\)"));
-      StringAssert.Matches(counterExamples[1].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := \\-[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("amount:int"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("amount:int"));
+      // Assert.True(counterExamples[0].Variables.ContainsKey("this:_module.BankAccountUnsafe"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("this:_module.BankAccountUnsafe"));
+      // StringAssert.Matches(counterExamples[0].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := [0-9]+\\)"));
+      // StringAssert.Matches(counterExamples[1].Variables["this:_module.BankAccountUnsafe"], new Regex("\\(balance := \\-[0-9]+\\)"));
     }
 
     [Theory]
@@ -379,9 +406,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("c:char"));
-      Assert.Equal("'0'", counterExamples[0].Variables["c:char"]);
+      Assert.Equal("assume c == '0';", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -398,10 +423,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("c:char"));
-      StringAssert.Matches(counterExamples[0].Variables["c:char"], new Regex("('.'|\\?#[0-9]+)"));
-      Assert.NotEqual("'0'", counterExamples[0].Variables["c:char"]);
+      Assert.Equal("assume c != '0';", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -419,10 +441,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("b:_module.B"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("b:_module.B"));
       // Unnamed destructors are implicitly assigned names starting with "#" during resolution:
-      Assert.Equal("A(#0 := 5)", counterExamples[0].Variables["b:_module.B"]);
+      // Assert.Equal("A(#0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
 
     [Theory]
@@ -440,9 +463,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
-      StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
+      // StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
 
     [Theory]
@@ -461,11 +485,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("h0:_module.Hand"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("h1:_module.Hand"));
-      StringAssert.Matches(counterExamples[0].Variables["h0:_module.Hand"], new Regex("Right\\([a|b] := -?[0-9]+, [b|a] := -?[0-9]+\\)"));
-      StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("h0:_module.Hand"));
+      // Assert.True(counterExamples[0].Variables.ContainsKey("h1:_module.Hand"));
+      // StringAssert.Matches(counterExamples[0].Variables["h0:_module.Hand"], new Regex("Right\\([a|b] := -?[0-9]+, [b|a] := -?[0-9]+\\)"));
+      // StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
     }
 
     [Theory]
@@ -483,9 +508,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("h:_module.Hand"));
-      StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("h:_module.Hand"));
+      // StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
     }
 
     [Theory]
@@ -503,9 +529,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
-      StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("C\\((B_q|C_q|D_q) := false, (B_q|C_q|D_q) := false, (B_q|C_q|D_q) := false\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A"));
+      // StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("C\\((B_q|C_q|D_q) := false, (B_q|C_q|D_q) := false, (B_q|C_q|D_q) := false\\)"));
     }
 
 
@@ -524,9 +551,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A<bool>"));
-      Assert.Equal("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("a:_module.A<bool>"));
+      // Assert.Equal("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
     }
 
     [Theory]
@@ -546,9 +574,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
+      // StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
     }
 
     [Theory]
@@ -568,9 +597,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := -?[0-9]+, tail := @[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
+      // StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := -?[0-9]+, tail := @[0-9]+\\)"));
     }
 
     [Theory]
@@ -590,9 +620,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := -?[0-9]+\\.[0-9], tail := @[0-9]+\\)"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
+      // StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := -?[0-9]+\\.[0-9], tail := @[0-9]+\\)"));
     }
 
     [Theory]
@@ -609,9 +640,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("arr:_System.array<int>"), string.Join(", ", counterExamples[0].Variables));
-      Assert.Equal("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array<int>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("arr:_System.array<int>"), string.Join(", ", counterExamples[0].Variables));
+      // Assert.Equal("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array<int>"]);
     }
 
     [Theory]
@@ -628,9 +660,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
-      Assert.Equal("[4]", counterExamples[0].Variables["s:seq<int>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
+      // Assert.Equal("[4]", counterExamples[0].Variables["s:seq<int>"]);
     }
 
     [Theory]
@@ -647,9 +680,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
-      Assert.Equal("(Length := 2, [1] := 2)", counterExamples[0].Variables["s:seq<bv5>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
+      // Assert.Equal("(Length := 2, [1] := 2)", counterExamples[0].Variables["s:seq<bv5>"]);
     }
 
     [Theory]
@@ -666,9 +700,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("bv:bv7"));
-      Assert.Equal("2", counterExamples[0].Variables["bv:bv7"]);
+      Assert.Equal("assume bv == 2;", counterExamples.First().Assumption);
     }
 
     [Theory]
@@ -685,9 +717,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("b:bv2"));
-      StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]"));
+      StringAssert.Matches(counterExamples[0].Assumption, new Regex("assume b == [023];"));
     }
 
     [Theory]
@@ -704,11 +734,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:bv1"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("b:bv1"));
-      StringAssert.Matches(counterExamples[0].Variables["a:bv1"], new Regex("(1|b)"));
-      StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1|a)"));
+      StringAssert.Matches(counterExamples[0].Assumption, new Regex("assume a == (1|b) && b == (1|a);"));
     }
 
     [Theory]
@@ -728,9 +754,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      Assert.Equal("(b := 2)", counterExamples[0].Variables["v:_module.Value"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
+      // Assert.Equal("(b := 2)", counterExamples[0].Variables["v:_module.Value"]);
     }
 
     [Theory]
@@ -747,8 +774,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.True(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
-      StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
+      // StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
     }
 
     [Theory]
@@ -765,9 +793,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:_System.array3<int>"), string.Join(", ", counterExamples[0].Variables));
-      Assert.Equal("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3<int>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("a:_System.array3<int>"), string.Join(", ", counterExamples[0].Variables));
+      // Assert.Equal("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3<int>"]);
     }
 
     [Theory]
@@ -784,10 +813,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(2, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("x:_System.array<int>"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("y:_System.array<int>"));
-      Assert.True(counterExamples[0].Variables["y:_System.array<int>"] == "x" || counterExamples[0].Variables["x:_System.array<int>"] == "y");
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("x:_System.array<int>"));
+      // Assert.True(counterExamples[0].Variables.ContainsKey("y:_System.array<int>"));
+      // Assert.True(counterExamples[0].Variables["y:_System.array<int>"] == "x" || counterExamples[0].Variables["x:_System.array<int>"] == "y");
     }
 
     [Theory]
@@ -806,7 +836,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.Equal(4, counterExamples.Length);
+      Assert.Fail("This test needs to be updated");
+      /*Assert.Equal(4, counterExamples.Length);
       Assert.Equal(5, counterExamples[2].Variables.Count);
       Assert.True(counterExamples[3].Variables.ContainsKey("s1:set<char>"));
       Assert.True(counterExamples[3].Variables.ContainsKey("s2:set<char>"));
@@ -827,7 +858,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("'b' := true", s2);
       Assert.Contains("'b' := false", sDiff);
       Assert.Contains("'b' := true", sUnion);
-      Assert.Contains("'b' := true", sInter);
+      Assert.Contains("'b' := true", sInter);*/
     }
 
     [Theory]
@@ -844,9 +875,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(1, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\{.*6 := true.*\\}"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:set<int>"));
+      // StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\{.*6 := true.*\\}"));
     }
 
     [Theory]
@@ -862,9 +894,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
-      Assert.Equal("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
+      // Assert.Equal("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
     }
 
     [Theory]
@@ -880,13 +913,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(3, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("c:char"));
-      Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["s1:seq<char>"]);
-      Assert.Equal("['a', 'd', 'c']", counterExamples[1].Variables["s2:seq<char>"]);
-      Assert.Equal("'d'", counterExamples[1].Variables["c:char"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(3, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("c:char"));
+      // Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["s1:seq<char>"]);
+      // Assert.Equal("['a', 'd', 'c']", counterExamples[1].Variables["s2:seq<char>"]);
+      // Assert.Equal("'d'", counterExamples[1].Variables["c:char"]);
     }
 
     [Theory]
@@ -903,9 +937,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(1, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\[6\\]"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
+      // StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\[6\\]"));
     }
 
     [Theory]
@@ -922,13 +957,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(3, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("sCat:seq<char>"));
-      Assert.Equal("['b']", counterExamples[1].Variables["s1:seq<char>"]);
-      Assert.Equal("['a']", counterExamples[1].Variables["s2:seq<char>"]);
-      Assert.Equal("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(3, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("sCat:seq<char>"));
+      // Assert.Equal("['b']", counterExamples[1].Variables["s1:seq<char>"]);
+      // Assert.Equal("['a']", counterExamples[1].Variables["s2:seq<char>"]);
+      // Assert.Equal("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
     }
 
     [Theory]
@@ -945,10 +981,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.True(counterExamples[1].Variables.ContainsKey("multiplier:int"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\(Length := 3, .*\\[2\\] := 6.*\\)"));
-      Assert.Equal("3", counterExamples[1].Variables["multiplier:int"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[1].Variables.ContainsKey("multiplier:int"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
+      // StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\(Length := 3, .*\\[2\\] := 6.*\\)"));
+      // Assert.Equal("3", counterExamples[1].Variables["multiplier:int"]);
     }
 
     [Theory]
@@ -965,11 +1002,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.Equal("['a', 'b']", counterExamples[1].Variables["sSub:seq<char>"]);
-      StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
+      // Assert.Equal("['a', 'b']", counterExamples[1].Variables["sSub:seq<char>"]);
+      // StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
     }
 
     [Theory]
@@ -986,11 +1024,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
-      StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
+      // Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
+      // StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
     }
 
     [Theory]
@@ -1007,11 +1046,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
-      StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
+      // Assert.Equal("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
+      // StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
     }
 
     [Theory]
@@ -1044,9 +1084,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(1, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, bool>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int, bool>"], new Regex("map\\[.*3 := false.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, bool>"));
+      // StringAssert.Matches(counterExamples[1].Variables["m:map<int, bool>"], new Regex("map\\[.*3 := false.*"));
     }
 
     [Theory]
@@ -1063,9 +1104,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(1, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
-      Assert.Equal("map[]", counterExamples[1].Variables["m:map<int, int>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
+      // Assert.Equal("map[]", counterExamples[1].Variables["m:map<int, int>"]);
     }
 
     [Theory]
@@ -1086,8 +1128,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Single(counterExamples[0].Variables);
-      Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Single(counterExamples[0].Variables);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C"));
     }
 
     [Theory]
@@ -1106,7 +1149,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.True(counterExamples[^1].Variables.ContainsKey("c:(int, bool) ~> real"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[^1].Variables.ContainsKey("c:(int, bool) ~> real"));
     }
 
     [Theory]
@@ -1123,8 +1167,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<map<int, int>>"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:set<map<int, int>>"));
     }
 
     [Theory]
@@ -1144,9 +1189,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<M.C>"));
-      Assert.Contains(counterExamples[1].Variables.Keys, key => key.EndsWith("M.C"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:set<M.C>"));
+      // Assert.Contains(counterExamples[1].Variables.Keys, key => key.EndsWith("M.C"));
     }
 
     [Theory]
@@ -1163,10 +1209,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(1, counterExamples[1].Variables.Count);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[1].Variables.Count);
       // Cannot infer the type when Arguments polymorphic encoding is used
-      Assert.True(counterExamples[1].Variables.ContainsKey("s:set<?>"));
-      Assert.Equal("{}", counterExamples[1].Variables["s:set<?>"]);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("s:set<?>"));
+      // Assert.Equal("{}", counterExamples[1].Variables["s:set<?>"]);
     }
 
     [Theory]
@@ -1185,16 +1232,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(4, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int, int>"], new Regex("map\\[.*3 := -1.*"));
-      Assert.Equal(3, counterExamples[3].Variables.Count);
-      Assert.True(counterExamples[3].Variables.ContainsKey("m:map<int, int>"));
-      Assert.True(counterExamples[3].Variables.ContainsKey("value:int"));
-      Assert.True(counterExamples[3].Variables.ContainsKey("b:bool"));
-      Assert.Equal("true", counterExamples[3].Variables["b:bool"]);
-      StringAssert.Matches(counterExamples[3].Variables["value:int"], new Regex("[1-9][0-9]*"));
-      StringAssert.Matches(counterExamples[3].Variables["m:map<int, int>"], new Regex("map\\[.*3 := [1-9].*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
+      // StringAssert.Matches(counterExamples[1].Variables["m:map<int, int>"], new Regex("map\\[.*3 := -1.*"));
+      // Assert.Equal(3, counterExamples[3].Variables.Count);
+      // Assert.True(counterExamples[3].Variables.ContainsKey("m:map<int, int>"));
+      // Assert.True(counterExamples[3].Variables.ContainsKey("value:int"));
+      // Assert.True(counterExamples[3].Variables.ContainsKey("b:bool"));
+      // Assert.Equal("true", counterExamples[3].Variables["b:bool"]);
+      // StringAssert.Matches(counterExamples[3].Variables["value:int"], new Regex("[1-9][0-9]*"));
+      // StringAssert.Matches(counterExamples[3].Variables["m:map<int, int>"], new Regex("map\\[.*3 := [1-9].*"));
     }
 
     [Theory]
@@ -1214,14 +1262,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(3, counterExamples.Length);
-      Assert.Equal(4, counterExamples[2].Variables.Count);
-      Assert.True(counterExamples[2].Variables.ContainsKey("m:map<int, int>"));
-      Assert.True(counterExamples[2].Variables.ContainsKey("m':map<int, int>"));
-      Assert.True(counterExamples[2].Variables.ContainsKey("val:int"));
-      Assert.True(counterExamples[2].Variables.ContainsKey("key:int"));
-      var key = counterExamples[2].Variables["key:int"];
-      var val = counterExamples[2].Variables["val:int"];
-      StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("map\\[.*" + key + " := " + val + ".*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(4, counterExamples[2].Variables.Count);
+      // Assert.True(counterExamples[2].Variables.ContainsKey("m:map<int, int>"));
+      // Assert.True(counterExamples[2].Variables.ContainsKey("m':map<int, int>"));
+      // Assert.True(counterExamples[2].Variables.ContainsKey("val:int"));
+      // Assert.True(counterExamples[2].Variables.ContainsKey("key:int"));
+      // var key = counterExamples[2].Variables["key:int"];
+      // var val = counterExamples[2].Variables["val:int"];
+      // StringAssert.Matches(counterExamples[2].Variables["m':map<int, int>"], new Regex("map\\[.*" + key + " := " + val + ".*"));
     }
 
     [Theory]
@@ -1242,9 +1291,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(5, counterExamples.Length);
-      Assert.Equal(1, counterExamples[4].Variables.Count);
-      Assert.True(counterExamples[4].Variables.ContainsKey("m:map<int, int>"));
-      StringAssert.Matches(counterExamples[4].Variables["m:map<int, int>"], new Regex("map\\[.*5 := 36.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[4].Variables.Count);
+      // Assert.True(counterExamples[4].Variables.ContainsKey("m:map<int, int>"));
+      // StringAssert.Matches(counterExamples[4].Variables["m:map<int, int>"], new Regex("map\\[.*5 := 36.*"));
     }
 
     [Theory]
@@ -1263,16 +1313,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(4, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("m':map<int, int>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("val:int"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("key:int"));
-      var key = counterExamples[1].Variables["key:int"];
-      var val = counterExamples[1].Variables["val:int"];
-      var mapRegex = new Regex("map\\[.*" + key + " := " + val + ".*");
-      Assert.True(mapRegex.IsMatch(counterExamples[1].Variables["m':map<int, int>"]) ||
-                    mapRegex.IsMatch(counterExamples[1].Variables["m:map<int, int>"]));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(4, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, int>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m':map<int, int>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("val:int"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("key:int"));
+      // var key = counterExamples[1].Variables["key:int"];
+      // var val = counterExamples[1].Variables["val:int"];
+      // var mapRegex = new Regex("map\\[.*" + key + " := " + val + ".*");
+      // Assert.True(mapRegex.IsMatch(counterExamples[1].Variables["m':map<int, int>"]) ||
+                    // mapRegex.IsMatch(counterExamples[1].Variables["m:map<int, int>"]));
 
     }
 
@@ -1290,11 +1341,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("keys:set<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("map\\[.*25 := .*"));
-      StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("keys:set<int>"));
+      // StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("map\\[.*25 := .*"));
+      // StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
 
     [Theory]
@@ -1311,11 +1363,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Equal(2, counterExamples[1].Variables.Count);
-      Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
-      Assert.True(counterExamples[1].Variables.ContainsKey("values:set<char>"));
-      StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("map\\[.* := 'c'.*"));
-      StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(2, counterExamples[1].Variables.Count);
+      // Assert.True(counterExamples[1].Variables.ContainsKey("m:map<int, char>"));
+      // Assert.True(counterExamples[1].Variables.ContainsKey("values:set<char>"));
+      // StringAssert.Matches(counterExamples[1].Variables["m:map<int, char>"], new Regex("map\\[.* := 'c'.*"));
+      // StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
 
     [Theory]
@@ -1334,9 +1387,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("m:map<bv2, bv3>"));
-      StringAssert.Matches(counterExamples[0].Variables["m:map<bv2, bv3>"], new Regex("map\\[.*[0-9]+ := [0-9]+.*"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("m:map<bv2, bv3>"));
+      // StringAssert.Matches(counterExamples[0].Variables["m:map<bv2, bv3>"], new Regex("map\\[.*[0-9]+ := [0-9]+.*"));
     }
 
     [Theory]
@@ -1359,9 +1413,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(1, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss"));
-      Assert.Equal("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(1, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss"));
+      // Assert.Equal("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss"]);
     }
 
     [Theory]
@@ -1381,10 +1436,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:int"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("b:int"));
-      var a = long.Parse(counterExamples[0].Variables["a:int"]);
-      var b = long.Parse(counterExamples[0].Variables["b:int"]);
+      var regex = new Regex("assume [ab] == ([0-9]+) && [ab] == ([0-9]+);");
+      StringAssert.Matches(counterExamples.First().Assumption, regex);
+      var match = regex.Match(counterExamples.First().Assumption);
+      var a = long.Parse(match.Groups[1].Value);
+      var b = long.Parse(match.Groups[2].Value);
       Assert.True(a + b < a || a + b < b);
     }
 
@@ -1409,8 +1465,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.True(counterExamples[0].Variables.ContainsKey("d:M.D"));
-      Assert.Equal("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[0].Variables.ContainsKey("d:M.D"));
+      // Assert.Equal("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
     }
 
     /** Makes sure the counterexample lists the base type of a variable */
@@ -1428,8 +1485,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
-      Assert.Equal("['a', 'w', 's']", counterExamples[0].Variables["s:seq<char>"]);
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
+      // Assert.Equal("['a', 'w', 's']", counterExamples[0].Variables["s:seq<char>"]);
     }
 
     /// <summary>
@@ -1456,10 +1514,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C?"));
-      Assert.True(counterExamples[0].Variables["c:M.C?"] is
-        "(c1 := '\\u1023', c2 := '\\u1023')" or
-        "(c2 := '\\u1023', c1 := '\\u1023')");
+      Assert.Fail("This test needs to be updated");
+      // Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C?"));
+      // Assert.True(counterExamples[0].Variables["c:M.C?"] is
+      //  "(c1 := '\\u1023', c2 := '\\u1023')" or
+      //  "(c2 := '\\u1023', c1 := '\\u1023')");
     }
 
     /// <summary>
@@ -1476,12 +1535,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(source, "NonIntegerSeqIndices.dfy");
 
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-
+      Assert.Fail("This test needs to be updated");
       /* First, ensure we can correctly extract counterexamples without crashing... */
-      var nonIntegralIndexedSeqs = (await RequestCounterExamples(documentItem.Uri))
+      /*var nonIntegralIndexedSeqs = (await RequestCounterExamples(documentItem.Uri))
         .SelectMany(cet => cet.Variables.ToList())
-        /* Then, extract the number of non-integral indexed sequences from the repro case... */
-        .Count(IsNegativeIndexedSeq);
+        // Then, extract the number of non-integral indexed sequences from the repro case...
+        .Count(IsNegativeIndexedSeq);*/
 
       // With more recent Z3 versions (at least 4.11+, but maybe going back farther), this situation doesn't seem
       // to arise anymore. So this test now just confirms that the test file it loads can be verified without
@@ -1526,10 +1585,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Equal(3, counterExamples[0].Variables.Count);
-      Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("b:M.C.Equal$T"));
-      Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
+      Assert.Fail("This test needs to be updated");
+      // Assert.Equal(3, counterExamples[0].Variables.Count);
+      // Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
+      // Assert.True(counterExamples[0].Variables.ContainsKey("b:M.C.Equal$T"));
+      // Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
     }
 
     /// <summary>

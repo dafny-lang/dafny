@@ -28,6 +28,11 @@ class ModelFuncWrapper {
     this.argsToSkip = argsToSkip;
     func = model.Model.MkFunc(name, arity + this.argsToSkip);
   }
+  
+  public ModelFuncWrapper(Model.Func func, int argsToSkip) {
+    this.func = func;
+    this.argsToSkip = argsToSkip;
+  }
 
   private ModelFuncTupleWrapper ConvertFuncTuple(Model.FuncTuple tuple) {
     return tuple == null ? null : new ModelFuncTupleWrapper(func, tuple.Result, tuple.Args[argsToSkip..]);

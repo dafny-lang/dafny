@@ -23,10 +23,9 @@ public class PartialState {
 
   internal PartialValue GetPartialValue(Model.Element element, Expression definition, bool addAsSynonym=false) {
     if (!values.ContainsKey(element)) {
-      values[element] = new PartialValue(element, this, definition);
-    } else {
-      values[element].AddDefinition(definition, addAsSynonym);
+      values[element] = new PartialValue(element, this);
     }
+    values[element].AddDefinition(definition);
     return values[element];
   }
 
@@ -72,6 +71,31 @@ public class PartialState {
     }
     return expandedSet;
   }
+  
+  public AssumeStmt AsAssumption() {
+    var variables = ExpandedVariableSet(-1);
+    var constraints = new HashSet<Expression>();
+    foreach (var variable in variables) {
+      foreach (var constraint in variable.constraints) {
+        constraints.Add(constraint);
+      }
+    }
+    if (constraints.Count == 0) {
+      return new AssumeStmt(RangeToken.NoToken, new LiteralExpr(Token.NoToken, true), null);
+    }
+    if (constraints.Count == 1) {
+      return new AssumeStmt(RangeToken.NoToken, constraints.First(), null);
+    }
+    Expression expression = null;
+    foreach (var constraint in constraints) {
+      if (expression == null) {
+        expression = constraint;
+        continue;
+      }
+      expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, expression, constraint);
+    }
+    return new AssumeStmt(RangeToken.NoToken, expression, null);
+  }
 
   /// <summary>
   /// Initialize the vars list, which stores all variables relevant to
@@ -91,7 +115,7 @@ public class PartialState {
       if (val == null) {
         continue; // This variable has no value in the model, so ignore it.
       }
-      values[val] = GetPartialValue(val, new IdentifierExpr(Token.NoToken, v), true);
+      values[val] = GetPartialValue(val, new IdentifierExpr(Token.NoToken, v.Split("#").First()), true);
     }
   }
 
