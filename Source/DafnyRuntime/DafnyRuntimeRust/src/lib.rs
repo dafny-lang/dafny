@@ -1,14 +1,26 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::Deref, collections::HashSet, cell::RefCell};
-use num::{Integer, Signed, One, Zero};
+use std::{fmt::{Display, Formatter}, rc::Rc, ops::{Deref, Add}, collections::{HashSet, HashMap}, cell::RefCell};
+use num::{Integer, Signed, One};
 pub use once_cell::unsync::Lazy;
 
 pub use num::bigint::BigInt;
 pub use num::rational::BigRational;
 pub use num::FromPrimitive;
 pub use num::NumCast;
+pub use num::Zero;
+pub use itertools;
 
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
     euclidian_division(r.numer().clone(), r.denom().clone())
+}
+
+pub fn nullable_referential_equality<T: ?Sized>(left: Option<Rc<T>>, right: Option<Rc<T>>) -> bool {
+    match (left, right) {
+        (Some(l), Some(r)) => {
+            Rc::ptr_eq(&l, &r)
+        }
+        (None, None) => true,
+        _ => false
+    }
 }
 
 pub fn euclidian_division<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) -> A {
@@ -42,6 +54,32 @@ pub fn euclidian_modulo<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) 
         } else {
             bp - c
         }
+    }
+}
+
+pub struct IntegerRange<A: Add<Output = A> + One + Ord + Clone> {
+    hi: A,
+    current: A,
+}
+
+impl <A: Add<Output = A> + One + Ord + Clone> Iterator for IntegerRange<A> {
+    type Item = A;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.hi {
+            let result = self.current.clone();
+            self.current = self.current.clone() + One::one();
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn integer_range<A: Add<Output = A> + One + Ord + Clone>(low: A, hi: A) -> impl Iterator<Item = A> {
+    IntegerRange {
+        hi,
+        current: low
     }
 }
 
@@ -100,6 +138,12 @@ impl <A> DafnyUnerasable<FunctionWrapper<A>> for FunctionWrapper<A> {
     }
 }
 
+impl <A: ?Sized> PartialEq for FunctionWrapper<Rc<A>> {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 pub struct DafnyPrintWrapper<T>(pub T);
 impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -107,69 +151,87 @@ impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     }
 }
 
-pub trait DafnyErasable: DafnyUnerasable<Self::Erased> {
+pub trait DafnyErasable: DafnyUnerasable<Self::Erased>
+where Self: Sized {
     type Erased;
 
-    fn erase(&self) -> &Self::Erased;
-    fn erase_owned(self) -> Self::Erased;
+    fn erase(&self) -> &Self::Erased {
+        unsafe { &*(self as *const Self as *const Self::Erased) }
+    }
+
+    fn erase_owned(self) -> Self::Erased {
+        unsafe { transmute_unchecked(self) }
+    }
 }
 
-pub trait DafnyUnerasable<T: ?Sized> {
-    fn unerase(v: &T) -> &Self;
-    fn unerase_owned(v: T) -> Self;
+pub trait DafnyUnerasable<T>
+where Self: Sized {
+    fn unerase(v: &T) -> &Self {
+        unsafe { &*(v as *const T as *const Self) }
+    }
+
+    fn unerase_owned(v: T) -> Self {
+        unsafe { transmute_unchecked(v) }
+    }
 }
 
-impl <T> DafnyErasable for Rc<T> {
-    type Erased = Rc<T>;
+impl <T: DafnyErasable> DafnyErasable for Option<T> {
+    type Erased = Option<T::Erased>;
 
     #[inline]
     fn erase(&self) -> &Self::Erased {
-        self
+        unsafe { &*(self as *const Self as *const Self::Erased) }
     }
 
     #[inline]
     fn erase_owned(self) -> Self::Erased {
-        self
+        unsafe { transmute_unchecked(self) }
     }
 }
 
-impl <T> DafnyUnerasable<Rc<T>> for Rc<T> {
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Option<U>> for Option<T> {
     #[inline]
-    fn unerase(v: &Rc<T>) -> &Self {
-        v
+    fn unerase(v: &Option<U>) -> &Self {
+        unsafe { &*(v as *const Option<U> as *const Self) }
     }
 
     #[inline]
-    fn unerase_owned(v: Rc<T>) -> Self {
-        v
+    fn unerase_owned(v: Option<U>) -> Self {
+        unsafe { transmute_unchecked(v) }
     }
 }
 
-impl <T> DafnyErasable for Vec<T> {
-    type Erased = Vec<T>;
+impl <T: DafnyErasable> DafnyErasable for Rc<T> {
+    type Erased = Rc<T::Erased>;
 
     #[inline]
     fn erase(&self) -> &Self::Erased {
-        self
+        unsafe { &*(self as *const Self as *const Self::Erased) }
     }
 
     #[inline]
     fn erase_owned(self) -> Self::Erased {
-        self
+        unsafe { transmute_unchecked(self) }
     }
 }
 
-impl <T> DafnyUnerasable<Vec<T>> for Vec<T> {
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Rc<U>> for Rc<T> {
     #[inline]
-    fn unerase(v: &Vec<T>) -> &Self {
-        v
+    fn unerase(v: &Rc<U>) -> &Self {
+        unsafe { &*(v as *const Rc<U> as *const Self) }
     }
 
     #[inline]
-    fn unerase_owned(v: Vec<T>) -> Self {
-        v
+    fn unerase_owned(v: Rc<U>) -> Self {
+        unsafe { transmute_unchecked(v) }
     }
 }
+
+impl <T: DafnyErasable> DafnyErasable for Vec<T> {
+    type Erased = Vec<T::Erased>;
+}
+
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Vec<U>> for Vec<T> {}
 
 impl <T> DafnyErasable for HashSet<T> {
     type Erased = HashSet<T>;
@@ -193,6 +255,32 @@ impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
 
     #[inline]
     fn unerase_owned(v: HashSet<T>) -> Self {
+        v
+    }
+}
+
+impl <K, V> DafnyErasable for HashMap<K, V> {
+    type Erased = HashMap<K, V>;
+
+    #[inline]
+    fn erase(&self) -> &Self::Erased {
+        self
+    }
+
+    #[inline]
+    fn erase_owned(self) -> Self::Erased {
+        self
+    }
+}
+
+impl <K, V> DafnyUnerasable<HashMap<K, V>> for HashMap<K, V> {
+    #[inline]
+    fn unerase(v: &HashMap<K, V>) -> &Self {
+        v
+    }
+
+    #[inline]
+    fn unerase_owned(v: HashMap<K, V>) -> Self {
         v
     }
 }
@@ -222,6 +310,12 @@ impl <T> DafnyUnerasable<Box<T>> for Box<T> {
         v
     }
 }
+
+impl <T: DafnyErasable> DafnyErasable for RefCell<T> {
+    type Erased = RefCell<T::Erased>;
+}
+
+impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<RefCell<U>> for RefCell<T> {}
 
 macro_rules! impl_already_erased {
     ($name:ty) => {
@@ -399,6 +493,15 @@ impl DafnyPrint for char {
     #[inline]
     fn is_char() -> bool {
         true
+    }
+}
+
+impl <T: DafnyPrint> DafnyPrint for Option<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        match self {
+            Some(x) => x.fmt_print(f, false),
+            None => write!(f, "null")
+        }
     }
 }
 

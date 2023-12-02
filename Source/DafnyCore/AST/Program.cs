@@ -31,6 +31,8 @@ public class Program : TokenNode {
   public DafnyOptions Options => Reporter.Options;
   public ErrorReporter Reporter { get; set; }
 
+  public ProofDependencyManager ProofDependencyManager { get; set; } = new();
+
   public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
     CompilationData compilation) {
     Contract.Requires(name != null);
@@ -41,6 +43,19 @@ public class Program : TokenNode {
     SystemModuleManager = systemModuleManager;
     Reporter = reporter;
     Compilation = compilation;
+  }
+
+  public Program(Cloner cloner, Program original) {
+    FullName = original.FullName;
+    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModuleDefinition);
+    Files = original.Files;
+    SystemModuleManager = original.SystemModuleManager;
+    Reporter = original.Reporter;
+    Compilation = original.Compilation;
+
+    if (cloner.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
   }
 
   //Set appropriate visibilty before presenting module

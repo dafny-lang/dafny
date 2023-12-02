@@ -459,7 +459,7 @@ The _specification_ is a list of clauses `requires E` or
 expression.
 
 _body_ is an expression that defines the function's return
-value.  The body must be well-formed for all possible values of the
+value.  The body must be [well-formed](#sec-assertion-batches) for all possible values of the
 parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
@@ -468,7 +468,7 @@ example, the lambda expression
 ```dafny
 x requires x != 0 => 100 / x
 ```
-would not be well-formed if the `requires` clause were omitted,
+would not be [well-formed](#sec-assertion-batches) if the `requires` clause were omitted,
 because of the possibility of division-by-zero.
 
 In settings where functions cannot be partial and there are no

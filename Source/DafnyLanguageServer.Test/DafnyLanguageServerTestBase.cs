@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Test;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
@@ -26,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageProtocolTestBase {
 
     protected readonly string SlowToVerify = @"
-lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 100} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -41,6 +42,8 @@ lemma {:timeLimit 1} SquareRoot2NotRational(p: nat, q: nat)
   }
 }".TrimStart();
 
+    protected string SlowToVerifyNoLimit => SlowToVerify.Replace(" {:rlimit 100}", "");
+
     protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
   ensures true
@@ -50,20 +53,26 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     public const string LanguageId = "dafny";
     protected static int fileIndex;
     protected readonly TextWriter output;
+    protected readonly ILogger logger;
 
     public ILanguageServer Server { get; protected set; }
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
     protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-      : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => {
-        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
-        builder.AddFilter("OmniSharp", LogLevel.Warning);
-        builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
-        builder.AddConsole();
-      }))) {
+      : base(new JsonRpcTestOptions(CreateLoggerFactory(dafnyLogLevel))) {
       this.output = new WriterFromOutputHelper(output);
+      logger = CreateLoggerFactory(dafnyLogLevel).CreateLogger("default");
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(LogLevel dafnyLogLevel) {
+      return LoggerFactory.Create(
+        builder => {
+          builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+          builder.AddFilter("OmniSharp", LogLevel.Warning);
+          builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+          builder.AddConsole();
+        });
     }
 
     protected virtual void ServerOptionsAction(LanguageServerOptions serverOptions) {
@@ -95,9 +104,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.Create(output);
-      dafnyOptions.Set(ServerCommand.UpdateThrottling, 0);
+      dafnyOptions.Set(ProjectManager.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
-      ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+      Microsoft.Dafny.LanguageServer.LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
         options.WithDafnyLanguageServer(() => { });
@@ -111,12 +120,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in ServerCommand.Instance.Options) {
+      foreach (var serverOption in LanguageServer.Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in ServerCommand.Instance.Options) {
+      foreach (var option in LanguageServer.Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
 

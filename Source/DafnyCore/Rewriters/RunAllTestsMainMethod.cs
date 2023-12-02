@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Text.RegularExpressions;
 using static Microsoft.Dafny.RewriterErrors;
 
@@ -34,7 +33,7 @@ public class RunAllTestsMainMethod : IRewriter {
     var mainMethod = new Method(RangeToken.NoToken, new Name(SyntheticTestMainName), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
-      new List<FrameExpression>(),
+      new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       null, noVerifyAttribute, null);

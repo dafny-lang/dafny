@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -41,8 +43,8 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD105
     }
 
-    public static string Comma(this IEnumerable<string> l) {
-      return Comma(l, s => s);
+    public static string Comma<T>(this IEnumerable<T> l) {
+      return Comma(l, s => s.ToString());
     }
 
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
@@ -473,7 +475,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               if (member is Function f) {
                 List<Function> calls = new List<Function>();
-                foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
+                foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
                 if (f.Body != null) {
@@ -629,6 +631,10 @@ namespace Microsoft.Dafny {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
         program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
+    }
+
+    public static IEnumerable<string> Lines(TextReader reader) {
+      return new LinesEnumerable(reader);
     }
   }
 
@@ -891,7 +897,7 @@ namespace Microsoft.Dafny {
         if (f.Req.Any(e => Traverse(e.E, "Req.E", f))) {
           return true;
         }
-        if (f.Reads.Any(e => Traverse(e.E, "Reads.E", f))) {
+        if (f.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", f))) {
           return true;
         }
         if (f.Ens.Any(e => Traverse(e.E, "Ens.E", f))) {
@@ -922,7 +928,7 @@ namespace Microsoft.Dafny {
         if (m.Req.Any(e => Traverse(e.E, "Req.E", m))) {
           return true;
         }
-        if (m.Reads.Any(e => Traverse(e.E, "Reads.E", m))) {
+        if (m.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", m))) {
           return true;
         }
         if (m.Mod.Expressions.Any(e => Traverse(e.E, "Mod.E", m) == true)) {
@@ -970,6 +976,47 @@ namespace Microsoft.Dafny {
 
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
              OnExit(expr, field, parent);
+    }
+  }
+
+  class LinesEnumerable : IEnumerable<string> {
+    private readonly TextReader Reader;
+
+    public LinesEnumerable(TextReader reader) {
+      Reader = reader;
+    }
+
+    public IEnumerator<string> GetEnumerator() {
+      return new LinesEnumerator(Reader);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
+
+  class LinesEnumerator : IEnumerator<string> {
+
+    private readonly TextReader Reader;
+
+    public LinesEnumerator(TextReader reader) {
+      Reader = reader;
+    }
+
+    public bool MoveNext() {
+      Current = Reader.ReadLine();
+      return Current != null;
+    }
+
+    public void Reset() {
+      throw new NotImplementedException();
+    }
+
+    public string Current { get; internal set; }
+
+    object IEnumerator.Current => Current;
+
+    public void Dispose() {
     }
   }
 }

@@ -31,7 +31,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    return await projectManager.CompilationManager.VerifySymbol(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
+    return await projectManager.Compilation.VerifySymbol(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {
@@ -40,7 +40,7 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    await projectManager.CompilationManager.Cancel(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
+    await projectManager.Compilation.Cancel(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
     return true;
   }
 }

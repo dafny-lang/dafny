@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -772,6 +771,18 @@ public abstract class Expression : TokenNode {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };
+  }
+
+  /// <summary>
+  /// If "expr" is an expression that exists only as a resolved expression, then wrap it in the usual unresolved structure.
+  /// </summary>
+  public static Expression WrapAsParsedStructureIfNecessary(Expression expr, SystemModuleManager systemModuleManager) {
+    if (expr is FunctionCallExpr functionCallExpr) {
+      return WrapResolvedCall(functionCallExpr, systemModuleManager);
+    } else if (expr is MemberSelectExpr memberSelectExpr) {
+      return WrapResolvedMemberSelect(memberSelectExpr);
+    }
+    return expr;
   }
 
   /// <summary>

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -31,12 +32,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.fileSystem = fileSystem;
       this.telemetryPublisher = telemetryPublisher;
       this.logger = logger;
-      programParser = options.Get(ServerCommand.UseCaching)
+      programParser = options.Get(DafnyLangSymbolResolver.UseCaching)
         ? new CachingParser(innerParserLogger, fileSystem, telemetryPublisher)
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(Compilation compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
+    public Program Parse(CompilationInput compilation, ErrorReporter reporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       var beforeParsing = DateTime.Now;

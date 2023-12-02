@@ -1,0 +1,696 @@
+// PrefixTypeSubst.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 0:
+   *   array
+   * SCC at height 0:
+   *   nat
+   * SCC at height 0:
+   *   object
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+    ghost function requires(x0: T0): bool
+      reads reads(x0)
+
+    ghost function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  type {:compile false} /*_#Func0*/ () ~> +R {
+    ghost function requires(): bool
+      reads reads()
+
+    ghost function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function RotateLeft(w: nat): selftype
+
+    function RotateRight(w: nat): selftype
+  }
+
+  type map<+T, +U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<*T, +U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype /*_tuple#0*/ () = _#Make0
+
+  type {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    ghost function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    ghost function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
+
+  type {:compile false} /*_#Func3*/ (-T0, -T1, -T2) ~> +R {
+    ghost function requires(x0: T0, x1: T1, x2: T2): bool
+      reads reads(x0, x1, x2)
+
+    ghost function reads(x0: T0, x1: T1, x2: T2): set<object?>
+      reads reads(x0, x1, x2)
+  }
+
+  type {:compile false} /*_#PartialFunc3*/ (-T0, -T1, -T2) --> +R = f: (T0, T1, T2) ~> R
+    | forall x0: T0, x1: T1, x2: T2 :: f.reads(x0, x1, x2) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc3*/ (-T0, -T1, -T2) -> +R = f: (T0, T1, T2) --> R
+    | forall x0: T0, x1: T1, x2: T2 :: f.requires(x0, x1, x2)
+    /*special witness*/
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ * SCC at height 4:
+ *   RstRst7#
+ * SCC at height 3:
+ *   MyClass.M#
+ * SCC at height 3:
+ *   RstRst7
+ * SCC at height 2:
+ *   RstRst5#
+ *   RstRst5
+ * SCC at height 2:
+ *   RstRst6#
+ *   RstRst6
+ * SCC at height 2:
+ *   RstRst8#
+ *   RstRst8
+ * SCC at height 2:
+ *   RstRst9#
+ *   RstRst9
+ * SCC at height 2:
+ *   MyClass.L#
+ * SCC at height 2:
+ *   MyClass.M
+ * SCC at height 2:
+ *   N#
+ * SCC at height 2:
+ *   O#
+ * SCC at height 2:
+ *   RstRst0#
+ * SCC at height 2:
+ *   RstRst1#
+ * SCC at height 2:
+ *   RstRst10#
+ * SCC at height 2:
+ *   RstRst2#
+ * SCC at height 2:
+ *   RstRst3#
+ * SCC at height 2:
+ *   RstRst4#
+ * SCC at height 1:
+ *   MyClass.L
+ * SCC at height 1:
+ *   MyClass.P#
+ * SCC at height 1:
+ *   MyClass.R#
+ * SCC at height 1:
+ *   MyClass.RST#
+ * SCC at height 1:
+ *   MyClass.RST_Nat#
+ * SCC at height 1:
+ *   MyClass.S#
+ * SCC at height 1:
+ *   N
+ * SCC at height 1:
+ *   O
+ * SCC at height 1:
+ *   RstRst0
+ * SCC at height 1:
+ *   RstRst1
+ * SCC at height 1:
+ *   RstRst10
+ * SCC at height 1:
+ *   RstRst2
+ * SCC at height 1:
+ *   RstRst3
+ * SCC at height 1:
+ *   RstRst4
+ * SCC at height 0:
+ *   MyClass
+ * SCC at height 0:
+ *   MyClass.P
+ * SCC at height 0:
+ *   MyClass.R
+ * SCC at height 0:
+ *   MyClass.RST
+ * SCC at height 0:
+ *   MyClass.RST_Nat
+ * SCC at height 0:
+ *   MyClass.S
+ */
+greatest lemma N<D0, D1, D2>(o: MyClass<D0, D1>)
+  ensures o.R<D2>()
+{
+  N<D0, D1, D2>(o);
+}
+/***
+lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
+  ensures o.R#<D2>[_k]()
+  decreases _k, o
+{
+  if 0 < _k.Offset {
+    N#<D0, D1, D2>[_k - 1](o);
+  } else {
+    forall _k': ORDINAL, o: MyClass<D0, D1> /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger o.R#<D2>[_k']()} | _k' < _k
+      ensures o.R#[_k']()
+    {
+      N#[_k'](o)
+    }
+  }
+}
+***/
+
+greatest lemma O<D0, D1, D2>()
+  ensures MyClass<D0, D1>.S<D2>()
+{
+  O<D0, D1, D2>();
+}
+/***
+lemma /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
+  ensures MyClass<D0, D1>.S#<D2>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    O#<D0, D1, D2>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<D0, D1>.S#<D2>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<D0, D1>.S#[_k']()
+    {
+      O#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst0<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst0<int, gamma>();
+}
+/***
+lemma {:induction false} RstRst0#<alpha, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    RstRst0#<int, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst0#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst1<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst1<int, int>();
+}
+/***
+lemma {:induction false} RstRst1#<alpha, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    RstRst1#<int, int>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst1#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst2<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  RstRst2<alpha, gamma>();
+}
+/***
+lemma {:induction false} RstRst2#<alpha, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    RstRst2#<alpha, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst2#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst3<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  RstRst3<alpha, beta, gamma>();
+}
+/***
+lemma {:induction false} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    RstRst3#<alpha, beta, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst3#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst4<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  RstRst4<beta, alpha, gamma>();
+}
+/***
+lemma {:induction false} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    RstRst4#<beta, alpha, gamma>[_k - 1]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst4#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst5<alpha, gamma>()
+  ensures MyClass<alpha, char>.RST<gamma>()
+{
+  if 2 <= _k.Offset {
+    RstRst5#<alpha, gamma>[_k - 2]();
+  } else {
+    assert _k.Offset == 1;
+  }
+}
+/***
+lemma {:induction false} RstRst5#<alpha, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, char>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    if 2 <= _k.Offset {
+      RstRst5#<alpha, gamma>[_k - 2]();
+    } else {
+      assert _k.Offset == 1;
+    }
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, char>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, char>.RST#[_k']()
+    {
+      RstRst5#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst6<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  if
+  case true =>
+    RstRst6<beta, alpha, gamma>();
+  case 2 <= _k.Offset =>
+    RstRst6#<alpha, beta, gamma>[_k - 2]();
+}
+/***
+lemma {:induction false} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    if
+    case true =>
+      RstRst6#<beta, alpha, gamma>[_k - 1]();
+    case 2 <= _k.Offset =>
+      RstRst6#<alpha, beta, gamma>[_k - 2]();
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst6#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma RstRst7<alpha, beta, gamma>()
+  ensures MyClass<alpha, beta>.RST<gamma>()
+{
+  if _k != 1 && _k.Offset == 1 {
+    RstRst6<beta, alpha, gamma>();
+  } else {
+  }
+}
+/***
+lemma /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
+  ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k.Offset {
+    if _k != 1 && _k.Offset == 1 {
+      RstRst6<beta, alpha, gamma>();
+    } else {
+    }
+  } else {
+    forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger MyClass<alpha, beta>.RST#<gamma>[_k']()} {:trigger _k' < _k} | _k' < _k
+      ensures MyClass<alpha, beta>.RST#[_k']()
+    {
+      RstRst7#[_k']()
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst8<alpha, gamma>[nat]()
+  ensures MyClass<alpha, char>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst8#<alpha, gamma>[_k - 2]();
+  }
+}
+/***
+lemma {:induction false} RstRst8#<alpha, gamma>[_k: nat]()
+  ensures MyClass<alpha, char>.RST_Nat#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst8#<alpha, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+greatest lemma {:induction false} RstRst9<alpha, beta, gamma>[nat]()
+  ensures MyClass<alpha, beta>.RST_Nat<gamma>()
+{
+  if 2 <= _k {
+    RstRst9#<alpha, beta, gamma>[_k - 2]();
+  }
+}
+/***
+lemma {:induction false} RstRst9#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+    if 2 <= _k {
+      RstRst9#<alpha, beta, gamma>[_k - 2]();
+    }
+  }
+}
+***/
+
+greatest lemma RstRst10<alpha, beta, gamma>[nat]()
+  ensures MyClass<alpha, beta>.RST_Nat<gamma>()
+{
+}
+/***
+lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
+  ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
+  decreases _k
+{
+  if 0 < _k {
+  }
+}
+***/
+
+class MyClass<A, B> {
+  greatest predicate P<X, Y>(x: X, y: Y)
+  {
+    P(x, y)
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate P#<X, Y>[_k: ORDINAL](x: X, y: Y)
+    decreases _k
+  {
+    P(x, y)
+  }
+  ***/
+
+  greatest predicate R<T>()
+  {
+    R<T>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  predicate R#<T>[_k: ORDINAL]()
+    decreases _k
+  {
+    R<T>()
+  }
+  ***/
+
+  static greatest predicate S<Q>()
+  {
+    S<Q>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate S#<Q>[_k: ORDINAL]()
+    decreases _k
+  {
+    S<Q>()
+  }
+  ***/
+
+  static greatest predicate RST<QQ>()
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST#<QQ>[_k: ORDINAL]()
+    decreases _k
+  {
+    MyClass<B, A>.RST<QQ>()
+  }
+  ***/
+
+  static greatest predicate RST_Nat<QQ>[nat]()
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
+  }
+  /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+  static predicate RST_Nat#<QQ>[_k: nat]()
+    decreases _k
+  {
+    MyClass<B, A>.RST_Nat<QQ>()
+  }
+  ***/
+
+  greatest lemma L<U, V>(u: U, v: V)
+    ensures P(u, v)
+  {
+    L(u, v);
+  }
+  /***
+  lemma /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
+    ensures P#[_k](u, v)
+    decreases _k
+  {
+    if 0 < _k.Offset {
+      L#[_k - 1](u, v);
+    } else {
+      forall _k': ORDINAL, u: U, v: V /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.P#<U, V>[_k'](u, v)} | _k' < _k
+        ensures this.P#[_k'](u, v)
+      {
+        L#[_k'](u, v)
+      }
+    }
+  }
+  ***/
+
+  greatest lemma M<W>()
+    ensures R<char>()
+  {
+    M<W>();
+    assert R#<char>[_k - 1]();
+  }
+  /***
+  lemma /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
+    ensures R#<char>[_k]()
+    decreases _k
+  {
+    if 0 < _k.Offset {
+      M#<W>[_k - 1]();
+      assert R#<char>[_k - 1]();
+    } else {
+      forall _k': ORDINAL /*{:_autorequires}*/ /*{:_trustWellformed}*/ {:auto_generated} {:trigger this.R#<char>[_k']()} {:trigger _k' < _k} | _k' < _k
+        ensures this.R#[_k']()
+      {
+        M#[_k']()
+      }
+    }
+  }
+  ***/
+}
+/*-- non-null type
+type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null /*special witness*/
+*/
+
+module DefaultValueExpressionSubstitution {
+  /* CALL GRAPH for module DefaultValueExpressionSubstitution:
+   * SCC at height 1:
+   *   Test
+   * SCC at height 0:
+   *   Fa
+   * SCC at height 0:
+   *   Fb
+   * SCC at height 0:
+   *   Fc
+   * SCC at height 0:
+   *   Fd
+   * SCC at height 0:
+   *   Fe
+   */
+  method Test()
+  {
+    var r: int := 3 + Fa<real>(7, 7 + var x: real :| true; 7);
+    r := r + Fb<real>({});
+    var rs: set<real> := {2.7};
+    r := r + Fc<real>(rs, forall xa: real {:trigger xa in rs} :: xa in rs ==> true);
+    r := r + Fd<real>(rs, exists xe: real {:trigger xe in rs} :: xe in rs);
+    r := r + Fe<real>(rs, var tt: set<real> := rs; tt);
+  }
+
+  function Fa<X(0)>(n: int, acc: int := n + var x: X :| true; n): int
+    decreases n, acc
+  {
+    20
+  }
+
+  function Fb<X(==,0)>(s: set<X> := {}): int
+    decreases s
+  {
+    21
+  }
+
+  function Fc<X(==,0)>(s: set<X>, b: bool := forall xa: X :: xa in s ==> true): int
+    decreases s, b
+  {
+    22
+  }
+
+  function Fd<X(==,0)>(s: set<X>, b: bool := exists xe: X :: xe in s): int
+    decreases s, b
+  {
+    23
+  }
+
+  function Fe<X(==,0)>(s: set<X>, t: set<X> := var tt: set<X> := s; tt): int
+    decreases s, t
+  {
+    24
+  }
+}
+PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
+PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(58,0): Error: a postcondition could not be proved on this return path
+PrefixTypeSubst.dfy(57,30): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(64,0): Error: a postcondition could not be proved on this return path
+PrefixTypeSubst.dfy(63,30): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(70,0): Error: a postcondition could not be proved on this return path
+PrefixTypeSubst.dfy(69,30): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proved on this return path
+PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,17): Related location
+
+Dafny program verifier finished with 12 verified, 5 errors

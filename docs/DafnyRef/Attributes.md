@@ -243,7 +243,7 @@ without proof. In that case also the body of the function or
 method may be omitted.
 
 The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
-Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
+Dafny still verifies the [well-formedness](#sec-assertion-batches) of pre-conditions, of post-conditions, and of the body if provided.
 To prevent Dafny from running all these checks, one would use [`{:verify false}`](#sec-verify), which is not recommended.
 
 The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function`, a `method` or a `function by method`](#sec-function-declarations) with a body.
@@ -444,7 +444,7 @@ of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
 ### 11.2.16. `{:tailrecursion}`
-This attribute is used on method declarations. It has a boolean argument.
+This attribute is used on method or function declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
 requested no tail recursion, so none is done.
@@ -458,6 +458,80 @@ recursion was explicitly requested.
 * Only direct recursion is supported, not mutually recursive methods.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
+
+If you have a stack overflow, it might be that you have
+a function on which automatic attempts of tail recursion
+failed, but for which efficient iteration can be implemented by hand. To do this,
+use a [function by method](#sec-function-by-method) and
+define the loop in the method yourself,
+proving that it implements the function.
+
+Using a function by method to implement recursion can
+be tricky. It usually helps to look at the result of the function
+on two to three iterations, without simplification,
+and see what should be the first computation. For example,
+consider the following tail-recursion implementation:
+
+<!-- %check-verify -->
+```dafny
+datatype Result<V,E> = Success(value: V) | Failure(error: E)
+
+function f(x: int): Result<int, string>
+
+//  {:tailrecursion true}  Not possible here
+function MakeTailRec(
+  obj: seq<int>
+): Result<seq<int>, string>
+{
+  if |obj| == 0 then Success([])
+  else
+    var tail := MakeTailRec(obj[1..]);
+    var r := f(obj[0]);
+    if r.Failure? then
+      Failure(r.error)
+    else if tail.Failure? then
+      tail
+    else
+      Success([r.value] + tail.value)
+} by method {
+  var i: nat := |obj|;
+  var tail := Success([]); // Base case
+  while i != 0
+    decreases i
+    invariant tail == MakeTailRec(obj[i..])
+  {
+    i := i - 1;
+    var r := f(obj[i]);
+    if r.Failure? {
+      tail := Failure(r.error);
+    } else if tail.Success? {
+      tail := Success([r.value] + tail.value);
+    } else {
+    }
+  }
+  return tail;
+}
+```
+
+The rule of thumb to unroll a recursive call into a sequential one
+is to look at how the result would be computed if the operations were not
+simplified. For example, unrolling the function on `[1, 2, 3]` yields the result
+`Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
+If you had to compute this expression manually, you'd start with
+`([f(3).value] + [])`, then add `[f(2).value]` to the left, then 
+`[f(1).value]`.
+This is why the method loop iterates with the objects
+from the end, and why the intermediate invariants are
+all about proving `tail == MakeTailRec(obj[i..])`, which
+makes verification succeed easily because we replicate
+exactly the behavior of `MakeTailRec`.
+If we were not interested in the first error but the last one,
+a possible optimization would be, on the first error, to finish
+iterate with a ghost loop that is not executed.
+
+Note that the function definition can be changed by computing
+the tail closer to where it's used or switching the order of computing
+`r` and `tail`, but the `by method` body can stay the same.
 
 ### 11.2.17. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
@@ -515,7 +589,7 @@ By default, the body of a function is transparent to its users. This can be over
 ### 11.2.21. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
-not even trying to verify the well-formedness of postconditions and preconditions.
+not even trying to verify the [well-formedness](#sec-assertion-batches) of postconditions and preconditions.
 We discourage using this attribute and prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies the postconditions.
 

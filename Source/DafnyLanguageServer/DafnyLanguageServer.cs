@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
-      var logger = server.GetRequiredService<ILogger<Server>>();
+      var logger = server.GetRequiredService<ILogger<LanguageServer>>();
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer {
     /// As part of the LSP spec, a language server must kill itself if its parent process dies
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
-    private static void KillLanguageServerIfParentDies(ILogger<Server> logger, InitializeParams request,
+    private static void KillLanguageServerIfParentDies(ILogger<LanguageServer> logger, InitializeParams request,
         Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;

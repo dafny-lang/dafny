@@ -1,0 +1,6 @@
+[options]
+standard-libraries = true
+resource-limit = 1000
+warn-as-errors = true
+warn-redundant-assumptions = true
+warn-contradictory-assumptions = true

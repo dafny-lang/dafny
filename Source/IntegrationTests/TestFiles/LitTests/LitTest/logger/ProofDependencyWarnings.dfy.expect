@@ -1,0 +1,20 @@
+ProofDependencyLogging.dfy(176,11): Warning: unnecessary assumption
+ProofDependencyLogging.dfy(186,13): Warning: proved using contradictory assumptions: assertion always holds
+ProofDependencyLogging.dfy(185,11): Warning: unnecessary assumption
+ProofDependencyLogging.dfy(193,13): Warning: proved using contradictory assumptions: assertion always holds
+ProofDependencyLogging.dfy(191,11): Warning: unnecessary assumption
+ProofDependencyLogging.dfy(202,11): Warning: proved using contradictory assumptions: assertion always holds
+ProofDependencyLogging.dfy(203,4): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
+ProofDependencyLogging.dfy(211,11): Warning: proved using contradictory assumptions: assertion always holds
+ProofDependencyLogging.dfy(212,11): Warning: proved using contradictory assumptions: value always satisfies the subset constraints of 'nat'
+ProofDependencyLogging.dfy(209,10): Warning: ensures clause proved using contradictory assumptions
+ProofDependencyLogging.dfy(226,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(241,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(298,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(299,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(321,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(346,10): Warning: ensures clause proved using contradictory assumptions
+ProofDependencyLogging.dfy(354,11): Warning: unnecessary requires clause
+ProofDependencyLogging.dfy(363,9): Warning: unnecessary assumption
+
+Dafny program verifier finished with 32 verified, 0 errors

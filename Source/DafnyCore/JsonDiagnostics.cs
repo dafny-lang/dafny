@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Boogie;
 using VCGeneration;
 using static Microsoft.Dafny.ErrorRegistry;
 
@@ -25,8 +24,10 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
-    if (tok is BoogieRangeToken rt) {
-      range["end"] = SerializePosition(rt.EndToken);
+    if (tok is RangeToken rangeToken1) {
+      range["end"] = SerializePosition(rangeToken1.EndToken);
+    } else if (tok is BoogieRangeToken rangeToken2) {
+      range["end"] = SerializePosition(rangeToken2.EndToken);
     }
     return range;
   }

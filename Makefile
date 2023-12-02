@@ -7,6 +7,10 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
+dfydev:
+	(cd ${DIR}/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
+	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
+
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
 tests:
@@ -58,7 +62,7 @@ z3-ubuntu:
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 format:
-	dotnet tool run dotnet-format -w -s error Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs --exclude DafnyCore/GeneratedFromDafnyRust.cs
+	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
 
 clean:
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)

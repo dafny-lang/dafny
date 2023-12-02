@@ -9,12 +9,12 @@ namespace Microsoft.Dafny;
 
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
-  public readonly Name NameNode; // (Last segment of the) module name
+  public Name NameNode; // (Last segment of the) module name
 
   public override IToken Tok => NameNode.StartToken;
 
@@ -31,7 +31,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
   public string FullName {
     get {
-      if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
+      if (EnclosingModule == null || EnclosingModule.TryToAvoidName) {
         return Name;
       } else {
         return EnclosingModule.FullName + "." + Name;
@@ -47,7 +47,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
-  private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+  private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
 
   public DefaultClassDecl DefaultClass { get; set; }
 
@@ -56,6 +56,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+
+  public CallRedirector CallRedirector { get; set; }
+
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
@@ -116,11 +119,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : this(cloner, original) {
     NameNode = name;
-    IsBuiltinName = true;
   }
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
-    IsBuiltinName = original.IsBuiltinName;
     NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
 
@@ -153,8 +154,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
-    bool isBuiltinName) : base(tok) {
+    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -164,7 +164,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.RefinementQId = refinementQId;
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
-    this.IsBuiltinName = isBuiltinName;
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
@@ -177,7 +176,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public virtual bool IsDefaultModule => false;
 
+  public virtual bool TryToAvoidName => false;
+
   private string sanitizedName = null;
+
+  public void ClearNameCache() {
+    sanitizedName = null;
+    compileName = null;
+  }
 
   public string SanitizedName {
     get {
@@ -209,7 +215,20 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       } else if (externArgs != null) {
         compileName = Name + nonExternSuffix;
       } else {
-        compileName = SanitizedName + nonExternSuffix;
+
+        if (IsBuiltinName) {
+          compileName = Name;
+        } else if (EnclosingModule is { TryToAvoidName: false }) {
+          // Include all names in the module tree path, to disambiguate when compiling
+          // a flat list of modules.
+          // Use an "underscore-escaped" character as a module name separator, since
+          // underscores are already used as escape characters in SanitizeName()
+          compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        } else {
+          compileName = NonglobalVariable.SanitizeName(Name);
+        }
+
+        compileName += nonExternSuffix;
       }
     }
 
@@ -409,7 +428,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, string exportSetName = null) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -460,7 +479,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies,
+        exportSetName == null ? Name : $"{Name} export {exportSetName}", exportSetName != null);
     }
 
     Type.PopScope(resolver.moduleInfo.VisibilityScope);
@@ -598,7 +618,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var prefixNameModule = prefixNamedModules.First();
       var firstPartToken = prefixNameModule.Parts[0];
       var modDef = new ModuleDefinition(RangeToken.NoToken, new Name(firstPartToken.ToRange(), name), new List<IToken>(), false,
-        false, null, this, null, false);
+        false, null, this, null);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
 
       // Use an empty cloneId because these are empty module declarations.
@@ -646,8 +666,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // the add was successful
       } else {
         // there's already something with this name
-        var yes = bindings.TryLookup(subDecl.tok, out var prevDecl);
-        Contract.Assert(yes);
+        var existingModuleIsFound = bindings.TryLookup(subDecl.Name, out var prevDecl);
+        Contract.Assert(existingModuleIsFound);
         if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
           resolver.Reporter.Error(MessageSource.Resolver, subDecl.tok, "Duplicate name of import: {0}", subDecl.Name);
         } else if (subDecl is AliasModuleDecl { Opened: true } importDecl && importDecl.TargetQId.Path.Count == 1 &&
@@ -678,7 +698,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     sig.VisibilityScope.Augment(VisibilityScope);
 
     // This is solely used to detect duplicates amongst the various e
-    ISet<string> toplevels = new HashSet<string>();
+    Dictionary<string, INode> toplevels = new();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -702,8 +722,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         registerThisDecl = d;
         registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
         anonymousImportCount++;
-      } else if (toplevels.Contains(d.Name)) {
-        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
+        resolver.reporter.Error(MessageSource.Resolver, new NestedToken(d.Tok, existingTopLevel.Tok),
+          "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
         registerUnderThisName = d.Name;
@@ -716,7 +737,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       if (registerThisDecl != null) {
-        toplevels.Add(registerUnderThisName);
+        toplevels[registerUnderThisName] = d;
         sig.TopLevels[registerUnderThisName] = registerThisDecl;
       }
 
@@ -750,10 +771,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.Contains(m.Name)) {
+          if (toplevels.ContainsKey(m.Name)) {
             resolver.reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
           } else {
-            toplevels.Add(m.Name);
+            toplevels.Add(m.Name, m);
           }
         }
 
@@ -877,13 +898,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (TopLevelDecl d in TopLevelDecls) {
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         var name = d.Name + "?";
-        if (toplevels.Contains(name)) {
+        if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,
             "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
             name, d.WhatKind, d.Name);
         } else {
-          toplevels.Add(name);
-          toplevels.Add(d.Name);
+          toplevels[name] = d;
+          toplevels[d.Name] = d;
           // change the mapping of d.Name to d.NonNullTypeDecl
           sig.TopLevels[d.Name] = nntd;
           sig.TopLevels[name] = d;
@@ -984,7 +1005,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           }
         }
 
-        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
+        traitDecl.SetUpAsReferenceType(resolver.Options.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy || inheritsFromObject);
         traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
         return inheritsFromObject;
       }

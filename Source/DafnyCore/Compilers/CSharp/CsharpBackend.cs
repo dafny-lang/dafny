@@ -4,8 +4,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Loader;
-using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CsharpCompiler(Options, Reporter);
   }
@@ -92,6 +91,7 @@ public class CsharpBackend : ExecutableBackend {
       compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
     }
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+    Directory.CreateDirectory(outputDir);
     var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
     var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
     var emitResult = compilation.Emit(outputPath);
@@ -156,6 +156,10 @@ public class CsharpBackend : ExecutableBackend {
     }
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter, errorWriter) == 0;
+  }
+
+  public override void PopulateCoverageReport(CoverageReport coverageReport) {
+    compiler.Coverage.PopulateCoverageReport(coverageReport);
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {

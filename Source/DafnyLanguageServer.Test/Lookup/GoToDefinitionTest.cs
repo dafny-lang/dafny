@@ -12,6 +12,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task ModuleImport1() {
+      var source = @"
+module User {
+ import Us><ed
+ 
+ const x := Used.x
+}
+
+module [>Used<] {
+  const x := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ModuleImport2() {
+      var source = @"
+module User {
+ [>import<] Used
+ 
+ const x := Us><ed.x
+}
+
+module Used {
+  const x := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ExplicitProjectToGoDefinitionWorks() {
       var sourceA = @"
 const a := 3;
@@ -22,9 +52,9 @@ const b := a + 2;
 ".TrimStart();
 
       var directory = Path.GetRandomFileName();
-      await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var aFile = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "A.dfy"));
-      var bFile = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "B.dfy"));
+      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var aFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "A.dfy"));
+      var bFile = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "B.dfy"));
 
       var result1 = await RequestDefinition(bFile, new Position(0, 11));
       Assert.Equal(new Range(0, 6, 0, 7), result1.Single().Location!.Range);
@@ -83,7 +113,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
         out var positions, out var ranges);
 
-      var documentItem = await CreateAndOpenTestDocument(cleanSource);
+      var documentItem = await CreateOpenAndWaitForResolve(cleanSource);
       for (var index = 0; index < positions.Count; index++) {
         var position = positions[index];
         var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
@@ -246,7 +276,7 @@ module Consumer {
 }
 
 module Consumer2 {
-  import [>Provider<]
+  [>import<] Provider
 
   type A2 = Pro><vider.A
 }".TrimStart();
@@ -289,10 +319,10 @@ method CallIts() returns () {
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies, "DefinitionReturnsBeforeVerificationIsComplete.dfy");
       client.OpenDocument(documentItem);
-      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem);
       var definitionTask = RequestDefinition(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.False(verificationTask.IsCompleted);
+      Assert.False(verificationTask.IsCompletedSuccessfully);
       Assert.Same(first, definitionTask);
     }
 

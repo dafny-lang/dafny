@@ -18,8 +18,6 @@ concurrency:
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
 
   doctests:
     needs: check-deep-tests
@@ -32,7 +30,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         path: dafny

@@ -131,8 +131,8 @@ method M(heap: object)
 +         assume k#0_0 < x#0;
 -         x#1_0 := LitInt(0);
 +         a#1_0 := LitInt(0);
--         assume !(exists eg$y#1: int :: eg$y#1 < x#0);
-+         assume !(exists eg$k#1: int :: eg$k#1 < x#0);
+-         assume {:id ""id2""} !(exists eg$y#1: int :: eg$y#1 < x#0);
++         assume {:id ""id2""} !(exists eg$k#1: int :: eg$k#1 < x#0);
 -         y#2_0 := LitInt(0);
 +         b#2_0 := LitInt(0);
 -         x#3_0 := LitInt(2);

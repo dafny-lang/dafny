@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
         description = $"{tok.TokenToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
       }
       Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return Translator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
+      return BoogieGenerator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
     }
   }
 }
