@@ -6,12 +6,13 @@ module DafnyStdLibs.Strings {
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
   import Arithmetic
-    /**
-    Refine this module to use it.
-    The refinee must define:
-      - the type of character used, Char
-      - a conversion from nat to Char and vice versa
-     */
+
+  /**
+  Refine this module to use it.
+  The refinee must define:
+    - the type of character used, Char
+    - a conversion from nat to Char and vice versa
+   */
   abstract module ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
 
@@ -275,7 +276,4 @@ module DafnyStdLibs.Strings {
   lemma Concat_Join(strs: seq<string>)
     ensures Concat(strs) == Join("", strs)
   {}
-
-
 }
-
