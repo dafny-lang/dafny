@@ -16,7 +16,6 @@ module DafnyStdLibs.JSON.Spec {
   import opened Unicode.UnicodeStringsWithUnicodeChar
   import opened Arithmetic.Logarithm
 
-  type bytes = seq<uint8>
   type Result<+T> = SerializationResult<T>
 
   function EscapeUnicode(c: uint16): seq<uint16> {
