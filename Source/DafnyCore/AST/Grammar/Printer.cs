@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
 Everything - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
+Serialization - print the source that will be included in a compiled dll.
 NoIncludes - disable printing of {:verify false} methods
     incorporated via the include mechanism, as well as datatypes and
     fields included from other files.

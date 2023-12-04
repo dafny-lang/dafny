@@ -1055,7 +1055,7 @@ method NotTerminating() {
 }
 ```
 
-This verifies instantly. This gives use a strategy to bisect, or do binary search to find the assertion that slows everything down.
+This verifies instantly. This gives us a strategy to bisect, or do binary search to find the assertion that slows everything down.
 Now, we move the `assume false;` below the next assertion:
 
 <!-- %no-check -->
@@ -1376,7 +1376,7 @@ assert c != 5/a;     // Correctness
 Well-formedness is proved at the same time as correctness, except for
 [well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
 which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
-For the rest of this section, we don't diifferentiate between well-formedness assertions and correctness assertions.
+For the rest of this section, we don't differentiate between well-formedness assertions and correctness assertions.
 
 We can also classify the assertions extracted by Dafny in a few categories:
 
@@ -2301,6 +2301,10 @@ and what information it produces about the verification process.
   unproductive path while attempting to prove things about those
   operators. (This option will perhaps be replaced by `-arith` in the
   future. For now, it takes precedence over `-arith`.)
+
+  The behavior of `disable-nonlinear-arithmetic` can be turned on and off on a per-module basis 
+  by placing the attribute [`{:disable-nonlinear-arithmetic}`](#sec-disable-nonlinear-arithmetic) after the module keyword.
+  The attribute optionally takes the value `false` to enable nonlinear arithmetic.
 
 * `--manual-lemma-induction` - diables automatic inducntion for lemmas
 

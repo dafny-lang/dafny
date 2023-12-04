@@ -21,6 +21,25 @@ class GhostBox<T> {
   }
 }
 
+class ConcurrentJournal<T> {
+  ghost var elements: seq<T>
+
+  constructor()
+    ensures elements == []
+  {
+    elements := [];
+  }
+
+  method Add(e: T)
+    reads this
+    modifies this
+    ensures exists others :: elements == old(elements) + [e] + others
+  {
+    elements := elements + [e];
+    assert elements == old(elements) + [e] + [];
+  }
+}
+
 class Concurrent {
 
   function {:concurrent} GoodFn(b: Box<int>): int {
@@ -43,6 +62,13 @@ class Concurrent {
     reads if false then {b} else {}`x
   {
     42
+  }
+
+  ghost predicate {:concurrent} ExistsInJournal(p: string -> bool, j: ConcurrentJournal<string>)
+    // {:assume_concurrent} is not supported for functions so it has no effect here
+    reads {:assume_concurrent} j  // Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+  {
+    exists element <- j.elements :: p(element)
   }
 
   method {:concurrent} GoodM(b: Box<int>) {
@@ -97,5 +123,12 @@ class Concurrent {
     reads set b: GhostBox<int> | !allocated(b)
     modifies set b: GhostBox<int> | !allocated(b)
   {
+  }
+
+  method {:concurrent} AddToJournal(j: ConcurrentJournal<string>)
+    reads {:assume_concurrent} j
+    modifies {:assume_concurrent} j
+  {
+    j.Add("Today I added another test case.");
   }
 }
