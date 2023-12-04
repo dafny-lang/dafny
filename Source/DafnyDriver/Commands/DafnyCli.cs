@@ -489,7 +489,7 @@ public static class DafnyCli {
       var reporter = new ConsoleErrorReporter(options);
       if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = options.CompilerName ?? "notarget";
-        var stdlibDooUri = new Uri($"{DafnyMain.StandardLibrariesDooUriBase}-{targetName}.doo");
+        var stdlibDooUri = DafnyMain.standardLibrariesDooUriTarget[targetName];
         options.CliRootSourceUris.Add(stdlibDooUri);
         dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli));
       }

@@ -22,18 +22,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
-    public static readonly string StandardLibrariesDooUriBase = "dafny:DafnyStandardLibraries";
-    public static readonly Uri StandardLibrariesDooUri = new("dafny:DafnyStandardLibraries");
-    public static readonly Uri StandardLibrariesArithmeticDooUri = new("dafny:DafnyStandardLibraries-arithmetic");
+    public static readonly Dictionary<string, Uri> standardLibrariesDooUriTarget = new();
+    public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+    public static readonly Uri StandardLibrariesArithmeticDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries-arithmetic.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo"));
 
     static DafnyMain() {
-      DafnyFile.ExposeInternalUri("DafnyStandardLibraries",
-        new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
-      DafnyFile.ExposeInternalUri("DafnyStandardLibraries-arithmetic",
-        new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo"));
-
       foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
-        DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}",
+        standardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
           new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
       }
     }

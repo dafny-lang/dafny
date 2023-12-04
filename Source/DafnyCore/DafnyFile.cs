@@ -24,9 +24,10 @@ public class DafnyFile {
 
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
-  public static void ExposeInternalUri(string externalName, Uri internalUri) {
+  public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
     var externalUri = new Uri("dafny:" + externalName);
     ExternallyVisibleEmbeddedFiles[externalUri] = internalUri;
+    return externalUri;
   }
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
