@@ -9,6 +9,7 @@
 module DafnyStdLibs.JSON.Deserializer {
   import Values
   import Spec
+  import ByteStrConversion
   import opened Collections.Seqs
   import opened Wrappers
   import opened BoundedInts

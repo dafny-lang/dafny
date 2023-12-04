@@ -6,13 +6,12 @@ module DafnyStdLibs.Strings {
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
   import Arithmetic
-
-  /**
-  Refine this module to use it.
-  The refinee must define:
-    - the type of character used, Char
-    - a conversion from nat to Char and vice versa
-   */
+    /**
+    Refine this module to use it.
+    The refinee must define:
+      - the type of character used, Char
+      - a conversion from nat to Char and vice versa
+     */
   abstract module ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
 
@@ -278,17 +277,5 @@ module DafnyStdLibs.Strings {
   {}
 
 
-  module ByteStrConversion refines ParametricConversion {
-    import opened BoundedInts
-
-    type Char = uint8
-
-    const chars := [
-      '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
-      '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
-      '8' as uint8, '9' as uint8
-    ]
-  }
-  
 }
 

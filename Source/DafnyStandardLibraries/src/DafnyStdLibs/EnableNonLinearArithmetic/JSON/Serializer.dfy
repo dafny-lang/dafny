@@ -18,6 +18,7 @@ module DafnyStdLibs.JSON.Serializer {
   import opened DynamicArray
   import opened Grammar
   import opened Utils.Views.Core
+  import ByteStrConversion
 
   type Result<+T> = SerializationResult<T>
   type bytes = seq<uint8>
@@ -46,7 +47,7 @@ module DafnyStdLibs.JSON.Serializer {
   }
 
   const DIGITS := ByteStrConversion.chars
-  const MINUS := '-' as uint8
+  const MINUS := '-' as byte
 
   function Int'(n: int): (str: bytes)
     ensures forall c | c in str :: c in DIGITS || c == MINUS
