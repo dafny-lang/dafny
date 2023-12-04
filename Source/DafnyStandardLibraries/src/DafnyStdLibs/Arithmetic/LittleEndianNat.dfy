@@ -11,7 +11,7 @@ Little endian interpretation of a sequence of numbers with a given base. The
 first element of a sequence is the least significant position; the last
 element is the most significant position.
  */
-abstract module DafnyStdLibs.Arithmetic.LittleEndianNat {
+abstract module {:disable_nonlinear_arithmetic} DafnyStdLibs.Arithmetic.LittleEndianNat {
 
   import opened DivMod
   import opened Mul

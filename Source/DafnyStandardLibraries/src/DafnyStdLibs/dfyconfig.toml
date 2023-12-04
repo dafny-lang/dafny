@@ -1,8 +1,4 @@
-
-
 excludes = [
-  # *Nonlinear.dfy in Arithmetic/Internals/ are subject to the options here
-  "**/Arithmetic/*.dfy", "**/Arithmetic/**/*Internals.dfy",
   # Built per-target language instead
   "**/TargetSpecific/*.dfy"
 ]

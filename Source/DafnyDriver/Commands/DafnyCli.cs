@@ -497,9 +497,6 @@ public static class DafnyCli {
 
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
       dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli));
-
-      options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesArithmeticDooUri);
-      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesArithmeticDooUri, Token.Cli));
     }
 
     return ExitValue.SUCCESS;

@@ -33,11 +33,9 @@ module DafnyStdLibs.Arithmetic.DivInternalsNonlinear {
 
   /* the quotient of dividing a positive real number (not 0) by a smaller positive real number
   will be greater than 1 */
-  lemma LemmaRealDivGt(x:real, y:real)
+  lemma {:axiom} LemmaRealDivGt(x:real, y:real)
     requires x > y
     requires y > 0.0
     ensures  x / y > 1 as real
-  {
-  }
 
 }

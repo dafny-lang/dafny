@@ -138,7 +138,6 @@ public class Compilation : IDisposable {
       }
 
       result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesArithmeticDooUri, Project.StartingToken));
     }
 
     foreach (var library in Options.Get(CommonOptionBag.Libraries)) {

@@ -1,4 +1,4 @@
-module DafnyStdLibs.Arithmetic.Logarithm {
+module {:disable_nonlinear_arithmetic} DafnyStdLibs.Arithmetic.Logarithm {
   import opened Mul
   import opened DivMod
   import opened Power
