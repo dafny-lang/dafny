@@ -22,9 +22,21 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
-    public static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
-    public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
-    public static readonly Uri StandardLibrariesArithmeticDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo");
+    public static readonly string StandardLibrariesDooUriBase = "dafny:DafnyStandardLibraries";
+    public static readonly Uri StandardLibrariesDooUri = new("dafny:DafnyStandardLibraries");
+    public static readonly Uri StandardLibrariesArithmeticDooUri = new("dafny:DafnyStandardLibraries-arithmetic");
+
+    static DafnyMain() {
+      DafnyFile.ExposeInternalUri("DafnyStandardLibraries",
+        new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+      DafnyFile.ExposeInternalUri("DafnyStandardLibraries-arithmetic",
+        new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo"));
+
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+        DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}",
+          new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
+      }
+    }
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

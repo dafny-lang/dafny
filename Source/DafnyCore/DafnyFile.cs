@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -17,18 +18,25 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public bool IsPrerefined { get; private set; }
   public Func<TextReader> GetContent { get; set; }
-  public Uri Uri { get; }
+  public Uri Uri { get; private set; }
   [CanBeNull] public IToken Origin { get; }
+
+  private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
+
+  public static void ExposeInternalUri(string externalName, Uri internalUri) {
+    var externalUri = new Uri("dafny:" + externalName);
+    ExternallyVisibleEmbeddedFiles[externalUri] = internalUri;
+  }
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, IToken origin) {
 
-    if (uri.Scheme == "doo") {
-      var uriString = uri.ToString();
-      var dots = uriString.Substring("doo://".Length).Split(".");
-      uri = new Uri(dots[0] + "://" + string.Join('.', dots.Skip(1)));
+    var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
+    if (embeddedFile != null) {
+      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin);
+      result.Uri = uri;
+      return result;
     }
 
     var filePath = uri.LocalPath;
@@ -40,7 +48,6 @@ public class DafnyFile {
     Func<TextReader> getContent = null;
     bool isPreverified;
     bool isPrecompiled;
-    var isPrerefined = false;
     var extension = ".dfy";
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
@@ -110,8 +117,6 @@ public class DafnyFile {
         return null;
       }
 
-      uri = new Uri("doo://" + uri.ToString().Replace("://", "."));
-
       // For now it's simpler to let the rest of the pipeline parse the
       // program text back into the AST representation.
       // At some point we'll likely want to serialize a program
@@ -119,7 +124,6 @@ public class DafnyFile {
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
       getContent = () => new StringReader(dooFile.ProgramText);
-      isPrerefined = true;
     } else if (extension == ".dll") {
       isPreverified = true;
       // Technically only for C#, this is for backwards compatability
@@ -137,7 +141,6 @@ public class DafnyFile {
     return new DafnyFile(extension, canonicalPath, baseName, getContent, uri, origin) {
       IsPrecompiled = isPrecompiled,
       IsPreverified = isPreverified,
-      IsPrerefined = isPrerefined
     };
   }
 
