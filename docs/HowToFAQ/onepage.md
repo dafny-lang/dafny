@@ -2336,8 +2336,8 @@ But the loop will compute
 
 `((0 + s[0]) + s[1]) + s[2]`
 
-In the function, we add the first element to the result of computing the sum of the remaining elements.
-In the by method, we add the last element to the accumulator, which contains the sum of the initial terms.
+In the function, we add the first element (`s[0]`) to the result of computing the sum of the remaining elements (`s[1] + (s[2] + 0))`).
+In the by method, we add the last element (`s[2]`) to the accumulator, which contains the sum of the initial terms (`(0 + s[0]) + s[1]`).
 If it was not the case that the addition was associative and 0 was a neutral element, there would be no immediate way to prove that the two computations are equivalent.
 
 There are essentially three solutions around that:
@@ -2359,14 +2359,14 @@ You can change the invariant to be `invariant result + Sum(s[i..]) == Sum(s)`, a
 This works because, with `result'` being the result at the end of the loop and `+` being associative,
 the lemma `IntermediateProperty()` shows the underlying reasoning that helps prove that the invariant
 is indeed invariant. Dafny can prove it automatically, so the lemma is not needed in the loop body.
-Ohe nice thing is that we can get rid of the final hint.
+One nice thing is that we can get rid of the final hint.
 
 What if you had an operation more complex that "+", that is not associative?
 This is when you need to ensure the loop and the function are computing in the same order.
 Let's explore how to do so by changing either the function, or the by-method body.
 
 ## Make the function compute what the by-method does
-The by-method loop's first addition is 0 plus the first element of the sequence. For this to
+The by-method loop's first addition is 0 plus the first element (`s[0]`) of the sequence. For this to
 be the first addition performed by the function, it has to be at the bottommost level of the call.
 Indeed, each addition is performed after the recursive call finishes. This means that
 the function needs to sum the `n-1` elements first and add the remaining last one.
@@ -2377,7 +2377,7 @@ Since it's exactly what the method computes, it satisfies our initial invariant.
 {% include_relative FAQFunctionByMethodProof3.dfy %}
 ```
 
-Not only this approach requires more proof hint, but it might also break the proofs that dependend on the shape of the function, while everything we wanted in the first place was to give a more efficient implementation to the function.
+Not only does this approach require more proof hints, but it might also break the proofs that dependend on the shape of the function, while all we wanted in the first place was to give a more efficient implementation to the function.
 Therefore, it's reasonable to expect we will prefer to change the implementation of the by-method body to reflect the function, not the opposite, as follows:
 
 ## Make the by-method body compute what the function computes

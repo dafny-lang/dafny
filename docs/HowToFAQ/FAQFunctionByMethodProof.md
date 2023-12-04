@@ -28,8 +28,8 @@ But the loop will compute
 
 `((0 + s[0]) + s[1]) + s[2]`
 
-In the function, we add the first element to the result of computing the sum of the remaining elements.
-In the by method, we add the last element to the accumulator, which contains the sum of the initial terms.
+In the function, we add the first element (`s[0]`) to the result of computing the sum of the remaining elements (`s[1] + (s[2] + 0))`).
+In the by method, we add the last element (`s[2]`) to the accumulator, which contains the sum of the initial terms (`(0 + s[0]) + s[1]`).
 If it was not the case that the addition was associative and 0 was a neutral element, there would be no immediate way to prove that the two computations are equivalent.
 
 There are essentially three solutions around that:
@@ -58,7 +58,7 @@ This is when you need to ensure the loop and the function are computing in the s
 Let's explore how to do so by changing either the function, or the by-method body.
 
 ## Make the function compute what the by-method does
-The by-method loop's first addition is 0 plus the first element of the sequence. For this to
+The by-method loop's first addition is 0 plus the first element (`s[0]`) of the sequence. For this to
 be the first addition performed by the function, it has to be at the bottommost level of the call.
 Indeed, each addition is performed after the recursive call finishes. This means that
 the function needs to sum the `n-1` elements first and add the remaining last one.

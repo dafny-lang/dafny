@@ -19,9 +19,10 @@ lemma IntermediateProperty(result: int, result': int, i: int, s: seq<int>)
   ensures result' + Sum(s[i+1..]) == Sum(s)
 {
   calc {
-        result + Sum(s[i..])             == Sum(s);
-  <==>  result + (s[i]  + Sum(s[i+1..])) == Sum(s); // Definition of Sum()
-  <==> (result +  s[i]) + Sum(s[i+1..])  == Sum(s); // Associativity
-  <==>  result'         + Sum(s[i+1..])  == Sum(s); // Definition of result'
+     Sum(s);
+  == result + Sum(s[i..]);             // Requires definition
+  == result + (s[i]  + Sum(s[i+1..])); // Definition of Sum()
+  ==(result +  s[i]) + Sum(s[i+1..]);  // Associativity
+  == result'         + Sum(s[i+1..]);  // Definition of result'
   }
 }
