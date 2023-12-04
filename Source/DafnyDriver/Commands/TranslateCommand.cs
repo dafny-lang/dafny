@@ -36,12 +36,12 @@ static class TranslateCommand {
         subCommand.AddGlobalOption(option);
       }
 
-      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
+      DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
         options.Compile = false;
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;
         options.SpillTargetCode = noVerify ? 3U : 2U;
-        var continueCliWithOptions = await DafnyBackwardsCompatibleCli.RunLegacyCompiler(options);
+        var continueCliWithOptions = await CompilerDriver.RunLegacyCompiler(options);
         return continueCliWithOptions;
       });
     }

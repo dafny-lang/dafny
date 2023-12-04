@@ -41,7 +41,7 @@ static class DocCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DafnyDoc.DoDocumenting(options);
       return (int)exitValue;

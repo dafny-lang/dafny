@@ -23,7 +23,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DoFormatting(options);
       return (int)exitValue;
@@ -33,7 +33,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyBackwardsCompatibleCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }

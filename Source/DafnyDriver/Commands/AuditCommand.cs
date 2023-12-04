@@ -21,11 +21,11 @@ static class AuditCommand {
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
       options.AuditProgram = true;
-      return DafnyBackwardsCompatibleCli.RunLegacyCompiler(options);
+      return CompilerDriver.RunLegacyCompiler(options);
     });
     return result;
   }

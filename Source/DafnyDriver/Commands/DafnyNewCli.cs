@@ -47,15 +47,14 @@ class TelemetryPublisher : ITelemetryPublisher {
   }
 }
 
-public class DafnyCli {
+public class DafnyNewCli {
   private readonly DafnyOptions options;
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
 
-
   private readonly CreateCompilation createCompilation;
 
-  public DafnyCli(DafnyOptions options) {
+  public DafnyNewCli(DafnyOptions options) {
     this.options = options;
 
     var fileSystem = OnDiskFileSystem.Instance;
@@ -72,7 +71,7 @@ public class DafnyCli {
       engine, input);
   }
 
-  public async Task<int> RunCompiler() {
+  public async Task<int> RunCompilerWithCliAsUi() {
 
     options.RunningBoogieFromCommandLine = true;
 
@@ -131,22 +130,20 @@ public class DafnyCli {
 
     ConcurrentBag<IImplementationTask> completedTasks = new();
     var completedCanVerifyUpdates = compilation.Updates.
-      Where(u => u is BoogieUpdate boogieUpdate && 
-                 boogieUpdate.BoogieStatus is Completed).
+      Where(u => u is BoogieUpdate { BoogieStatus: Completed }).
       Do(u => {
-        if (u is BoogieUpdate boogieUpdate &&
-            boogieUpdate.BoogieStatus is Completed) {
+        if (u is BoogieUpdate { BoogieStatus: Completed } boogieUpdate) {
           completedTasks.Add(boogieUpdate.ImplementationTask);
         }
       }).Select(_ => completedTasks.Count);
-    
+
     if (canVerifies != null) {
       foreach (var canVerify in canVerifies) {
         await compilation.VerifyCanVerify(canVerify, false);
       }
     }
 
-    await completedCanVerifyUpdates.Where(i => 
+    await completedCanVerifyUpdates.Where(i =>
       completedTasks.Count == tasksToVerify.Count).FirstAsync().ToTask();
 
     CompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
@@ -159,7 +156,7 @@ public class DafnyCli {
     RootCommand.AddCommand(command);
   }
 
-  static DafnyCli() {
+  static DafnyNewCli() {
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -305,52 +302,6 @@ public class DafnyCli {
 
     var console = new WritersConsole(inputReader, outputWriter, errorWriter);
     return await Parser.InvokeAsync(arguments, console);
-  }
-
-  private static ILegacyParseArguments TryLegacyArgumentParser(
-    TextReader inputReader,
-    TextWriter outputWriter,
-    TextWriter errorWriter,
-    string[] arguments) {
-    if (arguments.Length == 0) {
-      return null;
-    }
-    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter) {
-      Environment = "Command-line arguments: " + string.Join(" ", arguments)
-    };
-
-    var first = arguments[0];
-    var keywordForNewMode = RootCommand.Subcommands.Select(c => c.Name).Union(new[]
-      { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
-    if (!keywordForNewMode.Contains(first)) {
-      if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) &&
-          first.IndexOf('.') == -1) {
-        dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
-          "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension",
-          first);
-        return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
-      } else {
-        var oldOptions = new DafnyOptions(dafnyOptions.Input, dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
-        try {
-          if (oldOptions.Parse(arguments)) {
-            // If requested, print version number, help, attribute help, etc. and exit.
-            if (oldOptions.ProcessInfoFlags()) {
-              return new ExitImmediately(ExitValue.SUCCESS);
-            }
-
-            return new ParsedOptions(oldOptions);
-          }
-
-          return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
-        } catch (ProverException pe) {
-          new DafnyConsolePrinter(dafnyOptions).ErrorWriteLine(dafnyOptions.OutputWriter,
-            "*** ProverException: {0}", pe.Message);
-          return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
-        }
-      }
-    }
-
-    return null;
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;
