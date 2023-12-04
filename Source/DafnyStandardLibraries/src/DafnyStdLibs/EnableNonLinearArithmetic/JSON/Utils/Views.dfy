@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 /**
- Implements slices over byte strings whose bounds are representable as `int32` native integers.
+ Implements byte strings whose bounds are representable as `int32` native integers (`View`s).
  */
 module DafnyStdLibs.JSON.Utils.Views.Core {
   import opened BoundedInts
