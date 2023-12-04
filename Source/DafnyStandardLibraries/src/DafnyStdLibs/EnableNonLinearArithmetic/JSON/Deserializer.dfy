@@ -108,24 +108,6 @@ module DafnyStdLibs.JSON.Deserializer {
     FromUTF16Checked(unescaped).ToResult(DeserializationError.InvalidUnicode)
   }
 
-  module ByteStrConversion refines Strings.ParametricConversion {
-    import opened BoundedInts
-
-    type Char = byte
-
-    const chars := [
-      '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
-      '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
-      '8' as uint8, '9' as uint8
-    ]
-
-    const charToDigit := map[
-                           '0' as uint8 := 0, '1' as uint8 := 1, '2' as uint8 := 2, '3' as uint8 := 3,
-                           '4' as uint8 := 4, '5' as uint8 := 5, '6' as uint8 := 6, '7' as uint8 := 7,
-                           '8' as uint8 := 8, '9' as uint8 := 9
-                         ]
-  }
-
   const DIGITS := ByteStrConversion.charToDigit
 
   const MINUS := '-' as uint8
