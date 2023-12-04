@@ -85,8 +85,8 @@ module DafnyStdLibs.Collections.Seqs {
   {
   }
 
-  /* The empty sequence is the neutral element of the concatenation operation. */
-  lemma Neutral(l: seq)
+  /* The empty sequence is the right identity of the concatenation operation. */
+  lemma EmptySequenceIsRightIdentity(l: seq)
     ensures l == l + []
   {}
 

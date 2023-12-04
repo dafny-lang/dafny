@@ -522,7 +522,7 @@ module DafnyStdLibs.JSON.ZeroCopy.Serializer {
     var wr := if m.suffix.Empty? then wr else StructuralView(m.suffix.t, wr);
     assert wr.Bytes() == writer.Bytes() + Spec.KeyValue(m.t) + Spec.CommaSuffix(m.suffix) by {
       if m.suffix.Empty? {
-        Neutral(Spec.KeyValue(m.t));
+        EmptySequenceIsRightIdentity(Spec.KeyValue(m.t));
         Seqs.LemmaConcatIsAssociative(writer.Bytes(), Spec.KeyValue(m.t), []);
       }
       else {
