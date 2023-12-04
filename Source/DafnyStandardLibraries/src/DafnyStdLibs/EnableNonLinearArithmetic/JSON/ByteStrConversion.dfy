@@ -3,6 +3,9 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
+/**
+ Derives conversions to and from sequences of bytes.
+ */
 module DafnyStdLibs.JSON.ByteStrConversion refines Strings.ParametricConversion {
   import opened BoundedInts
 
