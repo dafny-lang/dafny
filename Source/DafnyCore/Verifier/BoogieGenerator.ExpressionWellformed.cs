@@ -635,7 +635,7 @@ namespace Microsoft.Dafny {
                 // the argument can't be assumed to be allocated for the old heap
                 Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
                 builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
-                builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
+                builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAllocBox(BoxIfNecessary(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type), et, etran.HeapExpr)));
               }
               // check well-formedness of the other parameters
               foreach (Expression arg in e.Args) {
