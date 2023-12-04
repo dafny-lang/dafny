@@ -15,9 +15,9 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// </summary>
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection) {
-    var uri = new Uri(input.Uri);
-    if (diagnostic.Source != MessageSource.Verifier) {
+    Diagnostic diagnostic, Range selection) {
+    var uri = input.Uri;
+    if (diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;
     }
 
@@ -25,14 +25,14 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    if (relatedInformation.Token.Uri != uri) {
+    if (relatedInformation.Location.Uri != uri) {
       return null;
     }
 
-    var range = relatedInformation.Token.ToRange();
+    var range = ErrorMessageDafnyCodeActionProvider.FindTokenRangeFromLspRange(input, relatedInformation.Location.Range);
     var expression = range.PrintOriginal();
     var statement = $"assert {expression};";
-    var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Token.GetLspPosition(), statement);
+    var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Range.Start, statement);
     if (edit == null) {
       return null;
     }
@@ -40,7 +40,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
     return new DafnyCodeAction[] {
       new InstantDafnyCodeAction(
         "Assert postcondition at return location where it fails",
-        new List<Diagnostic>(){diagnostic.ToLspDiagnostic()},
+        new List<Diagnostic>(){diagnostic},
         new[] { edit }
       )
     };

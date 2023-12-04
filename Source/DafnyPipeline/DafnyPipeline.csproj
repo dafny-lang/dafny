@@ -36,6 +36,10 @@
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-arithmetic.doo">
+      <LogicalName>DafnyStandardLibraries-arithmetic.doo</LogicalName>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java">
       <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -76,7 +76,8 @@ class C {
       var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await GetLastDiagnostics(documentItem);
-      await AssertNoGhostnessIsComing(CancellationToken);
+      await WaitUntilAllStatusAreCompleted(documentItem);
+      Assert.Equal(0, ghostnessReceiver.History.Count);
     }
 
     [Fact]
