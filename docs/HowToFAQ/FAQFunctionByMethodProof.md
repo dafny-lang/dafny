@@ -51,7 +51,7 @@ You can change the invariant to be `invariant result + Sum(s[i..]) == Sum(s)`, a
 This works because, with `result'` being the result at the end of the loop and `+` being associative,
 the lemma `IntermediateProperty()` shows the underlying reasoning that helps prove that the invariant
 is indeed invariant. Dafny can prove it automatically, so the lemma is not needed in the loop body.
-Ohe nice thing is that we can get rid of the final hint.
+One nice thing is that we can get rid of the final hint.
 
 What if you had an operation more complex that "+", that is not associative?
 This is when you need to ensure the loop and the function are computing in the same order.
@@ -69,7 +69,7 @@ Since it's exactly what the method computes, it satisfies our initial invariant.
 {% include_relative FAQFunctionByMethodProof3.dfy %}
 ```
 
-Not only this approach requires more proof hint, but it might also break the proofs that dependend on the shape of the function, while everything we wanted in the first place was to give a more efficient implementation to the function.
+Not only does this approach require more proof hints, but it might also break the proofs that dependend on the shape of the function, while all we wanted in the first place was to give a more efficient implementation to the function.
 Therefore, it's reasonable to expect we will prefer to change the implementation of the by-method body to reflect the function, not the opposite, as follows:
 
 ## Make the by-method body compute what the function computes
