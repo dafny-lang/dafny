@@ -13,7 +13,7 @@
   *
   * File path symbols including . and .. are allowed.
   */
-module DafnyStdLibs.FileIO {
+module Std.FileIO {
   import opened Wrappers
   import FileIOInternalExterns
 

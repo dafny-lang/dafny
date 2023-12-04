@@ -1,4 +1,4 @@
-module DafnyStdLibs.DynamicArray {
+module Std.DynamicArray {
   import opened BoundedInts
   import opened Wrappers
 

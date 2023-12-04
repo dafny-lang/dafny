@@ -12,9 +12,9 @@ module
   // across multiple Go files under the same path.
   // But it makes debugging the translated output a little clearer.
   {:compile false}
-{:extern "DafnyStdLibs_FileIOInternalExterns"}
+{:extern "Std_FileIOInternalExterns"}
 {:dummyImportMember "INTERNAL__ReadBytesFromFile", false}
-DafnyStdLibs.FileIOInternalExterns {
+Std.FileIOInternalExterns {
   method
     {:extern}
   INTERNAL_ReadBytesFromFile(path: string)

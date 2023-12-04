@@ -8,7 +8,7 @@ library = [
   "../EnableNonLinearArithmetic/Arithmetic/Internals/DivInternalsNonlinear.dfy",
   "../EnableNonLinearArithmetic/Arithmetic/Internals/ModInternalsNonlinear.dfy",
   "../EnableNonLinearArithmetic/Arithmetic/Internals/MulInternalsNonlinear.dfy",
-  "../EnableNonLinearArithmetic/Collections/Seqs.dfy",
+  "../EnableNonLinearArithmetic/Collections/Seq.dfy",
   "../EnableNonLinearArithmetic/Wrappers.dfy",
   "../EnableNonLinearArithmetic/Relations.dfy",
   "../EnableNonLinearArithmetic/Math.dfy",

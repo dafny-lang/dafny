@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 module WriteBytesToFile {
-  import DafnyStdLibs.FileIO
+  import Std.FileIO
 
   method {:test} Test() {
     // TODO: extern function for the expected error prefix

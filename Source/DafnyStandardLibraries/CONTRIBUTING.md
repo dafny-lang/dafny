@@ -142,7 +142,7 @@ There are a couple of things to watch out for when importing libraries from the
   and one under `src/dafny`. The latter is a copy refactored to nest all modules under a top-level
   `Dafny` module to reduce the risk of naming conflicts. This is a great idea,
   but it turns out that using "Dafny" conflicts with some Dafny runtime symbols,
-  so these libraries use `DafnyStdLib` instead. You will probably find you have to adjust
+  so these libraries use `Std` instead. You will probably find you have to adjust
   documentation examples accordingly.
 
   When the latter copy exists, prefer to use it along with its the Markdown documentation,

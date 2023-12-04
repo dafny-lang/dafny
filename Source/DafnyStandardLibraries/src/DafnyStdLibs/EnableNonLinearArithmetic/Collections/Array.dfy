@@ -6,11 +6,11 @@
 /**
  This module defines useful properties and functions relating to the built-in `array` type.
  */
-module DafnyStdLibs.Collections.Arrays {
+module Std.Collections.Array {
 
   import opened Wrappers
   import opened Relations
-  import opened Seqs
+  import opened Seq
 
   method BinarySearch<T>(a: array<T>, key: T, less: (T, T) -> bool) returns (r: Option<nat>)
     requires SortedBy((x, y) => less(x, y) || x == y, a[..])

@@ -14,7 +14,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `iset` type.
  */
-module DafnyStdLibs.Collections.Isets {
+module Std.Collections.Iset {
 
   import opened Functions
   import opened Relations

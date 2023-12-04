@@ -1,4 +1,4 @@
-module DafnyStdLibs.Arithmetic.Logarithm {
+module Std.Arithmetic.Logarithm {
   import opened Mul
   import opened DivMod
   import opened Power

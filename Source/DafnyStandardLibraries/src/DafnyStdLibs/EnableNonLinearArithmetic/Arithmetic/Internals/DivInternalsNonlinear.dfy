@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-module DafnyStdLibs.Arithmetic.DivInternalsNonlinear {
+module Std.Arithmetic.DivInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */

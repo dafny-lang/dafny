@@ -10,7 +10,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `map` type.
  */
-module DafnyStdLibs.Collections.Maps {
+module Std.Collections.Map {
 
   import opened Wrappers
 

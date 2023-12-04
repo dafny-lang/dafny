@@ -10,7 +10,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `imap` type.
  */
-module DafnyStdLibs.Collections.Imaps {
+module Std.Collections.Imap {
 
   import opened Wrappers
 

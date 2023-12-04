@@ -6,14 +6,14 @@
 /*
  * Private API - these should not be used elsewhere
  */
-module DafnyStdLibs.FileIOInternalExterns {
+module Std.FileIOInternalExterns {
   method
-    {:extern "DafnyStdLibsExterns.FileIO", "INTERNAL_ReadBytesFromFile"}
+    {:extern "StdExterns.FileIO", "INTERNAL_ReadBytesFromFile"}
   INTERNAL_ReadBytesFromFile(path: string)
     returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string)
 
   method
-    {:extern "DafnyStdLibsExterns.FileIO", "INTERNAL_WriteBytesToFile"}
+    {:extern "StdExterns.FileIO", "INTERNAL_WriteBytesToFile"}
   INTERNAL_WriteBytesToFile(path: string, bytes: seq<bv8>)
     returns (isError: bool, errorMsg: string)
 }
