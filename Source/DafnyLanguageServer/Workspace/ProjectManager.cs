@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
@@ -65,7 +66,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   /// </summary>
   private int version;
 
-  private int openFileCount;
+  private ConcurrentDictionary<Uri, int> openFiles = new();
 
   private VerifyOnMode AutomaticVerificationMode => options.Get(Verification);
 
@@ -234,8 +235,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   /// Needs to be thread-safe
   /// </summary>
   /// <returns></returns>
-  public bool CloseDocument() {
-    if (Interlocked.Decrement(ref openFileCount) == 0) {
+  public bool CloseDocument(Uri uri) {
+    if (openFiles.TryRemove(uri, out _) && openFiles.IsEmpty) {
       CloseAsync();
       return true;
     }
@@ -345,7 +346,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public void OpenDocument(Uri uri, bool triggerCompilation) {
-    Interlocked.Increment(ref openFileCount);
+    openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
       StartNewCompilation();
@@ -355,8 +356,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public void Dispose() {
     boogieEngine.Dispose();
-    ideStateUpdateScheduler.Dispose();
-    observerSubscription.Dispose();
     Compilation.Dispose();
+    observerSubscription.Dispose();
+    // Dispose the update scheduler after the observer subscription, to prevent accessing a disposed object.
+    ideStateUpdateScheduler.Dispose();
   }
 }

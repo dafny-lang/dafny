@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that `old()` receives the special treatment that it
