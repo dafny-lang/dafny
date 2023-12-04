@@ -1033,7 +1033,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.ForLoops);
+
+      var forStart = DeclareLocalVar(loopIndex.CompileName, Type.Int, tok, wr);
+      var forInit = wr.Fork();
+      var forGuard = EmitWhile(tok, body, labels, wr);
+
+      EmitExpr(Expression.CreateLess(Expression.CreateIdentExpr(loopIndex), Expression.CreateIdentExpr(loopIndex)), false, forGuard, null);
+
+      // Return place to initialize loop index
+      return forInit;
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
