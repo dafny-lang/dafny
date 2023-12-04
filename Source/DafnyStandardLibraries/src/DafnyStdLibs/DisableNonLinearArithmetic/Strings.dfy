@@ -276,4 +276,19 @@ module DafnyStdLibs.Strings {
   lemma Concat_Join(strs: seq<string>)
     ensures Concat(strs) == Join("", strs)
   {}
+
+
+  module ByteStrConversion refines ParametricConversion {
+    import opened BoundedInts
+
+    type Char = uint8
+
+    const chars := [
+      '0' as uint8, '1' as uint8, '2' as uint8, '3' as uint8,
+      '4' as uint8, '5' as uint8, '6' as uint8, '7' as uint8,
+      '8' as uint8, '9' as uint8
+    ]
+  }
+  
 }
+
