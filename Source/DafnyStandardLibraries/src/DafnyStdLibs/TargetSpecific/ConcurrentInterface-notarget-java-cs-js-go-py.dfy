@@ -96,7 +96,7 @@ abstract module DafnyStdLibs.ConcurrentInterface {
       reads {}
       // TODO: this isn't really necessary, if it's not true
       // then Remove(k) will just never have any effect
-      requires exists v :: inv(k, v)  
+      requires exists v :: inv(k, v)
 
     method Size() returns (c: nat)
       reads {}

@@ -59,7 +59,7 @@ module DafnyStdLibs.ConcurrentDafny {
   import opened Wrappers
 
   class MutableMap<K(==), V(==)> {
-    
+
     ghost const inv: (K, V) -> bool
     ghost var knownKeys: set<K>
     ghost var knownValues: set<V>
@@ -210,7 +210,7 @@ module DafnyStdLibs.ConcurrentDafny {
       isLocked := false;
     }
 
-    method Lock() 
+    method Lock()
       requires !isLocked
       modifies this
       ensures isLocked
@@ -220,7 +220,7 @@ module DafnyStdLibs.ConcurrentDafny {
       isLocked := !isLocked;
     }
 
-    method Unlock() 
+    method Unlock()
       requires isLocked
       modifies this
       ensures !isLocked
