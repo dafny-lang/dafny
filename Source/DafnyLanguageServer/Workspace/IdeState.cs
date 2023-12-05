@@ -427,7 +427,7 @@ public record IdeState(
       counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
       hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
       var newDiagnostics =
-        GetDiagnosticsFromResult(options, previousState, boogieUpdate.ImplementationTask, batchCompleted.VcResult).ToArray();
+        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.ImplementationTask, batchCompleted.VcResult).ToArray();
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
       logger.LogTrace(
         $"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
@@ -489,48 +489,6 @@ public record IdeState(
           : PublishedVerificationStatus.Error;
       default:
         throw new ArgumentOutOfRangeException();
-    }
-  }
-
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, IdeState state, IImplementationTask task, VCResult result) {
-    var errorReporter = new ObservableErrorReporter(options, state.Uri);
-    List<DafnyDiagnostic> diagnostics = new();
-    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
-    var outcome = GetOutcome(result.outcome);
-    foreach (var counterExample in result.counterExamples) {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
-    }
-
-    var implementation = task.Implementation;
-
-    // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
-    var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
-      CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
-      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
-      implementation.GetTimeLimit(options), result.counterExamples);
-
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
-  }
-
-  private ConditionGeneration.Outcome GetOutcome(ProverInterface.Outcome outcome) {
-    switch (outcome) {
-      case ProverInterface.Outcome.Valid:
-        return ConditionGeneration.Outcome.Correct;
-      case ProverInterface.Outcome.Invalid:
-        return ConditionGeneration.Outcome.Errors;
-      case ProverInterface.Outcome.TimeOut:
-        return ConditionGeneration.Outcome.TimedOut;
-      case ProverInterface.Outcome.OutOfMemory:
-        return ConditionGeneration.Outcome.OutOfMemory;
-      case ProverInterface.Outcome.OutOfResource:
-        return ConditionGeneration.Outcome.OutOfResource;
-      case ProverInterface.Outcome.Undetermined:
-        return ConditionGeneration.Outcome.Inconclusive;
-      case ProverInterface.Outcome.Bounded:
-        return ConditionGeneration.Outcome.ReachedBound;
-      default:
-        throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }
   }
 }

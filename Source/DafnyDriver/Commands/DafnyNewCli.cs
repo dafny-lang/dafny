@@ -82,6 +82,11 @@ public class DafnyNewCli {
     ConcurrentBag<IImplementationTask> tasksToVerify = new();
     var statSum = new PipelineStatistics();
     var er = new ConsoleErrorReporter(options);
+    
+    var consoleCollector = new ConcurrentToSequentialWriteManager(options.OutputWriter);
+    var writerPerTok = new Dictionary<Boogie.IToken, TextWriter>();
+          
+    
     compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
@@ -96,8 +101,15 @@ public class DafnyNewCli {
       }
 
       if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is BatchCompleted completed) {
-          switch (completed.VcResult.outcome) {
+        if (boogieUpdate.BoogieStatus is Completed completed) {
+          var writer = writerPerTok[BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok)];
+          
+          var output = completed.Result.GetOutput(options.Printer, executionEngine, new PipelineStatistics(), _ => { });
+          _ = writer.WriteAsync(output);
+          writer.Dispose();
+        }
+        if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
+          switch (batchCompleted.VcResult.outcome) {
             case ProverInterface.Outcome.Valid:
             case ProverInterface.Outcome.Bounded:
               statSum.VerifiedCount += 1;
@@ -138,7 +150,8 @@ public class DafnyNewCli {
       }).Select(_ => completedTasks.Count);
 
     if (canVerifies != null) {
-      foreach (var canVerify in canVerifies) {
+      foreach (var canVerify in canVerifies.OrderBy(v => v.Tok.pos)) {
+        writerPerTok[canVerify.Tok] = consoleCollector.AppendWriter();
         await compilation.VerifyCanVerify(canVerify, false);
       }
     }

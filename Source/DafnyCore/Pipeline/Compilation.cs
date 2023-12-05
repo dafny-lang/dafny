@@ -17,6 +17,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -477,5 +478,55 @@ public class Compilation : IDisposable {
 
     disposed = true;
     CancelPendingUpdates();
+  }
+
+  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, IImplementationTask task, VCResult result) {
+    var errorReporter = new ObservableErrorReporter(options, uri);
+    List<DafnyDiagnostic> diagnostics = new();
+    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
+    
+    ReportDiagnosticsInResult(options, task, result, errorReporter);
+
+    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
+  }
+
+  public static void ReportDiagnosticsInResult(DafnyOptions options, IImplementationTask task, VCResult result,
+    ErrorReporter errorReporter)
+  {
+    var outcome = GetOutcome(result.outcome);
+    foreach (var counterExample in result.counterExamples) //.OrderBy(d => d.GetLocation()))
+    {
+      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
+    }
+
+    var implementation = task.Implementation;
+
+    // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
+    var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
+      CustomStackSizePoolTaskScheduler.Create(0, 0));
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
+      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
+      implementation.GetTimeLimit(options), result.counterExamples);
+  }
+
+  private static ConditionGeneration.Outcome GetOutcome(ProverInterface.Outcome outcome) {
+    switch (outcome) {
+      case ProverInterface.Outcome.Valid:
+        return ConditionGeneration.Outcome.Correct;
+      case ProverInterface.Outcome.Invalid:
+        return ConditionGeneration.Outcome.Errors;
+      case ProverInterface.Outcome.TimeOut:
+        return ConditionGeneration.Outcome.TimedOut;
+      case ProverInterface.Outcome.OutOfMemory:
+        return ConditionGeneration.Outcome.OutOfMemory;
+      case ProverInterface.Outcome.OutOfResource:
+        return ConditionGeneration.Outcome.OutOfResource;
+      case ProverInterface.Outcome.Undetermined:
+        return ConditionGeneration.Outcome.Inconclusive;
+      case ProverInterface.Outcome.Bounded:
+        return ConditionGeneration.Outcome.ReachedBound;
+      default:
+        throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
+    }
   }
 }
