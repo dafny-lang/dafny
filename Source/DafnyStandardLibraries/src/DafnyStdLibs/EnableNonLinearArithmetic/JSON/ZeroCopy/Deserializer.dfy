@@ -50,8 +50,9 @@ module DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       var point' := cs.point;
       var end := cs.end;
       while point' < end && Blank?(cs.s[point'])
-        invariant cs.(point := point').Valid?
-        invariant cs.(point := point').SkipWhile(Blank?) == cs.SkipWhile(Blank?)
+        // BUG(https://github.com/dafny-lang/dafny/issues/4847)
+        invariant var csAfter := cs.(point := point'); csAfter.Valid?
+        invariant var csAfter := cs.(point := point'); csAfter.SkipWhile(Blank?) == cs.SkipWhile(Blank?)
       {
         point' := point' + 1;
       }
@@ -670,8 +671,9 @@ module DafnyStdLibs.JSON.ZeroCopy.Deserializer {
       reveal StringBody();
       var escaped := false;
       for point' := cs.point to cs.end
-        invariant cs.(point := point').Valid?
-        invariant cs.(point := point').SkipWhileLexer(Strings.StringBody, escaped) == StringBody(cs)
+        // BUG(https://github.com/dafny-lang/dafny/issues/4847)
+        invariant var csAfter := cs.(point := point'); csAfter.Valid?
+        invariant var csAfter := cs.(point := point'); csAfter.SkipWhileLexer(Strings.StringBody, escaped) == StringBody(cs)
       {
         var byte := cs.s[point'];
         if byte == '\"' as byte && !escaped {

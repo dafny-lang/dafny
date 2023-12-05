@@ -294,8 +294,9 @@ module DafnyStdLibs.JSON.Utils.Cursors {
       var point' := this.point;
       var end := this.end;
       while point' < end && p(this.s[point'])
-        invariant this.(point := point').Valid?
-        invariant this.(point := point').SkipWhile(p) == this.SkipWhile(p)
+        // BUG(https://github.com/dafny-lang/dafny/issues/4847)
+        invariant var thisAfter := this.(point := point'); thisAfter.Valid?
+        invariant var thisAfter := this.(point := point'); thisAfter.SkipWhile(p) == this.SkipWhile(p)
       {
         point' := point' + 1;
       }
@@ -319,9 +320,10 @@ module DafnyStdLibs.JSON.Utils.Cursors {
       var end := this.end;
       var st' := st;
       while true
-        invariant this.(point := point').Valid?
-        invariant this.(point := point').SkipWhileLexer(step, st') == this.SkipWhileLexer(step, st)
-        decreases this.(point := point').SuffixLength()
+        // BUG(https://github.com/dafny-lang/dafny/issues/4847)
+        invariant var thisAfter := this.(point := point'); thisAfter.Valid?
+        invariant var thisAfter := this.(point := point'); thisAfter.SkipWhileLexer(step, st') == this.SkipWhileLexer(step, st)
+        decreases var thisAfter := this.(point := point'); thisAfter.SuffixLength()
       {
         var eof := point' == end;
         var minusone: opt_byte := -1; // BUG(https://github.com/dafny-lang/dafny/issues/2191)
