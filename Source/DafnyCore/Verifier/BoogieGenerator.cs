@@ -2922,7 +2922,7 @@ namespace Microsoft.Dafny {
     }
 
     private static void AddSmtOptionAttribute(Bpl.NamedDeclaration targetDecl, string name, string value) {
-      targetDecl.AddAttribute("smt_option", new object[] { name, value });
+      targetDecl.Attributes = new QKeyValue(targetDecl.tok, "smt_option", new List<object>() { name, value }, targetDecl.Attributes);
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
