@@ -1153,11 +1153,6 @@ namespace Microsoft.Dafny {
       // See: https://github.com/dafny-lang/dafny/discussions/3362
       SetZ3Option("smt.case_split", "3");
 
-      // This option tends to lead to the best all-around arithmetic
-      // performance, though some programs can be verified more quickly
-      // (or verified at all) using a different solver.
-      SetZ3Option("smt.arith.solver", "2");
-
       if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }

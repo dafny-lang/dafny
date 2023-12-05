@@ -10,22 +10,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
-using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
-using Core;
 using DafnyCore.Verifier;
-using Microsoft.BaseTypes;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Triggers;
-using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
@@ -1432,8 +1424,10 @@ namespace Microsoft.Dafny {
         localVariables, stmts, kv);
       AddVerboseNameAttribute(impl, proc.VerboseName);
       if (DisableNonLinearArithmetic) {
-        AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
-      }
+        AddSmtOptionAttribute(impl, "smt.arith.nl", "false"); 
+      } else {
+        AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
+      } 
       sink.AddTopLevelDeclaration(impl);
       return impl;
     }
@@ -4450,9 +4444,32 @@ namespace Microsoft.Dafny {
     internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
-    public bool DisableNonLinearArithmetic {
-      get {
-        return DetermineDisableNonLinearArithmetic(forModule, options);
+    private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
+    private int ArithmeticSolver {
+      get
+      {
+        var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3_arithmetic_solver");
+        
+        // The value 2 tends to lead to the best all-around arithmetic
+        // performance, though some programs can be verified more quickly
+        // (or verified at all) using a different solver.
+        // https://microsoft.github.io/z3guide/programming/Parameters/
+        var defaultSolver = 2;
+        if (arithmeticSolver == null) {
+          return defaultSolver;
+        }
+
+        var arg = arithmeticSolver.Args.Count > 0 ? arithmeticSolver.Args[0] : null;
+        if (arg == null) {
+          return defaultSolver;
+        }
+
+        Expression.IsIntLiteral(arg, out var value);
+        try {
+          return (int)value;
+        } catch (OverflowException) {
+          return defaultSolver;
+        }
       }
     }
 

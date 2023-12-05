@@ -13,7 +13,7 @@ not with the rest of the standard library.
 If we want to remove the {:axiom} annotation from these lemmas, 
 we will have to investigate why they only verify under specific conditions.   
 */
-module DafnyStdLibs.Arithmetic.DivInternalsNonlinear {
+module {:z3_arithmetic_solver 6} DafnyStdLibs.Arithmetic.DivInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */
@@ -34,15 +34,15 @@ module DafnyStdLibs.Arithmetic.DivInternalsNonlinear {
 
   /* dividing a smaller integer by a larger integer results in a quotient of 0  */
   lemma LemmaSmallDiv()
-    ensures forall x, d {:trigger x / d} :: 0 <= x < d && d > 0 ==> x / d == 0
-  {
+    ensures forall x, d {:trigger x / d} :: 0 <= x < d && d > 0 ==> x / d == 0 {
   }
 
   /* the quotient of dividing a positive real number (not 0) by a smaller positive real number
   will be greater than 1 */
-  lemma {:axiom} LemmaRealDivGt(x:real, y:real)
+  lemma LemmaRealDivGt(x:real, y:real)
     requires x > y
     requires y > 0.0
-    ensures  x / y > 1 as real
+    ensures  x / y > 1 as real {
+  }
 
 }

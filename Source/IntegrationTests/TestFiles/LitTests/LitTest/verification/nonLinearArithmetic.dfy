@@ -28,7 +28,7 @@ module Power0 {
 
 }
 
-module {:disable_nonlinear_arithmetic} Power1 {
+module {:disable-nonlinear-arithmetic} Power1 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e

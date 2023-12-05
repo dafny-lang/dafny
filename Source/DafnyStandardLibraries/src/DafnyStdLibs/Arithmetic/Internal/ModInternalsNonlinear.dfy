@@ -13,7 +13,7 @@ not with the rest of the standard library.
 If we want to remove the {:axiom} annotation from these lemmas, 
 we will have to investigate why they only verify under specific conditions.   
 */
-module DafnyStdLibs.Arithmetic.ModInternalsNonlinear {
+module {:z3_arithmetic_solver 6} DafnyStdLibs.Arithmetic.ModInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */
@@ -26,19 +26,23 @@ module DafnyStdLibs.Arithmetic.ModInternalsNonlinear {
   }
 
   /* describes fundementals of the modulus operator */
-  lemma {:axiom} LemmaFundamentalDivMod(x:int, d:int)
+  lemma LemmaFundamentalDivMod(x:int, d:int)
     requires d != 0
-    ensures x == d * (x / d) + (x % d)
+    ensures x == d * (x / d) + (x % d) {
+  }
+
 
   /* the remained of 0 divided by any integer is always 0 */
-  lemma {:axiom} Lemma0ModAnything()
-    ensures forall m: int {:trigger 0 % m} :: m > 0 ==> 0 % m == 0
+  lemma Lemma0ModAnything()
+    ensures forall m: int {:trigger 0 % m} :: m > 0 ==> 0 % m == 0 {
+  }
 
   /* a natural number x divided by a larger natural number gives a remainder equal to x */
-  lemma {:axiom} LemmaSmallMod(x:nat, m:nat)
+  lemma LemmaSmallMod(x:nat, m:nat)
     requires x < m
     requires 0 < m
-    ensures x % m == x
+    ensures x % m == x {
+  }
 
   /* the range of the modulus of any integer will be [0, m) where m is the divisor */
   lemma LemmaModRange(x:int, m:int)
