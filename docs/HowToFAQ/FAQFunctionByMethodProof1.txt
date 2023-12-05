@@ -1,0 +1,2 @@
+FAQFunctionByMethodProof1.dfy(9,14): Error: this invariant could not be proved to be maintained by the loop
+Dafny program verifier finished with 1 verified, 1 error
