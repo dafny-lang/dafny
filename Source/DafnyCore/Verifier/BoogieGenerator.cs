@@ -1423,11 +1423,13 @@ namespace Microsoft.Dafny {
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
       AddVerboseNameAttribute(impl, proc.VerboseName);
-      if (DisableNonLinearArithmetic) {
-        AddSmtOptionAttribute(impl, "smt.arith.nl", "false"); 
-      } else {
-        AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
-      } 
+      if (options.IsUsingZ3()) {
+        if (DisableNonLinearArithmetic) {
+          AddSmtOptionAttribute(impl, "smt.arith.nl", "false"); 
+        } else {
+          AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
+        } 
+      }
       sink.AddTopLevelDeclaration(impl);
       return impl;
     }

@@ -795,7 +795,7 @@ namespace Microsoft.Dafny {
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+      if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath();
         SetZ3Options(z3Version);
       }
@@ -803,6 +803,11 @@ namespace Microsoft.Dafny {
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
+    }
+
+    public bool IsUsingZ3()
+    {
+      return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
     public override string AttributeHelp =>
