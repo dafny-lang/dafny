@@ -1,5 +1,4 @@
-// RUN: %verify "%s" --standard-libraries:true  > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries --relax-definite-assignment
 
 import opened DafnyStdLibs.Wrappers
 
