@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-module {:z3_arithmetic_solver 6} DafnyStdLibs.Arithmetic.MulInternalsNonlinear {
+module {:z3ArithmeticSolver 6} DafnyStdLibs.Arithmetic.MulInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */

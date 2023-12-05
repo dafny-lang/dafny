@@ -13,7 +13,7 @@ not with the rest of the standard library.
 If we want to remove the {:axiom} annotation from these lemmas, 
 we will have to investigate why they only verify under specific conditions.   
 */
-module {:z3_arithmetic_solver 6} DafnyStdLibs.Arithmetic.ModInternalsNonlinear {
+module {:z3ArithmeticSolver 6} DafnyStdLibs.Arithmetic.ModInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */

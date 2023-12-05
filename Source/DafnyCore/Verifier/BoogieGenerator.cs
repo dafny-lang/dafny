@@ -4449,7 +4449,7 @@ namespace Microsoft.Dafny {
     private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
     private int ArithmeticSolver {
       get {
-        var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3_arithmetic_solver");
+        var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3ArithmeticSolver");
 
         // The value 2 tends to lead to the best all-around arithmetic
         // performance, though some programs can be verified more quickly
@@ -4475,7 +4475,7 @@ namespace Microsoft.Dafny {
     }
 
     public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions) {
-      var nlaAttribute = Attributes.Find(module.Attributes, "disable_nonlinear_arithmetic");
+      var nlaAttribute = Attributes.Find(module.Attributes, "disableNonlinearArithmetic");
       if (nlaAttribute != null) {
         var value = true;
         var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;

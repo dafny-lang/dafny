@@ -53,7 +53,7 @@ module {:disable-nonlinear-arithmetic} Power1 {
   }
 
 }
-module {:disable_nonlinear_arithmetic true} Power2 {
+module {:disableNonlinearArithmetic true} Power2 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e
@@ -78,7 +78,7 @@ module {:disable_nonlinear_arithmetic true} Power2 {
   }
 
 }
-module {:disable_nonlinear_arithmetic false} Power3 {
+module {:disableNonlinearArithmetic false} Power3 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e

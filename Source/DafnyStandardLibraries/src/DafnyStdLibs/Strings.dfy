@@ -1,7 +1,7 @@
 /**
 The Strings module enables converting between numbers such as nat and int, and String
  */
-module {:disable_nonlinear_arithmetic} DafnyStdLibs.Strings {
+module {:disableNonlinearArithmetic} DafnyStdLibs.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
@@ -13,7 +13,7 @@ module {:disable_nonlinear_arithmetic} DafnyStdLibs.Strings {
     - the type of character used, Char
     - a conversion from nat to Char and vice versa
    */
-  abstract module {:disable_nonlinear_arithmetic} ParametricConversion refines Arithmetic.LittleEndianNat {
+  abstract module {:disableNonlinearArithmetic} ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
 
     type Char(==)
@@ -162,7 +162,7 @@ module {:disable_nonlinear_arithmetic} DafnyStdLibs.Strings {
     }
   }
 
-  module {:disable_nonlinear_arithmetic} HexConversion refines ParametricConversion {
+  module {:disableNonlinearArithmetic} HexConversion refines ParametricConversion {
     type Char = char
     const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
     const chars := HEX_DIGITS
@@ -174,7 +174,7 @@ module {:disable_nonlinear_arithmetic} DafnyStdLibs.Strings {
       ]
   }
 
-  module {:disable_nonlinear_arithmetic} DecimalConversion refines ParametricConversion {
+  module {:disableNonlinearArithmetic} DecimalConversion refines ParametricConversion {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS
