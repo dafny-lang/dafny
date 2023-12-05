@@ -86,6 +86,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
 - ["How do I tell Dafny that a class field may be updated?"](FAQUpdateArrayField)
 - ["Why does Dafny not know this obvious property of maps?"](FAQMapMembership)
+- ["I can't prove the equivalence between the method part of a `function by method` and the function itself"](FAQFunctionByMethodProof)
 
 ## Dafny tools
 
