@@ -805,8 +805,7 @@ namespace Microsoft.Dafny {
       Ai.J_Intervals = true;
     }
 
-    public bool IsUsingZ3()
-    {
+    public bool IsUsingZ3() {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 

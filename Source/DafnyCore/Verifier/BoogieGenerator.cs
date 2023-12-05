@@ -1425,10 +1425,10 @@ namespace Microsoft.Dafny {
       AddVerboseNameAttribute(impl, proc.VerboseName);
       if (options.IsUsingZ3()) {
         if (DisableNonLinearArithmetic) {
-          AddSmtOptionAttribute(impl, "smt.arith.nl", "false"); 
+          AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
         } else {
           AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
-        } 
+        }
       }
       sink.AddTopLevelDeclaration(impl);
       return impl;
@@ -4448,10 +4448,9 @@ namespace Microsoft.Dafny {
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
     private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
     private int ArithmeticSolver {
-      get
-      {
+      get {
         var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3_arithmetic_solver");
-        
+
         // The value 2 tends to lead to the best all-around arithmetic
         // performance, though some programs can be verified more quickly
         // (or verified at all) using a different solver.
