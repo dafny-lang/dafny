@@ -36,7 +36,9 @@ public class DafnyFile {
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
       var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin);
-      result.Uri = uri;
+      if (result != null) {
+        result.Uri = uri;
+      }
       return result;
     }
 

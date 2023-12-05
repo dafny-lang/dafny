@@ -62,7 +62,7 @@ standard-libraries = true";
     var documentItem = CreateAndOpenTestDocument(cleanSource, filePath);
     await AssertNoDiagnosticsAreComing(CancellationToken);
     var result = await RequestDefinition(documentItem, positions[0]);
-    Assert.Equal(new Uri("dafny:DafnyStandardLibraries"), result.Single().Location.Uri);
+    Assert.Equal(new Uri("dafny:DafnyStandardLibraries.dfy"), result.Single().Location.Uri);
   }
 
   public StandardLibraryTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
