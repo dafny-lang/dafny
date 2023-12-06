@@ -11,8 +11,3 @@ module TriesToUseWrappers {
     if b == 0 then None else Some(a/b)
   }
 }
-
-
-// TODO:
-// * Big ol README, especially regarding todos, standards, and brittleness
-// * remove libraries submodule (confusing!)
