@@ -355,7 +355,7 @@ public class Compilation : IDisposable {
     }
   }
 
-  private IObservable<IVerificationStatus> VerifyTask(ICanVerify canVerify, IImplementationTask task) {
+  private void VerifyTask(ICanVerify canVerify, IImplementationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
       if (task.CacheStatus is Completed completedCache) {
@@ -479,15 +479,14 @@ public class Compilation : IDisposable {
     var errorReporter = new ObservableErrorReporter(options, uri);
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
-    
+
     ReportDiagnosticsInResult(options, task, result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
   public static void ReportDiagnosticsInResult(DafnyOptions options, IImplementationTask task, VCResult result,
-    ErrorReporter errorReporter)
-  {
+    ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.outcome);
     foreach (var counterExample in result.counterExamples) //.OrderBy(d => d.GetLocation()))
     {

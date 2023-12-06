@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
@@ -12,8 +11,6 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -71,6 +68,16 @@ public class DafnyNewCli {
       engine, input);
   }
 
+  struct CanVerifyResults {
+    public readonly TaskCompletionSource Finished = new();
+    public readonly List<(IImplementationTask, Completed)> CompletedParts = new();
+    public readonly HashSet<IImplementationTask> Tasks = new();
+
+    public CanVerifyResults() {
+    }
+  }
+
+
   public async Task<int> RunCompilerWithCliAsUi() {
 
     options.RunningBoogieFromCommandLine = true;
@@ -79,14 +86,11 @@ public class DafnyNewCli {
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     var compilation = createCompilation(executionEngine, input);
 
-    ConcurrentBag<IImplementationTask> tasksToVerify = new();
     var statSum = new PipelineStatistics();
     var er = new ConsoleErrorReporter(options);
-    
-    var consoleCollector = new ConcurrentToSequentialWriteManager(options.OutputWriter);
-    var writerPerTok = new Dictionary<Boogie.IToken, TextWriter>();
-          
-    
+
+    var canVerifyResults = new Dictionary<Boogie.IToken, CanVerifyResults>();
+
     compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
@@ -96,17 +100,17 @@ public class DafnyNewCli {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         foreach (var part in canVerifyPartsIdentified.Parts) {
-          tasksToVerify.Add(part);
+          canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok].Tasks.Add(part);
         }
       }
 
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
-          var writer = writerPerTok[BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok)];
-          
-          var output = completed.Result.GetOutput(options.Printer, executionEngine, new PipelineStatistics(), _ => { });
-          _ = writer.WriteAsync(output);
-          writer.Dispose();
+          var canVerifyResult = canVerifyResults[BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok)];
+          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
+          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+            canVerifyResult.Finished.SetResult();
+          }
         }
         if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
           switch (batchCompleted.VcResult.outcome) {
@@ -140,28 +144,28 @@ public class DafnyNewCli {
     var resolution = await compilation.Resolution;
     var canVerifies = resolution.CanVerifies?.ToList();
 
-    ConcurrentBag<IImplementationTask> completedTasks = new();
-    var completedCanVerifyUpdates = compilation.Updates.
-      Where(u => u is BoogieUpdate { BoogieStatus: Completed }).
-      Do(u => {
-        if (u is BoogieUpdate { BoogieStatus: Completed } boogieUpdate) {
-          completedTasks.Add(boogieUpdate.ImplementationTask);
-        }
-      }).Select(_ => completedTasks.Count);
-
     if (canVerifies != null) {
-      foreach (var canVerify in canVerifies.OrderBy(v => v.Tok.pos)) {
-        writerPerTok[canVerify.Tok] = consoleCollector.AppendWriter();
+      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
+        canVerifyResults[canVerify.Tok] = new CanVerifyResults();
+        await compilation.VerifyCanVerify(canVerify, false);
+      }
+
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = canVerifyResults[canVerify.Tok];
+        await results.Finished.Task;
+        foreach (var (task, completed) in results.CompletedParts) {
+          foreach (var vcResult in completed.Result.VCResults) {
+            Compilation.ReportDiagnosticsInResult(options, task, vcResult, er);
+          }
+        }
         await compilation.VerifyCanVerify(canVerify, false);
       }
     }
 
-    await completedCanVerifyUpdates.Where(i =>
-      completedTasks.Count == tasksToVerify.Count).FirstAsync().ToTask();
-
     CompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
-    var exitValue = er.ErrorCount > 0 ? ExitValue.COMPILE_ERROR : ExitValue.SUCCESS;
+    var exitValue = er.ErrorCount > 0 ? ExitValue.VERIFICATION_ERROR : ExitValue.SUCCESS;
     return (int)exitValue;
   }
 

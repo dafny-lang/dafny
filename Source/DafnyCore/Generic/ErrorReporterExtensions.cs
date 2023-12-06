@@ -26,7 +26,7 @@ public static class ErrorReporterExtensions {
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
     reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, dafnyToken, error.Msg);
   }
-  
+
   private const string RelatedLocationCategory = "Related location";
   private const string RelatedLocationMessage = RelatedLocationCategory;
   public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
