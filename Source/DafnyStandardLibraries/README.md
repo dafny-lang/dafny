@@ -45,17 +45,14 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
-- [Std.BoundedInts](src/Std/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
-- [Std.Wrappers](src/Std/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
-- [Std.Relations](src/Std/Relations) -- properties of relations
-- [Std.Functions](src/Std/Functions) -- properties of functions
-- [Std.Collections](src/Std/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
+- [Std.BoundedInts](src/Std/EnableNonLinearArithmetic/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
+- [Std.Wrappers](src/Std/EnableNonLinearArithmetic/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
+- [Std.Relations](src/Std/EnableNonLinearArithmetic/Relations) -- properties of relations
+- [Std.Functions](src/Std/EnableNonLinearArithmetic/Functions) -- properties of functions
+- [Std.Collections](src/Std/EnableNonLinearArithmetic/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
 - Std.DynamicArray -- an array that can grow and shrink
-- [Std.Base64](src/Std/Base64) -- base-64 encoding and decoding
-
-We are in the process of importing many more libraries,
-in particular from the existing [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries) GitHub repository.
-Stay tuned!
+- [Std.Base64](src/Std/EnableNonLinearArithmetic/Base64) -- base-64 encoding and decoding
+- [Std.JSON](src/Std/EnableNonLinearArithmetic/JSON) -- JSON serialization and deserialization
 
 ## Backwards compatibility
 

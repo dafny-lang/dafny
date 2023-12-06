@@ -39,20 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootFiles = compilation.RootFiles!;
-        List<DafnyFile> dafnyFiles = new();
-        foreach (var rootFile in rootFiles) {
-          try {
-            dafnyFiles.Add(rootFile);
-            if (logger.IsEnabled(LogLevel.Trace)) {
-              logger.LogTrace($"Parsing file with uri {rootFile.Uri} and content\n{rootFile.GetContent().ReadToEnd()}");
-            }
-          } catch (IOException) {
-            logger.LogError($"Tried to parse file {rootFile} that could not be found");
-          }
-        }
-
-        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, compilation.Reporter, cancellationToken);
+        return programParser.ParseFiles(compilation.Project.ProjectName, compilation.RootFiles, compilation.Reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);

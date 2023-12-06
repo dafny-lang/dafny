@@ -73,11 +73,22 @@ module Std.Collections.Seq {
   {
   }
 
-  /* The concatenation of sequences is associative. */
+  /* The concatenation of sequences is associative (three arguments). */
   lemma LemmaConcatIsAssociative<T>(xs: seq<T>, ys: seq<T>, zs: seq<T>)
-    ensures xs + (ys + zs) == (xs + ys) + zs
+    ensures xs + (ys + zs) == xs + ys + zs == (xs + ys) + zs
   {
   }
+
+  /* The concatenation of sequences is associative (four arguments). */
+  lemma LemmaConcatIsAssociative2<T>(a: seq<T>, b: seq<T>, c: seq<T>, d: seq<T>)
+    ensures a + b + c + d == a + (b + c + d)
+  {
+  }
+
+  /* The empty sequence is the right identity of the concatenation operation. */
+  lemma EmptySequenceIsRightIdentity(l: seq)
+    ensures l == l + []
+  {}
 
   /**********************************************************
    *
@@ -390,6 +401,16 @@ module Std.Collections.Seq {
   {
   }
 
+  /* If a predicate is true for every member of a sequence as a collection,
+     it is true at every index of the sequence.
+     Useful for converting quantifiers between the two forms
+     to satisfy a precondition in the latter form. */
+  lemma MembershipImpliesIndexing<T>(p: T -> bool, xs: seq<T>)
+    requires forall t | t in xs :: p(t)
+    ensures forall i | 0 <= i < |xs| :: p(xs[i])
+  {
+  }
+
   /**********************************************************
    *
    *  Extrema in Sequences
@@ -624,7 +645,7 @@ module Std.Collections.Seq {
   /* Applying a function to a sequence  is distributive over concatenation. That is, concatenating
      two sequences and then applying Map is the same as applying Map to each sequence separately,
      and then concatenating the two resulting sequences. */
-  lemma {:opaque} {:rlimit 2000} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
+  lemma {:opaque} {:rlimit 1000000} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)

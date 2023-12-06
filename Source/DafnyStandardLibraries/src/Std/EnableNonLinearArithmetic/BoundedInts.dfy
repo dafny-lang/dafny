@@ -43,4 +43,27 @@ module Std.BoundedInts {
   newtype nat32 = x: int   | 0 <= x < TWO_TO_THE_31
   newtype nat64 = x: int   | 0 <= x < TWO_TO_THE_63
   newtype nat128 = x: int  | 0 <= x < TWO_TO_THE_127
+
+  const UINT8_MAX:  uint8  := 0xFF
+  const UINT16_MAX: uint16 := 0xFFFF
+  const UINT32_MAX: uint32 := 0xFFFF_FFFF
+  const UINT64_MAX: uint64 := 0xFFFF_FFFF_FFFF_FFFF
+
+  const INT8_MIN:  int8  := -0x80
+  const INT8_MAX:  int8  :=  0x7F
+  const INT16_MIN: int16 := -0x8000
+  const INT16_MAX: int16 :=  0x7FFF
+  const INT32_MIN: int32 := -0x8000_0000
+  const INT32_MAX: int32 :=  0x7FFFFFFF
+  const INT64_MIN: int64 := -0x8000_0000_0000_0000
+  const INT64_MAX: int64 :=  0x7FFFFFFF_FFFFFFFF
+
+  const NAT8_MAX:  nat8  := 0x7F
+  const NAT16_MAX: nat16 := 0x7FFF
+  const NAT32_MAX: nat32 := 0x7FFFFFFF
+  const NAT64_MAX: nat64 := 0x7FFFFFFF_FFFFFFFF
+
+  type byte = uint8
+  type bytes = seq<byte>
+  newtype opt_byte = c: int | -1 <= c < TWO_TO_THE_8
 }
