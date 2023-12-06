@@ -3444,7 +3444,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
@@ -3469,7 +3469,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 
