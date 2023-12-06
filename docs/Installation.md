@@ -141,11 +141,13 @@ After the compiler dependencies are installed, you can run a quick test of the i
 ## Mac (Binary) {#Mac-binary}
 
 To install a binary installation of dafny on Mac OS, do one of the following:
-Either
+
+Either  
    * Install the Mac binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
    * Unzip the downloaded file in a (empty) location of your choice ($INSTALL)
    * cd into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
    * dafny is run with the command `$INSTALL/dafny/dafny`
+
 or
    * install dafny using brew, with the command `brew install dafny` (the version on brew sometimes lags the
      project release page)
