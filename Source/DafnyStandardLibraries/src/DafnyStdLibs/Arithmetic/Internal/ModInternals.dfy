@@ -196,14 +196,27 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
     && (n % n == (-n) % n == 0)
     && (forall x: int {:trigger (x % n) % n} :: (x % n) % n == x % n)
     && (forall x: int {:trigger x % n} :: 0 <= x < n <==> x % n == x)
-    && (forall x: int, y: int {:trigger (x + y) % n} ::
+    && ModAutoPlus(n)
+    && ModAutoMinus(n)
+  }
+
+  ghost predicate ModAutoPlus(n: int)
+    requires n > 0 
+  {
+    (forall x: int, y: int {:trigger (x + y) % n} ::
           (var z := (x % n) + (y % n);
            (  (0 <= z < n     && (x + y) % n == z)
               || (n <= z < n + n && (x + y) % n == z - n))))
-    && (forall x: int, y: int {:trigger (x - y) % n} ::
+  }
+
+  ghost predicate ModAutoMinus(n: int)
+    requires n > 0 
+  {
+    (forall x: int, y: int {:trigger (x - y) % n} ::
           (var z := (x % n) - (y % n);
            (   (0 <= z < n && (x - y) % n == z)
                || (-n <= z < 0 && (x - y) % n == z + n))))
+
   }
 
   /* ensures that ModAuto is true */
@@ -212,29 +225,18 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
     ensures  ModAuto(n)
   {
     LemmaModBasics(n);
+
+    LemmaModAutoPlus(n);
+    LemmaModAutoMinus(n);
+  }
+
+  lemma {:rlimit 2000} LemmaModAutoMinus(n: int) 
+    requires n > 0
+    ensures ModAutoMinus(n)
+  {
+    LemmaModBasics(n);
     LemmaMulIsCommutativeAuto();
-    LemmaMulIsDistributiveAddAuto();
     LemmaMulIsDistributiveSubAuto();
-
-    forall x: int, y: int {:trigger (x + y) % n}
-      ensures var z := (x % n) + (y % n);
-              || (0 <= z < n && (x + y) % n == z)
-              || (n <= z < 2 * n && (x + y) % n == z - n)
-    {
-      var xq, xr := x / n, x % n;
-      LemmaFundamentalDivMod(x, n);
-      assert x == xq * n + xr;
-      var yq, yr := y / n, y % n;
-      LemmaFundamentalDivMod(y, n);
-      assert y == yq * n + yr;
-      if xr + yr < n {
-        LemmaQuotientAndRemainder(x + y, xq + yq, xr + yr, n);
-      }
-      else {
-        LemmaQuotientAndRemainder(x + y, xq + yq + 1, xr + yr - n, n);
-      }
-    }
-
     forall x: int, y: int {:trigger (x - y) % n}
       ensures var z := (x % n) - (y % n);
               || (0 <= z < n && (x - y) % n == z)
@@ -251,6 +253,32 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
       }
       else {
         LemmaQuotientAndRemainder(x - y, xq - yq - 1, xr - yr + n, n);
+      }
+    }
+  }
+
+  lemma LemmaModAutoPlus(n: int) 
+    requires n > 0
+    ensures ModAutoPlus(n)
+  {
+    LemmaMulIsCommutativeAuto();
+    LemmaMulIsDistributiveAddAuto();
+    forall x: int, y: int {:trigger (x + y) % n}
+      ensures var z := (x % n) + (y % n);
+              || (0 <= z < n && (x + y) % n == z)
+              || (n <= z < 2 * n && (x + y) % n == z - n)
+    {
+      var xq, xr := x / n, x % n;
+      LemmaFundamentalDivMod(x, n);
+      assert x == xq * n + xr;
+      var yq, yr := y / n, y % n;
+      LemmaFundamentalDivMod(y, n);
+      assert y == yq * n + yr;
+      if xr + yr < n {
+        LemmaQuotientAndRemainder(x + y, xq + yq, xr + yr, n);
+      }
+      else {
+        LemmaQuotientAndRemainder(x + y, xq + yq + 1, xr + yr - n, n);
       }
     }
   }
