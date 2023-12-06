@@ -605,7 +605,7 @@ namespace Microsoft.Dafny {
           if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
             var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
-            (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok).ToRange(), split.E, desc, stmt.Tok,
+            (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
         }
