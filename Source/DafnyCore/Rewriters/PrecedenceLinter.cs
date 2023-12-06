@@ -5,21 +5,18 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-using System.Collections.Generic;
+
 using System.Linq;
-using System;
-using System.Diagnostics.Contracts;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
-    private CompilationData compilation;
+    private readonly CompilationData compilation;
     // Don't perform linting on doo files in general, since the source has already been processed.
     internal override void PostResolve(ModuleDefinition moduleDefinition) {
-      if (moduleDefinition.tok.Uri != null && moduleDefinition.tok.Uri.LocalPath.EndsWith(".doo")) {
+      if (moduleDefinition.tok.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
         return;
       }
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
