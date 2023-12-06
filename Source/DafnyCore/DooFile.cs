@@ -116,11 +116,10 @@ public class DooFile {
   private DooFile() {
   }
 
-  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, Command currentCommand,
-    IToken origin) {
-    if (currentCommand == null) {
+  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+    if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
       return false;
     }
 
@@ -131,7 +130,7 @@ public class DooFile {
     }
 
     var success = true;
-    var relevantOptions = currentCommand.Options.ToHashSet();
+    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.

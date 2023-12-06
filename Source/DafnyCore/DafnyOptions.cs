@@ -42,7 +42,6 @@ namespace Microsoft.Dafny {
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
     public DafnyProject DafnyProject { get; set; }
-    public Command CurrentCommand { get; set; }
 
     public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
