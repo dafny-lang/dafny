@@ -1,7 +1,3 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-module X {
-
-  datatype None = None
-
-}
+datatype None = None
