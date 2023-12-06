@@ -13,7 +13,7 @@ git-issue-4787.dfy(15,12): Warning: ensures clause proved using contradictory as
 15 |     ensures |ToSet(xs)| == 0
    |             ^^^^^^^^^^^^^^^^
 
-git-issue-4787.dfy(14,13): Warning: unnecessary requires clause
+git-issue-4787.dfy(14,13): Warning: unnecessary (or partly unnecessary) requires clause
    |
 14 |     requires xs == []
    |              ^^^^^^^^
