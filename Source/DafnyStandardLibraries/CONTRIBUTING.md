@@ -94,7 +94,7 @@ When `--standard-libraries` is switched on,
 these source files are automatically emitted when compiling,
 just like the contents of each backend's runtime.
 
-See [Makefile](Makefile) and [src/DafnyStdLibs/TargetSpecific/Makefile](src/DafnyStdLibs/TargetSpecific/Makefile) for more details.
+See [Makefile](Makefile) and [src/Std/TargetSpecific/Makefile](src/Std/TargetSpecific/Makefile) for more details.
 
 
 ### On brittleness

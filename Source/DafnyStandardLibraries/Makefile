@@ -15,8 +15,8 @@ verify:
 	$(DAFNY) verify src/dfyconfig-arithmetic.toml
 
 build-binary:
-	$(DAFNY) build -t:lib src/DafnyStdLibs/EnableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_SOURCE}
-	$(DAFNY) build -t:lib src/DafnyStdLibs/DisableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
+	$(DAFNY) build -t:lib src/Std/EnableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/Std/DisableNonLinearArithmetic/dfyconfig.toml --output:${DOO_FILE_ARITHMETIC_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
@@ -25,12 +25,12 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_ARITHMETIC_SOURCE} -d build/current-arithmetic
 	unzip -o ${DOO_FILE_ARITHMETIC_TARGET} -d build/rebuilt-arithmetic
 	diff build/current-arithmetic build/rebuilt-arithmetic
-	make -C src/DafnyStdLibs/TargetSpecific check-binary-all
+	make -C src/Std/TargetSpecific check-binary-all
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	cp ${DOO_FILE_ARITHMETIC_SOURCE} ${DOO_FILE_ARITHMETIC_TARGET}
-	make -C src/DafnyStdLibs/TargetSpecific update-binary-all
+	make -C src/Std/TargetSpecific update-binary-all
 # Rebuild Dafny to pick up the new embedded assets
 	dotnet build ../Dafny.sln
 

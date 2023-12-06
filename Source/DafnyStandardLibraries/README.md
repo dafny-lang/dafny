@@ -10,7 +10,7 @@ No need to `include` any files! For example:
 ```dafny
 module UsesWrappers {
 
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Wrappers
 
   function SafeDiv(a: int, b: int): Option<int> {
     if b == 0 then None else Some(a/b)
@@ -45,13 +45,13 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
-- [DafnyStdLibs.BoundedInts](src/DafnyStdLibs/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
-- [DafnyStdLibs.Wrappers](src/DafnyStdLibs/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
-- [DafnyStdLibs.Relations](src/DafnyStdLibs/Relations) -- properties of relations
-- [DafnyStdLibs.Functions](src/DafnyStdLibs/Functions) -- properties of functions
-- [DafnyStdLibs.Collections](src/DafnyStdLibs/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
-- DafnyStdLibs.DynamicArray -- an array that can grow and shrink
-- [DafnyStdLibs.Base64](src/DafnyStdLibs/Base64) -- base-64 encoding and decoding
+- [Std.BoundedInts](src/Std/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
+- [Std.Wrappers](src/Std/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
+- [Std.Relations](src/Std/Relations) -- properties of relations
+- [Std.Functions](src/Std/Functions) -- properties of functions
+- [Std.Collections](src/Std/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
+- Std.DynamicArray -- an array that can grow and shrink
+- [Std.Base64](src/Std/Base64) -- base-64 encoding and decoding
 
 We are in the process of importing many more libraries,
 in particular from the existing [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries) GitHub repository.
