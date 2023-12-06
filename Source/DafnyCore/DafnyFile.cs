@@ -17,6 +17,7 @@ public class DafnyFile {
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
   public bool IsPrerefined { get; private set; }
+  public DafnyOptions ParseOptions { get; private set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; }
   [CanBeNull] public IToken Origin { get; }
@@ -32,6 +33,7 @@ public class DafnyFile {
     Func<TextReader> getContent = null;
     bool isPreverified;
     bool isPrecompiled;
+    var parseOptions = options;
     var isPrerefined = false;
     var extension = ".dfy";
     if (uri.IsFile) {
@@ -98,9 +100,12 @@ public class DafnyFile {
         dooFile = DooFile.Read(filePath);
       }
 
-      if (!dooFile.Validate(reporter, filePathForErrors, options, options.CurrentCommand, origin)) {
+      var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, options.CurrentCommand, origin);
+      if (validDooOptions == null) {
         return null;
       }
+
+      parseOptions = validDooOptions;
 
       // For now it's simpler to let the rest of the pipeline parse the
       // program text back into the AST representation.
@@ -127,7 +132,8 @@ public class DafnyFile {
     return new DafnyFile(extension, canonicalPath, baseName, getContent, uri, origin) {
       IsPrecompiled = isPrecompiled,
       IsPreverified = isPreverified,
-      IsPrerefined = isPrerefined
+      IsPrerefined = isPrerefined,
+      ParseOptions = parseOptions,
     };
   }
 

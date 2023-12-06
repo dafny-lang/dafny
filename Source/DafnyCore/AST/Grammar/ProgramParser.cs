@@ -62,7 +62,7 @@ public class ProgramParser {
       }
 
       var parseResult = ParseFileWithErrorHandling(
-        errorReporter.Options,
+        dafnyFile.ParseOptions,
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
