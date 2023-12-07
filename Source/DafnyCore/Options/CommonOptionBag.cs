@@ -483,6 +483,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
       options.ExtractCounterexample = value;
       options.EnhancedErrorMessages = 1;
+      options.ModelViewFile = "-";
     });
 
     DooFile.RegisterLibraryChecks(

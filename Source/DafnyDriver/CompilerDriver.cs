@@ -203,16 +203,15 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
-      var initialState = model.States.FirstOrDefault(state => state.IsInitialState);
-      if (initialState == null) {
-        return;
+      if (model.loopGuards.Count > 0) {
+        options.OutputWriter.WriteLine($"Temporary variables to describe counterexamples: ");
+        foreach (var loopGuard in model.loopGuards) {
+          options.OutputWriter.WriteLine($"ghost var {loopGuard} : bool := false;");
+        }
       }
-      options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      var vars = initialState.ExpandedVariableSet(-1);
-      foreach (var variable in vars) {
-        options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
-                                       $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                                       $"{variable.Value}");
+      foreach (var partialState in model.States) {
+        options.OutputWriter.WriteLine($"Counterexample for state {partialState.FullStateName}: ");
+        options.OutputWriter.WriteLine(partialState.AsAssumption());
       }
     }
 

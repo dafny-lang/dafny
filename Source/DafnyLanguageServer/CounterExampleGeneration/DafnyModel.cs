@@ -19,6 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
   /// methods are: GetDafnyType, CanonicalName, and GetExpansion
   /// </summary>
   public class DafnyModel {
+    public readonly List<string> loopGuards;
     private readonly DafnyOptions options;
     public readonly Model Model;
     public readonly List<PartialState> States = new();
@@ -35,9 +36,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
     // values of that type that appear in the model. 
     private readonly Dictionary<Type, HashSet<int>> reservedNumerals = new();
-    // set of all UTF values for characters that appear in the model
-    private readonly HashSet<int> reservedChars = new();
-    private bool isTrueReserved; // True if "true" appears anywhere in the model
     // maps an element representing a primitive to its string representation
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
     // maps width to a unique object representing bitvector type of such width 
@@ -45,10 +43,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private readonly List<Model.Func> bitvectorFunctions = new();
 
     // the model will begin assigning characters starting from this utf value
-    private const int FirstCharacterUtfValue = 65; // 'A'
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
     public DafnyModel(Model model, DafnyOptions options) {
+      loopGuards = new List<string>(); 
       Model = model;
       this.options = options;
       var tyArgMultiplier = options.TypeEncodingMethod switch {
@@ -89,14 +87,17 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
       fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
       InitDataTypes();
-      RegisterReservedChars();
       RegisterReservedInts();
-      RegisterReservedBools();
       RegisterReservedReals();
       RegisterReservedBitVectors();
       foreach (var s in model.States) {
         var sn = new PartialState(this, s);
         States.Add(sn);
+        sn.loopGuards = loopGuards.ToList();
+        if (sn.FullStateName.Contains("after some loop iterations")) {
+          loopGuards.Add("loopGuard" + loopGuards.Count);
+          sn.isGuard = loopGuards.Last();
+        }
       }
     }
 
@@ -129,16 +130,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var elt = tpl.Result;
             datatypeValues[elt] = tpl;
           }
-        }
-      }
-    }
-
-    /// <summary> Register all char values specified by the model </summary>
-    private void RegisterReservedChars() {
-      foreach (var app in fCharToInt.Apps) {
-        if (int.TryParse(((Model.Integer)app.Result).Numeral,
-              out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-          reservedChars.Add(UTFCode);
         }
       }
     }
@@ -180,13 +171,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         if (app.Result is Model.Integer integer && int.TryParse(integer.Numeral, out int value)) {
           reservedNumerals[Type.Int].Add(value);
         }
-      }
-    }
-
-    /// <summary> Registered all bool values specified by the model </summary>
-    private void RegisterReservedBools() {
-      foreach (var app in fU2Bool.Apps) {
-        isTrueReserved |= ((Model.Boolean)app.Result).Value;
       }
     }
 
@@ -235,7 +219,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)
     /// </summary>
     public static bool IsUserVariableName(string name) =>
-      !name.Contains("$") && !name.Contains("##");
+      !name.Contains("$") && name.Count(c => c== '#') <= 1;
 
     /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
@@ -260,9 +244,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       return name;
     }
+    
+    /// <summary> Get the Dafny type of an element </summary>
+    internal Type GetFormattedDafnyType(Model.Element element) {
+      return DafnyModelTypeUtils.GetInDafnyFormat(GetDafnyType(element));
+    }
 
     /// <summary> Get the Dafny type of an element </summary>
-    internal Type GetDafnyType(Model.Element element) {
+    private Type GetDafnyType(Model.Element element) {
       switch (element.Kind) {
         case Model.ElementKind.Boolean:
           return Type.Bool;
@@ -360,9 +349,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue value) {
       var literalExpr = GetLiteralExpression(value.Element);
       if (literalExpr != null) {
-        value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value.definition, literalExpr));
+        value.AddDefinition(literalExpr, new());
         yield break;
       }
+
       // If this partial value is a primitive but we don't know its exact representation,
       // we must assume that it is different from all other primitives of the same type
       ModelFuncWrapper otherValuesFunction = null;
@@ -372,6 +362,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if (Model.HasFunc(funcName)) {
             otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
           }
+
           break;
         }
         case CharType:
@@ -388,95 +379,221 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           break;
         }
       }
+
       if (otherValuesFunction != null) {
         foreach (var otherInteger in otherValuesFunction.Apps) {
           value.AddConstraint(new BinaryExpr(
             Token.NoToken,
             BinaryExpr.Opcode.Neq,
             value.definition,
-            GetLiteralExpression(otherInteger.Args[0])));
+            GetLiteralExpression(otherInteger.Args[0])), new());
         }
       }
-      foreach (var funcTuple in value.Element.References) {
-        if (funcTuple.Func == fSeqLength.func) {
-          
-        } else if (funcTuple.Func == fIs.func) {
-          
-        } // etc.
+
+      if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
+        value.AddConstraint(
+          new MemberSelectExpr(Token.NoToken, value.definition, fnTuple.Func.Name.Split(".").Last() + "?"), new());
+        // Elt is a datatype value
+        var destructors = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
+        if (destructors.Count > fnTuple.Args.Length) {
+          // Try to filter out predicate functions
+          // (that follow a format very similar to that of destructor names)
+          destructors = destructors.Where(destructor =>
+              fnTuple.Args.Any(arg => destructor.OptEval(value.Element) == arg))
+            .ToList();
+        }
+
+        if (destructors.Count == fnTuple.Args.Length) {
+          // we know all destructor names
+          foreach (var func in destructors) {
+            //result.Add(state.GetPartialValue(Unbox(func.OptEval(var.Element)), 
+            //  new IdentifierExpr(Token.NoToken, UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_") +var)));
+            var element = PartialValue.Get(Unbox(func.OptEval(value.Element)), state);
+            var elementName = UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_");
+            element.AddDefinition(new MemberSelectExpr(Token.NoToken, value.definition, elementName), new() { value });
+            yield return element;
+          }
+        } else {
+          // we don't know destructor names, so we use indices instead
+          var elements = new List<PartialValue>();
+          for (int i = 0; i < fnTuple.Args.Length; i++) {
+            var element = PartialValue.Get(Unbox(fnTuple.Args[i]), state);
+            elements.Add(element);
+            yield return element;
+          }
+
+          value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value.definition,
+              new DatatypeValue(Token.NoToken, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(),
+                elements.ConvertAll(element => element.definition))),
+            elements);
+        }
+
+        yield break;
+      }
+
+      switch (value.Type) {
+        case SeqType: {
+          var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
+          if (lenghtTuple != null) {
+            var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
+            value.AddConstraint(
+              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition),
+                lengthValue.definition), new() { value, lengthValue });
+            yield return lengthValue;
+          }
+
+          // Sequences can be constructed with the build operator:
+          List<PartialValue> elements = new();
+
+          var substring = value.Element;
+          while (fSeqBuild.AppWithResult(substring) != null) {
+            elements.Insert(0, PartialValue.Get(Unbox(fSeqBuild.AppWithResult(substring).Args[1]), state));
+            substring = fSeqBuild.AppWithResult(substring).Args[0];
+          }
+
+          for (int i = 0; i < elements.Count; i++) {
+            elements[i].AddDefinition(new SeqSelectExpr(
+                Token.NoToken,
+                true,
+                value.definition,
+                new LiteralExpr(Token.NoToken, i),
+                null,
+                Token.NoToken),
+              new() { value, elements[i] });
+            yield return elements[i];
+          }
+
+          if (elements.Count == 0) {
+            foreach (var funcTuple in fSeqIndex.AppsWithArg(0, value.Element)) {
+              var elementId = PartialValue.Get(funcTuple.Args[1], state);
+              var element = PartialValue.Get(Unbox(funcTuple.Result), state);
+              element.AddDefinition(new SeqSelectExpr(
+                  Token.NoToken,
+                  true,
+                  value.definition,
+                  elementId.definition,
+                  null,
+                  Token.NoToken),
+                new() { value, elementId, element });
+              yield return element;
+              yield return elementId;
+            }
+          }
+
+          break;
+        }
+        case SetType: {
+          if (fSetEmpty.AppWithResult(value.Element) != null) {
+            value.AddConstraint(
+              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition),
+                new LiteralExpr(Token.NoToken, 0)), new() { value });
+            break;
+          }
+
+          foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
+            var setElement = PartialValue.Get(Unbox(tpl.Args[1]), state);
+            var containment = tpl.Result;
+            if (containment.Kind != Model.ElementKind.Boolean) {
+              continue;
+            }
+
+            var opcode = (containment as Model.Boolean).Value ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn;
+            var constraint = new BinaryExpr(Token.NoToken, opcode, setElement.definition, value.definition);
+            value.AddConstraint(constraint, new() { value, setElement });
+            yield return setElement;
+          }
+
+          break;
+        }
+        case MapType: {
+          var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
+          var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
+          var current = value.Element;
+          var mapBuilds = fMapBuild.AppsWithResult(current).ToList();
+          var result = new List<PartialValue>();
+          while (mapBuilds.Count != 0) {
+            foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current)) {
+              result.AddRange(AddMappingHelper(
+                state,
+                value,
+                Unbox(mapBuild.Args[1]),
+                Unbox(mapBuild.Args[2]),
+                mapKeysAdded));
+            }
+
+            mapsElementsVisited.Add(current);
+            var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
+            if (nextMapBuild == null) {
+              break;
+            }
+
+            current = nextMapBuild.Args[0];
+            mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0])
+              .Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
+            result.AddRange(AddMappingHelper(
+              state,
+              value,
+              Unbox(nextMapBuild.Args[1]),
+              Unbox(nextMapBuild.Args[2]),
+              mapKeysAdded));
+          }
+
+          var mapDomain = fMapDomain.OptEval(current);
+          var mapElements = fMapElements.OptEval(current);
+          if (mapDomain != null && mapElements != null) {
+            foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+              result.AddRange(AddMappingHelper(
+                state,
+                value,
+                Unbox(app.Args[1]),
+                Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
+                mapKeysAdded, !((Model.Boolean)app.Result).Value));
+            }
+          }
+
+          foreach (var partialValue in result) {
+            yield return partialValue;
+          }
+
+          break;
+        }
+      }
+
+      // Elt is an array or an object:
+      var heap = state.State.TryGet("$Heap");
+      if (heap == null) {
+        yield break;
+      }
+
+      var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
+      foreach (var fieldFunc in constantFields) {
+        var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
+        var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
+        field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.definition, fieldName), new() { value });
+        yield return field;
+      }
+
+      var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
+      if (!fields.Any()) {
+        yield break;
+      }
+
+      foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
+        foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
+          if (fieldName != "alloc") {
+            var field = PartialValue.Get(Unbox(tpl.Result), state);
+            if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
+              field.AddDefinition(new SeqSelectExpr(Token.NoToken, true, value.definition, new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value });
+            } else {
+              field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.definition, fieldName), new() { value });
+            }
+            yield return field;
+          }
+        }
       }
     }
-    
-    /// <summary>
-    /// Extract the string representation of the element.
-    /// Return "" if !IsPrimitive(elt, state) unless elt is a datatype,
-    /// in which case return the corresponding constructor name.
-    /// </summary>
-    /*public string CanonicalName(Model.Element elt, Type type) {
-      if (elt == null || (type is UserDefinedType userDefinedType && userDefinedType.Name == UnknownType.Name)) {
-        return "?";
-      }
-      if (elt == fNull.GetConstant()) {
-        return "null";
-      }
-      if (elt is Model.Integer or Model.Boolean or Model.Real) {
-        return elt.ToString();
-      }
-      if (elt is Model.BitVector vector) {
-        return vector.Numeral;
-      }
-      if (elt.Kind == Model.ElementKind.DataValue) {
-        if (((Model.DatatypeValue)elt).ConstructorName == "-") {
-          return "-" + CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), type);
-        }
-        if (((Model.DatatypeValue)elt).ConstructorName == "/") {
-          return CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), type) +
-                 "/" + CanonicalName(((Model.DatatypeValue)elt).Arguments[1], type);
-        }
-      }
-      if (datatypeValues.TryGetValue(elt, out var fnTuple)) {
-        return fnTuple.Func.Name.Split(".").Last();
-      }
-      switch (type) {
-        case BitvectorType bitvectorType: {
-            int width = bitvectorType.Width;
-            var funcName = "U_2_bv" + width;
-            if (!bitvectorTypes.ContainsKey(width)) {
-              bitvectorTypes[width] = new BitvectorType(options, width);
-              reservedNumerals[bitvectorTypes[width]] = new HashSet<int>();
-            }
-            if (!Model.HasFunc(funcName)) {
-              return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
-            }
-            if (Model.GetFunc(funcName).OptEval(elt) != null) {
-              return (Model.GetFunc(funcName).OptEval(elt) as Model.Number)?.Numeral;
-            }
-            return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
-          }
-        case CharType: {
-            if (fCharToInt.OptEval(elt) != null) {
-              if (int.TryParse(((Model.Integer)fCharToInt.OptEval(elt)).Numeral,
-                    out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-                return PrettyPrintChar(UTFCode);
-              }
-            }
-            return GetUnreservedCharValue(elt);
-          }
-        case RealType when fU2Real.OptEval(elt) != null:
-          return CanonicalName(fU2Real.OptEval(elt), type);
-        case RealType:
-          return GetUnreservedNumericValue(elt, Type.Real);
-        case BoolType when fU2Bool.OptEval(elt) != null:
-          return CanonicalName(fU2Bool.OptEval(elt), type);
-        case BoolType:
-          return GetUnreservedBoolValue(elt);
-        case IntType when fU2Int.OptEval(elt) != null:
-          return CanonicalName(fU2Int.OptEval(elt), type);
-        case IntType:
-          return GetUnreservedNumericValue(elt, Type.Int);
-        default:
-          return "";
-      }
-    }*/
 
     /// <summary>
     /// Get the Dafny type of the value indicated by <param name="element"></param>
@@ -614,42 +731,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           return new UserDefinedType(new Token(), tagName, typeArgs);
       }
     }
-
-    /// <summary>
-    /// Find a char value that is different from any other value
-    /// of that type in the entire model. Reserve that value for given element
-    /// </summary>
-    private string GetUnreservedCharValue(Model.Element element) {
-      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
-        return reservedValue;
-      }
-      int i = FirstCharacterUtfValue;
-      while (reservedChars.Contains(i)) {
-        i++;
-      }
-      reservedValuesMap[element] = PrettyPrintChar(i);
-      reservedChars.Add(i);
-      return reservedValuesMap[element];
-    }
-
-    /// <summary>
-    /// Find a bool value that is different from any other value
-    /// of that type in the entire model (if possible).
-    /// Reserve that value for given element
-    /// </summary>
-    private string GetUnreservedBoolValue(Model.Element element) {
-      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
-        return reservedValue;
-      }
-      if (!isTrueReserved) {
-        isTrueReserved = true;
-        reservedValuesMap[element] = true.ToString().ToLower();
-      } else {
-        reservedValuesMap[element] = false.ToString().ToLower();
-      }
-      return reservedValuesMap[element];
-    }
-
+    
     /// <summary>
     /// Find a value of the given numericType that is different from
     /// any other value of that type in the entire model.
@@ -676,200 +758,30 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Perform operations necessary to add a mapping to a map variable,
     /// return newly created PartialValue objects
     /// </summary>
-    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet) {
-      if (mapVariable == null) {
+    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet, bool keyNotPresent=false) {
+      if (mapVariable == null || keySet.Contains(keyElement)) {
         yield break;
       }
-      var pairId = mapVariable.Children.Count.ToString();
-      var key = state.GetPartialValue(keyElement, new IdentifierExpr(Token.NoToken, pairId + mapVariable));
+      var key = PartialValue.Get(keyElement, state);
       if (valueElement != null) {
-        var value = state.GetPartialValue(valueElement, new IdentifierExpr(Token.NoToken, pairId + mapVariable));
-        mapVariable.AddMapping(key, value);
+        var value = PartialValue.Get(valueElement, state);
+        var seqSelectExpression = new SeqSelectExpr(
+          Token.NoToken, 
+          true, 
+          mapVariable.definition, 
+          key.definition, 
+          null, 
+          Token.NoToken);
+        mapVariable.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, seqSelectExpression, value.definition), new() {key, value});
         yield return value;
       } else {
-        mapVariable.AddMapping(key, null);
+        var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+        var constraint = new BinaryExpr(Token.NoToken, opcode, key.definition, mapVariable.definition);
+        mapVariable.AddConstraint(constraint, new() {key});
       }
       keySet.Add(keyElement);
       yield return key;
     }
-
-    /// <summary>
-    /// Return a set of variables associated with an element. These could be
-    /// values of fields for objects, values at certain positions for
-    /// sequences, etc.
-    /// </summary>
-    /*public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue var) {
-      HashSet<PartialValue> result = new();
-      if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
-        return result;  // primitive types can't have fields
-      }
-
-      if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
-        // Elt is a datatype value
-        var destructors = GetDestructorFunctions(var.Element).OrderBy(f => f.Name).ToList();
-        if (destructors.Count > fnTuple.Args.Length) {
-          // Try to filter out predicate functions
-          // (that follow a format very similar to that of destructor names)
-          destructors = destructors.Where(destructor =>
-              fnTuple.Args.Any(arg => destructor.OptEval(var.Element) == arg))
-            .ToList();
-        }
-        if (destructors.Count == fnTuple.Args.Length) {
-          // we know all destructor names
-          foreach (var func in destructors) {
-            result.Add(state.GetPartialValue(Unbox(func.OptEval(var.Element)), 
-              new IdentifierExpr(Token.NoToken, UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_") +var)));
-          }
-        } else {
-          // we don't know destructor names, so we use indices instead
-          for (int i = 0; i < fnTuple.Args.Length; i++) {
-            result.Add(state.GetPartialValue(Unbox(fnTuple.Args[i]),
-              new IdentifierExpr(Token.NoToken, "[" + i + "]" + var)));
-          }
-        }
-        return result;
-      }
-
-      switch (var.Type) {
-        case SeqType: {
-            var seqLen = fSeqLength.OptEval(var.Element);
-            if (seqLen != null) {
-              var length = state.GetPartialValue(seqLen, new IdentifierExpr(Token.NoToken, "Length" +  var));
-              result.Add(length);
-              var.SetLength(length);
-            }
-
-            // Sequences can be constructed with the build operator:
-            List<Model.Element> elements = new();
-
-            var substring = var.Element;
-            while (fSeqBuild.AppWithResult(substring) != null) {
-              elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
-              substring = fSeqBuild.AppWithResult(substring).Args[0];
-            }
-            for (int i = 0; i < elements.Count; i++) {
-              var e = state.GetPartialValue(Unbox(elements[i]), new IdentifierExpr(Token.NoToken, "[" + i + "]" + var));
-              result.Add(e);
-              var.AddAtIndex(e, i.ToString());
-            }
-            if (elements.Count > 0) {
-              return result;
-            }
-
-            // Otherwise, sequences can be reconstructed index by index, ensuring indices are in ascending order.
-            // NB: per https://github.com/dafny-lang/dafny/issues/3048 , not all indices may be parsed as a BigInteger,
-            // so ensure we do not try to sort those numerically.
-            var intIndices = new List<(Model.Element, BigInteger)>();
-            var otherIndices = new List<(Model.Element, String)>();
-            foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-              var asString = tpl.Args[1].ToString();
-              if (BigInteger.TryParse(asString, out var bi)) {
-                intIndices.Add((Unbox(tpl.Result), bi));
-              } else {
-                otherIndices.Add((Unbox(tpl.Result), asString));
-              }
-            }
-
-            var sortedIndices = intIndices
-              .OrderBy(p => p.Item2)
-              .Select(p => (p.Item1, p.Item2.ToString()))
-              .Concat(otherIndices);
-
-            foreach (var (res, idx) in sortedIndices) {
-              var e = state.GetPartialValue(res, new IdentifierExpr(Token.NoToken, "[" + idx + "]"+ var));
-              result.Add(e);
-              var.AddAtIndex(e, idx);
-            }
-
-            return result;
-          }
-        case SetType: {
-            foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {
-              var setElement = tpl.Args[1];
-              var containment = tpl.Result;
-              if (containment.Kind != Model.ElementKind.Boolean) {
-                continue;
-              }
-
-              result.Add(state.GetPartialValue(Unbox(setElement),
-                new IdentifierExpr(Token.NoToken, ((Model.Boolean)containment).ToString() + var)));
-            }
-            return result;
-          }
-        case MapType: {
-            var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
-            var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
-            var current = var.Element;
-            var mapBuilds = fMapBuild.AppsWithResult(var.Element).ToList();
-            while (mapBuilds.Count != 0) {
-              foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current && !mapKeysAdded.Contains(m.Args[1]))) {
-                result.UnionWith(AddMappingHelper(
-                  state,
-                  var,
-                  Unbox(mapBuild.Args[1]),
-                  Unbox(mapBuild.Args[2]),
-                  mapKeysAdded));
-              }
-              mapsElementsVisited.Add(current);
-              var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
-              if (nextMapBuild == null) {
-                break;
-              }
-              current = nextMapBuild.Args[0];
-              mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0]).Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
-              if (mapKeysAdded.Contains(nextMapBuild.Args[1])) {
-                continue;
-              }
-              result.UnionWith(AddMappingHelper(
-                state,
-                var,
-                Unbox(nextMapBuild.Args[1]),
-                Unbox(nextMapBuild.Args[2]),
-                mapKeysAdded));
-            }
-            var mapDomain = fMapDomain.OptEval(current);
-            var mapElements = fMapElements.OptEval(current);
-            if (mapDomain == null || mapElements == null) {
-              return result;
-            }
-            foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
-              if (!((Model.Boolean)app.Result).Value) {
-                continue;
-              }
-              result.UnionWith(AddMappingHelper(
-                state,
-                var,
-                Unbox(app.Args[1]),
-                Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
-                mapKeysAdded));
-            }
-            return result;
-          }
-      }
-
-      // Elt is an array or an object:
-      var heap = state.State.TryGet("$Heap");
-      if (heap == null) {
-        return result;
-      }
-      var constantFields = GetDestructorFunctions(var.Element).OrderBy(f => f.Name).ToList();
-      foreach (var field in constantFields) {
-        result.Add(state.GetPartialValue(Unbox(field.OptEval(var.Element)),
-          new IdentifierExpr(Token.NoToken, UnderscoreRemovalRegex.Replace(field.Name.Split(".").Last(), "_") + var)));
-      }
-      var fields = fSetSelect.AppsWithArgs(0, heap, 1, var.Element);
-      if (fields == null || !fields.Any()) {
-        return result;
-      }
-      foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
-        foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
-          if (fieldName != "alloc") {
-            result.Add(state.GetPartialValue(Unbox(tpl.Result), new IdentifierExpr(Token.NoToken, fieldName + var)));
-          }
-        }
-      }
-      return result;
-    }*/
 
     /// <summary>
     /// Return all functions mapping an object to a destructor value.
@@ -888,7 +800,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var app in element.References) {
         if (app.Func.Arity != 1 || app.Args[0] != element ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
-            builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
+            builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last()) ||
+            app.Func.Name.Split(".").Last().StartsWith("_")) {
           continue;
         }
         result.Add(app.Func);

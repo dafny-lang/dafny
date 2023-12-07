@@ -61,6 +61,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
       newName = ConvertTupleName(newName);
+      newName = string.Join(".", newName.Split(".")
+        .Where(part => part != "_module" && part != "_default" && part != "_System"));
       return new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
     }

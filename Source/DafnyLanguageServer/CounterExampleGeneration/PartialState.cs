@@ -11,28 +11,22 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration; 
 
 public class PartialState {
-  
+
+  public string isGuard = null;
+  public List<string> loopGuards = new();
   internal readonly DafnyModel Model;
   internal readonly Model.CapturedState State;
-  private readonly Dictionary<Model.Element, PartialValue> values;
   private const string InitialStateName = "<initial>";
   private static readonly Regex StatePositionRegex = new(
     @".*\((?<line>\d+),(?<character>\d+)\)",
     RegexOptions.IgnoreCase | RegexOptions.Singleline
   );
 
-  internal PartialValue GetPartialValue(Model.Element element, Expression definition, bool addAsSynonym=false) {
-    if (!values.ContainsKey(element)) {
-      values[element] = new PartialValue(element, this);
-    }
-    values[element].AddDefinition(definition);
-    return values[element];
-  }
+  private const string BoundVarPrefix = "boundVar";
 
   internal PartialState(DafnyModel model, Model.CapturedState state) {
     Model = model;
     State = state;
-    values = new();
     SetupBoundVars();
     SetupVars();
   }
@@ -52,7 +46,7 @@ public class PartialState {
     // The following is the queue for elements to be added to the set. The 2nd
     // element of a tuple is the depth of the variable w.r.t. the original set
     List<Tuple<PartialValue, int>> varsToAdd = new();
-    values.Values.ForEach(variable => varsToAdd.Add(new(variable, 0)));
+    PartialValue.AllPartialValuesForState(this).ForEach(variable => varsToAdd.Add(new(variable, 0)));
     while (varsToAdd.Count != 0) {
       var (next, depth) = varsToAdd[0];
       varsToAdd.RemoveAt(0);
@@ -72,29 +66,58 @@ public class PartialState {
     return expandedSet;
   }
   
-  public AssumeStmt AsAssumption() {
-    var variables = ExpandedVariableSet(-1);
+  public Statement AsAssumption() {
+    var variables = ExpandedVariableSet(-1).ToArray();
+    var boundVars = new List<BoundVar>();
+    // TODO: make sure bound variable identifiers are not already taken
+    for (int i = 0; i < variables.Length; i++) {
+      if (!variables[i].HasCompleteDefinition) {
+        boundVars.Add(new BoundVar(Token.NoToken, BoundVarPrefix + boundVars.Count, variables[i].Type));
+        variables[i].AddDefinition(new IdentifierExpr(Token.NoToken, boundVars.Last()), new());
+      }
+    }
     var constraints = new HashSet<Expression>();
     foreach (var variable in variables) {
-      foreach (var constraint in variable.constraints) {
+      foreach (var constraint in variable.ResolvableConstraints) {
         constraints.Add(constraint);
       }
     }
+
+    Expression expression = null;
     if (constraints.Count == 0) {
-      return new AssumeStmt(RangeToken.NoToken, new LiteralExpr(Token.NoToken, true), null);
+      expression = new LiteralExpr(Token.NoToken, true);
     }
     if (constraints.Count == 1) {
-      return new AssumeStmt(RangeToken.NoToken, constraints.First(), null);
-    }
-    Expression expression = null;
-    foreach (var constraint in constraints) {
-      if (expression == null) {
-        expression = constraint;
-        continue;
+      expression = constraints.First();
+    } else {
+      foreach (var constraint in constraints) {
+        if (expression == null) {
+          expression = constraint;
+          continue;
+        }
+
+        expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, expression, constraint);
       }
-      expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, expression, constraint);
     }
-    return new AssumeStmt(RangeToken.NoToken, expression, null);
+
+    if (constraints.Count > 1 && boundVars.Count > 0) {
+      expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
+    }
+
+    if (loopGuards.Count != 0) {
+      Expression loopGuard = new IdentifierExpr(Token.NoToken, loopGuards[0]);
+      for (int i = 1; i < loopGuards.Count; i++) {
+        loopGuard = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loopGuard,
+          new IdentifierExpr(Token.NoToken, loopGuards[i]));
+      }
+      expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, loopGuard, expression);
+    }
+
+    if (isGuard == null) {
+      return new AssumeStmt(RangeToken.NoToken, expression, null);
+    }
+    return new UpdateStmt(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, isGuard) },
+        new List<AssignmentRhs>() { new ExprRhs(expression) });
   }
 
   /// <summary>
@@ -106,16 +129,31 @@ public class PartialState {
     foreach (var partialState in Model.States) {
       names = names.Concat(partialState.State.Variables);
     }
-    names = names.Concat(State.Variables).Distinct();
+    names = names.Concat(State.Variables).Distinct().ToList();
+    var notDefinitelyAssigned = new HashSet<string>();
+    foreach (var name in names) {
+      if (!name.StartsWith("defass#")) {
+        continue;
+      }
+      var val = State.TryGet(name);
+      if (val == null) {
+        continue;
+      }
+      if (val is Model.Boolean { Value: false }) {
+        notDefinitelyAssigned.Add(name[7..]);
+      }
+    }
     foreach (var v in names) {
-      if (!DafnyModel.IsUserVariableName(v)) {
+      if (!DafnyModel.IsUserVariableName(v) || notDefinitelyAssigned.Contains(v)) {
         continue;
       }
       var val = State.TryGet(v);
       if (val == null) {
         continue; // This variable has no value in the model, so ignore it.
       }
-      values[val] = GetPartialValue(val, new IdentifierExpr(Token.NoToken, v.Split("#").First()), true);
+
+      var value = PartialValue.Get(val, this);
+      value.AddDefinition(new IdentifierExpr(Token.NoToken, v.Split("#").First()), new());
     }
   }
 
@@ -135,7 +173,9 @@ public class PartialState {
       if (!name.Contains('#') || name.Contains('$')) {
         continue;
       }
-      values[f.GetConstant()] = GetPartialValue(f.GetConstant(), new IdentifierExpr(Token.NoToken, name), true);
+
+      var value = PartialValue.Get(f.GetConstant(), this);
+      value.AddDefinition(new IdentifierExpr(Token.NoToken, name), new());
     }
   }
   
