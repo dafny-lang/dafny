@@ -1,8 +1,8 @@
 abstract module AbstractWrapper {
-  import DafnyStdLibs.Strings
-  import opened DafnyStdLibs.BoundedInts
-  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
-  import opened DafnyStdLibs.JSON.Errors
+  import Std.Strings
+  import opened Std.BoundedInts
+  import opened Std.Unicode.UnicodeStringsWithUnicodeChar
+  import opened Std.JSON.Errors
 
   type JSON
 
@@ -40,10 +40,10 @@ abstract module AbstractWrapper {
 }
 
 module ZeroCopyWrapper refines AbstractWrapper {
-  import opened DafnyStdLibs.Wrappers
-  import DafnyStdLibs.JSON.Grammar
-  import DafnyStdLibs.JSON.ZeroCopy.API
-  import DafnyStdLibs.JSON.ConcreteSyntax.Spec
+  import opened Std.Wrappers
+  import Std.JSON.Grammar
+  import Std.JSON.ZeroCopy.API
+  import Std.JSON.ConcreteSyntax.Spec
 
   type JSON = Grammar.JSON
 
@@ -67,11 +67,11 @@ module ZeroCopyWrapper refines AbstractWrapper {
 }
 
 module AbstractSyntaxWrapper refines AbstractWrapper {
-  import opened DafnyStdLibs.Wrappers
-  import DafnyStdLibs.JSON.Grammar
-  import DafnyStdLibs.JSON.API
-  import DafnyStdLibs.JSON.Values
-  import DafnyStdLibs.JSON.Spec
+  import opened Std.Wrappers
+  import Std.JSON.Grammar
+  import Std.JSON.API
+  import Std.JSON.Values
+  import Std.JSON.Spec
 
   type JSON = Values.JSON
 
@@ -96,7 +96,7 @@ module AbstractSyntaxWrapper refines AbstractWrapper {
 module MainTests {
   import ZeroCopyWrapper
   import AbstractSyntaxWrapper
-  import opened DafnyStdLibs.Collections.Seqs
+  import opened Std.Collections.Seq
 
   const VECTORS := [
     "true",
@@ -127,7 +127,7 @@ module MainTests {
      Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
      We should have these kinds of tests direclty in the Unicode module too.
      */
-    "\"" + Seqs.Repeat('a', 100) + "\""
+    "\"" + Seq.Repeat('a', 100) + "\""
   ]
 
   method {:test} Main() {

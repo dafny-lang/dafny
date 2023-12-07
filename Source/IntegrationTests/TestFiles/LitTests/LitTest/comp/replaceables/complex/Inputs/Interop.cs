@@ -7,13 +7,13 @@ namespace Interop {
     public static BigInteger Int32ToInt(int value) {
       return new BigInteger(value);
     }
-    public static DafnyStdLibs.Wrappers._IOption<int> IntToInt32(BigInteger value) {
+    public static Std.Wrappers._IOption<int> IntToInt32(BigInteger value) {
       if (value > int.MaxValue || value < int.MinValue) {
-        return DafnyStdLibs.Wrappers.Option<int>.create_None();
+        return Std.Wrappers.Option<int>.create_None();
       }
       else
       {
-        return DafnyStdLibs.Wrappers.Option<int>.create_Some((int)value);
+        return Std.Wrappers.Option<int>.create_Some((int)value);
       }
     }
   }

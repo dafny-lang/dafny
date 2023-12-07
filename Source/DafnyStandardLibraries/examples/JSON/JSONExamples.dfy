@@ -6,10 +6,10 @@
 
 /** High-level API (JSON values) */
 module {:options "-functionSyntax:4"} AbstractSyntax {
-  import DafnyStdLibs.JSON.API
-  import opened DafnyStdLibs.JSON.Values
-  import opened DafnyStdLibs.Wrappers
-  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
+  import Std.JSON.API
+  import opened Std.JSON.Values
+  import opened Std.Wrappers
+  import opened Std.Unicode.UnicodeStringsWithUnicodeChar
 
   /** 
    The high-level API works with fairly simple datatype values that contain 
@@ -127,11 +127,11 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
  formatting as much as possible, you may prefer to use the lower-level API:
  */
 module {:options "-functionSyntax:4"} ConcreteSyntax {
-  import DafnyStdLibs.JSON.ZeroCopy.API
-  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
-  import opened DafnyStdLibs.JSON.Grammar
-  import opened DafnyStdLibs.Wrappers
-  import DafnyStdLibs.Collections.Seqs
+  import Std.JSON.ZeroCopy.API
+  import opened Std.Unicode.UnicodeStringsWithUnicodeChar
+  import opened Std.JSON.Grammar
+  import opened Std.Wrappers
+  import Std.Collections.Seq
 
   /** 
    The low-level API works with ASTs that record all details of formatting and
@@ -254,7 +254,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     // BUG(https://github.com/dafny-lang/dafny/issues/2184)
     // BUG(https://github.com/dafny-lang/dafny/issues/2690)
     var fn' := (sf: Suffixed<D, S>) requires (ghost var in_sq := sf => sf in sq; in_sq(sf)) => sf.(t := fn(sf));
-    var sq' := Seqs.Map(fn', sq);
+    var sq' := Seq.Map(fn', sq);
 
     assert NoTrailingSuffix(sq') by {
       forall idx | 0 <= idx < |sq'| ensures sq'[idx].suffix.Empty? <==> idx == |sq'| - 1 {

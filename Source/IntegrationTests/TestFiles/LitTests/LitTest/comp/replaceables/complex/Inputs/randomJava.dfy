@@ -17,7 +17,7 @@ module RandomJava replaces DfyRandom {
 
 module Interop {
   import opened JavaLang
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Wrappers
   
   const int32MaxValue := 2147483647
   
