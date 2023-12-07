@@ -53,7 +53,7 @@ public class ProofDependencyWarnings {
 
     if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
       foreach (var dep in unusedRequires) {
-        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary (or partly unnecessary) requires clause");
+        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary requires clause");
       }
 
       foreach (var dep in unusedAssumptions) {
