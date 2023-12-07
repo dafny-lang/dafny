@@ -1,5 +1,5 @@
 
-module  {:extern "DafnyStdLibs_ConcurrentDafny"} {:compile false} Std.Concurrent refines ConcurrentInterface {
+module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.Concurrent refines ConcurrentInterface {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
@@ -54,6 +54,7 @@ module  {:extern "DafnyStdLibs_ConcurrentDafny"} {:compile false} Std.Concurrent
   }
 }
 
+// Dafny-native implementation, used to generate the extern implementation
 module Std.ConcurrentDafny {
 
   import opened Wrappers
