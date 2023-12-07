@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var compilationUnit = symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
       var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      SymbolTable newSymbolTable;
+      SymbolTable? newSymbolTable = null;
       try {
         newSymbolTable = symbolTableFactory.CreateFrom(program, cancellationToken);
       } catch (Exception e) {
