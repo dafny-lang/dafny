@@ -1,6 +1,6 @@
 module StringsExamples {
-  import opened DafnyStdLibs.Strings
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Strings
+  import opened Std.Wrappers
 
   method {:test} TestOfInt() {
     expect OfInt(0) == "0";
