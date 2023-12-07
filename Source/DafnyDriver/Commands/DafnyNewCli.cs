@@ -284,7 +284,6 @@ public class DafnyNewCli {
         }
       }
 
-      dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       dafnyOptions.UsingNewCli = true;
       if (dafnyOptions.DafnyProject == null) {
