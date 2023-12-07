@@ -52,11 +52,7 @@ public class DafnyFile {
     Func<TextReader> getContent = null;
     bool isPreverified;
     bool isPrecompiled;
-<<<<<<< HEAD
     var parseOptions = options;
-    var isPrerefined = false;
-=======
->>>>>>> origin/master
     var extension = ".dfy";
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
@@ -122,12 +118,8 @@ public class DafnyFile {
         dooFile = DooFile.Read(filePath);
       }
 
-<<<<<<< HEAD
-      var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, options.CurrentCommand, origin);
+      var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);
       if (validDooOptions == null) {
-=======
-      if (!dooFile.Validate(reporter, filePathForErrors, options, origin)) {
->>>>>>> origin/master
         return null;
       }
 
@@ -157,11 +149,7 @@ public class DafnyFile {
     return new DafnyFile(extension, canonicalPath, baseName, getContent, uri, origin) {
       IsPrecompiled = isPrecompiled,
       IsPreverified = isPreverified,
-<<<<<<< HEAD
-      IsPrerefined = isPrerefined,
       ParseOptions = parseOptions,
-=======
->>>>>>> origin/master
     };
   }
 
