@@ -1426,9 +1426,9 @@ namespace Microsoft.Dafny {
       if (options.IsUsingZ3()) {
         if (DisableNonLinearArithmetic) {
           AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
-        } else {
-          AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
         }
+
+        AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
       }
       sink.AddTopLevelDeclaration(impl);
       return impl;
