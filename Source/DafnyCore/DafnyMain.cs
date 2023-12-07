@@ -16,8 +16,16 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
-    public static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
-    public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
+    public static readonly Dictionary<string, Uri> StandardLibrariesDooUriTarget = new();
+    public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+
+    static DafnyMain() {
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+        StandardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
+          new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
+      }
+    }
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

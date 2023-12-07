@@ -1130,7 +1130,7 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivMod {
     }
   }
 
-  predicate MultiplesVanish(a: int, b: int, m: int) 
+  predicate MultiplesVanish(a: int, b: int, m: int)
     requires 0 < m
   {
     (m * a + b) % m == b % m
