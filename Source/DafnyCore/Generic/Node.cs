@@ -136,7 +136,8 @@ public abstract class Node : INode {
     return Enumerable.Empty<Assumption>();
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+    reportError ??= _ => { };
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
@@ -157,7 +158,8 @@ public abstract class Node : INode {
       var nodeAfterChildren = toVisit.First;
       foreach (var child in current.Children) {
         if (child == null) {
-          throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
+          reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+          continue;
         }
 
         if (nodeAfterChildren == null) {

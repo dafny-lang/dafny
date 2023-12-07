@@ -12,6 +12,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task ModuleImport1ResolutionError() {
+      var source = @"
+module User {
+ import Us><ed
+ 
+ const x := Used.x
+}
+
+module [>Used<] {
+  const x: bool := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ModuleImport1() {
       var source = @"
 module User {
