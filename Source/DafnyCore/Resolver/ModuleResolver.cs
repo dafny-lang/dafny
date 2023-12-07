@@ -81,13 +81,9 @@ namespace Microsoft.Dafny {
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
 
-    public ModuleResolver(DafnyOptions options) {
-      Options = options;
-    }
-
-    public ModuleResolver(ProgramResolver programResolver) {
+    public ModuleResolver(ProgramResolver programResolver, DafnyOptions options) {
       this.ProgramResolver = programResolver;
-      Options = programResolver.Options;
+      Options = options;
 
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
@@ -852,7 +848,7 @@ namespace Microsoft.Dafny {
 
       if (d is AbstractModuleDecl abstractDecl) {
         var sig = MakeAbstractSignature(abstractDecl.OriginalSignature, name + "." + abstractDecl.Name, abstractDecl.Height, mods);
-        var result = new AbstractModuleDecl(abstractDecl.RangeToken, abstractDecl.QId, abstractDecl.NameNode,
+        var result = new AbstractModuleDecl(abstractDecl.Options, abstractDecl.RangeToken, abstractDecl.QId, abstractDecl.NameNode,
           newParent, abstractDecl.Opened, abstractDecl.Exports, Guid.NewGuid()) {
           Signature = sig,
           OriginalSignature = abstractDecl.OriginalSignature

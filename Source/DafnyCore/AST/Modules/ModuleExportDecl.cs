@@ -34,10 +34,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, parent, false, isRefining, cloneId) {
+    : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
