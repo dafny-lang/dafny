@@ -132,7 +132,7 @@ public class DooFile {
       return null;
     }
 
-    var result = new DafnyOptions(options.Input, options.OutputWriter, options.ErrorWriter);
+    var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
