@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.GeneralInternals {
+module {:disableNonlinearArithmetic} Std.Arithmetic.GeneralInternals {
 
   /* this predicate is primarily used as a trigger */
   ghost predicate IsLe(x: int, y: int)

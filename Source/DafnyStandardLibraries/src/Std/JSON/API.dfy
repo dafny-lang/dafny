@@ -8,7 +8,7 @@
  This API is more convenient to use, but it is unverified and less efficient. It produces abstract datatype 
  value trees that represent strings using Dafny's built-in `string` type.
  */
-module DafnyStdLibs.JSON.API {
+module Std.JSON.API {
   import Values
   import Serializer
   import Deserializer

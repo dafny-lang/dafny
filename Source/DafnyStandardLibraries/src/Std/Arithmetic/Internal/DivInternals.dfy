@@ -16,7 +16,7 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
+module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
 
   import opened GeneralInternals
   import opened ModInternals

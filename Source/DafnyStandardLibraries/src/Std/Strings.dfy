@@ -1,7 +1,7 @@
 /**
 The Strings module enables converting between numbers such as nat and int, and String
  */
-module {:disableNonlinearArithmetic} DafnyStdLibs.Strings {
+module {:disableNonlinearArithmetic} Std.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm

@@ -8,7 +8,7 @@
  changes, but is more cumbersome to use. This API operates on concrete syntax trees that capture details of 
  punctuation and blanks and represent strings using unescaped, undecoded utf-8 byte sequences.
  */
-module DafnyStdLibs.JSON.ZeroCopy.API {
+module Std.JSON.ZeroCopy.API {
   import Grammar
   import ConcreteSyntax.Spec
   import Serializer

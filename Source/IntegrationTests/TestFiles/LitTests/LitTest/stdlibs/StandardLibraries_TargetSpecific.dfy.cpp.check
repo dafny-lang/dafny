@@ -1,1 +1,1 @@
-CHECK-L: StandardLibraries_TargetSpecific.dfy(9,22): Error: module FileIO does not exist (position 1 in path DafnyStdLibs.FileIO)
+CHECK-L: StandardLibraries_TargetSpecific.dfy(9,13): Error: module FileIO does not exist (position 1 in path Std.FileIO)

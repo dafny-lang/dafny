@@ -6,7 +6,7 @@
 /**
   * This module implements basic functionality of Unicode 15.1.0.
   */
-module DafnyStdLibs.Unicode.Base {
+module Std.Unicode.Base {
   /**
     * Any value in the Unicode codespace (a range of integers from 0 to 10FFFF_16). (Section 3.4 D9-D10)
     */

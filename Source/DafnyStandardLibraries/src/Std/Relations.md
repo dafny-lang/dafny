@@ -27,7 +27,7 @@ As a simple example, you might define a predicate like this:
 and then need to prove this lemma to use it in a sorting routine:
 <!-- %check-verify %use tmp-intlt.dfy -->
 ```dafny
-  import opened DafnyStdLibs.Relations
+  import opened Std.Relations
   lemma IntLTisStrictTotalOrder()
     ensures StrictTotalOrdering(IntLT) {}
 ```

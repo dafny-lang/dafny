@@ -1,7 +1,7 @@
 
 ## The `BoundedInts` module
 
-The `DafnyStdLibs.BoundedInts` module contains definitions of types and constants for fixed-bit-width integers.
+The `Std.BoundedInts` module contains definitions of types and constants for fixed-bit-width integers.
 
 Dafny itself generally uses and reasons about mathematical, unbounded integers and natural numbers.
 However compiled programs, for efficiency of computation and storage, will generally use fixed-bit-width
@@ -28,12 +28,12 @@ native signed 8-bit integer type.
 In addition, the module defines a number of constants that are powers of two (not all of them, just those that are generally useful).
 They are useful in stating the ranges of fixed-bit-width integers. Examples are `TWO_TO_THE_15`, `TWO_TO_THE_32`.
 
-Here are two example methods. In the first, the module `DafnyStdLibs.BoundedInts` is renamed to `BI`, which is then used as the prefix for type and constant names.
+Here are two example methods. In the first, the module `Std.BoundedInts` is renamed to `BI`, which is then used as the prefix for type and constant names.
 In the second, the module is imported as opened, in which case the type and constant names can be used without qualification.
 <!-- %check-verify -->
 ```dafny
 module M {
-  import BI = DafnyStdLibs.BoundedInts
+  import BI = Std.BoundedInts
   
   method m(k: BI.int16) {
     assert k as int < BI.TWO_TO_THE_15;
@@ -41,7 +41,7 @@ module M {
 }
 
 module N {
-  import opened DafnyStdLibs.BoundedInts
+  import opened Std.BoundedInts
 
   method m(k: int16) {
     assert (k/256) as int < TWO_TO_THE_8;

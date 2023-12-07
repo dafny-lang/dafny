@@ -10,7 +10,7 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort */
 
-module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.Power {
+module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   import opened DivMod
   import opened GeneralInternals
   import opened Mul

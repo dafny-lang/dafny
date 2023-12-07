@@ -6,7 +6,7 @@
 /**
  Implements byte strings whose bounds are representable as `int32` native integers (`View`s).
  */
-module DafnyStdLibs.JSON.Utils.Views.Core {
+module Std.JSON.Utils.Views.Core {
   import opened BoundedInts
 
   type View = v: View_ | v.Valid? witness View([], 0, 0)

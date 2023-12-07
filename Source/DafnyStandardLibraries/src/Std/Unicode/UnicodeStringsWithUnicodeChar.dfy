@@ -8,7 +8,7 @@
   * defining functions for converting between strings and UTF-8/UTF-16.
   * See the `AbstractUnicodeStrings` module for details.
   */
-module DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings {
+module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings {
 
   import Base
   import Utf8EncodingForm
@@ -53,32 +53,32 @@ module DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicod
   function ToUTF8Checked(s: string): Option<seq<uint8>>
     ensures ToUTF8Checked(s).Some?
   {
-    var asCodeUnits := Seqs.Map(CharAsUnicodeScalarValue, s);
+    var asCodeUnits := Seq.Map(CharAsUnicodeScalarValue, s);
     var asUtf8CodeUnits := Utf8EncodingForm.EncodeScalarSequence(asCodeUnits);
-    var asBytes := Seqs.Map(cu => cu as uint8, asUtf8CodeUnits);
+    var asBytes := Seq.Map(cu => cu as uint8, asUtf8CodeUnits);
     Some(asBytes)
   }
 
   function FromUTF8Checked(bs: seq<uint8>): Option<string> {
-    var asCodeUnits := Seqs.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
+    var asCodeUnits := Seq.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
     var utf32 :- Utf8EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
-    var asChars := Seqs.Map(CharFromUnicodeScalarValue, utf32);
+    var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
     Some(asChars)
   }
 
   function ToUTF16Checked(s: string): Option<seq<uint16>>
     ensures ToUTF16Checked(s).Some?
   {
-    var asCodeUnits := Seqs.Map(CharAsUnicodeScalarValue, s);
+    var asCodeUnits := Seq.Map(CharAsUnicodeScalarValue, s);
     var asUtf16CodeUnits := Utf16EncodingForm.EncodeScalarSequence(asCodeUnits);
-    var asBytes := Seqs.Map(cu => cu as uint16, asUtf16CodeUnits);
+    var asBytes := Seq.Map(cu => cu as uint16, asUtf16CodeUnits);
     Some(asBytes)
   }
 
   function FromUTF16Checked(bs: seq<uint16>): Option<string> {
-    var asCodeUnits := Seqs.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
+    var asCodeUnits := Seq.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
     var utf32 :- Utf16EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
-    var asChars := Seqs.Map(CharFromUnicodeScalarValue, utf32);
+    var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
     Some(asChars)
   }
 }

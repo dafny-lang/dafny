@@ -11,17 +11,17 @@ verify:
 	$(DAFNY) verify src/DafnyStdLibs/dfyconfig.toml
 
 build-binary:
-	$(DAFNY) build -t:lib src/DafnyStdLibs/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
 	diff build/current build/rebuilt
-	make -C src/DafnyStdLibs/TargetSpecific check-binary-all
+	make -C src/Std/TargetSpecific check-binary-all
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
-	make -C src/DafnyStdLibs/TargetSpecific update-binary-all
+	make -C src/Std/TargetSpecific update-binary-all
 # Rebuild Dafny to pick up the new embedded assets
 	dotnet build ../Dafny.sln
 

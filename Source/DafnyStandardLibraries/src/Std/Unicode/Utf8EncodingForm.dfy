@@ -7,7 +7,7 @@
   * The Unicode encoding form that assigns each Unicode scalar value to an unsigned byte sequence of one to four bytes
   * in length, as specified in Table 3-6 and Table 3-7.
   */
-module DafnyStdLibs.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
+module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
   type CodeUnit = bv8
 
   //

@@ -20,9 +20,9 @@
   * Then define a refining module for each `--unicode-char` value you wish to support,
   * each of which imports the appropriate implementation of AbstractUnicodeStrings.
   */
-abstract module DafnyStdLibs.Unicode.AbstractUnicodeStrings {
+abstract module Std.Unicode.AbstractUnicodeStrings {
 
-  import Collections.Seqs
+  import Collections.Seq
 
   import opened Wrappers
   import opened BoundedInts
@@ -32,7 +32,7 @@ abstract module DafnyStdLibs.Unicode.AbstractUnicodeStrings {
   function ASCIIToUTF8(s: string): seq<uint8>
     requires forall i | 0 <= i < |s| :: 0 <= s[i] as int < 128
   {
-    Seqs.Map(c requires 0 <= c as int < 128 => c as uint8, s)
+    Seq.Map(c requires 0 <= c as int < 128 => c as uint8, s)
   }
 
   function FromUTF8Checked(bs: seq<uint8>): Option<string>
@@ -42,7 +42,7 @@ abstract module DafnyStdLibs.Unicode.AbstractUnicodeStrings {
   function ASCIIToUTF16(s: string): seq<uint16>
     requires forall i | 0 <= i < |s| :: 0 <= s[i] as int < 128
   {
-    Seqs.Map(c requires 0 <= c as int < 128 => c as uint16, s)
+    Seq.Map(c requires 0 <= c as int < 128 => c as uint16, s)
   }
 
   function FromUTF16Checked(bs: seq<uint16>): Option<string>

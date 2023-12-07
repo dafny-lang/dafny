@@ -6,7 +6,7 @@
 /**
  Defines different types of errors that can occur during serialization and deserialization.
  */
-module DafnyStdLibs.JSON.Errors {
+module Std.JSON.Errors {
   import Wrappers
   import Strings
   import opened BoundedInts

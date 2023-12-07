@@ -42,8 +42,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
-  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
-    : base(module.RangeToken, module.NameNode, parent, false, false, cloneId) {
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
+    : base(options, module.RangeToken, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;

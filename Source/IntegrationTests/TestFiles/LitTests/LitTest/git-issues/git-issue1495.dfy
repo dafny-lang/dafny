@@ -1,7 +1,7 @@
 // RUN: %verify "%s" --standard-libraries:true  > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 datatype Bar = Bar(i: string)
 function ParseBar(s: string): Result<Bar, string> {

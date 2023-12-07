@@ -6,7 +6,7 @@
 /**
  Defines a simple functional specification of a JSON serializer.
  */
-module DafnyStdLibs.JSON.ConcreteSyntax.SpecProperties {
+module Std.JSON.ConcreteSyntax.SpecProperties {
   import Spec
   import Vs = Utils.Views.Core
   import opened BoundedInts

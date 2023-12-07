@@ -6,7 +6,7 @@
 /*
  * Private API - these should not be used elsewhere
  */
-module DafnyStdLibs.FileIOInternalExterns {
+module Std.FileIOInternalExterns {
   method
     INTERNAL_ReadBytesFromFile(path: string)
     returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string)

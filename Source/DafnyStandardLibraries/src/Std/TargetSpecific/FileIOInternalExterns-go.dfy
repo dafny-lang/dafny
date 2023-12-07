@@ -14,7 +14,7 @@ module
   {:compile false}
 {:extern "DafnyStdLibs_FileIOInternalExterns"}
 {:dummyImportMember "INTERNAL__ReadBytesFromFile", false}
-DafnyStdLibs.FileIOInternalExterns {
+Std.FileIOInternalExterns {
   method
     {:extern}
   INTERNAL_ReadBytesFromFile(path: string)

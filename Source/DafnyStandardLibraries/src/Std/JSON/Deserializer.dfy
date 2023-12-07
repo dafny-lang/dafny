@@ -6,11 +6,11 @@
 /**
  Implements high-level deserialization (utf-8 bytes to JSON values).
  */
-module DafnyStdLibs.JSON.Deserializer {
+module Std.JSON.Deserializer {
   import Values
   import Spec
   import ByteStrConversion
-  import opened Collections.Seqs
+  import opened Collections.Seq
   import opened Wrappers
   import opened BoundedInts
   import opened Arithmetic.Logarithm
@@ -140,11 +140,11 @@ module DafnyStdLibs.JSON.Deserializer {
   }
 
   function Object(js: Grammar.jobject): DeserializationResult<seq<(string, Values.JSON)>> {
-    Seqs.MapWithResult(d requires d in js.data => KeyValue(d.t), js.data)
+    Seq.MapWithResult(d requires d in js.data => KeyValue(d.t), js.data)
   }
 
   function Array(js: Grammar.jarray): DeserializationResult<seq<Values.JSON>> {
-    Seqs.MapWithResult(d requires d in js.data => Value(d.t), js.data)
+    Seq.MapWithResult(d requires d in js.data => Value(d.t), js.data)
   }
 
   function Value(js: Grammar.Value): DeserializationResult<Values.JSON> {

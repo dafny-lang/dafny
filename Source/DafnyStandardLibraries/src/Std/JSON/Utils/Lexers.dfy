@@ -6,7 +6,7 @@
 /**
  Contains a state machine that recognizes quoted strings and skips over backslash-escaped quotes.
  */
-module DafnyStdLibs.JSON.Utils.Lexers {
+module Std.JSON.Utils.Lexers {
   module Core {
     import opened Wrappers
     import opened BoundedInts

@@ -7,9 +7,9 @@
  * Private API - these should not be used elsewhere
  */
 // {:compile false} is necessary here since otherwise the translation to Python
-// will create a DafnyStdLibs_FileIOInternalExterns.py source file as well,
+// will create a Std_FileIOInternalExterns.py source file as well,
 // which the embedded version can't easily override.
-module {:compile false} DafnyStdLibs.FileIOInternalExterns {
+module {:compile false} Std.FileIOInternalExterns {
   method
     {:extern}
   INTERNAL_ReadBytesFromFile(path: string)

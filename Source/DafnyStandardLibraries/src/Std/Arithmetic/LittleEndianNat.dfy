@@ -11,12 +11,12 @@ Little endian interpretation of a sequence of numbers with a given base. The
 first element of a sequence is the least significant position; the last
 element is the most significant position.
  */
-abstract module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.LittleEndianNat {
+abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   import opened DivMod
   import opened Mul
   import opened Power
-  import opened Collections.Seqs
+  import opened Collections.Seq
   import opened Logarithm
 
   function BASE(): nat

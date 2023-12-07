@@ -18,7 +18,7 @@ In this library module Dafny defines three such types:
 Consider this routine that looks for a value in a sequence, beginning at position `k`, returning its index:
 <!-- %check-verify %save tmp-find.dfy -->
 ```dafny
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 function Find<T(==)>(s: seq<T>, k: int, value: T): (r: Option<int>)
   requires 0 <= k <= |s|
   ensures  r.Some? ==> 0 <= r.Extract() < |s| && s[r.Extract()] == value
@@ -72,7 +72,7 @@ appropriate values in the success situation.
 For example, if we have this method
 <!-- %check-resolve %save tmp-matches.dfy -->
 ```dafny
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 method FindAllMatches<T(==)>(s: seq<T>, value: T) returns (status: Outcome<string>, matches: seq<int>)
 ```
 we can call it as
@@ -102,7 +102,7 @@ convert to values of the other types. For example, we can rewrite the example ab
 
 <!-- %check-verify %save tmp-find.dfy -->
 ```dafny
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 function Find<T(==)>(s: seq<T>, k: int, value: T): (r: Option<int>)
   requires 0 <= k <= |s|
@@ -154,7 +154,7 @@ The workaround, however, is straightforward: just capture the results using `:=`
 
 <!-- %check-verify -->
 ```dafny
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 method Find<T(==)>(s: seq<T>, k: int, value: T) returns (r: Option<int>, v: T)
   requires 0 <= k <= |s|

@@ -9,6 +9,9 @@ namespace Microsoft.Dafny;
 /// Represents a submodule declaration at module level scope
 /// </summary>
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
+
+  public DafnyOptions Options { get; }
+
   /// <summary>
   /// Only equivalent between modules if one is a clone of the other.
   /// This property is used to determine if two module declarations have the same contents when doing resolution caching
@@ -36,12 +39,14 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
+    Options = original.Options;
     Opened = original.Opened;
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
+  protected ModuleDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
+    Options = options;
     Height = -1;
     Signature = null;
     Opened = opened;

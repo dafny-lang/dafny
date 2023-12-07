@@ -6,7 +6,7 @@
 /**
  Defines a low-level specification of a JSON serializer.
  */
-module DafnyStdLibs.JSON.ConcreteSyntax.Spec {
+module Std.JSON.ConcreteSyntax.Spec {
   import Vs = Utils.Views.Core
   import opened BoundedInts
   import opened Grammar

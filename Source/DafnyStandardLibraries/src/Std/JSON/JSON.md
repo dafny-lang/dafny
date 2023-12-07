@@ -17,10 +17,10 @@ The tutorial in [`JSONExamples.dfy`](../../../examples/JSON/JSONExamples.dfy) sh
 
 <!-- %check-verify -->
 ```dafny
-import API = DafnyStdLibs.JSON.API
-import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
-import opened DafnyStdLibs.JSON.Values
-import opened DafnyStdLibs.Wrappers
+import API = Std.JSON.API
+import opened Std.Unicode.UnicodeStringsWithUnicodeChar
+import opened Std.JSON.Values
+import opened Std.Wrappers
 
 method Test(){
   var CITY_JS :- expect ToUTF8Checked(@"{""Cities"": [{

@@ -7,7 +7,7 @@ A collection of predicates that establish whether commonly known properties on f
 such as injectivity and commutativity, hold.
 These properties can only be applied to functions on value types.
 */
-module DafnyStdLibs.Functions {
+module Std.Functions {
 
   ghost predicate Injective<X(!new), Y>(f: X --> Y)
     reads f.reads

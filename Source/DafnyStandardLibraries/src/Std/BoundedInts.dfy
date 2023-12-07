@@ -1,7 +1,7 @@
 /** 
 Defines symbolic names for various powers of 2 and newtypes for various common restricted-range int types. 
 */
-module DafnyStdLibs.BoundedInts {
+module Std.BoundedInts {
   const TWO_TO_THE_0:   int := 1
 
   const TWO_TO_THE_1:   int := 2

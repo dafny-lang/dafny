@@ -4,7 +4,7 @@
  *******************************************************************************/
 
 // Definition of the UTF-16 Unicode Encoding Form, as specified in Section 3.9 D91.
-module DafnyStdLibs.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
+module Std.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
   type CodeUnit = bv16
 
   //

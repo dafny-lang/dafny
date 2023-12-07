@@ -14,7 +14,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `seq` type.
  */
-module DafnyStdLibs.Collections.Seqs {
+module Std.Collections.Seq {
 
   import opened Wrappers
   import opened Relations

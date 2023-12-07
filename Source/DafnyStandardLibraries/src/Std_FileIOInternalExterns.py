@@ -1,4 +1,4 @@
-# Module: DafnyStdLibs_FileIOInternalExterns
+# Module: Std_FileIOInternalExterns
 
 import traceback
 import os

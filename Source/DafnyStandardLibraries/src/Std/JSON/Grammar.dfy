@@ -6,7 +6,7 @@
 /**
  Defines concrete syntax trees that capture details of punctuation and blanks and represent.
  */
-module DafnyStdLibs.JSON.Grammar {
+module Std.JSON.Grammar {
   import opened BoundedInts
   import opened Utils.Views.Core
 

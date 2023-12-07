@@ -6,7 +6,7 @@
 /**
  Implements slices (`Chain`s) over byte strings whose bounds are representable as `int32` native integers (`View`s).
  */
-module DafnyStdLibs.JSON.Utils.Views.Writers {
+module Std.JSON.Utils.Views.Writers {
   import opened BoundedInts
   import opened Wrappers
   import opened Core

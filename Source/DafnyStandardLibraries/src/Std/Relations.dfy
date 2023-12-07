@@ -11,7 +11,7 @@ as opposed to relations that operate on sets in general.
 Also contains predicates that establish how a value relates to a set,
 such as whether it is the least or minimal element.
 */
-module DafnyStdLibs.Relations {
+module Std.Relations {
 
   ghost predicate Reflexive<T(!new)>(relation: (T, T) -> bool) {
     forall x :: relation(x, x)

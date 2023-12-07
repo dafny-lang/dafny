@@ -14,7 +14,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `set` type.
  */
-module DafnyStdLibs.Collections.Sets {
+module Std.Collections.Set {
 
   import opened Functions
   import opened Relations

@@ -18,11 +18,11 @@
   * that states lemmas/conditions about Serialize and Deserialize
   * which refining modules would prove about their own implementations.
   */
-module DafnyStdLibs.Unicode.Utf8EncodingScheme {
+module Std.Unicode.Utf8EncodingScheme {
   import opened Wrappers
 
   import BoundedInts
-  import Collections.Seqs
+  import Collections.Seq
   import Utf8EncodingForm
 
   type byte = BoundedInts.uint8
@@ -32,7 +32,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     */
   function Serialize(s: Utf8EncodingForm.CodeUnitSeq): (b: seq<byte>)
   {
-    Seqs.Map(c => c as byte, s)
+    Seq.Map(c => c as byte, s)
   }
 
   /**
@@ -40,7 +40,7 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     */
   function Deserialize(b: seq<byte>): (s: Utf8EncodingForm.CodeUnitSeq)
   {
-    Seqs.Map(b => b as Utf8EncodingForm.CodeUnit, b)
+    Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b)
   }
 
   /**
@@ -61,11 +61,11 @@ module DafnyStdLibs.Unicode.Utf8EncodingScheme {
     calc {
       Serialize(Deserialize(b));
     == // Definitions of Serialize, Deserialize
-      Seqs.Map(c => c as byte, Seqs.Map(b => b as Utf8EncodingForm.CodeUnit, b));
+      Seq.Map(c => c as byte, Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b));
     == // Compositionality of Map
-      Seqs.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);
+      Seq.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);
     == // Simplify map
-      Seqs.Map(b => b, b);
+      Seq.Map(b => b, b);
     == // Identity function
       b;
     }

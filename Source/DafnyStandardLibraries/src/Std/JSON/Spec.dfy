@@ -6,8 +6,8 @@
 /**
  Defines a high-level specification of a JSON serializer.
  */
-module DafnyStdLibs.JSON.Spec {
-  import Collections.Seqs
+module Std.JSON.Spec {
+  import Collections.Seq
   import opened BoundedInts
   import opened Strings
   import opened Values
@@ -20,7 +20,7 @@ module DafnyStdLibs.JSON.Spec {
 
   function EscapeUnicode(c: uint16): seq<uint16> {
     var sStr := Strings.HexConversion.OfNat(c as nat);
-    Seqs.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
+    Seq.MembershipImpliesIndexing(c => 0 <= c as int < 128, sStr);
     var s := ASCIIToUTF16(sStr);
     assert |s| <= 4 by {
       assert c as nat <= 0xFFFF;

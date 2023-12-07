@@ -6,7 +6,7 @@
 /**
  Contains definitions of well-formedness for parsers (stating that they must consume part of their input). 
  */
-module DafnyStdLibs.JSON.Utils.Parsers {
+module Std.JSON.Utils.Parsers {
   import opened BoundedInts
   import opened Wrappers
   import opened Views.Core
