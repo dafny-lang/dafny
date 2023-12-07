@@ -1,345 +1,465 @@
 /* The Dafny Abstract Machine
  * This file specifies:
- * 1. A core language for Dafny based on call-by-push-value (CBPV)
- * 2. A novel CEK-machine interpreter (Levy's is a CK machine)
- * 3. Eventually, a simple type system based on CBPV
- * 4. Eventually, a type soundness result of the CEK-machine w.r.t. the type system
+ * 1. A core language for Dafny based on call-by-push-value (CBPV) with
+ *    state (mutable references), control (letcc/throw) for early returns, etc., and recursion 
+ * 2. A novel CEK-machine interpreter that extends that of
+ *    Hillerstrom-Lindley for fine-grain call-by-value
+ * 3. A simple type system that is sound with respect to the interpreter
 */ 
 
 module {:extern "DAM"} DAM {
+  //import opened DafnyStdLibs.Wrappers
 
-datatype Option<A> = None | Some(value: A) {
-    predicate IsFailure() { this.None? }
-    function PropagateFailure(): Option<A>
+  // CBPV distinguishes between expressions and statements of positive and negative type, respectively
+  module Syntax {
+    datatype Option<A> = None | Some(value: A) {
+      predicate IsFailure() { this.None? }
+      function PropagateFailure<B>(): Option<B>
         requires IsFailure() { None }
-    function Extract(): A
+      function Extract(): A
         requires !IsFailure() { this.value }
-}
+    }
 
-class Ptr<A> {
-  var deref: A
-  constructor(expr: A) {
-    deref := expr;
-  }
-}
+    /*function Uncons<K(<), V>(m: map<K, V>): (K, V, map<K, V>) requires |m| > 0 {
+        var k :| k in m && forall k' : K :: k <= k';
+        (k, m[k], m - {k})
+    }*/
 
-type Var = string
-type Field = string
+    predicate Unique<V>(k: string, m: map<string, V>) {
+      forall k' :: k' in m ==> k <= k'
+    }
 
-//module Typing {
-datatype Pos =
-  Unit
-| Bool
-| Int
-| Thunk(Neg)
-| Ref(Pos)
-| Stack(Neg)
+    lemma ExistsUnique<V>(m: map<string, V>)
+      requires |m| > 0
+      ensures exists k :: k in m && Unique(k, m)
+      decreases |m|
+    {
+      var k :| k in m;
+      var m' := m - {k};
+      if |m'| == 0 {
+        assert m == map[k := m[k]];
+        assert Unique(k, m);
+      } else {
+        ExistsUnique(m');
+        var k' :| k' in m' && Unique(k', m');
+        if k <= k' {} else {}
+        assert m == m'[k := m[k]];
+      }
+    }
 
-datatype Neg =
-  Value(Pos)
-| Function(dom: Pos, cod: Neg)
-| Record(fields: map<Field, Neg>)
+    function mapOption<V(==)>(m: map<string, Option<V>>): Option<map<string, V>> decreases |m| {
+      if |m| == 0 then
+        Some(map[])
+      else
+        ExistsUnique(m);
+        var k :| k in m && Unique(k, m);
+        var v :- m[k];
+        var m :- mapOption(m - {k});
+        Some(m[k := v])
+    }
 
-type Context = map<Var, Pos>
+    //method IsLeast
 
-// Hamza-Voirol-Kuncak trick: annotate terms just enough so that ostensible checking terms synthesize
+    class Ptr<A> {
+      var deref: A
+      constructor(expr: A) {
+        deref := expr;
+      }
+    }
 
-function SynthPos(g: Context, e: Expr): Option<Pos> {
-    match e
-    case Var(x)   => if x in g then Some(g[x]) else None
-    case Unit     => Some(Pos.Unit)
-    case Bool(_)  => Some(Pos.Bool)
-    case Int(_)   => Some(Pos.Int)
-    case Thunk(s) => (
-        match SynthNeg(g, s)
-        case Some(t) => Some(Pos.Thunk(t))
-        case _       => None
-    )
-    case Ref(p)   => Some(Pos.Int)
-}
+    type Field = string
 
-predicate CheckPos(g: Context, e: Expr, t: Pos) {
-    SynthPos(g, e) == Some(t)
-}
+    datatype Pos =
+      Unit
+    | Bool
+    | Int
+    | Thunk(neg: Neg)
+    | Ref(pos: Pos)
+    | Stack(start: Neg)
 
-predicate CheckNeg(g: Context, s: Stmt, t: Neg) {
-    SynthNeg(g, s) == Some(t)
-}
+    datatype Neg =
+      Value(pos: Pos)
+    | Function(dom: Pos, cod: Neg)
+    | Record(fields: map<Field, Neg>)
 
-function SynthNeg(g: Context, s: Stmt): Option<Neg> decreases s {
-    match s
-    case Pure(e) => (
-        match SynthPos(g, e)
-        case Some(t) => Some(Neg.Value(t))
-        case _       => None
-    )
-    
-    case Bind(lhs, var_, rhs) => (
-        match SynthNeg(g, lhs)
-        case Some(Value(t)) => SynthNeg(g[var_ := t], rhs)
-        case _              => None
-    )
-    
-    /*case Ite(guard, then_, else_) => (
-        :- CheckPos(guard, Pos.Bool);
-        var t :- SynthNeg(g, then_, t);
-        if CheckNeg(g, else_, t) then Some(t) else None
-    )*/
+    type Var = string
 
-    case Func(bound, dom, body) => (
-        var cod :- SynthNeg(g[bound := dom], body);
-        Some(Function(dom, cod))
-    )
+    datatype Expr =
+      Var(Var)
+    | Unit
+    | Bool(bool)
+    | Int(int)
+    // TODO datatypes
+    | Thunk(Stmt)
+    | Ref(Ptr<Val>)
 
-    case Call(func, arg) => (
-        match SynthNeg(g, func)
-        case Some(Function(dom, cod)) => (
-            if CheckPos(g, arg, dom) then Some(cod) else None
-        )
-        case _ => None
-    )
-    
-    case Force(expr) => (
-        match SynthPos(g, expr)
-        case Some(Thunk(t)) => Some(t)
-        case _              => None
-    )
-
-    case Print(expr, next) => (
-        match SynthPos(g, expr)
-        case Some(_) => SynthNeg(g, next)
-        case _       => None
-    )
-
-    /*case Record(fields) => (
-        for i := 0 to  {
-            match SynthNeg(g, fields[i])
-            case Some() => 
-            case None   => return None;
-        }
-    )*/
-
-    case Select(record, field) => (
-        match SynthNeg(g, record)
-        case Some(Record(fields)) =>
-            if field in fields then Some(fields[field]) else None
-        case _ => None
-    )
-
-    case _ => None
-}
-
-//}
-
-datatype Expr =
-// G, x : A+ |- x : A+
-  Var(Var)
-| Unit
-// G |- true/false : Bool
-| Bool(bool)
-| Int(int) 
-// TODO: variant types
-| Thunk(Stmt)
-| Ref(Ptr<Val>)
-
-//type Heap = set<Ptr<Stmt>>
-
-datatype Stmt =
-// Intro & Elim for expressions
-  Pure(Expr)
-| Bind(lhs: Stmt, var_: Var, rhs: Stmt)
-// Elim for bools
-| Ite(guard: Expr, then_: Stmt, else_: Stmt)
-// Intro & Elim for arrows
-| Func(bound: Var, dom: Pos, body: Stmt)
-| Call(func: Stmt, arg: Expr)
-// Intro & Elim for objects/records
-| Record(fields: map<string, Stmt>)
-| Select(record: Stmt, field: Field)
-// Elim for thunks
-| Force(Expr)
-// Elims for refs
-| Read(ref: Expr, var_: Var, cont: Stmt)
-| Write(lvalue: Expr, rvalue: Expr, next: Stmt)
-// Print
-| Print(Expr, next: Stmt)
-// Recursion
-| Rec(bound: Var, body: Stmt)
-// Let-current-stack (letcc, basically) and throw
-| LetCS(bound: Var, body: Stmt)
-| Throw(stack: Expr, init: Stmt)
-{
+    //Hamza-Voirol-Kuncak trick: annotate terms just enough so that ostensible checking terms synthesize
+    datatype Stmt =
+    // Value intro & elim
+      Pure(Expr)
+    | Bind(lhs: Stmt, var_: Var, rhs: Stmt)
+    // Bool elim
+    | Ite(guard: Expr, then_: Stmt, else_: Stmt)
+    // Function intro & elim
+    | Func(bound: Var, dom: Pos, body: Stmt)
+    | Call(func: Stmt, arg: Expr)
+    // Record intro & elim
+    | Record(fields: map<Field, Stmt>)
+    | Select(record: Stmt, field: Field)
+    // Thunk elim
+    | Force(Expr)
+    // Ref elims
+    | Read(ref: Expr, var_: Var, cont: Stmt)
+    | Write(lvalue: Expr, rvalue: Expr, next: Stmt)
+    // Print
+    | Print(Expr, next: Stmt)
+    // Recursion
+    | Rec(bound: Var, body: Stmt)
+    // Let-current-stack/letcc and throw
+    | LetCS(bound: Var, body: Stmt)
+    | Throw(stack: Expr, init: Stmt)
     // TODO calculate Heap of a comp
-}
 
-// Let-bindings
-function Let(lhs: Expr, var_ : string, ty: Pos, rhs: Stmt): Stmt
-    { Stmt.Call(Func(var_, ty, rhs), lhs) }
+    // Let, which is notably distinct from Bind
+    function Let(lhs: Expr, var_ : string, ty: Pos, rhs: Stmt): Stmt
+      { Stmt.Call(Func(var_, ty, rhs), lhs) }
+    
+    // Imperative sequencing of commands (Stmts of Value(Unit) type)
+    function Then(lhs: Stmt, rhs: Stmt): Stmt
+      { Stmt.Bind(lhs, "_", rhs) }
 
-/** Guarded commands / imperative substrate of Dafny */
-function Then(lhs: Stmt, rhs: Stmt): Stmt
-    { Stmt.Bind(lhs, "_", rhs) }
+    function Skip(): Stmt
+      { Pure(Expr.Unit) }
 
-function Skip(): Stmt
-    { Pure(Expr.Unit) }
-
-function While(guard: Stmt, body: Stmt, next: Stmt): Stmt {
-    Rec("while", Stmt.Bind(guard, "if",
+    function While(guard: Stmt, body: Stmt, next: Stmt): Stmt {
+      Rec("while", Stmt.Bind(guard, "if",
         Ite(Var("if"), Then(body, Force(Var("while"))), next)))
-}
+    }
 
-// G |- (e, v) : A iff exists D. G |- e : D and D |- V : A
-datatype Val =
-  Unit
-| Bool(bool)
-| Int(int)
-| Thunk(Env, Stmt)
-| Ref(Ptr<Val>)
-| Stack(Env, Stack)
+    // The environment accumulates substitutions made along the course of machine execution, i.e.,
+    // maps variables to values - closed intro. forms of positive type
+    type Env = map<Var, Val>
 
-// G |- e : D iff for all x : A in D, G |- e[x] : A
-type Env = map<string, Val>
+    // To implement lexical scope, thunks and stacks are closures that save the environment they're defined in
+    datatype Val =
+      Unit
+    | Bool(bool)
+    | Int(int)
+    | Thunk(Env, Stmt)
+    | Ref(ptr: Ptr<Val>)
+    | Stack(Env, Stack)
 
-// Stack frames (one for each negative type elimination)
-datatype Frame =
-  Bind(var_: Var, rhs: Stmt)
-| Call(arg: Expr)
-| Select(field: string)
-
-datatype Stack = Empty | Push(top: Frame, rest: Stack) {
-    function Pop(): Option<(Frame, Stack)> {
+    // Stacks accumulate negative eliminations
+    datatype Stack = Empty | Push(top: Frame, rest: Stack) {
+      function Pop(): Option<(Frame, Stack)> {
         match this
         case Empty      => None
         case Push(t, r) => Some((t, r))
+      }
     }
-}
 
-// CEK Machine
-// In state = Computation, Environment, stacK
-// (E, C, K) : B-   iff   E |- G  and  G |- C : A-  and  G |- K : A- << B-
-type     In  = (Env, Stmt, Stack)
-// TODO calculate Heap of In
-datatype Out = Next(In) | Stuck | Terminal(Val)
+    datatype Frame =
+      Bind(var_: Var, rhs: Stmt)
+    | Call(arg: Expr)
+    | Select(field: string)
+  }
 
-function Eval(env: Env, expr: Expr): Val {
-    match expr
-    case Var(x) =>
+  module Machine {
+    import opened Syntax
+
+    // States of the CEK Machine
+    type     In  = (Env, Stmt, Stack)
+    datatype Out = Next(In) | Stuck | Terminal(Val)
+
+    function Heap(state: In): set<Ptr<Val>> {
+      set x : Val | x in state.0.Values && x.Ref? :: x.ptr
+    }
+
+    // Small-step semantics are divided between evaluation of expressions and stepping of the machine
+    function Eval(env: Env, expr: Expr): Val {
+      match expr
+      case Var(x) =>
         // Type soundness will discharge this assumption
         assume {:axiom} x in env;
         env[x]
-    case Unit     => Val.Unit
-    case Bool(b)  => Val.Bool(b)
-    case Int(i)   => Val.Int(i)
-    // The Felleisen-Friedman trick: delay
-    // substitution by constructing a closure
-    case Thunk(c) => Val.Thunk(env, c)
-    case Ref(ptr) => Val.Ref(ptr)
-}
+      case Unit     => Val.Unit
+      case Bool(b)  => Val.Bool(b)
+      case Int(i)   => Val.Int(i)
+      // The Felleisen-Friedman trick: delay
+      // substitution by constructing a closure
+      case Thunk(c) => Val.Thunk(env, c)
+      case Ref(ptr) => Val.Ref(ptr)
+    }
 
-// Small-step semantics
-// Type soundness = well-typed configs don't get stuck!
-// TODO: replace * with Heap of state
-function Step(state: In): Out reads * {
-    var (env, comp, stack) := state;
-    match comp
-    case Bind(lhs, var_, rhs) =>
-        Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)))
-    
-    case Pure(expr) => (
+    // TODO: ensures Preservation(in, out) = match out case In(next) => CheckCEK(g, next, start, end) | Stuck => false | Terminal(v) => CheckCEK(g, (env, ...), start, end)
+    method Step(state: In) returns (out: Out) {
+      var (env, comp, stack) := state;
+      match comp
+      case Bind(lhs, var_, rhs) =>
+        return Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)));
+      
+      case Pure(expr) => {
         match stack.Pop()
         case Some((Bind(var_, rhs), stack)) =>
-            Next((env[var_ := Eval(env, expr)], rhs, stack))
+          return Next((env[var_ := Eval(env, expr)], rhs, stack));
+        case Some(_) => return Stuck;
+        case None    => return Terminal(Eval(env, expr));
+      }
 
-        case Some(_) => Stuck
-        case None    => Terminal(Eval(env, expr))
-    )
-
-    case Call(func, arg) =>
-        Next((env, func, Push(Frame.Call(arg), stack)))
-    
-    case Func(bound, _, body) => (
+      case Call(func, arg) =>
+        return Next((env, func, Push(Frame.Call(arg), stack)));
+      
+      case Func(bound, _, body) => {
         match stack.Pop()
         case Some((Call(arg), stack)) =>
-            Next((env[bound := Eval(env, arg)], body, stack))
-        
-        case Some(_) => Stuck
-        case None    => Terminal(Val.Thunk(env, comp))
-    )
+          return Next((env[bound := Eval(env, arg)], body, stack));
+        case Some(_) => return Stuck;
+        case None    => return Terminal(Val.Thunk(env, comp));
+      }
 
-    case Select(obj, field) =>
-        Next((env, obj, Push(Frame.Select(field), stack)))
-    
-    case Record(fields) => (
+      case Select(obj, field) =>
+        return Next((env, obj, Push(Frame.Select(field), stack)));
+      
+      case Record(fields) => {
         match stack.Pop()
-        case Some((Select(field), stack)) =>
-            if field in fields then
-                Next((env, fields[field], stack))
-            else
-                Stuck
-        
-        case Some(_) => Stuck
-        case None    => Terminal(Val.Thunk(env, comp))
-    )
+        case Some((Select(field), stack)) => {
+          if case field in fields =>
+               return Next((env, fields[field], stack));
+             case true => return Stuck;
+        }
+        case Some(_) => return Stuck;
+        case None    => return Terminal(Val.Thunk(env, comp));
+      }
 
-    case Ite(guard, then_, else_) => (
+      case Ite(guard, then_, else_) => {
         match Eval(env, guard)
         case Bool(guard) =>
-            Next((env, if guard then then_ else else_, stack))
+          return Next((env, if guard then then_ else else_, stack));
         
-        case _ => Stuck
-    )
+        case _ => return Stuck;
+      }
 
-    // Lexical scope restores the env of the closure
-    case Force(thunk) => (
+      // Lexical scope restores the env of the closure
+      case Force(thunk) => {
         match Eval(env, thunk)
-        case Thunk(env, comp) => Next((env, comp, stack))
-        case _             => Stuck
-    )
-    
-    case Read(ref, var_, cont) => (
-        match Eval(env, ref)
-        case Ref(ptr) => Next((env[var_ := ptr.deref], cont, stack))
-        case _        => Stuck
-    )
+        case Thunk(env, stmt) => return Next((env, stmt, stack));
+        case _                => return Stuck;
+      }
 
-    case Write(lval, rval, next) => (
+      case Read(ref, var_, next) => {
+        match Eval(env, ref)
+        case Ref(ptr) => return Next((env[var_ := ptr.deref], next, stack));
+        case _        => return Stuck;
+      }
+
+      case Write(lval, rval, next) => {
         match Eval(env, lval)
         case Ref(ptr) =>
-            (/*ptr.deref := Eval(env, rval);*/ Next((env, next, stack)))
-        case _        => Stuck
-    )
+          //ptr.deref := Eval(env, rval);
+          return Next((env, next, stack));
+        case _        => return Stuck;
+      }
 
-    case Print(expr, next) =>
-        (/*print Eval(env, expr), "\n";*/ Next((env, next, stack)))
-
-    case Rec(self, body) =>
-        Next((env[self := Val.Thunk(env, comp)], body, stack))
-
-    case LetCS(bound, body) =>
-        Next((env[bound := Val.Stack(env, stack)], body, stack))
-    
-    case Throw(stack, init) => (
+      case Print(expr, next) =>
+        print Eval(env, expr), "\n";
+        return Next((env, next, stack));
+      
+      case Rec(self, body) =>
+        return Next((env[self := Val.Thunk(env, comp)], body, stack));
+      
+      case LetCS(bound, body) =>
+        return Next((env[bound := Val.Stack(env, stack)], body, stack));
+      
+      case Throw(stack, next) => {
         match Eval(env, stack)
-        case Stack(env, stack) => Next((env, init, stack))
-        case _                 => Stuck
+        case Stack(env, stack) => return Next((env, next, stack));
+        case _                 => return Stuck;
+      }
+    }
+
+    //codatatype Trace = Next(In, Trace) | Stuck | Terminal(Val)
+    // Coinductive big-step semantics a la Leroy
+    method Run(s: In) decreases * {
+      print("\n");
+      var o := Step(s);
+      match o
+      case Next(s) => print(s, "\n"); Run(s);
+      case _ => print "done/stuck\n"; return;
+    }
+
+    // Initial configuration
+    function Initial(comp: Stmt): In
+      { (map[], comp, Empty) }
+  }
+
+  module Typing {
+    import opened Syntax
+
+    type Context = map<Var, Pos>
+
+    /*function SynthVal(v: Val): Option<Pos> decreases v, 2 {
+      match v
+      case Unit    => Some(Pos.Unit)
+      case Bool(_) => Some(Pos.Bool)
+      case Int(_)  => Some(Pos.Int)
+      case Thunk(env, s) => (
+        var g :- SynthEnv(env);
+        var t :- SynthStmt(g, s);
+        Some(Pos.Thunk(t))
+      )
+      case _   => None
+    }*/
+
+    predicate CheckExpr(g: Context, e: Expr, t: Pos) decreases e, 1 {
+      SynthExpr(g, e) == Some(t)
+    }
+
+    predicate CheckStmt(g: Context, s: Stmt, t: Neg) decreases s, 1 {
+      SynthStmt(g, s) == Some(t)
+    }
+
+    function SynthExpr(g: Context, expr: Expr): Option<Pos> decreases expr, 0 {
+      match expr
+      case Var(x)   => if x in g then Some(g[x]) else None
+      case Unit     => Some(Pos.Unit)
+      case Bool(_)  => Some(Pos.Bool)
+      case Int(_)   => Some(Pos.Int)
+      case Thunk(s) => (
+        var t :- SynthStmt(g, s);
+        Some(Pos.Thunk(t))
+      )
+      case Ref(p)   => None
+    }
+
+    function SynthStmt(g: Context, stmt: Stmt): Option<Neg> decreases stmt, 0 {
+      match stmt
+      case Pure(e) => (
+        var t :- SynthExpr(g, e);
+        Some(Neg.Value(t))
+      )
+
+      case Bind(lhs, var_, rhs) => (
+        match SynthStmt(g, lhs)
+        case Some(Value(t)) => SynthStmt(g[var_ := t], rhs)
+        case _              => None
+      )
+      
+      case Ite(guard, then_, else_) => (
+        if CheckExpr(g, guard, Pos.Bool) then
+          var t :- SynthStmt(g, then_);
+          if CheckStmt(g, else_, t) then
+            Some(t)
+          else
+            None
+        else
+          None
+      )
+
+      case Func(bound, dom, body) =>
+        var cod :- SynthStmt(g[bound := dom], body);
+        Some(Function(dom, cod))
+
+      case Call(func, arg) => (
+        match SynthStmt(g, func)
+        case Some(Function(dom, cod)) =>
+          if CheckExpr(g, arg, dom) then
+            Some(cod)
+          else
+            None
+        case _ => None
+      )
+
+      case Force(expr) => (
+        match SynthExpr(g, expr)
+        case Some(Thunk(t)) => Some(t)
+        case _              => None
+      )
+
+      case Print(expr, next) =>
+        var _ :- SynthExpr(g, expr);
+        SynthStmt(g, next)
+
+      case Record(fields) => (
+        var fields :- mapOption(map field : Field | field in fields :: SynthStmt(g, fields[field]));
+        Some(Neg.Record(fields))
+      )
+
+      case Select(record, field) => (
+        match SynthStmt(g, record)
+        case Some(Record(fields)) =>
+          if field in fields then
+            Some(fields[field])
+          else
+            None
+        case _ => None
+      )
+
+      case _ => None
+    }
+
+    function SynthStack(g: Context, stack: Stack, start: Neg): Option<Neg> decreases stack, 0 {
+      match stack
+      case Empty => Some(start)
+      case Push(Bind(var_, rhs), stack) => (
+        match start
+        case Value(t) => (
+          match SynthStmt(g[var_ := t], rhs)
+          case Some(start) => SynthStack(g, stack, start)
+          case None        => None
+        )
+        case _        => None
+      )
+
+      case Push(Select(field), stack) => (
+        match start
+        case Record(fields) =>
+          if field in fields then
+            SynthStack(g, stack, fields[field])
+          else
+            None
+        case _ => None
+      )
+
+      case Push(Call(arg), stack) => (
+        match start
+        case Function(dom, cod) =>
+          if CheckExpr(g, arg, dom) then
+            SynthStack(g, stack, cod)
+          else
+            None
+        case _ => None
+      )
+    }
+    /*function SynthEnv(e: Env): Option<Context> decreases e, 0 {
+      mapOption(map x : Var | x in e :: SynthVal(e[x]))
+    }*/
+    /*
+function SynthCEK(s: In): Option<Neg> {
+    var (env, comp, stack) := s;
+    match SynthEnv(env)
+    case Some(g) => (
+        match SynthStmt(g, comp)
+        case Some(t) => SynthStack(g, stack, t)
+        case None    => None
     )
+    case None => None
+}*/
+  }
+
+/*lemma Progress(g, s: In)
+requires Check(g, s, t, start, end)
+ensures  !Step(s).Stuck? {
+
 }
 
-//codatatype Trace = Next(In, Trace) | Stuck | Terminal(Val)
+CheckIn()
 
-// Big-step semantics coinductively iterates the small-step
-method Run(s: In) decreases * {
-    print("\n");
-    match Step(s)
-    case Next(s) => print(s, "\n"); Run(s);
-    case _ => print "done/stuck\n"; return;
+lemma Preservation(s: In)
+requires var t := SynthCEK(s);
+ensures CheckCEK(s, t)*/
 }
 
-// Initial configuration
-function Initial(comp: Stmt): In
-    { (map[], comp, Empty) }
-
-method Main() decreases * {
+/*method Main() decreases * {
     Run(Initial(
         Stmt.Bind(
             Pure(Expr.Bool(true)),
@@ -363,6 +483,4 @@ method Main() decreases * {
         Let(x2, "x", Pos.Int,
         Stmt.Call(fv, z))))
     ));
-}
-
-}
+}*/
