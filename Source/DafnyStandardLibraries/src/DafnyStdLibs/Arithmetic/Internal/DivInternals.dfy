@@ -108,54 +108,30 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
     (-n <= z < 0 && (x - y) / n == x / n - y / n - 1)
   }
 
-  lemma {:rlimit 30000} SmallStepXR(n: int)
-    requires n > 0 && ModAuto(n) 
-  {
-    forall i, j
-      ensures j >= 0 && DivPlus(n, i, j) ==> DivPlus(n, i, j + n)
-      ensures i < n  && DivPlus(n, i, j) ==> DivPlus(n, i - n, j)
-      ensures j < n  && DivPlus(n, i, j) ==> DivPlus(n, i, j - n)
-      ensures i >= 0 && DivPlus(n, i, j) ==> DivPlus(n, i + n, j)
-    {
-      assert ((i + n) + j) / n == ((i + j) + n) / n;
-      assert (i + (j + n)) / n == ((i + j) + n) / n;
-      assert ((i - n) + j) / n == ((i + j) - n) / n;
-      assert (i + (j - n)) / n == ((i + j) - n) / n;
-    }
-  }
-
   lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxPlus(n: int) 
     requires n > 0 && ModAuto(n)
     ensures DivAutoPlus(n)
   {
-    forall x:int, y:int {:trigger (x + y) / n}
-      ensures  var z := (x % n) + (y % n);
-               (|| (0 <= z < n && (x + y) / n == x / n + y / n)
-                || (n <= z < 2 * n && (x + y) / n == x / n + y / n + 1))
+    LemmaModAuto(n);
+    LemmaDivBasics(n);
+
+    var f := (x:int, y:int) => DivPlus(n, x, y);
+    forall i, j
+      ensures j >= 0 && f(i, j) ==> f(i, j + n)
+      ensures i < n  && f(i, j) ==> f(i - n, j)
+      ensures j < n  && f(i, j) ==> f(i, j - n)
+      ensures i >= 0 && f(i, j) ==> f(i + n, j)
+      ensures 0 <= i < n && 0 <= j < n ==> f(i, j)
     {
-      var f := (xx:int, yy:int) =>
-          (var z := (xx % n) + (yy % n);
-           (   (0 <= z < n && (xx + yy) / n == xx / n + yy / n)
-               || (n <= z < 2 * n && (xx + yy) / n == xx / n + yy / n + 1)));
-      forall i, j
-        ensures j >= 0 && f(i, j) ==> f(i, j + n)
-        ensures i < n  && f(i, j) ==> f(i - n, j)
-        ensures j < n  && f(i, j) ==> f(i, j - n)
-        ensures i >= 0 && f(i, j) ==> f(i + n, j)
-      {
-        assert ((i + n) + j) / n == ((i + j) + n) / n;
-        assert (i + (j + n)) / n == ((i + j) + n) / n;
-        assert ((i - n) + j) / n == ((i + j) - n) / n;
-        assert (i + (j - n)) / n == ((i + j) - n) / n;
-      }
-      forall i, j
-        ensures 0 <= i < n && 0 <= j < n ==> f(i, j)
-      {
-        assert ((i + n) + j) / n == ((i + j) + n) / n;
-        assert (i + (j + n)) / n == ((i + j) + n) / n;
-        assert ((i - n) + j) / n == ((i + j) - n) / n;
-        assert (i + (j - n)) / n == ((i + j) - n) / n;
-      }
+      assert ((i + n) + j) / n == ((i + j) + n) / n;
+      assert (i + (j + n)) / n == ((i + j) + n) / n;
+      assert ((i - n) + j) == ((i + j) - n);
+      assert ((i - n) + j) / n == ((i + j) - n) / n;
+      assert (i + (j - n)) / n == ((i + j) - n) / n;
+    }
+    forall x:int, y:int
+      ensures DivPlus(n, x, y)
+    {
       LemmaModInductionForall2(n, f);
       assert f(x, y);
     }
@@ -190,12 +166,12 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
     requires n > 0 && ModAuto(n)
     ensures DivAutoMinus(n)
   {
+    LemmaDivAutoAuxMinusHelper(n);
+    var f := (xx:int, yy:int) => DivMinus(n, xx, yy);
+    LemmaModInductionForall2(n, f);
     forall x:int, y:int
       ensures DivMinus(n, x, y)
     {
-      var f := (xx:int, yy:int) => DivMinus(n, xx, yy);
-      LemmaDivAutoAuxMinusHelper(n);
-      LemmaModInductionForall2(n, f);
       assert f(x, y);
     }
   }
