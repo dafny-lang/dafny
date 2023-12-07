@@ -16,7 +16,7 @@ module RandomCSharp replaces DfyRandom {
 
 module Interop {
   import opened CSharpSystem
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Wrappers
   
   function {:extern} IntToInt32(value: int): Option<Int32>
     ensures var r := IntToInt32(value); 
