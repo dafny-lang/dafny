@@ -89,9 +89,9 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
   ghost predicate DivPlus(n: int, x: int, y: int)
     requires n > 0
   {
-      var z := (x % n) + (y % n);
-      (0 <= z < n && (x + y) / n == x / n + y / n) ||
-      (n <= z < n + n && (x + y) / n == x / n + y / n + 1)
+    var z := (x % n) + (y % n);
+    (0 <= z < n && (x + y) / n == x / n + y / n) ||
+    (n <= z < n + n && (x + y) / n == x / n + y / n + 1)
   }
 
   ghost predicate DivAutoMinus(n: int)
@@ -108,7 +108,7 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
     (-n <= z < 0 && (x - y) / n == x / n - y / n - 1)
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxPlus(n: int) 
+  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxPlus(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAutoPlus(n)
   {
@@ -137,14 +137,14 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxMinusHelper(n: int) 
+  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxMinusHelper(n: int)
     requires n > 0 && ModAuto(n)
     ensures forall i, j ::
-      && (j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n))
-      && (i < n  && DivMinus(n, i, j) ==> DivMinus(n, i - n, j))
-      && (j < n  && DivMinus(n, i, j) ==> DivMinus(n, i, j - n))
-      && (i >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i + n, j))
-      && (0 <= i < n && 0 <= j < n ==> DivMinus(n, i, j))
+              && (j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n))
+              && (i < n  && DivMinus(n, i, j) ==> DivMinus(n, i - n, j))
+              && (j < n  && DivMinus(n, i, j) ==> DivMinus(n, i, j - n))
+              && (i >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i + n, j))
+              && (0 <= i < n && 0 <= j < n ==> DivMinus(n, i, j))
   {
     LemmaModAuto(n);
     LemmaDivBasics(n);
@@ -162,12 +162,12 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.DivInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxMinus(n: int) 
+  lemma LemmaDivAutoAuxMinus(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAutoMinus(n)
   {
     LemmaDivAutoAuxMinusHelper(n);
-    var f := (xx:int, yy:int) => DivMinus(n, xx, yy);
+    var f := (x:int, y:int) => DivMinus(n, x, y);
     LemmaModInductionForall2(n, f);
     forall x:int, y:int
       ensures DivMinus(n, x, y)

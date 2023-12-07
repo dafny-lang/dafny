@@ -201,21 +201,21 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
   }
 
   ghost predicate ModAutoPlus(n: int)
-    requires n > 0 
+    requires n > 0
   {
     (forall x: int, y: int {:trigger (x + y) % n} ::
-          (var z := (x % n) + (y % n);
-           (  (0 <= z < n     && (x + y) % n == z)
-              || (n <= z < n + n && (x + y) % n == z - n))))
+       (var z := (x % n) + (y % n);
+        (  (0 <= z < n     && (x + y) % n == z)
+           || (n <= z < n + n && (x + y) % n == z - n))))
   }
 
   ghost predicate ModAutoMinus(n: int)
-    requires n > 0 
+    requires n > 0
   {
     (forall x: int, y: int {:trigger (x - y) % n} ::
-          (var z := (x % n) - (y % n);
-           (   (0 <= z < n && (x - y) % n == z)
-               || (-n <= z < 0 && (x - y) % n == z + n))))
+       (var z := (x % n) - (y % n);
+        (   (0 <= z < n && (x - y) % n == z)
+            || (-n <= z < 0 && (x - y) % n == z + n))))
 
   }
 
@@ -230,7 +230,7 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
     LemmaModAutoMinus(n);
   }
 
-  lemma {:rlimit 2000} LemmaModAutoMinus(n: int) 
+  lemma {:rlimit 2000} LemmaModAutoMinus(n: int)
     requires n > 0
     ensures ModAutoMinus(n)
   {
@@ -257,7 +257,7 @@ module {:disableNonlinearArithmetic} DafnyStdLibs.Arithmetic.ModInternals {
     }
   }
 
-  lemma LemmaModAutoPlus(n: int) 
+  lemma LemmaModAutoPlus(n: int)
     requires n > 0
     ensures ModAutoPlus(n)
   {
