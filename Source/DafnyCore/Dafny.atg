@@ -257,7 +257,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel .>
   ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
                                                (. var litmod = submodule as LiteralModuleDecl;
                                                   if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
-                                                    var prefixModule = new PrefixNameModule(litmod.ModuleDef.PrefixIds, litmod);
+                                                    var prefixModule = new PrefixNameModule(theOptions, litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(prefixModule);
                                                   } else {
                                                     if (submodule != null) {
@@ -341,7 +341,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
     (.
       module.RangeToken = new RangeToken(dmod.FirstToken, t);
       module.TokenWithTrailingDocString = tokenWithTrailingDocString;
-      submodule = new LiteralModuleDecl(module, parent, Guid.NewGuid());
+      submodule = new LiteralModuleDecl(theOptions, module, parent, Guid.NewGuid());
       submodule.RangeToken = module.RangeToken;
       theOptions = dafnyOptionsBackup;
     .)
@@ -360,17 +360,17 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ModuleName<out var name>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AbstractModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+          (. submodule = new AbstractModuleDecl(theOptions, new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
       ModuleName<out var name>
       "="
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+          (. submodule = new AliasModuleDecl(theOptions, new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
                                                name, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AliasModuleDecl(new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
+          (. submodule = new AliasModuleDecl(theOptions, new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
                                          new Name(new RangeToken(startToken,startToken), namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
           .)
     )
@@ -446,7 +446,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      } else {
        name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(new RangeToken(startToken, t), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
+     submodule = new ModuleExportDecl(theOptions, new RangeToken(startToken, t), name, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.

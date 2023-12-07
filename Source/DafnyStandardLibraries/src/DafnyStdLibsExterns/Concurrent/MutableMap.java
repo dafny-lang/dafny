@@ -1,7 +1,7 @@
 package DafnyStdLibsExterns.Concurrent;
 
 import dafny.*;
-import DafnyStdLibs.Wrappers.*;
+import Std.Wrappers.*;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -43,12 +43,12 @@ public class MutableMap<K, V> {
         map.put(k, v);
     }
 
-    public DafnyStdLibs.Wrappers.Option<V> Get(K k) {
+    public Std.Wrappers.Option<V> Get(K k) {
         V v = map.get(k);
         if (v == null) {
-            return DafnyStdLibs.Wrappers.Option.create_None(td_V);
+            return Std.Wrappers.Option.create_None(td_V);
         } else {
-            return DafnyStdLibs.Wrappers.Option.create_Some(td_V, v);
+            return Std.Wrappers.Option.create_Some(td_V, v);
         }
     }
 

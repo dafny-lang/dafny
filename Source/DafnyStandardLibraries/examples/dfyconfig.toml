@@ -1,7 +1,9 @@
 [options]
 standard-libraries = true
-# TODO: Can't require this or else the default set of options
-# isn't compatible with standard libraries
+# This needs to be set because the examples themselves
+# use {:concurrent} and reads clauses on methods,
+# but consumers don't have to have this option set
+# to use the standard libraries in general.
 reads-clauses-on-methods = true
 resource-limit = 1000
 warn-as-errors = true

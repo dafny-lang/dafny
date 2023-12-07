@@ -22,9 +22,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
-    public static readonly string StandardLibrariesDooUriBase = "dllresource://DafnyPipeline/DafnyStandardLibraries";
-    public static readonly Uri StandardLibrariesDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo");
-    public static readonly Uri StandardLibrariesArithmeticDooUri = new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo");
+    public static readonly Dictionary<string, Uri> standardLibrariesDooUriTarget = new();
+    public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+    public static readonly Uri StandardLibrariesArithmeticDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries-arithmetic.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo"));
+
+    static DafnyMain() {
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+        standardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
+          new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
+      }
+    }
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

@@ -35,7 +35,7 @@ env:
 jobs:
 
   publish-release:
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest   # Put back 'ubuntu-20.04' if macos-latest fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -63,7 +63,7 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up JDK 18
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: 18
         distribution: corretto

@@ -1,7 +1,7 @@
 module ConcurrentExamples {
 
-  import opened DafnyStdLibs.Concurrent
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Concurrent
+  import opened Std.Wrappers
   import opened Helpers
 
   const p1: nat -> bool := _ => true

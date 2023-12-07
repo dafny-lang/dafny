@@ -17,8 +17,8 @@ module CollectionsExamples {
 
   module SeqExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Seqs
+    import opened Std.Wrappers
+    import opened Std.Collections.Seq
     import opened Helpers
 
     // A sequence that's long enough to be non-trivial
@@ -116,8 +116,8 @@ module CollectionsExamples {
 
   module SetExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Sets
+    import opened Std.Wrappers
+    import opened Std.Collections.Set
     import opened Helpers
 
     method {:test} TestSetRange() {
@@ -137,8 +137,8 @@ module CollectionsExamples {
 
   module MapsExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Maps
+    import opened Std.Wrappers
+    import opened Std.Collections.Map
     import opened Helpers
 
     const m := map[1 := 10, 2 := 20, 3 := 30]
@@ -160,8 +160,8 @@ module CollectionsExamples {
 
   module ImapsExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Imaps
+    import opened Std.Wrappers
+    import opened Std.Collections.Imap
     import opened Helpers
 
     const m := imap[1 := 10, 2 := 20, 3 := 30]
@@ -175,9 +175,9 @@ module CollectionsExamples {
 
   module ArraysExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Relations
-    import opened DafnyStdLibs.Collections.Arrays
+    import opened Std.Wrappers
+    import opened Std.Relations
+    import opened Std.Collections.Array
     import opened Helpers
 
     method {:test} TestBinarySearch() {

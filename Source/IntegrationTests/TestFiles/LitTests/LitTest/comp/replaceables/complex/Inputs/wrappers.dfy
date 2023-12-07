@@ -12,7 +12,7 @@ All three of these may be used with `:-` as Dafny failure-compatible types
 The module also defines two forms of `Need`, that check the truth of a predicate and
 return a failure value if false.
  */
-module DafnyStdLibs.Wrappers {
+module Std.Wrappers {
 
   /** This datatype is the conventional Some/None datatype that is often used
       in place of a reference or null.

@@ -3,7 +3,7 @@ package DafnyStdLibs_Concurrent
 import (
   _dafny "dafny"
   sync "sync"
-  DafnyStdLibs_Wrappers "DafnyStdLibs_Wrappers"
+  Std_Wrappers "Std_Wrappers"
 )
 
 type Dummy__ struct{}
@@ -102,13 +102,13 @@ func (_this *MutableMap) Items() _dafny.Set {
     return _dafny.SetOf(items[:]...)
   }
 }
-func (_this *MutableMap) Get(k interface{}) DafnyStdLibs_Wrappers.Option {
+func (_this *MutableMap) Get(k interface{}) Std_Wrappers.Option {
   {
     value, ok := _this.Internal.Load(k)
     if ok {
-      return DafnyStdLibs_Wrappers.Companion_Option_.Create_Some_(value)
+      return Std_Wrappers.Companion_Option_.Create_Some_(value)
     } else {
-      return DafnyStdLibs_Wrappers.Companion_Option_.Create_None_()
+      return Std_Wrappers.Companion_Option_.Create_None_()
     }
   }
 }

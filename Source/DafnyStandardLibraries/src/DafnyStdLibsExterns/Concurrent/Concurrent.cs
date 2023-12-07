@@ -1,6 +1,6 @@
 namespace Concurrent {
     using System.Collections.Concurrent;
-    using DafnyStdLibs.Wrappers;
+    using Std.Wrappers;
 
     public class MutableMap<K, V> {
 
