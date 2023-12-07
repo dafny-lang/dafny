@@ -13,8 +13,8 @@ DAFNY = dotnet run --project ../../../../Dafny --no-build --
 DOO_FILE_SOURCE=../../../build/DafnyStandardLibraries-${TARGETLANG}.doo
 DOO_FILE_TARGET=../../../binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
-verify:
-	$(DAFNY) verify ../../../src/DafnyStdLibs/dfyconfig.toml
+verify: build-binary
+verify-all: update-binary-all
 
 build-binary:
 	$(DAFNY) build -t:lib dfyconfig.toml \
