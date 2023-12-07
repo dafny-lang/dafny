@@ -1,9 +1,11 @@
-// RUN: %build -t:lib --reads-on-methods "%S/Inputs/readsOnMethodsLibrary.dfy" --output "%T/readsOnMethodsLibrary.doo" > "%t"
+// RUN: %build -t:lib --reads-clauses-on-methods "%S/Inputs/readsOnMethodsLibrary.dfy" --output "%T/readsOnMethodsLibrary.doo" > "%t"
 // RUN: %resolve %s --library "%T/readsOnMethodsLibrary.doo" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-import Library
+module Client {
+  import Library
 
-method Bar() {
-  Library.Foo();
+  method Bar() {
+    Library.Foo();
+  }
 }

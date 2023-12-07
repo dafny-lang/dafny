@@ -7,7 +7,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
+public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public enum ModuleKindEnum {
   Concrete,
@@ -79,7 +79,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public CallRedirector CallRedirector { get; set; }
 
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
+  public IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
 
@@ -103,31 +103,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 
-  /// <summary>
-  /// The following class stores the relative name of any declaration that is reachable from this module
-  /// as a list of NameSegments, along with a flag for whether the Declaration is revealed or merely provided.
-  /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
-  /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
-  /// </summary>
-  public class AccessibleMember {
-    public List<NameSegment> AccessPath;
-    public bool IsRevealed;
-
-    public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
-      AccessPath = accessPath;
-      IsRevealed = isRevealed;
-    }
-
-    public AccessibleMember(bool isRevealed = true) {
-      AccessPath = new List<NameSegment>();
-      IsRevealed = isRevealed;
-    }
-
-    public AccessibleMember Clone() {
-      return new AccessibleMember(AccessPath.ToList(), IsRevealed);
-    }
-  }
-
   [FilledInDuringResolution]
   public Dictionary<Declaration, AccessibleMember> AccessibleMembers = new();
 
@@ -144,7 +119,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
-
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -649,7 +623,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
       // Use an empty cloneId because these are empty module declarations.
       var cloneId = Guid.Empty;
-      var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
+      var subDecl = new LiteralModuleDecl(prefixNameModule.Options, modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
       // only set the range on the last submodule of the chain, since the others can be part of multiple files
       ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
@@ -663,7 +637,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         if (prefixModule.Parts.Count == 0) {
           // change the parent, now that we have found the right parent module for the prefix-named module
           prefixModule.Module.ModuleDef.EnclosingModule = subDecl.ModuleDef;
-          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, subDecl.ModuleDef,
+          var sm = new LiteralModuleDecl(prefixModule.Options, prefixModule.Module.ModuleDef, subDecl.ModuleDef,
             prefixModule.Module.CloneId);
           subDecl.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {

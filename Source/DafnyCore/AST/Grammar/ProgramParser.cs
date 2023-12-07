@@ -46,7 +46,7 @@ public class ProgramParser {
       compiledRoots);
     var program = new Program(
       programName,
-      new LiteralModuleDecl(defaultModule, null, Guid.NewGuid()),
+      new LiteralModuleDecl(options, defaultModule, null, Guid.NewGuid()),
       builtIns,
       errorReporter, compilation
     );
