@@ -24,6 +24,10 @@ public static class ErrorReporterExtensions {
     }
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
+
+    foreach (var related in relatedInformation) {
+      dafnyToken = new NestedToken(dafnyToken, related.Token, related.Message);
+    }
     reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, dafnyToken, error.Msg);
   }
 

@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var tok = rootTok;
       while (tok is NestedToken nestedToken) {
         tok = nestedToken.Inner;
-        if (!(tok is RangeToken)) {
+        if (tok is not RangeToken) {
           relatedInformation.AddRange(
             ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
               tok, nestedToken.Message ?? "Related location")

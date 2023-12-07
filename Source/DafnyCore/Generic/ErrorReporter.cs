@@ -17,7 +17,7 @@ public abstract class ErrorReporter {
   public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-  public virtual bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
     if (Options.WarningsAsErrors && level == ErrorLevel.Warning) {
       level = ErrorLevel.Error;
     }
