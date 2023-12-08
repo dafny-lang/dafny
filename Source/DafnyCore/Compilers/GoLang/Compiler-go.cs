@@ -1528,7 +1528,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is TupleTypeDecl tupleTypeDecl) {
           return HelperModulePrefix + "Tuple";
         }
-        if (udt.IsTraitType && udt.ResolvedClass.IsExtern(Options, out _, out _)) {
+        if (udt.ResolvedClass.IsExtern(Options, out _, out _)) {
           // To use an external interface, we need to have values of the
           // interface type, so we treat an extern trait as a plain interface
           // value, not a pointer (a Go interface value is basically a typed
