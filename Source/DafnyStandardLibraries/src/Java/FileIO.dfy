@@ -6,7 +6,7 @@
 /*
  * Private API - these should not be used elsewhere
  */
-module Std.FileIOInternalExterns {
+module Std.JavaFileIOInternalExterns replaces FileIOInternalExterns {
   method
     {:extern "DafnyStdLibsExterns.FileIO", "INTERNAL_ReadBytesFromFile"}
   INTERNAL_ReadBytesFromFile(path: string)

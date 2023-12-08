@@ -1,8 +1,4 @@
-module
-  {:compile false}
-{:extern "DafnyStdLibs_Concurrent"}
-{:dummyImportMember "Dummy__", true}
-Std.Concurrent refines ConcurrentInterface {
+module {:extern} {:compile false} Std.CSharpConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

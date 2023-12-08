@@ -1,6 +1,10 @@
-module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines ConcurrentInterface {
+module
+  {:compile false}
+{:extern "DafnyStdLibs_Concurrent"}
+{:dummyImportMember "Dummy__", true}
+Std.GoLangConcurrent replaces Concurrent {
 
-  class {:extern "MutableMap"} MutableMap<K(==), V(==)> ... {
+  class {:extern} MutableMap<K(==), V(==)> ... {
 
     constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
       ensures this.inv == inv
@@ -28,7 +32,7 @@ module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines Concurr
 
   }
 
-  class {:extern "AtomicBox"} AtomicBox<T> ... {
+  class {:extern} AtomicBox<T> ... {
 
     constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
       requires inv(t)
@@ -42,7 +46,7 @@ module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines Concurr
 
   }
 
-  class {:extern "Lock"} Lock ... {
+  class {:extern} Lock ... {
 
     constructor {:extern} {:axiom} ()
 

@@ -40,10 +40,6 @@
       <LogicalName>DafnyStandardLibraries-java.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-cs.doo">
-      <LogicalName>DafnyStandardLibraries-cs.doo</LogicalName>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-js.doo">
       <LogicalName>DafnyStandardLibraries-js.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -56,7 +52,7 @@
       <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\CSharp\**\*.cs">
       <LinkBase>DafnyStandardLibraries_cs</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

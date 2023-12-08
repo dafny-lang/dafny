@@ -11,7 +11,7 @@ verify:
 	$(DAFNY) verify src/DafnyStdLibs/dfyconfig.toml
 
 build-binary:
-	$(DAFNY) build -t:lib src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib src/Shared/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
@@ -19,11 +19,20 @@ check-binary: build-binary
 	diff build/current build/rebuilt
 	make -C src/Std/TargetSpecific check-binary-all
 
-update-binary: build-binary
+translate:
+	$(DAFNY) translate ${TARGETLANG} "src/${TARGETNAME}/dfyconfig.toml" --output:binaries/${TARGETNAME}/translated
+	cp src/${TARGETNAME}/**/*.${TARGETLANG} binaries/${TARGETNAME}/
+
+update-binary: # build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
-	make -C src/Std/TargetSpecific update-binary-all
+	make translate TARGETLANG=cs TARGETNAME=CSharp
+# 	make translate TARGETLANG=java TARGETNAME=Java
+# 	make translate TARGETLANG=js TARGETNAME=JavaScript
+# 	make translate TARGETLANG=go TARGETNAME=GoLang
+# 	make translate TARGETLANG=py TARGETNAME=Python
+	
 # Rebuild Dafny to pick up the new embedded assets
-	dotnet build ../Dafny.sln
+	# dotnet build ../Dafny.sln
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
