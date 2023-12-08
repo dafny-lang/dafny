@@ -12,6 +12,74 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task ModuleImport1ResolutionErrorInDependency() {
+      var source = @"
+module User {
+ import Us><ed
+ 
+ const x := Used.x
+}
+
+module [>Used<] {
+  const x: bool := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ResolutionErrorInDependency() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x := Used.><x
+}
+
+module [>Used<] {
+  const x: bool := 3
+}".TrimStart();
+      MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+        out var positions, out var ranges);
+
+      var documentItem = await CreateOpenAndWaitForResolve(cleanSource, null);
+      foreach (var position in positions) {
+        var result = (await RequestDefinition(documentItem, position));
+        Assert.Empty(result);
+      }
+    }
+
+    [Fact]
+    public async Task ResolutionError() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x: bool := Used.><x
+}
+
+module Used {
+  const [>x<] := 3
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
+    public async Task ResolutionErrorInDependent() {
+      var source = @"
+module User {
+ import Used
+ 
+ const x: bool := Used.3
+}
+
+module Used {
+  const [>y<] := 3
+  const x: bool := ><y
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ModuleImport1() {
       var source = @"
 module User {
