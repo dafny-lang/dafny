@@ -136,7 +136,7 @@ public class ProgramResolver {
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
-    var systemModuleResolver = new ModuleResolver(this);
+    var systemModuleResolver = new ModuleResolver(this, Options);
 
     SystemModuleManager.systemNameInfo = SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
@@ -170,7 +170,7 @@ public class ProgramResolver {
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var moduleResolver = new ModuleResolver(this);
+    var moduleResolver = new ModuleResolver(this, decl.Options);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 

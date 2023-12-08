@@ -21,8 +21,8 @@ public partial class Parser {
     var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
     dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
 
-    theModule = new FileModuleDefinition(scanner.FirstToken);
     theOptions = new DafnyOptions(options);
+    theModule = new FileModuleDefinition(scanner.FirstToken);
   }
 
   bool IsIdentifier(int kind) {

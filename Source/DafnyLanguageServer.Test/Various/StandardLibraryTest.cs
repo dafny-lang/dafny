@@ -14,7 +14,7 @@ public class StandardLibraryTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task CanUseWrappers() {
     var source = @"
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 const triggerSemicolonWarning := 3;
 
@@ -41,7 +41,7 @@ standard-libraries = true";
   [Fact]
   public async Task GotoDefinition() {
     var source = @"
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 method Foo() returns (s: ><Option<int>) { 
   return Some(3); 

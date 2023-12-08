@@ -1,11 +1,11 @@
 module ArithmeticTests {
-  import opened DafnyStdLibs.Arithmetic.Logarithm
-  import opened DafnyStdLibs.Arithmetic.Power
-  import opened DafnyStdLibs.Arithmetic.Mul
-  import opened DafnyStdLibs.Arithmetic.Power2
-  import opened DafnyStdLibs.Arithmetic.MulInternals
-  import opened DafnyStdLibs.Arithmetic.ModInternals
-  import opened DafnyStdLibs.Arithmetic.DivInternals
+  import opened Std.Arithmetic.Logarithm
+  import opened Std.Arithmetic.Power
+  import opened Std.Arithmetic.Mul
+  import opened Std.Arithmetic.Power2
+  import opened Std.Arithmetic.MulInternals
+  import opened Std.Arithmetic.ModInternals
+  import opened Std.Arithmetic.DivInternals
 
   method {:test} TestMul() {
     for i := -10 to 10 {

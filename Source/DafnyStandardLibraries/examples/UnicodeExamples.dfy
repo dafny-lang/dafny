@@ -6,7 +6,7 @@
 
 module UnicodeExamples {
   module BaseExamples {
-    import opened DafnyStdLibs.Unicode.Base
+    import opened Std.Unicode.Base
     import opened Helpers
 
     const TEST_ASSIGNED_PLANE_CODE_POINTS: set<CodePoint> := {
@@ -32,9 +32,9 @@ module UnicodeExamples {
   }
 
   module Utf8EncodingFormExamples {
-    import opened DafnyStdLibs.Unicode.Base
-    import opened DafnyStdLibs.Unicode.Utf8EncodingForm
-    import opened DafnyStdLibs.Wrappers
+    import opened Std.Unicode.Base
+    import opened Std.Unicode.Utf8EncodingForm
+    import opened Std.Wrappers
     import opened Helpers
 
     method {:test} TestEmptySequenceIsWellFormed() {
@@ -89,9 +89,9 @@ module UnicodeExamples {
   }
 
   module Utf16EncodingFormExamples {
-    import opened DafnyStdLibs.Unicode.Base
-    import opened DafnyStdLibs.Unicode.Utf16EncodingForm
-    import opened DafnyStdLibs.Wrappers
+    import opened Std.Unicode.Base
+    import opened Std.Unicode.Utf16EncodingForm
+    import opened Std.Wrappers
     import opened Helpers
 
     method {:test} TestEmptySequenceIsWellFormed() {
@@ -142,12 +142,12 @@ module UnicodeExamples {
   }
 
   module UnicodeStringsWithUnicodeCharExamples {
-    import opened DafnyStdLibs.BoundedInts
-    import opened DafnyStdLibs.Unicode.Base
-    import opened DafnyStdLibs.Wrappers
+    import opened Std.BoundedInts
+    import opened Std.Unicode.Base
+    import opened Std.Wrappers
     import opened Helpers
 
-    import UnicodeStrings = DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
+    import UnicodeStrings = Std.Unicode.UnicodeStringsWithUnicodeChar
 
     const currenciesStr := "\U{24}\U{A3}\U{20AC}\U{1F4B0}"
     const currenciesUtf8: seq<uint8> := [0x24] + [0xC2, 0xA3] + [0xE2, 0x82, 0xAC] + [0xF0, 0x9F, 0x92, 0xB0]
@@ -178,10 +178,10 @@ module UnicodeExamples {
   }
 
   module Utf8EncodingSchemeExamples {
-    import opened DafnyStdLibs.Unicode.Base
-    import opened DafnyStdLibs.Unicode.Utf8EncodingForm
-    import EncodingScheme = DafnyStdLibs.Unicode.Utf8EncodingScheme
-    import opened DafnyStdLibs.Wrappers
+    import opened Std.Unicode.Base
+    import opened Std.Unicode.Utf8EncodingForm
+    import EncodingScheme = Std.Unicode.Utf8EncodingScheme
+    import opened Std.Wrappers
     import opened Helpers
 
     const currenciesUtf8: CodeUnitSeq := [0x24] + [0xC2, 0xA3] + [0xE2, 0x82, 0xAC] + [0xF0, 0x9F, 0x92, 0xB0]
