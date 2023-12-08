@@ -283,7 +283,7 @@ module {:extern "DAM"} DAM {
       }
     }
 
-    //codatatype Trace = Next(In, Trace) | Stuck | Terminal(Val)
+    //codatatype Trace = Step(In, Trace) | Stuck | Done(Val)
     // Coinductive big-step semantics a la Leroy
     method Run(s: In) decreases * {
       print("\n");
@@ -303,24 +303,6 @@ module {:extern "DAM"} DAM {
     import opened Machine
 
     type Context = map<Var, Pos>
-
-    // Values can't synthesize their type b/c they contain pointers that create cyclic references
-    function CheckVal(val: Val): Option<Pos>
-      reads *
-      decreases val
-    {
-      match val
-      case Unit    => Some(Pos.Unit)
-      case Bool(_) => Some(Pos.Bool)
-      case Int(_)  => Some(Pos.Int)
-      /*case Thunk(env, s) => (
-        var g :- SynthEnv(env);
-        var t :- SynthStmt(g, s);
-        Some(Pos.Thunk(t))
-      )*/
-      case Ref(ptr) => SynthVal(ptr.deref)
-      case _        => None
-    }
 
     function SynthExpr(g: Context, expr: Expr): Option<Pos> decreases expr, 0 {
       match expr
@@ -408,11 +390,6 @@ module {:extern "DAM"} DAM {
       SynthStmt(g, s) == Some(t)
     }
 
-    /*function {:inline} SynthEnv(env: Env, g: Context): Option<Context> decreases -1, 0 {
-      mapOption(map x : Var | x in env :: SynthVal(env[x]))
-      forall x : Var | x in g :: x in env && CheckVal(env[x], g[x])
-    }*/
-
     function SynthStack(g: Context, stack: Stack, start: Neg): Option<Neg> decreases stack, 0 {
       match stack
       case Empty => Some(start)
@@ -451,24 +428,43 @@ module {:extern "DAM"} DAM {
       SynthStack(g, stack, start) == Some(end)
     }
 
-    /*predicate CheckCEK(s: In, start: Neg, end: Neg) {
-      var (env, stmt, stack) := s;
-      var g :- SynthEnv(env);
-      CheckNeg(g, stmt) && CheckStack(g, stack, start, end)
-    */
+    // Values can't synthesize their type b/c they could contain cyclic references
+    // Closures have to synthesize a context out of thin air for their environments
+    // So, checking values, environments, and CEK machine states are ghost, which is fine, b/c they're runtime artefacts
+    /*ghost predicate CheckVal(val: Val, t: Pos) reads * decreases t {
+      match (val, t)
+      case (Unit,             Unit)     => true
+      case (Bool(_),          Bool)     => true
+      case (Int(_),           Int)      => true
+      case (Thunk(env, stmt), Thunk(t)) => (
+        var g :| CheckEnv(env, g);
+        CheckStmt(g, stmt, t)
+      )
+      case (Ref(ptr), Ref(t)) => CheckVal(ptr.deref, t)
+      /*case (Stack(env, stack), Stack(start)) => (
+        var g :| CheckEnv(env, g);
+        SynthStack(g, stack, start).Some?
+      )*/
+      case _                  => false
+    }
 
-    /*
-function SynthCEK(s: In): Option<Neg> {
-    var (env, comp, stack) := s;
-    match SynthEnv(env)
-    case Some(g) => (
-        match SynthStmt(g, comp)
-        case Some(t) => SynthStack(g, stack, t)
-        case None    => None
-    )
-    case None => None
-}*/
+    ghost predicate CheckEnv(env: Env, g: Context) reads * {
+      forall x : Var | x in g :: x in env && CheckVal(env[x], g[x])
+    }
+
+    ghost predicate CheckIn(s: In, g: Context, start: Neg, end: Neg) reads * {
+      var (env, stmt, stack) := s;
+      CheckEnv(env, g) && CheckStmt(g, stmt, start) && CheckStack(g, stack, start, end)
+    }
+
+    ghost predicate CheckOut(out: Out, g: Context, start: Neg, end: Neg) reads * {
+      match out
+      case Next(next)    => CheckIn(next, g, start, end)
+      case Terminal(val) => start == end && CheckVal(val, Pos.Thunk(start))
+      case Stuck         => false
+    }*/
   }
+}
 
 /*lemma Progress(g, s: In)
 requires Check(g, s, t, start, end)
@@ -479,7 +475,6 @@ ensures  !Step(s).Stuck? {
 lemma Preservation(s: In)
 requires var t := SynthCEK(s);
 ensures CheckCEK(s, t)*/
-}
 
 /*method Main() decreases * {
     Run(Initial(
