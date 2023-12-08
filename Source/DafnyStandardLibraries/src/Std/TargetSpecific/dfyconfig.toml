@@ -18,5 +18,5 @@ warn-redundant-assumptions = true
 warn-contradictory-assumptions = true
 
 library = [
-  "../EnableNonLinearArithmetic/Wrappers.dfy"
+  "../Wrappers.dfy"
 ]

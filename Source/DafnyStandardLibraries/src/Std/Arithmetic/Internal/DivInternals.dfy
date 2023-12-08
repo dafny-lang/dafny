@@ -16,7 +16,7 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-module Std.Arithmetic.DivInternals {
+module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
 
   import opened GeneralInternals
   import opened ModInternals
@@ -76,85 +76,115 @@ module Std.Arithmetic.DivInternals {
     && ModAuto(n)
     && (n / n == -((-n) / n) == 1)
     && (forall x: int {:trigger x / n} :: 0 <= x < n <==> x / n == 0)
-    && (forall x: int, y: int {:trigger (x + y) / n} ::
-          (var z := (x % n) + (y % n);
-           ((0 <= z < n && (x + y) / n == x / n + y / n) ||
-            (n <= z < n + n && (x + y) / n == x / n + y / n + 1))))
-    && (forall x: int, y: int {:trigger (x - y) / n} ::
-          (var z := (x % n) - (y % n);
-           ((0 <= z < n && (x - y) / n == x / n - y / n) ||
-            (-n <= z < 0 && (x - y) / n == x / n - y / n - 1))))
+    && DivAutoMinus(n)
+    && DivAutoPlus(n)
   }
 
-  lemma {:vcs_split_on_every_assert} /*{:rlimit 3014}*/ LemmaDivAutoAux(n: int)
+  ghost predicate DivAutoPlus(n: int)
+    requires n > 0
+  {
+    forall x: int, y: int {:trigger (x + y) / n} :: DivPlus(n, x, y)
+  }
+
+  ghost predicate DivPlus(n: int, x: int, y: int)
+    requires n > 0
+  {
+    var z := (x % n) + (y % n);
+    (0 <= z < n && (x + y) / n == x / n + y / n) ||
+    (n <= z < n + n && (x + y) / n == x / n + y / n + 1)
+  }
+
+  ghost predicate DivAutoMinus(n: int)
+    requires n > 0
+  {
+    forall x: int, y: int {:trigger (x - y) / n} :: DivMinus(n, x, y)
+  }
+
+  ghost predicate DivMinus(n: int, x: int, y: int)
+    requires n > 0
+  {
+    var z := (x % n) - (y % n);
+    (0 <= z < n && (x - y) / n == x / n - y / n) ||
+    (-n <= z < 0 && (x - y) / n == x / n - y / n - 1)
+  }
+
+  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxPlus(n: int)
+    requires n > 0 && ModAuto(n)
+    ensures DivAutoPlus(n)
+  {
+    LemmaModAuto(n);
+    LemmaDivBasics(n);
+
+    var f := (x:int, y:int) => DivPlus(n, x, y);
+    forall i, j
+      ensures j >= 0 && f(i, j) ==> f(i, j + n)
+      ensures i < n  && f(i, j) ==> f(i - n, j)
+      ensures j < n  && f(i, j) ==> f(i, j - n)
+      ensures i >= 0 && f(i, j) ==> f(i + n, j)
+      ensures 0 <= i < n && 0 <= j < n ==> f(i, j)
+    {
+      assert ((i + n) + j) / n == ((i + j) + n) / n;
+      assert (i + (j + n)) / n == ((i + j) + n) / n;
+      assert ((i - n) + j) == ((i + j) - n);
+      assert ((i - n) + j) / n == ((i + j) - n) / n;
+      assert (i + (j - n)) / n == ((i + j) - n) / n;
+    }
+    forall x:int, y:int
+      ensures DivPlus(n, x, y)
+    {
+      LemmaModInductionForall2(n, f);
+      assert f(x, y);
+    }
+  }
+
+  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxMinusHelper(n: int)
+    requires n > 0 && ModAuto(n)
+    ensures forall i, j ::
+              && (j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n))
+              && (i < n  && DivMinus(n, i, j) ==> DivMinus(n, i - n, j))
+              && (j < n  && DivMinus(n, i, j) ==> DivMinus(n, i, j - n))
+              && (i >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i + n, j))
+              && (0 <= i < n && 0 <= j < n ==> DivMinus(n, i, j))
+  {
+    LemmaModAuto(n);
+    LemmaDivBasics(n);
+    forall i, j
+      ensures j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n)
+      ensures i < n  && DivMinus(n, i, j) ==> DivMinus(n, i - n, j)
+      ensures j < n  && DivMinus(n, i, j) ==> DivMinus(n, i, j - n)
+      ensures i >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i + n, j)
+      ensures 0 <= i < n && 0 <= j < n ==> DivMinus(n, i, j)
+    {
+      assert ((i + n) - j) / n == ((i - j) + n) / n;
+      assert (i - (j - n)) / n == ((i - j) + n) / n;
+      assert ((i - n) - j) / n == ((i - j) - n) / n;
+      assert (i - (j + n)) / n == ((i - j) - n) / n;
+    }
+  }
+
+  lemma LemmaDivAutoAuxMinus(n: int)
+    requires n > 0 && ModAuto(n)
+    ensures DivAutoMinus(n)
+  {
+    LemmaDivAutoAuxMinusHelper(n);
+    var f := (x:int, y:int) => DivMinus(n, x, y);
+    LemmaModInductionForall2(n, f);
+    forall x:int, y:int
+      ensures DivMinus(n, x, y)
+    {
+      assert f(x, y);
+    }
+  }
+
+  lemma LemmaDivAutoAux(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAuto(n)
   {
     LemmaDivBasics(n);
     assert (0 + n) / n == 1;
     assert (0 - n) / n == -1;
-    forall x:int, y:int {:trigger (x + y) / n}
-      ensures  var z := (x % n) + (y % n);
-               (|| (0 <= z < n && (x + y) / n == x / n + y / n)
-                || (n <= z < 2 * n && (x + y) / n == x / n + y / n + 1))
-    {
-      var f := (xx:int, yy:int) =>
-          (var z := (xx % n) + (yy % n);
-           (   (0 <= z < n && (xx + yy) / n == xx / n + yy / n)
-               || (n <= z < 2 * n && (xx + yy) / n == xx / n + yy / n + 1)));
-      forall i, j
-        ensures j >= 0 && f(i, j) ==> f(i, j + n)
-        ensures i < n  && f(i, j) ==> f(i - n, j)
-        ensures j < n  && f(i, j) ==> f(i, j - n)
-        ensures i >= 0 && f(i, j) ==> f(i + n, j)
-      {
-        assert ((i + n) + j) / n == ((i + j) + n) / n;
-        assert (i + (j + n)) / n == ((i + j) + n) / n;
-        assert ((i - n) + j) / n == ((i + j) - n) / n;
-        assert (i + (j - n)) / n == ((i + j) - n) / n;
-      }
-      forall i, j
-        ensures 0 <= i < n && 0 <= j < n ==> f(i, j)
-      {
-        assert ((i + n) + j) / n == ((i + j) + n) / n;
-        assert (i + (j + n)) / n == ((i + j) + n) / n;
-        assert ((i - n) + j) / n == ((i + j) - n) / n;
-        assert (i + (j - n)) / n == ((i + j) - n) / n;
-      }
-      LemmaModInductionForall2(n, f);
-      assert f(x, y);
-    }
-    forall x:int, y:int {:trigger (x - y) / n}
-      ensures  var z := (x % n) - (y % n);
-               (|| (0 <= z < n && (x - y) / n == x / n - y / n)
-                || (-n <= z < 0 && (x - y) / n == x / n - y / n - 1))
-    {
-      var f := (xx:int, yy:int) =>
-          (var z := (xx % n) - (yy % n);
-           (   (0 <= z < n && (xx - yy) / n == xx / n - yy / n)
-               || (-n <= z < 0 && (xx - yy) / n == xx / n - yy / n - 1)));
-      forall i, j
-        ensures j >= 0 && f(i, j) ==> f(i, j + n)
-        ensures i < n  && f(i, j) ==> f(i - n, j)
-        ensures j < n  && f(i, j) ==> f(i, j - n)
-        ensures i >= 0 && f(i, j) ==> f(i + n, j)
-      {
-        assert ((i + n) - j) / n == ((i - j) + n) / n;
-        assert (i - (j - n)) / n == ((i - j) + n) / n;
-        assert ((i - n) - j) / n == ((i - j) - n) / n;
-        assert (i - (j + n)) / n == ((i - j) - n) / n;
-      }
-      forall i, j
-        ensures 0 <= i < n && 0 <= j < n ==> f(i, j)
-      {
-        assert ((i + n) - j) / n == ((i - j) + n) / n;
-        assert (i - (j - n)) / n == ((i - j) + n) / n;
-        assert ((i - n) - j) / n == ((i - j) - n) / n;
-        assert (i - (j + n)) / n == ((i - j) - n) / n;
-      }
-      LemmaModInductionForall2(n, f);
-      assert f(x, y);
-    }
+    LemmaDivAutoAuxPlus(n);
+    LemmaDivAutoAuxMinus(n);
   }
 
   /* Ensures that DivAuto is true */

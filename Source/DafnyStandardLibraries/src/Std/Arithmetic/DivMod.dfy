@@ -10,7 +10,7 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort*/
 
-module Std.Arithmetic.DivMod {
+module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
 
   import opened DivInternals
   import DivINL = DivInternalsNonlinear
@@ -1130,22 +1130,30 @@ module Std.Arithmetic.DivMod {
     }
   }
 
+  predicate MultiplesVanish(a: int, b: int, m: int)
+    requires 0 < m
+  {
+    (m * a + b) % m == b % m
+  }
+
   /* the remainder of adding any multiple of the divisor m to the dividend b will be the same
   as simply performing b % m */
   lemma LemmaModMultiplesVanish(a: int, b: int, m: int)
     decreases if a > 0 then a else -a
     requires 0 < m
-    ensures (m * a + b) % m == b % m
+    ensures MultiplesVanish(a, b, m)
   {
     LemmaModAuto(m);
-    LemmaMulInductionAuto(a, u => (m * u + b) % m == b % m);
+    LemmaMulAuto();
+    assert MultiplesVanish(0, b, m);
+    LemmaMulInductionAuto(a, u => MultiplesVanish(u, b, m));
   }
 
   lemma LemmaModMultiplesVanishAuto()
-    ensures forall a: int, b: int, m: int {:trigger (m * a + b) % m} :: 0 < m ==> (m * a + b) % m == b % m
+    ensures forall a: int, b: int, m: int {:trigger (m * a + b) % m} :: 0 < m ==> MultiplesVanish(a, b, m)
   {
     forall a: int, b: int, m: int | 0 < m
-      ensures (m * a + b) % m == b % m
+      ensures MultiplesVanish(a, b, m)
     {
       LemmaModMultiplesVanish(a, b, m);
     }
