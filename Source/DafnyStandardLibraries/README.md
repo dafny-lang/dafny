@@ -45,19 +45,20 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
-- [Std.Arithmetic](src/Std/EnableNonLinearArithmetic/Arithmetic) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
-- [Std.Base64](src/Std/EnableNonLinearArithmetic/Base64) -- base-64 encoding and decoding
-- [Std.BoundedInts](src/Std/EnableNonLinearArithmetic/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
-- [Std.Collections](src/Std/EnableNonLinearArithmetic/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
-- [Std.DynamicArray](src/Std/EnableNonLinearArithmetic/DynamicArray.dfy) -- an array that can grow and shrink
+- [Std.Arithmetic](src/Std/Arithmetic) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
+- [Std.Base64](src/Std/Base64) -- base-64 encoding and decoding
+- [Std.BoundedInts](src/Std/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
+- [Std.Collections](src/Std/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
+- [Std.Concurrent](src/Std/TargetSpecific) -- types for using Dafny in concurrent environments
+- [Std.DynamicArray](src/Std/DynamicArray.dfy) -- an array that can grow and shrink
 - [Std.FileIO](src/Std/TargetSpecific) -- basic file I/O operations
-- [Std.Functions](src/Std/EnableNonLinearArithmetic/Functions) -- properties of functions
-- [Std.JSON](src/Std/EnableNonLinearArithmetic/JSON) -- JSON serialization and deserialization
-- [Std.Math](src/Std/EnableNonLinearArithmetic/Math) -- common mathematical functions, such as Min and Abs
-- [Std.Relations](src/Std/EnableNonLinearArithmetic/Relations) -- properties of relations
-- [Std.Strings](src/Std/DisableNonLinearArithmetic/Strings) -- utilities for strings, especially converting to and from string representations of common types
-- [Std.Unicode](src/Std/EnableNonLinearArithmetic/Unicode) -- implementations of basic algorithms from Unicode 15.0
-- [Std.Wrappers](src/Std/EnableNonLinearArithmetic/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
+- [Std.Functions](src/Std/Functions) -- properties of functions
+- [Std.JSON](src/Std/JSON) -- JSON serialization and deserialization
+- [Std.Math](src/Std/Math) -- common mathematical functions, such as Min and Abs
+- [Std.Relations](src/Std/Relations) -- properties of relations
+- [Std.Strings](src/Std/Strings) -- utilities for strings, especially converting to and from string representations of common types
+- [Std.Unicode](src/Std/Unicode) -- implementations of basic algorithms from Unicode 15.0
+- [Std.Wrappers](src/Std/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 
 ## Backwards compatibility
 
