@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
 
         Options.OutputWriter.Write(errorLine);
 
-        if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok != Token.NoToken) {
+        if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
           TextWriter tw = new StringWriter();
           new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
           Options.OutputWriter.Write(tw.ToString());

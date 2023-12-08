@@ -5,14 +5,9 @@
 
 module TriesToUseWrappers {
 
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Wrappers
 
   function SafeDiv(a: int, b: int): Option<int> {
     if b == 0 then None else Some(a/b)
   }
 }
-
-
-// TODO:
-// * Big ol README, especially regarding todos, standards, and brittleness
-// * remove libraries submodule (confusing!)

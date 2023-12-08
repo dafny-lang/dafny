@@ -6,5 +6,5 @@
 // RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries:true
 
 module UsesFileIO {
-  import DafnyStdLibs.FileIO
+  import Std.FileIO
 }
