@@ -8,10 +8,7 @@
 */ 
 
 module {:extern "DAM"} DAM {
-  //import opened DafnyStdLibs.Wrappers
-
-  // CBPV distinguishes between expressions and statements of positive and negative type, respectively
-  module Syntax {
+  module Utils {
     datatype Option<A> = None | Some(value: A) {
       predicate IsFailure() { this.None? }
       function PropagateFailure<B>(): Option<B>
@@ -20,48 +17,24 @@ module {:extern "DAM"} DAM {
         requires !IsFailure() { this.value }
     }
 
-    /*type Alist<K, V> =
-    | Nil
-    | Cons(key: K, value: V, rest: AList<K, V>)*/
+    datatype Alist<K, V> =
+      Update(key: K, val: V, rest: Alist<K, V>)
+    | Empty
 
-    predicate Unique<V>(k: string, m: map<string, V>) {
-      forall k' :: k' in m ==> k <= k'
+    function Get<K(==), V>(alist: Alist<K, V>, key: K): Option<V> decreases alist {
+      match alist
+      case Empty  => None
+      case Update(key', val, rest) =>
+        if key == key' then
+          Some(val)
+        else
+          Get(rest, key)
     }
+  }
 
-    /*lemma ExistsUnique<V>(m: map<string, V>)
-      requires |m| > 0
-      ensures exists k :: k in m && Unique(k, m)
-      decreases |m|
-    {
-      var k :| k in m;
-      var m' := m - {k};
-      if |m'| == 0 {
-        assert m == map[k := m[k]];
-        assert Unique(k, m);
-      } else {
-        ExistsUnique(m');
-        var k' :| k' in m' && Unique(k', m');
-        assert m == m'[k := m[k]];
-        if k <= k' {
-          assert Unique(k, m);
-        } else {
-          
-          assert Unique(k', m);
-        }
-      }
-    }*/
-
-    function mapOption<V(==)>(m: map<string, Option<V>>): Option<map<string, V>> decreases |m| {
-      if |m| == 0 then
-        Some(map[])
-      else
-        assert |m| > 0;
-        assume {:axiom} exists k :: Unique(k, m);
-        var k :| k in m && Unique(k, m);
-        var v :- m[k];
-        var m :- mapOption(m - {k});
-        Some(m[k := v])
-    }
+  // CBPV distinguishes between expressions and statements of positive and negative type, respectively
+  module Syntax {
+    import opened Utils
 
     type Field = string
 
@@ -76,7 +49,7 @@ module {:extern "DAM"} DAM {
     datatype Neg =
       Value(pos: Pos)
     | Function(dom: Pos, cod: Neg)
-    | Record(fields: map<Field, Neg>)
+    | Record(fields: Alist<Field, Neg>)
 
     type Var = string
 
@@ -99,7 +72,7 @@ module {:extern "DAM"} DAM {
     | Func(bound: Var, dom: Pos, body: Stmt)
     | Call(func: Stmt, arg: Expr)
     // Record intro & elim
-    | Record(fields: map<Field, Stmt>)
+    | Record(fields: Alist<Field, Stmt>)
     | Select(record: Stmt, field: Field)
     // Thunk elim
     | Force(Expr)
@@ -135,6 +108,7 @@ module {:extern "DAM"} DAM {
 
   module Machine {
     import opened Syntax
+    import opened Utils
 
     class Ptr<A> {
       var deref: A
@@ -168,7 +142,7 @@ module {:extern "DAM"} DAM {
     datatype Frame =
       Bind(var_: Var, rhs: Stmt)
     | Call(arg: Expr)
-    | Select(field: string)
+    | Select(field: Field)
 
     // States of the CEK Machine
     type     In  = (Env, Stmt, Stack)
@@ -218,9 +192,9 @@ module {:extern "DAM"} DAM {
       case Record(fields) => {
         match stack.Pop()
         case Some((Select(field), stack)) => {
-          if case field in fields =>
-               return Next((env, fields[field], stack));
-             case true => return Stuck;
+          match Get(fields, field)
+          case Some(field) => return Next((env, field, stack));
+          case None        => return Stuck;
         }
         case Some(_) => return Stuck;
         case None    => return Terminal(Val.Thunk(env, comp));
@@ -295,12 +269,13 @@ module {:extern "DAM"} DAM {
 
     // Initial configuration
     function Initial(comp: Stmt): In
-      { (map[], comp, Empty) }
+      { (map[], comp, Stack.Empty) }
   }
 
   module Typing {
     import opened Syntax
     import opened Machine
+    import opened Utils
 
     type Context = map<Var, Pos>
 
@@ -369,21 +344,50 @@ module {:extern "DAM"} DAM {
         SynthStmt(g, next)
 
       case Record(fields) => (
-        var fields :- mapOption(map field : Field | field in fields :: SynthStmt(g, fields[field]));
+        var fields :- SynthRecord(g, fields);
         Some(Neg.Record(fields))
       )
 
       case Select(record, field) => (
         match SynthStmt(g, record)
-        case Some(Record(fields)) =>
-          if field in fields then
-            Some(fields[field])
+        case Some(Record(fields)) => (
+          match Get(fields, field)
+          case Some(field) => Some(field)
+          case None        => None
+        )
+        case _ => None
+      )
+
+      case New(init, var_, next) =>
+        var t :- SynthExpr(g, init);
+        SynthStmt(g[var_ := Pos.Ref(t)], next)
+
+      case Read(ref, var_, next) => (
+        match SynthExpr(g, ref)
+        case Some(Ref(t)) => SynthStmt(g[var_ := t], next)
+        case _            => None
+      )
+
+      case Write(lhs, rhs, next) => (
+        match SynthExpr(g, lhs)
+        case Some(Ref(t)) =>
+          if CheckExpr(g, rhs, t) then
+            SynthStmt(g, next)
           else
             None
-        case _ => None
+        case _            => None
       )
       
       case _ => None
+    }
+
+    function SynthRecord(g: Context, fields: Alist<Field, Stmt>): Option<Alist<Field, Neg>> decreases fields {
+      match fields
+      case Empty => Some(Alist.Empty)
+      case Update(key, val, rest) =>
+        var field :- SynthStmt(g, val);
+        var rest  :- SynthRecord(g, rest);
+        Some(Update(key, field, rest))
     }
 
     predicate CheckStmt(g: Context, s: Stmt, t: Neg) decreases s, 1 {
@@ -406,10 +410,8 @@ module {:extern "DAM"} DAM {
       case Push(Select(field), stack) => (
         match start
         case Record(fields) =>
-          if field in fields then
-            SynthStack(g, stack, fields[field])
-          else
-            None
+          var field :- Get(fields, field);
+          SynthStack(g, stack, field)
         case _ => None
       )
 
@@ -431,7 +433,7 @@ module {:extern "DAM"} DAM {
     // Values can't synthesize their type b/c they could contain cyclic references
     // Closures have to synthesize a context out of thin air for their environments
     // So, checking values, environments, and CEK machine states are ghost, which is fine, b/c they're runtime artefacts
-    /*ghost predicate CheckVal(val: Val, t: Pos) reads * decreases t {
+    ghost predicate CheckVal(val: Val, t: Pos) reads * decreases t {
       match (val, t)
       case (Unit,             Unit)     => true
       case (Bool(_),          Bool)     => true
@@ -462,7 +464,7 @@ module {:extern "DAM"} DAM {
       case Next(next)    => CheckIn(next, g, start, end)
       case Terminal(val) => start == end && CheckVal(val, Pos.Thunk(start))
       case Stuck         => false
-    }*/
+    }
   }
 }
 
