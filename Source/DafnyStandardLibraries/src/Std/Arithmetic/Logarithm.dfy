@@ -1,4 +1,4 @@
-module Std.Arithmetic.Logarithm {
+module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
   import opened Mul
   import opened DivMod
   import opened Power

@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-module Std.Arithmetic.DivInternalsNonlinear {
+module {:z3ArithmeticSolver 6} Std.Arithmetic.DivInternalsNonlinear {
 
   /* WARNING: Think three times before adding to this file, as nonlinear
   verification is highly unstable! */
@@ -27,8 +27,7 @@ module Std.Arithmetic.DivInternalsNonlinear {
 
   /* dividing a smaller integer by a larger integer results in a quotient of 0  */
   lemma LemmaSmallDiv()
-    ensures forall x, d {:trigger x / d} :: 0 <= x < d && d > 0 ==> x / d == 0
-  {
+    ensures forall x, d {:trigger x / d} :: 0 <= x < d && d > 0 ==> x / d == 0 {
   }
 
   /* the quotient of dividing a positive real number (not 0) by a smaller positive real number
@@ -36,8 +35,7 @@ module Std.Arithmetic.DivInternalsNonlinear {
   lemma LemmaRealDivGt(x:real, y:real)
     requires x > y
     requires y > 0.0
-    ensures  x / y > 1 as real
-  {
+    ensures  x / y > 1 as real {
   }
 
 }
