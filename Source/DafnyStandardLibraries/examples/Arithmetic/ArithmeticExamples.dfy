@@ -1,7 +1,7 @@
 module ArithmeticExamples {
-  import opened DafnyStdLibs.Arithmetic.Logarithm
-  import opened DafnyStdLibs.Arithmetic.Power
-  import opened DafnyStdLibs.Arithmetic.Mul
+  import opened Std.Arithmetic.Logarithm
+  import opened Std.Arithmetic.Power
+  import opened Std.Arithmetic.Mul
 
   /* log_b(m * n) = log_b(m) + log_b(n) if m and n are also powers of b */
   lemma LogProductRule(b: nat, x: nat, y: nat)
@@ -19,7 +19,7 @@ module ArithmeticExamples {
     LemmaLogPow(b, y);
   }
 
-  module DecimalLittleEndian refines DafnyStdLibs.Arithmetic.LittleEndianNat {
+  module DecimalLittleEndian refines Std.Arithmetic.LittleEndianNat {
     function BASE(): nat {
       10
     }

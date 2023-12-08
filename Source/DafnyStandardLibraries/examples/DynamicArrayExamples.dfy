@@ -1,6 +1,6 @@
 module DynamicArrayExamples {
-  import opened DafnyStdLibs.DynamicArray
-  import opened DafnyStdLibs.BoundedInts
+  import opened Std.DynamicArray
+  import opened Std.BoundedInts
 
   method {:test} Ensure() {
     var arr := new DynamicArray<int>();
