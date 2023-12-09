@@ -4,6 +4,7 @@ DAFNY = dotnet run --project ../Dafny --no-build --
 
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
+TARGET_EXTERNS=$(wildcard src/${TARGETNAME}/*.${TARGETLANG})
 
 all: check-binary test check-format check-examples
 
@@ -21,18 +22,19 @@ check-binary: build-binary
 
 translate:
 	$(DAFNY) translate ${TARGETLANG} "src/${TARGETNAME}/dfyconfig.toml" --output:binaries/${TARGETNAME}/translated
-	cp src/${TARGETNAME}/**/*.${TARGETLANG} binaries/${TARGETNAME}/
+	mkdir -p binaries/${TARGETNAME}
+	cp ${TARGET_EXTERNS} binaries/${TARGETNAME}/
 
 update-binary: # build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
 	make translate TARGETLANG=cs TARGETNAME=CSharp
-# 	make translate TARGETLANG=java TARGETNAME=Java
-# 	make translate TARGETLANG=js TARGETNAME=JavaScript
-# 	make translate TARGETLANG=go TARGETNAME=GoLang
-# 	make translate TARGETLANG=py TARGETNAME=Python
+	make translate TARGETLANG=java TARGETNAME=Java
+	make translate TARGETLANG=js TARGETNAME=JavaScript
+	make translate TARGETLANG=go TARGETNAME=GoLang
+	make translate TARGETLANG=py TARGETNAME=Python
 	
 # Rebuild Dafny to pick up the new embedded assets
-	# dotnet build ../Dafny.sln
+	dotnet build ../Dafny.sln
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,

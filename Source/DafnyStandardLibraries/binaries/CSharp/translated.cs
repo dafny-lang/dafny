@@ -3433,6 +3433,10 @@ module Std {
     }
 
     class AtomicBox<T> {
+      constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
+        requires inv(t)
+        ensures this.inv == inv
+
       ghost const inv: T -> bool
 
       method Get() returns (t: T)
@@ -3445,6 +3449,9 @@ module Std {
     }
 
     class MutableMap<K(==), V(==)> {
+      constructor (ghost inv: (K, V) -> bool)
+        ensures this.inv == inv
+
       ghost const inv: (K, V) -> bool
 
       method Keys() returns (keys: set<K>)
@@ -19277,7 +19284,7 @@ namespace Std.Collections.Seq {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7192)");
+        throw new System.Exception("assign-such-that search produced no value (line 7122)");
       after__ASSIGN_SUCH_THAT_0: ;
         _86_left = Dafny.Set<__T>.Difference(_86_left, Dafny.Set<__T>.FromElements(_87_x));
         xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_87_x));
@@ -19457,7 +19464,7 @@ namespace Std.Collections.Set {
             goto after__ASSIGN_SUCH_THAT_1;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7369)");
+        throw new System.Exception("assign-such-that search produced no value (line 7299)");
       after__ASSIGN_SUCH_THAT_1: ;
         return _106_x;
       }

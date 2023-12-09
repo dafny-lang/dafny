@@ -129,14 +129,8 @@ public class Compilation : IDisposable {
       }
     }
 
+    / Change to library not root source
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
-        var targetName = Options.CompilerName ?? "notarget";
-        var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        Options.CliRootSourceUris.Add(stdlibDooUri);
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
-      }
-
       result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
     }
 

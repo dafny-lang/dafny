@@ -1,10 +1,9 @@
 
-module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.Concurrent refines ConcurrentInterface {
+module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
     constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
-      ensures this.inv == inv
 
     ghost predicate Valid()
     {
@@ -32,8 +31,6 @@ module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.Concurrent refines 
   class {:extern} AtomicBox<T> ... {
 
     constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
-      requires inv(t)
-      ensures this.inv == inv
 
     ghost predicate Valid() { true }
 
