@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
 Everything - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
+Serialization - print the source that will be included in a compiled dll.
 NoIncludes - disable printing of {:verify false} methods
     incorporated via the include mechanism, as well as datatypes and
     fields included from other files.
@@ -567,8 +567,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.IsAbstract) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         wr.Write("abstract ");
+      }
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -579,8 +582,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Implements != null) {
+        wr.Write("refines {0} ", module.Implements.Target);
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
@@ -2687,6 +2690,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("var ");
           PrintCasePattern(e.Lhs);
           wr.Write(" :- ");
+        } else {
+          wr.Write(":- ");
         }
         PrintExpression(e.Rhs, true);
         wr.Write("; ");

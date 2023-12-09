@@ -1,0 +1,2 @@
+Enable turning nonlinear arithmetic on or off on a per-module basis, using the attribute `{:disable-nonlinear-arithmetic}`, 
+which optionally takes the value false to enable nonlinear arithmetic.

@@ -9,27 +9,23 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
-using DafnyCore.Verifier;
 using Microsoft.Boogie;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
-  public class IllegalDafnyFile : Exception {
-    public bool ProcessingError { get; }
-
-    public IllegalDafnyFile(bool processingError = false) {
-      this.ProcessingError = processingError;
-    }
-  }
-
   public class DafnyMain {
+    public static readonly Dictionary<string, Uri> StandardLibrariesDooUriTarget = new();
+    public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+
+    static DafnyMain() {
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+        StandardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
+          new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
+      }
+    }
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

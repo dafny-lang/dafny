@@ -707,7 +707,9 @@ namespace Microsoft.Dafny {
           CheckFrameWellFormed(wfo, m.Reads.Expressions, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // on the method, and {:assume_concurrent} is NOT present on the reads clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
           if (etran.readsFrame != null) {
             CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
@@ -722,8 +724,10 @@ namespace Microsoft.Dafny {
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
         });
-        // Also check that the modifies clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // Also check that the modifies clause == {} if the {:concurrent} attribute is present,
+        // and {:assume_concurrent} is NOT present on the modifies clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
         }
@@ -772,7 +776,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc,
+        Boogie.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc,
            inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
@@ -859,7 +863,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
-        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc, inParams, outParams, localVariables, stmts, kv);
+        Boogie.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -972,7 +976,7 @@ namespace Microsoft.Dafny {
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
-      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
+      AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
@@ -1030,7 +1034,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        AddImplementationWithVerboseName(GetToken(f), proc,
+        AddImplementationWithAttributes(GetToken(f), proc,
             Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
             implOutParams, localVariables, stmts, kv);
       }
@@ -1737,7 +1741,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
-      AddVerboseName(proc, m.FullDafnyName, kind);
+      AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);

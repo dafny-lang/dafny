@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             var uri = new Uri(Path.GetFullPath(f));
-            snapshots.Add(new DafnyFile(options, uri));
+            snapshots.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli));
             options.CliRootSourceUris.Add(uri);
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, depManager, false, programId);
@@ -595,7 +595,7 @@ namespace Microsoft.Dafny {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
     public override string TargetName => throw new NotSupportedException();
     public override bool IsStable => throw new NotSupportedException();
-    public override string TargetExtension => throw new NotSupportedException();
+    public override string TargetExtension => "doesNotExist";
     public override string PublicIdProtect(string name) {
       throw new NotSupportedException();
     }

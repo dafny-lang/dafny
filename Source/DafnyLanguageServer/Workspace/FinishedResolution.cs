@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -19,7 +20,8 @@ record FinishedResolution(
   LegacySignatureAndCompletionTable LegacySignatureAndCompletionTable,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   IReadOnlyList<ICanVerify>? CanVerifies) : ICompilationEvent {
-  public IdeState UpdateState(DafnyOptions options, ILogger logger, IdeState previousState) {
+  public Task<IdeState> UpdateState(DafnyOptions options, ILogger logger, IProjectDatabase projectDatabase,
+    IdeState previousState) {
     var errors = Diagnostics.Values.SelectMany(x => x).
       Where(d => d.Severity == DiagnosticSeverity.Error && d.Source != MessageSource.Compiler.ToString()).ToList();
     var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
@@ -41,7 +43,7 @@ record FinishedResolution(
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = LegacySignatureAndCompletionTable.Resolved ? LegacySignatureAndCompletionTable : previousState.SignatureAndCompletionTable;
 
-    return previousState with {
+    return Task.FromResult(previousState with {
       StaticDiagnostics = Diagnostics,
       Status = status,
       ResolvedProgram = ResolvedProgram,
@@ -51,7 +53,7 @@ record FinishedResolution(
       Counterexamples = new List<Counterexample>(),
       VerificationResults = verificationResults,
       VerificationTrees = trees
-    };
+    });
   }
 
   private static IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {

@@ -158,11 +158,13 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal class TriggersCollector {
+    public ModuleDefinition ForModule { get; }
     private DafnyOptions options;
     TriggerAnnotationsCache cache;
 
-    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext, DafnyOptions options) {
+    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext, DafnyOptions options, ModuleDefinition forModule) {
       this.options = options;
+      this.ForModule = forModule;
       this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
@@ -281,6 +283,7 @@ namespace Microsoft.Dafny.Triggers {
       }
       BinaryExpr e = (BinaryExpr)expr;
       bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
+      var disableNonLinearArithmetic = BoogieGenerator.DetermineDisableNonLinearArithmetic(ForModule, options);
       switch (e.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.Le:
@@ -288,7 +291,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && options.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && disableNonLinearArithmetic) {
             return true;
           }
           break;
@@ -296,7 +299,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
           if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType) {
-            if (options.DisableNLarith || (options.ArithMode != 0 && options.ArithMode != 3)) {
+            if (disableNonLinearArithmetic || (options.ArithMode != 0 && options.ArithMode != 3)) {
               return true;
             }
           }

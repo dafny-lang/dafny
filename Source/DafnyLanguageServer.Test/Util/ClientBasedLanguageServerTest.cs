@@ -298,7 +298,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verificationStatus{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     try {
@@ -424,5 +424,23 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     return documentItem;
+  }
+
+  /// <summary>
+  /// Given <paramref name="source"/> with N positions, for each K from 0 to N exclusive,
+  /// assert that a RequestDefinition at position K
+  /// returns either the Kth range, or the range with key K (as a string).
+  /// </summary>
+  protected async Task AssertPositionsLineUpWithRanges(string source, string filePath = null) {
+    MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+      out var positions, out var ranges);
+
+    var documentItem = await CreateOpenAndWaitForResolve(cleanSource, filePath);
+    for (var index = 0; index < positions.Count; index++) {
+      var position = positions[index];
+      var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+      var result = (await RequestDefinition(documentItem, position)).Single();
+      Assert.Equal(range, result.Location!.Range);
+    }
   }
 }

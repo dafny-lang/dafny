@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           var uri = request.TextDocument.Uri.ToUri();
           await projectManager.VerifyEverythingAsync(uri);
 
-          var state = await projectManager.States.Select(s => s.Value).
+          var state = await projectManager.States.
             Where(s => FinishedVerifyingUri(s, uri)).FirstAsync();
           logger.LogDebug($"counter-example handler retrieved IDE state, " +
                           $"canVerify count: {state.VerificationResults[uri].Count}, " +
