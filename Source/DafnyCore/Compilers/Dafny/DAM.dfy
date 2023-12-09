@@ -119,7 +119,7 @@ module {:extern "DAM"} DAM {
 
     // The environment accumulates substitutions made along the course of machine execution, i.e.,
     // maps variables to values - closed intro. forms of positive type
-    type Env = map<Var, Val>
+    type Env = Alist<Var, Val>
 
     // To implement lexical scope, thunks and stacks are closures that save the environment they're defined in
     datatype Val =
@@ -146,142 +146,19 @@ module {:extern "DAM"} DAM {
 
     // States of the CEK Machine
     type     In  = (Env, Stmt, Stack)
-    datatype Out = Next(In) | Stuck | Terminal(Val)
-
-    // Small-step semantics are divided between evaluation of expressions and stepping of the machine
-    function Eval(env: Env, expr: Expr): Val {
-      match expr
-      case Var(x)      => assume {:axiom} x in env; env[x]
-      case Unit        => (Val.Unit)
-      case Bool(b)     => (Val.Bool(b))
-      case Int(i)      => (Val.Int(i))
-      case Thunk(stmt) => (Val.Thunk(env, stmt))
-    }
-
-    // TODO: ensures Preservation(in, out) = match out case In(next) => CheckCEK(g, next, start, end) | Stuck => false | Terminal(v) => CheckCEK(g, (env, ...), start, end)
-    method Step(state: In) returns (out: Out) {
-      var (env, comp, stack) := state;
-      match comp
-      case Bind(lhs, var_, rhs) =>
-        return Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)));
-      
-      case Pure(expr) => {
-        var val := Eval(env, expr);
-        match stack.Pop()
-        case Some((Bind(var_, rhs), stack)) =>
-          return Next((env[var_ := val], rhs, stack));
-        case Some(_) => return Stuck;
-        case None    => return Terminal(val);
-      }
-
-      case Call(func, arg) =>
-        return Next((env, func, Push(Frame.Call(arg), stack)));
-      
-      case Func(bound, _, body) => {
-        match stack.Pop()
-        case Some((Call(arg), stack)) =>
-          var val := Eval(env, arg);
-          return Next((env[bound := val], body, stack));
-        case Some(_) => return Stuck;
-        case None    => return Terminal(Val.Thunk(env, comp));
-      }
-
-      case Select(obj, field) =>
-        return Next((env, obj, Push(Frame.Select(field), stack)));
-      
-      case Record(fields) => {
-        match stack.Pop()
-        case Some((Select(field), stack)) => {
-          match Get(fields, field)
-          case Some(field) => return Next((env, field, stack));
-          case None        => return Stuck;
-        }
-        case Some(_) => return Stuck;
-        case None    => return Terminal(Val.Thunk(env, comp));
-      }
-
-      case Ite(guard, then_, else_) => {
-        var val := Eval(env, guard);
-        match val
-        case Bool(guard) =>
-          return Next((env, if guard then then_ else else_, stack));
-        
-        case _ => return Stuck;
-      }
-
-      // Lexical scope restores the env of the closure
-      case Force(thunk) => {
-        var val := Eval(env, thunk);
-        match val
-        case Thunk(env, stmt) => return Next((env, stmt, stack));
-        case _                => return Stuck;
-      }
-
-      case New(init, var_, next) => {
-        var ptr := new Ptr(Eval(env, init));
-        return Next((env[var_ := Val.Ref(ptr)], next, stack));
-      }
-
-      case Read(ref, var_, next) => {
-        var val := Eval(env, ref);
-        match val
-        case Ref(ptr) => return Next((env[var_ := ptr.deref], next, stack));
-        case _        => return Stuck;
-      }
-
-      case Write(lval, rval, next) => {
-        var val := Eval(env, lval);
-        match val
-        case Ref(ptr) =>
-          //ptr.deref := Eval(env, rval);
-          return Next((env, next, stack));
-        case _        => return Stuck;
-      }
-
-      case Print(expr, next) =>
-        var val := Eval(env, expr);
-        print val, "\n";
-        return Next((env, next, stack));
-      
-      case Rec(self, body) =>
-        return Next((env[self := Val.Thunk(env, comp)], body, stack));
-      
-      case LetCS(bound, body) =>
-        return Next((env[bound := Val.Stack(env, stack)], body, stack));
-      
-      case Throw(stack, next) => {
-        var val := Eval(env, stack);
-        match val
-        case Stack(env, stack) => return Next((env, next, stack));
-        case _                 => return Stuck;
-      }
-    }
-
-    //codatatype Trace = Step(In, Trace) | Stuck | Done(Val)
-    // Coinductive big-step semantics a la Leroy
-    method Run(s: In) decreases * {
-      print("\n");
-      var o := Step(s);
-      match o
-      case Next(s) => print(s, "\n"); Run(s);
-      case _ => print "done/stuck\n"; return;
-    }
-
-    // Initial configuration
-    function Initial(comp: Stmt): In
-      { (map[], comp, Stack.Empty) }
+    datatype Out = Next(In) | Stuck | Terminal
   }
 
-  module Typing {
+  module Statics {
+    import opened Utils
     import opened Syntax
     import opened Machine
-    import opened Utils
 
-    type Context = map<Var, Pos>
+    type Context = Alist<Var, Pos>
 
     function SynthExpr(g: Context, expr: Expr): Option<Pos> decreases expr, 0 {
       match expr
-      case Var(x)   => if x in g then Some(g[x]) else None
+      case Var(x)   => Get(g, x)
       case Unit     => Some(Pos.Unit)
       case Bool(_)  => Some(Pos.Bool)
       case Int(_)   => Some(Pos.Int)
@@ -304,7 +181,7 @@ module {:extern "DAM"} DAM {
 
       case Bind(lhs, var_, rhs) => (
         match SynthStmt(g, lhs)
-        case Some(Value(t)) => SynthStmt(g[var_ := t], rhs)
+        case Some(Value(t)) => SynthStmt(Update(var_, t, g), rhs)
         case _              => None
       )
       
@@ -320,7 +197,7 @@ module {:extern "DAM"} DAM {
       )
 
       case Func(bound, dom, body) =>
-        var cod :- SynthStmt(g[bound := dom], body);
+        var cod :- SynthStmt(Update(bound, dom, g), body);
         Some(Function(dom, cod))
       
       case Call(func, arg) => (
@@ -360,11 +237,11 @@ module {:extern "DAM"} DAM {
 
       case New(init, var_, next) =>
         var t :- SynthExpr(g, init);
-        SynthStmt(g[var_ := Pos.Ref(t)], next)
+        SynthStmt(Update(var_, Pos.Ref(t), g), next)
 
       case Read(ref, var_, next) => (
         match SynthExpr(g, ref)
-        case Some(Ref(t)) => SynthStmt(g[var_ := t], next)
+        case Some(Ref(t)) => SynthStmt(Update(var_, t, g), next)
         case _            => None
       )
 
@@ -400,7 +277,7 @@ module {:extern "DAM"} DAM {
       case Push(Bind(var_, rhs), stack) => (
         match start
         case Value(t) => (
-          match SynthStmt(g[var_ := t], rhs)
+          match SynthStmt(Update(var_, t, g), rhs)
           case Some(start) => SynthStack(g, stack, start)
           case None        => None
         )
@@ -430,41 +307,211 @@ module {:extern "DAM"} DAM {
       SynthStack(g, stack, start) == Some(end)
     }
 
-    // Values can't synthesize their type b/c they could contain cyclic references
-    // Closures have to synthesize a context out of thin air for their environments
-    // So, checking values, environments, and CEK machine states are ghost, which is fine, b/c they're runtime artefacts
-    ghost predicate CheckVal(val: Val, t: Pos) reads * decreases t {
-      match (val, t)
-      case (Unit,             Unit)     => true
-      case (Bool(_),          Bool)     => true
-      case (Int(_),           Int)      => true
-      case (Thunk(env, stmt), Thunk(t)) => (
-        var g :| CheckEnv(env, g);
-        CheckStmt(g, stmt, t)
+    type Store = Alist<Ptr<Val>, Pos>
+
+    function SynthVal(s: Store, val: Val): Option<Pos> decreases val {
+      match val
+      case Bool(_)     => Some(Pos.Bool)
+      case Int(_)      => Some(Pos.Int)
+      case Thunk(env, stmt) => (
+        var g :- SynthEnv(s, env);
+        var t :- SynthStmt(g, stmt);
+        Some(Pos.Thunk(t))
       )
-      case (Ref(ptr), Ref(t)) => CheckVal(ptr.deref, t)
-      /*case (Stack(env, stack), Stack(start)) => (
-        var g :| CheckEnv(env, g);
-        SynthStack(g, stack, start).Some?
+      case Ref(ptr) => Get(s, ptr)
+      /*case Stack(env, stack) => (
+        var g :- SynthEnv(s, env);
+        var end :- SynthStack(g, stack, start);
+        Some(Pos.Stack(end))
       )*/
-      case _                  => false
+      case _ => None
     }
 
-    ghost predicate CheckEnv(env: Env, g: Context) reads * {
-      forall x : Var | x in g :: x in env && CheckVal(env[x], g[x])
+    predicate CheckVal(s: Store, val: Val, t: Pos) {
+      SynthVal(s, val) == Some(t)
     }
 
-    ghost predicate CheckIn(s: In, g: Context, start: Neg, end: Neg) reads * {
-      var (env, stmt, stack) := s;
-      CheckEnv(env, g) && CheckStmt(g, stmt, start) && CheckStack(g, stack, start, end)
+    function SynthEnv(s: Store, env: Env): Option<Context> decreases env {
+      match env
+      case Empty             => Some(Alist.Empty)
+      case Update(var_, val, env) =>
+        var t    :- SynthVal(s, val);
+        var rest :- SynthEnv(s, env);
+        Some(Update(var_, t, rest))
     }
 
-    ghost predicate CheckOut(out: Out, g: Context, start: Neg, end: Neg) reads * {
+    predicate CheckEnv(s: Store, env: Env, g: Context) decreases env {
+      match env
+      case Empty => true
+      case Update(var_, val, env) => (
+        match Get(g, var_)
+        case Some(t) => CheckVal(s, val, t) && CheckEnv(s, env, g)
+        case None    => false
+      )
+    }
+
+    function SynthIn(state: In, s: Store): Option<(Context, Neg, Neg)> {
+      var (env, stmt, stack) := state;
+      var g :- SynthEnv(s, env);
+      var start :- SynthStmt(g, stmt);
+      var end :- SynthStack(g, stack, start);
+      Some((g, start, end))
+    }
+
+    predicate CheckIn(state: In, s: Store, g: Context, start: Neg, end: Neg) {
+      var (env, stmt, stack) := state;
+      CheckEnv(s, env, g) && CheckStmt(g, stmt, start) && CheckStack(g, stack, start, end)
+    }
+
+    predicate CheckOut(out: Out, s: Store, g: Context, start: Neg, end: Neg) {
       match out
-      case Next(next)    => CheckIn(next, g, start, end)
-      case Terminal(val) => start == end && CheckVal(val, Pos.Thunk(start))
-      case Stuck         => false
+      case Next(next) => CheckIn(next, s, g, start, end)
+      case Terminal   => true
+      case Stuck      => false
     }
+
+    predicate Preservation(s: Store, statein: In, stateout: Out) {
+      match SynthIn(statein, s)
+      case Some((g, start, end)) =>
+        CheckOut(stateout, s, g, start, end)
+      case None =>
+        true
+    }
+  }
+
+  module Dynamics {
+    import opened Utils
+    import opened Syntax
+    import opened Machine
+    import opened Statics
+
+    // Small-step semantics are divided between evaluation of expressions and stepping of the machine
+    function Eval(env: Env, expr: Expr): Option<Val> {
+      match expr
+      case Var(x)      => Get(env, x)
+      case Unit        => Some(Val.Unit)
+      case Bool(b)     => Some(Val.Bool(b))
+      case Int(i)      => Some(Val.Int(i))
+      case Thunk(stmt) => Some(Val.Thunk(env, stmt))
+    }
+
+    // TODO: ensures Preservation(in, out) = match out case In(next) => CheckCEK(g, next, start, end) | Stuck => false | Terminal(v) => CheckCEK(g, (env, ...), start, end)
+    method Step(state: In) returns (out: Out)
+      ensures forall s :: Preservation(s, state, out) {
+      var (env, comp, stack) := state;
+      match comp
+      case Bind(lhs, var_, rhs) =>
+        return Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)));
+      
+      case Pure(expr) => {
+        match stack.Pop()
+        case Some((Bind(var_, rhs), stack)) => {
+          match Eval(env, expr)
+          case Some(val) => return Next((Update(var_, val, env), rhs, stack));
+          case None      => return Stuck;
+        }
+        case Some(_) => return Stuck;
+        case None    => return Terminal;
+      }
+
+      case Call(func, arg) =>
+        return Next((env, func, Push(Frame.Call(arg), stack)));
+      
+      case Func(bound, _, body) => {
+        match stack.Pop()
+        case Some((Call(arg), stack)) => {
+          match Eval(env, arg)
+          case Some(val) => return Next((Update(bound, val, env), body, stack));
+          case None      => return Stuck;
+        }
+        case Some(_) => return Stuck;
+        case None    => return Terminal;
+      }
+
+      case Select(obj, field) =>
+        return Next((env, obj, Push(Frame.Select(field), stack)));
+      
+      case Record(fields) => {
+        match stack.Pop()
+        case Some((Select(field), stack)) => {
+          match Get(fields, field)
+          case Some(field) => return Next((env, field, stack));
+          case None        => return Stuck;
+        }
+        case Some(_) => return Stuck;
+        case None    => return Terminal;
+      }
+
+      case Ite(guard, then_, else_) => {
+        match Eval(env, guard)
+        case Some(Bool(guard)) =>
+          return Next((env, if guard then then_ else else_, stack));
+        case _ => return Stuck;
+      }
+
+      // Lexical scope restores the env of the closure
+      case Force(thunk) => {
+        match Eval(env, thunk)
+        case Some(Thunk(env, stmt)) => return Next((env, stmt, stack));
+        case _                      => return Stuck;
+      }
+
+      case New(init, var_, next) => {
+        match Eval(env, init)
+        case Some(init) =>
+          var ptr := new Ptr(init);
+          return Next((Update(var_, Val.Ref(ptr), env), next, stack));
+        case None => return Stuck;
+      }
+
+      case Read(ref, var_, next) => {
+        match Eval(env, ref)
+        case Some(Ref(ptr)) => return Next((Update(var_, ptr.deref, env), next, stack));
+        case _              => return Stuck;
+      }
+
+      case Write(lval, rval, next) => {
+        match Eval(env, lval)
+        case Some(Ref(ptr)) =>
+          //ptr.deref := Eval(env, rval);
+          return Next((env, next, stack));
+        case _        => return Stuck;
+      }
+
+      case Print(expr, next) => {
+        match Eval(env, expr)
+        case Some(val) =>
+          print val, "\n";
+          return Next((env, next, stack));
+        case None => return Stuck;
+      }
+      
+      case Rec(self, body) =>
+        return Next((Update(self, Val.Thunk(env, comp), env), body, stack));
+      
+      case LetCS(bound, body) =>
+        return Next((Update(bound, Val.Stack(env, stack), env), body, stack));
+      
+      case Throw(stack, next) => {
+        match Eval(env, stack)
+        case Some(Stack(env, stack)) => return Next((env, next, stack));
+        case _                       => return Stuck;
+      }
+    }
+
+    //codatatype Trace = Step(In, Trace) | Stuck | Done(Val)
+    // Coinductive big-step semantics a la Leroy
+    method Run(s: In) decreases * {
+      print("\n");
+      var o := Step(s);
+      match o
+      case Next(s) => print(s, "\n"); Run(s);
+      case _ => print "done/stuck\n"; return;
+    }
+
+    // Initial configuration
+    function Initial(comp: Stmt): In
+      { (Alist.Empty, comp, Stack.Empty) }
   }
 }
 
