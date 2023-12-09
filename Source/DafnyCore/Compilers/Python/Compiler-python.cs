@@ -57,6 +57,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
+    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+      , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
+      , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
+      , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
@@ -122,53 +126,15 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      switch (name) {
-        case "False":
-        case "None":
-        case "True":
-        case "and":
-        case "as":
-        case "assert":
-        case "async":
-        case "await":
-        case "break":
-        case "class":
-        case "continue":
-        case "def":
-        case "del":
-        case "enum":
-        case "elif":
-        case "else":
-        case "except":
-        case "finally":
-        case "for":
-        case "from":
-        case "global":
-        case "if":
-        case "import":
-        case "in":
-        case "is":
-        case "lambda":
-        case "nonlocal":
-        case "not":
-        case "or":
-        case "pass":
-        case "raise":
-        case "return":
-        case "try":
-        case "while":
-        case "with":
-        case "yield":
-          name = $"{name}_";
-          break;
-        default:
-          while (name.StartsWith("_")) {
-            name = $"{name[1..]}_";
-          }
-          if (name.Length > 0 && char.IsDigit(name[0])) {
-            name = $"d_{name}";
-          }
-          break;
+      if (Keywords.Contains(name)) {
+        name = $"{name}_";
+      } else {
+        while (name.StartsWith("_")) {
+          name = $"{name[1..]}_";
+        }
+        if (name.Length > 0 && char.IsDigit(name[0])) {
+          name = $"d_{name}";
+        }
       }
       return name;
     }
@@ -262,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var DtT = dt.GetCompileName(Options);
+      var DtT = IdProtect(dt.GetCompileName(Options));
 
       var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
         ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.tok))})"
