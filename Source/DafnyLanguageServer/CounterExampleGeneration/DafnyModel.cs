@@ -437,9 +437,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if (lenghtTuple != null) {
             var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
             value.AddConstraint(
-              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition),
-                lengthValue.definition), new() { value, lengthValue });
+              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, lengthValue.definition,
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition)), new() { value, lengthValue });
             yield return lengthValue;
           }
 
@@ -772,7 +771,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           key.definition, 
           null, 
           Token.NoToken);
-        mapVariable.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, seqSelectExpression, value.definition), new() {key, value});
+        mapVariable.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value.definition, seqSelectExpression), new() {key, value});
         yield return value;
       } else {
         var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;

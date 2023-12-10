@@ -25,6 +25,23 @@ public class PartialValue {
   private string ElementName => ElementNamePrefix + Element.Id;
   private static Dictionary<PartialState, Dictionary<Model.Element, PartialValue>> allPartialValues = new();
   public bool HasCompleteDefinition => analyzer.DefinitionIsComplete(definition);
+  
+  public IEnumerable<Expression> Values() {
+    if (!HasCompleteDefinition) {
+      yield break;
+    }
+
+    yield return definition;
+    foreach (var constraint in constraints) {
+      if (constraint is BinaryExpr { Op: BinaryExpr.Opcode.Eq } binaryExpr) {
+        if (binaryExpr.E0.ToString() == definition.ToString()) {
+          yield return binaryExpr.E1;
+        } else if (binaryExpr.E1.ToString() == definition.ToString()) {
+          yield return binaryExpr.E0;
+        }
+      }
+    }
+  }
 
   internal static PartialValue Get(Model.Element element, PartialState state) {
     if (allPartialValues.ContainsKey(state) && allPartialValues[state].ContainsKey(element)) {
