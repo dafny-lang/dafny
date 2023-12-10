@@ -4,6 +4,7 @@
 #nullable disable
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration; 
@@ -188,7 +189,55 @@ public class PartialValue {
 
   public Dictionary<PartialValue, PartialValue> Mappings = new(); // TODO
 
-  public int GetLength() => 0; // TODO
+  public int? Cardinality() {
+    if (Type is not SeqType or SetType or MapType) {
+      return -1;
+    }
+
+    LiteralExpr cardinality = null;
+    foreach (var constraint in constraints.OfType<BinaryExpr>()
+               .Where(binaryExpr => binaryExpr.Op == BinaryExpr.Opcode.Eq)) {
+      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr0
+          && constraint.E1 is LiteralExpr literalExpr1
+          && unaryOpExpr0.E.ToString() == definition.ToString()) {
+        cardinality = literalExpr1;
+        break;
+      }
+      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr1
+          && constraint.E1 is LiteralExpr literalExpr0
+          && unaryOpExpr1.E.ToString() == definition.ToString()) {
+        cardinality = literalExpr0;
+        break;
+      }
+    }
+
+    if (cardinality == null) {
+      foreach (var relatedValue in relatedValues) {
+        var relatedValueDescribesCardinality = false;
+        foreach (var definition in relatedValue.Values()) {
+          if (definition is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
+              && unaryOpExpr.E.ToString() == this.definition.ToString()) {
+            relatedValueDescribesCardinality = true;
+            break;
+          }
+        }
+
+        if (!relatedValueDescribesCardinality) {
+          continue;
+        }
+
+        cardinality = relatedValue.Values().OfType<LiteralExpr>().First();
+        break;
+      }
+    }
+
+    if (cardinality == null || cardinality.Value is not BigInteger bigInteger || 
+        !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
+      return -1;
+    }
+    
+    return (int) bigInteger;
+  }
 
 
   public PartialValue this[int i] {

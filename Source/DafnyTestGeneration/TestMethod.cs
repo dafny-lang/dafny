@@ -263,13 +263,13 @@ namespace DafnyTestGeneration {
           return GetPrimitiveAsType(variable.Value, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
-          if (variable?.GetLength() == -1) {
+          if (variable?.Cardinality() == -1) {
             if (seqType.Arg is CharType) {
               return "\"\"";
             }
             return AddValue(asType ?? variableType, "[]");
           }
-          for (var i = 0; i < variable?.GetLength(); i++) {
+          for (var i = 0; i < variable?.Cardinality(); i++) {
             var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();

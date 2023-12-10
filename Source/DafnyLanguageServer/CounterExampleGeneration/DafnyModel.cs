@@ -436,9 +436,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
           if (lenghtTuple != null) {
             var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
-            value.AddConstraint(
-              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, lengthValue.definition,
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition)), new() { value, lengthValue });
+            lengthValue.AddDefinition(new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.definition), new() {value});
             yield return lengthValue;
           }
 
