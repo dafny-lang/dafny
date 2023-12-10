@@ -85,6 +85,14 @@ public record AssumptionDescription(
     mitigationIETF: "MUST provide a body.",
     isExplicit: false,
     allowedInLibraries: false);
+  public static AssumptionDescription HasAssumeConcurrentAttribute(bool isModifies) {
+    return new AssumptionDescription(
+      issue: (isModifies ? "Modifies" : "Reads") + " clause has [{:assume_concurrent}] attribute.",
+      mitigation: "Manually review and test in a concurrent setting.",
+      mitigationIETF: "MUST manually review and test in a concurrent setting.",
+      isExplicit: true,
+      allowedInLibraries: false);
+  }
 
   public static AssumptionDescription NoBody(bool isGhost) {
     return new(

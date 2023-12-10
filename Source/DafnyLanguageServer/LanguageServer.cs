@@ -47,7 +47,6 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
       dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
-
       dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
 
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample

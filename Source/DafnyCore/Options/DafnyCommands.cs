@@ -44,7 +44,9 @@ public static class DafnyCommands {
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
-    CommonOptionBag.ExtractCounterexample
+    CommonOptionBag.ExtractCounterexample,
+    CommonOptionBag.ShowInference,
+    CommonOptionBag.ManualTriggerOption
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -66,7 +68,7 @@ public static class DafnyCommands {
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
-    DeveloperOptionBag.Print,
+    DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,

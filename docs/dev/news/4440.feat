@@ -1,0 +1,2 @@
+Reads clauses on method declarations are now supported when the `--reads-clauses-on-methods` option is provided. 
+The `{:concurrent}` attribute now verifies that the `reads` and `modifies` clauses are empty instead of generating an auditor warning.

@@ -1,0 +1,5 @@
+
+Dafny program verifier finished with 4 verified, 0 errors
+replaceableExecutionErrors.dfy(20,7): Error: a replaceable module may only be replaced once Other replacing module: replaceableExecutionErrors.dfy(26,7)
+replaceableExecutionErrors.dfy(14,7): Error: a replaceable module may only be replaced once Other replacing module: replaceableExecutionErrors.dfy(26,7)
+replaceableExecutionErrors.dfy(4,19): Error: when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module NeverReplacedImpl replaces NeverReplaced { ... }`

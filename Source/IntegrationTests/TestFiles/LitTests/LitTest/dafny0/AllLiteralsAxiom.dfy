@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NeedsAllLiteralsAxiom {
