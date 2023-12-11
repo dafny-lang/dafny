@@ -122,8 +122,9 @@ public class ProofDependencyWarnings {
   /// are innocuous. In particular, `assume true` is often used
   /// as a place to attach attributes such as `{:split_here}`.
   /// Don't warn about such assumptions. Also don't warn about
-  /// assumptions coming from places other than `assume` and `assert`
-  /// statements
+  /// assumptions that aren't explicit (coming from `assume` or
+  /// `assert` statements), for now, because they are difficult
+  /// for the user to control.
   /// </summary>
   /// <param name="dep">the dependency to examine</param>
   /// <returns>false to skip warning about the absence of this
@@ -136,7 +137,7 @@ public class ProofDependencyWarnings {
         return false;
       }
 
-      if (assumeDep.Form != AssumptionForm.AssumeStatement && assumeDep.Form != AssumptionForm.AssertStatement) {
+      if (!assumeDep.IsExplicitAssumption) {
         return false;
       }
     }

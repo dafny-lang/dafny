@@ -198,6 +198,13 @@ public class AssumptionDependency : ProofDependency {
 
   public AssumptionForm Form { get; }
 
+  // An explicit assumption is one that the user can control by editing the
+  // text of the program. For now, that at least includes `assume` statements
+  // and the assumptions that follow on from `assert` statements, but could
+  // be extended in the future.
+  public bool IsExplicitAssumption =>
+    Form is AssumptionForm.AssertStatement or AssumptionForm.AssumeStatement;
+
   public AssumptionDependency(AssumptionForm assumptionForm, string comment, Expression expr) {
     this.comment = comment;
     this.Expr = expr;
