@@ -1,6 +1,6 @@
-// Class nat
-// Dafny class nat compiled into Java
-package _System;
+// Class jopen
+// Dafny class jopen compiled into Java
+package Std.JSON.ZeroCopy.Deserializer.Objects;
 
 import Std.Wrappers.*;
 import Std.BoundedInts.*;
@@ -50,21 +50,17 @@ import Std.JSON.ZeroCopy.Deserializer.Core.*;
 import Std.JSON.ZeroCopy.Deserializer.Strings.*;
 import Std.JSON.ZeroCopy.Deserializer.Numbers.*;
 import Std.JSON.ZeroCopy.Deserializer.ObjectParams.*;
-import Std.JSON.ZeroCopy.Deserializer.Objects.*;
-import Std.JSON.ZeroCopy.Deserializer.ArrayParams.*;
-import Std.JSON.ZeroCopy.Deserializer.Arrays.*;
-import Std.JSON.ZeroCopy.Deserializer.Constants.*;
-import Std.JSON.ZeroCopy.Deserializer.Values.*;
-import Std.JSON.ZeroCopy.Deserializer.API.*;
-import Std.JSON.ZeroCopy.API.*;
-import Std.JSON.API.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
-public class nat {
-  public nat() {
+public class jopen {
+  public jopen() {
   }
-  private static final dafny.TypeDescriptor<java.math.BigInteger> _TYPE = dafny.TypeDescriptor.<java.math.BigInteger>referenceWithInitializer(java.math.BigInteger.class, () -> java.math.BigInteger.ZERO);
-  public static dafny.TypeDescriptor<java.math.BigInteger> _typeDescriptor() {
-    return (dafny.TypeDescriptor<java.math.BigInteger>) (dafny.TypeDescriptor<?>) _TYPE;
+  public static Std.JSON.Utils.Views.Core.View__ Witness = Std.JSON.Utils.Views.Core.View__.OfBytes(dafny.DafnySequence.<java.lang.Byte> of(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.OPEN()));
+  public static Std.JSON.Utils.Views.Core.View__ defaultValue() {
+    return Witness;
+  }
+  private static final dafny.TypeDescriptor<Std.JSON.Utils.Views.Core.View__> _TYPE = dafny.TypeDescriptor.<Std.JSON.Utils.Views.Core.View__>referenceWithInitializer(Std.JSON.Utils.Views.Core.View__.class, () -> jopen.defaultValue());
+  public static dafny.TypeDescriptor<Std.JSON.Utils.Views.Core.View__> _typeDescriptor() {
+    return (dafny.TypeDescriptor<Std.JSON.Utils.Views.Core.View__>) (dafny.TypeDescriptor<?>) _TYPE;
   }
 }

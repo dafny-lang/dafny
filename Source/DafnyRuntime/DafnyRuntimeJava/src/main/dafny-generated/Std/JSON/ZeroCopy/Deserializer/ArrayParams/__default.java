@@ -1,6 +1,6 @@
-// Class nat
-// Dafny class nat compiled into Java
-package _System;
+// Class __default
+// Dafny class __default compiled into Java
+package Std.JSON.ZeroCopy.Deserializer.ArrayParams;
 
 import Std.Wrappers.*;
 import Std.BoundedInts.*;
@@ -51,20 +51,28 @@ import Std.JSON.ZeroCopy.Deserializer.Strings.*;
 import Std.JSON.ZeroCopy.Deserializer.Numbers.*;
 import Std.JSON.ZeroCopy.Deserializer.ObjectParams.*;
 import Std.JSON.ZeroCopy.Deserializer.Objects.*;
-import Std.JSON.ZeroCopy.Deserializer.ArrayParams.*;
-import Std.JSON.ZeroCopy.Deserializer.Arrays.*;
-import Std.JSON.ZeroCopy.Deserializer.Constants.*;
-import Std.JSON.ZeroCopy.Deserializer.Values.*;
-import Std.JSON.ZeroCopy.Deserializer.API.*;
-import Std.JSON.ZeroCopy.API.*;
-import Std.JSON.API.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
-public class nat {
-  public nat() {
+public class __default {
+  public __default() {
   }
-  private static final dafny.TypeDescriptor<java.math.BigInteger> _TYPE = dafny.TypeDescriptor.<java.math.BigInteger>referenceWithInitializer(java.math.BigInteger.class, () -> java.math.BigInteger.ZERO);
-  public static dafny.TypeDescriptor<java.math.BigInteger> _typeDescriptor() {
-    return (dafny.TypeDescriptor<java.math.BigInteger>) (dafny.TypeDescriptor<?>) _TYPE;
+  public static dafny.DafnySequence<? extends java.lang.Byte> ElementSpec(Std.JSON.Grammar.Value t) {
+    return Std.JSON.ConcreteSyntax.Spec.__default.Value(t);
+  }
+  public static Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Value>, Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors.DeserializationError>> Element(Std.JSON.Utils.Cursors.Cursor__ cs, Std.JSON.Utils.Parsers.SubParser__<Std.JSON.Grammar.Value, Std.JSON.Errors.DeserializationError> json)
+  {
+    return ((Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Value>, Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors.DeserializationError>>)(java.lang.Object)(((json).dtor_fn()).apply(cs)));
+  }
+  public static byte OPEN()
+  {
+    return ((byte) ('['));
+  }
+  public static byte CLOSE()
+  {
+    return ((byte) (']'));
+  }
+  @Override
+  public java.lang.String toString() {
+    return "Std.JSON.ZeroCopy.Deserializer.ArrayParams._default";
   }
 }

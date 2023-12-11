@@ -27,6 +27,7 @@ java {
 
 sourceSets["main"].java {
     srcDir("src/main/dafny-generated")
+    srcDir("src/main/Std")
 }
 
 tasks.withType(JavaCompile) {

@@ -1,6 +1,4 @@
-// Class nat
-// Dafny class nat compiled into Java
-package _System;
+// Dafny program the_program compiled into Java
 
 import Std.Wrappers.*;
 import Std.BoundedInts.*;
@@ -58,13 +56,183 @@ import Std.JSON.ZeroCopy.Deserializer.Values.*;
 import Std.JSON.ZeroCopy.Deserializer.API.*;
 import Std.JSON.ZeroCopy.API.*;
 import Std.JSON.API.*;
+import _System.*;
 
-@SuppressWarnings({"unchecked", "deprecation"})
-public class nat {
-  public nat() {
-  }
-  private static final dafny.TypeDescriptor<java.math.BigInteger> _TYPE = dafny.TypeDescriptor.<java.math.BigInteger>referenceWithInitializer(java.math.BigInteger.class, () -> java.math.BigInteger.ZERO);
-  public static dafny.TypeDescriptor<java.math.BigInteger> _typeDescriptor() {
-    return (dafny.TypeDescriptor<java.math.BigInteger>) (dafny.TypeDescriptor<?>) _TYPE;
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,7 +4,7 @@ DAFNY = dotnet run --project ../Dafny --no-build --
 
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
-TARGET_EXTERNS=$(wildcard src/${TARGETNAME}/*.${TARGETLANG})
+TARGET_EXTERNS=$(wildcard src/${TARGETNAME}/*.${TARGETLANG}) $(wildcard src/${TARGETNAME}/*/*.${TARGETLANG})
 
 all: check-binary test check-format check-examples
 
@@ -25,13 +25,13 @@ translate:
 	mkdir -p binaries/${TARGETNAME}
 	cp ${TARGET_EXTERNS} binaries/${TARGETNAME}/
 
-update-binary: # build-binary
+update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
-	make translate TARGETLANG=cs TARGETNAME=CSharp
-	make translate TARGETLANG=java TARGETNAME=Java
-	make translate TARGETLANG=js TARGETNAME=JavaScript
-	make translate TARGETLANG=go TARGETNAME=GoLang
-	make translate TARGETLANG=py TARGETNAME=Python
+# 	make translate TARGETLANG=cs TARGETNAME=CSharp
+# 	make translate TARGETLANG=java TARGETNAME=Java
+# 	make translate TARGETLANG=js TARGETNAME=JavaScript
+# 	make translate TARGETLANG=go TARGETNAME=GoLang
+# 	make translate TARGETLANG=py TARGETNAME=Python
 	
 # Rebuild Dafny to pick up the new embedded assets
 	dotnet build ../Dafny.sln
