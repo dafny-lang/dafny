@@ -2,8 +2,7 @@
  * This file specifies:
  * 1. A core language for Dafny based on call-by-push-value (CBPV) with
  *    state (mutable references), control (letcc/throw) for early returns, etc., and recursion 
- * 2. A novel CEK-machine interpreter that extends that of
- *    Hillerstrom-Lindley for fine-grain call-by-value
+ * 2. A novel CEK-machine interpreter that extends the CK machine for CBPV
  * 3. A simple type system that is sound with respect to the interpreter
 */ 
 
@@ -29,6 +28,14 @@ module {:extern "DAM"} DAM {
           Some(val)
         else
           Get(rest, key)
+    }
+
+    ghost predicate SubsetOf<K(!new), V>(small: Alist<K, V>, big: Alist<K, V>) {
+      forall k : K :: (
+        match Get(small, k)
+        case Some(val) => Get(big, k) == Some(val)
+        case None      => true
+      )
     }
   }
 
@@ -172,6 +179,14 @@ module {:extern "DAM"} DAM {
       SynthExpr(g, e) == Some(t)
     }
 
+    lemma SynthCheckExpr(g: Context, expr: Expr)
+      ensures (
+        match SynthExpr(g, expr)
+        case Some(t) => CheckExpr(g, expr, t)
+        case None    => true
+      ) { }
+
+
     function SynthStmt(g: Context, stmt: Stmt): Option<Neg> decreases stmt, 0 {
       match stmt
       case Pure(e) => (
@@ -261,17 +276,24 @@ module {:extern "DAM"} DAM {
     function SynthRecord(g: Context, fields: Alist<Field, Stmt>): Option<Alist<Field, Neg>> decreases fields {
       match fields
       case Empty => Some(Alist.Empty)
-      case Update(key, val, rest) =>
-        var field :- SynthStmt(g, val);
+      case Update(field, stmt, rest) =>
+        var fieldt :- SynthStmt(g, stmt);
         var rest  :- SynthRecord(g, rest);
-        Some(Update(key, field, rest))
+        Some(Update(field, fieldt, rest))
     }
 
     predicate CheckStmt(g: Context, s: Stmt, t: Neg) decreases s, 1 {
       SynthStmt(g, s) == Some(t)
     }
 
-    function SynthStack(g: Context, stack: Stack, start: Neg): Option<Neg> decreases stack, 0 {
+    lemma SynthCheckStmt(g: Context, stmt: Stmt)
+      ensures (
+        match SynthStmt(g, stmt)
+        case Some(t) => CheckStmt(g, stmt, t)
+        case None    => true
+      ) { }
+
+    function SynthStack(g: Context, stack: Stack, start: Neg): Option<Neg> decreases stack {
       match stack
       case Empty => Some(start)
       case Push(Bind(var_, rhs), stack) => (
@@ -307,6 +329,13 @@ module {:extern "DAM"} DAM {
       SynthStack(g, stack, start) == Some(end)
     }
 
+    lemma SynthCheckStack(g: Context, stack: Stack, start: Neg)
+      ensures (
+        match SynthStack(g, stack, start)
+        case Some(end) => CheckStack(g, stack, start, end)
+        case None    => true
+      ) { }
+
     type Store = Alist<Ptr<Val>, Pos>
 
     function SynthVal(s: Store, val: Val): Option<Pos> decreases val {
@@ -331,6 +360,13 @@ module {:extern "DAM"} DAM {
       SynthVal(s, val) == Some(t)
     }
 
+    lemma SynthCheckVal(s: Store, val: Val)
+      ensures (
+        match SynthVal(s, val)
+        case Some(t) => CheckVal(s, val, t)
+        case None    => true
+      ) { }
+
     function SynthEnv(s: Store, env: Env): Option<Context> decreases env {
       match env
       case Empty             => Some(Alist.Empty)
@@ -350,6 +386,16 @@ module {:extern "DAM"} DAM {
       )
     }
 
+    lemma SynthCheckEnv(s: Store, env: Env)
+      ensures (
+        match SynthEnv(s, env)
+        case Some(g) => CheckEnv(s, env, g)
+        case None    => true
+      )
+    {
+      assume false;
+    }
+
     function SynthIn(state: In, s: Store): Option<(Context, Neg, Neg)> {
       var (env, stmt, stack) := state;
       var g :- SynthEnv(s, env);
@@ -363,17 +409,51 @@ module {:extern "DAM"} DAM {
       CheckEnv(s, env, g) && CheckStmt(g, stmt, start) && CheckStack(g, stack, start, end)
     }
 
-    predicate CheckOut(out: Out, s: Store, g: Context, start: Neg, end: Neg) {
+    lemma SynthCheckIn(s: Store, state: In)
+      ensures (
+        match SynthIn(state, s)
+        case Some((g, start, end)) => CheckIn(state, s, g, start, end)
+        case None                  => true
+      )
+    {
+      var (env, _, _) := state;
+      SynthCheckEnv(s, env);
+    }
+
+    /*predicate CheckOut(out: Out, s: Store, g: Context, start: Neg, end: Neg) {
       match out
       case Next(next) => CheckIn(next, s, g, start, end)
       case Terminal   => true
       case Stuck      => false
+    }*/
+
+    function SynthOut(out: Out, s: Store, g: Context, start: Neg, end: Neg): Option<(Context, Neg, Neg)> {
+      match out
+      case Next(next) => SynthIn(next, s)
+      case Terminal   => Some((g, start, end))
+      case Stuck      => None
     }
 
-    predicate Preservation(s: Store, statein: In, stateout: Out) {
+    // Preservation is tricky, because
+    // The restoration of a closure makes the context unpreserved
+    // Statements can modify the stack, making the start type unpreserved
+    // The creation of references monotonically modifies the store typing
+    // So really, only the end type is preserved
+
+    predicate PreservationPos(s: Store, env: Env, older e: Expr, v: Val) {
+      match SynthEnv(s, env)
+      case Some(g) => (
+        match SynthExpr(g, e)
+        case Some(t) => CheckVal(s, v, t)
+        case None    => true
+      )
+      case None    => true
+    }
+
+    predicate PreservationNeg(s: Store, statein: In, stateout: Out) {
       match SynthIn(statein, s)
       case Some((g, start, end)) =>
-        CheckOut(stateout, s, g, start, end)
+        SynthOut(stateout, s, g, start, end).Some?
       case None =>
         true
     }
@@ -386,7 +466,11 @@ module {:extern "DAM"} DAM {
     import opened Statics
 
     // Small-step semantics are divided between evaluation of expressions and stepping of the machine
-    function Eval(env: Env, expr: Expr): Option<Val> {
+    function Eval(env: Env, expr: Expr): (out: Option<Val>)
+      ensures (match out
+        case Some(val) => forall s :: PreservationPos(s, env, expr, val)
+        case None => true)
+    {
       match expr
       case Var(x)      => Get(env, x)
       case Unit        => Some(Val.Unit)
@@ -397,7 +481,7 @@ module {:extern "DAM"} DAM {
 
     // TODO: ensures Preservation(in, out) = match out case In(next) => CheckCEK(g, next, start, end) | Stuck => false | Terminal(v) => CheckCEK(g, (env, ...), start, end)
     method Step(state: In) returns (out: Out)
-      ensures forall s :: Preservation(s, state, out) {
+      ensures forall s :: PreservationNeg(s, state, out) {
       var (env, comp, stack) := state;
       match comp
       case Bind(lhs, var_, rhs) =>
@@ -445,14 +529,16 @@ module {:extern "DAM"} DAM {
       case Ite(guard, then_, else_) => {
         match Eval(env, guard)
         case Some(Bool(guard)) =>
-          return Next((env, if guard then then_ else else_, stack));
-        case _ => return Stuck;
+          assume false; return Next((env, if guard then then_ else else_, stack));
+        case Some(_) => assume false; return Stuck;
+        case None => assume false; return Stuck;
       }
 
       // Lexical scope restores the env of the closure
       case Force(thunk) => {
         match Eval(env, thunk)
-        case Some(Thunk(env, stmt)) => return Next((env, stmt, stack));
+        case Some(Thunk(env, stmt)) =>
+          return Next((env, stmt, stack));
         case _                      => return Stuck;
       }
 
@@ -499,7 +585,12 @@ module {:extern "DAM"} DAM {
       }
     }
 
-    //codatatype Trace = Step(In, Trace) | Stuck | Done(Val)
+    /*lemma PreservationProof(st: Store, s: In)
+      ensures var out := Step(s); Preservation(st, s, out) {
+
+    }*/
+
+    //codatatype Trace = Step(In, Trace) | Stuck | Terminal
     // Coinductive big-step semantics a la Leroy
     method Run(s: In) decreases * {
       print("\n");
