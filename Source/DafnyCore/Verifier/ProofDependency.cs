@@ -174,7 +174,7 @@ public enum AssumptionForm {
   LetBinding,
   VariableDeclaration,
   IfBinding,
-  AssignSuchThatConstaint,
+  AssignSuchThatConstraint,
   CalcStep,
   CalcResult,
   ForallEnsures,

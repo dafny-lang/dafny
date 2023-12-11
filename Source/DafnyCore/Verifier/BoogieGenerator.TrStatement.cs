@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(s.Tok, bHavocLHSs));
 
         // End by doing the assume
-        builder.Add(TrAssumeCmdWithDependencies(etran, s.Tok, s.Expr, "assign-such-that constraint", AssumptionForm.AssignSuchThatConstaint));
+        builder.Add(TrAssumeCmdWithDependencies(etran, s.Tok, s.Expr, "assign-such-that constraint", AssumptionForm.AssignSuchThatConstraint));
         builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {
