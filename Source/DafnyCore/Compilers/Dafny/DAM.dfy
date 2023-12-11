@@ -37,6 +37,12 @@ module {:extern "DAM"} DAM {
         case None      => true
       )
     }
+
+    /*lemma GetUpdate<K, V>(m: Alist<K, V>, k: K, v: V)
+    ensures Get(Update(k, v, m), k) == Some(v) { }
+
+    lemma GetUpdateCommute<K, V>(m: Alist<K, V>, k: K, k': K, v: V, v': V)
+    ensures Get(Update(k, v, m), k) == Some(v) { }*/
   }
 
   // CBPV distinguishes between expressions and statements of positive and negative type, respectively
@@ -435,9 +441,14 @@ module {:extern "DAM"} DAM {
     }
 
     // Preservation is tricky, because
-    // The restoration of a closure makes the context unpreserved
-    // Statements can modify the stack, making the start type unpreserved
-    // The creation of references monotonically modifies the store typing
+    // The store grows with allocations and shrinks if deallocation is implemented
+    // The following things can shrink the environment
+    // - Restoration of a closure via force
+    // - Restoration of a stack via throw - which can also change the 
+    // But the following things can grow the environment
+    // - Bind, function calls, etc.
+    // Manipulation of the stack changes the start type arbitrarily
+    // The end type 
     // So really, only the end type is preserved
 
     predicate PreservationPos(s: Store, env: Env, older e: Expr, v: Val) {
