@@ -32,14 +32,6 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\Java\**\*.java">
-      <LinkBase>DafnyStandardLibraries_java</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\JavaScript\**\*.js">
-      <LinkBase>DafnyStandardLibraries_js</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\GoLang\**\*.go">
       <LinkBase>DafnyStandardLibraries_go</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -66,11 +58,7 @@
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
-      <LinkBase>DafnyRuntimeCsharp</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeSystemModule.cs">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeCSharp\**\*.cs">
       <LinkBase>DafnyRuntimeCsharp</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

@@ -1,6 +1,6 @@
 includes = [
+  "**/*.dfy"
   "../systemModulePopulator.dfy", 
-  "../../DafnyStandardLibraries/src/Java/**/*.dfy", 
   "../../DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo"
 ]
 

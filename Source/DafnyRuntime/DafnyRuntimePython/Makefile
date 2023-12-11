@@ -8,7 +8,7 @@ GENERATED_SYSTEM_MODULE_TARGET=System_.py
 all: check-system-module
 
 build-system-module:
-	$(DAFNY) translate py --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
+	$(DAFNY) translate py --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:../obj/systemModulePopulator
 
 check-system-module: build-system-module
 	diff $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)

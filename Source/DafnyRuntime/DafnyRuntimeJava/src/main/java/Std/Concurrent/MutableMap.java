@@ -1,4 +1,4 @@
-package DafnyStdLibsExterns.Concurrent;
+package Std.Concurrent;
 
 import dafny.*;
 import Std.Wrappers.*;
@@ -14,6 +14,8 @@ public class MutableMap<K, V> {
 
     private ConcurrentHashMap<K, V> map;
     private dafny.TypeDescriptor<V> td_V; 
+
+    public void __ctor() {}
 
     public MutableMap(dafny.TypeDescriptor<K> td_K, dafny.TypeDescriptor<V> td_V) {
         this.td_V = td_V;

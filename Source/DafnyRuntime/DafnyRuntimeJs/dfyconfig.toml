@@ -1,4 +1,7 @@
-includes = ["**/*.dfy", "../../build/DafnyStandardLibraries.doo"]
+includes = [
+  "../systemModulePopulator.dfy",  
+  "../../DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo"
+]
 
 [options]
 # Options that help support more values of consuming context options

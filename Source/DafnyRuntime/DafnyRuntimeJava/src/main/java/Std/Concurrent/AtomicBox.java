@@ -1,4 +1,4 @@
-package DafnyStdLibsExterns.Concurrent;
+package Std.Concurrent;
 
 import dafny.*;
 
@@ -6,6 +6,8 @@ public class AtomicBox<T> {
 
     private volatile T val;
 
+    public void __ctor() {}
+    
     public AtomicBox(T t) {
         val = t;
     }
