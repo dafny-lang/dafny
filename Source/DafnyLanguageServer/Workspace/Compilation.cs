@@ -129,9 +129,10 @@ public class Compilation : IDisposable {
       }
     }
 
-    / Change to library not root source
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      var stdLib = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
+      stdLib.IsPrecompiled = true;
+      result.Add(stdLib);
     }
 
     foreach (var library in Options.Get(CommonOptionBag.Libraries)) {

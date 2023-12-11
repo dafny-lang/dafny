@@ -488,7 +488,9 @@ public static class DafnyCli {
     if (options.Get(CommonOptionBag.UseStandardLibraries)) {
       var reporter = new ConsoleErrorReporter(options);
       options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-      dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli));
+      var dooFile = DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli);
+      dooFile.IsPrecompiled = true;
+      dafnyFiles.Add(dooFile);
     }
 
     return ExitValue.SUCCESS;
