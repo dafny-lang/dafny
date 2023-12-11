@@ -255,25 +255,4 @@ module {:disableNonlinearArithmetic} Std.Strings {
   function OfChar(c: char) : string {
     [c]
   }
-
-  /**
-  Join a sequence of strings using a separator string
-   */
-  function Join(sep: string, strs: seq<string>) : string {
-    if |strs| == 0 then ""
-    else if |strs| == 1 then strs[0]
-    else strs[0] + sep + Join(sep, strs[1..])
-  }
-
-  /**
-  Concatenate a sequence of strings
-   */
-  function Concat(strs: seq<string>) : string {
-    if |strs| == 0 then ""
-    else strs[0] + Concat(strs[1..])
-  }
-
-  lemma Concat_Join(strs: seq<string>)
-    ensures Concat(strs) == Join("", strs)
-  {}
 }
