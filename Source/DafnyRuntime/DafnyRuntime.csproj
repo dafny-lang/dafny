@@ -25,6 +25,13 @@
   <ItemGroup>
     <Folder Include="DafnyRuntimeJava\build\libs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\DafnyStandardLibraries\src\CSharp\**\*.cs">
+      <LinkBase>..\DafnyStandardLibraries\src\CSharp</LinkBase>
+    </Compile>  
+  </ItemGroup>
+    
   <PropertyGroup>
     <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.4.0.jar</DafnyRuntimeJar>
   </PropertyGroup>

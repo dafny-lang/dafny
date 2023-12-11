@@ -32,10 +32,6 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\CSharp\**\*.cs">
-      <LinkBase>DafnyStandardLibraries_cs</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\Java\**\*.java">
       <LinkBase>DafnyStandardLibraries_java</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

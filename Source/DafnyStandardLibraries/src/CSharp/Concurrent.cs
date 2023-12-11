@@ -37,7 +37,7 @@ namespace Concurrent {
 
         public _IOption<V> Get(K k) {
             var v = map[k];
-            if (v is null) {
+            if (v == null) {
                 return Option<V>.create_None();
             } else {
                 return Option<V>.create_Some(v);
