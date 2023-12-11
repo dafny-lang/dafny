@@ -1427,7 +1427,7 @@ namespace Microsoft.Dafny {
           var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
           var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(rhs_prime)));
-          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint", AssumptionForm.AssignSuchThatConstaint));
+          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint", AssumptionForm.AssignSuchThatConstraint));
           builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(letBody_prime)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
