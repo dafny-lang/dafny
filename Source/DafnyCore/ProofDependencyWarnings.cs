@@ -133,13 +133,11 @@ public class ProofDependencyWarnings {
     if (dep is AssumptionDependency assumeDep) {
       if (assumeDep.Expr is not null &&
           Expression.IsBoolLiteral(assumeDep.Expr, out var lit) &&
-          lit == true) {
+          lit) {
         return false;
       }
 
-      if (!assumeDep.IsExplicitAssumption) {
-        return false;
-      }
+      return assumeDep.WarnWhenUnused;
     }
 
     return true;

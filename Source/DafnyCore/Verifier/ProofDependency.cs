@@ -168,22 +168,6 @@ public class CallDependency : ProofDependency {
   }
 }
 
-public enum AssumptionForm {
-  AssumeStatement,
-  AssertStatement,
-  LetBinding,
-  VariableDeclaration,
-  IfBinding,
-  AssignSuchThatConstraint,
-  CalcStep,
-  CalcResult,
-  ForallEnsures,
-  ForallRange,
-  LoopInvariant,
-  AlternativeGuard,
-  Other,
-}
-
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
   public override RangeToken Range =>
@@ -192,23 +176,16 @@ public class AssumptionDependency : ProofDependency {
   public override string Description =>
     comment ?? OriginalString();
 
+  public bool WarnWhenUnused { get; }
+
   private readonly string comment;
 
   public Expression Expr { get; }
 
-  public AssumptionForm Form { get; }
-
-  // An explicit assumption is one that the user can control by editing the
-  // text of the program. For now, that at least includes `assume` statements
-  // and the assumptions that follow on from `assert` statements, but could
-  // be extended in the future.
-  public bool IsExplicitAssumption =>
-    Form is AssumptionForm.AssertStatement or AssumptionForm.AssumeStatement;
-
-  public AssumptionDependency(AssumptionForm assumptionForm, string comment, Expression expr) {
+  public AssumptionDependency(bool warnWhenUnused, string comment, Expression expr) {
+    this.WarnWhenUnused = warnWhenUnused;
     this.comment = comment;
     this.Expr = expr;
-    this.Form = assumptionForm;
   }
 }
 
