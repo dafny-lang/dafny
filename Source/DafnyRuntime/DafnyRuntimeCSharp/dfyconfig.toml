@@ -1,7 +1,7 @@
 includes = [
   "**/*.dfy", 
   "../systemModulePopulator.dfy", 
-  "../DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo"
+  "../../DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo"
 ]
 
 [options]
