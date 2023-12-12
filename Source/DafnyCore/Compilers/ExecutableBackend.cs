@@ -48,8 +48,10 @@ public abstract class ExecutableBackend : IExecutableBackend {
       }
 
       if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
-        Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-          $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        }
       }
     }
   }

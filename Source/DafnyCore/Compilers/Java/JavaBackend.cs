@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class JavaBackend : ExecutableBackend {
 
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java", ".jar" };
 
   public override string TargetName => "Java";
   public override bool IsStable => true;
