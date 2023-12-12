@@ -5,7 +5,7 @@ module A {
 
   datatype D<U> = D(x: R<string, U>)
 
-  method foo<U>(x: R<string, U>)
+  method Foo<U>(x: R<string, U>)
   {
     var _ := D(x);
   }
