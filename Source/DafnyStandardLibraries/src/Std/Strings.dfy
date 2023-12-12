@@ -11,7 +11,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
   Refine this module to use it.
   The refinee must define:
     - the type of character used, Char
-    - a conversion from nat to Char and vice versa
+    - a conversion from nat to Char (the chars sequences) and vice versa (charToDigit)
    */
   abstract module {:disableNonlinearArithmetic} ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
@@ -20,16 +20,25 @@ module {:disableNonlinearArithmetic} Std.Strings {
     type String = seq<Char>
 
     type CharSeq = chars: seq<Char> | |chars| > 1 witness *
+    // Canoncial digit characters: converting to strings will uses these characters.
     const chars: CharSeq
     const base := |chars|
+    // All recognized digit characters: converting from strings will use this map,
+    // which may associate multiple characters with the same digit.
     const charToDigit: map<Char, digit>
+
+    lemma CharsConsistent()
+      ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
 
     function BASE(): nat {
       base
     }
 
+    predicate IsDigitChar(c: Char) {
+      c in charToDigit
+    }
+
     function OfDigits(digits: seq<digit>) : (str: String)
-      requires forall d | d in digits :: 0 <= d < base
       ensures forall c <- str :: c in chars
       ensures |str| == |digits|
     {
@@ -51,16 +60,10 @@ module {:disableNonlinearArithmetic} Std.Strings {
       else LemmaFromNatLen2(n); OfDigits(FromNat(n))
     }
 
-    predicate OfNumberStr(str: String, minus: Char) {
-      str != [] ==>
-        && (str[0] == minus || str[0] in chars)
-        && forall c <- str[1..] :: c in chars
-    }
-
-    predicate ToNumberStr(str: String, minus: Char) {
+    predicate IsNumberStr(str: String, minus: Char) {
       str != [] ==>
         && (str[0] == minus || str[0] in charToDigit)
-        && forall c <- str[1..] :: c in charToDigit
+        && forall c <- str[1..] :: IsDigitChar(c)
     }
 
     /*
@@ -68,8 +71,9 @@ module {:disableNonlinearArithmetic} Std.Strings {
     given a particular minus character.
     */
     function OfInt(n: int, minus: Char) : (str: String)
-      ensures OfNumberStr(str, minus)
+      ensures IsNumberStr(str, minus)
     {
+      CharsConsistent();
       if n >= 0 then OfNat(n)
       else [minus] + OfNat(-n)
     }
@@ -78,18 +82,19 @@ module {:disableNonlinearArithmetic} Std.Strings {
     Convert a String that represents a natural number, back into that number.
      */
     function {:vcs_split_on_every_assert} ToNat(str: String) : (n: nat)
-      requires forall c <- str :: c in charToDigit
+      requires forall c <- str :: IsDigitChar(c)
     {
       if str == [] then 0
       else
         LemmaMulNonnegativeAuto();
-        ToNat(str[..|str| - 1]) * base + charToDigit[str[|str| - 1]]
+        var c := str[|str| - 1];
+        assert IsDigitChar(c);
+        ToNat(str[..|str| - 1]) * base + charToDigit[c]
     }
 
     lemma {:induction false} ToNatBound(str: String)
       requires base > 0
-      requires forall c <- str :: c in charToDigit
-      requires forall c <- str :: charToDigit[c] < base
+      requires forall c <- str :: IsDigitChar(c)
       ensures ToNat(str) < Pow(base, |str|)
     {
       if str == [] {
@@ -97,6 +102,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
       } else {
         calc <= {
           ToNat(str);
+          { assert IsDigitChar(str[|str| - 1]); }
           ToNat(str[..|str| - 1]) * base + charToDigit[str[|str| - 1]];
           ToNat(str[..|str| - 1]) * base + (base - 1);
           { ToNatBound(str[..|str| - 1]);
@@ -115,7 +121,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
      */
     function ToInt(str: String, minus: Char): (s: int)
       requires str != [minus]
-      requires ToNumberStr(str, minus)
+      requires IsNumberStr(str, minus)
     {
       if [minus] <= str then -(ToNat(str[1..]) as int)
       else
@@ -172,6 +178,9 @@ module {:disableNonlinearArithmetic} Std.Strings {
         'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
         'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
       ]
+    // The size of the map makes this impractical to verify easily.
+    lemma {:axiom} CharsConsistent()
+      ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   }
 
   module {:disableNonlinearArithmetic} DecimalConversion refines ParametricConversion {
@@ -182,6 +191,9 @@ module {:disableNonlinearArithmetic} Std.Strings {
       map[
         '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
       ]
+    lemma CharsConsistent()
+      ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
+    {}
   }
 
   module CharStrEscaping refines ParametricEscaping {
@@ -202,7 +214,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
   Convert an integer into its String representation for a decimal number system
   */
   function OfInt(n: int) : (str: string)
-    ensures DecimalConversion.OfNumberStr(str, '-')
+    ensures DecimalConversion.IsNumberStr(str, '-')
   {
     DecimalConversion.OfInt(n, '-')
   }
@@ -211,7 +223,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
   Given a natural number represented as a decimal number in a String, back into an integer
    */
   function ToNat(str: string) : (n: nat)
-    requires forall c <- str :: c in DecimalConversion.charToDigit && DecimalConversion.charToDigit[c] as int < DecimalConversion.base
+    requires forall c <- str :: DecimalConversion.IsDigitChar(c)
     ensures n < Pow(DecimalConversion.base, |str|)
   {
     DecimalConversion.ToNatBound(str);
@@ -223,7 +235,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
    */
   function ToInt(str: string) : (n: int)
     requires str != "-"
-    requires DecimalConversion.ToNumberStr(str, '-')
+    requires DecimalConversion.IsNumberStr(str, '-')
   {
     DecimalConversion.ToInt(str, '-')
   }
