@@ -8,7 +8,8 @@ DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 all: check-binary test check-format check-examples
 
 verify:
-	$(DAFNY) verify src/DafnyStdLibs/dfyconfig.toml
+	$(DAFNY) verify src/Std/dfyconfig.toml
+	make -C src/Std/TargetSpecific verify-all
 
 build-binary:
 	$(DAFNY) build -t:lib src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}

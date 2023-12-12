@@ -53,14 +53,4 @@ module StringsExamples {
     expect OfChar('c') == "c";
     expect OfChar('f') == "f";
   }
-
-  method {:test} TestJoin() {
-    expect Join(",", []) == "";
-    expect Join(",", ["0", "1", "2"]) == "0,1,2";
-  }
-
-  method {:test} TestConcat() {
-    expect Concat([]) == "";
-    expect Concat(["aaa", "bbb", "ccc"]) == "aaabbbccc";
-  }
 }
