@@ -1,7 +1,7 @@
 /**
 The Strings module enables converting between numbers such as nat and int, and String
  */
-module Std.Strings {
+module {:disableNonlinearArithmetic} Std.Strings {
   import opened Wrappers
   import opened Arithmetic.Power
   import opened Arithmetic.Logarithm
@@ -13,7 +13,7 @@ module Std.Strings {
     - the type of character used, Char
     - a conversion from nat to Char and vice versa
    */
-  abstract module ParametricConversion refines Arithmetic.LittleEndianNat {
+  abstract module {:disableNonlinearArithmetic} ParametricConversion refines Arithmetic.LittleEndianNat {
     import opened Wrappers
 
     type Char(==)
@@ -162,7 +162,7 @@ module Std.Strings {
     }
   }
 
-  module HexConversion refines ParametricConversion {
+  module {:disableNonlinearArithmetic} HexConversion refines ParametricConversion {
     type Char = char
     const HEX_DIGITS: seq<char> := "0123456789ABCDEF"
     const chars := HEX_DIGITS
@@ -174,7 +174,7 @@ module Std.Strings {
       ]
   }
 
-  module DecimalConversion refines ParametricConversion {
+  module {:disableNonlinearArithmetic} DecimalConversion refines ParametricConversion {
     type Char = char
     const DIGITS: seq<char> := "0123456789"
     const chars := DIGITS
@@ -255,25 +255,4 @@ module Std.Strings {
   function OfChar(c: char) : string {
     [c]
   }
-
-  /**
-  Join a sequence of strings using a separator string
-   */
-  function Join(sep: string, strs: seq<string>) : string {
-    if |strs| == 0 then ""
-    else if |strs| == 1 then strs[0]
-    else strs[0] + sep + Join(sep, strs[1..])
-  }
-
-  /**
-  Concatenate a sequence of strings
-   */
-  function Concat(strs: seq<string>) : string {
-    if |strs| == 0 then ""
-    else strs[0] + Concat(strs[1..])
-  }
-
-  lemma Concat_Join(strs: seq<string>)
-    ensures Concat(strs) == Join("", strs)
-  {}
 }

@@ -31,7 +31,7 @@ module Std.JSON.Deserializer {
     UnsupportedEscape(FromUTF16Checked(code).GetOr("Couldn't decode UTF-16"))
   }
 
-  module Uint16StrConversion refines Strings.ParametricConversion {
+  module {:disableNonlinearArithmetic} Uint16StrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
 
     type Char = uint16

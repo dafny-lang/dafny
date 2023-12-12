@@ -15,9 +15,9 @@ abstract module AbstractWrapper {
     var js  :- expect Deserialize(bs);
     // print indent, "=> ", js, "\n";
     var bs'  :- expect Serialize(js);
-    print indent, "=> ", FromUTF8Checked(bs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(bs'), "\n";
     var sbs' :- expect SpecSerialize(js);
-    print indent, "=> ", FromUTF8Checked(sbs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(sbs'), "\n";
     var js'  :- expect Deserialize(bs');
     Check(bs, js, bs', sbs', js');
   }
@@ -32,9 +32,9 @@ abstract module AbstractWrapper {
       var input := vectors[i];
       var idx := Strings.OfInt(i);
       var indent := seq(|idx| + 1, _ => ' ');
-      print "[", idx, "]: ", input, "\n";
+      // print "[", idx, "]: ", input, "\n";
       TestString(input, indent);
-      print "\n";
+      // print "\n";
     }
   }
 }

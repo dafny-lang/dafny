@@ -283,11 +283,21 @@ module Std.Collections.Seq {
                             forall j {:trigger xs[j]} :: 0 <= j < o.value ==> xs[j] != v
             else v !in xs
   {
+    IndexByOption(xs, x => x == v)
+  }
+
+  /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
+    the index of the first such occurrence. Otherwise the return is None. */
+  function {:opaque} IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+    ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
+                            forall j {:trigger xs[j]} :: 0 <= j < o.value ==> !p(xs[j])
+            else forall x <- xs ::!p(x)
+  {
     if |xs| == 0 then None()
     else
-    if xs[0] == v then Some(0)
+    if p(xs[0]) then Some(0)
     else
-      var o' := IndexOfOption(xs[1..], v);
+      var o' := IndexByOption(xs[1..], p);
       if o'.Some? then Some(o'.value + 1) else None()
   }
 
@@ -308,8 +318,18 @@ module Std.Collections.Seq {
                             forall j {:trigger xs[j]} :: o.value < j < |xs| ==> xs[j] != v
             else v !in xs
   {
+    LastIndexByOption(xs, x => x == v)
+  }
+
+  /* Returns Some(i), if an element satisfying p occurs at least once in a sequence, and i is
+     the index of the last such occurrence. Otherwise the return is None. */
+  function {:opaque} LastIndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
+    ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
+                            forall j {:trigger xs[j]} :: o.value < j < |xs| ==> !p(xs[j])
+            else forall x <- xs ::!p(x)
+  {
     if |xs| == 0 then None()
-    else if xs[|xs|-1] == v then Some(|xs| - 1) else LastIndexOfOption(xs[..|xs|-1], v)
+    else if p(xs[|xs|-1]) then Some(|xs| - 1) else LastIndexByOption(xs[..|xs|-1], p)
   }
 
   /* Returns a sequence without the element at a given position. */
@@ -604,6 +624,90 @@ module Std.Collections.Seq {
     }
   }
 
+  /* Join a sequence of sequences using a separator sequence.
+     Particularly useful for strings (since string is just an alias for seq<char>) */
+  function Join<T>(seqs: seq<seq<T>>, separator: seq<T>) : seq<T> {
+    if |seqs| == 0 then []
+    else if |seqs| == 1 then seqs[0]
+    else seqs[0] + separator + Join(seqs[1..], separator)
+  }
+
+  lemma LemmaJoinWithEmptySeparator(seqs: seq<string>)
+    ensures Flatten(seqs) == Join(seqs, [])
+  {}
+
+  function {:tailrecursion} Split<T(==)>(s: seq<T>, delim: T): (res: seq<seq<T>>)
+    ensures delim !in s ==> res == [s]
+    ensures s == [] ==> res == [[]]
+    ensures 0 < |res|
+    ensures forall i :: 0 <= i < |res| ==> delim !in res[i]
+    ensures Join(res, [delim]) == s
+    decreases |s|
+  {
+    var i := IndexOfOption(s, delim);
+    if i.Some? then [s[..i.value]] + Split(s[(i.value + 1)..], delim) else [s]
+  }
+
+  /* Split on first occurrence of delim, which must exist */
+  function {:tailrecursion} SplitOnce<T(==)>(s: seq<T>, delim: T): (res : (seq<T>,seq<T>))
+    requires delim in s
+    ensures res.0 + [delim] + res.1 == s
+    ensures !(delim in res.0)
+  {
+    var i := IndexOfOption(s, delim);
+    assert i.Some?;
+    (s[..i.value], s[(i.value + 1)..])
+  }
+
+  // split on first occurrence of delim, return None if delim not present
+  function {:tailrecursion} SplitOnceOption<T(==)>(s: seq<T>, delim: T): (res : Option<(seq<T>,seq<T>)>)
+    ensures res.Some? ==> res.value.0 + [delim] + res.value.1 == s
+    ensures res.None? ==> !(delim in s)
+    ensures res.Some? ==> !(delim in res.value.0)
+  {
+    var i :- IndexOfOption(s, delim);
+    Some((s[..i], s[(i + 1)..]))
+  }
+
+  lemma WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
+    requires |prefix| < |s|
+    requires forall i :: 0 <= i < |prefix| ==> prefix[i] == s[i]
+    requires delim !in prefix && s[|prefix|] == delim
+    ensures Split(s, delim) == [prefix] + Split(s[|prefix| + 1..], delim)
+  {
+    calc {
+      Split(s, delim);
+    ==
+      var i := IndexOfOption(s, delim);
+      if i.Some? then [s[..i.value]] + Split(s[i.value + 1..], delim) else [s];
+    ==  { IndexOfOptionLocatesElem(s, delim, |prefix|); assert IndexOfOption(s, delim).Some?; }
+      [s[..|prefix|]] + Split(s[|prefix| + 1..], delim);
+    ==  { assert s[..|prefix|] == prefix; }
+      [prefix] + Split(s[|prefix| + 1..], delim);
+    }
+  }
+
+  lemma WillNotSplitWithOutDelim<T>(s: seq<T>, delim: T)
+    requires delim !in s
+    ensures Split(s, delim) == [s]
+  {
+    calc {
+      Split(s, delim);
+    ==
+      var i := IndexOfOption(s, delim);
+      if i.Some? then [s[..i.value]] + Split(s[i.value+1..], delim) else [s];
+    ==  { IndexOfOptionLocatesElem(s, delim, |s|); }
+      [s];
+    }
+  }
+
+  lemma IndexOfOptionLocatesElem<T>(s: seq<T>, c: T, elemIndex: nat)
+    requires 0 <= elemIndex <= |s|
+    requires forall i :: 0 <= i < elemIndex ==> s[i] != c
+    requires elemIndex == |s| || s[elemIndex] == c
+    ensures IndexOfOption(s, c) == if elemIndex == |s| then None else Some(elemIndex)
+    decreases elemIndex
+  {}
 
   /**********************************************************
    *

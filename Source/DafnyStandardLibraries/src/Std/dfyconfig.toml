@@ -1,8 +1,4 @@
-
-
 excludes = [
-  # *Nonlinear.dfy in Arithmetic/Internals/ are subject to the options here
-  "**/Arithmetic/*.dfy", "**/Arithmetic/**/*Internals.dfy",
   # Built per-target language instead
   "**/TargetSpecific/*.dfy"
 ]
@@ -13,9 +9,6 @@ excludes = [
 track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
-library = [
-  "../../../binaries/DafnyStandardLibraries-arithmetic.doo"
-]
 
 # Options important for sustainable development
 # of the libraries themselves.
