@@ -1,4 +1,5 @@
-// RUN: %baredafny run %args %s --target=java --build=%S/Build/build --input %S/Inputs/wrappers.dfy --input %S/Inputs/random.dfy --input %S/Inputs/randomJava.dfy --input %S/Inputs/Interop/__default.java > "%t"
+// RUN: %baredafny run %args %s --target=go --build=%S/Build/build --input %S/Inputs/wrappers.dfy --input %S/Inputs/random.dfy --input %S/Inputs/randomGo.dfy --input %S/Inputs/Interop.go > "%t"
+// RUN: %baredafny run %args %s --target=java --build=%S/Build/build --input %S/Inputs/wrappers.dfy --input %S/Inputs/random.dfy --input %S/Inputs/randomJava.dfy --input %S/Inputs/Interop/__default.java >> "%t"
 // RUN: %baredafny run %args %s --build=%S/Build/build --input %S/Inputs/wrappers.dfy --input %S/Inputs/random.dfy --input %S/Inputs/randomCSharp.dfy --input %S/Inputs/Interop.cs >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
