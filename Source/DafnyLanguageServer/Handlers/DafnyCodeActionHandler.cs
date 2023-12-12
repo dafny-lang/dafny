@@ -88,9 +88,9 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
-      new VerificationDafnyCodeActionProvider()
-    , new ErrorMessageDafnyCodeActionProvider()
-    , new ImplicitFailingAssertionCodeActionProvider(options)
+      new VerificationDafnyCodeActionProvider(logger)
+    , new ErrorMessageDafnyCodeActionProvider(logger)
+    , new ImplicitFailingAssertionCodeActionProvider(logger, options)
     }
     .Concat(
       options.Plugins.SelectMany(plugin =>

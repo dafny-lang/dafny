@@ -1,0 +1,1 @@
+Use defensive coding to prevent a crash in the IDE that could occur in the context of code actions.
