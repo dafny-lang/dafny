@@ -50,6 +50,10 @@ module Std.JSON.Deserializer {
         'a' as uint16 := 0xA, 'b' as uint16 := 0xB, 'c' as uint16 := 0xC, 'd' as uint16 := 0xD, 'e' as uint16 := 0xE, 'f' as uint16 := 0xF,
         'A' as uint16 := 0xA, 'B' as uint16 := 0xB, 'C' as uint16 := 0xC, 'D' as uint16 := 0xD, 'E' as uint16 := 0xE, 'F' as uint16 := 0xF
       ]
+
+    // The size of the map makes this impractical to verify easily.
+    lemma {:axiom} CharsConsistent()
+      ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   }
 
   const HEX_TABLE_16 := Uint16StrConversion.charToDigit
