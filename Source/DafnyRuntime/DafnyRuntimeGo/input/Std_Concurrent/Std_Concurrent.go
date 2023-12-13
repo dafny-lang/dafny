@@ -1,4 +1,4 @@
-package DafnyStdLibs_Concurrent
+package Std_Concurrent
 
 import (
   _dafny "dafny"

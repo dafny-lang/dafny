@@ -1,4 +1,4 @@
-package DafnyStdLibs_FileIOInternalExterns
+package Std_FileIOInternalExterns
 
 import (
 	_dafny "dafny"
