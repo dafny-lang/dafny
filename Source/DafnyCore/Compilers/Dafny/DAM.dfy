@@ -114,16 +114,27 @@ module {:extern "DAM"} DAM {
     import opened Syntax
     import opened Utils
 
-    class Ptr<A> {
-      var deref: A
-      constructor(expr: A) {
-        deref := expr;
-      }
+    // The environment accumulates substitutions made along the course of machine execution, i.e.,
+    // maps variables to addresses of values - closed intro. forms of positive type
+    type Ptr = nat    
+    type Env = Alist<Var, Ptr>
+    type Store = seq<Val>
+
+    predicate Allocated(sto: Store, ptr: Ptr) {
+      ptr < |sto|
     }
 
-    // The environment accumulates substitutions made along the course of machine execution, i.e.,
-    // maps variables to values - closed intro. forms of positive type
-    type Env = Alist<Var, Val>
+    function Alloc(env: Env, sto: Store, var_: Var, val: Val): (Env, Store) {
+      (Update(var_, |sto|, env), sto + [val])
+    }
+
+    function Deref(env: Env, sto: Store, var_: Var): Option<Val> {
+      var ptr :- Get(env, var_);
+      if Allocated(sto, ptr) then
+        Some(sto[ptr])
+      else
+        None
+    }
 
     // To implement lexical scope, thunks and stacks are closures that save the environment they're defined in
     datatype Val =
@@ -131,7 +142,7 @@ module {:extern "DAM"} DAM {
     | Bool(bool)
     | Int(int)
     | Thunk(Env, Stmt)
-    | Ref(ptr: Ptr<Val>)
+    | Ref(Ptr)
     | Stack(Env, Stack)
 
     // Stacks accumulate negative eliminations
@@ -148,8 +159,8 @@ module {:extern "DAM"} DAM {
     | Call(arg: Expr)
     | Select(field: Field)
 
-    // States of the CEK Machine
-    type     In  = (Env, Stmt, Stack)
+    // States of the CESK Machine
+    type     In  = (Env, Store, Stmt, Stack)
     datatype Out = Next(In) | Stuck | Terminal
   }
 
@@ -314,9 +325,9 @@ module {:extern "DAM"} DAM {
     lemma SynthStackWeakening(g: Context, stack: Stack, start: Neg, var_: Var, t: Pos)
     ensures SynthStack(Update(var_, t, g), stack, start) == SynthStack(g, stack, start)
 
-    type Store = Alist<Ptr<Val>, Pos>
+    type StoreTyping = seq<Pos>
 
-    function SynthVal(s: Store, val: Val): Option<Pos> decreases val {
+    function SynthVal(s: StoreTyping, val: Val): Option<Pos> decreases val {
       match val
       case Unit        => Some(Pos.Unit)
       case Bool(_)     => Some(Pos.Bool)
@@ -326,7 +337,7 @@ module {:extern "DAM"} DAM {
         var t :- SynthStmt(g, stmt);
         Some(Pos.Thunk(t))
       )
-      case Ref(ptr) => Get(s, ptr)
+      case Ref(ptr) => if ptr < |s| then Some(s[ptr]) else None
       /*case Stack(env, stack) => (
         var g :- SynthEnv(s, env);
         var end :- SynthStack(g, stack, start);
@@ -335,38 +346,40 @@ module {:extern "DAM"} DAM {
       case _ => None
     }
 
-    predicate CheckVal(s: Store, val: Val, t: Pos) {
+    predicate CheckVal(s: StoreTyping, val: Val, t: Pos) {
       SynthVal(s, val) == Some(t)
     }
 
-    function SynthEnv(s: Store, env: Env): (out: Option<Context>) decreases env
+    function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env
     {
       match env
       case Empty             => Some(Alist.Empty)
-      case Update(var_, val, env) =>
-        var t    :- SynthVal(s, val);
-        var rest :- SynthEnv(s, env);
-        Some(Update(var_, t, rest))
+      case Update(var_, ptr, env) =>
+        if ptr < |s| then
+          var rest :- SynthEnv(s, env);
+          Some(Update(var_, s[ptr], rest))
+        else
+          None
     }
 
     // Sleight of hand: assumes synthesis produces context in the same order as g
-    predicate CheckEnv(s: Store, env: Env, g: Context) {
+    predicate CheckEnv(s: StoreTyping, env: Env, g: Context) {
       SynthEnv(s, env) == Some(g)
     }
 
-    function SynthIn(s: Store, state: In): Option<Neg> {
-      var (env, stmt, stack) := state;
+    function SynthIn(s: StoreTyping, input: In): Option<Neg> {
+      var (env, sto, stmt, stack) := input;
       var g :- SynthEnv(s, env);
       var start :- SynthStmt(g, stmt);
       var end :- SynthStack(g, stack, start);
       Some(end)
     }
 
-    predicate CheckIn(s: Store, state: In, end: Neg) {
-      SynthIn(s, state) == Some(end)
+    predicate CheckIn(s: StoreTyping, input: In, end: Neg) {
+      SynthIn(s, input) == Some(end)
     }
 
-    predicate EvalPreservation(s: Store, env: Env, e: Expr, v: Val) {
+    predicate EvalPreservation(s: StoreTyping, env: Env, e: Expr, v: Val) {
       match SynthEnv(s, env)
       case Some(g) => (
         match SynthExpr(g, e)
@@ -378,10 +391,10 @@ module {:extern "DAM"} DAM {
       case None    => true
     }
 
-    predicate StepPreservation(s: Store, statein: In, stateout: Out) {
-      match SynthIn(s, statein)
+    predicate StepPreservation(s: StoreTyping, input: In, output: Out) {
+      match SynthIn(s, input)
       case Some(end) => (
-        match stateout
+        match output
         case Next(next) => CheckIn(s, next, end)
         // Assumes a step was made at all
         case Stuck      => true
@@ -398,45 +411,41 @@ module {:extern "DAM"} DAM {
     import opened Machine
     import opened Statics
 
+    
+
     // Small-step semantics are divided between evaluation of expressions and stepping of the machine
-    method Eval(env: Env, expr: Expr) returns (out: Option<Val>)
+    function Eval(env: Env, sto: Store, expr: Expr): (out: Option<Val>)
       ensures (match out
         case Some(val) => forall s :: EvalPreservation(s, env, expr, val)
         case None      => true)
     {
       match expr
-      case Var(x)      => {
-        match Get(env, x)
-        case None => return None;
-        case Some(val) => {
-          forall s ensures EvalPreservation(s, env, expr, val) {
-            match SynthEnv(s, env)
-            case None => {}
-            case Some(g) => {
-              match SynthExpr(g, expr)
-              case None => {}
-              case Some(t) =>
-                assert Get(g, x) == Some(t);
-                assert Get(env, x) == Some(val);
-                assume CheckVal(s, val, t);
-            }
-          }
-          return Some(val);
-        }
-      }
-      case Unit        => return Some(Val.Unit);
-      case Bool(b)     => return Some(Val.Bool(b));
-      case Int(i)      => return Some(Val.Int(i));
-      case Thunk(stmt) => return Some(Val.Thunk(env, stmt));
+      case Var(x)      => (
+        assume false;
+        Deref(env, sto, x)
+      )
+      case Unit        => Some(Val.Unit)
+      case Bool(b)     => Some(Val.Bool(b))
+      case Int(i)      => Some(Val.Int(i))
+      case Thunk(stmt) => Some(Val.Thunk(env, stmt))
     }
 
-    method Step(state: In) returns (out: Out)
-      ensures forall s :: StepPreservation(s, state, out)
-    {
-      var (env, comp, stack) := state;
-      match comp
+    function Step(input: In, ghost end: Neg): (output: Out)
 
-      case Ite(guard, then_, else_) => {
+      ensures forall s : StoreTyping :: StepPreservation(s, input, output)
+    {
+      var (env, sto, stmt, stack) := input;
+      match stmt
+      case Bind(lhs, var_, rhs) =>
+        Next((env, sto, lhs, Push(Frame.Bind(var_, rhs), stack)))
+      
+      /*case Pure(expr) => {
+        match stack.Pop()
+        case Some((Bind(var_, rhs), stack')) => {
+          match Eval(env, expr)
+          case Some(val) =>*/
+
+      /*case Ite(guard, then_, else_) => {
         var val := Eval(env, guard);
         match val
         case Some(Bool(answer)) =>
@@ -473,9 +482,6 @@ module {:extern "DAM"} DAM {
         case Some(_) => return Stuck;
         case None => return Stuck;
       }
-
-      case Bind(lhs, var_, rhs) =>
-        return Next((env, lhs, Push(Frame.Bind(var_, rhs), stack)));
       
       case Pure(expr) => {
         match stack.Pop()
@@ -644,7 +650,7 @@ module {:extern "DAM"} DAM {
             }
           }
         case _                      => return Stuck;
-      }
+      }*/
 
       /*
       case New(init, var_, next) => {
@@ -688,7 +694,7 @@ module {:extern "DAM"} DAM {
         case Some(Stack(env, stack)) => return Next((env, next, stack));
         case _                       => return Stuck;
       }*/
-      case _ => return Terminal;
+      case _ => Terminal
     }
 
     //codatatype Trace = Step(In, Trace) | Stuck | Terminal
@@ -703,7 +709,7 @@ module {:extern "DAM"} DAM {
 
     // Initial configuration
     function Initial(comp: Stmt): In
-      { (Alist.Empty, comp, Stack.Empty) }
+      { (Alist.Empty, [], comp, Stack.Empty) }
   }
 
   module Progress {
@@ -714,11 +720,7 @@ module {:extern "DAM"} DAM {
     import opened Dynamics
 
     // Prove progress separately so we can do one big induction on the machine configuration
-    ghost method Go(s: Store, i: In)
-      requires SynthIn(s, i).Some?
-      ensures var c := Step(m); !c.Stuck? {
 
-    }
 
   }
 }
