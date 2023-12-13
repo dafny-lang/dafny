@@ -35,7 +35,7 @@ env:
 jobs:
 
   publish-release:
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest   # Put back 'ubuntu-20.04' if macos-latest fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -51,7 +51,7 @@ jobs:
         git push origin ${{ inputs.tag_name }} -f
       working-directory: dafny
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 20.04
@@ -70,7 +70,7 @@ jobs:
     - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with: 
        python-version: '3.11'
     - name: Build Dafny

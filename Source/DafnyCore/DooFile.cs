@@ -116,22 +116,25 @@ public class DooFile {
   private DooFile() {
   }
 
-  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, Command currentCommand,
-    IToken origin) {
-    if (currentCommand == null) {
+  /// <summary>
+  /// Returns the options as specified by the DooFile
+  /// </summary>
+  public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+    if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
-      return false;
+        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+      return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
         $"cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
-      return false;
+      return null;
     }
 
+    var result = new DafnyOptions(options);
     var success = true;
-    var relevantOptions = currentCommand.Options.ToHashSet();
+    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
@@ -146,15 +149,22 @@ public class DooFile {
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
         if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
-          return false;
+          return null;
         }
       } else if (option.ValueType == typeof(IEnumerable<string>)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
         libraryValue = Array.Empty<string>();
       }
+
+      result.Options.OptionArguments[option] = libraryValue;
       success = success && check(reporter, origin, option, localValue, filePath, libraryValue);
     }
-    return success;
+
+    if (!success) {
+      return null;
+    }
+
+    return result;
   }
 
   private static object GetOptionValue(DafnyOptions options, Option option) {

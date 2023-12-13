@@ -17,8 +17,8 @@ module CollectionsExamples {
 
   module SeqExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Seqs
+    import opened Std.Wrappers
+    import opened Std.Collections.Seq
     import opened Helpers
 
     // A sequence that's long enough to be non-trivial
@@ -41,6 +41,8 @@ module CollectionsExamples {
       expect IndexOf(s, 1) == 0;
       AssertAndExpect(IndexOfOption(s, 5) == Some(4));
       AssertAndExpect(IndexOfOption(s, 42) == None);
+      expect IndexByOption(s, x => x % 2 == 0) == Some(2);
+      AssertAndExpect(IndexByOption(s, x => 100 < x) == None);
     }
 
     method {:test} TestSequenceLastIndexOf() {
@@ -78,6 +80,18 @@ module CollectionsExamples {
     method {:test} TestFlatten() {
       AssertAndExpect(Flatten([[1, 1, 2], [3, 5], [], [8, 13, 21]]) == s);
       AssertAndExpect(FlattenReverse([[1, 1, 2], [3, 5], [], [8, 13, 21]]) == s);
+      AssertAndExpect(Flatten([]) == "");
+      AssertAndExpect(Flatten(["aaa", "bbb", "ccc"]) == "aaabbbccc");
+    }
+
+    method {:test} TestJoin() {
+      AssertAndExpect(Join([], ",") == "");
+      AssertAndExpect(Join(["0", "1", "2"], ",") == "0,1,2");
+    }
+
+    method {:test} TestSplit() {
+      expect Split("0,1,2", ',') == ["0", "1", "2"];
+      expect Split("0 1  2", ' ') == ["0", "1", "", "2"];
     }
 
     method {:test} TestMapFilter() {
@@ -116,8 +130,8 @@ module CollectionsExamples {
 
   module SetExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Sets
+    import opened Std.Wrappers
+    import opened Std.Collections.Set
     import opened Helpers
 
     method {:test} TestSetRange() {
@@ -137,8 +151,8 @@ module CollectionsExamples {
 
   module MapsExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Maps
+    import opened Std.Wrappers
+    import opened Std.Collections.Map
     import opened Helpers
 
     const m := map[1 := 10, 2 := 20, 3 := 30]
@@ -160,8 +174,8 @@ module CollectionsExamples {
 
   module ImapsExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Collections.Imaps
+    import opened Std.Wrappers
+    import opened Std.Collections.Imap
     import opened Helpers
 
     const m := imap[1 := 10, 2 := 20, 3 := 30]
@@ -175,9 +189,9 @@ module CollectionsExamples {
 
   module ArraysExamples {
 
-    import opened DafnyStdLibs.Wrappers
-    import opened DafnyStdLibs.Relations
-    import opened DafnyStdLibs.Collections.Arrays
+    import opened Std.Wrappers
+    import opened Std.Relations
+    import opened Std.Collections.Array
     import opened Helpers
 
     method {:test} TestBinarySearch() {

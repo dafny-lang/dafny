@@ -1,4 +1,4 @@
-import opened DafnyStdLibs.BoundedInts
+import opened Std.BoundedInts
 
 lemma BoundedIntUser(x: uint32, z: nat16)
   ensures TWO_TO_THE_15 * 2 == TWO_TO_THE_16
@@ -15,7 +15,7 @@ method {:test} UseExterns() {
 }
 
 module {:extern} {:dummyImportMember "NonDefault", true} Externs {
-  import opened DafnyStdLibs.BoundedInts
+  import opened Std.BoundedInts
   class {:extern} NonDefault {
     static method {:extern} SquareNativeInt(i: int32) returns (r: int32)
   }
