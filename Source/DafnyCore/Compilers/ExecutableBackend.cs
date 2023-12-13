@@ -38,6 +38,10 @@ public abstract class ExecutableBackend : IExecutableBackend {
   protected void InstantiateReplaceableModules(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        if (Attributes.FindExpressions(compiledModule.Attributes, "extern") != null) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            "a module that replaces another may not have an {:extern} attribute");
+        }
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
           Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
