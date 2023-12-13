@@ -47,9 +47,6 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeJs", wr, false);
       }
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-        EmitRuntimeSource("DafnyStandardLibraries_js", wr, false);
-      }
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {

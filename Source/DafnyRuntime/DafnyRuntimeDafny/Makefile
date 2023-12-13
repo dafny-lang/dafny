@@ -6,7 +6,7 @@ SOURCE_DIR=.
 SOURCES=$(shell find $(SOURCE_DIR) -name '*.dfy')
 
 GENERATED_CODE_GO_SOURCE=src/dafnyRuntimeGo-go/src/dafny/dafny.go
-GENERATED_CODE_GO_TARGET=../obj/systemModulePopulator-go/src/dafny
+GENERATED_CODE_GO_TARGET=../dafnyRuntimeGo/build/dafny
 
 all: test check-format
 
