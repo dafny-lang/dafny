@@ -22,4 +22,8 @@ module {:disableNonlinearArithmetic} Std.JSON.ByteStrConversion refines Strings.
                          '4' as byte := 4, '5' as byte := 5, '6' as byte := 6, '7' as byte := 7,
                          '8' as byte := 8, '9' as byte := 9
                        ]
+
+  lemma CharsConsistent()
+    ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
+  {}
 }

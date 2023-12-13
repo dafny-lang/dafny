@@ -9,7 +9,8 @@ TARGET_EXTERNS=$(wildcard src/${TARGETNAME}/*.${TARGETLANG}) $(wildcard src/${TA
 all: check-binary test check-format check-examples
 
 verify:
-	$(DAFNY) verify src/DafnyStdLibs/dfyconfig.toml
+	$(DAFNY) verify src/Std/dfyconfig.toml
+	make -C src/Std/TargetSpecific verify-all
 
 build-binary:
 	$(DAFNY) build -t:lib src/Shared/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}

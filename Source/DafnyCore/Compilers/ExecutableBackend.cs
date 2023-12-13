@@ -38,6 +38,10 @@ public abstract class ExecutableBackend : IExecutableBackend {
   protected void InstantiateReplaceableModules(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        if (Attributes.FindExpressions(compiledModule.Attributes, "extern") != null) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            "a module that replaces another may not have an {:extern} attribute");
+        }
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
           Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
@@ -47,10 +51,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
         }
       }
 
-      if (compiledModule.ShouldCompile(dafnyProgram.Compilation) &&
-          compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
-        Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-          $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+        if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        }
       }
     }
   }

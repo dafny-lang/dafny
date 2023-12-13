@@ -41,6 +41,8 @@ module CollectionsExamples {
       expect IndexOf(s, 1) == 0;
       AssertAndExpect(IndexOfOption(s, 5) == Some(4));
       AssertAndExpect(IndexOfOption(s, 42) == None);
+      expect IndexByOption(s, x => x % 2 == 0) == Some(2);
+      AssertAndExpect(IndexByOption(s, x => 100 < x) == None);
     }
 
     method {:test} TestSequenceLastIndexOf() {
@@ -78,6 +80,18 @@ module CollectionsExamples {
     method {:test} TestFlatten() {
       AssertAndExpect(Flatten([[1, 1, 2], [3, 5], [], [8, 13, 21]]) == s);
       AssertAndExpect(FlattenReverse([[1, 1, 2], [3, 5], [], [8, 13, 21]]) == s);
+      AssertAndExpect(Flatten([]) == "");
+      AssertAndExpect(Flatten(["aaa", "bbb", "ccc"]) == "aaabbbccc");
+    }
+
+    method {:test} TestJoin() {
+      AssertAndExpect(Join([], ",") == "");
+      AssertAndExpect(Join(["0", "1", "2"], ",") == "0,1,2");
+    }
+
+    method {:test} TestSplit() {
+      expect Split("0,1,2", ',') == ["0", "1", "2"];
+      expect Split("0 1  2", ' ') == ["0", "1", "", "2"];
     }
 
     method {:test} TestMapFilter() {
