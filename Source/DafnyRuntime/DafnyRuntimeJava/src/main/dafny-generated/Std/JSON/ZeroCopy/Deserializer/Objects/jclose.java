@@ -2,9 +2,7 @@
 // Dafny class jclose compiled into Java
 package Std.JSON.ZeroCopy.Deserializer.Objects;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

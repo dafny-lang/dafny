@@ -1,8 +1,6 @@
 // Dafny program the_program compiled into Java
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -58,8 +56,6 @@ import Std.JSON.ZeroCopy.Deserializer.API.*;
 import Std.JSON.ZeroCopy.API.*;
 import Std.JSON.API.*;
 import _System.*;
-
-
 
 
 

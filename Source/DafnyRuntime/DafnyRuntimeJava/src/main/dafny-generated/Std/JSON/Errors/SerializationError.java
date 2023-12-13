@@ -2,9 +2,7 @@
 // Dafny class SerializationError compiled into Java
 package Std.JSON.Errors;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -75,13 +73,13 @@ public abstract class SerializationError {
     if (_source11.is_OutOfMemory()) {
       return dafny.DafnySequence.asUnicodeString("Out of memory");
     } else if (_source11.is_IntTooLarge()) {
-      java.math.BigInteger _325___mcc_h0 = ((Std.JSON.Errors.SerializationError_IntTooLarge)_source11)._i;
-      java.math.BigInteger _326_i = _325___mcc_h0;
-      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Integer too large: "), Std.Strings.__default.OfInt(_326_i));
+      java.math.BigInteger _320___mcc_h0 = ((Std.JSON.Errors.SerializationError_IntTooLarge)_source11)._i;
+      java.math.BigInteger _321_i = _320___mcc_h0;
+      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Integer too large: "), Std.Strings.__default.OfInt(_321_i));
     } else if (_source11.is_StringTooLong()) {
-      dafny.DafnySequence<? extends dafny.CodePoint> _327___mcc_h1 = ((Std.JSON.Errors.SerializationError_StringTooLong)_source11)._s;
-      dafny.DafnySequence<? extends dafny.CodePoint> _328_s = _327___mcc_h1;
-      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("String too long: "), _328_s);
+      dafny.DafnySequence<? extends dafny.CodePoint> _322___mcc_h1 = ((Std.JSON.Errors.SerializationError_StringTooLong)_source11)._s;
+      dafny.DafnySequence<? extends dafny.CodePoint> _323_s = _322___mcc_h1;
+      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("String too long: "), _323_s);
     } else {
       return dafny.DafnySequence.asUnicodeString("Invalid Unicode sequence");
     }

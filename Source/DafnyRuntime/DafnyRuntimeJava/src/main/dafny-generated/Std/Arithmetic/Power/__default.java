@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.Power;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -26,12 +24,12 @@ public class __default {
   }
   public static java.math.BigInteger Pow(java.math.BigInteger b, java.math.BigInteger e)
   {
-    java.math.BigInteger _148___accumulator = java.math.BigInteger.ONE;
+    java.math.BigInteger _143___accumulator = java.math.BigInteger.ONE;
     TAIL_CALL_START: while (true) {
       if ((e).signum() == 0) {
-        return (java.math.BigInteger.ONE).multiply(_148___accumulator);
+        return (java.math.BigInteger.ONE).multiply(_143___accumulator);
       } else {
-        _148___accumulator = (_148___accumulator).multiply(b);
+        _143___accumulator = (_143___accumulator).multiply(b);
         java.math.BigInteger _in42 = b;
         java.math.BigInteger _in43 = (e).subtract(java.math.BigInteger.ONE);
         b = _in42;

@@ -2,9 +2,7 @@
 // Dafny class StringLexerState_Body compiled into Java
 package Std.JSON.Utils.Lexers.Strings;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

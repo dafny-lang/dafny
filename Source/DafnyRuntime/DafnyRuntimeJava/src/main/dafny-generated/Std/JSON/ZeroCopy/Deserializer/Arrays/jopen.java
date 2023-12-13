@@ -2,9 +2,7 @@
 // Dafny class jopen compiled into Java
 package Std.JSON.ZeroCopy.Deserializer.Arrays;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

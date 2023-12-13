@@ -2,7 +2,6 @@
 // Dafny class OutcomeResult<E> compiled into Java
 package Std.Wrappers;
 
-import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public abstract class OutcomeResult<E> {

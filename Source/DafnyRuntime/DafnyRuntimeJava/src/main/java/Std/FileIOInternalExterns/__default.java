@@ -18,7 +18,7 @@ import dafny.Tuple2;
 import dafny.Tuple3;
 import dafny.TypeDescriptor;
 
-public class FileIO {
+public class __default {
     /**
      * Attempts to read all bytes from the file at {@code path}, and returns a tuple of the following values:
      * <dl>
@@ -34,7 +34,7 @@ public class FileIO {
      * It is the responsibility of library code to construct an equivalent {@code Result} value.
      */
     public static Tuple3<Boolean, DafnySequence<? extends Byte>, DafnySequence<? extends CodePoint>>
-        INTERNAL_ReadBytesFromFile(DafnySequence<? extends CodePoint> path) {
+        INTERNAL__ReadBytesFromFile(DafnySequence<? extends CodePoint> path) {
         try {
             final Path pathObj = dafnyStringToPath(path);
             final DafnySequence<Byte> readBytes = DafnySequence.fromBytes(Files.readAllBytes(pathObj));
@@ -58,7 +58,7 @@ public class FileIO {
      * It is the responsibility of library code to construct an equivalent {@code Result} value.
      */
     public static Tuple2<Boolean, DafnySequence<? extends CodePoint>>
-        INTERNAL_WriteBytesToFile(DafnySequence<? extends CodePoint> path, DafnySequence<? extends Byte> bytes) {
+        INTERNAL__WriteBytesToFile(DafnySequence<? extends CodePoint> path, DafnySequence<? extends Byte> bytes) {
         try {
             final Path pathObj = dafnyStringToPath(path);
             createParentDirs(pathObj);

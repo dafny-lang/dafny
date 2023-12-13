@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.JSON.Utils.Views.Core;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -45,9 +43,9 @@ public class __default {
   }
   public static View__ Merge(View__ lv, View__ rv)
   {
-    View__ _368_dt__update__tmp_h0 = lv;
-    int _369_dt__update_hend_h0 = (rv).dtor_end();
-    return Std.JSON.Utils.Views.Core.View__.create((_368_dt__update__tmp_h0).dtor_s(), (_368_dt__update__tmp_h0).dtor_beg(), _369_dt__update_hend_h0);
+    View__ _363_dt__update__tmp_h0 = lv;
+    int _364_dt__update_hend_h0 = (rv).dtor_end();
+    return Std.JSON.Utils.Views.Core.View__.create((_363_dt__update__tmp_h0).dtor_s(), (_363_dt__update__tmp_h0).dtor_beg(), _364_dt__update_hend_h0);
   }
   @Override
   public java.lang.String toString() {

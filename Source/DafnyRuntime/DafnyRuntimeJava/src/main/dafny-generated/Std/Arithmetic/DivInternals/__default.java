@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.DivInternals;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -24,19 +22,19 @@ public class __default {
   }
   public static java.math.BigInteger DivPos(java.math.BigInteger x, java.math.BigInteger d)
   {
-    java.math.BigInteger _147___accumulator = java.math.BigInteger.ZERO;
+    java.math.BigInteger _142___accumulator = java.math.BigInteger.ZERO;
     TAIL_CALL_START: while (true) {
       if ((x).signum() == -1) {
-        _147___accumulator = (_147___accumulator).add(java.math.BigInteger.valueOf(-1L));
+        _142___accumulator = (_142___accumulator).add(java.math.BigInteger.valueOf(-1L));
         java.math.BigInteger _in38 = (x).add(d);
         java.math.BigInteger _in39 = d;
         x = _in38;
         d = _in39;
         continue TAIL_CALL_START;
       } else if ((x).compareTo(d) < 0) {
-        return (java.math.BigInteger.ZERO).add(_147___accumulator);
+        return (java.math.BigInteger.ZERO).add(_142___accumulator);
       } else {
-        _147___accumulator = (_147___accumulator).add(java.math.BigInteger.ONE);
+        _142___accumulator = (_142___accumulator).add(java.math.BigInteger.ONE);
         java.math.BigInteger _in40 = (x).subtract(d);
         java.math.BigInteger _in41 = d;
         x = _in40;

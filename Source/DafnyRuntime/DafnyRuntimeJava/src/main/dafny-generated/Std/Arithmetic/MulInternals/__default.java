@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.MulInternals;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -22,12 +20,12 @@ public class __default {
   }
   public static java.math.BigInteger MulPos(java.math.BigInteger x, java.math.BigInteger y)
   {
-    java.math.BigInteger _146___accumulator = java.math.BigInteger.ZERO;
+    java.math.BigInteger _141___accumulator = java.math.BigInteger.ZERO;
     TAIL_CALL_START: while (true) {
       if ((x).signum() == 0) {
-        return (java.math.BigInteger.ZERO).add(_146___accumulator);
+        return (java.math.BigInteger.ZERO).add(_141___accumulator);
       } else {
-        _146___accumulator = (_146___accumulator).add(y);
+        _141___accumulator = (_141___accumulator).add(y);
         java.math.BigInteger _in32 = (x).subtract(java.math.BigInteger.ONE);
         java.math.BigInteger _in33 = y;
         x = _in32;

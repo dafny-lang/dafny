@@ -2,9 +2,7 @@
 // Dafny class View__ compiled into Java
 package Std.JSON.Utils.Views.Core;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -112,9 +110,9 @@ public class View__ {
     return Std.JSON.Utils.Views.Core.View__.create(bs, 0, (bs).cardinalityInt());
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> OfString(dafny.DafnySequence<? extends dafny.CodePoint> s) {
-    return dafny.DafnySequence.Create(Std.BoundedInts.uint8._typeDescriptor(), java.math.BigInteger.valueOf((s).length()), ((java.util.function.Function<dafny.DafnySequence<? extends dafny.CodePoint>, java.util.function.Function<java.math.BigInteger, java.lang.Byte>>)(_370_s) -> ((java.util.function.Function<java.math.BigInteger, java.lang.Byte>)(_371_i_boxed0) -> {
-      java.math.BigInteger _371_i = ((java.math.BigInteger)(java.lang.Object)(_371_i_boxed0));
-      return ((byte) (((dafny.CodePoint)((_370_s).select(dafny.Helpers.toInt((_371_i))))).value()));
+    return dafny.DafnySequence.Create(Std.BoundedInts.uint8._typeDescriptor(), java.math.BigInteger.valueOf((s).length()), ((java.util.function.Function<dafny.DafnySequence<? extends dafny.CodePoint>, java.util.function.Function<java.math.BigInteger, java.lang.Byte>>)(_365_s) -> ((java.util.function.Function<java.math.BigInteger, java.lang.Byte>)(_366_i_boxed0) -> {
+      java.math.BigInteger _366_i = ((java.math.BigInteger)(java.lang.Object)(_366_i_boxed0));
+      return ((byte) (((dafny.CodePoint)((_365_s).select(dafny.Helpers.toInt((_366_i))))).value()));
     })).apply(s));
   }
   public boolean Byte_q(byte c)
@@ -139,9 +137,9 @@ public class View__ {
   public void CopyTo(byte[] dest, int start)
   {
     int _hi0 = (this).Length();
-    for (int _372_idx = 0; java.lang.Integer.compareUnsigned(_372_idx, _hi0) < 0; _372_idx++) {
-      int _index6 = (int)  ((start) + (_372_idx));
-      (dest)[dafny.Helpers.toInt(_index6)] = ((byte)(java.lang.Object)(((this).dtor_s()).select((int)  (((this).dtor_beg()) + (_372_idx)))));
+    for (int _367_idx = 0; java.lang.Integer.compareUnsigned(_367_idx, _hi0) < 0; _367_idx++) {
+      int _index6 = (int)  ((start) + (_367_idx));
+      (dest)[dafny.Helpers.toInt(_index6)] = ((byte)(java.lang.Object)(((this).dtor_s()).select((int)  (((this).dtor_beg()) + (_367_idx)))));
     }
   }
   public static View__ Empty()

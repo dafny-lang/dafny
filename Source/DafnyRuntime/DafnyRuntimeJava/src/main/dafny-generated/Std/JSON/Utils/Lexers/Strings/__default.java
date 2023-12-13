@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.JSON.Utils.Lexers.Strings;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -62,11 +60,11 @@ public class __default {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Reject(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), dafny.DafnySequence.asUnicodeString("String must start with double quote"));
       }
     } else if (_source13.is_Body()) {
-      boolean _378___mcc_h0 = ((Std.JSON.Utils.Lexers.Strings.StringLexerState_Body)_source13)._escaped;
-      boolean _379_escaped = _378___mcc_h0;
+      boolean _373___mcc_h0 = ((Std.JSON.Utils.Lexers.Strings.StringLexerState_Body)_source13)._escaped;
+      boolean _374_escaped = _373___mcc_h0;
       if ((byte_) == (((short) ('\\')))) {
-        return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_379_escaped)));
-      } else if (((byte_) == (((short) ('\"')))) && (!(_379_escaped))) {
+        return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_374_escaped)));
+      } else if (((byte_) == (((short) ('\"')))) && (!(_374_escaped))) {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_End());
       } else {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(false));

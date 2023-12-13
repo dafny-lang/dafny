@@ -2,9 +2,7 @@
 // Dafny class LexerResult_Reject<T, R> compiled into Java
 package Std.JSON.Utils.Lexers.Core;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

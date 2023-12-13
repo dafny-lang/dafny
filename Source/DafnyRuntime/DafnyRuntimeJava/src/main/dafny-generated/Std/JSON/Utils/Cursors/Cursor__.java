@@ -2,9 +2,7 @@
 // Dafny class Cursor__ compiled into Java
 package Std.JSON.Utils.Cursors;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -127,9 +125,9 @@ public class Cursor__ {
     return Std.JSON.Utils.Views.Core.View__.create((this).dtor_s(), (this).dtor_beg(), (this).dtor_point());
   }
   public Cursor__ Suffix() {
-    Cursor__ _395_dt__update__tmp_h0 = this;
-    int _396_dt__update_hbeg_h0 = (this).dtor_point();
-    return Std.JSON.Utils.Cursors.Cursor__.create((_395_dt__update__tmp_h0).dtor_s(), _396_dt__update_hbeg_h0, (_395_dt__update__tmp_h0).dtor_point(), (_395_dt__update__tmp_h0).dtor_end());
+    Cursor__ _390_dt__update__tmp_h0 = this;
+    int _391_dt__update_hbeg_h0 = (this).dtor_point();
+    return Std.JSON.Utils.Cursors.Cursor__.create((_390_dt__update__tmp_h0).dtor_s(), _391_dt__update_hbeg_h0, (_390_dt__update__tmp_h0).dtor_point(), (_390_dt__update__tmp_h0).dtor_end());
   }
   public Split<Std.JSON.Utils.Views.Core.View__> Split() {
     return Std.JSON.Utils.Cursors.Split.<Std.JSON.Utils.Views.Core.View__>create(Std.JSON.Utils.Views.Core.View._typeDescriptor(), (this).Prefix(), (this).Suffix());
@@ -160,14 +158,14 @@ public class Cursor__ {
     return ((this).Peek()) == (((short) (c)));
   }
   public Cursor__ Skip(int n) {
-    Cursor__ _397_dt__update__tmp_h0 = this;
-    int _398_dt__update_hpoint_h0 = (int)  (((this).dtor_point()) + (n));
-    return Std.JSON.Utils.Cursors.Cursor__.create((_397_dt__update__tmp_h0).dtor_s(), (_397_dt__update__tmp_h0).dtor_beg(), _398_dt__update_hpoint_h0, (_397_dt__update__tmp_h0).dtor_end());
+    Cursor__ _392_dt__update__tmp_h0 = this;
+    int _393_dt__update_hpoint_h0 = (int)  (((this).dtor_point()) + (n));
+    return Std.JSON.Utils.Cursors.Cursor__.create((_392_dt__update__tmp_h0).dtor_s(), (_392_dt__update__tmp_h0).dtor_beg(), _393_dt__update_hpoint_h0, (_392_dt__update__tmp_h0).dtor_end());
   }
   public Cursor__ Unskip(int n) {
-    Cursor__ _399_dt__update__tmp_h0 = this;
-    int _400_dt__update_hpoint_h0 = (int)  (((this).dtor_point()) - (n));
-    return Std.JSON.Utils.Cursors.Cursor__.create((_399_dt__update__tmp_h0).dtor_s(), (_399_dt__update__tmp_h0).dtor_beg(), _400_dt__update_hpoint_h0, (_399_dt__update__tmp_h0).dtor_end());
+    Cursor__ _394_dt__update__tmp_h0 = this;
+    int _395_dt__update_hpoint_h0 = (int)  (((this).dtor_point()) - (n));
+    return Std.JSON.Utils.Cursors.Cursor__.create((_394_dt__update__tmp_h0).dtor_s(), (_394_dt__update__tmp_h0).dtor_beg(), _395_dt__update_hpoint_h0, (_394_dt__update__tmp_h0).dtor_end());
   }
   public <__R> Std.Wrappers.Result<Cursor__, CursorError<__R>> Get(dafny.TypeDescriptor<__R> _td___R, __R err)
   {
@@ -179,11 +177,11 @@ public class Cursor__ {
   }
   public <__R> Std.Wrappers.Result<Cursor__, CursorError<__R>> AssertByte(dafny.TypeDescriptor<__R> _td___R, byte b)
   {
-    short _401_nxt = (this).Peek();
-    if ((_401_nxt) == ((short) java.lang.Byte.toUnsignedInt(b))) {
+    short _396_nxt = (this).Peek();
+    if ((_396_nxt) == ((short) java.lang.Byte.toUnsignedInt(b))) {
       return Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Success(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), (this).Skip(1));
     } else {
-      return Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Failure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_ExpectingByte(_td___R, b, _401_nxt));
+      return Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Failure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_ExpectingByte(_td___R, b, _396_nxt));
     }
   }
   public <__R> Std.Wrappers.Result<Cursor__, CursorError<__R>> AssertBytes(dafny.TypeDescriptor<__R> _td___R, dafny.DafnySequence<? extends java.lang.Byte> bs, int offset)
@@ -193,12 +191,12 @@ public class Cursor__ {
       if ((offset) == ((bs).cardinalityInt())) {
         return Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Success(Cursor__._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), _this);
       } else {
-        Std.Wrappers.Result<Cursor__, CursorError<__R>> _402_valueOrError0 = (_this).<__R>AssertByte(_td___R, (((byte)(java.lang.Object)((bs).select(offset)))));
-        if ((_402_valueOrError0).IsFailure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R))) {
-          return (_402_valueOrError0).<Cursor__>PropagateFailure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Cursor__._typeDescriptor());
+        Std.Wrappers.Result<Cursor__, CursorError<__R>> _397_valueOrError0 = (_this).<__R>AssertByte(_td___R, (((byte)(java.lang.Object)((bs).select(offset)))));
+        if ((_397_valueOrError0).IsFailure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R))) {
+          return (_397_valueOrError0).<Cursor__>PropagateFailure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Cursor__._typeDescriptor());
         } else {
-          Cursor__ _403_ps = (_402_valueOrError0).Extract(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R));
-          Cursor__ _in70 = _403_ps;
+          Cursor__ _398_ps = (_397_valueOrError0).Extract(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R));
+          Cursor__ _in70 = _398_ps;
           dafny.DafnySequence<? extends java.lang.Byte> _in71 = bs;
           int _in72 = (int)  ((offset) + (1));
           _this = _in70;
@@ -231,52 +229,52 @@ public class Cursor__ {
   public Cursor__ SkipWhile(java.util.function.Function<java.lang.Byte, Boolean> p)
   {
     Cursor__ ps = Cursor.defaultValue();
-    int _404_point_k;
-    _404_point_k = (this).dtor_point();
-    int _405_end;
-    _405_end = (this).dtor_end();
-    while ((java.lang.Integer.compareUnsigned(_404_point_k, _405_end) < 0) && (((boolean)(java.lang.Object)((p).apply(((byte)(java.lang.Object)(((this).dtor_s()).select(_404_point_k)))))))) {
-      _404_point_k = (int)  ((_404_point_k) + (1));
+    int _399_point_k;
+    _399_point_k = (this).dtor_point();
+    int _400_end;
+    _400_end = (this).dtor_end();
+    while ((java.lang.Integer.compareUnsigned(_399_point_k, _400_end) < 0) && (((boolean)(java.lang.Object)((p).apply(((byte)(java.lang.Object)(((this).dtor_s()).select(_399_point_k)))))))) {
+      _399_point_k = (int)  ((_399_point_k) + (1));
     }
-    ps = Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s(), (this).dtor_beg(), _404_point_k, (this).dtor_end());
+    ps = Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s(), (this).dtor_beg(), _399_point_k, (this).dtor_end());
     return ps;
   }
   public <__A, __R> Std.Wrappers.Result<Cursor__, CursorError<__R>> SkipWhileLexer(dafny.TypeDescriptor<__A> _td___A, dafny.TypeDescriptor<__R> _td___R, dafny.Function2<__A, java.lang.Short, Std.JSON.Utils.Lexers.Core.LexerResult<__A, __R>> step, __A st)
   {
     Std.Wrappers.Result<Cursor__, CursorError<__R>> pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>Default(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Cursor.defaultValue());
     if(true) {
-      int _406_point_k;
-      _406_point_k = (this).dtor_point();
-      int _407_end;
-      _407_end = (this).dtor_end();
+      int _401_point_k;
+      _401_point_k = (this).dtor_point();
+      int _402_end;
+      _402_end = (this).dtor_end();
       @SuppressWarnings({"unchecked", "deprecation"})
-      __A _408_st_k;
-      _408_st_k = st;
+      __A _403_st_k;
+      _403_st_k = st;
       while (true) {
-        boolean _409_eof;
-        _409_eof = (_406_point_k) == (_407_end);
-        short _410_minusone;
-        _410_minusone = (short) -1;
-        short _411_c;
-        _411_c = ((_409_eof) ? (_410_minusone) : ((short) java.lang.Byte.toUnsignedInt(((byte)(java.lang.Object)(((this).dtor_s()).select(_406_point_k))))));
-        Std.JSON.Utils.Lexers.Core.LexerResult<__A, __R> _source15 = ((Std.JSON.Utils.Lexers.Core.LexerResult<__A, __R>)(java.lang.Object)((step).apply(_408_st_k, _411_c)));
+        boolean _404_eof;
+        _404_eof = (_401_point_k) == (_402_end);
+        short _405_minusone;
+        _405_minusone = (short) -1;
+        short _406_c;
+        _406_c = ((_404_eof) ? (_405_minusone) : ((short) java.lang.Byte.toUnsignedInt(((byte)(java.lang.Object)(((this).dtor_s()).select(_401_point_k))))));
+        Std.JSON.Utils.Lexers.Core.LexerResult<__A, __R> _source15 = ((Std.JSON.Utils.Lexers.Core.LexerResult<__A, __R>)(java.lang.Object)((step).apply(_403_st_k, _406_c)));
         if (_source15.is_Accept()) {
-          pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Success(Cursor__._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s(), (this).dtor_beg(), _406_point_k, (this).dtor_end()));
+          pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Success(Cursor__._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s(), (this).dtor_beg(), _401_point_k, (this).dtor_end()));
           return pr;
         } else if (_source15.is_Reject()) {
-          __R _412___mcc_h0 = ((Std.JSON.Utils.Lexers.Core.LexerResult_Reject<__A, __R>)_source15)._err;
-          __R _413_err = _412___mcc_h0;
-          pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Failure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_OtherError(_td___R, _413_err));
+          __R _407___mcc_h0 = ((Std.JSON.Utils.Lexers.Core.LexerResult_Reject<__A, __R>)_source15)._err;
+          __R _408_err = _407___mcc_h0;
+          pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Failure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_OtherError(_td___R, _408_err));
           return pr;
         } else {
-          __A _414___mcc_h1 = ((Std.JSON.Utils.Lexers.Core.LexerResult_Partial<__A, __R>)_source15)._st;
-          __A _415_st_k_k = _414___mcc_h1;
-          if (_409_eof) {
+          __A _409___mcc_h1 = ((Std.JSON.Utils.Lexers.Core.LexerResult_Partial<__A, __R>)_source15)._st;
+          __A _410_st_k_k = _409___mcc_h1;
+          if (_404_eof) {
             pr = Std.Wrappers.Result.<Cursor__, CursorError<__R>>create_Failure(Cursor._typeDescriptor(), CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_EOF(_td___R));
             return pr;
           } else {
-            _408_st_k = _415_st_k_k;
-            _406_point_k = (int)  ((_406_point_k) + (1));
+            _403_st_k = _410_st_k_k;
+            _401_point_k = (int)  ((_401_point_k) + (1));
           }
         }
       }

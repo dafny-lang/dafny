@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.JSON.ZeroCopy.API;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -69,9 +67,9 @@ public class __default {
   {
     Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> bs = Std.Wrappers.Result.<byte[], Std.JSON.Errors.SerializationError>Default(dafny.TypeDescriptor.BYTE_ARRAY, Std.JSON.Errors.SerializationError._typeDescriptor(), new byte[0]);
     if(true) {
-      Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> _out14;
-      _out14 = Std.JSON.ZeroCopy.Serializer.__default.Serialize(js);
-      bs = _out14;
+      Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> _out9;
+      _out9 = Std.JSON.ZeroCopy.Serializer.__default.Serialize(js);
+      bs = _out9;
     }
     return bs;
   }
@@ -79,9 +77,9 @@ public class __default {
   {
     Std.Wrappers.Result<java.lang.Integer, Std.JSON.Errors.SerializationError> len = Std.Wrappers.Result.<java.lang.Integer, Std.JSON.Errors.SerializationError>Default(Std.BoundedInts.uint32._typeDescriptor(), Std.JSON.Errors.SerializationError._typeDescriptor(), 0);
     if(true) {
-      Std.Wrappers.Result<java.lang.Integer, Std.JSON.Errors.SerializationError> _out15;
-      _out15 = Std.JSON.ZeroCopy.Serializer.__default.SerializeTo(js, bs);
-      len = _out15;
+      Std.Wrappers.Result<java.lang.Integer, Std.JSON.Errors.SerializationError> _out10;
+      _out10 = Std.JSON.ZeroCopy.Serializer.__default.SerializeTo(js, bs);
+      len = _out10;
     }
     return len;
   }

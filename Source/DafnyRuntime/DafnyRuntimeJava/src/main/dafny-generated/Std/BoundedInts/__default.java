@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.BoundedInts;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class __default {

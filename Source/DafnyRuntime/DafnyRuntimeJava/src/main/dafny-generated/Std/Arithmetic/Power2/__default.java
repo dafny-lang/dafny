@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.Power2;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

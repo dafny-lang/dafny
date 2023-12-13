@@ -2,9 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.JSON.Utils.Parsers;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -46,15 +44,15 @@ public class __default {
   }
   public static <__T, __R> Parser__<__T, __R> ParserWitness(dafny.TypeDescriptor<__T> _td___T, dafny.TypeDescriptor<__R> _td___R)
   {
-    return Std.JSON.Utils.Parsers.Parser__.<__T, __R>create(_td___T, _td___R, ((java.util.function.Function<Std.JSON.Utils.Cursors.Cursor__, Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>>)(_416___v9_boxed0) -> {
-  Std.JSON.Utils.Cursors.Cursor__ _416___v9 = ((Std.JSON.Utils.Cursors.Cursor__)(java.lang.Object)(_416___v9_boxed0));
+    return Std.JSON.Utils.Parsers.Parser__.<__T, __R>create(_td___T, _td___R, ((java.util.function.Function<Std.JSON.Utils.Cursors.Cursor__, Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>>)(_411___v9_boxed0) -> {
+  Std.JSON.Utils.Cursors.Cursor__ _411___v9 = ((Std.JSON.Utils.Cursors.Cursor__)(java.lang.Object)(_411___v9_boxed0));
   return Std.Wrappers.Result.<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>create_Failure(Std.JSON.Utils.Cursors.Split.<__T>_typeDescriptor(_td___T), Std.JSON.Utils.Cursors.CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_EOF(_td___R));
 }));
   }
   public static <__T, __R> SubParser__<__T, __R> SubParserWitness(dafny.TypeDescriptor<__T> _td___T, dafny.TypeDescriptor<__R> _td___R)
   {
-    return Std.JSON.Utils.Parsers.SubParser__.<__T, __R>create(_td___T, _td___R, ((java.util.function.Function<Std.JSON.Utils.Cursors.Cursor__, Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>>)(_417_cs_boxed0) -> {
-  Std.JSON.Utils.Cursors.Cursor__ _417_cs = ((Std.JSON.Utils.Cursors.Cursor__)(java.lang.Object)(_417_cs_boxed0));
+    return Std.JSON.Utils.Parsers.SubParser__.<__T, __R>create(_td___T, _td___R, ((java.util.function.Function<Std.JSON.Utils.Cursors.Cursor__, Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>>)(_412_cs_boxed0) -> {
+  Std.JSON.Utils.Cursors.Cursor__ _412_cs = ((Std.JSON.Utils.Cursors.Cursor__)(java.lang.Object)(_412_cs_boxed0));
   return Std.Wrappers.Result.<Std.JSON.Utils.Cursors.Split<__T>, Std.JSON.Utils.Cursors.CursorError<__R>>create_Failure(Std.JSON.Utils.Cursors.Split.<__T>_typeDescriptor(_td___T), Std.JSON.Utils.Cursors.CursorError.<__R>_typeDescriptor(_td___R), Std.JSON.Utils.Cursors.CursorError.<__R>create_EOF(_td___R));
 }));
   }

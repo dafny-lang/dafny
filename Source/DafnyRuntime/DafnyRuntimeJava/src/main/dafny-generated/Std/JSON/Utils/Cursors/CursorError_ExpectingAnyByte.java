@@ -2,9 +2,7 @@
 // Dafny class CursorError_ExpectingAnyByte<R> compiled into Java
 package Std.JSON.Utils.Cursors;
 
-import JavaInternal.*;
 import Std.Wrappers.*;
-import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
