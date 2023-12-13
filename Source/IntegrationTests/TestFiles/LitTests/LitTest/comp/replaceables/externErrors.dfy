@@ -7,6 +7,7 @@ replaceable module {:extern "FooNameOverride"} Foo {
 }
 
 module {:extern "BarNameOverride1"} Bar replaces Foo { 
+  // missing error on BarNameOverride2
   method {:extern "BarNameOverride2", "ZazOverride2"} Zaz() returns (i: int) 
     ensures i >= 2
 }
