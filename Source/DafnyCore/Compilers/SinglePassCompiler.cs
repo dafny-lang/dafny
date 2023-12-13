@@ -1706,7 +1706,8 @@ namespace Microsoft.Dafny.Compilers {
       // An original source file at <root>/A/B/C.ext will become a manifest resource
       // with a name like 'DafnyPipeline.<root>.A.B.C.<ext>'
       String header = $"DafnyPipeline.{root}";
-      foreach (var file in files.Where(f => f.StartsWith(header))) {
+      var matchingFiles = files.Where(f => f.StartsWith(header));
+      foreach (var file in matchingFiles) {
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
         ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);
