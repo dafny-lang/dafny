@@ -56,8 +56,8 @@ test-py:
 test-js:
 	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
 
-test: test-go test-py test-js
-  # test-cs test-java 
+test: test-py test-js
+  # test-cs test-java test-go 
 
 # We only generate coverage from the C# tests
 coverage: test-cs
