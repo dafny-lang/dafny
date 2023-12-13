@@ -65,7 +65,7 @@
       <LinkBase>DafnyRuntimeCpp</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJs\**\*.js">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJs\output\**\*.js">
       <LinkBase>DafnyRuntimeJs</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>

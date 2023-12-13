@@ -1,5 +1,5 @@
 
-module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
+module  {:extern} {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

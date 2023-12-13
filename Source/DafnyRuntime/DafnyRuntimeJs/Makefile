@@ -8,10 +8,12 @@ GENERATED_SYSTEM_MODULE_TARGET=DafnyRuntimeSystemModule.js
 all: check-system-module
 
 build-system-module:
-	$(DAFNY) translate js --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:../obj/systemModulePopulator
+	rm -rf output
+	$(DAFNY) translate js --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:build/runtime
+	cp -r input/ build
 
 check-system-module: build-system-module
 	diff $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)
 
 update-system-module: build-system-module
-	cp $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)
+	cp -r build output

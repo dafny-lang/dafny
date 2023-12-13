@@ -51,10 +51,10 @@ test-go:
 	$(DAFNY) test --no-verify -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
 
 test-py:
-	$(DAFNY) test -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
+	$(DAFNY) test --no-verify -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
 
 test-js:
-	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
+	$(DAFNY) test --no-verify -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
 
 test: test-py test-js
   # test-cs test-java test-go 
