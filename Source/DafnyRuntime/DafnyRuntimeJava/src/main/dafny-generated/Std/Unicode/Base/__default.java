@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Unicode.Base;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -30,8 +32,8 @@ public class __default {
   public __default() {
   }
   public static boolean IsInAssignedPlane(int i) {
-    byte _178_plane = ((byte) ((int)  ((i) >>> ((byte) 16))));
-    return (__default.ASSIGNED__PLANES()).<java.lang.Byte>contains(_178_plane);
+    byte _189_plane = ((byte) ((int)  ((i) >>> ((byte) 16))));
+    return (__default.ASSIGNED__PLANES()).<java.lang.Byte>contains(_189_plane);
   }
   public static int HIGH__SURROGATE__MIN()
   {

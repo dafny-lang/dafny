@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Strings;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -55,37 +57,6 @@ public class __default {
   }
   public static dafny.DafnySequence<? extends dafny.CodePoint> OfChar(int c) {
     return dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf(c));
-  }
-  public static dafny.DafnySequence<? extends dafny.CodePoint> Join(dafny.DafnySequence<? extends dafny.CodePoint> sep, dafny.DafnySequence<? extends dafny.DafnySequence<? extends dafny.CodePoint>> strs)
-  {
-    dafny.DafnySequence<? extends dafny.CodePoint> _176___accumulator = dafny.DafnySequence.<dafny.CodePoint> empty(dafny.TypeDescriptor.UNICODE_CHAR);
-    TAIL_CALL_START: while (true) {
-      if ((java.math.BigInteger.valueOf((strs).length())).signum() == 0) {
-        return dafny.DafnySequence.<dafny.CodePoint>concatenate(_176___accumulator, dafny.DafnySequence.asUnicodeString(""));
-      } else if (java.util.Objects.equals(java.math.BigInteger.valueOf((strs).length()), java.math.BigInteger.ONE)) {
-        return dafny.DafnySequence.<dafny.CodePoint>concatenate(_176___accumulator, ((dafny.DafnySequence<? extends dafny.CodePoint>)(java.lang.Object)((strs).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO))))));
-      } else {
-        _176___accumulator = dafny.DafnySequence.<dafny.CodePoint>concatenate(_176___accumulator, dafny.DafnySequence.<dafny.CodePoint>concatenate(((dafny.DafnySequence<? extends dafny.CodePoint>)(java.lang.Object)((strs).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO))))), sep));
-        dafny.DafnySequence<? extends dafny.CodePoint> _in58 = sep;
-        dafny.DafnySequence<? extends dafny.DafnySequence<? extends dafny.CodePoint>> _in59 = (strs).drop(java.math.BigInteger.ONE);
-        sep = _in58;
-        strs = _in59;
-        continue TAIL_CALL_START;
-      }
-    }
-  }
-  public static dafny.DafnySequence<? extends dafny.CodePoint> Concat(dafny.DafnySequence<? extends dafny.DafnySequence<? extends dafny.CodePoint>> strs) {
-    dafny.DafnySequence<? extends dafny.CodePoint> _177___accumulator = dafny.DafnySequence.<dafny.CodePoint> empty(dafny.TypeDescriptor.UNICODE_CHAR);
-    TAIL_CALL_START: while (true) {
-      if ((java.math.BigInteger.valueOf((strs).length())).signum() == 0) {
-        return dafny.DafnySequence.<dafny.CodePoint>concatenate(_177___accumulator, dafny.DafnySequence.asUnicodeString(""));
-      } else {
-        _177___accumulator = dafny.DafnySequence.<dafny.CodePoint>concatenate(_177___accumulator, ((dafny.DafnySequence<? extends dafny.CodePoint>)(java.lang.Object)((strs).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO))))));
-        dafny.DafnySequence<? extends dafny.DafnySequence<? extends dafny.CodePoint>> _in60 = (strs).drop(java.math.BigInteger.ONE);
-        strs = _in60;
-        continue TAIL_CALL_START;
-      }
-    }
   }
   @Override
   public java.lang.String toString() {

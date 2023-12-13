@@ -243,14 +243,15 @@ namespace Microsoft.Dafny {
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
 
-      var moduleTasks = boogiePrograms.Select(async program => {
-        await using var moduleWriter = writerManager.AppendWriter();
-        // ReSharper disable once AccessToDisposedClosure
-        var result = await Task.Run(() =>
-          BoogieOnceWithTimerAsync(moduleWriter, options, baseName, programId, program.Item1, program.Item2));
-        concurrentModuleStats.TryAdd(program.Item1, result.Stats);
-        return result;
-      }).ToList();
+      List<Task<(PipelineOutcome Outcome, PipelineStatistics Stats)>> moduleTasks = new();
+      // boogiePrograms.Select(async program => {
+      //   await using var moduleWriter = writerManager.AppendWriter();
+      //   // ReSharper disable once AccessToDisposedClosure
+      //   var result = await Task.Run(() =>
+      //     BoogieOnceWithTimerAsync(moduleWriter, options, baseName, programId, program.Item1, program.Item2));
+      //   concurrentModuleStats.TryAdd(program.Item1, result.Stats);
+      //   return result;
+      // }).ToList();
 
       await Task.WhenAll(moduleTasks);
       await options.OutputWriter.FlushAsync();

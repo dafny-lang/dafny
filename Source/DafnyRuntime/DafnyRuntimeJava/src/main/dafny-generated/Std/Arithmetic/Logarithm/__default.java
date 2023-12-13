@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.Logarithm;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -25,16 +27,16 @@ public class __default {
   }
   public static java.math.BigInteger Log(java.math.BigInteger base, java.math.BigInteger pow)
   {
-    java.math.BigInteger _134___accumulator = java.math.BigInteger.ZERO;
+    java.math.BigInteger _149___accumulator = java.math.BigInteger.ZERO;
     TAIL_CALL_START: while (true) {
       if ((pow).compareTo(base) < 0) {
-        return (java.math.BigInteger.ZERO).add(_134___accumulator);
+        return (java.math.BigInteger.ZERO).add(_149___accumulator);
       } else {
-        _134___accumulator = (_134___accumulator).add(java.math.BigInteger.ONE);
-        java.math.BigInteger _in40 = base;
-        java.math.BigInteger _in41 = dafny.DafnyEuclidean.EuclideanDivision(pow, base);
-        base = _in40;
-        pow = _in41;
+        _149___accumulator = (_149___accumulator).add(java.math.BigInteger.ONE);
+        java.math.BigInteger _in44 = base;
+        java.math.BigInteger _in45 = dafny.DafnyEuclidean.EuclideanDivision(pow, base);
+        base = _in44;
+        pow = _in45;
         continue TAIL_CALL_START;
       }
     }

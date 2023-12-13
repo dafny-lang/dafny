@@ -2,6 +2,7 @@
 // Dafny class Option_Some<T> compiled into Java
 package Std.Wrappers;
 
+import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class Option_Some<T> extends Option<T> {

@@ -2,6 +2,7 @@
 // Dafny class __default compiled into Java
 package Std.Wrappers;
 
+import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class __default {

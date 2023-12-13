@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Arithmetic.ModInternals;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -23,18 +25,18 @@ public class __default {
   {
     TAIL_CALL_START: while (true) {
       if ((x).signum() == -1) {
-        java.math.BigInteger _in30 = (d).add(x);
-        java.math.BigInteger _in31 = d;
-        x = _in30;
-        d = _in31;
+        java.math.BigInteger _in34 = (d).add(x);
+        java.math.BigInteger _in35 = d;
+        x = _in34;
+        d = _in35;
         continue TAIL_CALL_START;
       } else if ((x).compareTo(d) < 0) {
         return x;
       } else {
-        java.math.BigInteger _in32 = (x).subtract(d);
-        java.math.BigInteger _in33 = d;
-        x = _in32;
-        d = _in33;
+        java.math.BigInteger _in36 = (x).subtract(d);
+        java.math.BigInteger _in37 = d;
+        x = _in36;
+        d = _in37;
         continue TAIL_CALL_START;
       }
     }

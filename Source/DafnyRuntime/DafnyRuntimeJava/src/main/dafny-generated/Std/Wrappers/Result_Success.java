@@ -2,6 +2,7 @@
 // Dafny class Result_Success<R, E> compiled into Java
 package Std.Wrappers;
 
+import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class Result_Success<R, E> extends Result<R, E> {

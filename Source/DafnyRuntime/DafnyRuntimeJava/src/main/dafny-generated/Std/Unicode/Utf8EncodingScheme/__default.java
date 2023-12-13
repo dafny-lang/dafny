@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Unicode.Utf8EncodingScheme;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -34,15 +36,15 @@ public class __default {
   public __default() {
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> Serialize(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    return Std.Collections.Seq.__default.<java.lang.Byte, java.lang.Byte>Map(dafny.TypeDescriptor.BYTE, Std.BoundedInts.uint8._typeDescriptor(), ((java.util.function.Function<java.lang.Byte, java.lang.Byte>)(_297_c_boxed0) -> {
-      byte _297_c = ((byte)(java.lang.Object)(_297_c_boxed0));
-      return (_297_c);
+    return Std.Collections.Seq.__default.<java.lang.Byte, java.lang.Byte>Map(dafny.TypeDescriptor.BYTE, Std.BoundedInts.uint8._typeDescriptor(), ((java.util.function.Function<java.lang.Byte, java.lang.Byte>)(_308_c_boxed0) -> {
+      byte _308_c = ((byte)(java.lang.Object)(_308_c_boxed0));
+      return (_308_c);
     }), s);
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> Deserialize(dafny.DafnySequence<? extends java.lang.Byte> b) {
-    return Std.Collections.Seq.__default.<java.lang.Byte, java.lang.Byte>Map(Std.BoundedInts.uint8._typeDescriptor(), dafny.TypeDescriptor.BYTE, ((java.util.function.Function<java.lang.Byte, java.lang.Byte>)(_298_b_boxed0) -> {
-      byte _298_b = ((byte)(java.lang.Object)(_298_b_boxed0));
-      return (_298_b);
+    return Std.Collections.Seq.__default.<java.lang.Byte, java.lang.Byte>Map(Std.BoundedInts.uint8._typeDescriptor(), dafny.TypeDescriptor.BYTE, ((java.util.function.Function<java.lang.Byte, java.lang.Byte>)(_309_b_boxed0) -> {
+      byte _309_b = ((byte)(java.lang.Object)(_309_b_boxed0));
+      return (_309_b);
     }), b);
   }
   @Override

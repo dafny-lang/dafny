@@ -2,7 +2,9 @@
 // Dafny class MinimalWellFormedCodeUnitSeq compiled into Java
 package Std.Unicode.Utf16EncodingForm;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

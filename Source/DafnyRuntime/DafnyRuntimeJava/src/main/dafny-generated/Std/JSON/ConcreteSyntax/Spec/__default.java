@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.JSON.ConcreteSyntax.Spec;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -69,16 +70,16 @@ public class __default {
   }
   public static <__T> dafny.DafnySequence<? extends java.lang.Byte> ConcatBytes(dafny.TypeDescriptor<__T> _td___T, dafny.DafnySequence<? extends __T> ts, java.util.function.Function<__T, dafny.DafnySequence<? extends java.lang.Byte>> fT)
   {
-    dafny.DafnySequence<? extends java.lang.Byte> _558___accumulator = dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor());
+    dafny.DafnySequence<? extends java.lang.Byte> _562___accumulator = dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor());
     TAIL_CALL_START: while (true) {
       if ((java.math.BigInteger.valueOf((ts).length())).signum() == 0) {
-        return dafny.DafnySequence.<java.lang.Byte>concatenate(_558___accumulator, dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor()));
+        return dafny.DafnySequence.<java.lang.Byte>concatenate(_562___accumulator, dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor()));
       } else {
-        _558___accumulator = dafny.DafnySequence.<java.lang.Byte>concatenate(_558___accumulator, ((dafny.DafnySequence<? extends java.lang.Byte>)(java.lang.Object)((fT).apply(((__T)(java.lang.Object)((ts).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))))))));
-        dafny.DafnySequence<? extends __T> _in94 = (ts).drop(java.math.BigInteger.ONE);
-        java.util.function.Function<__T, dafny.DafnySequence<? extends java.lang.Byte>> _in95 = fT;
-        ts = _in94;
-        fT = _in95;
+        _562___accumulator = dafny.DafnySequence.<java.lang.Byte>concatenate(_562___accumulator, ((dafny.DafnySequence<? extends java.lang.Byte>)(java.lang.Object)((fT).apply(((__T)(java.lang.Object)((ts).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))))))));
+        dafny.DafnySequence<? extends __T> _in95 = (ts).drop(java.math.BigInteger.ONE);
+        java.util.function.Function<__T, dafny.DafnySequence<? extends java.lang.Byte>> _in96 = fT;
+        ts = _in95;
+        fT = _in96;
         continue TAIL_CALL_START;
       }
     }
@@ -112,43 +113,43 @@ public class __default {
     return dafny.DafnySequence.<java.lang.Byte>concatenate(__default.Value((self).dtor_t()), __default.CommaSuffix((self).dtor_suffix()));
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> Object(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> obj) {
-    return __default.<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>Bracketed(Std.JSON.Grammar.jKeyValue._typeDescriptor(), Std.JSON.Grammar.jcomma._typeDescriptor(), obj, ((java.util.function.Function<Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__>, java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>>)(_559_obj) -> ((java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>)(_560_d_boxed0) -> {
-      Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__> _560_d = ((Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>)(java.lang.Object)(_560_d_boxed0));
-      return __default.Member(_560_d);
+    return __default.<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>Bracketed(Std.JSON.Grammar.jKeyValue._typeDescriptor(), Std.JSON.Grammar.jcomma._typeDescriptor(), obj, ((java.util.function.Function<Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__>, java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>>)(_563_obj) -> ((java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>)(_564_d_boxed0) -> {
+      Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__> _564_d = ((Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__>)(java.lang.Object)(_564_d_boxed0));
+      return __default.Member(_564_d);
     })).apply(obj));
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> Array(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> arr) {
-    return __default.<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>Bracketed(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.jcomma._typeDescriptor(), arr, ((java.util.function.Function<Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__>, java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>>)(_561_arr) -> ((java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>)(_562_d_boxed0) -> {
-      Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__> _562_d = ((Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>)(java.lang.Object)(_562_d_boxed0));
-      return __default.Item(_562_d);
+    return __default.<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>Bracketed(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.jcomma._typeDescriptor(), arr, ((java.util.function.Function<Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__>, java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>>)(_565_arr) -> ((java.util.function.Function<Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>, dafny.DafnySequence<? extends java.lang.Byte>>)(_566_d_boxed0) -> {
+      Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__> _566_d = ((Std.JSON.Grammar.Suffixed<Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__>)(java.lang.Object)(_566_d_boxed0));
+      return __default.Item(_566_d);
     })).apply(arr));
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> Value(Std.JSON.Grammar.Value self) {
     Std.JSON.Grammar.Value _source22 = self;
     if (_source22.is_Null()) {
-      Std.JSON.Utils.Views.Core.View__ _563___mcc_h0 = ((Std.JSON.Grammar.Value_Null)_source22)._n;
-      Std.JSON.Utils.Views.Core.View__ _564_n = _563___mcc_h0;
-      return __default.View(_564_n);
+      Std.JSON.Utils.Views.Core.View__ _567___mcc_h0 = ((Std.JSON.Grammar.Value_Null)_source22)._n;
+      Std.JSON.Utils.Views.Core.View__ _568_n = _567___mcc_h0;
+      return __default.View(_568_n);
     } else if (_source22.is_Bool()) {
-      Std.JSON.Utils.Views.Core.View__ _565___mcc_h1 = ((Std.JSON.Grammar.Value_Bool)_source22)._b;
-      Std.JSON.Utils.Views.Core.View__ _566_b = _565___mcc_h1;
-      return __default.View(_566_b);
+      Std.JSON.Utils.Views.Core.View__ _569___mcc_h1 = ((Std.JSON.Grammar.Value_Bool)_source22)._b;
+      Std.JSON.Utils.Views.Core.View__ _570_b = _569___mcc_h1;
+      return __default.View(_570_b);
     } else if (_source22.is_String()) {
-      Std.JSON.Grammar.jstring _567___mcc_h2 = ((Std.JSON.Grammar.Value_String)_source22)._str;
-      Std.JSON.Grammar.jstring _568_str = _567___mcc_h2;
-      return __default.String(_568_str);
+      Std.JSON.Grammar.jstring _571___mcc_h2 = ((Std.JSON.Grammar.Value_String)_source22)._str;
+      Std.JSON.Grammar.jstring _572_str = _571___mcc_h2;
+      return __default.String(_572_str);
     } else if (_source22.is_Number()) {
-      Std.JSON.Grammar.jnumber _569___mcc_h3 = ((Std.JSON.Grammar.Value_Number)_source22)._num;
-      Std.JSON.Grammar.jnumber _570_num = _569___mcc_h3;
-      return __default.Number(_570_num);
+      Std.JSON.Grammar.jnumber _573___mcc_h3 = ((Std.JSON.Grammar.Value_Number)_source22)._num;
+      Std.JSON.Grammar.jnumber _574_num = _573___mcc_h3;
+      return __default.Number(_574_num);
     } else if (_source22.is_Object()) {
-      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _571___mcc_h4 = ((Std.JSON.Grammar.Value_Object)_source22)._obj;
-      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _572_obj = _571___mcc_h4;
-      return __default.Object(_572_obj);
+      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _575___mcc_h4 = ((Std.JSON.Grammar.Value_Object)_source22)._obj;
+      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.jKeyValue, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _576_obj = _575___mcc_h4;
+      return __default.Object(_576_obj);
     } else {
-      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _573___mcc_h5 = ((Std.JSON.Grammar.Value_Array)_source22)._arr;
-      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _574_arr = _573___mcc_h5;
-      return __default.Array(_574_arr);
+      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _577___mcc_h5 = ((Std.JSON.Grammar.Value_Array)_source22)._arr;
+      Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core.View__, Std.JSON.Grammar.Value, Std.JSON.Utils.Views.Core.View__, Std.JSON.Utils.Views.Core.View__> _578_arr = _577___mcc_h5;
+      return __default.Array(_578_arr);
     }
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> JSON(Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> js) {

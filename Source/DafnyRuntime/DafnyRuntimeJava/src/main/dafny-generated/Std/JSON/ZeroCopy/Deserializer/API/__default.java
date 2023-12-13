@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.JSON.ZeroCopy.Deserializer.API;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -65,46 +66,46 @@ public class __default {
     if (_source24.is_EOF()) {
       return Std.JSON.Errors.DeserializationError.create_ReachedEOF();
     } else if (_source24.is_ExpectingByte()) {
-      byte _784___mcc_h0 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingByte<Std.JSON.Errors.DeserializationError>)_source24)._expected;
-      short _785___mcc_h1 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingByte<Std.JSON.Errors.DeserializationError>)_source24)._b;
-      short _786_b = _785___mcc_h1;
-      byte _787_expected = _784___mcc_h0;
-      return Std.JSON.Errors.DeserializationError.create_ExpectingByte(_787_expected, _786_b);
+      byte _788___mcc_h0 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingByte<Std.JSON.Errors.DeserializationError>)_source24)._expected;
+      short _789___mcc_h1 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingByte<Std.JSON.Errors.DeserializationError>)_source24)._b;
+      short _790_b = _789___mcc_h1;
+      byte _791_expected = _788___mcc_h0;
+      return Std.JSON.Errors.DeserializationError.create_ExpectingByte(_791_expected, _790_b);
     } else if (_source24.is_ExpectingAnyByte()) {
-      dafny.DafnySequence<? extends java.lang.Byte> _788___mcc_h2 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingAnyByte<Std.JSON.Errors.DeserializationError>)_source24)._expected__sq;
-      short _789___mcc_h3 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingAnyByte<Std.JSON.Errors.DeserializationError>)_source24)._b;
-      short _790_b = _789___mcc_h3;
-      dafny.DafnySequence<? extends java.lang.Byte> _791_expected__sq = _788___mcc_h2;
-      return Std.JSON.Errors.DeserializationError.create_ExpectingAnyByte(_791_expected__sq, _790_b);
+      dafny.DafnySequence<? extends java.lang.Byte> _792___mcc_h2 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingAnyByte<Std.JSON.Errors.DeserializationError>)_source24)._expected__sq;
+      short _793___mcc_h3 = ((Std.JSON.Utils.Cursors.CursorError_ExpectingAnyByte<Std.JSON.Errors.DeserializationError>)_source24)._b;
+      short _794_b = _793___mcc_h3;
+      dafny.DafnySequence<? extends java.lang.Byte> _795_expected__sq = _792___mcc_h2;
+      return Std.JSON.Errors.DeserializationError.create_ExpectingAnyByte(_795_expected__sq, _794_b);
     } else {
-      Std.JSON.Errors.DeserializationError _792___mcc_h4 = ((Std.JSON.Utils.Cursors.CursorError_OtherError<Std.JSON.Errors.DeserializationError>)_source24)._err;
-      Std.JSON.Errors.DeserializationError _793_err = _792___mcc_h4;
-      return _793_err;
+      Std.JSON.Errors.DeserializationError _796___mcc_h4 = ((Std.JSON.Utils.Cursors.CursorError_OtherError<Std.JSON.Errors.DeserializationError>)_source24)._err;
+      Std.JSON.Errors.DeserializationError _797_err = _796___mcc_h4;
+      return _797_err;
     }
   }
   public static Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>, Std.JSON.Errors.DeserializationError> JSON(Std.JSON.Utils.Cursors.Cursor__ cs) {
     return (Std.JSON.ZeroCopy.Deserializer.Core.__default.<Std.JSON.Grammar.Value>Structural(Std.JSON.Grammar.Value._typeDescriptor(), cs, Std.JSON.Utils.Parsers.Parser__.<Std.JSON.Grammar.Value, Std.JSON.Errors.DeserializationError>create(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.ZeroCopy.Deserializer.Values.__default::Value))).<Std.JSON.Errors.DeserializationError>MapFailure(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Utils.Cursors.CursorError.<Std.JSON.Errors.DeserializationError>_typeDescriptor(Std.JSON.Errors.DeserializationError._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor(), __default::LiftCursorError);
   }
   public static Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError> Text(Std.JSON.Utils.Views.Core.View__ v) {
-    Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>, Std.JSON.Errors.DeserializationError> _794_valueOrError0 = __default.JSON(Std.JSON.Utils.Cursors.Cursor__.OfView(v));
-    if ((_794_valueOrError0).IsFailure(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor())) {
-      return (_794_valueOrError0).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
+    Std.Wrappers.Result<Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>, Std.JSON.Errors.DeserializationError> _798_valueOrError0 = __default.JSON(Std.JSON.Utils.Cursors.Cursor__.OfView(v));
+    if ((_798_valueOrError0).IsFailure(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor())) {
+      return (_798_valueOrError0).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
     } else {
-      Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>> _let_tmp_rhs39 = (_794_valueOrError0).Extract(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor());
-      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _795_text = ((Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>)_let_tmp_rhs39)._t;
-      Std.JSON.Utils.Cursors.Cursor__ _796_cs = ((Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>)_let_tmp_rhs39)._cs;
-      Std.Wrappers.OutcomeResult<Std.JSON.Errors.DeserializationError> _797_valueOrError1 = Std.Wrappers.__default.<Std.JSON.Errors.DeserializationError>Need(Std.JSON.Errors.DeserializationError._typeDescriptor(), (_796_cs).EOF_q(), Std.JSON.Errors.DeserializationError.create_ExpectingEOF());
-      if ((_797_valueOrError1).IsFailure(Std.JSON.Errors.DeserializationError._typeDescriptor())) {
-        return (_797_valueOrError1).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
+      Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>> _let_tmp_rhs39 = (_798_valueOrError0).Extract(Std.JSON.Utils.Cursors.Split.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>_typeDescriptor(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor())), Std.JSON.Errors.DeserializationError._typeDescriptor());
+      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _799_text = ((Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>)_let_tmp_rhs39)._t;
+      Std.JSON.Utils.Cursors.Cursor__ _800_cs = ((Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>)_let_tmp_rhs39)._cs;
+      Std.Wrappers.OutcomeResult<Std.JSON.Errors.DeserializationError> _801_valueOrError1 = Std.Wrappers.__default.<Std.JSON.Errors.DeserializationError>Need(Std.JSON.Errors.DeserializationError._typeDescriptor(), (_800_cs).EOF_q(), Std.JSON.Errors.DeserializationError.create_ExpectingEOF());
+      if ((_801_valueOrError1).IsFailure(Std.JSON.Errors.DeserializationError._typeDescriptor())) {
+        return (_801_valueOrError1).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
       } else {
-        return Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError>create_Success(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor(), _795_text);
+        return Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError>create_Success(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor(), _799_text);
       }
     }
   }
   public static Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError> OfBytes(dafny.DafnySequence<? extends java.lang.Byte> bs) {
-    Std.Wrappers.OutcomeResult<Std.JSON.Errors.DeserializationError> _798_valueOrError0 = Std.Wrappers.__default.<Std.JSON.Errors.DeserializationError>Need(Std.JSON.Errors.DeserializationError._typeDescriptor(), (java.math.BigInteger.valueOf((bs).length())).compareTo(Std.BoundedInts.__default.TWO__TO__THE__32()) < 0, Std.JSON.Errors.DeserializationError.create_IntOverflow());
-    if ((_798_valueOrError0).IsFailure(Std.JSON.Errors.DeserializationError._typeDescriptor())) {
-      return (_798_valueOrError0).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
+    Std.Wrappers.OutcomeResult<Std.JSON.Errors.DeserializationError> _802_valueOrError0 = Std.Wrappers.__default.<Std.JSON.Errors.DeserializationError>Need(Std.JSON.Errors.DeserializationError._typeDescriptor(), (java.math.BigInteger.valueOf((bs).length())).compareTo(Std.BoundedInts.__default.TWO__TO__THE__32()) < 0, Std.JSON.Errors.DeserializationError.create_IntOverflow());
+    if ((_802_valueOrError0).IsFailure(Std.JSON.Errors.DeserializationError._typeDescriptor())) {
+      return (_802_valueOrError0).<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>>PropagateFailure(Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()));
     } else {
       return __default.Text(Std.JSON.Utils.Views.Core.View__.OfBytes(bs));
     }

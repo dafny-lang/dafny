@@ -2,7 +2,9 @@
 // Dafny class Writer__ compiled into Java
 package Std.JSON.Utils.Views.Writers;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -119,8 +120,8 @@ public class Writer__ {
   {
     byte[] bs = new byte[0];
     if(true) {
-      java.util.function.Function<java.math.BigInteger, java.lang.Byte> _init4 = ((java.util.function.Function<java.math.BigInteger, java.lang.Byte>)(_371_i_boxed0) -> {
-        java.math.BigInteger _371_i = ((java.math.BigInteger)(java.lang.Object)(_371_i_boxed0));
+      java.util.function.Function<java.math.BigInteger, java.lang.Byte> _init4 = ((java.util.function.Function<java.math.BigInteger, java.lang.Byte>)(_377_i_boxed0) -> {
+        java.math.BigInteger _377_i = ((java.math.BigInteger)(java.lang.Object)(_377_i_boxed0));
         return (byte) 0;
       });
       byte[] _nw5 = (byte[]) Std.BoundedInts.uint8._typeDescriptor().newArray(dafny.Helpers.toIntChecked(((this).dtor_length()), "Java arrays may be no larger than the maximum 32-bit signed int"));

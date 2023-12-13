@@ -7,6 +7,7 @@
  * Private API - these should not be used elsewhere
  */
 module Std.JavaFileIOInternalExterns replaces FileIOInternalExterns {
+  import opened JavaInternal
 
   method INTERNAL_ReadBytesFromFile(path: string)
     returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string) {
@@ -20,14 +21,20 @@ module Std.JavaFileIOInternalExterns replaces FileIOInternalExterns {
     return r1, r2;
   }
 
+}
+
+/**
+This module is so we can avoid having a __default class in Java
+*/
+module JavaInternal {
   class FileIO {
       static method
-        {:extern "Std.DafnyStdLibsExterns.FileIO", "INTERNAL_ReadBytesFromFile"}
+        {:extern "Std.FileIOInternalExterns.FileIO", "INTERNAL_ReadBytesFromFile"}
       INTERNAL_ReadBytesFromFile(path: string)
         returns (isError: bool, bytesRead: seq<bv8>, errorMsg: string)
 
       static method
-        {:extern "Std.DafnyStdLibsExterns.FileIO", "INTERNAL_WriteBytesToFile"}
+        {:extern "Std.FileIOInternalExterns.FileIO", "INTERNAL_WriteBytesToFile"}
       INTERNAL_WriteBytesToFile(path: string, bytes: seq<bv8>)
         returns (isError: bool, errorMsg: string)
   }

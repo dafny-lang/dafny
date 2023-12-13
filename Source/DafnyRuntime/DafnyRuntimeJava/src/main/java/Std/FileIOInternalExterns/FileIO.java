@@ -3,7 +3,7 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-package Std.DafnyStdLibsExterns;
+package Std.FileIOInternalExterns;
 
 import java.io.IOException;
 import java.io.PrintWriter;

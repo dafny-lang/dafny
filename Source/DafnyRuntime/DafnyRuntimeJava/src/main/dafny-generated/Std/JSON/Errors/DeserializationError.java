@@ -2,7 +2,9 @@
 // Dafny class DeserializationError compiled into Java
 package Std.JSON.Errors;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
@@ -107,9 +108,9 @@ public abstract class DeserializationError {
     if (_source10.is_UnterminatedSequence()) {
       return dafny.DafnySequence.asUnicodeString("Unterminated sequence");
     } else if (_source10.is_UnsupportedEscape()) {
-      dafny.DafnySequence<? extends dafny.CodePoint> _304___mcc_h0 = ((Std.JSON.Errors.DeserializationError_UnsupportedEscape)_source10)._str;
-      dafny.DafnySequence<? extends dafny.CodePoint> _305_str = _304___mcc_h0;
-      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Unsupported escape sequence: "), _305_str);
+      dafny.DafnySequence<? extends dafny.CodePoint> _310___mcc_h0 = ((Std.JSON.Errors.DeserializationError_UnsupportedEscape)_source10)._str;
+      dafny.DafnySequence<? extends dafny.CodePoint> _311_str = _310___mcc_h0;
+      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Unsupported escape sequence: "), _311_str);
     } else if (_source10.is_EscapeAtEOS()) {
       return dafny.DafnySequence.asUnicodeString("Escape character at end of string");
     } else if (_source10.is_EmptyNumber()) {
@@ -121,23 +122,23 @@ public abstract class DeserializationError {
     } else if (_source10.is_ReachedEOF()) {
       return dafny.DafnySequence.asUnicodeString("Reached EOF");
     } else if (_source10.is_ExpectingByte()) {
-      byte _306___mcc_h1 = ((Std.JSON.Errors.DeserializationError_ExpectingByte)_source10)._expected;
-      short _307___mcc_h2 = ((Std.JSON.Errors.DeserializationError_ExpectingByte)_source10)._b;
-      short _308_b = _307___mcc_h2;
-      byte _309_b0 = _306___mcc_h1;
-      dafny.DafnySequence<? extends dafny.CodePoint> _310_c = ((java.lang.Integer.signum((_308_b)) == 1) ? (dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("'"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)dafny.Helpers.toInt(_308_b)))), dafny.DafnySequence.asUnicodeString("'"))) : (dafny.DafnySequence.asUnicodeString("EOF")));
-      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Expecting '"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)java.lang.Byte.toUnsignedInt(_309_b0)))), dafny.DafnySequence.asUnicodeString("', read ")), _310_c);
+      byte _312___mcc_h1 = ((Std.JSON.Errors.DeserializationError_ExpectingByte)_source10)._expected;
+      short _313___mcc_h2 = ((Std.JSON.Errors.DeserializationError_ExpectingByte)_source10)._b;
+      short _314_b = _313___mcc_h2;
+      byte _315_b0 = _312___mcc_h1;
+      dafny.DafnySequence<? extends dafny.CodePoint> _316_c = ((java.lang.Integer.signum((_314_b)) == 1) ? (dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("'"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)dafny.Helpers.toInt(_314_b)))), dafny.DafnySequence.asUnicodeString("'"))) : (dafny.DafnySequence.asUnicodeString("EOF")));
+      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Expecting '"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)java.lang.Byte.toUnsignedInt(_315_b0)))), dafny.DafnySequence.asUnicodeString("', read ")), _316_c);
     } else if (_source10.is_ExpectingAnyByte()) {
-      dafny.DafnySequence<? extends java.lang.Byte> _311___mcc_h3 = ((Std.JSON.Errors.DeserializationError_ExpectingAnyByte)_source10)._expected__sq;
-      short _312___mcc_h4 = ((Std.JSON.Errors.DeserializationError_ExpectingAnyByte)_source10)._b;
-      short _313_b = _312___mcc_h4;
-      dafny.DafnySequence<? extends java.lang.Byte> _314_bs0 = _311___mcc_h3;
-      dafny.DafnySequence<? extends dafny.CodePoint> _315_c = ((java.lang.Integer.signum((_313_b)) == 1) ? (dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("'"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)dafny.Helpers.toInt(_313_b)))), dafny.DafnySequence.asUnicodeString("'"))) : (dafny.DafnySequence.asUnicodeString("EOF")));
-      dafny.DafnySequence<? extends dafny.CodePoint> _316_c0s = dafny.DafnySequence.Create(dafny.TypeDescriptor.UNICODE_CHAR, java.math.BigInteger.valueOf((_314_bs0).length()), ((java.util.function.Function<dafny.DafnySequence<? extends java.lang.Byte>, java.util.function.Function<java.math.BigInteger, dafny.CodePoint>>)(_317_bs0) -> ((java.util.function.Function<java.math.BigInteger, dafny.CodePoint>)(_318_idx_boxed0) -> {
-        java.math.BigInteger _318_idx = ((java.math.BigInteger)(java.lang.Object)(_318_idx_boxed0));
-        return dafny.CodePoint.valueOf((int)java.lang.Byte.toUnsignedInt(((byte)(java.lang.Object)((_317_bs0).select(dafny.Helpers.toInt((_318_idx)))))));
-      })).apply(_314_bs0));
-      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Expecting one of '"), _316_c0s), dafny.DafnySequence.asUnicodeString("', read ")), _315_c);
+      dafny.DafnySequence<? extends java.lang.Byte> _317___mcc_h3 = ((Std.JSON.Errors.DeserializationError_ExpectingAnyByte)_source10)._expected__sq;
+      short _318___mcc_h4 = ((Std.JSON.Errors.DeserializationError_ExpectingAnyByte)_source10)._b;
+      short _319_b = _318___mcc_h4;
+      dafny.DafnySequence<? extends java.lang.Byte> _320_bs0 = _317___mcc_h3;
+      dafny.DafnySequence<? extends dafny.CodePoint> _321_c = ((java.lang.Integer.signum((_319_b)) == 1) ? (dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("'"), dafny.DafnySequence.<dafny.CodePoint> of(dafny.TypeDescriptor.UNICODE_CHAR, dafny.CodePoint.valueOf((int)dafny.Helpers.toInt(_319_b)))), dafny.DafnySequence.asUnicodeString("'"))) : (dafny.DafnySequence.asUnicodeString("EOF")));
+      dafny.DafnySequence<? extends dafny.CodePoint> _322_c0s = dafny.DafnySequence.Create(dafny.TypeDescriptor.UNICODE_CHAR, java.math.BigInteger.valueOf((_320_bs0).length()), ((java.util.function.Function<dafny.DafnySequence<? extends java.lang.Byte>, java.util.function.Function<java.math.BigInteger, dafny.CodePoint>>)(_323_bs0) -> ((java.util.function.Function<java.math.BigInteger, dafny.CodePoint>)(_324_idx_boxed0) -> {
+        java.math.BigInteger _324_idx = ((java.math.BigInteger)(java.lang.Object)(_324_idx_boxed0));
+        return dafny.CodePoint.valueOf((int)java.lang.Byte.toUnsignedInt(((byte)(java.lang.Object)((_323_bs0).select(dafny.Helpers.toInt((_324_idx)))))));
+      })).apply(_320_bs0));
+      return dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.<dafny.CodePoint>concatenate(dafny.DafnySequence.asUnicodeString("Expecting one of '"), _322_c0s), dafny.DafnySequence.asUnicodeString("', read ")), _321_c);
     } else {
       return dafny.DafnySequence.asUnicodeString("Invalid Unicode sequence");
     }

@@ -4197,6 +4197,9 @@ namespace Std.Wrappers {
     }
   }
 } // end of namespace Std.Wrappers
+namespace Std.FileIOInternalExterns {
+
+} // end of namespace Std.FileIOInternalExterns
 namespace Std.BoundedInts {
 
   public partial class __default {
@@ -4814,14 +4817,20 @@ namespace Std.Collections.Seq {
     }
     public static Std.Wrappers._IOption<BigInteger> IndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v)
     {
+      return Std.Collections.Seq.__default.IndexByOption<__T>(xs, Dafny.Helpers.Id<Func<__T, Func<__T, bool>>>((_71_v) => ((System.Func<__T, bool>)((_72_x) => {
+        return object.Equals(_72_x, _71_v);
+      })))(v));
+    }
+    public static Std.Wrappers._IOption<BigInteger> IndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p)
+    {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Option<BigInteger>.create_None();
-      } else if (object.Equals((xs).Select(BigInteger.Zero), v)) {
+      } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((xs).Select(BigInteger.Zero))) {
         return Std.Wrappers.Option<BigInteger>.create_Some(BigInteger.Zero);
       } else {
-        Std.Wrappers._IOption<BigInteger> _71_o_k = Std.Collections.Seq.__default.IndexOfOption<__T>((xs).Drop(BigInteger.One), v);
-        if ((_71_o_k).is_Some) {
-          return Std.Wrappers.Option<BigInteger>.create_Some(((_71_o_k).dtor_value) + (BigInteger.One));
+        Std.Wrappers._IOption<BigInteger> _73_o_k = Std.Collections.Seq.__default.IndexByOption<__T>((xs).Drop(BigInteger.One), p);
+        if ((_73_o_k).is_Some) {
+          return Std.Wrappers.Option<BigInteger>.create_Some(((_73_o_k).dtor_value) + (BigInteger.One));
         } else {
           return Std.Wrappers.Option<BigInteger>.create_None();
         }
@@ -4842,16 +4851,22 @@ namespace Std.Collections.Seq {
     }
     public static Std.Wrappers._IOption<BigInteger> LastIndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v)
     {
+      return Std.Collections.Seq.__default.LastIndexByOption<__T>(xs, Dafny.Helpers.Id<Func<__T, Func<__T, bool>>>((_74_v) => ((System.Func<__T, bool>)((_75_x) => {
+        return object.Equals(_75_x, _74_v);
+      })))(v));
+    }
+    public static Std.Wrappers._IOption<BigInteger> LastIndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p)
+    {
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Option<BigInteger>.create_None();
-      } else if (object.Equals((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One)), v)) {
+      } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One)))) {
         return Std.Wrappers.Option<BigInteger>.create_Some((new BigInteger((xs).Count)) - (BigInteger.One));
       } else {
         Dafny.ISequence<__T> _in4 = (xs).Take((new BigInteger((xs).Count)) - (BigInteger.One));
-        __T _in5 = v;
+        Func<__T, bool> _in5 = p;
         xs = _in4;
-        v = _in5;
+        p = _in5;
         goto TAIL_CALL_START;
       }
     }
@@ -4864,8 +4879,8 @@ namespace Std.Collections.Seq {
       if (!(xs).Contains(v)) {
         return xs;
       } else {
-        BigInteger _72_i = Std.Collections.Seq.__default.IndexOf<__T>(xs, v);
-        return Dafny.Sequence<__T>.Concat((xs).Take(_72_i), (xs).Drop((_72_i) + (BigInteger.One)));
+        BigInteger _76_i = Std.Collections.Seq.__default.IndexOf<__T>(xs, v);
+        return Dafny.Sequence<__T>.Concat((xs).Take(_76_i), (xs).Drop((_76_i) + (BigInteger.One)));
       }
     }
     public static Dafny.ISequence<__T> Insert<__T>(Dafny.ISequence<__T> xs, __T a, BigInteger pos)
@@ -4873,12 +4888,12 @@ namespace Std.Collections.Seq {
       return Dafny.Sequence<__T>.Concat(Dafny.Sequence<__T>.Concat((xs).Take(pos), Dafny.Sequence<__T>.FromElements(a)), (xs).Drop(pos));
     }
     public static Dafny.ISequence<__T> Reverse<__T>(Dafny.ISequence<__T> xs) {
-      Dafny.ISequence<__T> _73___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _77___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((xs).Equals(Dafny.Sequence<__T>.FromElements())) {
-        return Dafny.Sequence<__T>.Concat(_73___accumulator, Dafny.Sequence<__T>.FromElements());
+        return Dafny.Sequence<__T>.Concat(_77___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
-        _73___accumulator = Dafny.Sequence<__T>.Concat(_73___accumulator, Dafny.Sequence<__T>.FromElements((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One))));
+        _77___accumulator = Dafny.Sequence<__T>.Concat(_77___accumulator, Dafny.Sequence<__T>.FromElements((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One))));
         Dafny.ISequence<__T> _in6 = (xs).Subsequence(BigInteger.Zero, (new BigInteger((xs).Count)) - (BigInteger.One));
         xs = _in6;
         goto TAIL_CALL_START;
@@ -4886,12 +4901,12 @@ namespace Std.Collections.Seq {
     }
     public static Dafny.ISequence<__T> Repeat<__T>(__T v, BigInteger length)
     {
-      Dafny.ISequence<__T> _74___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _78___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((length).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(_74___accumulator, Dafny.Sequence<__T>.FromElements());
+        return Dafny.Sequence<__T>.Concat(_78___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
-        _74___accumulator = Dafny.Sequence<__T>.Concat(_74___accumulator, Dafny.Sequence<__T>.FromElements(v));
+        _78___accumulator = Dafny.Sequence<__T>.Concat(_78___accumulator, Dafny.Sequence<__T>.FromElements(v));
         __T _in7 = v;
         BigInteger _in8 = (length) - (BigInteger.One);
         v = _in7;
@@ -4904,19 +4919,19 @@ namespace Std.Collections.Seq {
         return _System.Tuple2<Dafny.ISequence<__A>, Dafny.ISequence<__B>>.create(Dafny.Sequence<__A>.FromElements(), Dafny.Sequence<__B>.FromElements());
       } else {
         _System._ITuple2<Dafny.ISequence<__A>, Dafny.ISequence<__B>> _let_tmp_rhs0 = Std.Collections.Seq.__default.Unzip<__A, __B>(Std.Collections.Seq.__default.DropLast<_System._ITuple2<__A, __B>>(xs));
-        Dafny.ISequence<__A> _75_a = _let_tmp_rhs0.dtor__0;
-        Dafny.ISequence<__B> _76_b = _let_tmp_rhs0.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<__A>, Dafny.ISequence<__B>>.create(Dafny.Sequence<__A>.Concat(_75_a, Dafny.Sequence<__A>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__0)), Dafny.Sequence<__B>.Concat(_76_b, Dafny.Sequence<__B>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__1)));
+        Dafny.ISequence<__A> _79_a = _let_tmp_rhs0.dtor__0;
+        Dafny.ISequence<__B> _80_b = _let_tmp_rhs0.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<__A>, Dafny.ISequence<__B>>.create(Dafny.Sequence<__A>.Concat(_79_a, Dafny.Sequence<__A>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__0)), Dafny.Sequence<__B>.Concat(_80_b, Dafny.Sequence<__B>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__1)));
       }
     }
     public static Dafny.ISequence<_System._ITuple2<__A, __B>> Zip<__A, __B>(Dafny.ISequence<__A> xs, Dafny.ISequence<__B> ys)
     {
-      Dafny.ISequence<_System._ITuple2<__A, __B>> _77___accumulator = Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements();
+      Dafny.ISequence<_System._ITuple2<__A, __B>> _81___accumulator = Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return Dafny.Sequence<_System._ITuple2<__A, __B>>.Concat(Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements(), _77___accumulator);
+        return Dafny.Sequence<_System._ITuple2<__A, __B>>.Concat(Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements(), _81___accumulator);
       } else {
-        _77___accumulator = Dafny.Sequence<_System._ITuple2<__A, __B>>.Concat(Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements(_System.Tuple2<__A, __B>.create(Std.Collections.Seq.__default.Last<__A>(xs), Std.Collections.Seq.__default.Last<__B>(ys))), _77___accumulator);
+        _81___accumulator = Dafny.Sequence<_System._ITuple2<__A, __B>>.Concat(Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements(_System.Tuple2<__A, __B>.create(Std.Collections.Seq.__default.Last<__A>(xs), Std.Collections.Seq.__default.Last<__B>(ys))), _81___accumulator);
         Dafny.ISequence<__A> _in9 = Std.Collections.Seq.__default.DropLast<__A>(xs);
         Dafny.ISequence<__B> _in10 = Std.Collections.Seq.__default.DropLast<__B>(ys);
         xs = _in9;
@@ -4939,41 +4954,89 @@ namespace Std.Collections.Seq {
       }
     }
     public static Dafny.ISequence<__T> Flatten<__T>(Dafny.ISequence<Dafny.ISequence<__T>> xs) {
-      Dafny.ISequence<__T> _78___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _82___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(_78___accumulator, Dafny.Sequence<__T>.FromElements());
+        return Dafny.Sequence<__T>.Concat(_82___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
-        _78___accumulator = Dafny.Sequence<__T>.Concat(_78___accumulator, (xs).Select(BigInteger.Zero));
+        _82___accumulator = Dafny.Sequence<__T>.Concat(_82___accumulator, (xs).Select(BigInteger.Zero));
         Dafny.ISequence<Dafny.ISequence<__T>> _in11 = (xs).Drop(BigInteger.One);
         xs = _in11;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<__T> FlattenReverse<__T>(Dafny.ISequence<Dafny.ISequence<__T>> xs) {
-      Dafny.ISequence<__T> _79___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _83___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(Dafny.Sequence<__T>.FromElements(), _79___accumulator);
+        return Dafny.Sequence<__T>.Concat(Dafny.Sequence<__T>.FromElements(), _83___accumulator);
       } else {
-        _79___accumulator = Dafny.Sequence<__T>.Concat(Std.Collections.Seq.__default.Last<Dafny.ISequence<__T>>(xs), _79___accumulator);
+        _83___accumulator = Dafny.Sequence<__T>.Concat(Std.Collections.Seq.__default.Last<Dafny.ISequence<__T>>(xs), _83___accumulator);
         Dafny.ISequence<Dafny.ISequence<__T>> _in12 = Std.Collections.Seq.__default.DropLast<Dafny.ISequence<__T>>(xs);
         xs = _in12;
         goto TAIL_CALL_START;
       }
     }
+    public static Dafny.ISequence<__T> Join<__T>(Dafny.ISequence<Dafny.ISequence<__T>> seqs, Dafny.ISequence<__T> separator)
+    {
+      Dafny.ISequence<__T> _84___accumulator = Dafny.Sequence<__T>.FromElements();
+    TAIL_CALL_START: ;
+      if ((new BigInteger((seqs).Count)).Sign == 0) {
+        return Dafny.Sequence<__T>.Concat(_84___accumulator, Dafny.Sequence<__T>.FromElements());
+      } else if ((new BigInteger((seqs).Count)) == (BigInteger.One)) {
+        return Dafny.Sequence<__T>.Concat(_84___accumulator, (seqs).Select(BigInteger.Zero));
+      } else {
+        _84___accumulator = Dafny.Sequence<__T>.Concat(_84___accumulator, Dafny.Sequence<__T>.Concat((seqs).Select(BigInteger.Zero), separator));
+        Dafny.ISequence<Dafny.ISequence<__T>> _in13 = (seqs).Drop(BigInteger.One);
+        Dafny.ISequence<__T> _in14 = separator;
+        seqs = _in13;
+        separator = _in14;
+        goto TAIL_CALL_START;
+      }
+    }
+    public static Dafny.ISequence<Dafny.ISequence<__T>> Split<__T>(Dafny.ISequence<__T> s, __T delim)
+    {
+      Dafny.ISequence<Dafny.ISequence<__T>> _85___accumulator = Dafny.Sequence<Dafny.ISequence<__T>>.FromElements();
+    TAIL_CALL_START: ;
+      Std.Wrappers._IOption<BigInteger> _86_i = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
+      if ((_86_i).is_Some) {
+        _85___accumulator = Dafny.Sequence<Dafny.ISequence<__T>>.Concat(_85___accumulator, Dafny.Sequence<Dafny.ISequence<__T>>.FromElements((s).Take((_86_i).dtor_value)));
+        Dafny.ISequence<__T> _in15 = (s).Drop(((_86_i).dtor_value) + (BigInteger.One));
+        __T _in16 = delim;
+        s = _in15;
+        delim = _in16;
+        goto TAIL_CALL_START;
+      } else {
+        return Dafny.Sequence<Dafny.ISequence<__T>>.Concat(_85___accumulator, Dafny.Sequence<Dafny.ISequence<__T>>.FromElements(s));
+      }
+    }
+    public static _System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>> SplitOnce<__T>(Dafny.ISequence<__T> s, __T delim)
+    {
+      Std.Wrappers._IOption<BigInteger> _87_i = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
+      return _System.Tuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>.create((s).Take((_87_i).dtor_value), (s).Drop(((_87_i).dtor_value) + (BigInteger.One)));
+    }
+    public static Std.Wrappers._IOption<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>> SplitOnceOption<__T>(Dafny.ISequence<__T> s, __T delim)
+    {
+      Std.Wrappers._IOption<BigInteger> _88_valueOrError0 = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
+      if ((_88_valueOrError0).IsFailure()) {
+        return (_88_valueOrError0).PropagateFailure<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>>();
+      } else {
+        BigInteger _89_i = (_88_valueOrError0).Extract();
+        return Std.Wrappers.Option<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>>.create_Some(_System.Tuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>.create((s).Take(_89_i), (s).Drop((_89_i) + (BigInteger.One))));
+      }
+    }
     public static Dafny.ISequence<__R> Map<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs)
     {
-      Dafny.ISequence<__R> _80___accumulator = Dafny.Sequence<__R>.FromElements();
+      Dafny.ISequence<__R> _90___accumulator = Dafny.Sequence<__R>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return Dafny.Sequence<__R>.Concat(_80___accumulator, Dafny.Sequence<__R>.FromElements());
+        return Dafny.Sequence<__R>.Concat(_90___accumulator, Dafny.Sequence<__R>.FromElements());
       } else {
-        _80___accumulator = Dafny.Sequence<__R>.Concat(_80___accumulator, Dafny.Sequence<__R>.FromElements(Dafny.Helpers.Id<Func<__T, __R>>(f)((xs).Select(BigInteger.Zero))));
-        Func<__T, __R> _in13 = f;
-        Dafny.ISequence<__T> _in14 = (xs).Drop(BigInteger.One);
-        f = _in13;
-        xs = _in14;
+        _90___accumulator = Dafny.Sequence<__R>.Concat(_90___accumulator, Dafny.Sequence<__R>.FromElements(Dafny.Helpers.Id<Func<__T, __R>>(f)((xs).Select(BigInteger.Zero))));
+        Func<__T, __R> _in17 = f;
+        Dafny.ISequence<__T> _in18 = (xs).Drop(BigInteger.One);
+        f = _in17;
+        xs = _in18;
         goto TAIL_CALL_START;
       }
     }
@@ -4982,33 +5045,33 @@ namespace Std.Collections.Seq {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Result<Dafny.ISequence<__R>, __E>.create_Success(Dafny.Sequence<__R>.FromElements());
       } else {
-        Std.Wrappers._IResult<__R, __E> _81_valueOrError0 = Dafny.Helpers.Id<Func<__T, Std.Wrappers._IResult<__R, __E>>>(f)((xs).Select(BigInteger.Zero));
-        if ((_81_valueOrError0).IsFailure()) {
-          return (_81_valueOrError0).PropagateFailure<Dafny.ISequence<__R>>();
+        Std.Wrappers._IResult<__R, __E> _91_valueOrError0 = Dafny.Helpers.Id<Func<__T, Std.Wrappers._IResult<__R, __E>>>(f)((xs).Select(BigInteger.Zero));
+        if ((_91_valueOrError0).IsFailure()) {
+          return (_91_valueOrError0).PropagateFailure<Dafny.ISequence<__R>>();
         } else {
-          __R _82_head = (_81_valueOrError0).Extract();
-          Std.Wrappers._IResult<Dafny.ISequence<__R>, __E> _83_valueOrError1 = Std.Collections.Seq.__default.MapWithResult<__T, __R, __E>(f, (xs).Drop(BigInteger.One));
-          if ((_83_valueOrError1).IsFailure()) {
-            return (_83_valueOrError1).PropagateFailure<Dafny.ISequence<__R>>();
+          __R _92_head = (_91_valueOrError0).Extract();
+          Std.Wrappers._IResult<Dafny.ISequence<__R>, __E> _93_valueOrError1 = Std.Collections.Seq.__default.MapWithResult<__T, __R, __E>(f, (xs).Drop(BigInteger.One));
+          if ((_93_valueOrError1).IsFailure()) {
+            return (_93_valueOrError1).PropagateFailure<Dafny.ISequence<__R>>();
           } else {
-            Dafny.ISequence<__R> _84_tail = (_83_valueOrError1).Extract();
-            return Std.Wrappers.Result<Dafny.ISequence<__R>, __E>.create_Success(Dafny.Sequence<__R>.Concat(Dafny.Sequence<__R>.FromElements(_82_head), _84_tail));
+            Dafny.ISequence<__R> _94_tail = (_93_valueOrError1).Extract();
+            return Std.Wrappers.Result<Dafny.ISequence<__R>, __E>.create_Success(Dafny.Sequence<__R>.Concat(Dafny.Sequence<__R>.FromElements(_92_head), _94_tail));
           }
         }
       }
     }
     public static Dafny.ISequence<__T> Filter<__T>(Func<__T, bool> f, Dafny.ISequence<__T> xs)
     {
-      Dafny.ISequence<__T> _85___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _95___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(_85___accumulator, Dafny.Sequence<__T>.FromElements());
+        return Dafny.Sequence<__T>.Concat(_95___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
-        _85___accumulator = Dafny.Sequence<__T>.Concat(_85___accumulator, ((Dafny.Helpers.Id<Func<__T, bool>>(f)((xs).Select(BigInteger.Zero))) ? (Dafny.Sequence<__T>.FromElements((xs).Select(BigInteger.Zero))) : (Dafny.Sequence<__T>.FromElements())));
-        Func<__T, bool> _in15 = f;
-        Dafny.ISequence<__T> _in16 = (xs).Drop(BigInteger.One);
-        f = _in15;
-        xs = _in16;
+        _95___accumulator = Dafny.Sequence<__T>.Concat(_95___accumulator, ((Dafny.Helpers.Id<Func<__T, bool>>(f)((xs).Select(BigInteger.Zero))) ? (Dafny.Sequence<__T>.FromElements((xs).Select(BigInteger.Zero))) : (Dafny.Sequence<__T>.FromElements())));
+        Func<__T, bool> _in19 = f;
+        Dafny.ISequence<__T> _in20 = (xs).Drop(BigInteger.One);
+        f = _in19;
+        xs = _in20;
         goto TAIL_CALL_START;
       }
     }
@@ -5018,12 +5081,12 @@ namespace Std.Collections.Seq {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return init;
       } else {
-        Func<__A, __T, __A> _in17 = f;
-        __A _in18 = Dafny.Helpers.Id<Func<__A, __T, __A>>(f)(init, (xs).Select(BigInteger.Zero));
-        Dafny.ISequence<__T> _in19 = (xs).Drop(BigInteger.One);
-        f = _in17;
-        init = _in18;
-        xs = _in19;
+        Func<__A, __T, __A> _in21 = f;
+        __A _in22 = Dafny.Helpers.Id<Func<__A, __T, __A>>(f)(init, (xs).Select(BigInteger.Zero));
+        Dafny.ISequence<__T> _in23 = (xs).Drop(BigInteger.One);
+        f = _in21;
+        init = _in22;
+        xs = _in23;
         goto TAIL_CALL_START;
       }
     }
@@ -5039,20 +5102,20 @@ namespace Std.Collections.Seq {
     {
       Dafny.ISequence<__T> xs = Dafny.Sequence<__T>.Empty;
       xs = Dafny.Sequence<__T>.FromElements();
-      Dafny.ISet<__T> _86_left;
-      _86_left = s;
-      while (!(_86_left).Equals(Dafny.Set<__T>.FromElements())) {
-        __T _87_x;
-        foreach (__T _assign_such_that_0 in (_86_left).Elements) {
-          _87_x = (__T)_assign_such_that_0;
-          if ((_86_left).Contains(_87_x)) {
+      Dafny.ISet<__T> _96_left;
+      _96_left = s;
+      while (!(_96_left).Equals(Dafny.Set<__T>.FromElements())) {
+        __T _97_x;
+        foreach (__T _assign_such_that_0 in (_96_left).Elements) {
+          _97_x = (__T)_assign_such_that_0;
+          if ((_96_left).Contains(_97_x)) {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7122)");
+        throw new System.Exception("assign-such-that search produced no value (line 7231)");
       after__ASSIGN_SUCH_THAT_0: ;
-        _86_left = Dafny.Set<__T>.Difference(_86_left, Dafny.Set<__T>.FromElements(_87_x));
-        xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_87_x));
+        _96_left = Dafny.Set<__T>.Difference(_96_left, Dafny.Set<__T>.FromElements(_97_x));
+        xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_97_x));
       }
       return xs;
     }
@@ -5070,39 +5133,39 @@ namespace Std.Collections.Seq {
       if ((new BigInteger((a).Count)) <= (BigInteger.One)) {
         return a;
       } else {
-        BigInteger _88_splitIndex = Dafny.Helpers.EuclideanDivision(new BigInteger((a).Count), new BigInteger(2));
-        Dafny.ISequence<__T> _89_left = (a).Take(_88_splitIndex);
-        Dafny.ISequence<__T> _90_right = (a).Drop(_88_splitIndex);
-        Dafny.ISequence<__T> _91_leftSorted = Std.Collections.Seq.__default.MergeSortBy<__T>(lessThanOrEq, _89_left);
-        Dafny.ISequence<__T> _92_rightSorted = Std.Collections.Seq.__default.MergeSortBy<__T>(lessThanOrEq, _90_right);
-        return Std.Collections.Seq.__default.MergeSortedWith<__T>(_91_leftSorted, _92_rightSorted, lessThanOrEq);
+        BigInteger _98_splitIndex = Dafny.Helpers.EuclideanDivision(new BigInteger((a).Count), new BigInteger(2));
+        Dafny.ISequence<__T> _99_left = (a).Take(_98_splitIndex);
+        Dafny.ISequence<__T> _100_right = (a).Drop(_98_splitIndex);
+        Dafny.ISequence<__T> _101_leftSorted = Std.Collections.Seq.__default.MergeSortBy<__T>(lessThanOrEq, _99_left);
+        Dafny.ISequence<__T> _102_rightSorted = Std.Collections.Seq.__default.MergeSortBy<__T>(lessThanOrEq, _100_right);
+        return Std.Collections.Seq.__default.MergeSortedWith<__T>(_101_leftSorted, _102_rightSorted, lessThanOrEq);
       }
     }
     public static Dafny.ISequence<__T> MergeSortedWith<__T>(Dafny.ISequence<__T> left, Dafny.ISequence<__T> right, Func<__T, __T, bool> lessThanOrEq)
     {
-      Dafny.ISequence<__T> _93___accumulator = Dafny.Sequence<__T>.FromElements();
+      Dafny.ISequence<__T> _103___accumulator = Dafny.Sequence<__T>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((left).Count)).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(_93___accumulator, right);
+        return Dafny.Sequence<__T>.Concat(_103___accumulator, right);
       } else if ((new BigInteger((right).Count)).Sign == 0) {
-        return Dafny.Sequence<__T>.Concat(_93___accumulator, left);
+        return Dafny.Sequence<__T>.Concat(_103___accumulator, left);
       } else if (Dafny.Helpers.Id<Func<__T, __T, bool>>(lessThanOrEq)((left).Select(BigInteger.Zero), (right).Select(BigInteger.Zero))) {
-        _93___accumulator = Dafny.Sequence<__T>.Concat(_93___accumulator, Dafny.Sequence<__T>.FromElements((left).Select(BigInteger.Zero)));
-        Dafny.ISequence<__T> _in20 = (left).Drop(BigInteger.One);
-        Dafny.ISequence<__T> _in21 = right;
-        Func<__T, __T, bool> _in22 = lessThanOrEq;
-        left = _in20;
-        right = _in21;
-        lessThanOrEq = _in22;
+        _103___accumulator = Dafny.Sequence<__T>.Concat(_103___accumulator, Dafny.Sequence<__T>.FromElements((left).Select(BigInteger.Zero)));
+        Dafny.ISequence<__T> _in24 = (left).Drop(BigInteger.One);
+        Dafny.ISequence<__T> _in25 = right;
+        Func<__T, __T, bool> _in26 = lessThanOrEq;
+        left = _in24;
+        right = _in25;
+        lessThanOrEq = _in26;
         goto TAIL_CALL_START;
       } else {
-        _93___accumulator = Dafny.Sequence<__T>.Concat(_93___accumulator, Dafny.Sequence<__T>.FromElements((right).Select(BigInteger.Zero)));
-        Dafny.ISequence<__T> _in23 = left;
-        Dafny.ISequence<__T> _in24 = (right).Drop(BigInteger.One);
-        Func<__T, __T, bool> _in25 = lessThanOrEq;
-        left = _in23;
-        right = _in24;
-        lessThanOrEq = _in25;
+        _103___accumulator = Dafny.Sequence<__T>.Concat(_103___accumulator, Dafny.Sequence<__T>.FromElements((right).Select(BigInteger.Zero)));
+        Dafny.ISequence<__T> _in27 = left;
+        Dafny.ISequence<__T> _in28 = (right).Drop(BigInteger.One);
+        Func<__T, __T, bool> _in29 = lessThanOrEq;
+        left = _in27;
+        right = _in28;
+        lessThanOrEq = _in29;
         goto TAIL_CALL_START;
       }
     }
@@ -5114,21 +5177,21 @@ namespace Std.Collections.Array {
     public static Std.Wrappers._IOption<BigInteger> BinarySearch<__T>(__T[] a, __T key, Func<__T, __T, bool> less)
     {
       Std.Wrappers._IOption<BigInteger> r = Std.Wrappers.Option<BigInteger>.Default();
-      BigInteger _94_lo;
-      BigInteger _95_hi;
+      BigInteger _104_lo;
+      BigInteger _105_hi;
       BigInteger _rhs0 = BigInteger.Zero;
       BigInteger _rhs1 = new BigInteger((a).Length);
-      _94_lo = _rhs0;
-      _95_hi = _rhs1;
-      while ((_94_lo) < (_95_hi)) {
-        BigInteger _96_mid;
-        _96_mid = Dafny.Helpers.EuclideanDivision((_94_lo) + (_95_hi), new BigInteger(2));
-        if (Dafny.Helpers.Id<Func<__T, __T, bool>>(less)(key, (a)[(int)(_96_mid)])) {
-          _95_hi = _96_mid;
-        } else if (Dafny.Helpers.Id<Func<__T, __T, bool>>(less)((a)[(int)(_96_mid)], key)) {
-          _94_lo = (_96_mid) + (BigInteger.One);
+      _104_lo = _rhs0;
+      _105_hi = _rhs1;
+      while ((_104_lo) < (_105_hi)) {
+        BigInteger _106_mid;
+        _106_mid = Dafny.Helpers.EuclideanDivision((_104_lo) + (_105_hi), new BigInteger(2));
+        if (Dafny.Helpers.Id<Func<__T, __T, bool>>(less)(key, (a)[(int)(_106_mid)])) {
+          _105_hi = _106_mid;
+        } else if (Dafny.Helpers.Id<Func<__T, __T, bool>>(less)((a)[(int)(_106_mid)], key)) {
+          _104_lo = (_106_mid) + (BigInteger.One);
         } else {
-          r = Std.Wrappers.Option<BigInteger>.create_Some(_96_mid);
+          r = Std.Wrappers.Option<BigInteger>.create_Some(_106_mid);
           return r;
         }
       }
@@ -5169,12 +5232,12 @@ namespace Std.Collections.Map {
       }
     }
     public static Dafny.IMap<__X,__Y> ToImap<__X, __Y>(Dafny.IMap<__X,__Y> m) {
-      return Dafny.Helpers.Id<Func<Dafny.IMap<__X,__Y>, Dafny.IMap<__X,__Y>>>((_97_m) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
+      return Dafny.Helpers.Id<Func<Dafny.IMap<__X,__Y>, Dafny.IMap<__X,__Y>>>((_107_m) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
         var _coll1 = new System.Collections.Generic.List<Dafny.Pair<__X,__Y>>();
-        foreach (__X _compr_1 in (_97_m).Keys.Elements) {
-          __X _98_x = (__X)_compr_1;
-          if ((_97_m).Contains(_98_x)) {
-            _coll1.Add(new Dafny.Pair<__X,__Y>(_98_x, Dafny.Map<__X, __Y>.Select(_97_m,_98_x)));
+        foreach (__X _compr_1 in (_107_m).Keys.Elements) {
+          __X _108_x = (__X)_compr_1;
+          if ((_107_m).Contains(_108_x)) {
+            _coll1.Add(new Dafny.Pair<__X,__Y>(_108_x, Dafny.Map<__X, __Y>.Select(_107_m,_108_x)));
           }
         }
         return Dafny.Map<__X,__Y>.FromCollection(_coll1);
@@ -5186,26 +5249,26 @@ namespace Std.Collections.Map {
     }
     public static Dafny.IMap<__X,__Y> Remove<__X, __Y>(Dafny.IMap<__X,__Y> m, __X x)
     {
-      Dafny.IMap<__X,__Y> _99_m_k = Dafny.Helpers.Id<Func<Dafny.IMap<__X,__Y>, __X, Dafny.IMap<__X,__Y>>>((_100_m, _101_x) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
+      Dafny.IMap<__X,__Y> _109_m_k = Dafny.Helpers.Id<Func<Dafny.IMap<__X,__Y>, __X, Dafny.IMap<__X,__Y>>>((_110_m, _111_x) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
         var _coll2 = new System.Collections.Generic.List<Dafny.Pair<__X,__Y>>();
-        foreach (__X _compr_2 in (_100_m).Keys.Elements) {
-          __X _102_x_k = (__X)_compr_2;
-          if (((_100_m).Contains(_102_x_k)) && (!object.Equals(_102_x_k, _101_x))) {
-            _coll2.Add(new Dafny.Pair<__X,__Y>(_102_x_k, Dafny.Map<__X, __Y>.Select(_100_m,_102_x_k)));
+        foreach (__X _compr_2 in (_110_m).Keys.Elements) {
+          __X _112_x_k = (__X)_compr_2;
+          if (((_110_m).Contains(_112_x_k)) && (!object.Equals(_112_x_k, _111_x))) {
+            _coll2.Add(new Dafny.Pair<__X,__Y>(_112_x_k, Dafny.Map<__X, __Y>.Select(_110_m,_112_x_k)));
           }
         }
         return Dafny.Map<__X,__Y>.FromCollection(_coll2);
       }))())(m, x);
-      return _99_m_k;
+      return _109_m_k;
     }
     public static Dafny.IMap<__X,__Y> Restrict<__X, __Y>(Dafny.IMap<__X,__Y> m, Dafny.ISet<__X> xs)
     {
-      return Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Dafny.IMap<__X,__Y>, Dafny.IMap<__X,__Y>>>((_103_xs, _104_m) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
+      return Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Dafny.IMap<__X,__Y>, Dafny.IMap<__X,__Y>>>((_113_xs, _114_m) => ((System.Func<Dafny.IMap<__X,__Y>>)(() => {
         var _coll3 = new System.Collections.Generic.List<Dafny.Pair<__X,__Y>>();
-        foreach (__X _compr_3 in (_103_xs).Elements) {
-          __X _105_x = (__X)_compr_3;
-          if (((_103_xs).Contains(_105_x)) && ((_104_m).Contains(_105_x))) {
-            _coll3.Add(new Dafny.Pair<__X,__Y>(_105_x, Dafny.Map<__X, __Y>.Select(_104_m,_105_x)));
+        foreach (__X _compr_3 in (_113_xs).Elements) {
+          __X _115_x = (__X)_compr_3;
+          if (((_113_xs).Contains(_115_x)) && ((_114_m).Contains(_115_x))) {
+            _coll3.Add(new Dafny.Pair<__X,__Y>(_115_x, Dafny.Map<__X, __Y>.Select(_114_m,_115_x)));
           }
         }
         return Dafny.Map<__X,__Y>.FromCollection(_coll3);
@@ -5222,59 +5285,59 @@ namespace Std.Collections.Set {
   public partial class __default {
     public static __T ExtractFromSingleton<__T>(Dafny.ISet<__T> s) {
       return Dafny.Helpers.Let<int, __T>(0, _let_dummy_0 =>  {
-        __T _106_x = default(__T);
+        __T _116_x = default(__T);
         foreach (__T _assign_such_that_1 in (s).Elements) {
-          _106_x = (__T)_assign_such_that_1;
-          if ((s).Contains(_106_x)) {
+          _116_x = (__T)_assign_such_that_1;
+          if ((s).Contains(_116_x)) {
             goto after__ASSIGN_SUCH_THAT_1;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7299)");
+        throw new System.Exception("assign-such-that search produced no value (line 7408)");
       after__ASSIGN_SUCH_THAT_1: ;
-        return _106_x;
+        return _116_x;
       }
       );
     }
     public static Dafny.ISet<__Y> Map<__X, __Y>(Func<__X, __Y> f, Dafny.ISet<__X> xs)
     {
-      Dafny.ISet<__Y> _107_ys = Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Func<__X, __Y>, Dafny.ISet<__Y>>>((_108_xs, _109_f) => ((System.Func<Dafny.ISet<__Y>>)(() => {
+      Dafny.ISet<__Y> _117_ys = Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Func<__X, __Y>, Dafny.ISet<__Y>>>((_118_xs, _119_f) => ((System.Func<Dafny.ISet<__Y>>)(() => {
         var _coll4 = new System.Collections.Generic.List<__Y>();
-        foreach (__X _compr_4 in (_108_xs).Elements) {
-          __X _110_x = (__X)_compr_4;
-          if ((_108_xs).Contains(_110_x)) {
-            _coll4.Add(Dafny.Helpers.Id<Func<__X, __Y>>(_109_f)(_110_x));
+        foreach (__X _compr_4 in (_118_xs).Elements) {
+          __X _120_x = (__X)_compr_4;
+          if ((_118_xs).Contains(_120_x)) {
+            _coll4.Add(Dafny.Helpers.Id<Func<__X, __Y>>(_119_f)(_120_x));
           }
         }
         return Dafny.Set<__Y>.FromCollection(_coll4);
       }))())(xs, f);
-      return _107_ys;
+      return _117_ys;
     }
     public static Dafny.ISet<__X> Filter<__X>(Func<__X, bool> f, Dafny.ISet<__X> xs)
     {
-      Dafny.ISet<__X> _111_ys = Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Func<__X, bool>, Dafny.ISet<__X>>>((_112_xs, _113_f) => ((System.Func<Dafny.ISet<__X>>)(() => {
+      Dafny.ISet<__X> _121_ys = Dafny.Helpers.Id<Func<Dafny.ISet<__X>, Func<__X, bool>, Dafny.ISet<__X>>>((_122_xs, _123_f) => ((System.Func<Dafny.ISet<__X>>)(() => {
         var _coll5 = new System.Collections.Generic.List<__X>();
-        foreach (__X _compr_5 in (_112_xs).Elements) {
-          __X _114_x = (__X)_compr_5;
-          if (((_112_xs).Contains(_114_x)) && (Dafny.Helpers.Id<Func<__X, bool>>(_113_f)(_114_x))) {
-            _coll5.Add(_114_x);
+        foreach (__X _compr_5 in (_122_xs).Elements) {
+          __X _124_x = (__X)_compr_5;
+          if (((_122_xs).Contains(_124_x)) && (Dafny.Helpers.Id<Func<__X, bool>>(_123_f)(_124_x))) {
+            _coll5.Add(_124_x);
           }
         }
         return Dafny.Set<__X>.FromCollection(_coll5);
       }))())(xs, f);
-      return _111_ys;
+      return _121_ys;
     }
     public static Dafny.ISet<BigInteger> SetRange(BigInteger a, BigInteger b)
     {
-      Dafny.ISet<BigInteger> _115___accumulator = Dafny.Set<BigInteger>.FromElements();
+      Dafny.ISet<BigInteger> _125___accumulator = Dafny.Set<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((a) == (b)) {
-        return Dafny.Set<BigInteger>.Union(Dafny.Set<BigInteger>.FromElements(), _115___accumulator);
+        return Dafny.Set<BigInteger>.Union(Dafny.Set<BigInteger>.FromElements(), _125___accumulator);
       } else {
-        _115___accumulator = Dafny.Set<BigInteger>.Union(_115___accumulator, Dafny.Set<BigInteger>.FromElements(a));
-        BigInteger _in26 = (a) + (BigInteger.One);
-        BigInteger _in27 = b;
-        a = _in26;
-        b = _in27;
+        _125___accumulator = Dafny.Set<BigInteger>.Union(_125___accumulator, Dafny.Set<BigInteger>.FromElements(a));
+        BigInteger _in30 = (a) + (BigInteger.One);
+        BigInteger _in31 = b;
+        a = _in30;
+        b = _in31;
         goto TAIL_CALL_START;
       }
     }
@@ -5315,13 +5378,13 @@ namespace Std.DynamicArray {
     }
     public void Ensure(BigInteger reserved, A defaultValue)
     {
-      BigInteger _116_newCapacity;
-      _116_newCapacity = this.capacity;
-      while ((reserved) > ((_116_newCapacity) - (this.size))) {
-        _116_newCapacity = (this).DefaultNewCapacity(_116_newCapacity);
+      BigInteger _126_newCapacity;
+      _126_newCapacity = this.capacity;
+      while ((reserved) > ((_126_newCapacity) - (this.size))) {
+        _126_newCapacity = (this).DefaultNewCapacity(_126_newCapacity);
       }
-      if ((_116_newCapacity) > (this.capacity)) {
-        (this).Realloc(defaultValue, _116_newCapacity);
+      if ((_126_newCapacity) > (this.capacity)) {
+        (this).Realloc(defaultValue, _126_newCapacity);
       }
     }
     public void PopFast()
@@ -5344,14 +5407,14 @@ namespace Std.DynamicArray {
     }
     public void Realloc(A defaultValue, BigInteger newCapacity)
     {
-      A[] _117_oldData;
-      BigInteger _118_oldCapacity;
+      A[] _127_oldData;
+      BigInteger _128_oldCapacity;
       A[] _rhs2 = this.data;
       BigInteger _rhs3 = this.capacity;
-      _117_oldData = _rhs2;
-      _118_oldCapacity = _rhs3;
-      Func<BigInteger, A> _init3 = Dafny.Helpers.Id<Func<A, Func<BigInteger, A>>>((_119_defaultValue) => ((System.Func<BigInteger, A>)((_120___v0) => {
-        return _119_defaultValue;
+      _127_oldData = _rhs2;
+      _128_oldCapacity = _rhs3;
+      Func<BigInteger, A> _init3 = Dafny.Helpers.Id<Func<A, Func<BigInteger, A>>>((_129_defaultValue) => ((System.Func<BigInteger, A>)((_130___v0) => {
+        return _129_defaultValue;
       })))(defaultValue);
       A[] _nw4 = new A[Dafny.Helpers.ToIntChecked(newCapacity, "array size exceeds memory limit")];
       for (var _i0_3 = 0; _i0_3 < new BigInteger(_nw4.Length); _i0_3++) {
@@ -5363,7 +5426,7 @@ namespace Std.DynamicArray {
       Std.DynamicArray.DynamicArray<A> _lhs1 = this;
       _lhs0.data = _rhs4;
       _lhs1.capacity = _rhs5;
-      (this).CopyFrom(_117_oldData, _118_oldCapacity);
+      (this).CopyFrom(_127_oldData, _128_oldCapacity);
     }
     public BigInteger DefaultNewCapacity(BigInteger capacity) {
       if ((capacity).Sign == 0) {
@@ -5379,10 +5442,10 @@ namespace Std.DynamicArray {
     public void CopyFrom(A[] newData, BigInteger count)
     {
       foreach (BigInteger _guard_loop_0 in Dafny.Helpers.IntegerRange(BigInteger.Zero, count)) {
-        BigInteger _121_index = (BigInteger)_guard_loop_0;
-        if ((true) && (((_121_index).Sign != -1) && ((_121_index) < (count)))) {
+        BigInteger _131_index = (BigInteger)_guard_loop_0;
+        if ((true) && (((_131_index).Sign != -1) && ((_131_index) < (count)))) {
           A[] _arr2 = this.data;
-          _arr2[(int)((_121_index))] = (newData)[(int)(_121_index)];
+          _arr2[(int)((_131_index))] = (newData)[(int)(_131_index)];
         }
       }
     }
@@ -5394,31 +5457,31 @@ namespace Std.FileIO {
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>> ReadBytesFromFile(Dafny.ISequence<Dafny.Rune> path)
     {
       Std.Wrappers._IResult<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>> res = Std.Wrappers.Result<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>>.Default(Dafny.Sequence<byte>.Empty);
-      bool _122_isError;
-      Dafny.ISequence<byte> _123_bytesRead;
-      Dafny.ISequence<Dafny.Rune> _124_errorMsg;
+      bool _132_isError;
+      Dafny.ISequence<byte> _133_bytesRead;
+      Dafny.ISequence<Dafny.Rune> _134_errorMsg;
       bool _out1;
       Dafny.ISequence<byte> _out2;
       Dafny.ISequence<Dafny.Rune> _out3;
-      Std.CSharpFileIOInternalExterns.__default.INTERNAL__ReadBytesFromFile(path, out _out1, out _out2, out _out3);
-      _122_isError = _out1;
-      _123_bytesRead = _out2;
-      _124_errorMsg = _out3;
-      res = ((_122_isError) ? (Std.Wrappers.Result<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>>.create_Failure(_124_errorMsg)) : (Std.Wrappers.Result<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>>.create_Success(_123_bytesRead)));
+      Std.FileIOInternalExterns.__default.INTERNAL__ReadBytesFromFile(path, out _out1, out _out2, out _out3);
+      _132_isError = _out1;
+      _133_bytesRead = _out2;
+      _134_errorMsg = _out3;
+      res = ((_132_isError) ? (Std.Wrappers.Result<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>>.create_Failure(_134_errorMsg)) : (Std.Wrappers.Result<Dafny.ISequence<byte>, Dafny.ISequence<Dafny.Rune>>.create_Success(_133_bytesRead)));
       return res;
       return res;
     }
     public static Std.Wrappers._IResult<_System._ITuple0, Dafny.ISequence<Dafny.Rune>> WriteBytesToFile(Dafny.ISequence<Dafny.Rune> path, Dafny.ISequence<byte> bytes)
     {
       Std.Wrappers._IResult<_System._ITuple0, Dafny.ISequence<Dafny.Rune>> res = Std.Wrappers.Result<_System._ITuple0, Dafny.ISequence<Dafny.Rune>>.Default(_System.Tuple0.Default());
-      bool _125_isError;
-      Dafny.ISequence<Dafny.Rune> _126_errorMsg;
+      bool _135_isError;
+      Dafny.ISequence<Dafny.Rune> _136_errorMsg;
       bool _out4;
       Dafny.ISequence<Dafny.Rune> _out5;
-      Std.CSharpFileIOInternalExterns.__default.INTERNAL__WriteBytesToFile(path, bytes, out _out4, out _out5);
-      _125_isError = _out4;
-      _126_errorMsg = _out5;
-      res = ((_125_isError) ? (Std.Wrappers.Result<_System._ITuple0, Dafny.ISequence<Dafny.Rune>>.create_Failure(_126_errorMsg)) : (Std.Wrappers.Result<_System._ITuple0, Dafny.ISequence<Dafny.Rune>>.create_Success(_System.Tuple0.create())));
+      Std.FileIOInternalExterns.__default.INTERNAL__WriteBytesToFile(path, bytes, out _out4, out _out5);
+      _135_isError = _out4;
+      _136_errorMsg = _out5;
+      res = ((_135_isError) ? (Std.Wrappers.Result<_System._ITuple0, Dafny.ISequence<Dafny.Rune>>.create_Failure(_136_errorMsg)) : (Std.Wrappers.Result<_System._ITuple0, Dafny.ISequence<Dafny.Rune>>.create_Success(_System.Tuple0.create())));
       return res;
       return res;
     }
@@ -5435,16 +5498,16 @@ namespace Std.Arithmetic.MulInternals {
   public partial class __default {
     public static BigInteger MulPos(BigInteger x, BigInteger y)
     {
-      BigInteger _127___accumulator = BigInteger.Zero;
+      BigInteger _137___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == 0) {
-        return (BigInteger.Zero) + (_127___accumulator);
+        return (BigInteger.Zero) + (_137___accumulator);
       } else {
-        _127___accumulator = (_127___accumulator) + (y);
-        BigInteger _in28 = (x) - (BigInteger.One);
-        BigInteger _in29 = y;
-        x = _in28;
-        y = _in29;
+        _137___accumulator = (_137___accumulator) + (y);
+        BigInteger _in32 = (x) - (BigInteger.One);
+        BigInteger _in33 = y;
+        x = _in32;
+        y = _in33;
         goto TAIL_CALL_START;
       }
     }
@@ -5474,18 +5537,18 @@ namespace Std.Arithmetic.ModInternals {
     {
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        BigInteger _in30 = (d) + (x);
-        BigInteger _in31 = d;
-        x = _in30;
-        d = _in31;
+        BigInteger _in34 = (d) + (x);
+        BigInteger _in35 = d;
+        x = _in34;
+        d = _in35;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
         return x;
       } else {
-        BigInteger _in32 = (x) - (d);
-        BigInteger _in33 = d;
-        x = _in32;
-        d = _in33;
+        BigInteger _in36 = (x) - (d);
+        BigInteger _in37 = d;
+        x = _in36;
+        d = _in37;
         goto TAIL_CALL_START;
       }
     }
@@ -5496,23 +5559,23 @@ namespace Std.Arithmetic.DivInternals {
   public partial class __default {
     public static BigInteger DivPos(BigInteger x, BigInteger d)
     {
-      BigInteger _128___accumulator = BigInteger.Zero;
+      BigInteger _138___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        _128___accumulator = (_128___accumulator) + (new BigInteger(-1));
-        BigInteger _in34 = (x) + (d);
-        BigInteger _in35 = d;
-        x = _in34;
-        d = _in35;
+        _138___accumulator = (_138___accumulator) + (new BigInteger(-1));
+        BigInteger _in38 = (x) + (d);
+        BigInteger _in39 = d;
+        x = _in38;
+        d = _in39;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
-        return (BigInteger.Zero) + (_128___accumulator);
+        return (BigInteger.Zero) + (_138___accumulator);
       } else {
-        _128___accumulator = (_128___accumulator) + (BigInteger.One);
-        BigInteger _in36 = (x) - (d);
-        BigInteger _in37 = d;
-        x = _in36;
-        d = _in37;
+        _138___accumulator = (_138___accumulator) + (BigInteger.One);
+        BigInteger _in40 = (x) - (d);
+        BigInteger _in41 = d;
+        x = _in40;
+        d = _in41;
         goto TAIL_CALL_START;
       }
     }
@@ -5540,16 +5603,16 @@ namespace Std.Arithmetic.Power {
   public partial class __default {
     public static BigInteger Pow(BigInteger b, BigInteger e)
     {
-      BigInteger _129___accumulator = BigInteger.One;
+      BigInteger _139___accumulator = BigInteger.One;
     TAIL_CALL_START: ;
       if ((e).Sign == 0) {
-        return (BigInteger.One) * (_129___accumulator);
+        return (BigInteger.One) * (_139___accumulator);
       } else {
-        _129___accumulator = (_129___accumulator) * (b);
-        BigInteger _in38 = b;
-        BigInteger _in39 = (e) - (BigInteger.One);
-        b = _in38;
-        e = _in39;
+        _139___accumulator = (_139___accumulator) * (b);
+        BigInteger _in42 = b;
+        BigInteger _in43 = (e) - (BigInteger.One);
+        b = _in42;
+        e = _in43;
         goto TAIL_CALL_START;
       }
     }
@@ -5560,16 +5623,16 @@ namespace Std.Arithmetic.Logarithm {
   public partial class __default {
     public static BigInteger Log(BigInteger @base, BigInteger pow)
     {
-      BigInteger _130___accumulator = BigInteger.Zero;
+      BigInteger _140___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((pow) < (@base)) {
-        return (BigInteger.Zero) + (_130___accumulator);
+        return (BigInteger.Zero) + (_140___accumulator);
       } else {
-        _130___accumulator = (_130___accumulator) + (BigInteger.One);
-        BigInteger _in40 = @base;
-        BigInteger _in41 = Dafny.Helpers.EuclideanDivision(pow, @base);
-        @base = _in40;
-        pow = _in41;
+        _140___accumulator = (_140___accumulator) + (BigInteger.One);
+        BigInteger _in44 = @base;
+        BigInteger _in45 = Dafny.Helpers.EuclideanDivision(pow, @base);
+        @base = _in44;
+        pow = _in45;
         goto TAIL_CALL_START;
       }
     }
@@ -5592,15 +5655,18 @@ namespace Std.Strings.HexConversion {
     public static BigInteger BASE() {
       return Std.Strings.HexConversion.__default.@base;
     }
+    public static bool IsDigitChar(Dafny.Rune c) {
+      return (Std.Strings.HexConversion.__default.charToDigit).Contains(c);
+    }
     public static Dafny.ISequence<Dafny.Rune> OfDigits(Dafny.ISequence<BigInteger> digits) {
-      Dafny.ISequence<Dafny.Rune> _131___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _141___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((digits).Equals(Dafny.Sequence<BigInteger>.FromElements())) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _131___accumulator);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _141___accumulator);
       } else {
-        _131___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.HexConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _131___accumulator);
-        Dafny.ISequence<BigInteger> _in42 = (digits).Drop(BigInteger.One);
-        digits = _in42;
+        _141___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.HexConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _141___accumulator);
+        Dafny.ISequence<BigInteger> _in46 = (digits).Drop(BigInteger.One);
+        digits = _in46;
         goto TAIL_CALL_START;
       }
     }
@@ -5611,18 +5677,11 @@ namespace Std.Strings.HexConversion {
         return Std.Strings.HexConversion.__default.OfDigits(Std.Strings.HexConversion.__default.FromNat(n));
       }
     }
-    public static bool OfNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
+    public static bool IsNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
     {
-      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.HexConversion.__default.chars).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_132_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_132_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_1) => {
-        Dafny.Rune _133_c = (Dafny.Rune)_forall_var_1;
-        return !(((_132_str).Drop(BigInteger.One)).Contains(_133_c)) || ((Std.Strings.HexConversion.__default.chars).Contains(_133_c));
-      }))))(str)));
-    }
-    public static bool ToNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
-    {
-      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.HexConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_134_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_134_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_2) => {
-        Dafny.Rune _135_c = (Dafny.Rune)_forall_var_2;
-        return !(((_134_str).Drop(BigInteger.One)).Contains(_135_c)) || ((Std.Strings.HexConversion.__default.charToDigit).Contains(_135_c));
+      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.HexConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_142_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_142_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_1) => {
+        Dafny.Rune _143_c = (Dafny.Rune)_forall_var_1;
+        return !(((_142_str).Drop(BigInteger.One)).Contains(_143_c)) || (Std.Strings.HexConversion.__default.IsDigitChar(_143_c));
       }))))(str)));
     }
     public static Dafny.ISequence<Dafny.Rune> OfInt(BigInteger n, Dafny.Rune minus)
@@ -5637,7 +5696,8 @@ namespace Std.Strings.HexConversion {
       if ((str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) {
         return BigInteger.Zero;
       } else {
-        return ((Std.Strings.HexConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.HexConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.HexConversion.__default.charToDigit,(str).Select((new BigInteger((str).Count)) - (BigInteger.One))));
+        Dafny.Rune _144_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
+        return ((Std.Strings.HexConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.HexConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.HexConversion.__default.charToDigit,_144_c));
       }
     }
     public static BigInteger ToInt(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
@@ -5656,26 +5716,26 @@ namespace Std.Strings.HexConversion {
       }
     }
     public static BigInteger ToNatLeft(Dafny.ISequence<BigInteger> xs) {
-      BigInteger _136___accumulator = BigInteger.Zero;
+      BigInteger _145___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return (BigInteger.Zero) + (_136___accumulator);
+        return (BigInteger.Zero) + (_145___accumulator);
       } else {
-        _136___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.HexConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_136___accumulator);
-        Dafny.ISequence<BigInteger> _in43 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
-        xs = _in43;
+        _145___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.HexConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_145___accumulator);
+        Dafny.ISequence<BigInteger> _in47 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
+        xs = _in47;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> FromNat(BigInteger n) {
-      Dafny.ISequence<BigInteger> _137___accumulator = Dafny.Sequence<BigInteger>.FromElements();
+      Dafny.ISequence<BigInteger> _146___accumulator = Dafny.Sequence<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((n).Sign == 0) {
-        return Dafny.Sequence<BigInteger>.Concat(_137___accumulator, Dafny.Sequence<BigInteger>.FromElements());
+        return Dafny.Sequence<BigInteger>.Concat(_146___accumulator, Dafny.Sequence<BigInteger>.FromElements());
       } else {
-        _137___accumulator = Dafny.Sequence<BigInteger>.Concat(_137___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.HexConversion.__default.BASE())));
-        BigInteger _in44 = Dafny.Helpers.EuclideanDivision(n, Std.Strings.HexConversion.__default.BASE());
-        n = _in44;
+        _146___accumulator = Dafny.Sequence<BigInteger>.Concat(_146___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.HexConversion.__default.BASE())));
+        BigInteger _in48 = Dafny.Helpers.EuclideanDivision(n, Std.Strings.HexConversion.__default.BASE());
+        n = _in48;
         goto TAIL_CALL_START;
       }
     }
@@ -5685,25 +5745,25 @@ namespace Std.Strings.HexConversion {
       if ((new BigInteger((xs).Count)) >= (n)) {
         return xs;
       } else {
-        Dafny.ISequence<BigInteger> _in45 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
-        BigInteger _in46 = n;
-        xs = _in45;
-        n = _in46;
+        Dafny.ISequence<BigInteger> _in49 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
+        BigInteger _in50 = n;
+        xs = _in49;
+        n = _in50;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> SeqExtendMultiple(Dafny.ISequence<BigInteger> xs, BigInteger n)
     {
-      BigInteger _138_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
-      return Std.Strings.HexConversion.__default.SeqExtend(xs, _138_newLen);
+      BigInteger _147_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
+      return Std.Strings.HexConversion.__default.SeqExtend(xs, _147_newLen);
     }
     public static Dafny.ISequence<BigInteger> FromNatWithLen(BigInteger n, BigInteger len)
     {
       return Std.Strings.HexConversion.__default.SeqExtend(Std.Strings.HexConversion.__default.FromNat(n), len);
     }
     public static Dafny.ISequence<BigInteger> SeqZero(BigInteger len) {
-      Dafny.ISequence<BigInteger> _139_xs = Std.Strings.HexConversion.__default.FromNatWithLen(BigInteger.Zero, len);
-      return _139_xs;
+      Dafny.ISequence<BigInteger> _148_xs = Std.Strings.HexConversion.__default.FromNatWithLen(BigInteger.Zero, len);
+      return _148_xs;
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqAdd(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
     {
@@ -5711,13 +5771,13 @@ namespace Std.Strings.HexConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs1 = Std.Strings.HexConversion.__default.SeqAdd(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _140_zs_k = _let_tmp_rhs1.dtor__0;
-        BigInteger _141_cin = _let_tmp_rhs1.dtor__1;
-        BigInteger _142_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_141_cin);
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs2 = (((_142_sum) < (Std.Strings.HexConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_142_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_142_sum) - (Std.Strings.HexConversion.__default.BASE()), BigInteger.One)));
-        BigInteger _143_sum__out = _let_tmp_rhs2.dtor__0;
-        BigInteger _144_cout = _let_tmp_rhs2.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_140_zs_k, Dafny.Sequence<BigInteger>.FromElements(_143_sum__out)), _144_cout);
+        Dafny.ISequence<BigInteger> _149_zs_k = _let_tmp_rhs1.dtor__0;
+        BigInteger _150_cin = _let_tmp_rhs1.dtor__1;
+        BigInteger _151_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_150_cin);
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs2 = (((_151_sum) < (Std.Strings.HexConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_151_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_151_sum) - (Std.Strings.HexConversion.__default.BASE()), BigInteger.One)));
+        BigInteger _152_sum__out = _let_tmp_rhs2.dtor__0;
+        BigInteger _153_cout = _let_tmp_rhs2.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_149_zs_k, Dafny.Sequence<BigInteger>.FromElements(_152_sum__out)), _153_cout);
       }
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqSub(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
@@ -5726,12 +5786,12 @@ namespace Std.Strings.HexConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs3 = Std.Strings.HexConversion.__default.SeqSub(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _145_zs = _let_tmp_rhs3.dtor__0;
-        BigInteger _146_cin = _let_tmp_rhs3.dtor__1;
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs4 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_146_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_146_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.HexConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_146_cin), BigInteger.One)));
-        BigInteger _147_diff__out = _let_tmp_rhs4.dtor__0;
-        BigInteger _148_cout = _let_tmp_rhs4.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_145_zs, Dafny.Sequence<BigInteger>.FromElements(_147_diff__out)), _148_cout);
+        Dafny.ISequence<BigInteger> _154_zs = _let_tmp_rhs3.dtor__0;
+        BigInteger _155_cin = _let_tmp_rhs3.dtor__1;
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs4 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_155_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_155_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.HexConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_155_cin), BigInteger.One)));
+        BigInteger _156_diff__out = _let_tmp_rhs4.dtor__0;
+        BigInteger _157_cout = _let_tmp_rhs4.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_154_zs, Dafny.Sequence<BigInteger>.FromElements(_156_diff__out)), _157_cout);
       }
     }
     public static Dafny.ISequence<Dafny.Rune> HEX__DIGITS { get {
@@ -5768,15 +5828,18 @@ namespace Std.Strings.DecimalConversion {
     public static BigInteger BASE() {
       return Std.Strings.DecimalConversion.__default.@base;
     }
+    public static bool IsDigitChar(Dafny.Rune c) {
+      return (Std.Strings.DecimalConversion.__default.charToDigit).Contains(c);
+    }
     public static Dafny.ISequence<Dafny.Rune> OfDigits(Dafny.ISequence<BigInteger> digits) {
-      Dafny.ISequence<Dafny.Rune> _149___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _158___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((digits).Equals(Dafny.Sequence<BigInteger>.FromElements())) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _149___accumulator);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _158___accumulator);
       } else {
-        _149___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.DecimalConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _149___accumulator);
-        Dafny.ISequence<BigInteger> _in47 = (digits).Drop(BigInteger.One);
-        digits = _in47;
+        _158___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.DecimalConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _158___accumulator);
+        Dafny.ISequence<BigInteger> _in51 = (digits).Drop(BigInteger.One);
+        digits = _in51;
         goto TAIL_CALL_START;
       }
     }
@@ -5787,18 +5850,11 @@ namespace Std.Strings.DecimalConversion {
         return Std.Strings.DecimalConversion.__default.OfDigits(Std.Strings.DecimalConversion.__default.FromNat(n));
       }
     }
-    public static bool OfNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
+    public static bool IsNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
     {
-      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.DecimalConversion.__default.chars).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_150_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_150_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_3) => {
-        Dafny.Rune _151_c = (Dafny.Rune)_forall_var_3;
-        return !(((_150_str).Drop(BigInteger.One)).Contains(_151_c)) || ((Std.Strings.DecimalConversion.__default.chars).Contains(_151_c));
-      }))))(str)));
-    }
-    public static bool ToNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
-    {
-      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.DecimalConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_152_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_152_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_4) => {
-        Dafny.Rune _153_c = (Dafny.Rune)_forall_var_4;
-        return !(((_152_str).Drop(BigInteger.One)).Contains(_153_c)) || ((Std.Strings.DecimalConversion.__default.charToDigit).Contains(_153_c));
+      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.DecimalConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_159_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_159_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_2) => {
+        Dafny.Rune _160_c = (Dafny.Rune)_forall_var_2;
+        return !(((_159_str).Drop(BigInteger.One)).Contains(_160_c)) || (Std.Strings.DecimalConversion.__default.IsDigitChar(_160_c));
       }))))(str)));
     }
     public static Dafny.ISequence<Dafny.Rune> OfInt(BigInteger n, Dafny.Rune minus)
@@ -5813,7 +5869,8 @@ namespace Std.Strings.DecimalConversion {
       if ((str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) {
         return BigInteger.Zero;
       } else {
-        return ((Std.Strings.DecimalConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.DecimalConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.DecimalConversion.__default.charToDigit,(str).Select((new BigInteger((str).Count)) - (BigInteger.One))));
+        Dafny.Rune _161_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
+        return ((Std.Strings.DecimalConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.DecimalConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.DecimalConversion.__default.charToDigit,_161_c));
       }
     }
     public static BigInteger ToInt(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
@@ -5832,26 +5889,26 @@ namespace Std.Strings.DecimalConversion {
       }
     }
     public static BigInteger ToNatLeft(Dafny.ISequence<BigInteger> xs) {
-      BigInteger _154___accumulator = BigInteger.Zero;
+      BigInteger _162___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return (BigInteger.Zero) + (_154___accumulator);
+        return (BigInteger.Zero) + (_162___accumulator);
       } else {
-        _154___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.DecimalConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_154___accumulator);
-        Dafny.ISequence<BigInteger> _in48 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
-        xs = _in48;
+        _162___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.DecimalConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_162___accumulator);
+        Dafny.ISequence<BigInteger> _in52 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
+        xs = _in52;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> FromNat(BigInteger n) {
-      Dafny.ISequence<BigInteger> _155___accumulator = Dafny.Sequence<BigInteger>.FromElements();
+      Dafny.ISequence<BigInteger> _163___accumulator = Dafny.Sequence<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((n).Sign == 0) {
-        return Dafny.Sequence<BigInteger>.Concat(_155___accumulator, Dafny.Sequence<BigInteger>.FromElements());
+        return Dafny.Sequence<BigInteger>.Concat(_163___accumulator, Dafny.Sequence<BigInteger>.FromElements());
       } else {
-        _155___accumulator = Dafny.Sequence<BigInteger>.Concat(_155___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.DecimalConversion.__default.BASE())));
-        BigInteger _in49 = Dafny.Helpers.EuclideanDivision(n, Std.Strings.DecimalConversion.__default.BASE());
-        n = _in49;
+        _163___accumulator = Dafny.Sequence<BigInteger>.Concat(_163___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.DecimalConversion.__default.BASE())));
+        BigInteger _in53 = Dafny.Helpers.EuclideanDivision(n, Std.Strings.DecimalConversion.__default.BASE());
+        n = _in53;
         goto TAIL_CALL_START;
       }
     }
@@ -5861,25 +5918,25 @@ namespace Std.Strings.DecimalConversion {
       if ((new BigInteger((xs).Count)) >= (n)) {
         return xs;
       } else {
-        Dafny.ISequence<BigInteger> _in50 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
-        BigInteger _in51 = n;
-        xs = _in50;
-        n = _in51;
+        Dafny.ISequence<BigInteger> _in54 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
+        BigInteger _in55 = n;
+        xs = _in54;
+        n = _in55;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> SeqExtendMultiple(Dafny.ISequence<BigInteger> xs, BigInteger n)
     {
-      BigInteger _156_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
-      return Std.Strings.DecimalConversion.__default.SeqExtend(xs, _156_newLen);
+      BigInteger _164_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
+      return Std.Strings.DecimalConversion.__default.SeqExtend(xs, _164_newLen);
     }
     public static Dafny.ISequence<BigInteger> FromNatWithLen(BigInteger n, BigInteger len)
     {
       return Std.Strings.DecimalConversion.__default.SeqExtend(Std.Strings.DecimalConversion.__default.FromNat(n), len);
     }
     public static Dafny.ISequence<BigInteger> SeqZero(BigInteger len) {
-      Dafny.ISequence<BigInteger> _157_xs = Std.Strings.DecimalConversion.__default.FromNatWithLen(BigInteger.Zero, len);
-      return _157_xs;
+      Dafny.ISequence<BigInteger> _165_xs = Std.Strings.DecimalConversion.__default.FromNatWithLen(BigInteger.Zero, len);
+      return _165_xs;
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqAdd(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
     {
@@ -5887,13 +5944,13 @@ namespace Std.Strings.DecimalConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs5 = Std.Strings.DecimalConversion.__default.SeqAdd(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _158_zs_k = _let_tmp_rhs5.dtor__0;
-        BigInteger _159_cin = _let_tmp_rhs5.dtor__1;
-        BigInteger _160_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_159_cin);
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs6 = (((_160_sum) < (Std.Strings.DecimalConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_160_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_160_sum) - (Std.Strings.DecimalConversion.__default.BASE()), BigInteger.One)));
-        BigInteger _161_sum__out = _let_tmp_rhs6.dtor__0;
-        BigInteger _162_cout = _let_tmp_rhs6.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_158_zs_k, Dafny.Sequence<BigInteger>.FromElements(_161_sum__out)), _162_cout);
+        Dafny.ISequence<BigInteger> _166_zs_k = _let_tmp_rhs5.dtor__0;
+        BigInteger _167_cin = _let_tmp_rhs5.dtor__1;
+        BigInteger _168_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_167_cin);
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs6 = (((_168_sum) < (Std.Strings.DecimalConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_168_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_168_sum) - (Std.Strings.DecimalConversion.__default.BASE()), BigInteger.One)));
+        BigInteger _169_sum__out = _let_tmp_rhs6.dtor__0;
+        BigInteger _170_cout = _let_tmp_rhs6.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_166_zs_k, Dafny.Sequence<BigInteger>.FromElements(_169_sum__out)), _170_cout);
       }
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqSub(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
@@ -5902,12 +5959,12 @@ namespace Std.Strings.DecimalConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs7 = Std.Strings.DecimalConversion.__default.SeqSub(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _163_zs = _let_tmp_rhs7.dtor__0;
-        BigInteger _164_cin = _let_tmp_rhs7.dtor__1;
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs8 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_164_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_164_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.DecimalConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_164_cin), BigInteger.One)));
-        BigInteger _165_diff__out = _let_tmp_rhs8.dtor__0;
-        BigInteger _166_cout = _let_tmp_rhs8.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_163_zs, Dafny.Sequence<BigInteger>.FromElements(_165_diff__out)), _166_cout);
+        Dafny.ISequence<BigInteger> _171_zs = _let_tmp_rhs7.dtor__0;
+        BigInteger _172_cin = _let_tmp_rhs7.dtor__1;
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs8 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_172_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_172_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.DecimalConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_172_cin), BigInteger.One)));
+        BigInteger _173_diff__out = _let_tmp_rhs8.dtor__0;
+        BigInteger _174_cout = _let_tmp_rhs8.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_171_zs, Dafny.Sequence<BigInteger>.FromElements(_173_diff__out)), _174_cout);
       }
     }
     public static Dafny.ISequence<Dafny.Rune> DIGITS { get {
@@ -5943,27 +6000,27 @@ namespace Std.Strings.CharStrEscaping {
   public partial class __default {
     public static Dafny.ISequence<Dafny.Rune> Escape(Dafny.ISequence<Dafny.Rune> str, Dafny.ISet<Dafny.Rune> mustEscape, Dafny.Rune escape)
     {
-      Dafny.ISequence<Dafny.Rune> _167___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _175___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_167___accumulator, str);
+        return Dafny.Sequence<Dafny.Rune>.Concat(_175___accumulator, str);
       } else if ((mustEscape).Contains((str).Select(BigInteger.Zero))) {
-        _167___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_167___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements(escape, (str).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in52 = (str).Drop(BigInteger.One);
-        Dafny.ISet<Dafny.Rune> _in53 = mustEscape;
-        Dafny.Rune _in54 = escape;
-        str = _in52;
-        mustEscape = _in53;
-        escape = _in54;
+        _175___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_175___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements(escape, (str).Select(BigInteger.Zero)));
+        Dafny.ISequence<Dafny.Rune> _in56 = (str).Drop(BigInteger.One);
+        Dafny.ISet<Dafny.Rune> _in57 = mustEscape;
+        Dafny.Rune _in58 = escape;
+        str = _in56;
+        mustEscape = _in57;
+        escape = _in58;
         goto TAIL_CALL_START;
       } else {
-        _167___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_167___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in55 = (str).Drop(BigInteger.One);
-        Dafny.ISet<Dafny.Rune> _in56 = mustEscape;
-        Dafny.Rune _in57 = escape;
-        str = _in55;
-        mustEscape = _in56;
-        escape = _in57;
+        _175___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_175___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)));
+        Dafny.ISequence<Dafny.Rune> _in59 = (str).Drop(BigInteger.One);
+        Dafny.ISet<Dafny.Rune> _in60 = mustEscape;
+        Dafny.Rune _in61 = escape;
+        str = _in59;
+        mustEscape = _in60;
+        escape = _in61;
         goto TAIL_CALL_START;
       }
     }
@@ -5973,23 +6030,23 @@ namespace Std.Strings.CharStrEscaping {
         return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(str);
       } else if (((str).Select(BigInteger.Zero)) == (escape)) {
         if ((new BigInteger((str).Count)) > (BigInteger.One)) {
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _168_valueOrError0 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(new BigInteger(2)), escape);
-          if ((_168_valueOrError0).IsFailure()) {
-            return (_168_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _176_valueOrError0 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(new BigInteger(2)), escape);
+          if ((_176_valueOrError0).IsFailure()) {
+            return (_176_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
           } else {
-            Dafny.ISequence<Dafny.Rune> _169_tl = (_168_valueOrError0).Extract();
-            return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.One)), _169_tl));
+            Dafny.ISequence<Dafny.Rune> _177_tl = (_176_valueOrError0).Extract();
+            return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.One)), _177_tl));
           }
         } else {
           return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None();
         }
       } else {
-        Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _170_valueOrError1 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(BigInteger.One), escape);
-        if ((_170_valueOrError1).IsFailure()) {
-          return (_170_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+        Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _178_valueOrError1 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(BigInteger.One), escape);
+        if ((_178_valueOrError1).IsFailure()) {
+          return (_178_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
         } else {
-          Dafny.ISequence<Dafny.Rune> _171_tl = (_170_valueOrError1).Extract();
-          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)), _171_tl));
+          Dafny.ISequence<Dafny.Rune> _179_tl = (_178_valueOrError1).Extract();
+          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)), _179_tl));
         }
       }
     }
@@ -6026,43 +6083,14 @@ namespace Std.Strings {
     public static Dafny.ISequence<Dafny.Rune> OfChar(Dafny.Rune c) {
       return Dafny.Sequence<Dafny.Rune>.FromElements(c);
     }
-    public static Dafny.ISequence<Dafny.Rune> Join(Dafny.ISequence<Dafny.Rune> sep, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> strs)
-    {
-      Dafny.ISequence<Dafny.Rune> _172___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
-    TAIL_CALL_START: ;
-      if ((new BigInteger((strs).Count)).Sign == 0) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_172___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
-      } else if ((new BigInteger((strs).Count)) == (BigInteger.One)) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_172___accumulator, (strs).Select(BigInteger.Zero));
-      } else {
-        _172___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_172___accumulator, Dafny.Sequence<Dafny.Rune>.Concat((strs).Select(BigInteger.Zero), sep));
-        Dafny.ISequence<Dafny.Rune> _in58 = sep;
-        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _in59 = (strs).Drop(BigInteger.One);
-        sep = _in58;
-        strs = _in59;
-        goto TAIL_CALL_START;
-      }
-    }
-    public static Dafny.ISequence<Dafny.Rune> Concat(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> strs) {
-      Dafny.ISequence<Dafny.Rune> _173___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
-    TAIL_CALL_START: ;
-      if ((new BigInteger((strs).Count)).Sign == 0) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_173___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
-      } else {
-        _173___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_173___accumulator, (strs).Select(BigInteger.Zero));
-        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _in60 = (strs).Drop(BigInteger.One);
-        strs = _in60;
-        goto TAIL_CALL_START;
-      }
-    }
   }
 } // end of namespace Std.Strings
 namespace Std.Unicode.Base {
 
   public partial class __default {
     public static bool IsInAssignedPlane(uint i) {
-      byte _174_plane = (byte)((i) >> ((int)((byte)(16))));
-      return (Std.Unicode.Base.__default.ASSIGNED__PLANES).Contains(_174_plane);
+      byte _180_plane = (byte)((i) >> ((int)((byte)(16))));
+      return (Std.Unicode.Base.__default.ASSIGNED__PLANES).Contains(_180_plane);
     }
     public static uint HIGH__SURROGATE__MIN { get {
       return 55296U;
@@ -6129,42 +6157,42 @@ namespace Std.Unicode.Utf8EncodingForm {
   public partial class __default {
     public static bool IsMinimalWellFormedCodeUnitSubsequence(Dafny.ISequence<byte> s) {
       if ((new BigInteger((s).Count)) == (BigInteger.One)) {
-        bool _175_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedSingleCodeUnitSequence(s);
-        return _175_b;
+        bool _181_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedSingleCodeUnitSequence(s);
+        return _181_b;
       } else if ((new BigInteger((s).Count)) == (new BigInteger(2))) {
-        bool _176_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedDoubleCodeUnitSequence(s);
-        return _176_b;
+        bool _182_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedDoubleCodeUnitSequence(s);
+        return _182_b;
       } else if ((new BigInteger((s).Count)) == (new BigInteger(3))) {
-        bool _177_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedTripleCodeUnitSequence(s);
-        return _177_b;
+        bool _183_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedTripleCodeUnitSequence(s);
+        return _183_b;
       } else if ((new BigInteger((s).Count)) == (new BigInteger(4))) {
-        bool _178_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedQuadrupleCodeUnitSequence(s);
-        return _178_b;
+        bool _184_b = Std.Unicode.Utf8EncodingForm.__default.IsWellFormedQuadrupleCodeUnitSequence(s);
+        return _184_b;
       } else {
         return false;
       }
     }
     public static bool IsWellFormedSingleCodeUnitSequence(Dafny.ISequence<byte> s) {
-      byte _179_firstByte = (s).Select(BigInteger.Zero);
-      return (true) && ((((byte)(0)) <= (_179_firstByte)) && ((_179_firstByte) <= ((byte)(127))));
+      byte _185_firstByte = (s).Select(BigInteger.Zero);
+      return (true) && ((((byte)(0)) <= (_185_firstByte)) && ((_185_firstByte) <= ((byte)(127))));
     }
     public static bool IsWellFormedDoubleCodeUnitSequence(Dafny.ISequence<byte> s) {
-      byte _180_firstByte = (s).Select(BigInteger.Zero);
-      byte _181_secondByte = (s).Select(BigInteger.One);
-      return ((((byte)(194)) <= (_180_firstByte)) && ((_180_firstByte) <= ((byte)(223)))) && ((((byte)(128)) <= (_181_secondByte)) && ((_181_secondByte) <= ((byte)(191))));
+      byte _186_firstByte = (s).Select(BigInteger.Zero);
+      byte _187_secondByte = (s).Select(BigInteger.One);
+      return ((((byte)(194)) <= (_186_firstByte)) && ((_186_firstByte) <= ((byte)(223)))) && ((((byte)(128)) <= (_187_secondByte)) && ((_187_secondByte) <= ((byte)(191))));
     }
     public static bool IsWellFormedTripleCodeUnitSequence(Dafny.ISequence<byte> s) {
-      byte _182_firstByte = (s).Select(BigInteger.Zero);
-      byte _183_secondByte = (s).Select(BigInteger.One);
-      byte _184_thirdByte = (s).Select(new BigInteger(2));
-      return ((((((_182_firstByte) == ((byte)(224))) && ((((byte)(160)) <= (_183_secondByte)) && ((_183_secondByte) <= ((byte)(191))))) || (((((byte)(225)) <= (_182_firstByte)) && ((_182_firstByte) <= ((byte)(236)))) && ((((byte)(128)) <= (_183_secondByte)) && ((_183_secondByte) <= ((byte)(191)))))) || (((_182_firstByte) == ((byte)(237))) && ((((byte)(128)) <= (_183_secondByte)) && ((_183_secondByte) <= ((byte)(159)))))) || (((((byte)(238)) <= (_182_firstByte)) && ((_182_firstByte) <= ((byte)(239)))) && ((((byte)(128)) <= (_183_secondByte)) && ((_183_secondByte) <= ((byte)(191)))))) && ((((byte)(128)) <= (_184_thirdByte)) && ((_184_thirdByte) <= ((byte)(191))));
+      byte _188_firstByte = (s).Select(BigInteger.Zero);
+      byte _189_secondByte = (s).Select(BigInteger.One);
+      byte _190_thirdByte = (s).Select(new BigInteger(2));
+      return ((((((_188_firstByte) == ((byte)(224))) && ((((byte)(160)) <= (_189_secondByte)) && ((_189_secondByte) <= ((byte)(191))))) || (((((byte)(225)) <= (_188_firstByte)) && ((_188_firstByte) <= ((byte)(236)))) && ((((byte)(128)) <= (_189_secondByte)) && ((_189_secondByte) <= ((byte)(191)))))) || (((_188_firstByte) == ((byte)(237))) && ((((byte)(128)) <= (_189_secondByte)) && ((_189_secondByte) <= ((byte)(159)))))) || (((((byte)(238)) <= (_188_firstByte)) && ((_188_firstByte) <= ((byte)(239)))) && ((((byte)(128)) <= (_189_secondByte)) && ((_189_secondByte) <= ((byte)(191)))))) && ((((byte)(128)) <= (_190_thirdByte)) && ((_190_thirdByte) <= ((byte)(191))));
     }
     public static bool IsWellFormedQuadrupleCodeUnitSequence(Dafny.ISequence<byte> s) {
-      byte _185_firstByte = (s).Select(BigInteger.Zero);
-      byte _186_secondByte = (s).Select(BigInteger.One);
-      byte _187_thirdByte = (s).Select(new BigInteger(2));
-      byte _188_fourthByte = (s).Select(new BigInteger(3));
-      return ((((((_185_firstByte) == ((byte)(240))) && ((((byte)(144)) <= (_186_secondByte)) && ((_186_secondByte) <= ((byte)(191))))) || (((((byte)(241)) <= (_185_firstByte)) && ((_185_firstByte) <= ((byte)(243)))) && ((((byte)(128)) <= (_186_secondByte)) && ((_186_secondByte) <= ((byte)(191)))))) || (((_185_firstByte) == ((byte)(244))) && ((((byte)(128)) <= (_186_secondByte)) && ((_186_secondByte) <= ((byte)(143)))))) && ((((byte)(128)) <= (_187_thirdByte)) && ((_187_thirdByte) <= ((byte)(191))))) && ((((byte)(128)) <= (_188_fourthByte)) && ((_188_fourthByte) <= ((byte)(191))));
+      byte _191_firstByte = (s).Select(BigInteger.Zero);
+      byte _192_secondByte = (s).Select(BigInteger.One);
+      byte _193_thirdByte = (s).Select(new BigInteger(2));
+      byte _194_fourthByte = (s).Select(new BigInteger(3));
+      return ((((((_191_firstByte) == ((byte)(240))) && ((((byte)(144)) <= (_192_secondByte)) && ((_192_secondByte) <= ((byte)(191))))) || (((((byte)(241)) <= (_191_firstByte)) && ((_191_firstByte) <= ((byte)(243)))) && ((((byte)(128)) <= (_192_secondByte)) && ((_192_secondByte) <= ((byte)(191)))))) || (((_191_firstByte) == ((byte)(244))) && ((((byte)(128)) <= (_192_secondByte)) && ((_192_secondByte) <= ((byte)(143)))))) && ((((byte)(128)) <= (_193_thirdByte)) && ((_193_thirdByte) <= ((byte)(191))))) && ((((byte)(128)) <= (_194_fourthByte)) && ((_194_fourthByte) <= ((byte)(191))));
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<byte>> SplitPrefixMinimalWellFormedCodeUnitSubsequence(Dafny.ISequence<byte> s) {
       if (((new BigInteger((s).Count)) >= (BigInteger.One)) && (Std.Unicode.Utf8EncodingForm.__default.IsWellFormedSingleCodeUnitSequence((s).Take(BigInteger.One)))) {
@@ -6191,37 +6219,37 @@ namespace Std.Unicode.Utf8EncodingForm {
       }
     }
     public static Dafny.ISequence<byte> EncodeScalarValueSingleByte(uint v) {
-      byte _189_x = (byte)((v) & (127U));
-      byte _190_firstByte = (byte)(_189_x);
-      return Dafny.Sequence<byte>.FromElements(_190_firstByte);
+      byte _195_x = (byte)((v) & (127U));
+      byte _196_firstByte = (byte)(_195_x);
+      return Dafny.Sequence<byte>.FromElements(_196_firstByte);
     }
     public static Dafny.ISequence<byte> EncodeScalarValueDoubleByte(uint v) {
-      byte _191_x = (byte)((v) & (63U));
-      byte _192_y = (byte)(((v) & (1984U)) >> ((int)((byte)(6))));
-      byte _193_firstByte = (byte)(((byte)(192)) | ((byte)(_192_y)));
-      byte _194_secondByte = (byte)(((byte)(128)) | ((byte)(_191_x)));
-      return Dafny.Sequence<byte>.FromElements(_193_firstByte, _194_secondByte);
+      byte _197_x = (byte)((v) & (63U));
+      byte _198_y = (byte)(((v) & (1984U)) >> ((int)((byte)(6))));
+      byte _199_firstByte = (byte)(((byte)(192)) | ((byte)(_198_y)));
+      byte _200_secondByte = (byte)(((byte)(128)) | ((byte)(_197_x)));
+      return Dafny.Sequence<byte>.FromElements(_199_firstByte, _200_secondByte);
     }
     public static Dafny.ISequence<byte> EncodeScalarValueTripleByte(uint v) {
-      byte _195_x = (byte)((v) & (63U));
-      byte _196_y = (byte)(((v) & (4032U)) >> ((int)((byte)(6))));
-      byte _197_z = (byte)(((v) & (61440U)) >> ((int)((byte)(12))));
-      byte _198_firstByte = (byte)(((byte)(224)) | ((byte)(_197_z)));
-      byte _199_secondByte = (byte)(((byte)(128)) | ((byte)(_196_y)));
-      byte _200_thirdByte = (byte)(((byte)(128)) | ((byte)(_195_x)));
-      return Dafny.Sequence<byte>.FromElements(_198_firstByte, _199_secondByte, _200_thirdByte);
-    }
-    public static Dafny.ISequence<byte> EncodeScalarValueQuadrupleByte(uint v) {
       byte _201_x = (byte)((v) & (63U));
       byte _202_y = (byte)(((v) & (4032U)) >> ((int)((byte)(6))));
       byte _203_z = (byte)(((v) & (61440U)) >> ((int)((byte)(12))));
-      byte _204_u2 = (byte)(((v) & (196608U)) >> ((int)((byte)(16))));
-      byte _205_u1 = (byte)(((v) & (1835008U)) >> ((int)((byte)(18))));
-      byte _206_firstByte = (byte)(((byte)(240)) | ((byte)(_205_u1)));
-      byte _207_secondByte = (byte)(((byte)(((byte)(128)) | (unchecked((byte)(((byte)(((byte)(_204_u2)) << ((int)((byte)(4)))))))))) | ((byte)(_203_z)));
-      byte _208_thirdByte = (byte)(((byte)(128)) | ((byte)(_202_y)));
-      byte _209_fourthByte = (byte)(((byte)(128)) | ((byte)(_201_x)));
-      return Dafny.Sequence<byte>.FromElements(_206_firstByte, _207_secondByte, _208_thirdByte, _209_fourthByte);
+      byte _204_firstByte = (byte)(((byte)(224)) | ((byte)(_203_z)));
+      byte _205_secondByte = (byte)(((byte)(128)) | ((byte)(_202_y)));
+      byte _206_thirdByte = (byte)(((byte)(128)) | ((byte)(_201_x)));
+      return Dafny.Sequence<byte>.FromElements(_204_firstByte, _205_secondByte, _206_thirdByte);
+    }
+    public static Dafny.ISequence<byte> EncodeScalarValueQuadrupleByte(uint v) {
+      byte _207_x = (byte)((v) & (63U));
+      byte _208_y = (byte)(((v) & (4032U)) >> ((int)((byte)(6))));
+      byte _209_z = (byte)(((v) & (61440U)) >> ((int)((byte)(12))));
+      byte _210_u2 = (byte)(((v) & (196608U)) >> ((int)((byte)(16))));
+      byte _211_u1 = (byte)(((v) & (1835008U)) >> ((int)((byte)(18))));
+      byte _212_firstByte = (byte)(((byte)(240)) | ((byte)(_211_u1)));
+      byte _213_secondByte = (byte)(((byte)(((byte)(128)) | (unchecked((byte)(((byte)(((byte)(_210_u2)) << ((int)((byte)(4)))))))))) | ((byte)(_209_z)));
+      byte _214_thirdByte = (byte)(((byte)(128)) | ((byte)(_208_y)));
+      byte _215_fourthByte = (byte)(((byte)(128)) | ((byte)(_207_x)));
+      return Dafny.Sequence<byte>.FromElements(_212_firstByte, _213_secondByte, _214_thirdByte, _215_fourthByte);
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequence(Dafny.ISequence<byte> m) {
       if ((new BigInteger((m).Count)) == (BigInteger.One)) {
@@ -6235,37 +6263,37 @@ namespace Std.Unicode.Utf8EncodingForm {
       }
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequenceSingleByte(Dafny.ISequence<byte> m) {
-      byte _210_firstByte = (m).Select(BigInteger.Zero);
-      byte _211_x = (byte)(_210_firstByte);
-      return (uint)(_211_x);
+      byte _216_firstByte = (m).Select(BigInteger.Zero);
+      byte _217_x = (byte)(_216_firstByte);
+      return (uint)(_217_x);
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequenceDoubleByte(Dafny.ISequence<byte> m) {
-      byte _212_firstByte = (m).Select(BigInteger.Zero);
-      byte _213_secondByte = (m).Select(BigInteger.One);
-      uint _214_y = (uint)((byte)((_212_firstByte) & ((byte)(31))));
-      uint _215_x = (uint)((byte)((_213_secondByte) & ((byte)(63))));
-      return (unchecked((uint)(((_214_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU))) | ((uint)(_215_x));
+      byte _218_firstByte = (m).Select(BigInteger.Zero);
+      byte _219_secondByte = (m).Select(BigInteger.One);
+      uint _220_y = (uint)((byte)((_218_firstByte) & ((byte)(31))));
+      uint _221_x = (uint)((byte)((_219_secondByte) & ((byte)(63))));
+      return (unchecked((uint)(((_220_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU))) | ((uint)(_221_x));
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(Dafny.ISequence<byte> m) {
-      byte _216_firstByte = (m).Select(BigInteger.Zero);
-      byte _217_secondByte = (m).Select(BigInteger.One);
-      byte _218_thirdByte = (m).Select(new BigInteger(2));
-      uint _219_z = (uint)((byte)((_216_firstByte) & ((byte)(15))));
-      uint _220_y = (uint)((byte)((_217_secondByte) & ((byte)(63))));
-      uint _221_x = (uint)((byte)((_218_thirdByte) & ((byte)(63))));
-      return ((unchecked((uint)(((_219_z) << ((int)((byte)(12)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_220_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU)))) | ((uint)(_221_x));
-    }
-    public static uint DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(Dafny.ISequence<byte> m) {
       byte _222_firstByte = (m).Select(BigInteger.Zero);
       byte _223_secondByte = (m).Select(BigInteger.One);
       byte _224_thirdByte = (m).Select(new BigInteger(2));
-      byte _225_fourthByte = (m).Select(new BigInteger(3));
-      uint _226_u1 = (uint)((byte)((_222_firstByte) & ((byte)(7))));
-      uint _227_u2 = (uint)((byte)(((byte)((_223_secondByte) & ((byte)(48)))) >> ((int)((byte)(4)))));
-      uint _228_z = (uint)((byte)((_223_secondByte) & ((byte)(15))));
-      uint _229_y = (uint)((byte)((_224_thirdByte) & ((byte)(63))));
-      uint _230_x = (uint)((byte)((_225_fourthByte) & ((byte)(63))));
-      return ((((unchecked((uint)(((_226_u1) << ((int)((byte)(18)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_227_u2) << ((int)((byte)(16)))) & (uint)0xFFFFFFU)))) | (unchecked((uint)(((_228_z) << ((int)((byte)(12)))) & (uint)0xFFFFFFU)))) | (unchecked((uint)(((_229_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU)))) | ((uint)(_230_x));
+      uint _225_z = (uint)((byte)((_222_firstByte) & ((byte)(15))));
+      uint _226_y = (uint)((byte)((_223_secondByte) & ((byte)(63))));
+      uint _227_x = (uint)((byte)((_224_thirdByte) & ((byte)(63))));
+      return ((unchecked((uint)(((_225_z) << ((int)((byte)(12)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_226_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU)))) | ((uint)(_227_x));
+    }
+    public static uint DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(Dafny.ISequence<byte> m) {
+      byte _228_firstByte = (m).Select(BigInteger.Zero);
+      byte _229_secondByte = (m).Select(BigInteger.One);
+      byte _230_thirdByte = (m).Select(new BigInteger(2));
+      byte _231_fourthByte = (m).Select(new BigInteger(3));
+      uint _232_u1 = (uint)((byte)((_228_firstByte) & ((byte)(7))));
+      uint _233_u2 = (uint)((byte)(((byte)((_229_secondByte) & ((byte)(48)))) >> ((int)((byte)(4)))));
+      uint _234_z = (uint)((byte)((_229_secondByte) & ((byte)(15))));
+      uint _235_y = (uint)((byte)((_230_thirdByte) & ((byte)(63))));
+      uint _236_x = (uint)((byte)((_231_fourthByte) & ((byte)(63))));
+      return ((((unchecked((uint)(((_232_u1) << ((int)((byte)(18)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_233_u2) << ((int)((byte)(16)))) & (uint)0xFFFFFFU)))) | (unchecked((uint)(((_234_z) << ((int)((byte)(12)))) & (uint)0xFFFFFFU)))) | (unchecked((uint)(((_235_y) << ((int)((byte)(6)))) & (uint)0xFFFFFFU)))) | ((uint)(_236_x));
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<byte>>> PartitionCodeUnitSequenceChecked(Dafny.ISequence<byte> s)
     {
@@ -6274,23 +6302,23 @@ namespace Std.Unicode.Utf8EncodingForm {
         maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<byte>>>.create_Some(Dafny.Sequence<Dafny.ISequence<byte>>.FromElements());
         return maybeParts;
       }
-      Dafny.ISequence<Dafny.ISequence<byte>> _231_result;
-      _231_result = Dafny.Sequence<Dafny.ISequence<byte>>.FromElements();
-      Dafny.ISequence<byte> _232_rest;
-      _232_rest = s;
-      while ((new BigInteger((_232_rest).Count)).Sign == 1) {
-        Dafny.ISequence<byte> _233_prefix;
-        Std.Wrappers._IOption<Dafny.ISequence<byte>> _234_valueOrError0 = Std.Wrappers.Option<Dafny.ISequence<byte>>.Default();
-        _234_valueOrError0 = Std.Unicode.Utf8EncodingForm.__default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_232_rest);
-        if ((_234_valueOrError0).IsFailure()) {
-          maybeParts = (_234_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.ISequence<byte>>>();
+      Dafny.ISequence<Dafny.ISequence<byte>> _237_result;
+      _237_result = Dafny.Sequence<Dafny.ISequence<byte>>.FromElements();
+      Dafny.ISequence<byte> _238_rest;
+      _238_rest = s;
+      while ((new BigInteger((_238_rest).Count)).Sign == 1) {
+        Dafny.ISequence<byte> _239_prefix;
+        Std.Wrappers._IOption<Dafny.ISequence<byte>> _240_valueOrError0 = Std.Wrappers.Option<Dafny.ISequence<byte>>.Default();
+        _240_valueOrError0 = Std.Unicode.Utf8EncodingForm.__default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_238_rest);
+        if ((_240_valueOrError0).IsFailure()) {
+          maybeParts = (_240_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.ISequence<byte>>>();
           return maybeParts;
         }
-        _233_prefix = (_234_valueOrError0).Extract();
-        _231_result = Dafny.Sequence<Dafny.ISequence<byte>>.Concat(_231_result, Dafny.Sequence<Dafny.ISequence<byte>>.FromElements(_233_prefix));
-        _232_rest = (_232_rest).Drop(new BigInteger((_233_prefix).Count));
+        _239_prefix = (_240_valueOrError0).Extract();
+        _237_result = Dafny.Sequence<Dafny.ISequence<byte>>.Concat(_237_result, Dafny.Sequence<Dafny.ISequence<byte>>.FromElements(_239_prefix));
+        _238_rest = (_238_rest).Drop(new BigInteger((_239_prefix).Count));
       }
-      maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<byte>>>.create_Some(_231_result);
+      maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<byte>>>.create_Some(_237_result);
       return maybeParts;
       return maybeParts;
     }
@@ -6305,33 +6333,33 @@ namespace Std.Unicode.Utf8EncodingForm {
       Dafny.ISequence<byte> s = Std.Unicode.Utf8EncodingForm.WellFormedCodeUnitSeq.Default();
       s = Dafny.Sequence<byte>.FromElements();
       BigInteger _lo0 = BigInteger.Zero;
-      for (BigInteger _235_i = new BigInteger((vs).Count); _lo0 < _235_i; ) {
-        _235_i--;
-        Dafny.ISequence<byte> _236_next;
-        _236_next = Std.Unicode.Utf8EncodingForm.__default.EncodeScalarValue((vs).Select(_235_i));
-        s = Dafny.Sequence<byte>.Concat(_236_next, s);
+      for (BigInteger _241_i = new BigInteger((vs).Count); _lo0 < _241_i; ) {
+        _241_i--;
+        Dafny.ISequence<byte> _242_next;
+        _242_next = Std.Unicode.Utf8EncodingForm.__default.EncodeScalarValue((vs).Select(_241_i));
+        s = Dafny.Sequence<byte>.Concat(_242_next, s);
       }
       return s;
     }
     public static Dafny.ISequence<uint> DecodeCodeUnitSequence(Dafny.ISequence<byte> s) {
-      Dafny.ISequence<Dafny.ISequence<byte>> _237_parts = Std.Unicode.Utf8EncodingForm.__default.PartitionCodeUnitSequence(s);
-      Dafny.ISequence<uint> _238_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<byte>, uint>(Std.Unicode.Utf8EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _237_parts);
-      return _238_vs;
+      Dafny.ISequence<Dafny.ISequence<byte>> _243_parts = Std.Unicode.Utf8EncodingForm.__default.PartitionCodeUnitSequence(s);
+      Dafny.ISequence<uint> _244_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<byte>, uint>(Std.Unicode.Utf8EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _243_parts);
+      return _244_vs;
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<uint>> DecodeCodeUnitSequenceChecked(Dafny.ISequence<byte> s)
     {
       Std.Wrappers._IOption<Dafny.ISequence<uint>> maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.Default();
-      Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<byte>>> _239_maybeParts;
-      _239_maybeParts = Std.Unicode.Utf8EncodingForm.__default.PartitionCodeUnitSequenceChecked(s);
-      if ((_239_maybeParts).is_None) {
+      Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<byte>>> _245_maybeParts;
+      _245_maybeParts = Std.Unicode.Utf8EncodingForm.__default.PartitionCodeUnitSequenceChecked(s);
+      if ((_245_maybeParts).is_None) {
         maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_None();
         return maybeVs;
       }
-      Dafny.ISequence<Dafny.ISequence<byte>> _240_parts;
-      _240_parts = (_239_maybeParts).dtor_value;
-      Dafny.ISequence<uint> _241_vs;
-      _241_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<byte>, uint>(Std.Unicode.Utf8EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _240_parts);
-      maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_Some(_241_vs);
+      Dafny.ISequence<Dafny.ISequence<byte>> _246_parts;
+      _246_parts = (_245_maybeParts).dtor_value;
+      Dafny.ISequence<uint> _247_vs;
+      _247_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<byte>, uint>(Std.Unicode.Utf8EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _246_parts);
+      maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_Some(_247_vs);
       return maybeVs;
       return maybeVs;
     }
@@ -6362,20 +6390,20 @@ namespace Std.Unicode.Utf16EncodingForm {
       if ((new BigInteger((s).Count)) == (BigInteger.One)) {
         return Std.Unicode.Utf16EncodingForm.__default.IsWellFormedSingleCodeUnitSequence(s);
       } else if ((new BigInteger((s).Count)) == (new BigInteger(2))) {
-        bool _242_b = Std.Unicode.Utf16EncodingForm.__default.IsWellFormedDoubleCodeUnitSequence(s);
-        return _242_b;
+        bool _248_b = Std.Unicode.Utf16EncodingForm.__default.IsWellFormedDoubleCodeUnitSequence(s);
+        return _248_b;
       } else {
         return false;
       }
     }
     public static bool IsWellFormedSingleCodeUnitSequence(Dafny.ISequence<ushort> s) {
-      ushort _243_firstWord = (s).Select(BigInteger.Zero);
-      return ((((ushort)(0)) <= (_243_firstWord)) && ((_243_firstWord) <= ((ushort)(55295)))) || ((((ushort)(57344)) <= (_243_firstWord)) && ((_243_firstWord) <= ((ushort)(65535))));
+      ushort _249_firstWord = (s).Select(BigInteger.Zero);
+      return ((((ushort)(0)) <= (_249_firstWord)) && ((_249_firstWord) <= ((ushort)(55295)))) || ((((ushort)(57344)) <= (_249_firstWord)) && ((_249_firstWord) <= ((ushort)(65535))));
     }
     public static bool IsWellFormedDoubleCodeUnitSequence(Dafny.ISequence<ushort> s) {
-      ushort _244_firstWord = (s).Select(BigInteger.Zero);
-      ushort _245_secondWord = (s).Select(BigInteger.One);
-      return ((((ushort)(55296)) <= (_244_firstWord)) && ((_244_firstWord) <= ((ushort)(56319)))) && ((((ushort)(56320)) <= (_245_secondWord)) && ((_245_secondWord) <= ((ushort)(57343))));
+      ushort _250_firstWord = (s).Select(BigInteger.Zero);
+      ushort _251_secondWord = (s).Select(BigInteger.One);
+      return ((((ushort)(55296)) <= (_250_firstWord)) && ((_250_firstWord) <= ((ushort)(56319)))) && ((((ushort)(56320)) <= (_251_secondWord)) && ((_251_secondWord) <= ((ushort)(57343))));
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<ushort>> SplitPrefixMinimalWellFormedCodeUnitSubsequence(Dafny.ISequence<ushort> s) {
       if (((new BigInteger((s).Count)) >= (BigInteger.One)) && (Std.Unicode.Utf16EncodingForm.__default.IsWellFormedSingleCodeUnitSequence((s).Take(BigInteger.One)))) {
@@ -6394,17 +6422,17 @@ namespace Std.Unicode.Utf16EncodingForm {
       }
     }
     public static Dafny.ISequence<ushort> EncodeScalarValueSingleWord(uint v) {
-      ushort _246_firstWord = (ushort)(v);
-      return Dafny.Sequence<ushort>.FromElements(_246_firstWord);
+      ushort _252_firstWord = (ushort)(v);
+      return Dafny.Sequence<ushort>.FromElements(_252_firstWord);
     }
     public static Dafny.ISequence<ushort> EncodeScalarValueDoubleWord(uint v) {
-      ushort _247_x2 = (ushort)((v) & (1023U));
-      byte _248_x1 = (byte)(((v) & (64512U)) >> ((int)((byte)(10))));
-      byte _249_u = (byte)(((v) & (2031616U)) >> ((int)((byte)(16))));
-      byte _250_w = (byte)(unchecked((byte)(((byte)((_249_u) - ((byte)(1)))) & (byte)0x1F)));
-      ushort _251_firstWord = (ushort)(((ushort)(((ushort)(55296)) | (unchecked((ushort)(((ushort)(((ushort)(_250_w)) << ((int)((byte)(6)))))))))) | ((ushort)(_248_x1)));
-      ushort _252_secondWord = (ushort)(((ushort)(56320)) | ((ushort)(_247_x2)));
-      return Dafny.Sequence<ushort>.FromElements(_251_firstWord, _252_secondWord);
+      ushort _253_x2 = (ushort)((v) & (1023U));
+      byte _254_x1 = (byte)(((v) & (64512U)) >> ((int)((byte)(10))));
+      byte _255_u = (byte)(((v) & (2031616U)) >> ((int)((byte)(16))));
+      byte _256_w = (byte)(unchecked((byte)(((byte)((_255_u) - ((byte)(1)))) & (byte)0x1F)));
+      ushort _257_firstWord = (ushort)(((ushort)(((ushort)(55296)) | (unchecked((ushort)(((ushort)(((ushort)(_256_w)) << ((int)((byte)(6)))))))))) | ((ushort)(_254_x1)));
+      ushort _258_secondWord = (ushort)(((ushort)(56320)) | ((ushort)(_253_x2)));
+      return Dafny.Sequence<ushort>.FromElements(_257_firstWord, _258_secondWord);
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequence(Dafny.ISequence<ushort> m) {
       if ((new BigInteger((m).Count)) == (BigInteger.One)) {
@@ -6414,19 +6442,19 @@ namespace Std.Unicode.Utf16EncodingForm {
       }
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequenceSingleWord(Dafny.ISequence<ushort> m) {
-      ushort _253_firstWord = (m).Select(BigInteger.Zero);
-      ushort _254_x = (ushort)(_253_firstWord);
-      return (uint)(_254_x);
+      ushort _259_firstWord = (m).Select(BigInteger.Zero);
+      ushort _260_x = (ushort)(_259_firstWord);
+      return (uint)(_260_x);
     }
     public static uint DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(Dafny.ISequence<ushort> m) {
-      ushort _255_firstWord = (m).Select(BigInteger.Zero);
-      ushort _256_secondWord = (m).Select(BigInteger.One);
-      uint _257_x2 = (uint)((ushort)((_256_secondWord) & ((ushort)(1023))));
-      uint _258_x1 = (uint)((ushort)((_255_firstWord) & ((ushort)(63))));
-      uint _259_w = (uint)((ushort)(((ushort)((_255_firstWord) & ((ushort)(960)))) >> ((int)((byte)(6)))));
-      uint _260_u = (uint)(unchecked((uint)(((_259_w) + (1U)) & (uint)0xFFFFFFU)));
-      uint _261_v = ((unchecked((uint)(((_260_u) << ((int)((byte)(16)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_258_x1) << ((int)((byte)(10)))) & (uint)0xFFFFFFU)))) | ((uint)(_257_x2));
-      return _261_v;
+      ushort _261_firstWord = (m).Select(BigInteger.Zero);
+      ushort _262_secondWord = (m).Select(BigInteger.One);
+      uint _263_x2 = (uint)((ushort)((_262_secondWord) & ((ushort)(1023))));
+      uint _264_x1 = (uint)((ushort)((_261_firstWord) & ((ushort)(63))));
+      uint _265_w = (uint)((ushort)(((ushort)((_261_firstWord) & ((ushort)(960)))) >> ((int)((byte)(6)))));
+      uint _266_u = (uint)(unchecked((uint)(((_265_w) + (1U)) & (uint)0xFFFFFFU)));
+      uint _267_v = ((unchecked((uint)(((_266_u) << ((int)((byte)(16)))) & (uint)0xFFFFFFU))) | (unchecked((uint)(((_264_x1) << ((int)((byte)(10)))) & (uint)0xFFFFFFU)))) | ((uint)(_263_x2));
+      return _267_v;
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<ushort>>> PartitionCodeUnitSequenceChecked(Dafny.ISequence<ushort> s)
     {
@@ -6435,23 +6463,23 @@ namespace Std.Unicode.Utf16EncodingForm {
         maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<ushort>>>.create_Some(Dafny.Sequence<Dafny.ISequence<ushort>>.FromElements());
         return maybeParts;
       }
-      Dafny.ISequence<Dafny.ISequence<ushort>> _262_result;
-      _262_result = Dafny.Sequence<Dafny.ISequence<ushort>>.FromElements();
-      Dafny.ISequence<ushort> _263_rest;
-      _263_rest = s;
-      while ((new BigInteger((_263_rest).Count)).Sign == 1) {
-        Dafny.ISequence<ushort> _264_prefix;
-        Std.Wrappers._IOption<Dafny.ISequence<ushort>> _265_valueOrError0 = Std.Wrappers.Option<Dafny.ISequence<ushort>>.Default();
-        _265_valueOrError0 = Std.Unicode.Utf16EncodingForm.__default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_263_rest);
-        if ((_265_valueOrError0).IsFailure()) {
-          maybeParts = (_265_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.ISequence<ushort>>>();
+      Dafny.ISequence<Dafny.ISequence<ushort>> _268_result;
+      _268_result = Dafny.Sequence<Dafny.ISequence<ushort>>.FromElements();
+      Dafny.ISequence<ushort> _269_rest;
+      _269_rest = s;
+      while ((new BigInteger((_269_rest).Count)).Sign == 1) {
+        Dafny.ISequence<ushort> _270_prefix;
+        Std.Wrappers._IOption<Dafny.ISequence<ushort>> _271_valueOrError0 = Std.Wrappers.Option<Dafny.ISequence<ushort>>.Default();
+        _271_valueOrError0 = Std.Unicode.Utf16EncodingForm.__default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_269_rest);
+        if ((_271_valueOrError0).IsFailure()) {
+          maybeParts = (_271_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.ISequence<ushort>>>();
           return maybeParts;
         }
-        _264_prefix = (_265_valueOrError0).Extract();
-        _262_result = Dafny.Sequence<Dafny.ISequence<ushort>>.Concat(_262_result, Dafny.Sequence<Dafny.ISequence<ushort>>.FromElements(_264_prefix));
-        _263_rest = (_263_rest).Drop(new BigInteger((_264_prefix).Count));
+        _270_prefix = (_271_valueOrError0).Extract();
+        _268_result = Dafny.Sequence<Dafny.ISequence<ushort>>.Concat(_268_result, Dafny.Sequence<Dafny.ISequence<ushort>>.FromElements(_270_prefix));
+        _269_rest = (_269_rest).Drop(new BigInteger((_270_prefix).Count));
       }
-      maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<ushort>>>.create_Some(_262_result);
+      maybeParts = Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<ushort>>>.create_Some(_268_result);
       return maybeParts;
       return maybeParts;
     }
@@ -6466,33 +6494,33 @@ namespace Std.Unicode.Utf16EncodingForm {
       Dafny.ISequence<ushort> s = Std.Unicode.Utf16EncodingForm.WellFormedCodeUnitSeq.Default();
       s = Dafny.Sequence<ushort>.FromElements();
       BigInteger _lo1 = BigInteger.Zero;
-      for (BigInteger _266_i = new BigInteger((vs).Count); _lo1 < _266_i; ) {
-        _266_i--;
-        Dafny.ISequence<ushort> _267_next;
-        _267_next = Std.Unicode.Utf16EncodingForm.__default.EncodeScalarValue((vs).Select(_266_i));
-        s = Dafny.Sequence<ushort>.Concat(_267_next, s);
+      for (BigInteger _272_i = new BigInteger((vs).Count); _lo1 < _272_i; ) {
+        _272_i--;
+        Dafny.ISequence<ushort> _273_next;
+        _273_next = Std.Unicode.Utf16EncodingForm.__default.EncodeScalarValue((vs).Select(_272_i));
+        s = Dafny.Sequence<ushort>.Concat(_273_next, s);
       }
       return s;
     }
     public static Dafny.ISequence<uint> DecodeCodeUnitSequence(Dafny.ISequence<ushort> s) {
-      Dafny.ISequence<Dafny.ISequence<ushort>> _268_parts = Std.Unicode.Utf16EncodingForm.__default.PartitionCodeUnitSequence(s);
-      Dafny.ISequence<uint> _269_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<ushort>, uint>(Std.Unicode.Utf16EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _268_parts);
-      return _269_vs;
+      Dafny.ISequence<Dafny.ISequence<ushort>> _274_parts = Std.Unicode.Utf16EncodingForm.__default.PartitionCodeUnitSequence(s);
+      Dafny.ISequence<uint> _275_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<ushort>, uint>(Std.Unicode.Utf16EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _274_parts);
+      return _275_vs;
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<uint>> DecodeCodeUnitSequenceChecked(Dafny.ISequence<ushort> s)
     {
       Std.Wrappers._IOption<Dafny.ISequence<uint>> maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.Default();
-      Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<ushort>>> _270_maybeParts;
-      _270_maybeParts = Std.Unicode.Utf16EncodingForm.__default.PartitionCodeUnitSequenceChecked(s);
-      if ((_270_maybeParts).is_None) {
+      Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<ushort>>> _276_maybeParts;
+      _276_maybeParts = Std.Unicode.Utf16EncodingForm.__default.PartitionCodeUnitSequenceChecked(s);
+      if ((_276_maybeParts).is_None) {
         maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_None();
         return maybeVs;
       }
-      Dafny.ISequence<Dafny.ISequence<ushort>> _271_parts;
-      _271_parts = (_270_maybeParts).dtor_value;
-      Dafny.ISequence<uint> _272_vs;
-      _272_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<ushort>, uint>(Std.Unicode.Utf16EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _271_parts);
-      maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_Some(_272_vs);
+      Dafny.ISequence<Dafny.ISequence<ushort>> _277_parts;
+      _277_parts = (_276_maybeParts).dtor_value;
+      Dafny.ISequence<uint> _278_vs;
+      _278_vs = Std.Collections.Seq.__default.Map<Dafny.ISequence<ushort>, uint>(Std.Unicode.Utf16EncodingForm.__default.DecodeMinimalWellFormedCodeUnitSubsequence, _277_parts);
+      maybeVs = Std.Wrappers.Option<Dafny.ISequence<uint>>.create_Some(_278_vs);
       return maybeVs;
       return maybeVs;
     }
@@ -6526,55 +6554,55 @@ namespace Std.Unicode.UnicodeStringsWithUnicodeChar {
       return new Dafny.Rune((int)(new BigInteger(sv)));
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<byte>> ToUTF8Checked(Dafny.ISequence<Dafny.Rune> s) {
-      Dafny.ISequence<uint> _273_asCodeUnits = Std.Collections.Seq.__default.Map<Dafny.Rune, uint>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharAsUnicodeScalarValue, s);
-      Dafny.ISequence<byte> _274_asUtf8CodeUnits = Std.Unicode.Utf8EncodingForm.__default.EncodeScalarSequence(_273_asCodeUnits);
-      Dafny.ISequence<byte> _275_asBytes = Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_276_cu) => {
-        return (byte)(_276_cu);
-      })), _274_asUtf8CodeUnits);
-      return Std.Wrappers.Option<Dafny.ISequence<byte>>.create_Some(_275_asBytes);
+      Dafny.ISequence<uint> _279_asCodeUnits = Std.Collections.Seq.__default.Map<Dafny.Rune, uint>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharAsUnicodeScalarValue, s);
+      Dafny.ISequence<byte> _280_asUtf8CodeUnits = Std.Unicode.Utf8EncodingForm.__default.EncodeScalarSequence(_279_asCodeUnits);
+      Dafny.ISequence<byte> _281_asBytes = Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_282_cu) => {
+        return (byte)(_282_cu);
+      })), _280_asUtf8CodeUnits);
+      return Std.Wrappers.Option<Dafny.ISequence<byte>>.create_Some(_281_asBytes);
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> FromUTF8Checked(Dafny.ISequence<byte> bs) {
-      Dafny.ISequence<byte> _277_asCodeUnits = Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_278_c) => {
-        return (byte)(_278_c);
+      Dafny.ISequence<byte> _283_asCodeUnits = Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_284_c) => {
+        return (byte)(_284_c);
       })), bs);
-      Std.Wrappers._IOption<Dafny.ISequence<uint>> _279_valueOrError0 = Std.Unicode.Utf8EncodingForm.__default.DecodeCodeUnitSequenceChecked(_277_asCodeUnits);
-      if ((_279_valueOrError0).IsFailure()) {
-        return (_279_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+      Std.Wrappers._IOption<Dafny.ISequence<uint>> _285_valueOrError0 = Std.Unicode.Utf8EncodingForm.__default.DecodeCodeUnitSequenceChecked(_283_asCodeUnits);
+      if ((_285_valueOrError0).IsFailure()) {
+        return (_285_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
       } else {
-        Dafny.ISequence<uint> _280_utf32 = (_279_valueOrError0).Extract();
-        Dafny.ISequence<Dafny.Rune> _281_asChars = Std.Collections.Seq.__default.Map<uint, Dafny.Rune>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharFromUnicodeScalarValue, _280_utf32);
-        return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_281_asChars);
+        Dafny.ISequence<uint> _286_utf32 = (_285_valueOrError0).Extract();
+        Dafny.ISequence<Dafny.Rune> _287_asChars = Std.Collections.Seq.__default.Map<uint, Dafny.Rune>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharFromUnicodeScalarValue, _286_utf32);
+        return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_287_asChars);
       }
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<ushort>> ToUTF16Checked(Dafny.ISequence<Dafny.Rune> s) {
-      Dafny.ISequence<uint> _282_asCodeUnits = Std.Collections.Seq.__default.Map<Dafny.Rune, uint>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharAsUnicodeScalarValue, s);
-      Dafny.ISequence<ushort> _283_asUtf16CodeUnits = Std.Unicode.Utf16EncodingForm.__default.EncodeScalarSequence(_282_asCodeUnits);
-      Dafny.ISequence<ushort> _284_asBytes = Std.Collections.Seq.__default.Map<ushort, ushort>(((System.Func<ushort, ushort>)((_285_cu) => {
-        return (ushort)(_285_cu);
-      })), _283_asUtf16CodeUnits);
-      return Std.Wrappers.Option<Dafny.ISequence<ushort>>.create_Some(_284_asBytes);
+      Dafny.ISequence<uint> _288_asCodeUnits = Std.Collections.Seq.__default.Map<Dafny.Rune, uint>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharAsUnicodeScalarValue, s);
+      Dafny.ISequence<ushort> _289_asUtf16CodeUnits = Std.Unicode.Utf16EncodingForm.__default.EncodeScalarSequence(_288_asCodeUnits);
+      Dafny.ISequence<ushort> _290_asBytes = Std.Collections.Seq.__default.Map<ushort, ushort>(((System.Func<ushort, ushort>)((_291_cu) => {
+        return (ushort)(_291_cu);
+      })), _289_asUtf16CodeUnits);
+      return Std.Wrappers.Option<Dafny.ISequence<ushort>>.create_Some(_290_asBytes);
     }
     public static Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> FromUTF16Checked(Dafny.ISequence<ushort> bs) {
-      Dafny.ISequence<ushort> _286_asCodeUnits = Std.Collections.Seq.__default.Map<ushort, ushort>(((System.Func<ushort, ushort>)((_287_c) => {
-        return (ushort)(_287_c);
+      Dafny.ISequence<ushort> _292_asCodeUnits = Std.Collections.Seq.__default.Map<ushort, ushort>(((System.Func<ushort, ushort>)((_293_c) => {
+        return (ushort)(_293_c);
       })), bs);
-      Std.Wrappers._IOption<Dafny.ISequence<uint>> _288_valueOrError0 = Std.Unicode.Utf16EncodingForm.__default.DecodeCodeUnitSequenceChecked(_286_asCodeUnits);
-      if ((_288_valueOrError0).IsFailure()) {
-        return (_288_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+      Std.Wrappers._IOption<Dafny.ISequence<uint>> _294_valueOrError0 = Std.Unicode.Utf16EncodingForm.__default.DecodeCodeUnitSequenceChecked(_292_asCodeUnits);
+      if ((_294_valueOrError0).IsFailure()) {
+        return (_294_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
       } else {
-        Dafny.ISequence<uint> _289_utf32 = (_288_valueOrError0).Extract();
-        Dafny.ISequence<Dafny.Rune> _290_asChars = Std.Collections.Seq.__default.Map<uint, Dafny.Rune>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharFromUnicodeScalarValue, _289_utf32);
-        return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_290_asChars);
+        Dafny.ISequence<uint> _295_utf32 = (_294_valueOrError0).Extract();
+        Dafny.ISequence<Dafny.Rune> _296_asChars = Std.Collections.Seq.__default.Map<uint, Dafny.Rune>(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.CharFromUnicodeScalarValue, _295_utf32);
+        return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_296_asChars);
       }
     }
     public static Dafny.ISequence<byte> ASCIIToUTF8(Dafny.ISequence<Dafny.Rune> s) {
-      return Std.Collections.Seq.__default.Map<Dafny.Rune, byte>(((System.Func<Dafny.Rune, byte>)((_291_c) => {
-        return (byte)((_291_c).Value);
+      return Std.Collections.Seq.__default.Map<Dafny.Rune, byte>(((System.Func<Dafny.Rune, byte>)((_297_c) => {
+        return (byte)((_297_c).Value);
       })), s);
     }
     public static Dafny.ISequence<ushort> ASCIIToUTF16(Dafny.ISequence<Dafny.Rune> s) {
-      return Std.Collections.Seq.__default.Map<Dafny.Rune, ushort>(((System.Func<Dafny.Rune, ushort>)((_292_c) => {
-        return (ushort)((_292_c).Value);
+      return Std.Collections.Seq.__default.Map<Dafny.Rune, ushort>(((System.Func<Dafny.Rune, ushort>)((_298_c) => {
+        return (ushort)((_298_c).Value);
       })), s);
     }
   }
@@ -6583,13 +6611,13 @@ namespace Std.Unicode.Utf8EncodingScheme {
 
   public partial class __default {
     public static Dafny.ISequence<byte> Serialize(Dafny.ISequence<byte> s) {
-      return Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_293_c) => {
-        return (byte)(_293_c);
+      return Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_299_c) => {
+        return (byte)(_299_c);
       })), s);
     }
     public static Dafny.ISequence<byte> Deserialize(Dafny.ISequence<byte> b) {
-      return Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_294_b) => {
-        return (byte)(_294_b);
+      return Std.Collections.Seq.__default.Map<byte, byte>(((System.Func<byte, byte>)((_300_b) => {
+        return (byte)(_300_b);
       })), b);
     }
   }
@@ -6597,9 +6625,6 @@ namespace Std.Unicode.Utf8EncodingScheme {
 namespace Std.Unicode {
 
 } // end of namespace Std.Unicode
-namespace Std.CSharpFileIOInternalExterns {
-
-} // end of namespace Std.CSharpFileIOInternalExterns
 namespace Std.JSON.Values {
 
   public partial class __default {
@@ -7013,9 +7038,9 @@ namespace Std.JSON.Errors {
       if (_source10.is_UnterminatedSequence) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Unterminated sequence");
       } else if (_source10.is_UnsupportedEscape) {
-        Dafny.ISequence<Dafny.Rune> _295___mcc_h0 = _source10.dtor_str;
-        Dafny.ISequence<Dafny.Rune> _296_str = _295___mcc_h0;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Unsupported escape sequence: "), _296_str);
+        Dafny.ISequence<Dafny.Rune> _301___mcc_h0 = _source10.dtor_str;
+        Dafny.ISequence<Dafny.Rune> _302_str = _301___mcc_h0;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Unsupported escape sequence: "), _302_str);
       } else if (_source10.is_EscapeAtEOS) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Escape character at end of string");
       } else if (_source10.is_EmptyNumber) {
@@ -7027,28 +7052,28 @@ namespace Std.JSON.Errors {
       } else if (_source10.is_ReachedEOF) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Reached EOF");
       } else if (_source10.is_ExpectingByte) {
-        byte _297___mcc_h1 = _source10.dtor_expected;
-        short _298___mcc_h2 = _source10.dtor_b;
-        short _299_b = _298___mcc_h2;
-        byte _300_b0 = _297___mcc_h1;
-        Dafny.ISequence<Dafny.Rune> _301_c = (((_299_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_299_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting '"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_300_b0)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _301_c);
+        byte _303___mcc_h1 = _source10.dtor_expected;
+        short _304___mcc_h2 = _source10.dtor_b;
+        short _305_b = _304___mcc_h2;
+        byte _306_b0 = _303___mcc_h1;
+        Dafny.ISequence<Dafny.Rune> _307_c = (((_305_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_305_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting '"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_306_b0)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _307_c);
       } else if (_source10.is_ExpectingAnyByte) {
-        Dafny.ISequence<byte> _302___mcc_h3 = _source10.dtor_expected__sq;
-        short _303___mcc_h4 = _source10.dtor_b;
-        short _304_b = _303___mcc_h4;
-        Dafny.ISequence<byte> _305_bs0 = _302___mcc_h3;
-        Dafny.ISequence<Dafny.Rune> _306_c = (((_304_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_304_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
-        Dafny.ISequence<Dafny.Rune> _307_c0s = ((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
-          BigInteger dim4 = new BigInteger((_305_bs0).Count);
+        Dafny.ISequence<byte> _308___mcc_h3 = _source10.dtor_expected__sq;
+        short _309___mcc_h4 = _source10.dtor_b;
+        short _310_b = _309___mcc_h4;
+        Dafny.ISequence<byte> _311_bs0 = _308___mcc_h3;
+        Dafny.ISequence<Dafny.Rune> _312_c = (((_310_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_310_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
+        Dafny.ISequence<Dafny.Rune> _313_c0s = ((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
+          BigInteger dim4 = new BigInteger((_311_bs0).Count);
           var arr4 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim4, "array size exceeds memory limit")];
           for (int i4 = 0; i4 < dim4; i4++) {
-            var _308_idx = (BigInteger) i4;
-            arr4[(int)(_308_idx)] = new Dafny.Rune((int)((_305_bs0).Select(_308_idx)));
+            var _314_idx = (BigInteger) i4;
+            arr4[(int)(_314_idx)] = new Dafny.Rune((int)((_311_bs0).Select(_314_idx)));
           }
           return Dafny.Sequence<Dafny.Rune>.FromArray(arr4);
         }))();
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting one of '"), _307_c0s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _306_c);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting one of '"), _313_c0s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _312_c);
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Invalid Unicode sequence");
       }
@@ -7348,13 +7373,13 @@ namespace Std.JSON.Errors {
       if (_source11.is_OutOfMemory) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Out of memory");
       } else if (_source11.is_IntTooLarge) {
-        BigInteger _309___mcc_h0 = _source11.dtor_i;
-        BigInteger _310_i = _309___mcc_h0;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Integer too large: "), Std.Strings.__default.OfInt(_310_i));
+        BigInteger _315___mcc_h0 = _source11.dtor_i;
+        BigInteger _316_i = _315___mcc_h0;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Integer too large: "), Std.Strings.__default.OfInt(_316_i));
       } else if (_source11.is_StringTooLong) {
-        Dafny.ISequence<Dafny.Rune> _311___mcc_h1 = _source11.dtor_s;
-        Dafny.ISequence<Dafny.Rune> _312_s = _311___mcc_h1;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("String too long: "), _312_s);
+        Dafny.ISequence<Dafny.Rune> _317___mcc_h1 = _source11.dtor_s;
+        Dafny.ISequence<Dafny.Rune> _318_s = _317___mcc_h1;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("String too long: "), _318_s);
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Invalid Unicode sequence");
       }
@@ -7461,80 +7486,80 @@ namespace Std.JSON.Spec {
 
   public partial class __default {
     public static Dafny.ISequence<ushort> EscapeUnicode(ushort c) {
-      Dafny.ISequence<Dafny.Rune> _313_sStr = Std.Strings.HexConversion.__default.OfNat(new BigInteger(c));
-      Dafny.ISequence<ushort> _314_s = Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(_313_sStr);
-      return Dafny.Sequence<ushort>.Concat(_314_s, ((System.Func<Dafny.ISequence<ushort>>) (() => {
-        BigInteger dim5 = (new BigInteger(4)) - (new BigInteger((_314_s).Count));
+      Dafny.ISequence<Dafny.Rune> _319_sStr = Std.Strings.HexConversion.__default.OfNat(new BigInteger(c));
+      Dafny.ISequence<ushort> _320_s = Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(_319_sStr);
+      return Dafny.Sequence<ushort>.Concat(_320_s, ((System.Func<Dafny.ISequence<ushort>>) (() => {
+        BigInteger dim5 = (new BigInteger(4)) - (new BigInteger((_320_s).Count));
         var arr5 = new ushort[Dafny.Helpers.ToIntChecked(dim5, "array size exceeds memory limit")];
         for (int i5 = 0; i5 < dim5; i5++) {
-          var _315___v8 = (BigInteger) i5;
-          arr5[(int)(_315___v8)] = (ushort)((new Dafny.Rune(' ')).Value);
+          var _321___v8 = (BigInteger) i5;
+          arr5[(int)(_321___v8)] = (ushort)((new Dafny.Rune(' ')).Value);
         }
         return Dafny.Sequence<ushort>.FromArray(arr5);
       }))());
     }
     public static Dafny.ISequence<ushort> Escape(Dafny.ISequence<ushort> str, BigInteger start)
     {
-      Dafny.ISequence<ushort> _316___accumulator = Dafny.Sequence<ushort>.FromElements();
+      Dafny.ISequence<ushort> _322___accumulator = Dafny.Sequence<ushort>.FromElements();
     TAIL_CALL_START: ;
       var _pat_let_tv0 = str;
       var _pat_let_tv1 = start;
       if ((start) >= (new BigInteger((str).Count))) {
-        return Dafny.Sequence<ushort>.Concat(_316___accumulator, Dafny.Sequence<ushort>.FromElements());
+        return Dafny.Sequence<ushort>.Concat(_322___accumulator, Dafny.Sequence<ushort>.FromElements());
       } else {
-        _316___accumulator = Dafny.Sequence<ushort>.Concat(_316___accumulator, ((((str).Select(start)) == ((ushort)(34))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\\""))) : (((((str).Select(start)) == ((ushort)(92))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\\\"))) : (((((str).Select(start)) == ((ushort)(8))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\b"))) : (((((str).Select(start)) == ((ushort)(12))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\f"))) : (((((str).Select(start)) == ((ushort)(10))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\n"))) : (((((str).Select(start)) == ((ushort)(13))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\r"))) : (((((str).Select(start)) == ((ushort)(9))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\t"))) : (Dafny.Helpers.Let<ushort, Dafny.ISequence<ushort>>((str).Select(start), _pat_let1_0 => Dafny.Helpers.Let<ushort, Dafny.ISequence<ushort>>(_pat_let1_0, _317_c => (((_317_c) < ((ushort)(31))) ? (Dafny.Sequence<ushort>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\u")), Std.JSON.Spec.__default.EscapeUnicode(_317_c))) : (Dafny.Sequence<ushort>.FromElements((_pat_let_tv0).Select(_pat_let_tv1)))))))))))))))))))));
-        Dafny.ISequence<ushort> _in61 = str;
-        BigInteger _in62 = (start) + (BigInteger.One);
-        str = _in61;
-        start = _in62;
+        _322___accumulator = Dafny.Sequence<ushort>.Concat(_322___accumulator, ((((str).Select(start)) == ((ushort)(34))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\\""))) : (((((str).Select(start)) == ((ushort)(92))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\\\"))) : (((((str).Select(start)) == ((ushort)(8))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\b"))) : (((((str).Select(start)) == ((ushort)(12))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\f"))) : (((((str).Select(start)) == ((ushort)(10))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\n"))) : (((((str).Select(start)) == ((ushort)(13))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\r"))) : (((((str).Select(start)) == ((ushort)(9))) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\t"))) : (Dafny.Helpers.Let<ushort, Dafny.ISequence<ushort>>((str).Select(start), _pat_let1_0 => Dafny.Helpers.Let<ushort, Dafny.ISequence<ushort>>(_pat_let1_0, _323_c => (((_323_c) < ((ushort)(31))) ? (Dafny.Sequence<ushort>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF16(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\\u")), Std.JSON.Spec.__default.EscapeUnicode(_323_c))) : (Dafny.Sequence<ushort>.FromElements((_pat_let_tv0).Select(_pat_let_tv1)))))))))))))))))))));
+        Dafny.ISequence<ushort> _in62 = str;
+        BigInteger _in63 = (start) + (BigInteger.One);
+        str = _in62;
+        start = _in63;
         goto TAIL_CALL_START;
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> EscapeToUTF8(Dafny.ISequence<Dafny.Rune> str, BigInteger start)
     {
-      Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._ISerializationError> _318_valueOrError0 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF16Checked(str)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
-      if ((_318_valueOrError0).IsFailure()) {
-        return (_318_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._ISerializationError> _324_valueOrError0 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF16Checked(str)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
+      if ((_324_valueOrError0).IsFailure()) {
+        return (_324_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Dafny.ISequence<ushort> _319_utf16 = (_318_valueOrError0).Extract();
-        Dafny.ISequence<ushort> _320_escaped = Std.JSON.Spec.__default.Escape(_319_utf16, BigInteger.Zero);
-        Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._ISerializationError> _321_valueOrError1 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF16Checked(_320_escaped)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
-        if ((_321_valueOrError1).IsFailure()) {
-          return (_321_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
+        Dafny.ISequence<ushort> _325_utf16 = (_324_valueOrError0).Extract();
+        Dafny.ISequence<ushort> _326_escaped = Std.JSON.Spec.__default.Escape(_325_utf16, BigInteger.Zero);
+        Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._ISerializationError> _327_valueOrError1 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF16Checked(_326_escaped)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
+        if ((_327_valueOrError1).IsFailure()) {
+          return (_327_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
         } else {
-          Dafny.ISequence<Dafny.Rune> _322_utf32 = (_321_valueOrError1).Extract();
-          return (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF8Checked(_322_utf32)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
+          Dafny.ISequence<Dafny.Rune> _328_utf32 = (_327_valueOrError1).Extract();
+          return (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF8Checked(_328_utf32)).ToResult<Std.JSON.Errors._ISerializationError>(Std.JSON.Errors.SerializationError.create_InvalidUnicode());
         }
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> String(Dafny.ISequence<Dafny.Rune> str) {
-      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _323_valueOrError0 = Std.JSON.Spec.__default.EscapeToUTF8(str, BigInteger.Zero);
-      if ((_323_valueOrError0).IsFailure()) {
-        return (_323_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _329_valueOrError0 = Std.JSON.Spec.__default.EscapeToUTF8(str, BigInteger.Zero);
+      if ((_329_valueOrError0).IsFailure()) {
+        return (_329_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Dafny.ISequence<byte> _324_inBytes = (_323_valueOrError0).Extract();
-        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\"")), _324_inBytes), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\""))));
+        Dafny.ISequence<byte> _330_inBytes = (_329_valueOrError0).Extract();
+        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\"")), _330_inBytes), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\""))));
       }
     }
     public static Dafny.ISequence<byte> IntToBytes(BigInteger n) {
-      Dafny.ISequence<Dafny.Rune> _325_s = Std.Strings.__default.OfInt(n);
-      return Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(_325_s);
+      Dafny.ISequence<Dafny.Rune> _331_s = Std.Strings.__default.OfInt(n);
+      return Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(_331_s);
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> Number(Std.JSON.Values._IDecimal dec) {
       return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Std.JSON.Spec.__default.IntToBytes((dec).dtor_n), ((((dec).dtor_e10).Sign == 0) ? (Dafny.Sequence<byte>.FromElements()) : (Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("e")), Std.JSON.Spec.__default.IntToBytes((dec).dtor_e10))))));
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> KeyValue(_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON> kv) {
-      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _326_valueOrError0 = Std.JSON.Spec.__default.String((kv).dtor__0);
-      if ((_326_valueOrError0).IsFailure()) {
-        return (_326_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _332_valueOrError0 = Std.JSON.Spec.__default.String((kv).dtor__0);
+      if ((_332_valueOrError0).IsFailure()) {
+        return (_332_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Dafny.ISequence<byte> _327_key = (_326_valueOrError0).Extract();
-        Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _328_valueOrError1 = Std.JSON.Spec.__default.JSON((kv).dtor__1);
-        if ((_328_valueOrError1).IsFailure()) {
-          return (_328_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
+        Dafny.ISequence<byte> _333_key = (_332_valueOrError0).Extract();
+        Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _334_valueOrError1 = Std.JSON.Spec.__default.JSON((kv).dtor__1);
+        if ((_334_valueOrError1).IsFailure()) {
+          return (_334_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
         } else {
-          Dafny.ISequence<byte> _329_value = (_328_valueOrError1).Extract();
-          return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(_327_key, Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(":"))), _329_value));
+          Dafny.ISequence<byte> _335_value = (_334_valueOrError1).Extract();
+          return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(_333_key, Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(":"))), _335_value));
         }
       }
     }
@@ -7543,57 +7568,57 @@ namespace Std.JSON.Spec {
       if ((new BigInteger((items).Count)).Sign == 0) {
         return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.FromElements());
       } else {
-        Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _330_valueOrError0 = (items).Select(BigInteger.Zero);
-        if ((_330_valueOrError0).IsFailure()) {
-          return (_330_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+        Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _336_valueOrError0 = (items).Select(BigInteger.Zero);
+        if ((_336_valueOrError0).IsFailure()) {
+          return (_336_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
         } else {
-          Dafny.ISequence<byte> _331_first = (_330_valueOrError0).Extract();
+          Dafny.ISequence<byte> _337_first = (_336_valueOrError0).Extract();
           if ((new BigInteger((items).Count)) == (BigInteger.One)) {
-            return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(_331_first);
+            return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(_337_first);
           } else {
-            Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _332_valueOrError1 = Std.JSON.Spec.__default.Join(sep, (items).Drop(BigInteger.One));
-            if ((_332_valueOrError1).IsFailure()) {
-              return (_332_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
+            Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _338_valueOrError1 = Std.JSON.Spec.__default.Join(sep, (items).Drop(BigInteger.One));
+            if ((_338_valueOrError1).IsFailure()) {
+              return (_338_valueOrError1).PropagateFailure<Dafny.ISequence<byte>>();
             } else {
-              Dafny.ISequence<byte> _333_rest = (_332_valueOrError1).Extract();
-              return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(_331_first, sep), _333_rest));
+              Dafny.ISequence<byte> _339_rest = (_338_valueOrError1).Extract();
+              return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(_337_first, sep), _339_rest));
             }
           }
         }
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> Object(Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> obj) {
-      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _334_valueOrError0 = Std.JSON.Spec.__default.Join(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",")), ((System.Func<Dafny.ISequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>>) (() => {
+      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _340_valueOrError0 = Std.JSON.Spec.__default.Join(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",")), ((System.Func<Dafny.ISequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>>) (() => {
         BigInteger dim6 = new BigInteger((obj).Count);
         var arr6 = new Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>[Dafny.Helpers.ToIntChecked(dim6, "array size exceeds memory limit")];
         for (int i6 = 0; i6 < dim6; i6++) {
-          var _335_i = (BigInteger) i6;
-          arr6[(int)(_335_i)] = Std.JSON.Spec.__default.KeyValue((obj).Select(_335_i));
+          var _341_i = (BigInteger) i6;
+          arr6[(int)(_341_i)] = Std.JSON.Spec.__default.KeyValue((obj).Select(_341_i));
         }
         return Dafny.Sequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>.FromArray(arr6);
       }))());
-      if ((_334_valueOrError0).IsFailure()) {
-        return (_334_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      if ((_340_valueOrError0).IsFailure()) {
+        return (_340_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Dafny.ISequence<byte> _336_middle = (_334_valueOrError0).Extract();
-        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{")), _336_middle), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"))));
+        Dafny.ISequence<byte> _342_middle = (_340_valueOrError0).Extract();
+        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{")), _342_middle), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"))));
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> Array(Dafny.ISequence<Std.JSON.Values._IJSON> arr) {
-      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _337_valueOrError0 = Std.JSON.Spec.__default.Join(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",")), ((System.Func<Dafny.ISequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>>) (() => {
+      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _343_valueOrError0 = Std.JSON.Spec.__default.Join(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",")), ((System.Func<Dafny.ISequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>>) (() => {
         BigInteger dim7 = new BigInteger((arr).Count);
         var arr7 = new Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>[Dafny.Helpers.ToIntChecked(dim7, "array size exceeds memory limit")];
         for (int i7 = 0; i7 < dim7; i7++) {
-          var _338_i = (BigInteger) i7;
-          arr7[(int)(_338_i)] = Std.JSON.Spec.__default.JSON((arr).Select(_338_i));
+          var _344_i = (BigInteger) i7;
+          arr7[(int)(_344_i)] = Std.JSON.Spec.__default.JSON((arr).Select(_344_i));
         }
         return Dafny.Sequence<Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>>.FromArray(arr7);
       }))());
-      if ((_337_valueOrError0).IsFailure()) {
-        return (_337_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      if ((_343_valueOrError0).IsFailure()) {
+        return (_343_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Dafny.ISequence<byte> _339_middle = (_337_valueOrError0).Extract();
-        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[")), _339_middle), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]"))));
+        Dafny.ISequence<byte> _345_middle = (_343_valueOrError0).Extract();
+        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.Concat(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[")), _345_middle), Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]"))));
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> JSON(Std.JSON.Values._IJSON js) {
@@ -7601,25 +7626,25 @@ namespace Std.JSON.Spec {
       if (_source12.is_Null) {
         return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("null")));
       } else if (_source12.is_Bool) {
-        bool _340___mcc_h0 = _source12.dtor_b;
-        bool _341_b = _340___mcc_h0;
-        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(((_341_b) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("true"))) : (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("false")))));
+        bool _346___mcc_h0 = _source12.dtor_b;
+        bool _347_b = _346___mcc_h0;
+        return Std.Wrappers.Result<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError>.create_Success(((_347_b) ? (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("true"))) : (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ASCIIToUTF8(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("false")))));
       } else if (_source12.is_String) {
-        Dafny.ISequence<Dafny.Rune> _342___mcc_h1 = _source12.dtor_str;
-        Dafny.ISequence<Dafny.Rune> _343_str = _342___mcc_h1;
-        return Std.JSON.Spec.__default.String(_343_str);
+        Dafny.ISequence<Dafny.Rune> _348___mcc_h1 = _source12.dtor_str;
+        Dafny.ISequence<Dafny.Rune> _349_str = _348___mcc_h1;
+        return Std.JSON.Spec.__default.String(_349_str);
       } else if (_source12.is_Number) {
-        Std.JSON.Values._IDecimal _344___mcc_h2 = _source12.dtor_num;
-        Std.JSON.Values._IDecimal _345_dec = _344___mcc_h2;
-        return Std.JSON.Spec.__default.Number(_345_dec);
+        Std.JSON.Values._IDecimal _350___mcc_h2 = _source12.dtor_num;
+        Std.JSON.Values._IDecimal _351_dec = _350___mcc_h2;
+        return Std.JSON.Spec.__default.Number(_351_dec);
       } else if (_source12.is_Object) {
-        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _346___mcc_h3 = _source12.dtor_obj;
-        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _347_obj = _346___mcc_h3;
-        return Std.JSON.Spec.__default.Object(_347_obj);
+        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _352___mcc_h3 = _source12.dtor_obj;
+        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _353_obj = _352___mcc_h3;
+        return Std.JSON.Spec.__default.Object(_353_obj);
       } else {
-        Dafny.ISequence<Std.JSON.Values._IJSON> _348___mcc_h4 = _source12.dtor_arr;
-        Dafny.ISequence<Std.JSON.Values._IJSON> _349_arr = _348___mcc_h4;
-        return Std.JSON.Spec.__default.Array(_349_arr);
+        Dafny.ISequence<Std.JSON.Values._IJSON> _354___mcc_h4 = _source12.dtor_arr;
+        Dafny.ISequence<Std.JSON.Values._IJSON> _355_arr = _354___mcc_h4;
+        return Std.JSON.Spec.__default.Array(_355_arr);
       }
     }
   }
@@ -7633,9 +7658,9 @@ namespace Std.JSON.Utils.Views.Core {
     }
     public static Std.JSON.Utils.Views.Core._IView__ Merge(Std.JSON.Utils.Views.Core._IView__ lv, Std.JSON.Utils.Views.Core._IView__ rv)
     {
-      Std.JSON.Utils.Views.Core._IView__ _350_dt__update__tmp_h0 = lv;
-      uint _351_dt__update_hend_h0 = (rv).dtor_end;
-      return Std.JSON.Utils.Views.Core.View__.create((_350_dt__update__tmp_h0).dtor_s, (_350_dt__update__tmp_h0).dtor_beg, _351_dt__update_hend_h0);
+      Std.JSON.Utils.Views.Core._IView__ _356_dt__update__tmp_h0 = lv;
+      uint _357_dt__update_hend_h0 = (rv).dtor_end;
+      return Std.JSON.Utils.Views.Core.View__.create((_356_dt__update__tmp_h0).dtor_s, (_356_dt__update__tmp_h0).dtor_beg, _357_dt__update_hend_h0);
     }
   }
 
@@ -7745,8 +7770,8 @@ namespace Std.JSON.Utils.Views.Core {
         BigInteger dim8 = new BigInteger((s).Count);
         var arr8 = new byte[Dafny.Helpers.ToIntChecked(dim8, "array size exceeds memory limit")];
         for (int i8 = 0; i8 < dim8; i8++) {
-          var _352_i = (BigInteger) i8;
-          arr8[(int)(_352_i)] = (byte)(((s).Select(_352_i)).Value);
+          var _358_i = (BigInteger) i8;
+          arr8[(int)(_358_i)] = (byte)(((s).Select(_358_i)).Value);
         }
         return Dafny.Sequence<byte>.FromArray(arr8);
       }))();
@@ -7774,9 +7799,9 @@ namespace Std.JSON.Utils.Views.Core {
     public void CopyTo(byte[] dest, uint start)
     {
       uint _hi0 = (this).Length();
-      for (uint _353_idx = 0U; _353_idx < _hi0; _353_idx++) {
-        uint _index6 = (start) + (_353_idx);
-        (dest)[(int)(_index6)] = ((this).dtor_s).Select(((this).dtor_beg) + (_353_idx));
+      for (uint _359_idx = 0U; _359_idx < _hi0; _359_idx++) {
+        uint _index6 = (start) + (_359_idx);
+        (dest)[(int)(_index6)] = ((this).dtor_s).Select(((this).dtor_beg) + (_359_idx));
       }
     }
     public static Std.JSON.Utils.Views.Core._IView__ Empty { get {
@@ -7835,43 +7860,43 @@ namespace Std.JSON.Utils.Views.Writers {
     }
     public abstract _IChain DowncastClone();
     public BigInteger Length() {
-      BigInteger _354___accumulator = BigInteger.Zero;
+      BigInteger _360___accumulator = BigInteger.Zero;
       _IChain _this = this;
     TAIL_CALL_START: ;
       if ((_this).is_Empty) {
-        return (BigInteger.Zero) + (_354___accumulator);
+        return (BigInteger.Zero) + (_360___accumulator);
       } else {
-        _354___accumulator = (new BigInteger(((_this).dtor_v).Length())) + (_354___accumulator);
-        Std.JSON.Utils.Views.Writers._IChain _in63 = (_this).dtor_previous;
-        _this = _in63;
-        ;
-        goto TAIL_CALL_START;
-      }
-    }
-    public BigInteger Count() {
-      BigInteger _355___accumulator = BigInteger.Zero;
-      _IChain _this = this;
-    TAIL_CALL_START: ;
-      if ((_this).is_Empty) {
-        return (BigInteger.Zero) + (_355___accumulator);
-      } else {
-        _355___accumulator = (BigInteger.One) + (_355___accumulator);
+        _360___accumulator = (new BigInteger(((_this).dtor_v).Length())) + (_360___accumulator);
         Std.JSON.Utils.Views.Writers._IChain _in64 = (_this).dtor_previous;
         _this = _in64;
         ;
         goto TAIL_CALL_START;
       }
     }
-    public Dafny.ISequence<byte> Bytes() {
-      Dafny.ISequence<byte> _356___accumulator = Dafny.Sequence<byte>.FromElements();
+    public BigInteger Count() {
+      BigInteger _361___accumulator = BigInteger.Zero;
       _IChain _this = this;
     TAIL_CALL_START: ;
       if ((_this).is_Empty) {
-        return Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements(), _356___accumulator);
+        return (BigInteger.Zero) + (_361___accumulator);
       } else {
-        _356___accumulator = Dafny.Sequence<byte>.Concat(((_this).dtor_v).Bytes(), _356___accumulator);
+        _361___accumulator = (BigInteger.One) + (_361___accumulator);
         Std.JSON.Utils.Views.Writers._IChain _in65 = (_this).dtor_previous;
         _this = _in65;
+        ;
+        goto TAIL_CALL_START;
+      }
+    }
+    public Dafny.ISequence<byte> Bytes() {
+      Dafny.ISequence<byte> _362___accumulator = Dafny.Sequence<byte>.FromElements();
+      _IChain _this = this;
+    TAIL_CALL_START: ;
+      if ((_this).is_Empty) {
+        return Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements(), _362___accumulator);
+      } else {
+        _362___accumulator = Dafny.Sequence<byte>.Concat(((_this).dtor_v).Bytes(), _362___accumulator);
+        Std.JSON.Utils.Views.Writers._IChain _in66 = (_this).dtor_previous;
+        _this = _in66;
         ;
         goto TAIL_CALL_START;
       }
@@ -7888,16 +7913,16 @@ namespace Std.JSON.Utils.Views.Writers {
       _IChain _this = this;
     TAIL_CALL_START: ;
       if ((_this).is_Chain) {
-        uint _357_end;
-        _357_end = (end) - (((_this).dtor_v).Length());
-        ((_this).dtor_v).CopyTo(dest, _357_end);
-        Std.JSON.Utils.Views.Writers._IChain _in66 = (_this).dtor_previous;
-        byte[] _in67 = dest;
-        uint _in68 = _357_end;
-        _this = _in66;
+        uint _363_end;
+        _363_end = (end) - (((_this).dtor_v).Length());
+        ((_this).dtor_v).CopyTo(dest, _363_end);
+        Std.JSON.Utils.Views.Writers._IChain _in67 = (_this).dtor_previous;
+        byte[] _in68 = dest;
+        uint _in69 = _363_end;
+        _this = _in67;
         ;
-        dest = _in67;
-        end = _in68;
+        dest = _in68;
+        end = _in69;
         goto TAIL_CALL_START;
       }
     }
@@ -8060,7 +8085,7 @@ namespace Std.JSON.Utils.Views.Writers {
     public byte[] ToArray()
     {
       byte[] bs = new byte[0];
-      Func<BigInteger, byte> _init4 = ((System.Func<BigInteger, byte>)((_358_i) => {
+      Func<BigInteger, byte> _init4 = ((System.Func<BigInteger, byte>)((_364_i) => {
         return (byte)(0);
       }));
       byte[] _nw5 = new byte[Dafny.Helpers.ToIntChecked((this).dtor_length, "array size exceeds memory limit")];
@@ -8230,11 +8255,11 @@ namespace Std.JSON.Utils.Lexers.Strings {
           return Std.JSON.Utils.Lexers.Core.LexerResult<Std.JSON.Utils.Lexers.Strings._IStringLexerState, Dafny.ISequence<Dafny.Rune>>.create_Reject(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("String must start with double quote"));
         }
       } else if (_source13.is_Body) {
-        bool _359___mcc_h0 = _source13.dtor_escaped;
-        bool _360_escaped = _359___mcc_h0;
+        bool _365___mcc_h0 = _source13.dtor_escaped;
+        bool _366_escaped = _365___mcc_h0;
         if ((@byte) == ((short)((new Dafny.Rune('\\')).Value))) {
-          return Std.JSON.Utils.Lexers.Core.LexerResult<Std.JSON.Utils.Lexers.Strings._IStringLexerState, Dafny.ISequence<Dafny.Rune>>.create_Partial(Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_360_escaped)));
-        } else if (((@byte) == ((short)((new Dafny.Rune('\"')).Value))) && (!(_360_escaped))) {
+          return Std.JSON.Utils.Lexers.Core.LexerResult<Std.JSON.Utils.Lexers.Strings._IStringLexerState, Dafny.ISequence<Dafny.Rune>>.create_Partial(Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_366_escaped)));
+        } else if (((@byte) == ((short)((new Dafny.Rune('\"')).Value))) && (!(_366_escaped))) {
           return Std.JSON.Utils.Lexers.Core.LexerResult<Std.JSON.Utils.Lexers.Strings._IStringLexerState, Dafny.ISequence<Dafny.Rune>>.create_Partial(Std.JSON.Utils.Lexers.Strings.StringLexerState.create_End());
         } else {
           return Std.JSON.Utils.Lexers.Core.LexerResult<Std.JSON.Utils.Lexers.Strings._IStringLexerState, Dafny.ISequence<Dafny.Rune>>.create_Partial(Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(false));
@@ -8516,32 +8541,32 @@ namespace Std.JSON.Utils.Cursors {
       if (_source14.is_EOF) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Reached EOF");
       } else if (_source14.is_ExpectingByte) {
-        byte _361___mcc_h0 = _source14.dtor_expected;
-        short _362___mcc_h1 = _source14.dtor_b;
-        short _363_b = _362___mcc_h1;
-        byte _364_b0 = _361___mcc_h0;
-        Dafny.ISequence<Dafny.Rune> _365_c = (((_363_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_363_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting '"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_364_b0)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _365_c);
+        byte _367___mcc_h0 = _source14.dtor_expected;
+        short _368___mcc_h1 = _source14.dtor_b;
+        short _369_b = _368___mcc_h1;
+        byte _370_b0 = _367___mcc_h0;
+        Dafny.ISequence<Dafny.Rune> _371_c = (((_369_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_369_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting '"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_370_b0)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _371_c);
       } else if (_source14.is_ExpectingAnyByte) {
-        Dafny.ISequence<byte> _366___mcc_h2 = _source14.dtor_expected__sq;
-        short _367___mcc_h3 = _source14.dtor_b;
-        short _368_b = _367___mcc_h3;
-        Dafny.ISequence<byte> _369_bs0 = _366___mcc_h2;
-        Dafny.ISequence<Dafny.Rune> _370_c = (((_368_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_368_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
-        Dafny.ISequence<Dafny.Rune> _371_c0s = ((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
-          BigInteger dim9 = new BigInteger((_369_bs0).Count);
+        Dafny.ISequence<byte> _372___mcc_h2 = _source14.dtor_expected__sq;
+        short _373___mcc_h3 = _source14.dtor_b;
+        short _374_b = _373___mcc_h3;
+        Dafny.ISequence<byte> _375_bs0 = _372___mcc_h2;
+        Dafny.ISequence<Dafny.Rune> _376_c = (((_374_b) > ((short)(0))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), Dafny.Sequence<Dafny.Rune>.FromElements(new Dafny.Rune((int)(_374_b)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EOF")));
+        Dafny.ISequence<Dafny.Rune> _377_c0s = ((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
+          BigInteger dim9 = new BigInteger((_375_bs0).Count);
           var arr9 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim9, "array size exceeds memory limit")];
           for (int i9 = 0; i9 < dim9; i9++) {
-            var _372_idx = (BigInteger) i9;
-            arr9[(int)(_372_idx)] = new Dafny.Rune((int)((_369_bs0).Select(_372_idx)));
+            var _378_idx = (BigInteger) i9;
+            arr9[(int)(_378_idx)] = new Dafny.Rune((int)((_375_bs0).Select(_378_idx)));
           }
           return Dafny.Sequence<Dafny.Rune>.FromArray(arr9);
         }))();
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting one of '"), _371_c0s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _370_c);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Expecting one of '"), _377_c0s), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("', read ")), _376_c);
       } else {
-        R _373___mcc_h4 = _source14.dtor_err;
-        R _374_err = _373___mcc_h4;
-        return Dafny.Helpers.Id<Func<R, Dafny.ISequence<Dafny.Rune>>>(pr)(_374_err);
+        R _379___mcc_h4 = _source14.dtor_err;
+        R _380_err = _379___mcc_h4;
+        return Dafny.Helpers.Id<Func<R, Dafny.ISequence<Dafny.Rune>>>(pr)(_380_err);
       }
     }
   }
@@ -8778,9 +8803,9 @@ namespace Std.JSON.Utils.Cursors {
       return Std.JSON.Utils.Views.Core.View__.create((this).dtor_s, (this).dtor_beg, (this).dtor_point);
     }
     public Std.JSON.Utils.Cursors._ICursor__ Suffix() {
-      Std.JSON.Utils.Cursors._ICursor__ _375_dt__update__tmp_h0 = this;
-      uint _376_dt__update_hbeg_h0 = (this).dtor_point;
-      return Std.JSON.Utils.Cursors.Cursor__.create((_375_dt__update__tmp_h0).dtor_s, _376_dt__update_hbeg_h0, (_375_dt__update__tmp_h0).dtor_point, (_375_dt__update__tmp_h0).dtor_end);
+      Std.JSON.Utils.Cursors._ICursor__ _381_dt__update__tmp_h0 = this;
+      uint _382_dt__update_hbeg_h0 = (this).dtor_point;
+      return Std.JSON.Utils.Cursors.Cursor__.create((_381_dt__update__tmp_h0).dtor_s, _382_dt__update_hbeg_h0, (_381_dt__update__tmp_h0).dtor_point, (_381_dt__update__tmp_h0).dtor_end);
     }
     public Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> Split() {
       return Std.JSON.Utils.Cursors.Split<Std.JSON.Utils.Views.Core._IView__>.create((this).Prefix(), (this).Suffix());
@@ -8811,14 +8836,14 @@ namespace Std.JSON.Utils.Cursors {
       return ((this).Peek()) == ((short)((c).Value));
     }
     public Std.JSON.Utils.Cursors._ICursor__ Skip(uint n) {
-      Std.JSON.Utils.Cursors._ICursor__ _377_dt__update__tmp_h0 = this;
-      uint _378_dt__update_hpoint_h0 = ((this).dtor_point) + (n);
-      return Std.JSON.Utils.Cursors.Cursor__.create((_377_dt__update__tmp_h0).dtor_s, (_377_dt__update__tmp_h0).dtor_beg, _378_dt__update_hpoint_h0, (_377_dt__update__tmp_h0).dtor_end);
+      Std.JSON.Utils.Cursors._ICursor__ _383_dt__update__tmp_h0 = this;
+      uint _384_dt__update_hpoint_h0 = ((this).dtor_point) + (n);
+      return Std.JSON.Utils.Cursors.Cursor__.create((_383_dt__update__tmp_h0).dtor_s, (_383_dt__update__tmp_h0).dtor_beg, _384_dt__update_hpoint_h0, (_383_dt__update__tmp_h0).dtor_end);
     }
     public Std.JSON.Utils.Cursors._ICursor__ Unskip(uint n) {
-      Std.JSON.Utils.Cursors._ICursor__ _379_dt__update__tmp_h0 = this;
-      uint _380_dt__update_hpoint_h0 = ((this).dtor_point) - (n);
-      return Std.JSON.Utils.Cursors.Cursor__.create((_379_dt__update__tmp_h0).dtor_s, (_379_dt__update__tmp_h0).dtor_beg, _380_dt__update_hpoint_h0, (_379_dt__update__tmp_h0).dtor_end);
+      Std.JSON.Utils.Cursors._ICursor__ _385_dt__update__tmp_h0 = this;
+      uint _386_dt__update_hpoint_h0 = ((this).dtor_point) - (n);
+      return Std.JSON.Utils.Cursors.Cursor__.create((_385_dt__update__tmp_h0).dtor_s, (_385_dt__update__tmp_h0).dtor_beg, _386_dt__update_hpoint_h0, (_385_dt__update__tmp_h0).dtor_end);
     }
     public Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> Get<__R>(__R err) {
       if ((this).EOF_q) {
@@ -8828,11 +8853,11 @@ namespace Std.JSON.Utils.Cursors {
       }
     }
     public Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> AssertByte<__R>(byte b) {
-      short _381_nxt = (this).Peek();
-      if ((_381_nxt) == ((short)(b))) {
+      short _387_nxt = (this).Peek();
+      if ((_387_nxt) == ((short)(b))) {
         return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Success((this).Skip(1U));
       } else {
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_ExpectingByte(b, _381_nxt));
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_ExpectingByte(b, _387_nxt));
       }
     }
     public Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> AssertBytes<__R>(Dafny.ISequence<byte> bs, uint offset)
@@ -8842,18 +8867,18 @@ namespace Std.JSON.Utils.Cursors {
       if ((offset) == ((uint)(bs).LongCount)) {
         return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Success(_this);
       } else {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> _382_valueOrError0 = (_this).AssertByte<__R>((byte)((bs).Select(offset)));
-        if ((_382_valueOrError0).IsFailure()) {
-          return (_382_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ICursor__>();
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> _388_valueOrError0 = (_this).AssertByte<__R>((byte)((bs).Select(offset)));
+        if ((_388_valueOrError0).IsFailure()) {
+          return (_388_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ICursor__>();
         } else {
-          Std.JSON.Utils.Cursors._ICursor__ _383_ps = (_382_valueOrError0).Extract();
-          Std.JSON.Utils.Cursors._ICursor__ _in69 = _383_ps;
-          Dafny.ISequence<byte> _in70 = bs;
-          uint _in71 = (offset) + (1U);
-          _this = _in69;
+          Std.JSON.Utils.Cursors._ICursor__ _389_ps = (_388_valueOrError0).Extract();
+          Std.JSON.Utils.Cursors._ICursor__ _in70 = _389_ps;
+          Dafny.ISequence<byte> _in71 = bs;
+          uint _in72 = (offset) + (1U);
+          _this = _in70;
           ;
-          bs = _in70;
-          offset = _in71;
+          bs = _in71;
+          offset = _in72;
           goto TAIL_CALL_START;
         }
       }
@@ -8878,51 +8903,51 @@ namespace Std.JSON.Utils.Cursors {
     public Std.JSON.Utils.Cursors._ICursor__ SkipWhile(Func<byte, bool> p)
     {
       Std.JSON.Utils.Cursors._ICursor__ ps = Std.JSON.Utils.Cursors.Cursor.Default();
-      uint _384_point_k;
-      _384_point_k = (this).dtor_point;
-      uint _385_end;
-      _385_end = (this).dtor_end;
-      while (((_384_point_k) < (_385_end)) && (Dafny.Helpers.Id<Func<byte, bool>>(p)(((this).dtor_s).Select(_384_point_k)))) {
-        _384_point_k = (_384_point_k) + (1U);
+      uint _390_point_k;
+      _390_point_k = (this).dtor_point;
+      uint _391_end;
+      _391_end = (this).dtor_end;
+      while (((_390_point_k) < (_391_end)) && (Dafny.Helpers.Id<Func<byte, bool>>(p)(((this).dtor_s).Select(_390_point_k)))) {
+        _390_point_k = (_390_point_k) + (1U);
       }
-      ps = Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s, (this).dtor_beg, _384_point_k, (this).dtor_end);
+      ps = Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s, (this).dtor_beg, _390_point_k, (this).dtor_end);
       return ps;
       return ps;
     }
     public Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> SkipWhileLexer<__A, __R>(Func<__A, short, Std.JSON.Utils.Lexers.Core._ILexerResult<__A, __R>> step, __A st)
     {
       Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>> pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.Default(Std.JSON.Utils.Cursors.Cursor.Default());
-      uint _386_point_k;
-      _386_point_k = (this).dtor_point;
-      uint _387_end;
-      _387_end = (this).dtor_end;
-      __A _388_st_k;
-      _388_st_k = st;
+      uint _392_point_k;
+      _392_point_k = (this).dtor_point;
+      uint _393_end;
+      _393_end = (this).dtor_end;
+      __A _394_st_k;
+      _394_st_k = st;
       while (true) {
-        bool _389_eof;
-        _389_eof = (_386_point_k) == (_387_end);
-        short _390_minusone;
-        _390_minusone = (short)(-1);
-        short _391_c;
-        _391_c = ((_389_eof) ? (_390_minusone) : ((short)(((this).dtor_s).Select(_386_point_k))));
-        Std.JSON.Utils.Lexers.Core._ILexerResult<__A, __R> _source15 = Dafny.Helpers.Id<Func<__A, short, Std.JSON.Utils.Lexers.Core._ILexerResult<__A, __R>>>(step)(_388_st_k, _391_c);
+        bool _395_eof;
+        _395_eof = (_392_point_k) == (_393_end);
+        short _396_minusone;
+        _396_minusone = (short)(-1);
+        short _397_c;
+        _397_c = ((_395_eof) ? (_396_minusone) : ((short)(((this).dtor_s).Select(_392_point_k))));
+        Std.JSON.Utils.Lexers.Core._ILexerResult<__A, __R> _source15 = Dafny.Helpers.Id<Func<__A, short, Std.JSON.Utils.Lexers.Core._ILexerResult<__A, __R>>>(step)(_394_st_k, _397_c);
         if (_source15.is_Accept) {
-          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Success(Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s, (this).dtor_beg, _386_point_k, (this).dtor_end));
+          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Success(Std.JSON.Utils.Cursors.Cursor__.create((this).dtor_s, (this).dtor_beg, _392_point_k, (this).dtor_end));
           return pr;
         } else if (_source15.is_Reject) {
-          __R _392___mcc_h0 = _source15.dtor_err;
-          __R _393_err = _392___mcc_h0;
-          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_OtherError(_393_err));
+          __R _398___mcc_h0 = _source15.dtor_err;
+          __R _399_err = _398___mcc_h0;
+          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_OtherError(_399_err));
           return pr;
         } else {
-          __A _394___mcc_h1 = _source15.dtor_st;
-          __A _395_st_k_k = _394___mcc_h1;
-          if (_389_eof) {
+          __A _400___mcc_h1 = _source15.dtor_st;
+          __A _401_st_k_k = _400___mcc_h1;
+          if (_395_eof) {
             pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_EOF());
             return pr;
           } else {
-            _388_st_k = _395_st_k_k;
-            _386_point_k = (_386_point_k) + (1U);
+            _394_st_k = _401_st_k_k;
+            _392_point_k = (_392_point_k) + (1U);
           }
         }
       }
@@ -8940,12 +8965,12 @@ namespace Std.JSON.Utils.Parsers {
 
   public partial class __default {
     public static Std.JSON.Utils.Parsers._IParser__<__T, __R> ParserWitness<__T, __R>() {
-      return Std.JSON.Utils.Parsers.Parser__<__T, __R>.create(((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>>)((_396___v9) => {
+      return Std.JSON.Utils.Parsers.Parser__<__T, __R>.create(((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>>)((_402___v9) => {
   return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_EOF());
 })));
     }
     public static Std.JSON.Utils.Parsers._ISubParser__<__T, __R> SubParserWitness<__T, __R>() {
-      return Std.JSON.Utils.Parsers.SubParser__<__T, __R>.create(((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>>)((_397_cs) => {
+      return Std.JSON.Utils.Parsers.SubParser__<__T, __R>.create(((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>>)((_403_cs) => {
   return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<__R>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<__R>.create_EOF());
 })));
     }
@@ -10262,15 +10287,18 @@ namespace Std.JSON.ByteStrConversion {
     public static BigInteger BASE() {
       return Std.JSON.ByteStrConversion.__default.@base;
     }
+    public static bool IsDigitChar(byte c) {
+      return (Std.JSON.ByteStrConversion.__default.charToDigit).Contains(c);
+    }
     public static Dafny.ISequence<byte> OfDigits(Dafny.ISequence<BigInteger> digits) {
-      Dafny.ISequence<byte> _398___accumulator = Dafny.Sequence<byte>.FromElements();
+      Dafny.ISequence<byte> _404___accumulator = Dafny.Sequence<byte>.FromElements();
     TAIL_CALL_START: ;
       if ((digits).Equals(Dafny.Sequence<BigInteger>.FromElements())) {
-        return Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements(), _398___accumulator);
+        return Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements(), _404___accumulator);
       } else {
-        _398___accumulator = Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements((Std.JSON.ByteStrConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _398___accumulator);
-        Dafny.ISequence<BigInteger> _in72 = (digits).Drop(BigInteger.One);
-        digits = _in72;
+        _404___accumulator = Dafny.Sequence<byte>.Concat(Dafny.Sequence<byte>.FromElements((Std.JSON.ByteStrConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _404___accumulator);
+        Dafny.ISequence<BigInteger> _in73 = (digits).Drop(BigInteger.One);
+        digits = _in73;
         goto TAIL_CALL_START;
       }
     }
@@ -10281,18 +10309,11 @@ namespace Std.JSON.ByteStrConversion {
         return Std.JSON.ByteStrConversion.__default.OfDigits(Std.JSON.ByteStrConversion.__default.FromNat(n));
       }
     }
-    public static bool OfNumberStr(Dafny.ISequence<byte> str, byte minus)
+    public static bool IsNumberStr(Dafny.ISequence<byte> str, byte minus)
     {
-      return !(!(str).Equals(Dafny.Sequence<byte>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.ByteStrConversion.__default.chars).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<byte>, bool>>((_399_str) => Dafny.Helpers.Quantifier<byte>(((_399_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_5) => {
-        byte _400_c = (byte)_forall_var_5;
-        return !(((_399_str).Drop(BigInteger.One)).Contains(_400_c)) || ((Std.JSON.ByteStrConversion.__default.chars).Contains(_400_c));
-      }))))(str)));
-    }
-    public static bool ToNumberStr(Dafny.ISequence<byte> str, byte minus)
-    {
-      return !(!(str).Equals(Dafny.Sequence<byte>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.ByteStrConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<byte>, bool>>((_401_str) => Dafny.Helpers.Quantifier<byte>(((_401_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_6) => {
-        byte _402_c = (byte)_forall_var_6;
-        return !(((_401_str).Drop(BigInteger.One)).Contains(_402_c)) || ((Std.JSON.ByteStrConversion.__default.charToDigit).Contains(_402_c));
+      return !(!(str).Equals(Dafny.Sequence<byte>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.ByteStrConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<byte>, bool>>((_405_str) => Dafny.Helpers.Quantifier<byte>(((_405_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_3) => {
+        byte _406_c = (byte)_forall_var_3;
+        return !(((_405_str).Drop(BigInteger.One)).Contains(_406_c)) || (Std.JSON.ByteStrConversion.__default.IsDigitChar(_406_c));
       }))))(str)));
     }
     public static Dafny.ISequence<byte> OfInt(BigInteger n, byte minus)
@@ -10307,7 +10328,8 @@ namespace Std.JSON.ByteStrConversion {
       if ((str).Equals(Dafny.Sequence<byte>.FromElements())) {
         return BigInteger.Zero;
       } else {
-        return ((Std.JSON.ByteStrConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.JSON.ByteStrConversion.__default.@base)) + (Dafny.Map<byte, BigInteger>.Select(Std.JSON.ByteStrConversion.__default.charToDigit,(str).Select((new BigInteger((str).Count)) - (BigInteger.One))));
+        byte _407_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
+        return ((Std.JSON.ByteStrConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.JSON.ByteStrConversion.__default.@base)) + (Dafny.Map<byte, BigInteger>.Select(Std.JSON.ByteStrConversion.__default.charToDigit,_407_c));
       }
     }
     public static BigInteger ToInt(Dafny.ISequence<byte> str, byte minus)
@@ -10326,26 +10348,26 @@ namespace Std.JSON.ByteStrConversion {
       }
     }
     public static BigInteger ToNatLeft(Dafny.ISequence<BigInteger> xs) {
-      BigInteger _403___accumulator = BigInteger.Zero;
+      BigInteger _408___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return (BigInteger.Zero) + (_403___accumulator);
+        return (BigInteger.Zero) + (_408___accumulator);
       } else {
-        _403___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.JSON.ByteStrConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_403___accumulator);
-        Dafny.ISequence<BigInteger> _in73 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
-        xs = _in73;
+        _408___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.JSON.ByteStrConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_408___accumulator);
+        Dafny.ISequence<BigInteger> _in74 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
+        xs = _in74;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> FromNat(BigInteger n) {
-      Dafny.ISequence<BigInteger> _404___accumulator = Dafny.Sequence<BigInteger>.FromElements();
+      Dafny.ISequence<BigInteger> _409___accumulator = Dafny.Sequence<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((n).Sign == 0) {
-        return Dafny.Sequence<BigInteger>.Concat(_404___accumulator, Dafny.Sequence<BigInteger>.FromElements());
+        return Dafny.Sequence<BigInteger>.Concat(_409___accumulator, Dafny.Sequence<BigInteger>.FromElements());
       } else {
-        _404___accumulator = Dafny.Sequence<BigInteger>.Concat(_404___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.JSON.ByteStrConversion.__default.BASE())));
-        BigInteger _in74 = Dafny.Helpers.EuclideanDivision(n, Std.JSON.ByteStrConversion.__default.BASE());
-        n = _in74;
+        _409___accumulator = Dafny.Sequence<BigInteger>.Concat(_409___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.JSON.ByteStrConversion.__default.BASE())));
+        BigInteger _in75 = Dafny.Helpers.EuclideanDivision(n, Std.JSON.ByteStrConversion.__default.BASE());
+        n = _in75;
         goto TAIL_CALL_START;
       }
     }
@@ -10355,25 +10377,25 @@ namespace Std.JSON.ByteStrConversion {
       if ((new BigInteger((xs).Count)) >= (n)) {
         return xs;
       } else {
-        Dafny.ISequence<BigInteger> _in75 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
-        BigInteger _in76 = n;
-        xs = _in75;
-        n = _in76;
+        Dafny.ISequence<BigInteger> _in76 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
+        BigInteger _in77 = n;
+        xs = _in76;
+        n = _in77;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> SeqExtendMultiple(Dafny.ISequence<BigInteger> xs, BigInteger n)
     {
-      BigInteger _405_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
-      return Std.JSON.ByteStrConversion.__default.SeqExtend(xs, _405_newLen);
+      BigInteger _410_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
+      return Std.JSON.ByteStrConversion.__default.SeqExtend(xs, _410_newLen);
     }
     public static Dafny.ISequence<BigInteger> FromNatWithLen(BigInteger n, BigInteger len)
     {
       return Std.JSON.ByteStrConversion.__default.SeqExtend(Std.JSON.ByteStrConversion.__default.FromNat(n), len);
     }
     public static Dafny.ISequence<BigInteger> SeqZero(BigInteger len) {
-      Dafny.ISequence<BigInteger> _406_xs = Std.JSON.ByteStrConversion.__default.FromNatWithLen(BigInteger.Zero, len);
-      return _406_xs;
+      Dafny.ISequence<BigInteger> _411_xs = Std.JSON.ByteStrConversion.__default.FromNatWithLen(BigInteger.Zero, len);
+      return _411_xs;
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqAdd(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
     {
@@ -10381,13 +10403,13 @@ namespace Std.JSON.ByteStrConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs9 = Std.JSON.ByteStrConversion.__default.SeqAdd(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _407_zs_k = _let_tmp_rhs9.dtor__0;
-        BigInteger _408_cin = _let_tmp_rhs9.dtor__1;
-        BigInteger _409_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_408_cin);
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs10 = (((_409_sum) < (Std.JSON.ByteStrConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_409_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_409_sum) - (Std.JSON.ByteStrConversion.__default.BASE()), BigInteger.One)));
-        BigInteger _410_sum__out = _let_tmp_rhs10.dtor__0;
-        BigInteger _411_cout = _let_tmp_rhs10.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_407_zs_k, Dafny.Sequence<BigInteger>.FromElements(_410_sum__out)), _411_cout);
+        Dafny.ISequence<BigInteger> _412_zs_k = _let_tmp_rhs9.dtor__0;
+        BigInteger _413_cin = _let_tmp_rhs9.dtor__1;
+        BigInteger _414_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_413_cin);
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs10 = (((_414_sum) < (Std.JSON.ByteStrConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_414_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_414_sum) - (Std.JSON.ByteStrConversion.__default.BASE()), BigInteger.One)));
+        BigInteger _415_sum__out = _let_tmp_rhs10.dtor__0;
+        BigInteger _416_cout = _let_tmp_rhs10.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_412_zs_k, Dafny.Sequence<BigInteger>.FromElements(_415_sum__out)), _416_cout);
       }
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqSub(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
@@ -10396,12 +10418,12 @@ namespace Std.JSON.ByteStrConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs11 = Std.JSON.ByteStrConversion.__default.SeqSub(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _412_zs = _let_tmp_rhs11.dtor__0;
-        BigInteger _413_cin = _let_tmp_rhs11.dtor__1;
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs12 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_413_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_413_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.JSON.ByteStrConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_413_cin), BigInteger.One)));
-        BigInteger _414_diff__out = _let_tmp_rhs12.dtor__0;
-        BigInteger _415_cout = _let_tmp_rhs12.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_412_zs, Dafny.Sequence<BigInteger>.FromElements(_414_diff__out)), _415_cout);
+        Dafny.ISequence<BigInteger> _417_zs = _let_tmp_rhs11.dtor__0;
+        BigInteger _418_cin = _let_tmp_rhs11.dtor__1;
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs12 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_418_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_418_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.JSON.ByteStrConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_418_cin), BigInteger.One)));
+        BigInteger _419_diff__out = _let_tmp_rhs12.dtor__0;
+        BigInteger _420_cout = _let_tmp_rhs12.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_417_zs, Dafny.Sequence<BigInteger>.FromElements(_419_diff__out)), _420_cout);
       }
     }
     public static Dafny.ISequence<byte> chars { get {
@@ -10440,16 +10462,16 @@ namespace Std.JSON.Serializer {
       return Std.Wrappers.Outcome<Std.JSON.Errors._ISerializationError>.Need((new BigInteger((s).Count)) < (Std.BoundedInts.__default.TWO__TO__THE__32), err);
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError> String(Dafny.ISequence<Dafny.Rune> str) {
-      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _416_valueOrError0 = Std.JSON.Spec.__default.EscapeToUTF8(str, BigInteger.Zero);
-      if ((_416_valueOrError0).IsFailure()) {
-        return (_416_valueOrError0).PropagateFailure<Std.JSON.Grammar._Ijstring>();
+      Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> _421_valueOrError0 = Std.JSON.Spec.__default.EscapeToUTF8(str, BigInteger.Zero);
+      if ((_421_valueOrError0).IsFailure()) {
+        return (_421_valueOrError0).PropagateFailure<Std.JSON.Grammar._Ijstring>();
       } else {
-        Dafny.ISequence<byte> _417_bs = (_416_valueOrError0).Extract();
-        Std.Wrappers._IOutcome<Std.JSON.Errors._ISerializationError> _418_o = Std.JSON.Serializer.__default.CheckLength<byte>(_417_bs, Std.JSON.Errors.SerializationError.create_StringTooLong(str));
-        if ((_418_o).is_Pass) {
-          return Std.Wrappers.Result<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jstring.create(Std.JSON.Grammar.__default.DOUBLEQUOTE, Std.JSON.Utils.Views.Core.View__.OfBytes(_417_bs), Std.JSON.Grammar.__default.DOUBLEQUOTE));
+        Dafny.ISequence<byte> _422_bs = (_421_valueOrError0).Extract();
+        Std.Wrappers._IOutcome<Std.JSON.Errors._ISerializationError> _423_o = Std.JSON.Serializer.__default.CheckLength<byte>(_422_bs, Std.JSON.Errors.SerializationError.create_StringTooLong(str));
+        if ((_423_o).is_Pass) {
+          return Std.Wrappers.Result<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jstring.create(Std.JSON.Grammar.__default.DOUBLEQUOTE, Std.JSON.Utils.Views.Core.View__.OfBytes(_422_bs), Std.JSON.Grammar.__default.DOUBLEQUOTE));
         } else {
-          return Std.Wrappers.Result<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError>.create_Failure((_418_o).dtor_error);
+          return Std.Wrappers.Result<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError>.create_Failure((_423_o).dtor_error);
         }
       }
     }
@@ -10460,30 +10482,30 @@ namespace Std.JSON.Serializer {
       return Std.JSON.ByteStrConversion.__default.OfInt(n, Std.JSON.Serializer.__default.MINUS);
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError> Int(BigInteger n) {
-      Dafny.ISequence<byte> _419_bs = Std.JSON.Serializer.__default.Int_k(n);
-      Std.Wrappers._IOutcome<Std.JSON.Errors._ISerializationError> _420_o = Std.JSON.Serializer.__default.CheckLength<byte>(_419_bs, Std.JSON.Errors.SerializationError.create_IntTooLarge(n));
-      if ((_420_o).is_Pass) {
-        return Std.Wrappers.Result<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Utils.Views.Core.View__.OfBytes(_419_bs));
+      Dafny.ISequence<byte> _424_bs = Std.JSON.Serializer.__default.Int_k(n);
+      Std.Wrappers._IOutcome<Std.JSON.Errors._ISerializationError> _425_o = Std.JSON.Serializer.__default.CheckLength<byte>(_424_bs, Std.JSON.Errors.SerializationError.create_IntTooLarge(n));
+      if ((_425_o).is_Pass) {
+        return Std.Wrappers.Result<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Utils.Views.Core.View__.OfBytes(_424_bs));
       } else {
-        return Std.Wrappers.Result<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>.create_Failure((_420_o).dtor_error);
+        return Std.Wrappers.Result<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>.create_Failure((_425_o).dtor_error);
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._Ijnumber, Std.JSON.Errors._ISerializationError> Number(Std.JSON.Values._IDecimal dec) {
       var _pat_let_tv2 = dec;
       var _pat_let_tv3 = dec;
-      Std.JSON.Utils.Views.Core._IView__ _421_minus = Std.JSON.Serializer.__default.Sign((dec).dtor_n);
-      Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError> _422_valueOrError0 = Std.JSON.Serializer.__default.Int(Std.Math.__default.Abs((dec).dtor_n));
-      if ((_422_valueOrError0).IsFailure()) {
-        return (_422_valueOrError0).PropagateFailure<Std.JSON.Grammar._Ijnumber>();
+      Std.JSON.Utils.Views.Core._IView__ _426_minus = Std.JSON.Serializer.__default.Sign((dec).dtor_n);
+      Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError> _427_valueOrError0 = Std.JSON.Serializer.__default.Int(Std.Math.__default.Abs((dec).dtor_n));
+      if ((_427_valueOrError0).IsFailure()) {
+        return (_427_valueOrError0).PropagateFailure<Std.JSON.Grammar._Ijnumber>();
       } else {
-        Std.JSON.Utils.Views.Core._IView__ _423_num = (_422_valueOrError0).Extract();
-        Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _424_frac = Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty();
-        Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError> _425_valueOrError1 = ((((dec).dtor_e10).Sign == 0) ? (Std.Wrappers.Result<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_Empty())) : (Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Utils.Views.Core.View__.OfBytes(Dafny.Sequence<byte>.FromElements((byte)((new Dafny.Rune('e')).Value))), _pat_let2_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let2_0, _426_e => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Serializer.__default.Sign((_pat_let_tv2).dtor_e10), _pat_let3_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let3_0, _427_sign => Dafny.Helpers.Let<Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Serializer.__default.Int(Std.Math.__default.Abs((_pat_let_tv3).dtor_e10)), _pat_let4_0 => Dafny.Helpers.Let<Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let4_0, _428_valueOrError2 => (((_428_valueOrError2).IsFailure()) ? ((_428_valueOrError2).PropagateFailure<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>()) : (Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>((_428_valueOrError2).Extract(), _pat_let5_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let5_0, _429_num => Std.Wrappers.Result<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_NonEmpty(Std.JSON.Grammar.jexp.create(_426_e, _427_sign, _429_num)))))))))))))));
-        if ((_425_valueOrError1).IsFailure()) {
-          return (_425_valueOrError1).PropagateFailure<Std.JSON.Grammar._Ijnumber>();
+        Std.JSON.Utils.Views.Core._IView__ _428_num = (_427_valueOrError0).Extract();
+        Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _429_frac = Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty();
+        Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError> _430_valueOrError1 = ((((dec).dtor_e10).Sign == 0) ? (Std.Wrappers.Result<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_Empty())) : (Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Utils.Views.Core.View__.OfBytes(Dafny.Sequence<byte>.FromElements((byte)((new Dafny.Rune('e')).Value))), _pat_let2_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let2_0, _431_e => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Serializer.__default.Sign((_pat_let_tv2).dtor_e10), _pat_let3_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let3_0, _432_sign => Dafny.Helpers.Let<Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(Std.JSON.Serializer.__default.Int(Std.Math.__default.Abs((_pat_let_tv3).dtor_e10)), _pat_let4_0 => Dafny.Helpers.Let<Std.Wrappers._IResult<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._ISerializationError>, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let4_0, _433_valueOrError2 => (((_433_valueOrError2).IsFailure()) ? ((_433_valueOrError2).PropagateFailure<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>()) : (Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>((_433_valueOrError2).Extract(), _pat_let5_0 => Dafny.Helpers.Let<Std.JSON.Utils.Views.Core._IView__, Std.Wrappers._IResult<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>>(_pat_let5_0, _434_num => Std.Wrappers.Result<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_NonEmpty(Std.JSON.Grammar.jexp.create(_431_e, _432_sign, _434_num)))))))))))))));
+        if ((_430_valueOrError1).IsFailure()) {
+          return (_430_valueOrError1).PropagateFailure<Std.JSON.Grammar._Ijnumber>();
         } else {
-          Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp> _430_exp = (_425_valueOrError1).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._Ijnumber, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jnumber.create(_421_minus, _423_num, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty(), _430_exp));
+          Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp> _435_exp = (_430_valueOrError1).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._Ijnumber, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jnumber.create(_426_minus, _428_num, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty(), _435_exp));
         }
       }
     }
@@ -10491,59 +10513,59 @@ namespace Std.JSON.Serializer {
       return Std.JSON.Grammar.Structural<__T>.create(Std.JSON.Grammar.__default.EMPTY, v, Std.JSON.Grammar.__default.EMPTY);
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError> KeyValue(_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON> kv) {
-      Std.Wrappers._IResult<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError> _431_valueOrError0 = Std.JSON.Serializer.__default.String((kv).dtor__0);
-      if ((_431_valueOrError0).IsFailure()) {
-        return (_431_valueOrError0).PropagateFailure<Std.JSON.Grammar._IjKeyValue>();
+      Std.Wrappers._IResult<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError> _436_valueOrError0 = Std.JSON.Serializer.__default.String((kv).dtor__0);
+      if ((_436_valueOrError0).IsFailure()) {
+        return (_436_valueOrError0).PropagateFailure<Std.JSON.Grammar._IjKeyValue>();
       } else {
-        Std.JSON.Grammar._Ijstring _432_k = (_431_valueOrError0).Extract();
-        Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError> _433_valueOrError1 = Std.JSON.Serializer.__default.Value((kv).dtor__1);
-        if ((_433_valueOrError1).IsFailure()) {
-          return (_433_valueOrError1).PropagateFailure<Std.JSON.Grammar._IjKeyValue>();
+        Std.JSON.Grammar._Ijstring _437_k = (_436_valueOrError0).Extract();
+        Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError> _438_valueOrError1 = Std.JSON.Serializer.__default.Value((kv).dtor__1);
+        if ((_438_valueOrError1).IsFailure()) {
+          return (_438_valueOrError1).PropagateFailure<Std.JSON.Grammar._IjKeyValue>();
         } else {
-          Std.JSON.Grammar._IValue _434_v = (_433_valueOrError1).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jKeyValue.create(_432_k, Std.JSON.Serializer.__default.COLON, _434_v));
+          Std.JSON.Grammar._IValue _439_v = (_438_valueOrError1).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.jKeyValue.create(_437_k, Std.JSON.Serializer.__default.COLON, _439_v));
         }
       }
     }
     public static Dafny.ISequence<Std.JSON.Grammar._ISuffixed<__D, __S>> MkSuffixedSequence<__D, __S>(Dafny.ISequence<__D> ds, Std.JSON.Grammar._IStructural<__S> suffix, BigInteger start)
     {
-      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<__D, __S>> _435___accumulator = Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements();
+      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<__D, __S>> _440___accumulator = Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements();
     TAIL_CALL_START: ;
       if ((start) >= (new BigInteger((ds).Count))) {
-        return Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_435___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements());
+        return Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_440___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements());
       } else if ((start) == ((new BigInteger((ds).Count)) - (BigInteger.One))) {
-        return Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_435___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements(Std.JSON.Grammar.Suffixed<__D, __S>.create((ds).Select(start), Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<__S>>.create_Empty())));
+        return Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_440___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements(Std.JSON.Grammar.Suffixed<__D, __S>.create((ds).Select(start), Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<__S>>.create_Empty())));
       } else {
-        _435___accumulator = Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_435___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements(Std.JSON.Grammar.Suffixed<__D, __S>.create((ds).Select(start), Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<__S>>.create_NonEmpty(suffix))));
-        Dafny.ISequence<__D> _in77 = ds;
-        Std.JSON.Grammar._IStructural<__S> _in78 = suffix;
-        BigInteger _in79 = (start) + (BigInteger.One);
-        ds = _in77;
-        suffix = _in78;
-        start = _in79;
+        _440___accumulator = Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.Concat(_440___accumulator, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<__D, __S>>.FromElements(Std.JSON.Grammar.Suffixed<__D, __S>.create((ds).Select(start), Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<__S>>.create_NonEmpty(suffix))));
+        Dafny.ISequence<__D> _in78 = ds;
+        Std.JSON.Grammar._IStructural<__S> _in79 = suffix;
+        BigInteger _in80 = (start) + (BigInteger.One);
+        ds = _in78;
+        suffix = _in79;
+        start = _in80;
         goto TAIL_CALL_START;
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> Object(Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> obj) {
-      Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Errors._ISerializationError> _436_valueOrError0 = Std.Collections.Seq.__default.MapWithResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>(Dafny.Helpers.Id<Func<Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>, Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.Wrappers._IResult<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>>>>((_437_obj) => ((System.Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.Wrappers._IResult<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>>)((_438_v) => {
-        return Std.JSON.Serializer.__default.KeyValue(_438_v);
+      Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Errors._ISerializationError> _441_valueOrError0 = Std.Collections.Seq.__default.MapWithResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>(Dafny.Helpers.Id<Func<Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>, Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.Wrappers._IResult<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>>>>((_442_obj) => ((System.Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.Wrappers._IResult<Std.JSON.Grammar._IjKeyValue, Std.JSON.Errors._ISerializationError>>)((_443_v) => {
+        return Std.JSON.Serializer.__default.KeyValue(_443_v);
       })))(obj), obj);
-      if ((_436_valueOrError0).IsFailure()) {
-        return (_436_valueOrError0).PropagateFailure<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>();
+      if ((_441_valueOrError0).IsFailure()) {
+        return (_441_valueOrError0).PropagateFailure<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Dafny.ISequence<Std.JSON.Grammar._IjKeyValue> _439_items = (_436_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.LBRACE), Std.JSON.Serializer.__default.MkSuffixedSequence<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>(_439_items, Std.JSON.Serializer.__default.COMMA, BigInteger.Zero), Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.RBRACE)));
+        Dafny.ISequence<Std.JSON.Grammar._IjKeyValue> _444_items = (_441_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.LBRACE), Std.JSON.Serializer.__default.MkSuffixedSequence<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>(_444_items, Std.JSON.Serializer.__default.COMMA, BigInteger.Zero), Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.RBRACE)));
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> Array(Dafny.ISequence<Std.JSON.Values._IJSON> arr) {
-      Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _440_valueOrError0 = Std.Collections.Seq.__default.MapWithResult<Std.JSON.Values._IJSON, Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>(Dafny.Helpers.Id<Func<Dafny.ISequence<Std.JSON.Values._IJSON>, Func<Std.JSON.Values._IJSON, Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>>>>((_441_arr) => ((System.Func<Std.JSON.Values._IJSON, Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>>)((_442_v) => {
-        return Std.JSON.Serializer.__default.Value(_442_v);
+      Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _445_valueOrError0 = Std.Collections.Seq.__default.MapWithResult<Std.JSON.Values._IJSON, Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>(Dafny.Helpers.Id<Func<Dafny.ISequence<Std.JSON.Values._IJSON>, Func<Std.JSON.Values._IJSON, Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>>>>((_446_arr) => ((System.Func<Std.JSON.Values._IJSON, Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>>)((_447_v) => {
+        return Std.JSON.Serializer.__default.Value(_447_v);
       })))(arr), arr);
-      if ((_440_valueOrError0).IsFailure()) {
-        return (_440_valueOrError0).PropagateFailure<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>();
+      if ((_445_valueOrError0).IsFailure()) {
+        return (_445_valueOrError0).PropagateFailure<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Dafny.ISequence<Std.JSON.Grammar._IValue> _443_items = (_440_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.LBRACKET), Std.JSON.Serializer.__default.MkSuffixedSequence<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>(_443_items, Std.JSON.Serializer.__default.COMMA, BigInteger.Zero), Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.RBRACKET)));
+        Dafny.ISequence<Std.JSON.Grammar._IValue> _448_items = (_445_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.LBRACKET), Std.JSON.Serializer.__default.MkSuffixedSequence<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>(_448_items, Std.JSON.Serializer.__default.COMMA, BigInteger.Zero), Std.JSON.Serializer.__default.MkStructural<Std.JSON.Utils.Views.Core._IView__>(Std.JSON.Grammar.__default.RBRACKET)));
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError> Value(Std.JSON.Values._IJSON js) {
@@ -10551,58 +10573,58 @@ namespace Std.JSON.Serializer {
       if (_source16.is_Null) {
         return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Null(Std.JSON.Utils.Views.Core.View__.OfBytes(Std.JSON.Grammar.__default.NULL)));
       } else if (_source16.is_Bool) {
-        bool _444___mcc_h0 = _source16.dtor_b;
-        bool _445_b = _444___mcc_h0;
-        return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Bool(Std.JSON.Serializer.__default.Bool(_445_b)));
+        bool _449___mcc_h0 = _source16.dtor_b;
+        bool _450_b = _449___mcc_h0;
+        return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Bool(Std.JSON.Serializer.__default.Bool(_450_b)));
       } else if (_source16.is_String) {
-        Dafny.ISequence<Dafny.Rune> _446___mcc_h1 = _source16.dtor_str;
-        Dafny.ISequence<Dafny.Rune> _447_str = _446___mcc_h1;
-        Std.Wrappers._IResult<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError> _448_valueOrError0 = Std.JSON.Serializer.__default.String(_447_str);
-        if ((_448_valueOrError0).IsFailure()) {
-          return (_448_valueOrError0).PropagateFailure<Std.JSON.Grammar._IValue>();
+        Dafny.ISequence<Dafny.Rune> _451___mcc_h1 = _source16.dtor_str;
+        Dafny.ISequence<Dafny.Rune> _452_str = _451___mcc_h1;
+        Std.Wrappers._IResult<Std.JSON.Grammar._Ijstring, Std.JSON.Errors._ISerializationError> _453_valueOrError0 = Std.JSON.Serializer.__default.String(_452_str);
+        if ((_453_valueOrError0).IsFailure()) {
+          return (_453_valueOrError0).PropagateFailure<Std.JSON.Grammar._IValue>();
         } else {
-          Std.JSON.Grammar._Ijstring _449_s = (_448_valueOrError0).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_String(_449_s));
+          Std.JSON.Grammar._Ijstring _454_s = (_453_valueOrError0).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_String(_454_s));
         }
       } else if (_source16.is_Number) {
-        Std.JSON.Values._IDecimal _450___mcc_h2 = _source16.dtor_num;
-        Std.JSON.Values._IDecimal _451_dec = _450___mcc_h2;
-        Std.Wrappers._IResult<Std.JSON.Grammar._Ijnumber, Std.JSON.Errors._ISerializationError> _452_valueOrError1 = Std.JSON.Serializer.__default.Number(_451_dec);
-        if ((_452_valueOrError1).IsFailure()) {
-          return (_452_valueOrError1).PropagateFailure<Std.JSON.Grammar._IValue>();
+        Std.JSON.Values._IDecimal _455___mcc_h2 = _source16.dtor_num;
+        Std.JSON.Values._IDecimal _456_dec = _455___mcc_h2;
+        Std.Wrappers._IResult<Std.JSON.Grammar._Ijnumber, Std.JSON.Errors._ISerializationError> _457_valueOrError1 = Std.JSON.Serializer.__default.Number(_456_dec);
+        if ((_457_valueOrError1).IsFailure()) {
+          return (_457_valueOrError1).PropagateFailure<Std.JSON.Grammar._IValue>();
         } else {
-          Std.JSON.Grammar._Ijnumber _453_n = (_452_valueOrError1).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Number(_453_n));
+          Std.JSON.Grammar._Ijnumber _458_n = (_457_valueOrError1).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Number(_458_n));
         }
       } else if (_source16.is_Object) {
-        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _454___mcc_h3 = _source16.dtor_obj;
-        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _455_obj = _454___mcc_h3;
-        Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> _456_valueOrError2 = Std.JSON.Serializer.__default.Object(_455_obj);
-        if ((_456_valueOrError2).IsFailure()) {
-          return (_456_valueOrError2).PropagateFailure<Std.JSON.Grammar._IValue>();
+        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _459___mcc_h3 = _source16.dtor_obj;
+        Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _460_obj = _459___mcc_h3;
+        Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> _461_valueOrError2 = Std.JSON.Serializer.__default.Object(_460_obj);
+        if ((_461_valueOrError2).IsFailure()) {
+          return (_461_valueOrError2).PropagateFailure<Std.JSON.Grammar._IValue>();
         } else {
-          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _457_o = (_456_valueOrError2).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Object(_457_o));
+          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _462_o = (_461_valueOrError2).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Object(_462_o));
         }
       } else {
-        Dafny.ISequence<Std.JSON.Values._IJSON> _458___mcc_h4 = _source16.dtor_arr;
-        Dafny.ISequence<Std.JSON.Values._IJSON> _459_arr = _458___mcc_h4;
-        Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> _460_valueOrError3 = Std.JSON.Serializer.__default.Array(_459_arr);
-        if ((_460_valueOrError3).IsFailure()) {
-          return (_460_valueOrError3).PropagateFailure<Std.JSON.Grammar._IValue>();
+        Dafny.ISequence<Std.JSON.Values._IJSON> _463___mcc_h4 = _source16.dtor_arr;
+        Dafny.ISequence<Std.JSON.Values._IJSON> _464_arr = _463___mcc_h4;
+        Std.Wrappers._IResult<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Errors._ISerializationError> _465_valueOrError3 = Std.JSON.Serializer.__default.Array(_464_arr);
+        if ((_465_valueOrError3).IsFailure()) {
+          return (_465_valueOrError3).PropagateFailure<Std.JSON.Grammar._IValue>();
         } else {
-          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _461_a = (_460_valueOrError3).Extract();
-          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Array(_461_a));
+          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _466_a = (_465_valueOrError3).Extract();
+          return Std.Wrappers.Result<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Grammar.Value.create_Array(_466_a));
         }
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> JSON(Std.JSON.Values._IJSON js) {
-      Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError> _462_valueOrError0 = Std.JSON.Serializer.__default.Value(js);
-      if ((_462_valueOrError0).IsFailure()) {
-        return (_462_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
+      Std.Wrappers._IResult<Std.JSON.Grammar._IValue, Std.JSON.Errors._ISerializationError> _467_valueOrError0 = Std.JSON.Serializer.__default.Value(js);
+      if ((_467_valueOrError0).IsFailure()) {
+        return (_467_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
       } else {
-        Std.JSON.Grammar._IValue _463_val = (_462_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Grammar._IValue>(_463_val));
+        Std.JSON.Grammar._IValue _468_val = (_467_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.create_Success(Std.JSON.Serializer.__default.MkStructural<Std.JSON.Grammar._IValue>(_468_val));
       }
     }
     public static Dafny.ISequence<byte> DIGITS { get {
@@ -10639,15 +10661,18 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
     public static BigInteger BASE() {
       return Std.JSON.Deserializer.Uint16StrConversion.__default.@base;
     }
+    public static bool IsDigitChar(ushort c) {
+      return (Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit).Contains(c);
+    }
     public static Dafny.ISequence<ushort> OfDigits(Dafny.ISequence<BigInteger> digits) {
-      Dafny.ISequence<ushort> _464___accumulator = Dafny.Sequence<ushort>.FromElements();
+      Dafny.ISequence<ushort> _469___accumulator = Dafny.Sequence<ushort>.FromElements();
     TAIL_CALL_START: ;
       if ((digits).Equals(Dafny.Sequence<BigInteger>.FromElements())) {
-        return Dafny.Sequence<ushort>.Concat(Dafny.Sequence<ushort>.FromElements(), _464___accumulator);
+        return Dafny.Sequence<ushort>.Concat(Dafny.Sequence<ushort>.FromElements(), _469___accumulator);
       } else {
-        _464___accumulator = Dafny.Sequence<ushort>.Concat(Dafny.Sequence<ushort>.FromElements((Std.JSON.Deserializer.Uint16StrConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _464___accumulator);
-        Dafny.ISequence<BigInteger> _in80 = (digits).Drop(BigInteger.One);
-        digits = _in80;
+        _469___accumulator = Dafny.Sequence<ushort>.Concat(Dafny.Sequence<ushort>.FromElements((Std.JSON.Deserializer.Uint16StrConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _469___accumulator);
+        Dafny.ISequence<BigInteger> _in81 = (digits).Drop(BigInteger.One);
+        digits = _in81;
         goto TAIL_CALL_START;
       }
     }
@@ -10658,18 +10683,11 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
         return Std.JSON.Deserializer.Uint16StrConversion.__default.OfDigits(Std.JSON.Deserializer.Uint16StrConversion.__default.FromNat(n));
       }
     }
-    public static bool OfNumberStr(Dafny.ISequence<ushort> str, ushort minus)
+    public static bool IsNumberStr(Dafny.ISequence<ushort> str, ushort minus)
     {
-      return !(!(str).Equals(Dafny.Sequence<ushort>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.Deserializer.Uint16StrConversion.__default.chars).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<ushort>, bool>>((_465_str) => Dafny.Helpers.Quantifier<ushort>(((_465_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_7) => {
-        ushort _466_c = (ushort)_forall_var_7;
-        return !(((_465_str).Drop(BigInteger.One)).Contains(_466_c)) || ((Std.JSON.Deserializer.Uint16StrConversion.__default.chars).Contains(_466_c));
-      }))))(str)));
-    }
-    public static bool ToNumberStr(Dafny.ISequence<ushort> str, ushort minus)
-    {
-      return !(!(str).Equals(Dafny.Sequence<ushort>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<ushort>, bool>>((_467_str) => Dafny.Helpers.Quantifier<ushort>(((_467_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_8) => {
-        ushort _468_c = (ushort)_forall_var_8;
-        return !(((_467_str).Drop(BigInteger.One)).Contains(_468_c)) || ((Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit).Contains(_468_c));
+      return !(!(str).Equals(Dafny.Sequence<ushort>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<ushort>, bool>>((_470_str) => Dafny.Helpers.Quantifier<ushort>(((_470_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_4) => {
+        ushort _471_c = (ushort)_forall_var_4;
+        return !(((_470_str).Drop(BigInteger.One)).Contains(_471_c)) || (Std.JSON.Deserializer.Uint16StrConversion.__default.IsDigitChar(_471_c));
       }))))(str)));
     }
     public static Dafny.ISequence<ushort> OfInt(BigInteger n, ushort minus)
@@ -10684,7 +10702,8 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
       if ((str).Equals(Dafny.Sequence<ushort>.FromElements())) {
         return BigInteger.Zero;
       } else {
-        return ((Std.JSON.Deserializer.Uint16StrConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.JSON.Deserializer.Uint16StrConversion.__default.@base)) + (Dafny.Map<ushort, BigInteger>.Select(Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit,(str).Select((new BigInteger((str).Count)) - (BigInteger.One))));
+        ushort _472_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
+        return ((Std.JSON.Deserializer.Uint16StrConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.JSON.Deserializer.Uint16StrConversion.__default.@base)) + (Dafny.Map<ushort, BigInteger>.Select(Std.JSON.Deserializer.Uint16StrConversion.__default.charToDigit,_472_c));
       }
     }
     public static BigInteger ToInt(Dafny.ISequence<ushort> str, ushort minus)
@@ -10703,26 +10722,26 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
       }
     }
     public static BigInteger ToNatLeft(Dafny.ISequence<BigInteger> xs) {
-      BigInteger _469___accumulator = BigInteger.Zero;
+      BigInteger _473___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return (BigInteger.Zero) + (_469___accumulator);
+        return (BigInteger.Zero) + (_473___accumulator);
       } else {
-        _469___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.JSON.Deserializer.Uint16StrConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_469___accumulator);
-        Dafny.ISequence<BigInteger> _in81 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
-        xs = _in81;
+        _473___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.JSON.Deserializer.Uint16StrConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_473___accumulator);
+        Dafny.ISequence<BigInteger> _in82 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
+        xs = _in82;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> FromNat(BigInteger n) {
-      Dafny.ISequence<BigInteger> _470___accumulator = Dafny.Sequence<BigInteger>.FromElements();
+      Dafny.ISequence<BigInteger> _474___accumulator = Dafny.Sequence<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((n).Sign == 0) {
-        return Dafny.Sequence<BigInteger>.Concat(_470___accumulator, Dafny.Sequence<BigInteger>.FromElements());
+        return Dafny.Sequence<BigInteger>.Concat(_474___accumulator, Dafny.Sequence<BigInteger>.FromElements());
       } else {
-        _470___accumulator = Dafny.Sequence<BigInteger>.Concat(_470___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.JSON.Deserializer.Uint16StrConversion.__default.BASE())));
-        BigInteger _in82 = Dafny.Helpers.EuclideanDivision(n, Std.JSON.Deserializer.Uint16StrConversion.__default.BASE());
-        n = _in82;
+        _474___accumulator = Dafny.Sequence<BigInteger>.Concat(_474___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.JSON.Deserializer.Uint16StrConversion.__default.BASE())));
+        BigInteger _in83 = Dafny.Helpers.EuclideanDivision(n, Std.JSON.Deserializer.Uint16StrConversion.__default.BASE());
+        n = _in83;
         goto TAIL_CALL_START;
       }
     }
@@ -10732,25 +10751,25 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
       if ((new BigInteger((xs).Count)) >= (n)) {
         return xs;
       } else {
-        Dafny.ISequence<BigInteger> _in83 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
-        BigInteger _in84 = n;
-        xs = _in83;
-        n = _in84;
+        Dafny.ISequence<BigInteger> _in84 = Dafny.Sequence<BigInteger>.Concat(xs, Dafny.Sequence<BigInteger>.FromElements(BigInteger.Zero));
+        BigInteger _in85 = n;
+        xs = _in84;
+        n = _in85;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> SeqExtendMultiple(Dafny.ISequence<BigInteger> xs, BigInteger n)
     {
-      BigInteger _471_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
-      return Std.JSON.Deserializer.Uint16StrConversion.__default.SeqExtend(xs, _471_newLen);
+      BigInteger _475_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
+      return Std.JSON.Deserializer.Uint16StrConversion.__default.SeqExtend(xs, _475_newLen);
     }
     public static Dafny.ISequence<BigInteger> FromNatWithLen(BigInteger n, BigInteger len)
     {
       return Std.JSON.Deserializer.Uint16StrConversion.__default.SeqExtend(Std.JSON.Deserializer.Uint16StrConversion.__default.FromNat(n), len);
     }
     public static Dafny.ISequence<BigInteger> SeqZero(BigInteger len) {
-      Dafny.ISequence<BigInteger> _472_xs = Std.JSON.Deserializer.Uint16StrConversion.__default.FromNatWithLen(BigInteger.Zero, len);
-      return _472_xs;
+      Dafny.ISequence<BigInteger> _476_xs = Std.JSON.Deserializer.Uint16StrConversion.__default.FromNatWithLen(BigInteger.Zero, len);
+      return _476_xs;
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqAdd(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
     {
@@ -10758,13 +10777,13 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs13 = Std.JSON.Deserializer.Uint16StrConversion.__default.SeqAdd(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _473_zs_k = _let_tmp_rhs13.dtor__0;
-        BigInteger _474_cin = _let_tmp_rhs13.dtor__1;
-        BigInteger _475_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_474_cin);
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs14 = (((_475_sum) < (Std.JSON.Deserializer.Uint16StrConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_475_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_475_sum) - (Std.JSON.Deserializer.Uint16StrConversion.__default.BASE()), BigInteger.One)));
-        BigInteger _476_sum__out = _let_tmp_rhs14.dtor__0;
-        BigInteger _477_cout = _let_tmp_rhs14.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_473_zs_k, Dafny.Sequence<BigInteger>.FromElements(_476_sum__out)), _477_cout);
+        Dafny.ISequence<BigInteger> _477_zs_k = _let_tmp_rhs13.dtor__0;
+        BigInteger _478_cin = _let_tmp_rhs13.dtor__1;
+        BigInteger _479_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_478_cin);
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs14 = (((_479_sum) < (Std.JSON.Deserializer.Uint16StrConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_479_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_479_sum) - (Std.JSON.Deserializer.Uint16StrConversion.__default.BASE()), BigInteger.One)));
+        BigInteger _480_sum__out = _let_tmp_rhs14.dtor__0;
+        BigInteger _481_cout = _let_tmp_rhs14.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_477_zs_k, Dafny.Sequence<BigInteger>.FromElements(_480_sum__out)), _481_cout);
       }
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqSub(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
@@ -10773,12 +10792,12 @@ namespace Std.JSON.Deserializer.Uint16StrConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs15 = Std.JSON.Deserializer.Uint16StrConversion.__default.SeqSub(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _478_zs = _let_tmp_rhs15.dtor__0;
-        BigInteger _479_cin = _let_tmp_rhs15.dtor__1;
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs16 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_479_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_479_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.JSON.Deserializer.Uint16StrConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_479_cin), BigInteger.One)));
-        BigInteger _480_diff__out = _let_tmp_rhs16.dtor__0;
-        BigInteger _481_cout = _let_tmp_rhs16.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_478_zs, Dafny.Sequence<BigInteger>.FromElements(_480_diff__out)), _481_cout);
+        Dafny.ISequence<BigInteger> _482_zs = _let_tmp_rhs15.dtor__0;
+        BigInteger _483_cin = _let_tmp_rhs15.dtor__1;
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs16 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_483_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_483_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.JSON.Deserializer.Uint16StrConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_483_cin), BigInteger.One)));
+        BigInteger _484_diff__out = _let_tmp_rhs16.dtor__0;
+        BigInteger _485_cout = _let_tmp_rhs16.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_482_zs, Dafny.Sequence<BigInteger>.FromElements(_484_diff__out)), _485_cout);
       }
     }
     public static Dafny.ISequence<ushort> chars { get {
@@ -10816,8 +10835,8 @@ namespace Std.JSON.Deserializer {
       return Std.JSON.Errors.DeserializationError.create_UnsupportedEscape(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.GetOr(Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF16Checked(code), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Couldn't decode UTF-16")));
     }
     public static ushort ToNat16(Dafny.ISequence<ushort> str) {
-      BigInteger _482_hd = Std.JSON.Deserializer.Uint16StrConversion.__default.ToNat(str);
-      return (ushort)(_482_hd);
+      BigInteger _486_hd = Std.JSON.Deserializer.Uint16StrConversion.__default.ToNat(str);
+      return (ushort)(_486_hd);
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError> Unescape(Dafny.ISequence<ushort> str, BigInteger start, Dafny.ISequence<ushort> prefix)
     {
@@ -10828,202 +10847,202 @@ namespace Std.JSON.Deserializer {
         if ((new BigInteger((str).Count)) == ((start) + (BigInteger.One))) {
           return Std.Wrappers.Result<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError>.create_Failure(Std.JSON.Errors.DeserializationError.create_EscapeAtEOS());
         } else {
-          ushort _483_c = (str).Select((start) + (BigInteger.One));
-          if ((_483_c) == ((ushort)((new Dafny.Rune('u')).Value))) {
+          ushort _487_c = (str).Select((start) + (BigInteger.One));
+          if ((_487_c) == ((ushort)((new Dafny.Rune('u')).Value))) {
             if ((new BigInteger((str).Count)) <= ((start) + (new BigInteger(6)))) {
               return Std.Wrappers.Result<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError>.create_Failure(Std.JSON.Errors.DeserializationError.create_EscapeAtEOS());
             } else {
-              Dafny.ISequence<ushort> _484_code = (str).Subsequence((start) + (new BigInteger(2)), (start) + (new BigInteger(6)));
-              if (Dafny.Helpers.Id<Func<Dafny.ISequence<ushort>, bool>>((_485_code) => Dafny.Helpers.Quantifier<ushort>((_485_code).UniqueElements, false, (((_exists_var_0) => {
-                ushort _486_c = (ushort)_exists_var_0;
-                return ((_485_code).Contains(_486_c)) && (!(Std.JSON.Deserializer.__default.HEX__TABLE__16).Contains(_486_c));
-              }))))(_484_code)) {
-                return Std.Wrappers.Result<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError>.create_Failure(Std.JSON.Deserializer.__default.UnsupportedEscape16(_484_code));
+              Dafny.ISequence<ushort> _488_code = (str).Subsequence((start) + (new BigInteger(2)), (start) + (new BigInteger(6)));
+              if (Dafny.Helpers.Id<Func<Dafny.ISequence<ushort>, bool>>((_489_code) => Dafny.Helpers.Quantifier<ushort>((_489_code).UniqueElements, false, (((_exists_var_0) => {
+                ushort _490_c = (ushort)_exists_var_0;
+                return ((_489_code).Contains(_490_c)) && (!(Std.JSON.Deserializer.__default.HEX__TABLE__16).Contains(_490_c));
+              }))))(_488_code)) {
+                return Std.Wrappers.Result<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError>.create_Failure(Std.JSON.Deserializer.__default.UnsupportedEscape16(_488_code));
               } else {
-                ushort _487_hd = Std.JSON.Deserializer.__default.ToNat16(_484_code);
-                Dafny.ISequence<ushort> _in85 = str;
-                BigInteger _in86 = (start) + (new BigInteger(6));
-                Dafny.ISequence<ushort> _in87 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements(_487_hd));
-                str = _in85;
-                start = _in86;
-                prefix = _in87;
+                ushort _491_hd = Std.JSON.Deserializer.__default.ToNat16(_488_code);
+                Dafny.ISequence<ushort> _in86 = str;
+                BigInteger _in87 = (start) + (new BigInteger(6));
+                Dafny.ISequence<ushort> _in88 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements(_491_hd));
+                str = _in86;
+                start = _in87;
+                prefix = _in88;
                 goto TAIL_CALL_START;
               }
             }
           } else {
-            ushort _488_unescaped = (((_483_c) == ((ushort)(34))) ? ((ushort)(34)) : ((((_483_c) == ((ushort)(92))) ? ((ushort)(92)) : ((((_483_c) == ((ushort)(98))) ? ((ushort)(8)) : ((((_483_c) == ((ushort)(102))) ? ((ushort)(12)) : ((((_483_c) == ((ushort)(110))) ? ((ushort)(10)) : ((((_483_c) == ((ushort)(114))) ? ((ushort)(13)) : ((((_483_c) == ((ushort)(116))) ? ((ushort)(9)) : ((ushort)(0)))))))))))))));
-            if ((new BigInteger(_488_unescaped)).Sign == 0) {
+            ushort _492_unescaped = (((_487_c) == ((ushort)(34))) ? ((ushort)(34)) : ((((_487_c) == ((ushort)(92))) ? ((ushort)(92)) : ((((_487_c) == ((ushort)(98))) ? ((ushort)(8)) : ((((_487_c) == ((ushort)(102))) ? ((ushort)(12)) : ((((_487_c) == ((ushort)(110))) ? ((ushort)(10)) : ((((_487_c) == ((ushort)(114))) ? ((ushort)(13)) : ((((_487_c) == ((ushort)(116))) ? ((ushort)(9)) : ((ushort)(0)))))))))))))));
+            if ((new BigInteger(_492_unescaped)).Sign == 0) {
               return Std.Wrappers.Result<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError>.create_Failure(Std.JSON.Deserializer.__default.UnsupportedEscape16((str).Subsequence(start, (start) + (new BigInteger(2)))));
             } else {
-              Dafny.ISequence<ushort> _in88 = str;
-              BigInteger _in89 = (start) + (new BigInteger(2));
-              Dafny.ISequence<ushort> _in90 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements(_488_unescaped));
-              str = _in88;
-              start = _in89;
-              prefix = _in90;
+              Dafny.ISequence<ushort> _in89 = str;
+              BigInteger _in90 = (start) + (new BigInteger(2));
+              Dafny.ISequence<ushort> _in91 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements(_492_unescaped));
+              str = _in89;
+              start = _in90;
+              prefix = _in91;
               goto TAIL_CALL_START;
             }
           }
         }
       } else {
-        Dafny.ISequence<ushort> _in91 = str;
-        BigInteger _in92 = (start) + (BigInteger.One);
-        Dafny.ISequence<ushort> _in93 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements((str).Select(start)));
-        str = _in91;
-        start = _in92;
-        prefix = _in93;
+        Dafny.ISequence<ushort> _in92 = str;
+        BigInteger _in93 = (start) + (BigInteger.One);
+        Dafny.ISequence<ushort> _in94 = Dafny.Sequence<ushort>.Concat(prefix, Dafny.Sequence<ushort>.FromElements((str).Select(start)));
+        str = _in92;
+        start = _in93;
+        prefix = _in94;
         goto TAIL_CALL_START;
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> String(Std.JSON.Grammar._Ijstring js) {
-      Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _489_valueOrError0 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF8Checked(((js).dtor_contents).Bytes())).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
-      if ((_489_valueOrError0).IsFailure()) {
-        return (_489_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+      Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _493_valueOrError0 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF8Checked(((js).dtor_contents).Bytes())).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
+      if ((_493_valueOrError0).IsFailure()) {
+        return (_493_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
       } else {
-        Dafny.ISequence<Dafny.Rune> _490_asUtf32 = (_489_valueOrError0).Extract();
-        Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError> _491_valueOrError1 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF16Checked(_490_asUtf32)).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
-        if ((_491_valueOrError1).IsFailure()) {
-          return (_491_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+        Dafny.ISequence<Dafny.Rune> _494_asUtf32 = (_493_valueOrError0).Extract();
+        Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError> _495_valueOrError1 = (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.ToUTF16Checked(_494_asUtf32)).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
+        if ((_495_valueOrError1).IsFailure()) {
+          return (_495_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
         } else {
-          Dafny.ISequence<ushort> _492_asUint16 = (_491_valueOrError1).Extract();
-          Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError> _493_valueOrError2 = Std.JSON.Deserializer.__default.Unescape(_492_asUint16, BigInteger.Zero, Dafny.Sequence<ushort>.FromElements());
-          if ((_493_valueOrError2).IsFailure()) {
-            return (_493_valueOrError2).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+          Dafny.ISequence<ushort> _496_asUint16 = (_495_valueOrError1).Extract();
+          Std.Wrappers._IResult<Dafny.ISequence<ushort>, Std.JSON.Errors._IDeserializationError> _497_valueOrError2 = Std.JSON.Deserializer.__default.Unescape(_496_asUint16, BigInteger.Zero, Dafny.Sequence<ushort>.FromElements());
+          if ((_497_valueOrError2).IsFailure()) {
+            return (_497_valueOrError2).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
           } else {
-            Dafny.ISequence<ushort> _494_unescaped = (_493_valueOrError2).Extract();
-            return (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF16Checked(_494_unescaped)).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
+            Dafny.ISequence<ushort> _498_unescaped = (_497_valueOrError2).Extract();
+            return (Std.Unicode.UnicodeStringsWithUnicodeChar.__default.FromUTF16Checked(_498_unescaped)).ToResult<Std.JSON.Errors._IDeserializationError>(Std.JSON.Errors.DeserializationError.create_InvalidUnicode());
           }
         }
       }
     }
     public static Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> ToInt(Std.JSON.Utils.Views.Core._IView__ sign, Std.JSON.Utils.Views.Core._IView__ n)
     {
-      BigInteger _495_n = Std.JSON.ByteStrConversion.__default.ToNat((n).Bytes());
-      return Std.Wrappers.Result<BigInteger, Std.JSON.Errors._IDeserializationError>.create_Success((((sign).Char_q(new Dafny.Rune('-'))) ? ((BigInteger.Zero) - (_495_n)) : (_495_n)));
+      BigInteger _499_n = Std.JSON.ByteStrConversion.__default.ToNat((n).Bytes());
+      return Std.Wrappers.Result<BigInteger, Std.JSON.Errors._IDeserializationError>.create_Success((((sign).Char_q(new Dafny.Rune('-'))) ? ((BigInteger.Zero) - (_499_n)) : (_499_n)));
     }
     public static Std.Wrappers._IResult<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError> Number(Std.JSON.Grammar._Ijnumber js) {
       Std.JSON.Grammar._Ijnumber _let_tmp_rhs17 = js;
-      Std.JSON.Utils.Views.Core._IView__ _496_minus = _let_tmp_rhs17.dtor_minus;
-      Std.JSON.Utils.Views.Core._IView__ _497_num = _let_tmp_rhs17.dtor_num;
-      Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _498_frac = _let_tmp_rhs17.dtor_frac;
-      Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp> _499_exp = _let_tmp_rhs17.dtor_exp;
-      Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _500_valueOrError0 = Std.JSON.Deserializer.__default.ToInt(_496_minus, _497_num);
-      if ((_500_valueOrError0).IsFailure()) {
-        return (_500_valueOrError0).PropagateFailure<Std.JSON.Values._IDecimal>();
+      Std.JSON.Utils.Views.Core._IView__ _500_minus = _let_tmp_rhs17.dtor_minus;
+      Std.JSON.Utils.Views.Core._IView__ _501_num = _let_tmp_rhs17.dtor_num;
+      Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _502_frac = _let_tmp_rhs17.dtor_frac;
+      Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp> _503_exp = _let_tmp_rhs17.dtor_exp;
+      Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _504_valueOrError0 = Std.JSON.Deserializer.__default.ToInt(_500_minus, _501_num);
+      if ((_504_valueOrError0).IsFailure()) {
+        return (_504_valueOrError0).PropagateFailure<Std.JSON.Values._IDecimal>();
       } else {
-        BigInteger _501_n = (_500_valueOrError0).Extract();
-        Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _502_valueOrError1 = ((System.Func<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError>>)((_source17) => {
+        BigInteger _505_n = (_504_valueOrError0).Extract();
+        Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _506_valueOrError1 = ((System.Func<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>, Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError>>)((_source17) => {
           if (_source17.is_Empty) {
             return Std.Wrappers.Result<BigInteger, Std.JSON.Errors._IDeserializationError>.create_Success(BigInteger.Zero);
           } else {
-            Std.JSON.Grammar._Ijexp _503___mcc_h0 = _source17.dtor_t;
-            Std.JSON.Grammar._Ijexp _source18 = _503___mcc_h0;
-            Std.JSON.Utils.Views.Core._IView__ _504___mcc_h1 = _source18.dtor_e;
-            Std.JSON.Utils.Views.Core._IView__ _505___mcc_h2 = _source18.dtor_sign;
-            Std.JSON.Utils.Views.Core._IView__ _506___mcc_h3 = _source18.dtor_num;
-            Std.JSON.Utils.Views.Core._IView__ _507_num = _506___mcc_h3;
-            Std.JSON.Utils.Views.Core._IView__ _508_sign = _505___mcc_h2;
-            return Std.JSON.Deserializer.__default.ToInt(_508_sign, _507_num);
+            Std.JSON.Grammar._Ijexp _507___mcc_h0 = _source17.dtor_t;
+            Std.JSON.Grammar._Ijexp _source18 = _507___mcc_h0;
+            Std.JSON.Utils.Views.Core._IView__ _508___mcc_h1 = _source18.dtor_e;
+            Std.JSON.Utils.Views.Core._IView__ _509___mcc_h2 = _source18.dtor_sign;
+            Std.JSON.Utils.Views.Core._IView__ _510___mcc_h3 = _source18.dtor_num;
+            Std.JSON.Utils.Views.Core._IView__ _511_num = _510___mcc_h3;
+            Std.JSON.Utils.Views.Core._IView__ _512_sign = _509___mcc_h2;
+            return Std.JSON.Deserializer.__default.ToInt(_512_sign, _511_num);
           }
-        }))(_499_exp);
-        if ((_502_valueOrError1).IsFailure()) {
-          return (_502_valueOrError1).PropagateFailure<Std.JSON.Values._IDecimal>();
+        }))(_503_exp);
+        if ((_506_valueOrError1).IsFailure()) {
+          return (_506_valueOrError1).PropagateFailure<Std.JSON.Values._IDecimal>();
         } else {
-          BigInteger _509_e10 = (_502_valueOrError1).Extract();
-          Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _source19 = _498_frac;
+          BigInteger _513_e10 = (_506_valueOrError1).Extract();
+          Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac> _source19 = _502_frac;
           if (_source19.is_Empty) {
-            return Std.Wrappers.Result<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.Decimal.create(_501_n, _509_e10));
+            return Std.Wrappers.Result<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.Decimal.create(_505_n, _513_e10));
           } else {
-            Std.JSON.Grammar._Ijfrac _510___mcc_h4 = _source19.dtor_t;
-            Std.JSON.Grammar._Ijfrac _source20 = _510___mcc_h4;
-            Std.JSON.Utils.Views.Core._IView__ _511___mcc_h5 = _source20.dtor_period;
-            Std.JSON.Utils.Views.Core._IView__ _512___mcc_h6 = _source20.dtor_num;
-            Std.JSON.Utils.Views.Core._IView__ _513_num = _512___mcc_h6;
-            BigInteger _514_pow10 = new BigInteger((_513_num).Length());
-            Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _515_valueOrError2 = Std.JSON.Deserializer.__default.ToInt(_496_minus, _513_num);
-            if ((_515_valueOrError2).IsFailure()) {
-              return (_515_valueOrError2).PropagateFailure<Std.JSON.Values._IDecimal>();
+            Std.JSON.Grammar._Ijfrac _514___mcc_h4 = _source19.dtor_t;
+            Std.JSON.Grammar._Ijfrac _source20 = _514___mcc_h4;
+            Std.JSON.Utils.Views.Core._IView__ _515___mcc_h5 = _source20.dtor_period;
+            Std.JSON.Utils.Views.Core._IView__ _516___mcc_h6 = _source20.dtor_num;
+            Std.JSON.Utils.Views.Core._IView__ _517_num = _516___mcc_h6;
+            BigInteger _518_pow10 = new BigInteger((_517_num).Length());
+            Std.Wrappers._IResult<BigInteger, Std.JSON.Errors._IDeserializationError> _519_valueOrError2 = Std.JSON.Deserializer.__default.ToInt(_500_minus, _517_num);
+            if ((_519_valueOrError2).IsFailure()) {
+              return (_519_valueOrError2).PropagateFailure<Std.JSON.Values._IDecimal>();
             } else {
-              BigInteger _516_frac = (_515_valueOrError2).Extract();
-              return Std.Wrappers.Result<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.Decimal.create(((_501_n) * (Std.Arithmetic.Power.__default.Pow(new BigInteger(10), _514_pow10))) + (_516_frac), (_509_e10) - (_514_pow10)));
+              BigInteger _520_frac = (_519_valueOrError2).Extract();
+              return Std.Wrappers.Result<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.Decimal.create(((_505_n) * (Std.Arithmetic.Power.__default.Pow(new BigInteger(10), _518_pow10))) + (_520_frac), (_513_e10) - (_518_pow10)));
             }
           }
         }
       }
     }
     public static Std.Wrappers._IResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError> KeyValue(Std.JSON.Grammar._IjKeyValue js) {
-      Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _517_valueOrError0 = Std.JSON.Deserializer.__default.String((js).dtor_k);
-      if ((_517_valueOrError0).IsFailure()) {
-        return (_517_valueOrError0).PropagateFailure<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>();
+      Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _521_valueOrError0 = Std.JSON.Deserializer.__default.String((js).dtor_k);
+      if ((_521_valueOrError0).IsFailure()) {
+        return (_521_valueOrError0).PropagateFailure<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>();
       } else {
-        Dafny.ISequence<Dafny.Rune> _518_k = (_517_valueOrError0).Extract();
-        Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError> _519_valueOrError1 = Std.JSON.Deserializer.__default.Value((js).dtor_v);
-        if ((_519_valueOrError1).IsFailure()) {
-          return (_519_valueOrError1).PropagateFailure<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>();
+        Dafny.ISequence<Dafny.Rune> _522_k = (_521_valueOrError0).Extract();
+        Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError> _523_valueOrError1 = Std.JSON.Deserializer.__default.Value((js).dtor_v);
+        if ((_523_valueOrError1).IsFailure()) {
+          return (_523_valueOrError1).PropagateFailure<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>();
         } else {
-          Std.JSON.Values._IJSON _520_v = (_519_valueOrError1).Extract();
-          return Std.Wrappers.Result<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>.create_Success(_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>.create(_518_k, _520_v));
+          Std.JSON.Values._IJSON _524_v = (_523_valueOrError1).Extract();
+          return Std.Wrappers.Result<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>.create_Success(_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>.create(_522_k, _524_v));
         }
       }
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>, Std.JSON.Errors._IDeserializationError> Object(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> js) {
-      return Std.Collections.Seq.__default.MapWithResult<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>>>>((_521_js) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>>)((_522_d) => {
-        return Std.JSON.Deserializer.__default.KeyValue((_522_d).dtor_t);
+      return Std.Collections.Seq.__default.MapWithResult<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>>>>((_525_js) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError>>)((_526_d) => {
+        return Std.JSON.Deserializer.__default.KeyValue((_526_d).dtor_t);
       })))(js), (js).dtor_data);
     }
     public static Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError> Array(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> js) {
-      return Std.Collections.Seq.__default.MapWithResult<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>>>>((_523_js) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>>)((_524_d) => {
-        return Std.JSON.Deserializer.__default.Value((_524_d).dtor_t);
+      return Std.Collections.Seq.__default.MapWithResult<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>>>>((_527_js) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>>)((_528_d) => {
+        return Std.JSON.Deserializer.__default.Value((_528_d).dtor_t);
       })))(js), (js).dtor_data);
     }
     public static Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError> Value(Std.JSON.Grammar._IValue js) {
       Std.JSON.Grammar._IValue _source21 = js;
       if (_source21.is_Null) {
-        Std.JSON.Utils.Views.Core._IView__ _525___mcc_h0 = _source21.dtor_n;
+        Std.JSON.Utils.Views.Core._IView__ _529___mcc_h0 = _source21.dtor_n;
         return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Null());
       } else if (_source21.is_Bool) {
-        Std.JSON.Utils.Views.Core._IView__ _526___mcc_h1 = _source21.dtor_b;
-        Std.JSON.Utils.Views.Core._IView__ _527_b = _526___mcc_h1;
-        return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Bool(Std.JSON.Deserializer.__default.Bool(_527_b)));
+        Std.JSON.Utils.Views.Core._IView__ _530___mcc_h1 = _source21.dtor_b;
+        Std.JSON.Utils.Views.Core._IView__ _531_b = _530___mcc_h1;
+        return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Bool(Std.JSON.Deserializer.__default.Bool(_531_b)));
       } else if (_source21.is_String) {
-        Std.JSON.Grammar._Ijstring _528___mcc_h2 = _source21.dtor_str;
-        Std.JSON.Grammar._Ijstring _529_str = _528___mcc_h2;
-        Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _530_valueOrError0 = Std.JSON.Deserializer.__default.String(_529_str);
-        if ((_530_valueOrError0).IsFailure()) {
-          return (_530_valueOrError0).PropagateFailure<Std.JSON.Values._IJSON>();
+        Std.JSON.Grammar._Ijstring _532___mcc_h2 = _source21.dtor_str;
+        Std.JSON.Grammar._Ijstring _533_str = _532___mcc_h2;
+        Std.Wrappers._IResult<Dafny.ISequence<Dafny.Rune>, Std.JSON.Errors._IDeserializationError> _534_valueOrError0 = Std.JSON.Deserializer.__default.String(_533_str);
+        if ((_534_valueOrError0).IsFailure()) {
+          return (_534_valueOrError0).PropagateFailure<Std.JSON.Values._IJSON>();
         } else {
-          Dafny.ISequence<Dafny.Rune> _531_s = (_530_valueOrError0).Extract();
-          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_String(_531_s));
+          Dafny.ISequence<Dafny.Rune> _535_s = (_534_valueOrError0).Extract();
+          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_String(_535_s));
         }
       } else if (_source21.is_Number) {
-        Std.JSON.Grammar._Ijnumber _532___mcc_h3 = _source21.dtor_num;
-        Std.JSON.Grammar._Ijnumber _533_dec = _532___mcc_h3;
-        Std.Wrappers._IResult<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError> _534_valueOrError1 = Std.JSON.Deserializer.__default.Number(_533_dec);
-        if ((_534_valueOrError1).IsFailure()) {
-          return (_534_valueOrError1).PropagateFailure<Std.JSON.Values._IJSON>();
+        Std.JSON.Grammar._Ijnumber _536___mcc_h3 = _source21.dtor_num;
+        Std.JSON.Grammar._Ijnumber _537_dec = _536___mcc_h3;
+        Std.Wrappers._IResult<Std.JSON.Values._IDecimal, Std.JSON.Errors._IDeserializationError> _538_valueOrError1 = Std.JSON.Deserializer.__default.Number(_537_dec);
+        if ((_538_valueOrError1).IsFailure()) {
+          return (_538_valueOrError1).PropagateFailure<Std.JSON.Values._IJSON>();
         } else {
-          Std.JSON.Values._IDecimal _535_n = (_534_valueOrError1).Extract();
-          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Number(_535_n));
+          Std.JSON.Values._IDecimal _539_n = (_538_valueOrError1).Extract();
+          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Number(_539_n));
         }
       } else if (_source21.is_Object) {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _536___mcc_h4 = _source21.dtor_obj;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _537_obj = _536___mcc_h4;
-        Std.Wrappers._IResult<Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>, Std.JSON.Errors._IDeserializationError> _538_valueOrError2 = Std.JSON.Deserializer.__default.Object(_537_obj);
-        if ((_538_valueOrError2).IsFailure()) {
-          return (_538_valueOrError2).PropagateFailure<Std.JSON.Values._IJSON>();
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _540___mcc_h4 = _source21.dtor_obj;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _541_obj = _540___mcc_h4;
+        Std.Wrappers._IResult<Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>>, Std.JSON.Errors._IDeserializationError> _542_valueOrError2 = Std.JSON.Deserializer.__default.Object(_541_obj);
+        if ((_542_valueOrError2).IsFailure()) {
+          return (_542_valueOrError2).PropagateFailure<Std.JSON.Values._IJSON>();
         } else {
-          Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _539_o = (_538_valueOrError2).Extract();
-          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Object(_539_o));
+          Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Std.JSON.Values._IJSON>> _543_o = (_542_valueOrError2).Extract();
+          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Object(_543_o));
         }
       } else {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _540___mcc_h5 = _source21.dtor_arr;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _541_arr = _540___mcc_h5;
-        Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError> _542_valueOrError3 = Std.JSON.Deserializer.__default.Array(_541_arr);
-        if ((_542_valueOrError3).IsFailure()) {
-          return (_542_valueOrError3).PropagateFailure<Std.JSON.Values._IJSON>();
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _544___mcc_h5 = _source21.dtor_arr;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _545_arr = _544___mcc_h5;
+        Std.Wrappers._IResult<Dafny.ISequence<Std.JSON.Values._IJSON>, Std.JSON.Errors._IDeserializationError> _546_valueOrError3 = Std.JSON.Deserializer.__default.Array(_545_arr);
+        if ((_546_valueOrError3).IsFailure()) {
+          return (_546_valueOrError3).PropagateFailure<Std.JSON.Values._IJSON>();
         } else {
-          Dafny.ISequence<Std.JSON.Values._IJSON> _543_a = (_542_valueOrError3).Extract();
-          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Array(_543_a));
+          Dafny.ISequence<Std.JSON.Values._IJSON> _547_a = (_546_valueOrError3).Extract();
+          return Std.Wrappers.Result<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError>.create_Success(Std.JSON.Values.JSON.create_Array(_547_a));
         }
       }
     }
@@ -11064,16 +11083,16 @@ namespace Std.JSON.ConcreteSyntax.Spec {
     }
     public static Dafny.ISequence<byte> ConcatBytes<__T>(Dafny.ISequence<__T> ts, Func<__T, Dafny.ISequence<byte>> fT)
     {
-      Dafny.ISequence<byte> _544___accumulator = Dafny.Sequence<byte>.FromElements();
+      Dafny.ISequence<byte> _548___accumulator = Dafny.Sequence<byte>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((ts).Count)).Sign == 0) {
-        return Dafny.Sequence<byte>.Concat(_544___accumulator, Dafny.Sequence<byte>.FromElements());
+        return Dafny.Sequence<byte>.Concat(_548___accumulator, Dafny.Sequence<byte>.FromElements());
       } else {
-        _544___accumulator = Dafny.Sequence<byte>.Concat(_544___accumulator, Dafny.Helpers.Id<Func<__T, Dafny.ISequence<byte>>>(fT)((ts).Select(BigInteger.Zero)));
-        Dafny.ISequence<__T> _in94 = (ts).Drop(BigInteger.One);
-        Func<__T, Dafny.ISequence<byte>> _in95 = fT;
-        ts = _in94;
-        fT = _in95;
+        _548___accumulator = Dafny.Sequence<byte>.Concat(_548___accumulator, Dafny.Helpers.Id<Func<__T, Dafny.ISequence<byte>>>(fT)((ts).Select(BigInteger.Zero)));
+        Dafny.ISequence<__T> _in95 = (ts).Drop(BigInteger.One);
+        Func<__T, Dafny.ISequence<byte>> _in96 = fT;
+        ts = _in95;
+        fT = _in96;
         goto TAIL_CALL_START;
       }
     }
@@ -11106,41 +11125,41 @@ namespace Std.JSON.ConcreteSyntax.Spec {
       return Dafny.Sequence<byte>.Concat(Std.JSON.ConcreteSyntax.Spec.__default.Value((self).dtor_t), Std.JSON.ConcreteSyntax.Spec.__default.CommaSuffix((self).dtor_suffix));
     }
     public static Dafny.ISequence<byte> Object(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> obj) {
-      return Std.JSON.ConcreteSyntax.Spec.__default.Bracketed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>(obj, Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>>>((_545_obj) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>)((_546_d) => {
-        return Std.JSON.ConcreteSyntax.Spec.__default.Member(_546_d);
+      return Std.JSON.ConcreteSyntax.Spec.__default.Bracketed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>(obj, Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>>>((_549_obj) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>)((_550_d) => {
+        return Std.JSON.ConcreteSyntax.Spec.__default.Member(_550_d);
       })))(obj));
     }
     public static Dafny.ISequence<byte> Array(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> arr) {
-      return Std.JSON.ConcreteSyntax.Spec.__default.Bracketed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>(arr, Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>>>((_547_arr) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>)((_548_d) => {
-        return Std.JSON.ConcreteSyntax.Spec.__default.Item(_548_d);
+      return Std.JSON.ConcreteSyntax.Spec.__default.Bracketed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>(arr, Dafny.Helpers.Id<Func<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>, Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>>>((_551_arr) => ((System.Func<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>, Dafny.ISequence<byte>>)((_552_d) => {
+        return Std.JSON.ConcreteSyntax.Spec.__default.Item(_552_d);
       })))(arr));
     }
     public static Dafny.ISequence<byte> Value(Std.JSON.Grammar._IValue self) {
       Std.JSON.Grammar._IValue _source22 = self;
       if (_source22.is_Null) {
-        Std.JSON.Utils.Views.Core._IView__ _549___mcc_h0 = _source22.dtor_n;
-        Std.JSON.Utils.Views.Core._IView__ _550_n = _549___mcc_h0;
-        return Std.JSON.ConcreteSyntax.Spec.__default.View(_550_n);
+        Std.JSON.Utils.Views.Core._IView__ _553___mcc_h0 = _source22.dtor_n;
+        Std.JSON.Utils.Views.Core._IView__ _554_n = _553___mcc_h0;
+        return Std.JSON.ConcreteSyntax.Spec.__default.View(_554_n);
       } else if (_source22.is_Bool) {
-        Std.JSON.Utils.Views.Core._IView__ _551___mcc_h1 = _source22.dtor_b;
-        Std.JSON.Utils.Views.Core._IView__ _552_b = _551___mcc_h1;
-        return Std.JSON.ConcreteSyntax.Spec.__default.View(_552_b);
+        Std.JSON.Utils.Views.Core._IView__ _555___mcc_h1 = _source22.dtor_b;
+        Std.JSON.Utils.Views.Core._IView__ _556_b = _555___mcc_h1;
+        return Std.JSON.ConcreteSyntax.Spec.__default.View(_556_b);
       } else if (_source22.is_String) {
-        Std.JSON.Grammar._Ijstring _553___mcc_h2 = _source22.dtor_str;
-        Std.JSON.Grammar._Ijstring _554_str = _553___mcc_h2;
-        return Std.JSON.ConcreteSyntax.Spec.__default.String(_554_str);
+        Std.JSON.Grammar._Ijstring _557___mcc_h2 = _source22.dtor_str;
+        Std.JSON.Grammar._Ijstring _558_str = _557___mcc_h2;
+        return Std.JSON.ConcreteSyntax.Spec.__default.String(_558_str);
       } else if (_source22.is_Number) {
-        Std.JSON.Grammar._Ijnumber _555___mcc_h3 = _source22.dtor_num;
-        Std.JSON.Grammar._Ijnumber _556_num = _555___mcc_h3;
-        return Std.JSON.ConcreteSyntax.Spec.__default.Number(_556_num);
+        Std.JSON.Grammar._Ijnumber _559___mcc_h3 = _source22.dtor_num;
+        Std.JSON.Grammar._Ijnumber _560_num = _559___mcc_h3;
+        return Std.JSON.ConcreteSyntax.Spec.__default.Number(_560_num);
       } else if (_source22.is_Object) {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _557___mcc_h4 = _source22.dtor_obj;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _558_obj = _557___mcc_h4;
-        return Std.JSON.ConcreteSyntax.Spec.__default.Object(_558_obj);
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _561___mcc_h4 = _source22.dtor_obj;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _562_obj = _561___mcc_h4;
+        return Std.JSON.ConcreteSyntax.Spec.__default.Object(_562_obj);
       } else {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _559___mcc_h5 = _source22.dtor_arr;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _560_arr = _559___mcc_h5;
-        return Std.JSON.ConcreteSyntax.Spec.__default.Array(_560_arr);
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _563___mcc_h5 = _source22.dtor_arr;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _564_arr = _563___mcc_h5;
+        return Std.JSON.ConcreteSyntax.Spec.__default.Array(_564_arr);
       }
     }
     public static Dafny.ISequence<byte> JSON(Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> js) {
@@ -11160,41 +11179,41 @@ namespace Std.JSON.ZeroCopy.Serializer {
     public static Std.Wrappers._IResult<byte[], Std.JSON.Errors._ISerializationError> Serialize(Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> js)
     {
       Std.Wrappers._IResult<byte[], Std.JSON.Errors._ISerializationError> rbs = Std.Wrappers.Result<byte[], Std.JSON.Errors._ISerializationError>.Default(new byte[0]);
-      Std.JSON.Utils.Views.Writers._IWriter__ _561_writer;
-      _561_writer = Std.JSON.ZeroCopy.Serializer.__default.Text(js);
-      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _562_valueOrError0 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
-      _562_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((_561_writer).Unsaturated_q, Std.JSON.Errors.SerializationError.create_OutOfMemory());
-      if ((_562_valueOrError0).IsFailure()) {
-        rbs = (_562_valueOrError0).PropagateFailure<byte[]>();
+      Std.JSON.Utils.Views.Writers._IWriter__ _565_writer;
+      _565_writer = Std.JSON.ZeroCopy.Serializer.__default.Text(js);
+      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _566_valueOrError0 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
+      _566_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((_565_writer).Unsaturated_q, Std.JSON.Errors.SerializationError.create_OutOfMemory());
+      if ((_566_valueOrError0).IsFailure()) {
+        rbs = (_566_valueOrError0).PropagateFailure<byte[]>();
         return rbs;
       }
-      byte[] _563_bs;
+      byte[] _567_bs;
       byte[] _out6;
-      _out6 = (_561_writer).ToArray();
-      _563_bs = _out6;
-      rbs = Std.Wrappers.Result<byte[], Std.JSON.Errors._ISerializationError>.create_Success(_563_bs);
+      _out6 = (_565_writer).ToArray();
+      _567_bs = _out6;
+      rbs = Std.Wrappers.Result<byte[], Std.JSON.Errors._ISerializationError>.create_Success(_567_bs);
       return rbs;
       return rbs;
     }
     public static Std.Wrappers._IResult<uint, Std.JSON.Errors._ISerializationError> SerializeTo(Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> js, byte[] dest)
     {
       Std.Wrappers._IResult<uint, Std.JSON.Errors._ISerializationError> len = Std.Wrappers.Result<uint, Std.JSON.Errors._ISerializationError>.Default(0);
-      Std.JSON.Utils.Views.Writers._IWriter__ _564_writer;
-      _564_writer = Std.JSON.ZeroCopy.Serializer.__default.Text(js);
-      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _565_valueOrError0 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
-      _565_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((_564_writer).Unsaturated_q, Std.JSON.Errors.SerializationError.create_OutOfMemory());
-      if ((_565_valueOrError0).IsFailure()) {
-        len = (_565_valueOrError0).PropagateFailure<uint>();
+      Std.JSON.Utils.Views.Writers._IWriter__ _568_writer;
+      _568_writer = Std.JSON.ZeroCopy.Serializer.__default.Text(js);
+      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _569_valueOrError0 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
+      _569_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((_568_writer).Unsaturated_q, Std.JSON.Errors.SerializationError.create_OutOfMemory());
+      if ((_569_valueOrError0).IsFailure()) {
+        len = (_569_valueOrError0).PropagateFailure<uint>();
         return len;
       }
-      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _566_valueOrError1 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
-      _566_valueOrError1 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((new BigInteger((_564_writer).dtor_length)) <= (new BigInteger((dest).Length)), Std.JSON.Errors.SerializationError.create_OutOfMemory());
-      if ((_566_valueOrError1).IsFailure()) {
-        len = (_566_valueOrError1).PropagateFailure<uint>();
+      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._ISerializationError> _570_valueOrError1 = Std.Wrappers.OutcomeResult<Std.JSON.Errors._ISerializationError>.Default();
+      _570_valueOrError1 = Std.Wrappers.__default.Need<Std.JSON.Errors._ISerializationError>((new BigInteger((_568_writer).dtor_length)) <= (new BigInteger((dest).Length)), Std.JSON.Errors.SerializationError.create_OutOfMemory());
+      if ((_570_valueOrError1).IsFailure()) {
+        len = (_570_valueOrError1).PropagateFailure<uint>();
         return len;
       }
-      (_564_writer).CopyTo(dest);
-      len = Std.Wrappers.Result<uint, Std.JSON.Errors._ISerializationError>.create_Success((_564_writer).dtor_length);
+      (_568_writer).CopyTo(dest);
+      len = Std.Wrappers.Result<uint, Std.JSON.Errors._ISerializationError>.create_Success((_568_writer).dtor_length);
       return len;
       return len;
     }
@@ -11203,43 +11222,43 @@ namespace Std.JSON.ZeroCopy.Serializer {
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ JSON(Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> js, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      return (((writer).Append((js).dtor_before)).Then(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Func<Std.JSON.Utils.Views.Writers._IWriter__, Std.JSON.Utils.Views.Writers._IWriter__>>>((_567_js) => ((System.Func<Std.JSON.Utils.Views.Writers._IWriter__, Std.JSON.Utils.Views.Writers._IWriter__>)((_568_wr) => {
-        return Std.JSON.ZeroCopy.Serializer.__default.Value((_567_js).dtor_t, _568_wr);
+      return (((writer).Append((js).dtor_before)).Then(Dafny.Helpers.Id<Func<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Func<Std.JSON.Utils.Views.Writers._IWriter__, Std.JSON.Utils.Views.Writers._IWriter__>>>((_571_js) => ((System.Func<Std.JSON.Utils.Views.Writers._IWriter__, Std.JSON.Utils.Views.Writers._IWriter__>)((_572_wr) => {
+        return Std.JSON.ZeroCopy.Serializer.__default.Value((_571_js).dtor_t, _572_wr);
       })))(js))).Append((js).dtor_after);
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Value(Std.JSON.Grammar._IValue v, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
       Std.JSON.Grammar._IValue _source23 = v;
       if (_source23.is_Null) {
-        Std.JSON.Utils.Views.Core._IView__ _569___mcc_h0 = _source23.dtor_n;
-        Std.JSON.Utils.Views.Core._IView__ _570_n = _569___mcc_h0;
-        Std.JSON.Utils.Views.Writers._IWriter__ _571_wr = (writer).Append(_570_n);
-        return _571_wr;
+        Std.JSON.Utils.Views.Core._IView__ _573___mcc_h0 = _source23.dtor_n;
+        Std.JSON.Utils.Views.Core._IView__ _574_n = _573___mcc_h0;
+        Std.JSON.Utils.Views.Writers._IWriter__ _575_wr = (writer).Append(_574_n);
+        return _575_wr;
       } else if (_source23.is_Bool) {
-        Std.JSON.Utils.Views.Core._IView__ _572___mcc_h1 = _source23.dtor_b;
-        Std.JSON.Utils.Views.Core._IView__ _573_b = _572___mcc_h1;
-        Std.JSON.Utils.Views.Writers._IWriter__ _574_wr = (writer).Append(_573_b);
-        return _574_wr;
+        Std.JSON.Utils.Views.Core._IView__ _576___mcc_h1 = _source23.dtor_b;
+        Std.JSON.Utils.Views.Core._IView__ _577_b = _576___mcc_h1;
+        Std.JSON.Utils.Views.Writers._IWriter__ _578_wr = (writer).Append(_577_b);
+        return _578_wr;
       } else if (_source23.is_String) {
-        Std.JSON.Grammar._Ijstring _575___mcc_h2 = _source23.dtor_str;
-        Std.JSON.Grammar._Ijstring _576_str = _575___mcc_h2;
-        Std.JSON.Utils.Views.Writers._IWriter__ _577_wr = Std.JSON.ZeroCopy.Serializer.__default.String(_576_str, writer);
-        return _577_wr;
+        Std.JSON.Grammar._Ijstring _579___mcc_h2 = _source23.dtor_str;
+        Std.JSON.Grammar._Ijstring _580_str = _579___mcc_h2;
+        Std.JSON.Utils.Views.Writers._IWriter__ _581_wr = Std.JSON.ZeroCopy.Serializer.__default.String(_580_str, writer);
+        return _581_wr;
       } else if (_source23.is_Number) {
-        Std.JSON.Grammar._Ijnumber _578___mcc_h3 = _source23.dtor_num;
-        Std.JSON.Grammar._Ijnumber _579_num = _578___mcc_h3;
-        Std.JSON.Utils.Views.Writers._IWriter__ _580_wr = Std.JSON.ZeroCopy.Serializer.__default.Number(_579_num, writer);
-        return _580_wr;
+        Std.JSON.Grammar._Ijnumber _582___mcc_h3 = _source23.dtor_num;
+        Std.JSON.Grammar._Ijnumber _583_num = _582___mcc_h3;
+        Std.JSON.Utils.Views.Writers._IWriter__ _584_wr = Std.JSON.ZeroCopy.Serializer.__default.Number(_583_num, writer);
+        return _584_wr;
       } else if (_source23.is_Object) {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _581___mcc_h4 = _source23.dtor_obj;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _582_obj = _581___mcc_h4;
-        Std.JSON.Utils.Views.Writers._IWriter__ _583_wr = Std.JSON.ZeroCopy.Serializer.__default.Object(_582_obj, writer);
-        return _583_wr;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _585___mcc_h4 = _source23.dtor_obj;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _586_obj = _585___mcc_h4;
+        Std.JSON.Utils.Views.Writers._IWriter__ _587_wr = Std.JSON.ZeroCopy.Serializer.__default.Object(_586_obj, writer);
+        return _587_wr;
       } else {
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _584___mcc_h5 = _source23.dtor_arr;
-        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _585_arr = _584___mcc_h5;
-        Std.JSON.Utils.Views.Writers._IWriter__ _586_wr = Std.JSON.ZeroCopy.Serializer.__default.Array(_585_arr, writer);
-        return _586_wr;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _588___mcc_h5 = _source23.dtor_arr;
+        Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _589_arr = _588___mcc_h5;
+        Std.JSON.Utils.Views.Writers._IWriter__ _590_wr = Std.JSON.ZeroCopy.Serializer.__default.Array(_589_arr, writer);
+        return _590_wr;
       }
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ String(Std.JSON.Grammar._Ijstring str, Std.JSON.Utils.Views.Writers._IWriter__ writer)
@@ -11248,11 +11267,11 @@ namespace Std.JSON.ZeroCopy.Serializer {
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Number(Std.JSON.Grammar._Ijnumber num, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      Std.JSON.Utils.Views.Writers._IWriter__ _587_wr1 = ((writer).Append((num).dtor_minus)).Append((num).dtor_num);
-      Std.JSON.Utils.Views.Writers._IWriter__ _588_wr2 = ((((num).dtor_frac).is_NonEmpty) ? (((_587_wr1).Append((((num).dtor_frac).dtor_t).dtor_period)).Append((((num).dtor_frac).dtor_t).dtor_num)) : (_587_wr1));
-      Std.JSON.Utils.Views.Writers._IWriter__ _589_wr3 = ((((num).dtor_exp).is_NonEmpty) ? ((((_588_wr2).Append((((num).dtor_exp).dtor_t).dtor_e)).Append((((num).dtor_exp).dtor_t).dtor_sign)).Append((((num).dtor_exp).dtor_t).dtor_num)) : (_588_wr2));
-      Std.JSON.Utils.Views.Writers._IWriter__ _590_wr = _589_wr3;
-      return _590_wr;
+      Std.JSON.Utils.Views.Writers._IWriter__ _591_wr1 = ((writer).Append((num).dtor_minus)).Append((num).dtor_num);
+      Std.JSON.Utils.Views.Writers._IWriter__ _592_wr2 = ((((num).dtor_frac).is_NonEmpty) ? (((_591_wr1).Append((((num).dtor_frac).dtor_t).dtor_period)).Append((((num).dtor_frac).dtor_t).dtor_num)) : (_591_wr1));
+      Std.JSON.Utils.Views.Writers._IWriter__ _593_wr3 = ((((num).dtor_exp).is_NonEmpty) ? ((((_592_wr2).Append((((num).dtor_exp).dtor_t).dtor_e)).Append((((num).dtor_exp).dtor_t).dtor_sign)).Append((((num).dtor_exp).dtor_t).dtor_num)) : (_592_wr2));
+      Std.JSON.Utils.Views.Writers._IWriter__ _594_wr = _593_wr3;
+      return _594_wr;
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ StructuralView(Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__> st, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
@@ -11260,17 +11279,17 @@ namespace Std.JSON.ZeroCopy.Serializer {
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Object(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> obj, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      Std.JSON.Utils.Views.Writers._IWriter__ _591_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((obj).dtor_l, writer);
-      Std.JSON.Utils.Views.Writers._IWriter__ _592_wr = Std.JSON.ZeroCopy.Serializer.__default.Members(obj, _591_wr);
-      Std.JSON.Utils.Views.Writers._IWriter__ _593_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((obj).dtor_r, _592_wr);
-      return _593_wr;
+      Std.JSON.Utils.Views.Writers._IWriter__ _595_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((obj).dtor_l, writer);
+      Std.JSON.Utils.Views.Writers._IWriter__ _596_wr = Std.JSON.ZeroCopy.Serializer.__default.Members(obj, _595_wr);
+      Std.JSON.Utils.Views.Writers._IWriter__ _597_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((obj).dtor_r, _596_wr);
+      return _597_wr;
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Array(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> arr, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      Std.JSON.Utils.Views.Writers._IWriter__ _594_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((arr).dtor_l, writer);
-      Std.JSON.Utils.Views.Writers._IWriter__ _595_wr = Std.JSON.ZeroCopy.Serializer.__default.Items(arr, _594_wr);
-      Std.JSON.Utils.Views.Writers._IWriter__ _596_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((arr).dtor_r, _595_wr);
-      return _596_wr;
+      Std.JSON.Utils.Views.Writers._IWriter__ _598_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((arr).dtor_l, writer);
+      Std.JSON.Utils.Views.Writers._IWriter__ _599_wr = Std.JSON.ZeroCopy.Serializer.__default.Items(arr, _598_wr);
+      Std.JSON.Utils.Views.Writers._IWriter__ _600_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView((arr).dtor_r, _599_wr);
+      return _600_wr;
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Members(Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> obj, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
@@ -11292,11 +11311,11 @@ namespace Std.JSON.ZeroCopy.Serializer {
     {
       Std.JSON.Utils.Views.Writers._IWriter__ wr = Std.JSON.Utils.Views.Writers.Writer.Default();
       wr = writer;
-      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>> _597_members;
-      _597_members = (obj).dtor_data;
-      BigInteger _hi1 = new BigInteger((_597_members).Count);
-      for (BigInteger _598_i = BigInteger.Zero; _598_i < _hi1; _598_i++) {
-        wr = Std.JSON.ZeroCopy.Serializer.__default.Member((_597_members).Select(_598_i), wr);
+      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>> _601_members;
+      _601_members = (obj).dtor_data;
+      BigInteger _hi1 = new BigInteger((_601_members).Count);
+      for (BigInteger _602_i = BigInteger.Zero; _602_i < _hi1; _602_i++) {
+        wr = Std.JSON.ZeroCopy.Serializer.__default.Member((_601_members).Select(_602_i), wr);
       }
       return wr;
     }
@@ -11304,27 +11323,27 @@ namespace Std.JSON.ZeroCopy.Serializer {
     {
       Std.JSON.Utils.Views.Writers._IWriter__ wr = Std.JSON.Utils.Views.Writers.Writer.Default();
       wr = writer;
-      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>> _599_items;
-      _599_items = (arr).dtor_data;
-      BigInteger _hi2 = new BigInteger((_599_items).Count);
-      for (BigInteger _600_i = BigInteger.Zero; _600_i < _hi2; _600_i++) {
-        wr = Std.JSON.ZeroCopy.Serializer.__default.Item((_599_items).Select(_600_i), wr);
+      Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>> _603_items;
+      _603_items = (arr).dtor_data;
+      BigInteger _hi2 = new BigInteger((_603_items).Count);
+      for (BigInteger _604_i = BigInteger.Zero; _604_i < _hi2; _604_i++) {
+        wr = Std.JSON.ZeroCopy.Serializer.__default.Item((_603_items).Select(_604_i), wr);
       }
       return wr;
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Member(Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__> m, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      Std.JSON.Utils.Views.Writers._IWriter__ _601_wr = Std.JSON.ZeroCopy.Serializer.__default.String(((m).dtor_t).dtor_k, writer);
-      Std.JSON.Utils.Views.Writers._IWriter__ _602_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_t).dtor_colon, _601_wr);
-      Std.JSON.Utils.Views.Writers._IWriter__ _603_wr = Std.JSON.ZeroCopy.Serializer.__default.Value(((m).dtor_t).dtor_v, _602_wr);
-      Std.JSON.Utils.Views.Writers._IWriter__ _604_wr = ((((m).dtor_suffix).is_Empty) ? (_603_wr) : (Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_suffix).dtor_t, _603_wr)));
-      return _604_wr;
+      Std.JSON.Utils.Views.Writers._IWriter__ _605_wr = Std.JSON.ZeroCopy.Serializer.__default.String(((m).dtor_t).dtor_k, writer);
+      Std.JSON.Utils.Views.Writers._IWriter__ _606_wr = Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_t).dtor_colon, _605_wr);
+      Std.JSON.Utils.Views.Writers._IWriter__ _607_wr = Std.JSON.ZeroCopy.Serializer.__default.Value(((m).dtor_t).dtor_v, _606_wr);
+      Std.JSON.Utils.Views.Writers._IWriter__ _608_wr = ((((m).dtor_suffix).is_Empty) ? (_607_wr) : (Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_suffix).dtor_t, _607_wr)));
+      return _608_wr;
     }
     public static Std.JSON.Utils.Views.Writers._IWriter__ Item(Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__> m, Std.JSON.Utils.Views.Writers._IWriter__ writer)
     {
-      Std.JSON.Utils.Views.Writers._IWriter__ _605_wr = Std.JSON.ZeroCopy.Serializer.__default.Value((m).dtor_t, writer);
-      Std.JSON.Utils.Views.Writers._IWriter__ _606_wr = ((((m).dtor_suffix).is_Empty) ? (_605_wr) : (Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_suffix).dtor_t, _605_wr)));
-      return _606_wr;
+      Std.JSON.Utils.Views.Writers._IWriter__ _609_wr = Std.JSON.ZeroCopy.Serializer.__default.Value((m).dtor_t, writer);
+      Std.JSON.Utils.Views.Writers._IWriter__ _610_wr = ((((m).dtor_suffix).is_Empty) ? (_609_wr) : (Std.JSON.ZeroCopy.Serializer.__default.StructuralView(((m).dtor_suffix).dtor_t, _609_wr)));
+      return _610_wr;
     }
   }
 } // end of namespace Std.JSON.ZeroCopy.Serializer
@@ -11333,61 +11352,61 @@ namespace Std.JSON.ZeroCopy.Deserializer.Core {
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Get(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Errors._IDeserializationError err)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _607_valueOrError0 = (cs).Get<Std.JSON.Errors._IDeserializationError>(err);
-      if ((_607_valueOrError0).IsFailure()) {
-        return (_607_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _611_valueOrError0 = (cs).Get<Std.JSON.Errors._IDeserializationError>(err);
+      if ((_611_valueOrError0).IsFailure()) {
+        return (_611_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _608_cs = (_607_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_608_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _612_cs = (_611_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_612_cs).Split());
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> WS(Std.JSON.Utils.Cursors._ICursor__ cs)
     {
       Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Utils.Views.Core._IView__>.Default(Std.JSON.Grammar.jblanks.Default());
-      uint _609_point_k;
-      _609_point_k = (cs).dtor_point;
-      uint _610_end;
-      _610_end = (cs).dtor_end;
-      while (((_609_point_k) < (_610_end)) && (Std.JSON.Grammar.__default.Blank_q(((cs).dtor_s).Select(_609_point_k)))) {
-        _609_point_k = (_609_point_k) + (1U);
+      uint _613_point_k;
+      _613_point_k = (cs).dtor_point;
+      uint _614_end;
+      _614_end = (cs).dtor_end;
+      while (((_613_point_k) < (_614_end)) && (Std.JSON.Grammar.__default.Blank_q(((cs).dtor_s).Select(_613_point_k)))) {
+        _613_point_k = (_613_point_k) + (1U);
       }
-      sp = (Std.JSON.Utils.Cursors.Cursor__.create((cs).dtor_s, (cs).dtor_beg, _609_point_k, (cs).dtor_end)).Split();
+      sp = (Std.JSON.Utils.Cursors.Cursor__.create((cs).dtor_s, (cs).dtor_beg, _613_point_k, (cs).dtor_end)).Split();
       return sp;
       return sp;
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<__T>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Structural<__T>(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._IParser__<__T, Std.JSON.Errors._IDeserializationError> parser)
     {
       Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs18 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(cs);
-      Std.JSON.Utils.Views.Core._IView__ _611_before = _let_tmp_rhs18.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _612_cs = _let_tmp_rhs18.dtor_cs;
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _613_valueOrError0 = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>((parser).dtor_fn)(_612_cs);
-      if ((_613_valueOrError0).IsFailure()) {
-        return (_613_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<__T>>>();
+      Std.JSON.Utils.Views.Core._IView__ _615_before = _let_tmp_rhs18.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _616_cs = _let_tmp_rhs18.dtor_cs;
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _617_valueOrError0 = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<__T>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>((parser).dtor_fn)(_616_cs);
+      if ((_617_valueOrError0).IsFailure()) {
+        return (_617_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<__T>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<__T> _let_tmp_rhs19 = (_613_valueOrError0).Extract();
-        __T _614_val = _let_tmp_rhs19.dtor_t;
-        Std.JSON.Utils.Cursors._ICursor__ _615_cs = _let_tmp_rhs19.dtor_cs;
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs20 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(_615_cs);
-        Std.JSON.Utils.Views.Core._IView__ _616_after = _let_tmp_rhs20.dtor_t;
-        Std.JSON.Utils.Cursors._ICursor__ _617_cs = _let_tmp_rhs20.dtor_cs;
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<__T>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IStructural<__T>>.create(Std.JSON.Grammar.Structural<__T>.create(_611_before, _614_val, _616_after), _617_cs));
+        Std.JSON.Utils.Cursors._ISplit<__T> _let_tmp_rhs19 = (_617_valueOrError0).Extract();
+        __T _618_val = _let_tmp_rhs19.dtor_t;
+        Std.JSON.Utils.Cursors._ICursor__ _619_cs = _let_tmp_rhs19.dtor_cs;
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs20 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(_619_cs);
+        Std.JSON.Utils.Views.Core._IView__ _620_after = _let_tmp_rhs20.dtor_t;
+        Std.JSON.Utils.Cursors._ICursor__ _621_cs = _let_tmp_rhs20.dtor_cs;
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<__T>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IStructural<__T>>.create(Std.JSON.Grammar.Structural<__T>.create(_615_before, _618_val, _620_after), _621_cs));
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> TryStructural(Std.JSON.Utils.Cursors._ICursor__ cs) {
       Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs21 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(cs);
-      Std.JSON.Utils.Views.Core._IView__ _618_before = _let_tmp_rhs21.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _619_cs = _let_tmp_rhs21.dtor_cs;
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs22 = ((_619_cs).SkipByte()).Split();
-      Std.JSON.Utils.Views.Core._IView__ _620_val = _let_tmp_rhs22.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _621_cs = _let_tmp_rhs22.dtor_cs;
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs23 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(_621_cs);
-      Std.JSON.Utils.Views.Core._IView__ _622_after = _let_tmp_rhs23.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _623_cs = _let_tmp_rhs23.dtor_cs;
-      return Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Structural<Std.JSON.Utils.Views.Core._IView__>.create(_618_before, _620_val, _622_after), _623_cs);
+      Std.JSON.Utils.Views.Core._IView__ _622_before = _let_tmp_rhs21.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _623_cs = _let_tmp_rhs21.dtor_cs;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs22 = ((_623_cs).SkipByte()).Split();
+      Std.JSON.Utils.Views.Core._IView__ _624_val = _let_tmp_rhs22.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _625_cs = _let_tmp_rhs22.dtor_cs;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs23 = Std.JSON.ZeroCopy.Deserializer.Core.__default.WS(_625_cs);
+      Std.JSON.Utils.Views.Core._IView__ _626_after = _let_tmp_rhs23.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _627_cs = _let_tmp_rhs23.dtor_cs;
+      return Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Structural<Std.JSON.Utils.Views.Core._IView__>.create(_622_before, _624_val, _626_after), _627_cs);
     }
     public static Func<Std.JSON.Utils.Views.Core._IView__, Dafny.ISequence<byte>> SpecView { get {
-      return ((System.Func<Std.JSON.Utils.Views.Core._IView__, Dafny.ISequence<byte>>)((_624_v) => {
-        return Std.JSON.ConcreteSyntax.Spec.__default.View(_624_v);
+      return ((System.Func<Std.JSON.Utils.Views.Core._IView__, Dafny.ISequence<byte>>)((_628_v) => {
+        return Std.JSON.ConcreteSyntax.Spec.__default.View(_628_v);
       }));
     } }
   }
@@ -11416,19 +11435,19 @@ namespace Std.JSON.ZeroCopy.Deserializer.Strings {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> StringBody(Std.JSON.Utils.Cursors._ICursor__ cs)
     {
       Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.Default(Std.JSON.Utils.Cursors.Cursor.Default());
-      bool _625_escaped;
-      _625_escaped = false;
+      bool _629_escaped;
+      _629_escaped = false;
       uint _hi3 = (cs).dtor_end;
-      for (uint _626_point_k = (cs).dtor_point; _626_point_k < _hi3; _626_point_k++) {
-        byte _627_byte;
-        _627_byte = ((cs).dtor_s).Select(_626_point_k);
-        if (((_627_byte) == ((byte)((new Dafny.Rune('\"')).Value))) && (!(_625_escaped))) {
-          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Cursor__.create((cs).dtor_s, (cs).dtor_beg, _626_point_k, (cs).dtor_end));
+      for (uint _630_point_k = (cs).dtor_point; _630_point_k < _hi3; _630_point_k++) {
+        byte _631_byte;
+        _631_byte = ((cs).dtor_s).Select(_630_point_k);
+        if (((_631_byte) == ((byte)((new Dafny.Rune('\"')).Value))) && (!(_629_escaped))) {
+          pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Cursor__.create((cs).dtor_s, (cs).dtor_beg, _630_point_k, (cs).dtor_end));
           return pr;
-        } else if ((_627_byte) == ((byte)((new Dafny.Rune('\\')).Value))) {
-          _625_escaped = !(_625_escaped);
+        } else if ((_631_byte) == ((byte)((new Dafny.Rune('\\')).Value))) {
+          _629_escaped = !(_629_escaped);
         } else {
-          _625_escaped = false;
+          _629_escaped = false;
         }
       }
       pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_EOF());
@@ -11436,38 +11455,38 @@ namespace Std.JSON.ZeroCopy.Deserializer.Strings {
       return pr;
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Quote(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _628_valueOrError0 = (cs).AssertChar<Std.JSON.Errors._IDeserializationError>(new Dafny.Rune('\"'));
-      if ((_628_valueOrError0).IsFailure()) {
-        return (_628_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _632_valueOrError0 = (cs).AssertChar<Std.JSON.Errors._IDeserializationError>(new Dafny.Rune('\"'));
+      if ((_632_valueOrError0).IsFailure()) {
+        return (_632_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _629_cs = (_628_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_629_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _633_cs = (_632_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_633_cs).Split());
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> String(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _630_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.Quote(cs);
-      if ((_630_valueOrError0).IsFailure()) {
-        return (_630_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _634_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.Quote(cs);
+      if ((_634_valueOrError0).IsFailure()) {
+        return (_634_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs24 = (_630_valueOrError0).Extract();
-        Std.JSON.Utils.Views.Core._IView__ _631_lq = _let_tmp_rhs24.dtor_t;
-        Std.JSON.Utils.Cursors._ICursor__ _632_cs = _let_tmp_rhs24.dtor_cs;
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _633_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.StringBody(_632_cs);
-        if ((_633_valueOrError1).IsFailure()) {
-          return (_633_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs24 = (_634_valueOrError0).Extract();
+        Std.JSON.Utils.Views.Core._IView__ _635_lq = _let_tmp_rhs24.dtor_t;
+        Std.JSON.Utils.Cursors._ICursor__ _636_cs = _let_tmp_rhs24.dtor_cs;
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _637_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.StringBody(_636_cs);
+        if ((_637_valueOrError1).IsFailure()) {
+          return (_637_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
         } else {
-          Std.JSON.Utils.Cursors._ICursor__ _634_contents = (_633_valueOrError1).Extract();
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs25 = (_634_contents).Split();
-          Std.JSON.Utils.Views.Core._IView__ _635_contents = _let_tmp_rhs25.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _636_cs = _let_tmp_rhs25.dtor_cs;
-          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _637_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.Quote(_636_cs);
-          if ((_637_valueOrError2).IsFailure()) {
-            return (_637_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
+          Std.JSON.Utils.Cursors._ICursor__ _638_contents = (_637_valueOrError1).Extract();
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs25 = (_638_contents).Split();
+          Std.JSON.Utils.Views.Core._IView__ _639_contents = _let_tmp_rhs25.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _640_cs = _let_tmp_rhs25.dtor_cs;
+          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _641_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.Quote(_640_cs);
+          if ((_641_valueOrError2).IsFailure()) {
+            return (_641_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>>();
           } else {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs26 = (_637_valueOrError2).Extract();
-            Std.JSON.Utils.Views.Core._IView__ _638_rq = _let_tmp_rhs26.dtor_t;
-            Std.JSON.Utils.Cursors._ICursor__ _639_cs = _let_tmp_rhs26.dtor_cs;
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._Ijstring>.create(Std.JSON.Grammar.jstring.create(_631_lq, _635_contents, _638_rq), _639_cs));
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs26 = (_641_valueOrError2).Extract();
+            Std.JSON.Utils.Views.Core._IView__ _642_rq = _let_tmp_rhs26.dtor_t;
+            Std.JSON.Utils.Cursors._ICursor__ _643_cs = _let_tmp_rhs26.dtor_cs;
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._Ijstring>.create(Std.JSON.Grammar.jstring.create(_635_lq, _639_contents, _642_rq), _643_cs));
           }
         }
       }
@@ -11481,102 +11500,102 @@ namespace Std.JSON.ZeroCopy.Deserializer.Numbers {
       return ((cs).SkipWhile(Std.JSON.Grammar.__default.Digit_q)).Split();
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> NonEmptyDigits(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _640_sp = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Digits(cs);
-      if (((_640_sp).dtor_t).Empty_q) {
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _644_sp = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Digits(cs);
+      if (((_644_sp).dtor_t).Empty_q) {
         return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_OtherError(Std.JSON.Errors.DeserializationError.create_EmptyNumber()));
       } else {
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_640_sp);
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_644_sp);
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> NonZeroInt(Std.JSON.Utils.Cursors._ICursor__ cs) {
       return Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonEmptyDigits(cs);
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> OptionalMinus(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      return ((cs).SkipIf(((System.Func<byte, bool>)((_641_c) => {
-        return (_641_c) == ((byte)((new Dafny.Rune('-')).Value));
+      return ((cs).SkipIf(((System.Func<byte, bool>)((_645_c) => {
+        return (_645_c) == ((byte)((new Dafny.Rune('-')).Value));
       })))).Split();
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> OptionalSign(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      return ((cs).SkipIf(((System.Func<byte, bool>)((_642_c) => {
-        return ((_642_c) == ((byte)((new Dafny.Rune('-')).Value))) || ((_642_c) == ((byte)((new Dafny.Rune('+')).Value)));
+      return ((cs).SkipIf(((System.Func<byte, bool>)((_646_c) => {
+        return ((_646_c) == ((byte)((new Dafny.Rune('-')).Value))) || ((_646_c) == ((byte)((new Dafny.Rune('+')).Value)));
       })))).Split();
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> TrimmedInt(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _643_sp = ((cs).SkipIf(((System.Func<byte, bool>)((_644_c) => {
-        return (_644_c) == ((byte)((new Dafny.Rune('0')).Value));
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _647_sp = ((cs).SkipIf(((System.Func<byte, bool>)((_648_c) => {
+        return (_648_c) == ((byte)((new Dafny.Rune('0')).Value));
       })))).Split();
-      if (((_643_sp).dtor_t).Empty_q) {
-        return Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonZeroInt((_643_sp).dtor_cs);
+      if (((_647_sp).dtor_t).Empty_q) {
+        return Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonZeroInt((_647_sp).dtor_cs);
       } else {
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_643_sp);
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_647_sp);
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Exp(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs27 = ((cs).SkipIf(((System.Func<byte, bool>)((_645_c) => {
-        return ((_645_c) == ((byte)((new Dafny.Rune('e')).Value))) || ((_645_c) == ((byte)((new Dafny.Rune('E')).Value)));
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs27 = ((cs).SkipIf(((System.Func<byte, bool>)((_649_c) => {
+        return ((_649_c) == ((byte)((new Dafny.Rune('e')).Value))) || ((_649_c) == ((byte)((new Dafny.Rune('E')).Value)));
       })))).Split();
-      Std.JSON.Utils.Views.Core._IView__ _646_e = _let_tmp_rhs27.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _647_cs = _let_tmp_rhs27.dtor_cs;
-      if ((_646_e).Empty_q) {
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_Empty(), _647_cs));
+      Std.JSON.Utils.Views.Core._IView__ _650_e = _let_tmp_rhs27.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _651_cs = _let_tmp_rhs27.dtor_cs;
+      if ((_650_e).Empty_q) {
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_Empty(), _651_cs));
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs28 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.OptionalSign(_647_cs);
-        Std.JSON.Utils.Views.Core._IView__ _648_sign = _let_tmp_rhs28.dtor_t;
-        Std.JSON.Utils.Cursors._ICursor__ _649_cs = _let_tmp_rhs28.dtor_cs;
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _650_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonEmptyDigits(_649_cs);
-        if ((_650_valueOrError0).IsFailure()) {
-          return (_650_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs28 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.OptionalSign(_651_cs);
+        Std.JSON.Utils.Views.Core._IView__ _652_sign = _let_tmp_rhs28.dtor_t;
+        Std.JSON.Utils.Cursors._ICursor__ _653_cs = _let_tmp_rhs28.dtor_cs;
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _654_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonEmptyDigits(_653_cs);
+        if ((_654_valueOrError0).IsFailure()) {
+          return (_654_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs29 = (_650_valueOrError0).Extract();
-          Std.JSON.Utils.Views.Core._IView__ _651_num = _let_tmp_rhs29.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _652_cs = _let_tmp_rhs29.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_NonEmpty(Std.JSON.Grammar.jexp.create(_646_e, _648_sign, _651_num)), _652_cs));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs29 = (_654_valueOrError0).Extract();
+          Std.JSON.Utils.Views.Core._IView__ _655_num = _let_tmp_rhs29.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _656_cs = _let_tmp_rhs29.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijexp>.create_NonEmpty(Std.JSON.Grammar.jexp.create(_650_e, _652_sign, _655_num)), _656_cs));
         }
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Frac(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs30 = ((cs).SkipIf(((System.Func<byte, bool>)((_653_c) => {
-        return (_653_c) == ((byte)((new Dafny.Rune('.')).Value));
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs30 = ((cs).SkipIf(((System.Func<byte, bool>)((_657_c) => {
+        return (_657_c) == ((byte)((new Dafny.Rune('.')).Value));
       })))).Split();
-      Std.JSON.Utils.Views.Core._IView__ _654_period = _let_tmp_rhs30.dtor_t;
-      Std.JSON.Utils.Cursors._ICursor__ _655_cs = _let_tmp_rhs30.dtor_cs;
-      if ((_654_period).Empty_q) {
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty(), _655_cs));
+      Std.JSON.Utils.Views.Core._IView__ _658_period = _let_tmp_rhs30.dtor_t;
+      Std.JSON.Utils.Cursors._ICursor__ _659_cs = _let_tmp_rhs30.dtor_cs;
+      if ((_658_period).Empty_q) {
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_Empty(), _659_cs));
       } else {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _656_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonEmptyDigits(_655_cs);
-        if ((_656_valueOrError0).IsFailure()) {
-          return (_656_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>>();
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _660_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NonEmptyDigits(_659_cs);
+        if ((_660_valueOrError0).IsFailure()) {
+          return (_660_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs31 = (_656_valueOrError0).Extract();
-          Std.JSON.Utils.Views.Core._IView__ _657_num = _let_tmp_rhs31.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _658_cs = _let_tmp_rhs31.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_NonEmpty(Std.JSON.Grammar.jfrac.create(_654_period, _657_num)), _658_cs));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs31 = (_660_valueOrError0).Extract();
+          Std.JSON.Utils.Views.Core._IView__ _661_num = _let_tmp_rhs31.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _662_cs = _let_tmp_rhs31.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>.create(Std.JSON.Grammar.Maybe<Std.JSON.Grammar._Ijfrac>.create_NonEmpty(Std.JSON.Grammar.jfrac.create(_658_period, _661_num)), _662_cs));
         }
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber> NumberFromParts(Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> minus, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> num, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>> frac, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>> exp)
     {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber> _659_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._Ijnumber>.create(Std.JSON.Grammar.jnumber.create((minus).dtor_t, (num).dtor_t, (frac).dtor_t, (exp).dtor_t), (exp).dtor_cs);
-      return _659_sp;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber> _663_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._Ijnumber>.create(Std.JSON.Grammar.jnumber.create((minus).dtor_t, (num).dtor_t, (frac).dtor_t, (exp).dtor_t), (exp).dtor_cs);
+      return _663_sp;
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Number(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _660_minus = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.OptionalMinus(cs);
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _661_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.TrimmedInt((_660_minus).dtor_cs);
-      if ((_661_valueOrError0).IsFailure()) {
-        return (_661_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _664_minus = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.OptionalMinus(cs);
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _665_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.TrimmedInt((_664_minus).dtor_cs);
+      if ((_665_valueOrError0).IsFailure()) {
+        return (_665_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _662_num = (_661_valueOrError0).Extract();
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _663_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Frac((_662_num).dtor_cs);
-        if ((_663_valueOrError1).IsFailure()) {
-          return (_663_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _666_num = (_665_valueOrError0).Extract();
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _667_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Frac((_666_num).dtor_cs);
+        if ((_667_valueOrError1).IsFailure()) {
+          return (_667_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>> _664_frac = (_663_valueOrError1).Extract();
-          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _665_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Exp((_664_frac).dtor_cs);
-          if ((_665_valueOrError2).IsFailure()) {
-            return (_665_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijfrac>> _668_frac = (_667_valueOrError1).Extract();
+          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _669_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Exp((_668_frac).dtor_cs);
+          if ((_669_valueOrError2).IsFailure()) {
+            return (_669_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>>();
           } else {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>> _666_exp = (_665_valueOrError2).Extract();
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NumberFromParts(_660_minus, _662_num, _664_frac, _666_exp));
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IMaybe<Std.JSON.Grammar._Ijexp>> _670_exp = (_669_valueOrError2).Extract();
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Numbers.__default.NumberFromParts(_664_minus, _666_num, _668_frac, _670_exp));
           }
         }
       }
@@ -11587,42 +11606,42 @@ namespace Std.JSON.ZeroCopy.Deserializer.ObjectParams {
 
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Colon(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _667_valueOrError0 = (cs).AssertChar<Std.JSON.Errors._IDeserializationError>(new Dafny.Rune(':'));
-      if ((_667_valueOrError0).IsFailure()) {
-        return (_667_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _671_valueOrError0 = (cs).AssertChar<Std.JSON.Errors._IDeserializationError>(new Dafny.Rune(':'));
+      if ((_671_valueOrError0).IsFailure()) {
+        return (_671_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _668_cs = (_667_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_668_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _672_cs = (_671_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_672_cs).Split());
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> KeyValueFromParts(Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring> k, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> colon, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> v)
     {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _669_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IjKeyValue>.create(Std.JSON.Grammar.jKeyValue.create((k).dtor_t, (colon).dtor_t, (v).dtor_t), (v).dtor_cs);
-      return _669_sp;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _673_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IjKeyValue>.create(Std.JSON.Grammar.jKeyValue.create((k).dtor_t, (colon).dtor_t, (v).dtor_t), (v).dtor_cs);
+      return _673_sp;
     }
     public static Dafny.ISequence<byte> ElementSpec(Std.JSON.Grammar._IjKeyValue t) {
       return Std.JSON.ConcreteSyntax.Spec.__default.KeyValue(t);
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Element(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _670_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.String(cs);
-      if ((_670_valueOrError0).IsFailure()) {
-        return (_670_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _674_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.String(cs);
+      if ((_674_valueOrError0).IsFailure()) {
+        return (_674_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring> _671_k = (_670_valueOrError0).Extract();
-        Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _672_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.Colon);
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _673_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_671_k).dtor_cs, _672_p);
-        if ((_673_valueOrError1).IsFailure()) {
-          return (_673_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring> _675_k = (_674_valueOrError0).Extract();
+        Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _676_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.Colon);
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _677_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_675_k).dtor_cs, _676_p);
+        if ((_677_valueOrError1).IsFailure()) {
+          return (_677_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _674_colon = (_673_valueOrError1).Extract();
-          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _675_valueOrError2 = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>((json).dtor_fn)((_674_colon).dtor_cs);
-          if ((_675_valueOrError2).IsFailure()) {
-            return (_675_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _678_colon = (_677_valueOrError1).Extract();
+          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _679_valueOrError2 = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>((json).dtor_fn)((_678_colon).dtor_cs);
+          if ((_679_valueOrError2).IsFailure()) {
+            return (_679_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>>();
           } else {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _676_v = (_675_valueOrError2).Extract();
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _677_kv = Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.KeyValueFromParts(_671_k, _674_colon, _676_v);
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_677_kv);
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _680_v = (_679_valueOrError2).Extract();
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _681_kv = Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.KeyValueFromParts(_675_k, _678_colon, _680_v);
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_681_kv);
           }
         }
       }
@@ -11640,104 +11659,104 @@ namespace Std.JSON.ZeroCopy.Deserializer.Objects {
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Object(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _678_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Objects.__default.Bracketed(cs, json);
-      if ((_678_valueOrError0).IsFailure()) {
-        return (_678_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _682_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Objects.__default.Bracketed(cs, json);
+      if ((_682_valueOrError0).IsFailure()) {
+        return (_682_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _679_sp = (_678_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_679_sp);
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _683_sp = (_682_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_683_sp);
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Open(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _680_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.OPEN);
-      if ((_680_valueOrError0).IsFailure()) {
-        return (_680_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _684_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.OPEN);
+      if ((_684_valueOrError0).IsFailure()) {
+        return (_684_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _681_cs = (_680_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_681_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _685_cs = (_684_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_685_cs).Split());
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Close(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _682_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE);
-      if ((_682_valueOrError0).IsFailure()) {
-        return (_682_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _686_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE);
+      if ((_686_valueOrError0).IsFailure()) {
+        return (_686_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _683_cs = (_682_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_683_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _687_cs = (_686_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_687_cs).Split());
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> BracketedFromParts(Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> open, Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> close)
     {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _684_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create((open).dtor_t, (elems).dtor_t, (close).dtor_t), (close).dtor_cs);
-      return _684_sp;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _688_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create((open).dtor_t, (elems).dtor_t, (close).dtor_t), (close).dtor_cs);
+      return _688_sp;
     }
     public static Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> AppendWithSuffix(Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> elem, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> sep)
     {
-      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__> _685_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_NonEmpty((sep).dtor_t));
-      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _686_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_685_suffixed)), (sep).dtor_cs);
-      return _686_elems_k;
+      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__> _689_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_NonEmpty((sep).dtor_t));
+      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _690_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_689_suffixed)), (sep).dtor_cs);
+      return _690_elems_k;
     }
     public static Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> AppendLast(Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> elem, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> sep)
     {
-      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__> _687_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_Empty());
-      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _688_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_687_suffixed)), (elem).dtor_cs);
-      return _688_elems_k;
+      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__> _691_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_Empty());
+      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _692_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_691_suffixed)), (elem).dtor_cs);
+      return _692_elems_k;
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Elements(Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> open, Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> elems)
     {
     TAIL_CALL_START: ;
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _689_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.Element((elems).dtor_cs, json);
-      if ((_689_valueOrError0).IsFailure()) {
-        return (_689_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _693_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.Element((elems).dtor_cs, json);
+      if ((_693_valueOrError0).IsFailure()) {
+        return (_693_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _690_elem = (_689_valueOrError0).Extract();
-        if (((_690_elem).dtor_cs).EOF_q) {
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IjKeyValue> _694_elem = (_693_valueOrError0).Extract();
+        if (((_694_elem).dtor_cs).EOF_q) {
           return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_EOF());
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _691_sep = Std.JSON.ZeroCopy.Deserializer.Core.__default.TryStructural((_690_elem).dtor_cs);
-          short _692_s0 = (((_691_sep).dtor_t).dtor_t).Peek();
-          if (((_692_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.Objects.__default.SEPARATOR))) && (((((_691_sep).dtor_t).dtor_t).Length()) == (1U))) {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _693_sep = _691_sep;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _694_elems = Std.JSON.ZeroCopy.Deserializer.Objects.__default.AppendWithSuffix(elems, _690_elem, _693_sep);
-            Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> _in96 = json;
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _in97 = open;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _in98 = _694_elems;
-            json = _in96;
-            open = _in97;
-            elems = _in98;
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _695_sep = Std.JSON.ZeroCopy.Deserializer.Core.__default.TryStructural((_694_elem).dtor_cs);
+          short _696_s0 = (((_695_sep).dtor_t).dtor_t).Peek();
+          if (((_696_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.Objects.__default.SEPARATOR))) && (((((_695_sep).dtor_t).dtor_t).Length()) == (1U))) {
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _697_sep = _695_sep;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _698_elems = Std.JSON.ZeroCopy.Deserializer.Objects.__default.AppendWithSuffix(elems, _694_elem, _697_sep);
+            Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> _in97 = json;
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _in98 = open;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _in99 = _698_elems;
+            json = _in97;
+            open = _in98;
+            elems = _in99;
             goto TAIL_CALL_START;
-          } else if (((_692_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE))) && (((((_691_sep).dtor_t).dtor_t).Length()) == (1U))) {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _695_sep = _691_sep;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _696_elems_k = Std.JSON.ZeroCopy.Deserializer.Objects.__default.AppendLast(elems, _690_elem, _695_sep);
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _697_bracketed = Std.JSON.ZeroCopy.Deserializer.Objects.__default.BracketedFromParts(open, _696_elems_k, _695_sep);
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_697_bracketed);
+          } else if (((_696_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE))) && (((((_695_sep).dtor_t).dtor_t).Length()) == (1U))) {
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _699_sep = _695_sep;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _700_elems_k = Std.JSON.ZeroCopy.Deserializer.Objects.__default.AppendLast(elems, _694_elem, _699_sep);
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _701_bracketed = Std.JSON.ZeroCopy.Deserializer.Objects.__default.BracketedFromParts(open, _700_elems_k, _699_sep);
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_701_bracketed);
           } else {
-            byte _698_separator = Std.JSON.ZeroCopy.Deserializer.Objects.__default.SEPARATOR;
-            Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _699_pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_ExpectingAnyByte(Dafny.Sequence<byte>.FromElements(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE, _698_separator), _692_s0));
-            return _699_pr;
+            byte _702_separator = Std.JSON.ZeroCopy.Deserializer.Objects.__default.SEPARATOR;
+            Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _703_pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_ExpectingAnyByte(Dafny.Sequence<byte>.FromElements(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE, _702_separator), _696_s0));
+            return _703_pr;
           }
         }
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Bracketed(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _700_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>(cs, Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Objects.__default.Open));
-      if ((_700_valueOrError0).IsFailure()) {
-        return (_700_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _704_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>(cs, Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Objects.__default.Open));
+      if ((_704_valueOrError0).IsFailure()) {
+        return (_704_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _701_open = (_700_valueOrError0).Extract();
-        Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _702_elems = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(), (_701_open).dtor_cs);
-        if ((((_701_open).dtor_cs).Peek()) == ((short)(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE))) {
-          Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _703_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Objects.__default.Close);
-          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _704_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_701_open).dtor_cs, _703_p);
-          if ((_704_valueOrError1).IsFailure()) {
-            return (_704_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _705_open = (_704_valueOrError0).Extract();
+        Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>> _706_elems = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(), (_705_open).dtor_cs);
+        if ((((_705_open).dtor_cs).Peek()) == ((short)(Std.JSON.ZeroCopy.Deserializer.ObjectParams.__default.CLOSE))) {
+          Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _707_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Objects.__default.Close);
+          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _708_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_705_open).dtor_cs, _707_p);
+          if ((_708_valueOrError1).IsFailure()) {
+            return (_708_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
           } else {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _705_close = (_704_valueOrError1).Extract();
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Objects.__default.BracketedFromParts(_701_open, _702_elems, _705_close));
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _709_close = (_708_valueOrError1).Extract();
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Objects.__default.BracketedFromParts(_705_open, _706_elems, _709_close));
           }
         } else {
-          return Std.JSON.ZeroCopy.Deserializer.Objects.__default.Elements(json, _701_open, _702_elems);
+          return Std.JSON.ZeroCopy.Deserializer.Objects.__default.Elements(json, _705_open, _706_elems);
         }
       }
     }
@@ -11797,104 +11816,104 @@ namespace Std.JSON.ZeroCopy.Deserializer.Arrays {
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Array(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _706_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Bracketed(cs, json);
-      if ((_706_valueOrError0).IsFailure()) {
-        return (_706_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _710_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Bracketed(cs, json);
+      if ((_710_valueOrError0).IsFailure()) {
+        return (_710_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _707_sp = (_706_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_707_sp);
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _711_sp = (_710_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_711_sp);
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Open(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _708_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.OPEN);
-      if ((_708_valueOrError0).IsFailure()) {
-        return (_708_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _712_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.OPEN);
+      if ((_712_valueOrError0).IsFailure()) {
+        return (_712_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _709_cs = (_708_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_709_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _713_cs = (_712_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_713_cs).Split());
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Close(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _710_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE);
-      if ((_710_valueOrError0).IsFailure()) {
-        return (_710_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _714_valueOrError0 = (cs).AssertByte<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE);
+      if ((_714_valueOrError0).IsFailure()) {
+        return (_714_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _711_cs = (_710_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_711_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _715_cs = (_714_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_715_cs).Split());
       }
     }
     public static Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> BracketedFromParts(Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> open, Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> close)
     {
-      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _712_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create((open).dtor_t, (elems).dtor_t, (close).dtor_t), (close).dtor_cs);
-      return _712_sp;
+      Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _716_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>.create(Std.JSON.Grammar.Bracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>.create((open).dtor_t, (elems).dtor_t, (close).dtor_t), (close).dtor_cs);
+      return _716_sp;
     }
     public static Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> AppendWithSuffix(Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> elem, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> sep)
     {
-      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__> _713_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_NonEmpty((sep).dtor_t));
-      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _714_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_713_suffixed)), (sep).dtor_cs);
-      return _714_elems_k;
+      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__> _717_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_NonEmpty((sep).dtor_t));
+      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _718_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_717_suffixed)), (sep).dtor_cs);
+      return _718_elems_k;
     }
     public static Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> AppendLast(Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> elems, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> elem, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> sep)
     {
-      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__> _715_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_Empty());
-      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _716_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_715_suffixed)), (elem).dtor_cs);
-      return _716_elems_k;
+      Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__> _719_suffixed = Std.JSON.Grammar.Suffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>.create((elem).dtor_t, Std.JSON.Grammar.Maybe<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>.create_Empty());
+      Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _720_elems_k = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.Concat((elems).dtor_t, Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(_719_suffixed)), (elem).dtor_cs);
+      return _720_elems_k;
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Elements(Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json, Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> open, Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> elems)
     {
     TAIL_CALL_START: ;
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _717_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.Element((elems).dtor_cs, json);
-      if ((_717_valueOrError0).IsFailure()) {
-        return (_717_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _721_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.Element((elems).dtor_cs, json);
+      if ((_721_valueOrError0).IsFailure()) {
+        return (_721_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _718_elem = (_717_valueOrError0).Extract();
-        if (((_718_elem).dtor_cs).EOF_q) {
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _722_elem = (_721_valueOrError0).Extract();
+        if (((_722_elem).dtor_cs).EOF_q) {
           return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_EOF());
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _719_sep = Std.JSON.ZeroCopy.Deserializer.Core.__default.TryStructural((_718_elem).dtor_cs);
-          short _720_s0 = (((_719_sep).dtor_t).dtor_t).Peek();
-          if (((_720_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.SEPARATOR))) && (((((_719_sep).dtor_t).dtor_t).Length()) == (1U))) {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _721_sep = _719_sep;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _722_elems = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.AppendWithSuffix(elems, _718_elem, _721_sep);
-            Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> _in99 = json;
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _in100 = open;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _in101 = _722_elems;
-            json = _in99;
-            open = _in100;
-            elems = _in101;
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _723_sep = Std.JSON.ZeroCopy.Deserializer.Core.__default.TryStructural((_722_elem).dtor_cs);
+          short _724_s0 = (((_723_sep).dtor_t).dtor_t).Peek();
+          if (((_724_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.SEPARATOR))) && (((((_723_sep).dtor_t).dtor_t).Length()) == (1U))) {
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _725_sep = _723_sep;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _726_elems = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.AppendWithSuffix(elems, _722_elem, _725_sep);
+            Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> _in100 = json;
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _in101 = open;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _in102 = _726_elems;
+            json = _in100;
+            open = _in101;
+            elems = _in102;
             goto TAIL_CALL_START;
-          } else if (((_720_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE))) && (((((_719_sep).dtor_t).dtor_t).Length()) == (1U))) {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _723_sep = _719_sep;
-            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _724_elems_k = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.AppendLast(elems, _718_elem, _723_sep);
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _725_bracketed = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.BracketedFromParts(open, _724_elems_k, _723_sep);
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_725_bracketed);
+          } else if (((_724_s0) == ((short)(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE))) && (((((_723_sep).dtor_t).dtor_t).Length()) == (1U))) {
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _727_sep = _723_sep;
+            Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _728_elems_k = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.AppendLast(elems, _722_elem, _727_sep);
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _729_bracketed = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.BracketedFromParts(open, _728_elems_k, _727_sep);
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_729_bracketed);
           } else {
-            byte _726_separator = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.SEPARATOR;
-            Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _727_pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_ExpectingAnyByte(Dafny.Sequence<byte>.FromElements(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE, _726_separator), _720_s0));
-            return _727_pr;
+            byte _730_separator = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.SEPARATOR;
+            Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _731_pr = Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Failure(Std.JSON.Utils.Cursors.CursorError<Std.JSON.Errors._IDeserializationError>.create_ExpectingAnyByte(Dafny.Sequence<byte>.FromElements(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE, _730_separator), _724_s0));
+            return _731_pr;
           }
         }
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Bracketed(Std.JSON.Utils.Cursors._ICursor__ cs, Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> json)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _728_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>(cs, Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Open));
-      if ((_728_valueOrError0).IsFailure()) {
-        return (_728_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _732_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>(cs, Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Open));
+      if ((_732_valueOrError0).IsFailure()) {
+        return (_732_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _729_open = (_728_valueOrError0).Extract();
-        Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _730_elems = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(), (_729_open).dtor_cs);
-        if ((((_729_open).dtor_cs).Peek()) == ((short)(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE))) {
-          Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _731_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Close);
-          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _732_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_729_open).dtor_cs, _731_p);
-          if ((_732_valueOrError1).IsFailure()) {
-            return (_732_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _733_open = (_732_valueOrError0).Extract();
+        Std.JSON.Utils.Cursors._ISplit<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>> _734_elems = Std.JSON.Utils.Cursors.Split<Dafny.ISequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>>.create(Dafny.Sequence<Std.JSON.Grammar._ISuffixed<Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__>>.FromElements(), (_733_open).dtor_cs);
+        if ((((_733_open).dtor_cs).Peek()) == ((short)(Std.JSON.ZeroCopy.Deserializer.ArrayParams.__default.CLOSE))) {
+          Std.JSON.Utils.Parsers._IParser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError> _735_p = Std.JSON.Utils.Parsers.Parser__<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Close);
+          Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _736_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Utils.Views.Core._IView__>((_733_open).dtor_cs, _735_p);
+          if ((_736_valueOrError1).IsFailure()) {
+            return (_736_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>>();
           } else {
-            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _733_close = (_732_valueOrError1).Extract();
-            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.BracketedFromParts(_729_open, _730_elems, _733_close));
+            Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Utils.Views.Core._IView__>> _737_close = (_736_valueOrError1).Extract();
+            return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.ZeroCopy.Deserializer.Arrays.__default.BracketedFromParts(_733_open, _734_elems, _737_close));
           }
         } else {
-          return Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Elements(json, _729_open, _730_elems);
+          return Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Elements(json, _733_open, _734_elems);
         }
       }
     }
@@ -11936,12 +11955,12 @@ namespace Std.JSON.ZeroCopy.Deserializer.Constants {
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Constant(Std.JSON.Utils.Cursors._ICursor__ cs, Dafny.ISequence<byte> expected)
     {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _734_valueOrError0 = (cs).AssertBytes<Std.JSON.Errors._IDeserializationError>(expected, 0U);
-      if ((_734_valueOrError0).IsFailure()) {
-        return (_734_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ICursor__, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _738_valueOrError0 = (cs).AssertBytes<Std.JSON.Errors._IDeserializationError>(expected, 0U);
+      if ((_738_valueOrError0).IsFailure()) {
+        return (_738_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>>();
       } else {
-        Std.JSON.Utils.Cursors._ICursor__ _735_cs = (_734_valueOrError0).Extract();
-        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_735_cs).Split());
+        Std.JSON.Utils.Cursors._ICursor__ _739_cs = (_738_valueOrError0).Extract();
+        return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success((_739_cs).Split());
       }
     }
   }
@@ -11950,93 +11969,93 @@ namespace Std.JSON.ZeroCopy.Deserializer.Values {
 
   public partial class __default {
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> Value(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      short _736_c = (cs).Peek();
-      if ((_736_c) == ((short)((new Dafny.Rune('{')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _737_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Objects.__default.Object(cs, Std.JSON.ZeroCopy.Deserializer.Values.__default.ValueParser(cs));
-        if ((_737_valueOrError0).IsFailure()) {
-          return (_737_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      short _740_c = (cs).Peek();
+      if ((_740_c) == ((short)((new Dafny.Rune('{')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _741_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.Objects.__default.Object(cs, Std.JSON.ZeroCopy.Deserializer.Values.__default.ValueParser(cs));
+        if ((_741_valueOrError0).IsFailure()) {
+          return (_741_valueOrError0).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _let_tmp_rhs32 = (_737_valueOrError0).Extract();
-          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _738_obj = _let_tmp_rhs32.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _739_cs_k = _let_tmp_rhs32.dtor_cs;
-          Std.JSON.Grammar._IValue _740_v = Std.JSON.Grammar.Value.create_Object(_738_obj);
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _741_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_740_v, _739_cs_k);
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_741_sp);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _let_tmp_rhs32 = (_741_valueOrError0).Extract();
+          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IjKeyValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _742_obj = _let_tmp_rhs32.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _743_cs_k = _let_tmp_rhs32.dtor_cs;
+          Std.JSON.Grammar._IValue _744_v = Std.JSON.Grammar.Value.create_Object(_742_obj);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _745_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_744_v, _743_cs_k);
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_745_sp);
         }
-      } else if ((_736_c) == ((short)((new Dafny.Rune('[')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _742_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Array(cs, Std.JSON.ZeroCopy.Deserializer.Values.__default.ValueParser(cs));
-        if ((_742_valueOrError1).IsFailure()) {
-          return (_742_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      } else if ((_740_c) == ((short)((new Dafny.Rune('[')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _746_valueOrError1 = Std.JSON.ZeroCopy.Deserializer.Arrays.__default.Array(cs, Std.JSON.ZeroCopy.Deserializer.Values.__default.ValueParser(cs));
+        if ((_746_valueOrError1).IsFailure()) {
+          return (_746_valueOrError1).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _let_tmp_rhs33 = (_742_valueOrError1).Extract();
-          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _743_arr = _let_tmp_rhs33.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _744_cs_k = _let_tmp_rhs33.dtor_cs;
-          Std.JSON.Grammar._IValue _745_v = Std.JSON.Grammar.Value.create_Array(_743_arr);
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _746_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_745_v, _744_cs_k);
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_746_sp);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__>> _let_tmp_rhs33 = (_746_valueOrError1).Extract();
+          Std.JSON.Grammar._IBracketed<Std.JSON.Utils.Views.Core._IView__, Std.JSON.Grammar._IValue, Std.JSON.Utils.Views.Core._IView__, Std.JSON.Utils.Views.Core._IView__> _747_arr = _let_tmp_rhs33.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _748_cs_k = _let_tmp_rhs33.dtor_cs;
+          Std.JSON.Grammar._IValue _749_v = Std.JSON.Grammar.Value.create_Array(_747_arr);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _750_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_749_v, _748_cs_k);
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_750_sp);
         }
-      } else if ((_736_c) == ((short)((new Dafny.Rune('\"')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _747_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.String(cs);
-        if ((_747_valueOrError2).IsFailure()) {
-          return (_747_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      } else if ((_740_c) == ((short)((new Dafny.Rune('\"')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _751_valueOrError2 = Std.JSON.ZeroCopy.Deserializer.Strings.__default.String(cs);
+        if ((_751_valueOrError2).IsFailure()) {
+          return (_751_valueOrError2).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring> _let_tmp_rhs34 = (_747_valueOrError2).Extract();
-          Std.JSON.Grammar._Ijstring _748_str = _let_tmp_rhs34.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _749_cs_k = _let_tmp_rhs34.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_String(_748_str), _749_cs_k));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijstring> _let_tmp_rhs34 = (_751_valueOrError2).Extract();
+          Std.JSON.Grammar._Ijstring _752_str = _let_tmp_rhs34.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _753_cs_k = _let_tmp_rhs34.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_String(_752_str), _753_cs_k));
         }
-      } else if ((_736_c) == ((short)((new Dafny.Rune('t')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _750_valueOrError3 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.TRUE);
-        if ((_750_valueOrError3).IsFailure()) {
-          return (_750_valueOrError3).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      } else if ((_740_c) == ((short)((new Dafny.Rune('t')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _754_valueOrError3 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.TRUE);
+        if ((_754_valueOrError3).IsFailure()) {
+          return (_754_valueOrError3).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs35 = (_750_valueOrError3).Extract();
-          Std.JSON.Utils.Views.Core._IView__ _751_cst = _let_tmp_rhs35.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _752_cs_k = _let_tmp_rhs35.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Bool(_751_cst), _752_cs_k));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs35 = (_754_valueOrError3).Extract();
+          Std.JSON.Utils.Views.Core._IView__ _755_cst = _let_tmp_rhs35.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _756_cs_k = _let_tmp_rhs35.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Bool(_755_cst), _756_cs_k));
         }
-      } else if ((_736_c) == ((short)((new Dafny.Rune('f')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _753_valueOrError4 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.FALSE);
-        if ((_753_valueOrError4).IsFailure()) {
-          return (_753_valueOrError4).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      } else if ((_740_c) == ((short)((new Dafny.Rune('f')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _757_valueOrError4 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.FALSE);
+        if ((_757_valueOrError4).IsFailure()) {
+          return (_757_valueOrError4).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs36 = (_753_valueOrError4).Extract();
-          Std.JSON.Utils.Views.Core._IView__ _754_cst = _let_tmp_rhs36.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _755_cs_k = _let_tmp_rhs36.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Bool(_754_cst), _755_cs_k));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs36 = (_757_valueOrError4).Extract();
+          Std.JSON.Utils.Views.Core._IView__ _758_cst = _let_tmp_rhs36.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _759_cs_k = _let_tmp_rhs36.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Bool(_758_cst), _759_cs_k));
         }
-      } else if ((_736_c) == ((short)((new Dafny.Rune('n')).Value))) {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _756_valueOrError5 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.NULL);
-        if ((_756_valueOrError5).IsFailure()) {
-          return (_756_valueOrError5).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+      } else if ((_740_c) == ((short)((new Dafny.Rune('n')).Value))) {
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _760_valueOrError5 = Std.JSON.ZeroCopy.Deserializer.Constants.__default.Constant(cs, Std.JSON.Grammar.__default.NULL);
+        if ((_760_valueOrError5).IsFailure()) {
+          return (_760_valueOrError5).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs37 = (_756_valueOrError5).Extract();
-          Std.JSON.Utils.Views.Core._IView__ _757_cst = _let_tmp_rhs37.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _758_cs_k = _let_tmp_rhs37.dtor_cs;
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Null(_757_cst), _758_cs_k));
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Utils.Views.Core._IView__> _let_tmp_rhs37 = (_760_valueOrError5).Extract();
+          Std.JSON.Utils.Views.Core._IView__ _761_cst = _let_tmp_rhs37.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _762_cs_k = _let_tmp_rhs37.dtor_cs;
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(Std.JSON.Grammar.Value.create_Null(_761_cst), _762_cs_k));
         }
       } else {
-        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _759_valueOrError6 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Number(cs);
-        if ((_759_valueOrError6).IsFailure()) {
-          return (_759_valueOrError6).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
+        Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>> _763_valueOrError6 = Std.JSON.ZeroCopy.Deserializer.Numbers.__default.Number(cs);
+        if ((_763_valueOrError6).IsFailure()) {
+          return (_763_valueOrError6).PropagateFailure<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>>();
         } else {
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber> _let_tmp_rhs38 = (_759_valueOrError6).Extract();
-          Std.JSON.Grammar._Ijnumber _760_num = _let_tmp_rhs38.dtor_t;
-          Std.JSON.Utils.Cursors._ICursor__ _761_cs_k = _let_tmp_rhs38.dtor_cs;
-          Std.JSON.Grammar._IValue _762_v = Std.JSON.Grammar.Value.create_Number(_760_num);
-          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _763_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_762_v, _761_cs_k);
-          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_763_sp);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._Ijnumber> _let_tmp_rhs38 = (_763_valueOrError6).Extract();
+          Std.JSON.Grammar._Ijnumber _764_num = _let_tmp_rhs38.dtor_t;
+          Std.JSON.Utils.Cursors._ICursor__ _765_cs_k = _let_tmp_rhs38.dtor_cs;
+          Std.JSON.Grammar._IValue _766_v = Std.JSON.Grammar.Value.create_Number(_764_num);
+          Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue> _767_sp = Std.JSON.Utils.Cursors.Split<Std.JSON.Grammar._IValue>.create(_766_v, _765_cs_k);
+          return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.create_Success(_767_sp);
         }
       }
     }
     public static Std.JSON.Utils.Parsers._ISubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError> ValueParser(Std.JSON.Utils.Cursors._ICursor__ cs) {
-      Func<Std.JSON.Utils.Cursors._ICursor__, bool> _764_pre = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Func<Std.JSON.Utils.Cursors._ICursor__, bool>>>((_765_cs) => ((System.Func<Std.JSON.Utils.Cursors._ICursor__, bool>)((_766_ps_k) => {
-        return ((_766_ps_k).Length()) < ((_765_cs).Length());
+      Func<Std.JSON.Utils.Cursors._ICursor__, bool> _768_pre = Dafny.Helpers.Id<Func<Std.JSON.Utils.Cursors._ICursor__, Func<Std.JSON.Utils.Cursors._ICursor__, bool>>>((_769_cs) => ((System.Func<Std.JSON.Utils.Cursors._ICursor__, bool>)((_770_ps_k) => {
+        return ((_770_ps_k).Length()) < ((_769_cs).Length());
       })))(cs);
-      Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>> _767_fn = Dafny.Helpers.Id<Func<Func<Std.JSON.Utils.Cursors._ICursor__, bool>, Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>>((_768_pre) => ((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>)((_769_ps_k) => {
-        return Std.JSON.ZeroCopy.Deserializer.Values.__default.Value(_769_ps_k);
-      })))(_764_pre);
-      return Std.JSON.Utils.Parsers.SubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError>.create(_767_fn);
+      Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>> _771_fn = Dafny.Helpers.Id<Func<Func<Std.JSON.Utils.Cursors._ICursor__, bool>, Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>>>((_772_pre) => ((System.Func<Std.JSON.Utils.Cursors._ICursor__, Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IValue>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>>)((_773_ps_k) => {
+        return Std.JSON.ZeroCopy.Deserializer.Values.__default.Value(_773_ps_k);
+      })))(_768_pre);
+      return Std.JSON.Utils.Parsers.SubParser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError>.create(_771_fn);
     }
   }
 } // end of namespace Std.JSON.ZeroCopy.Deserializer.Values
@@ -12048,46 +12067,46 @@ namespace Std.JSON.ZeroCopy.Deserializer.API {
       if (_source24.is_EOF) {
         return Std.JSON.Errors.DeserializationError.create_ReachedEOF();
       } else if (_source24.is_ExpectingByte) {
-        byte _770___mcc_h0 = _source24.dtor_expected;
-        short _771___mcc_h1 = _source24.dtor_b;
-        short _772_b = _771___mcc_h1;
-        byte _773_expected = _770___mcc_h0;
-        return Std.JSON.Errors.DeserializationError.create_ExpectingByte(_773_expected, _772_b);
+        byte _774___mcc_h0 = _source24.dtor_expected;
+        short _775___mcc_h1 = _source24.dtor_b;
+        short _776_b = _775___mcc_h1;
+        byte _777_expected = _774___mcc_h0;
+        return Std.JSON.Errors.DeserializationError.create_ExpectingByte(_777_expected, _776_b);
       } else if (_source24.is_ExpectingAnyByte) {
-        Dafny.ISequence<byte> _774___mcc_h2 = _source24.dtor_expected__sq;
-        short _775___mcc_h3 = _source24.dtor_b;
-        short _776_b = _775___mcc_h3;
-        Dafny.ISequence<byte> _777_expected__sq = _774___mcc_h2;
-        return Std.JSON.Errors.DeserializationError.create_ExpectingAnyByte(_777_expected__sq, _776_b);
+        Dafny.ISequence<byte> _778___mcc_h2 = _source24.dtor_expected__sq;
+        short _779___mcc_h3 = _source24.dtor_b;
+        short _780_b = _779___mcc_h3;
+        Dafny.ISequence<byte> _781_expected__sq = _778___mcc_h2;
+        return Std.JSON.Errors.DeserializationError.create_ExpectingAnyByte(_781_expected__sq, _780_b);
       } else {
-        Std.JSON.Errors._IDeserializationError _778___mcc_h4 = _source24.dtor_err;
-        Std.JSON.Errors._IDeserializationError _779_err = _778___mcc_h4;
-        return _779_err;
+        Std.JSON.Errors._IDeserializationError _782___mcc_h4 = _source24.dtor_err;
+        Std.JSON.Errors._IDeserializationError _783_err = _782___mcc_h4;
+        return _783_err;
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>, Std.JSON.Errors._IDeserializationError> JSON(Std.JSON.Utils.Cursors._ICursor__ cs) {
       return Std.Wrappers.Result<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>, Std.JSON.Utils.Cursors._ICursorError<Std.JSON.Errors._IDeserializationError>>.MapFailure<Std.JSON.Errors._IDeserializationError>(Std.JSON.ZeroCopy.Deserializer.Core.__default.Structural<Std.JSON.Grammar._IValue>(cs, Std.JSON.Utils.Parsers.Parser__<Std.JSON.Grammar._IValue, Std.JSON.Errors._IDeserializationError>.create(Std.JSON.ZeroCopy.Deserializer.Values.__default.Value)), Std.JSON.ZeroCopy.Deserializer.API.__default.LiftCursorError);
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError> Text(Std.JSON.Utils.Views.Core._IView__ v) {
-      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>, Std.JSON.Errors._IDeserializationError> _780_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.API.__default.JSON(Std.JSON.Utils.Cursors.Cursor__.OfView(v));
-      if ((_780_valueOrError0).IsFailure()) {
-        return (_780_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
+      Std.Wrappers._IResult<Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>, Std.JSON.Errors._IDeserializationError> _784_valueOrError0 = Std.JSON.ZeroCopy.Deserializer.API.__default.JSON(Std.JSON.Utils.Cursors.Cursor__.OfView(v));
+      if ((_784_valueOrError0).IsFailure()) {
+        return (_784_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
       } else {
-        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>> _let_tmp_rhs39 = (_780_valueOrError0).Extract();
-        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _781_text = _let_tmp_rhs39.dtor_t;
-        Std.JSON.Utils.Cursors._ICursor__ _782_cs = _let_tmp_rhs39.dtor_cs;
-        Std.Wrappers._IOutcomeResult<Std.JSON.Errors._IDeserializationError> _783_valueOrError1 = Std.Wrappers.__default.Need<Std.JSON.Errors._IDeserializationError>((_782_cs).EOF_q, Std.JSON.Errors.DeserializationError.create_ExpectingEOF());
-        if ((_783_valueOrError1).IsFailure()) {
-          return (_783_valueOrError1).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
+        Std.JSON.Utils.Cursors._ISplit<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>> _let_tmp_rhs39 = (_784_valueOrError0).Extract();
+        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _785_text = _let_tmp_rhs39.dtor_t;
+        Std.JSON.Utils.Cursors._ICursor__ _786_cs = _let_tmp_rhs39.dtor_cs;
+        Std.Wrappers._IOutcomeResult<Std.JSON.Errors._IDeserializationError> _787_valueOrError1 = Std.Wrappers.__default.Need<Std.JSON.Errors._IDeserializationError>((_786_cs).EOF_q, Std.JSON.Errors.DeserializationError.create_ExpectingEOF());
+        if ((_787_valueOrError1).IsFailure()) {
+          return (_787_valueOrError1).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
         } else {
-          return Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError>.create_Success(_781_text);
+          return Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError>.create_Success(_785_text);
         }
       }
     }
     public static Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError> OfBytes(Dafny.ISequence<byte> bs) {
-      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._IDeserializationError> _784_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._IDeserializationError>((new BigInteger((bs).Count)) < (Std.BoundedInts.__default.TWO__TO__THE__32), Std.JSON.Errors.DeserializationError.create_IntOverflow());
-      if ((_784_valueOrError0).IsFailure()) {
-        return (_784_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
+      Std.Wrappers._IOutcomeResult<Std.JSON.Errors._IDeserializationError> _788_valueOrError0 = Std.Wrappers.__default.Need<Std.JSON.Errors._IDeserializationError>((new BigInteger((bs).Count)) < (Std.BoundedInts.__default.TWO__TO__THE__32), Std.JSON.Errors.DeserializationError.create_IntOverflow());
+      if ((_788_valueOrError0).IsFailure()) {
+        return (_788_valueOrError0).PropagateFailure<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>>();
       } else {
         return Std.JSON.ZeroCopy.Deserializer.API.__default.Text(Std.JSON.Utils.Views.Core.View__.OfBytes(bs));
       }
@@ -12131,53 +12150,53 @@ namespace Std.JSON.API {
 
   public partial class __default {
     public static Std.Wrappers._IResult<Dafny.ISequence<byte>, Std.JSON.Errors._ISerializationError> Serialize(Std.JSON.Values._IJSON js) {
-      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _785_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-      if ((_785_valueOrError0).IsFailure()) {
-        return (_785_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
+      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _789_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+      if ((_789_valueOrError0).IsFailure()) {
+        return (_789_valueOrError0).PropagateFailure<Dafny.ISequence<byte>>();
       } else {
-        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _786_js = (_785_valueOrError0).Extract();
-        return Std.JSON.ZeroCopy.API.__default.Serialize(_786_js);
+        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _790_js = (_789_valueOrError0).Extract();
+        return Std.JSON.ZeroCopy.API.__default.Serialize(_790_js);
       }
     }
     public static Std.Wrappers._IResult<byte[], Std.JSON.Errors._ISerializationError> SerializeAlloc(Std.JSON.Values._IJSON js)
     {
       Std.Wrappers._IResult<byte[], Std.JSON.Errors._ISerializationError> bs = Std.Wrappers.Result<byte[], Std.JSON.Errors._ISerializationError>.Default(new byte[0]);
-      Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _787_js;
-      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _788_valueOrError0 = Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.Default(Std.JSON.Grammar.Structural<Std.JSON.Grammar._IValue>.Default(Std.JSON.Grammar.Value.Default()));
-      _788_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-      if ((_788_valueOrError0).IsFailure()) {
-        bs = (_788_valueOrError0).PropagateFailure<byte[]>();
+      Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _791_js;
+      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _792_valueOrError0 = Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.Default(Std.JSON.Grammar.Structural<Std.JSON.Grammar._IValue>.Default(Std.JSON.Grammar.Value.Default()));
+      _792_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+      if ((_792_valueOrError0).IsFailure()) {
+        bs = (_792_valueOrError0).PropagateFailure<byte[]>();
         return bs;
       }
-      _787_js = (_788_valueOrError0).Extract();
+      _791_js = (_792_valueOrError0).Extract();
       Std.Wrappers._IResult<byte[], Std.JSON.Errors._ISerializationError> _out11;
-      _out11 = Std.JSON.ZeroCopy.API.__default.SerializeAlloc(_787_js);
+      _out11 = Std.JSON.ZeroCopy.API.__default.SerializeAlloc(_791_js);
       bs = _out11;
       return bs;
     }
     public static Std.Wrappers._IResult<uint, Std.JSON.Errors._ISerializationError> SerializeInto(Std.JSON.Values._IJSON js, byte[] bs)
     {
       Std.Wrappers._IResult<uint, Std.JSON.Errors._ISerializationError> len = Std.Wrappers.Result<uint, Std.JSON.Errors._ISerializationError>.Default(0);
-      Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _789_js;
-      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _790_valueOrError0 = Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.Default(Std.JSON.Grammar.Structural<Std.JSON.Grammar._IValue>.Default(Std.JSON.Grammar.Value.Default()));
-      _790_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-      if ((_790_valueOrError0).IsFailure()) {
-        len = (_790_valueOrError0).PropagateFailure<uint>();
+      Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _793_js;
+      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError> _794_valueOrError0 = Std.Wrappers.Result<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._ISerializationError>.Default(Std.JSON.Grammar.Structural<Std.JSON.Grammar._IValue>.Default(Std.JSON.Grammar.Value.Default()));
+      _794_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+      if ((_794_valueOrError0).IsFailure()) {
+        len = (_794_valueOrError0).PropagateFailure<uint>();
         return len;
       }
-      _789_js = (_790_valueOrError0).Extract();
+      _793_js = (_794_valueOrError0).Extract();
       Std.Wrappers._IResult<uint, Std.JSON.Errors._ISerializationError> _out12;
-      _out12 = Std.JSON.ZeroCopy.API.__default.SerializeInto(_789_js, bs);
+      _out12 = Std.JSON.ZeroCopy.API.__default.SerializeInto(_793_js, bs);
       len = _out12;
       return len;
     }
     public static Std.Wrappers._IResult<Std.JSON.Values._IJSON, Std.JSON.Errors._IDeserializationError> Deserialize(Dafny.ISequence<byte> bs) {
-      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError> _791_valueOrError0 = Std.JSON.ZeroCopy.API.__default.Deserialize(bs);
-      if ((_791_valueOrError0).IsFailure()) {
-        return (_791_valueOrError0).PropagateFailure<Std.JSON.Values._IJSON>();
+      Std.Wrappers._IResult<Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue>, Std.JSON.Errors._IDeserializationError> _795_valueOrError0 = Std.JSON.ZeroCopy.API.__default.Deserialize(bs);
+      if ((_795_valueOrError0).IsFailure()) {
+        return (_795_valueOrError0).PropagateFailure<Std.JSON.Values._IJSON>();
       } else {
-        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _792_js = (_791_valueOrError0).Extract();
-        return Std.JSON.Deserializer.__default.JSON(_792_js);
+        Std.JSON.Grammar._IStructural<Std.JSON.Grammar._IValue> _796_js = (_795_valueOrError0).Extract();
+        return Std.JSON.Deserializer.__default.JSON(_796_js);
       }
     }
   }

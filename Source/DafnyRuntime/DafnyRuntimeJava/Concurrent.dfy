@@ -1,4 +1,4 @@
-module {:extern "DafnyStdLibsExterns.Concurrent"} Std.JavaConcurrent replaces Concurrent {
+module {:extern} Std.JavaConcurrent replaces Concurrent {
 
   class {:extern "MutableMap"} MutableMap<K(==), V(==)> ... {
 

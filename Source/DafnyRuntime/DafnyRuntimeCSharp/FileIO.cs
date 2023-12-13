@@ -3,7 +3,7 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-namespace Std.CSharpFileIOInternalExterns {
+namespace Std.FileIOInternalExterns {
   using System;
   using System.IO;
 

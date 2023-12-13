@@ -2,7 +2,9 @@
 // Dafny class Chain compiled into Java
 package Std.JSON.Utils.Views.Writers;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -65,28 +66,13 @@ public abstract class Chain {
     return ((Chain_Chain)d)._v;
   }
   public java.math.BigInteger Length() {
-    java.math.BigInteger _367___accumulator = java.math.BigInteger.ZERO;
+    java.math.BigInteger _373___accumulator = java.math.BigInteger.ZERO;
     Chain _this = this;
     TAIL_CALL_START: while (true) {
       if ((_this).is_Empty()) {
-        return (java.math.BigInteger.ZERO).add(_367___accumulator);
+        return (java.math.BigInteger.ZERO).add(_373___accumulator);
       } else {
-        _367___accumulator = (dafny.Helpers.unsignedToBigInteger(((_this).dtor_v()).Length())).add(_367___accumulator);
-        Chain _in63 = (_this).dtor_previous();
-        _this = _in63;
-        ;
-        continue TAIL_CALL_START;
-      }
-    }
-  }
-  public java.math.BigInteger Count() {
-    java.math.BigInteger _368___accumulator = java.math.BigInteger.ZERO;
-    Chain _this = this;
-    TAIL_CALL_START: while (true) {
-      if ((_this).is_Empty()) {
-        return (java.math.BigInteger.ZERO).add(_368___accumulator);
-      } else {
-        _368___accumulator = (java.math.BigInteger.ONE).add(_368___accumulator);
+        _373___accumulator = (dafny.Helpers.unsignedToBigInteger(((_this).dtor_v()).Length())).add(_373___accumulator);
         Chain _in64 = (_this).dtor_previous();
         _this = _in64;
         ;
@@ -94,16 +80,31 @@ public abstract class Chain {
       }
     }
   }
-  public dafny.DafnySequence<? extends java.lang.Byte> Bytes() {
-    dafny.DafnySequence<? extends java.lang.Byte> _369___accumulator = dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor());
+  public java.math.BigInteger Count() {
+    java.math.BigInteger _374___accumulator = java.math.BigInteger.ZERO;
     Chain _this = this;
     TAIL_CALL_START: while (true) {
       if ((_this).is_Empty()) {
-        return dafny.DafnySequence.<java.lang.Byte>concatenate(dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor()), _369___accumulator);
+        return (java.math.BigInteger.ZERO).add(_374___accumulator);
       } else {
-        _369___accumulator = dafny.DafnySequence.<java.lang.Byte>concatenate(((_this).dtor_v()).Bytes(), _369___accumulator);
+        _374___accumulator = (java.math.BigInteger.ONE).add(_374___accumulator);
         Chain _in65 = (_this).dtor_previous();
         _this = _in65;
+        ;
+        continue TAIL_CALL_START;
+      }
+    }
+  }
+  public dafny.DafnySequence<? extends java.lang.Byte> Bytes() {
+    dafny.DafnySequence<? extends java.lang.Byte> _375___accumulator = dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor());
+    Chain _this = this;
+    TAIL_CALL_START: while (true) {
+      if ((_this).is_Empty()) {
+        return dafny.DafnySequence.<java.lang.Byte>concatenate(dafny.DafnySequence.<java.lang.Byte> empty(Std.BoundedInts.uint8._typeDescriptor()), _375___accumulator);
+      } else {
+        _375___accumulator = dafny.DafnySequence.<java.lang.Byte>concatenate(((_this).dtor_v()).Bytes(), _375___accumulator);
+        Chain _in66 = (_this).dtor_previous();
+        _this = _in66;
         ;
         continue TAIL_CALL_START;
       }
@@ -122,16 +123,16 @@ public abstract class Chain {
     TAIL_CALL_START: while (true) {
       if(true) {
         if ((_this).is_Chain()) {
-          int _370_end;
-          _370_end = (int)  ((end) - (((_this).dtor_v()).Length()));
-          ((_this).dtor_v()).CopyTo(dest, _370_end);
-          Chain _in66 = (_this).dtor_previous();
-          byte[] _in67 = dest;
-          int _in68 = _370_end;
-          _this = _in66;
+          int _376_end;
+          _376_end = (int)  ((end) - (((_this).dtor_v()).Length()));
+          ((_this).dtor_v()).CopyTo(dest, _376_end);
+          Chain _in67 = (_this).dtor_previous();
+          byte[] _in68 = dest;
+          int _in69 = _376_end;
+          _this = _in67;
           ;
-          dest = _in67;
-          end = _in68;
+          dest = _in68;
+          end = _in69;
           continue TAIL_CALL_START;
         }
       }

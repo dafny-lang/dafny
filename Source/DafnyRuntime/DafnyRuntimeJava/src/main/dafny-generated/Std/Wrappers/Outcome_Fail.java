@@ -2,6 +2,7 @@
 // Dafny class Outcome_Fail<E> compiled into Java
 package Std.Wrappers;
 
+import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class Outcome_Fail<E> extends Outcome<E> {

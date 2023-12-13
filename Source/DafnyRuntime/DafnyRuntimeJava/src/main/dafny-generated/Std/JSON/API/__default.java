@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.JSON.API;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -63,28 +64,28 @@ public class __default {
   public __default() {
   }
   public static Std.Wrappers.Result<dafny.DafnySequence<? extends java.lang.Byte>, Std.JSON.Errors.SerializationError> Serialize(Std.JSON.Values.JSON js) {
-    Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _799_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-    if ((_799_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
-      return (_799_valueOrError0).<dafny.DafnySequence<? extends java.lang.Byte>>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), dafny.DafnySequence.<java.lang.Byte>_typeDescriptor(Std.BoundedInts.uint8._typeDescriptor()));
+    Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _803_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+    if ((_803_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
+      return (_803_valueOrError0).<dafny.DafnySequence<? extends java.lang.Byte>>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), dafny.DafnySequence.<java.lang.Byte>_typeDescriptor(Std.BoundedInts.uint8._typeDescriptor()));
     } else {
-      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _800_js = (_799_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
-      return Std.JSON.ZeroCopy.API.__default.Serialize(_800_js);
+      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _804_js = (_803_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
+      return Std.JSON.ZeroCopy.API.__default.Serialize(_804_js);
     }
   }
   public static Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> SerializeAlloc(Std.JSON.Values.JSON js)
   {
     Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> bs = Std.Wrappers.Result.<byte[], Std.JSON.Errors.SerializationError>Default(dafny.TypeDescriptor.BYTE_ARRAY, Std.JSON.Errors.SerializationError._typeDescriptor(), new byte[0]);
     if(true) {
-      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _801_js;
-      Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _802_valueOrError0 = Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError>Default(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>Default(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.Value.Default()));
-      _802_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-      if ((_802_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
-        bs = (_802_valueOrError0).<byte[]>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), dafny.TypeDescriptor.BYTE_ARRAY);
+      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _805_js;
+      Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _806_valueOrError0 = Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError>Default(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>Default(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.Value.Default()));
+      _806_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+      if ((_806_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
+        bs = (_806_valueOrError0).<byte[]>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), dafny.TypeDescriptor.BYTE_ARRAY);
         return bs;
       }
-      _801_js = (_802_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
+      _805_js = (_806_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
       Std.Wrappers.Result<byte[], Std.JSON.Errors.SerializationError> _out16;
-      _out16 = Std.JSON.ZeroCopy.API.__default.SerializeAlloc(_801_js);
+      _out16 = Std.JSON.ZeroCopy.API.__default.SerializeAlloc(_805_js);
       bs = _out16;
     }
     return bs;
@@ -93,27 +94,27 @@ public class __default {
   {
     Std.Wrappers.Result<java.lang.Integer, Std.JSON.Errors.SerializationError> len = Std.Wrappers.Result.<java.lang.Integer, Std.JSON.Errors.SerializationError>Default(Std.BoundedInts.uint32._typeDescriptor(), Std.JSON.Errors.SerializationError._typeDescriptor(), 0);
     if(true) {
-      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _803_js;
-      Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _804_valueOrError0 = Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError>Default(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>Default(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.Value.Default()));
-      _804_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
-      if ((_804_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
-        len = (_804_valueOrError0).<java.lang.Integer>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.BoundedInts.uint32._typeDescriptor());
+      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _807_js;
+      Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError> _808_valueOrError0 = Std.Wrappers.Result.<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.SerializationError>Default(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>Default(Std.JSON.Grammar.Value._typeDescriptor(), Std.JSON.Grammar.Value.Default()));
+      _808_valueOrError0 = Std.JSON.Serializer.__default.JSON(js);
+      if ((_808_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor())) {
+        len = (_808_valueOrError0).<java.lang.Integer>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor(), Std.BoundedInts.uint32._typeDescriptor());
         return len;
       }
-      _803_js = (_804_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
+      _807_js = (_808_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.SerializationError._typeDescriptor());
       Std.Wrappers.Result<java.lang.Integer, Std.JSON.Errors.SerializationError> _out17;
-      _out17 = Std.JSON.ZeroCopy.API.__default.SerializeInto(_803_js, bs);
+      _out17 = Std.JSON.ZeroCopy.API.__default.SerializeInto(_807_js, bs);
       len = _out17;
     }
     return len;
   }
   public static Std.Wrappers.Result<Std.JSON.Values.JSON, Std.JSON.Errors.DeserializationError> Deserialize(dafny.DafnySequence<? extends java.lang.Byte> bs) {
-    Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError> _805_valueOrError0 = Std.JSON.ZeroCopy.API.__default.Deserialize(bs);
-    if ((_805_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor())) {
-      return (_805_valueOrError0).<Std.JSON.Values.JSON>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Values.JSON._typeDescriptor());
+    Std.Wrappers.Result<Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value>, Std.JSON.Errors.DeserializationError> _809_valueOrError0 = Std.JSON.ZeroCopy.API.__default.Deserialize(bs);
+    if ((_809_valueOrError0).IsFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor())) {
+      return (_809_valueOrError0).<Std.JSON.Values.JSON>PropagateFailure(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor(), Std.JSON.Values.JSON._typeDescriptor());
     } else {
-      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _806_js = (_805_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor());
-      return Std.JSON.Deserializer.__default.JSON(_806_js);
+      Std.JSON.Grammar.Structural<Std.JSON.Grammar.Value> _810_js = (_809_valueOrError0).Extract(Std.JSON.Grammar.Structural.<Std.JSON.Grammar.Value>_typeDescriptor(Std.JSON.Grammar.Value._typeDescriptor()), Std.JSON.Errors.DeserializationError._typeDescriptor());
+      return Std.JSON.Deserializer.__default.JSON(_810_js);
     }
   }
   @Override

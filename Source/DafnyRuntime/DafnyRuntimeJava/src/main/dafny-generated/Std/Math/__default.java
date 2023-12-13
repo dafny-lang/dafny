@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Math;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 

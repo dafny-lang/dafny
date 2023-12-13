@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.JSON.Utils.Lexers.Strings;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -29,7 +31,6 @@ import Std.Unicode.Utf8EncodingForm.*;
 import Std.Unicode.Utf16EncodingForm.*;
 import Std.Unicode.UnicodeStringsWithUnicodeChar.*;
 import Std.Unicode.Utf8EncodingScheme.*;
-import Std.JavaFileIOInternalExterns.*;
 import Std.JSON.Values.*;
 import Std.JSON.Errors.*;
 import Std.JSON.Spec.*;
@@ -61,11 +62,11 @@ public class __default {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Reject(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), dafny.DafnySequence.asUnicodeString("String must start with double quote"));
       }
     } else if (_source13.is_Body()) {
-      boolean _372___mcc_h0 = ((Std.JSON.Utils.Lexers.Strings.StringLexerState_Body)_source13)._escaped;
-      boolean _373_escaped = _372___mcc_h0;
+      boolean _378___mcc_h0 = ((Std.JSON.Utils.Lexers.Strings.StringLexerState_Body)_source13)._escaped;
+      boolean _379_escaped = _378___mcc_h0;
       if ((byte_) == (((short) ('\\')))) {
-        return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_373_escaped)));
-      } else if (((byte_) == (((short) ('\"')))) && (!(_373_escaped))) {
+        return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(!(_379_escaped)));
+      } else if (((byte_) == (((short) ('\"')))) && (!(_379_escaped))) {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_End());
       } else {
         return Std.JSON.Utils.Lexers.Core.LexerResult.<StringLexerState, dafny.DafnySequence<? extends dafny.CodePoint>>create_Partial(StringLexerState._typeDescriptor(), dafny.DafnySequence.<dafny.CodePoint>_typeDescriptor(dafny.TypeDescriptor.UNICODE_CHAR), Std.JSON.Utils.Lexers.Strings.StringLexerState.create_Body(false));

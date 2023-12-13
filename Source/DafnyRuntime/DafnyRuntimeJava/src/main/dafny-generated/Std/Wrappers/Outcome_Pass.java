@@ -2,6 +2,7 @@
 // Dafny class Outcome_Pass<E> compiled into Java
 package Std.Wrappers;
 
+import JavaInternal.*;
 
 @SuppressWarnings({"unchecked", "deprecation"})
 public class Outcome_Pass<E> extends Outcome<E> {

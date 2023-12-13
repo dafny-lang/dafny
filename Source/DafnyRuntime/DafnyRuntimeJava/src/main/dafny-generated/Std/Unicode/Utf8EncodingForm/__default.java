@@ -2,7 +2,9 @@
 // Dafny class __default compiled into Java
 package Std.Unicode.Utf8EncodingForm;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;
@@ -32,42 +34,42 @@ public class __default {
   }
   public static boolean IsMinimalWellFormedCodeUnitSubsequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
     if (java.util.Objects.equals(java.math.BigInteger.valueOf((s).length()), java.math.BigInteger.ONE)) {
-      boolean _179_b = __default.IsWellFormedSingleCodeUnitSequence(s);
-      return _179_b;
+      boolean _190_b = __default.IsWellFormedSingleCodeUnitSequence(s);
+      return _190_b;
     } else if (java.util.Objects.equals(java.math.BigInteger.valueOf((s).length()), java.math.BigInteger.valueOf(2L))) {
-      boolean _180_b = __default.IsWellFormedDoubleCodeUnitSequence(s);
-      return _180_b;
+      boolean _191_b = __default.IsWellFormedDoubleCodeUnitSequence(s);
+      return _191_b;
     } else if (java.util.Objects.equals(java.math.BigInteger.valueOf((s).length()), java.math.BigInteger.valueOf(3L))) {
-      boolean _181_b = __default.IsWellFormedTripleCodeUnitSequence(s);
-      return _181_b;
+      boolean _192_b = __default.IsWellFormedTripleCodeUnitSequence(s);
+      return _192_b;
     } else if (java.util.Objects.equals(java.math.BigInteger.valueOf((s).length()), java.math.BigInteger.valueOf(4L))) {
-      boolean _182_b = __default.IsWellFormedQuadrupleCodeUnitSequence(s);
-      return _182_b;
+      boolean _193_b = __default.IsWellFormedQuadrupleCodeUnitSequence(s);
+      return _193_b;
     } else {
       return false;
     }
   }
   public static boolean IsWellFormedSingleCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    byte _183_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    return (true) && ((((_183_firstByte) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned(_183_firstByte, (byte) 127) <= 0));
+    byte _194_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    return (true) && ((((_194_firstByte) == 0 ? 0 : 1) != -1) && (java.lang.Integer.compareUnsigned(_194_firstByte, (byte) 127) <= 0));
   }
   public static boolean IsWellFormedDoubleCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    byte _184_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _185_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    return ((java.lang.Integer.compareUnsigned((byte) 194, _184_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_184_firstByte, (byte) 223) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _185_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_185_secondByte, (byte) 191) <= 0));
+    byte _195_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _196_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    return ((java.lang.Integer.compareUnsigned((byte) 194, _195_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_195_firstByte, (byte) 223) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _196_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_196_secondByte, (byte) 191) <= 0));
   }
   public static boolean IsWellFormedTripleCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    byte _186_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _187_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    byte _188_thirdByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
-    return ((((((_186_firstByte) == ((byte) 224)) && ((java.lang.Integer.compareUnsigned((byte) 160, _187_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_187_secondByte, (byte) 191) <= 0))) || (((java.lang.Integer.compareUnsigned((byte) 225, _186_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_186_firstByte, (byte) 236) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _187_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_187_secondByte, (byte) 191) <= 0)))) || (((_186_firstByte) == ((byte) 237)) && ((java.lang.Integer.compareUnsigned((byte) 128, _187_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_187_secondByte, (byte) 159) <= 0)))) || (((java.lang.Integer.compareUnsigned((byte) 238, _186_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_186_firstByte, (byte) 239) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _187_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_187_secondByte, (byte) 191) <= 0)))) && ((java.lang.Integer.compareUnsigned((byte) 128, _188_thirdByte) <= 0) && (java.lang.Integer.compareUnsigned(_188_thirdByte, (byte) 191) <= 0));
+    byte _197_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _198_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    byte _199_thirdByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
+    return ((((((_197_firstByte) == ((byte) 224)) && ((java.lang.Integer.compareUnsigned((byte) 160, _198_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_198_secondByte, (byte) 191) <= 0))) || (((java.lang.Integer.compareUnsigned((byte) 225, _197_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_197_firstByte, (byte) 236) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _198_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_198_secondByte, (byte) 191) <= 0)))) || (((_197_firstByte) == ((byte) 237)) && ((java.lang.Integer.compareUnsigned((byte) 128, _198_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_198_secondByte, (byte) 159) <= 0)))) || (((java.lang.Integer.compareUnsigned((byte) 238, _197_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_197_firstByte, (byte) 239) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _198_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_198_secondByte, (byte) 191) <= 0)))) && ((java.lang.Integer.compareUnsigned((byte) 128, _199_thirdByte) <= 0) && (java.lang.Integer.compareUnsigned(_199_thirdByte, (byte) 191) <= 0));
   }
   public static boolean IsWellFormedQuadrupleCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    byte _189_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _190_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    byte _191_thirdByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
-    byte _192_fourthByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(3L))))));
-    return ((((((_189_firstByte) == ((byte) 240)) && ((java.lang.Integer.compareUnsigned((byte) 144, _190_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_190_secondByte, (byte) 191) <= 0))) || (((java.lang.Integer.compareUnsigned((byte) 241, _189_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_189_firstByte, (byte) 243) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _190_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_190_secondByte, (byte) 191) <= 0)))) || (((_189_firstByte) == ((byte) 244)) && ((java.lang.Integer.compareUnsigned((byte) 128, _190_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_190_secondByte, (byte) 143) <= 0)))) && ((java.lang.Integer.compareUnsigned((byte) 128, _191_thirdByte) <= 0) && (java.lang.Integer.compareUnsigned(_191_thirdByte, (byte) 191) <= 0))) && ((java.lang.Integer.compareUnsigned((byte) 128, _192_fourthByte) <= 0) && (java.lang.Integer.compareUnsigned(_192_fourthByte, (byte) 191) <= 0));
+    byte _200_firstByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _201_secondByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    byte _202_thirdByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
+    byte _203_fourthByte = ((byte)(java.lang.Object)((s).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(3L))))));
+    return ((((((_200_firstByte) == ((byte) 240)) && ((java.lang.Integer.compareUnsigned((byte) 144, _201_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_201_secondByte, (byte) 191) <= 0))) || (((java.lang.Integer.compareUnsigned((byte) 241, _200_firstByte) <= 0) && (java.lang.Integer.compareUnsigned(_200_firstByte, (byte) 243) <= 0)) && ((java.lang.Integer.compareUnsigned((byte) 128, _201_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_201_secondByte, (byte) 191) <= 0)))) || (((_200_firstByte) == ((byte) 244)) && ((java.lang.Integer.compareUnsigned((byte) 128, _201_secondByte) <= 0) && (java.lang.Integer.compareUnsigned(_201_secondByte, (byte) 143) <= 0)))) && ((java.lang.Integer.compareUnsigned((byte) 128, _202_thirdByte) <= 0) && (java.lang.Integer.compareUnsigned(_202_thirdByte, (byte) 191) <= 0))) && ((java.lang.Integer.compareUnsigned((byte) 128, _203_fourthByte) <= 0) && (java.lang.Integer.compareUnsigned(_203_fourthByte, (byte) 191) <= 0));
   }
   public static Std.Wrappers.Option<dafny.DafnySequence<? extends java.lang.Byte>> SplitPrefixMinimalWellFormedCodeUnitSubsequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
     if (((java.math.BigInteger.valueOf((s).length())).compareTo(java.math.BigInteger.ONE) >= 0) && (__default.IsWellFormedSingleCodeUnitSequence((s).take(java.math.BigInteger.ONE)))) {
@@ -94,37 +96,37 @@ public class __default {
     }
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> EncodeScalarValueSingleByte(int v) {
-    byte _193_x = ((byte) ((int)  ((v) & (127))));
-    byte _194_firstByte = (_193_x);
-    return dafny.DafnySequence.<java.lang.Byte> of(_194_firstByte);
+    byte _204_x = ((byte) ((int)  ((v) & (127))));
+    byte _205_firstByte = (_204_x);
+    return dafny.DafnySequence.<java.lang.Byte> of(_205_firstByte);
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> EncodeScalarValueDoubleByte(int v) {
-    byte _195_x = ((byte) ((int)  ((v) & (63))));
-    byte _196_y = ((byte) ((int)  (((int)  ((v) & (1984))) >>> ((byte) 6))));
-    byte _197_firstByte = (byte) (byte)  ((byte)(((byte) 192) | ((_196_y))));
-    byte _198_secondByte = (byte) (byte)  ((byte)(((byte) 128) | ((_195_x))));
-    return dafny.DafnySequence.<java.lang.Byte> of(_197_firstByte, _198_secondByte);
+    byte _206_x = ((byte) ((int)  ((v) & (63))));
+    byte _207_y = ((byte) ((int)  (((int)  ((v) & (1984))) >>> ((byte) 6))));
+    byte _208_firstByte = (byte) (byte)  ((byte)(((byte) 192) | ((_207_y))));
+    byte _209_secondByte = (byte) (byte)  ((byte)(((byte) 128) | ((_206_x))));
+    return dafny.DafnySequence.<java.lang.Byte> of(_208_firstByte, _209_secondByte);
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> EncodeScalarValueTripleByte(int v) {
-    byte _199_x = ((byte) ((int)  ((v) & (63))));
-    byte _200_y = ((byte) ((int)  (((int)  ((v) & (4032))) >>> ((byte) 6))));
-    byte _201_z = ((byte) ((int)  (((int)  ((v) & (61440))) >>> ((byte) 12))));
-    byte _202_firstByte = (byte) (byte)  ((byte)(((byte) 224) | ((_201_z))));
-    byte _203_secondByte = (byte) (byte)  ((byte)(((byte) 128) | ((_200_y))));
-    byte _204_thirdByte = (byte) (byte)  ((byte)(((byte) 128) | ((_199_x))));
-    return dafny.DafnySequence.<java.lang.Byte> of(_202_firstByte, _203_secondByte, _204_thirdByte);
+    byte _210_x = ((byte) ((int)  ((v) & (63))));
+    byte _211_y = ((byte) ((int)  (((int)  ((v) & (4032))) >>> ((byte) 6))));
+    byte _212_z = ((byte) ((int)  (((int)  ((v) & (61440))) >>> ((byte) 12))));
+    byte _213_firstByte = (byte) (byte)  ((byte)(((byte) 224) | ((_212_z))));
+    byte _214_secondByte = (byte) (byte)  ((byte)(((byte) 128) | ((_211_y))));
+    byte _215_thirdByte = (byte) (byte)  ((byte)(((byte) 128) | ((_210_x))));
+    return dafny.DafnySequence.<java.lang.Byte> of(_213_firstByte, _214_secondByte, _215_thirdByte);
   }
   public static dafny.DafnySequence<? extends java.lang.Byte> EncodeScalarValueQuadrupleByte(int v) {
-    byte _205_x = ((byte) ((int)  ((v) & (63))));
-    byte _206_y = ((byte) ((int)  (((int)  ((v) & (4032))) >>> ((byte) 6))));
-    byte _207_z = ((byte) ((int)  (((int)  ((v) & (61440))) >>> ((byte) 12))));
-    byte _208_u2 = ((byte) ((int)  (((int)  ((v) & (196608))) >>> ((byte) 16))));
-    byte _209_u1 = ((byte) ((int)  (((int)  ((v) & (1835008))) >>> ((byte) 18))));
-    byte _210_firstByte = (byte) (byte)  ((byte)(((byte) 240) | ((_209_u1))));
-    byte _211_secondByte = (byte) (byte)  ((byte)(((byte) (byte)  ((byte)(((byte) 128) | ((byte) (byte) (((byte) (byte)  ((byte)(((_208_u2)) << ((byte) 4))))))))) | ((_207_z))));
-    byte _212_thirdByte = (byte) (byte)  ((byte)(((byte) 128) | ((_206_y))));
-    byte _213_fourthByte = (byte) (byte)  ((byte)(((byte) 128) | ((_205_x))));
-    return dafny.DafnySequence.<java.lang.Byte> of(_210_firstByte, _211_secondByte, _212_thirdByte, _213_fourthByte);
+    byte _216_x = ((byte) ((int)  ((v) & (63))));
+    byte _217_y = ((byte) ((int)  (((int)  ((v) & (4032))) >>> ((byte) 6))));
+    byte _218_z = ((byte) ((int)  (((int)  ((v) & (61440))) >>> ((byte) 12))));
+    byte _219_u2 = ((byte) ((int)  (((int)  ((v) & (196608))) >>> ((byte) 16))));
+    byte _220_u1 = ((byte) ((int)  (((int)  ((v) & (1835008))) >>> ((byte) 18))));
+    byte _221_firstByte = (byte) (byte)  ((byte)(((byte) 240) | ((_220_u1))));
+    byte _222_secondByte = (byte) (byte)  ((byte)(((byte) (byte)  ((byte)(((byte) 128) | ((byte) (byte) (((byte) (byte)  ((byte)(((_219_u2)) << ((byte) 4))))))))) | ((_218_z))));
+    byte _223_thirdByte = (byte) (byte)  ((byte)(((byte) 128) | ((_217_y))));
+    byte _224_fourthByte = (byte) (byte)  ((byte)(((byte) 128) | ((_216_x))));
+    return dafny.DafnySequence.<java.lang.Byte> of(_221_firstByte, _222_secondByte, _223_thirdByte, _224_fourthByte);
   }
   public static int DecodeMinimalWellFormedCodeUnitSubsequence(dafny.DafnySequence<? extends java.lang.Byte> m) {
     if (java.util.Objects.equals(java.math.BigInteger.valueOf((m).length()), java.math.BigInteger.ONE)) {
@@ -138,37 +140,37 @@ public class __default {
     }
   }
   public static int DecodeMinimalWellFormedCodeUnitSubsequenceSingleByte(dafny.DafnySequence<? extends java.lang.Byte> m) {
-    byte _214_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _215_x = (_214_firstByte);
-    return java.lang.Byte.toUnsignedInt(_215_x);
+    byte _225_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _226_x = (_225_firstByte);
+    return java.lang.Byte.toUnsignedInt(_226_x);
   }
   public static int DecodeMinimalWellFormedCodeUnitSubsequenceDoubleByte(dafny.DafnySequence<? extends java.lang.Byte> m) {
-    byte _216_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _217_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    int _218_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_216_firstByte) & ((byte) 31))));
-    int _219_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_217_secondByte) & ((byte) 63))));
-    return (int)  (((int) (((int)  ((_218_y) << ((byte) 6))) & 0xFFFFFF)) | ((_219_x)));
+    byte _227_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _228_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    int _229_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_227_firstByte) & ((byte) 31))));
+    int _230_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_228_secondByte) & ((byte) 63))));
+    return (int)  (((int) (((int)  ((_229_y) << ((byte) 6))) & 0xFFFFFF)) | ((_230_x)));
   }
   public static int DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(dafny.DafnySequence<? extends java.lang.Byte> m) {
-    byte _220_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _221_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    byte _222_thirdByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
-    int _223_z = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_220_firstByte) & ((byte) 15))));
-    int _224_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_221_secondByte) & ((byte) 63))));
-    int _225_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_222_thirdByte) & ((byte) 63))));
-    return (int)  (((int)  (((int) (((int)  ((_223_z) << ((byte) 12))) & 0xFFFFFF)) | ((int) (((int)  ((_224_y) << ((byte) 6))) & 0xFFFFFF)))) | ((_225_x)));
+    byte _231_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _232_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    byte _233_thirdByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
+    int _234_z = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_231_firstByte) & ((byte) 15))));
+    int _235_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_232_secondByte) & ((byte) 63))));
+    int _236_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_233_thirdByte) & ((byte) 63))));
+    return (int)  (((int)  (((int) (((int)  ((_234_z) << ((byte) 12))) & 0xFFFFFF)) | ((int) (((int)  ((_235_y) << ((byte) 6))) & 0xFFFFFF)))) | ((_236_x)));
   }
   public static int DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(dafny.DafnySequence<? extends java.lang.Byte> m) {
-    byte _226_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
-    byte _227_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
-    byte _228_thirdByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
-    byte _229_fourthByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(3L))))));
-    int _230_u1 = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_226_firstByte) & ((byte) 7))));
-    int _231_u2 = java.lang.Byte.toUnsignedInt((byte) dafny.Helpers.bv8ShiftRight((byte) (byte)  ((byte)((_227_secondByte) & ((byte) 48))), (byte) 4));
-    int _232_z = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_227_secondByte) & ((byte) 15))));
-    int _233_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_228_thirdByte) & ((byte) 63))));
-    int _234_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_229_fourthByte) & ((byte) 63))));
-    return (int)  (((int)  (((int)  (((int)  (((int) (((int)  ((_230_u1) << ((byte) 18))) & 0xFFFFFF)) | ((int) (((int)  ((_231_u2) << ((byte) 16))) & 0xFFFFFF)))) | ((int) (((int)  ((_232_z) << ((byte) 12))) & 0xFFFFFF)))) | ((int) (((int)  ((_233_y) << ((byte) 6))) & 0xFFFFFF)))) | ((_234_x)));
+    byte _237_firstByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ZERO)))));
+    byte _238_secondByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.ONE)))));
+    byte _239_thirdByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(2L))))));
+    byte _240_fourthByte = ((byte)(java.lang.Object)((m).select(dafny.Helpers.toInt((java.math.BigInteger.valueOf(3L))))));
+    int _241_u1 = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_237_firstByte) & ((byte) 7))));
+    int _242_u2 = java.lang.Byte.toUnsignedInt((byte) dafny.Helpers.bv8ShiftRight((byte) (byte)  ((byte)((_238_secondByte) & ((byte) 48))), (byte) 4));
+    int _243_z = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_238_secondByte) & ((byte) 15))));
+    int _244_y = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_239_thirdByte) & ((byte) 63))));
+    int _245_x = java.lang.Byte.toUnsignedInt((byte) (byte)  ((byte)((_240_fourthByte) & ((byte) 63))));
+    return (int)  (((int)  (((int)  (((int)  (((int) (((int)  ((_241_u1) << ((byte) 18))) & 0xFFFFFF)) | ((int) (((int)  ((_242_u2) << ((byte) 16))) & 0xFFFFFF)))) | ((int) (((int)  ((_243_z) << ((byte) 12))) & 0xFFFFFF)))) | ((int) (((int)  ((_244_y) << ((byte) 6))) & 0xFFFFFF)))) | ((_245_x)));
   }
   public static Std.Wrappers.Option<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>> PartitionCodeUnitSequenceChecked(dafny.DafnySequence<? extends java.lang.Byte> s)
   {
@@ -177,23 +179,23 @@ public class __default {
       maybeParts = Std.Wrappers.Option.<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>>create_Some(dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>_typeDescriptor(MinimalWellFormedCodeUnitSeq._typeDescriptor()), dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>> empty(MinimalWellFormedCodeUnitSeq._typeDescriptor()));
       return maybeParts;
     }
-    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _235_result;
-    _235_result = dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>> empty(MinimalWellFormedCodeUnitSeq._typeDescriptor());
-    dafny.DafnySequence<? extends java.lang.Byte> _236_rest;
-    _236_rest = s;
-    while ((java.math.BigInteger.valueOf((_236_rest).length())).signum() == 1) {
-      dafny.DafnySequence<? extends java.lang.Byte> _237_prefix;
-      Std.Wrappers.Option<dafny.DafnySequence<? extends java.lang.Byte>> _238_valueOrError0 = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Byte>>Default(MinimalWellFormedCodeUnitSeq._typeDescriptor());
-      _238_valueOrError0 = __default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_236_rest);
-      if ((_238_valueOrError0).IsFailure(MinimalWellFormedCodeUnitSeq._typeDescriptor())) {
-        maybeParts = (_238_valueOrError0).<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>>PropagateFailure(MinimalWellFormedCodeUnitSeq._typeDescriptor(), dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>_typeDescriptor(MinimalWellFormedCodeUnitSeq._typeDescriptor()));
+    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _246_result;
+    _246_result = dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>> empty(MinimalWellFormedCodeUnitSeq._typeDescriptor());
+    dafny.DafnySequence<? extends java.lang.Byte> _247_rest;
+    _247_rest = s;
+    while ((java.math.BigInteger.valueOf((_247_rest).length())).signum() == 1) {
+      dafny.DafnySequence<? extends java.lang.Byte> _248_prefix;
+      Std.Wrappers.Option<dafny.DafnySequence<? extends java.lang.Byte>> _249_valueOrError0 = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Byte>>Default(MinimalWellFormedCodeUnitSeq._typeDescriptor());
+      _249_valueOrError0 = __default.SplitPrefixMinimalWellFormedCodeUnitSubsequence(_247_rest);
+      if ((_249_valueOrError0).IsFailure(MinimalWellFormedCodeUnitSeq._typeDescriptor())) {
+        maybeParts = (_249_valueOrError0).<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>>PropagateFailure(MinimalWellFormedCodeUnitSeq._typeDescriptor(), dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>_typeDescriptor(MinimalWellFormedCodeUnitSeq._typeDescriptor()));
         return maybeParts;
       }
-      _237_prefix = (_238_valueOrError0).Extract(MinimalWellFormedCodeUnitSeq._typeDescriptor());
-      _235_result = dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>concatenate(_235_result, dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>> of(MinimalWellFormedCodeUnitSeq._typeDescriptor(), _237_prefix));
-      _236_rest = (_236_rest).drop(java.math.BigInteger.valueOf((_237_prefix).length()));
+      _248_prefix = (_249_valueOrError0).Extract(MinimalWellFormedCodeUnitSeq._typeDescriptor());
+      _246_result = dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>concatenate(_246_result, dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>> of(MinimalWellFormedCodeUnitSeq._typeDescriptor(), _248_prefix));
+      _247_rest = (_247_rest).drop(java.math.BigInteger.valueOf((_248_prefix).length()));
     }
-    maybeParts = Std.Wrappers.Option.<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>>create_Some(dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>_typeDescriptor(MinimalWellFormedCodeUnitSeq._typeDescriptor()), _235_result);
+    maybeParts = Std.Wrappers.Option.<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>>create_Some(dafny.DafnySequence.<dafny.DafnySequence<? extends java.lang.Byte>>_typeDescriptor(MinimalWellFormedCodeUnitSeq._typeDescriptor()), _246_result);
     return maybeParts;
   }
   public static dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> PartitionCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
@@ -208,34 +210,34 @@ public class __default {
     if(true) {
       s = dafny.DafnySequence.<java.lang.Byte> empty(dafny.TypeDescriptor.BYTE);
       java.math.BigInteger _lo0 = java.math.BigInteger.ZERO;
-      for (java.math.BigInteger _239_i = java.math.BigInteger.valueOf((vs).length()); _lo0.compareTo(_239_i) < 0; ) {
-        _239_i = _239_i.subtract(java.math.BigInteger.ONE);
-        dafny.DafnySequence<? extends java.lang.Byte> _240_next;
-        _240_next = __default.EncodeScalarValue(((int)(java.lang.Object)((vs).select(dafny.Helpers.toInt((_239_i))))));
-        s = dafny.DafnySequence.<java.lang.Byte>concatenate(_240_next, s);
+      for (java.math.BigInteger _250_i = java.math.BigInteger.valueOf((vs).length()); _lo0.compareTo(_250_i) < 0; ) {
+        _250_i = _250_i.subtract(java.math.BigInteger.ONE);
+        dafny.DafnySequence<? extends java.lang.Byte> _251_next;
+        _251_next = __default.EncodeScalarValue(((int)(java.lang.Object)((vs).select(dafny.Helpers.toInt((_250_i))))));
+        s = dafny.DafnySequence.<java.lang.Byte>concatenate(_251_next, s);
       }
     }
     return s;
   }
   public static dafny.DafnySequence<? extends java.lang.Integer> DecodeCodeUnitSequence(dafny.DafnySequence<? extends java.lang.Byte> s) {
-    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _241_parts = __default.PartitionCodeUnitSequence(s);
-    dafny.DafnySequence<? extends java.lang.Integer> _242_vs = Std.Collections.Seq.__default.<dafny.DafnySequence<? extends java.lang.Byte>, java.lang.Integer>Map(MinimalWellFormedCodeUnitSeq._typeDescriptor(), Std.Unicode.Base.ScalarValue._typeDescriptor(), __default::DecodeMinimalWellFormedCodeUnitSubsequence, _241_parts);
-    return _242_vs;
+    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _252_parts = __default.PartitionCodeUnitSequence(s);
+    dafny.DafnySequence<? extends java.lang.Integer> _253_vs = Std.Collections.Seq.__default.<dafny.DafnySequence<? extends java.lang.Byte>, java.lang.Integer>Map(MinimalWellFormedCodeUnitSeq._typeDescriptor(), Std.Unicode.Base.ScalarValue._typeDescriptor(), __default::DecodeMinimalWellFormedCodeUnitSubsequence, _252_parts);
+    return _253_vs;
   }
   public static Std.Wrappers.Option<dafny.DafnySequence<? extends java.lang.Integer>> DecodeCodeUnitSequenceChecked(dafny.DafnySequence<? extends java.lang.Byte> s)
   {
     Std.Wrappers.Option<dafny.DafnySequence<? extends java.lang.Integer>> maybeVs = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Integer>>Default(dafny.DafnySequence.<java.lang.Integer>_typeDescriptor(Std.Unicode.Base.ScalarValue._typeDescriptor()));
-    Std.Wrappers.Option<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>> _243_maybeParts;
-    _243_maybeParts = __default.PartitionCodeUnitSequenceChecked(s);
-    if ((_243_maybeParts).is_None()) {
+    Std.Wrappers.Option<dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>>> _254_maybeParts;
+    _254_maybeParts = __default.PartitionCodeUnitSequenceChecked(s);
+    if ((_254_maybeParts).is_None()) {
       maybeVs = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Integer>>create_None(dafny.DafnySequence.<java.lang.Integer>_typeDescriptor(Std.Unicode.Base.ScalarValue._typeDescriptor()));
       return maybeVs;
     }
-    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _244_parts;
-    _244_parts = (_243_maybeParts).dtor_value();
-    dafny.DafnySequence<? extends java.lang.Integer> _245_vs;
-    _245_vs = Std.Collections.Seq.__default.<dafny.DafnySequence<? extends java.lang.Byte>, java.lang.Integer>Map(MinimalWellFormedCodeUnitSeq._typeDescriptor(), Std.Unicode.Base.ScalarValue._typeDescriptor(), __default::DecodeMinimalWellFormedCodeUnitSubsequence, _244_parts);
-    maybeVs = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Integer>>create_Some(dafny.DafnySequence.<java.lang.Integer>_typeDescriptor(Std.Unicode.Base.ScalarValue._typeDescriptor()), _245_vs);
+    dafny.DafnySequence<? extends dafny.DafnySequence<? extends java.lang.Byte>> _255_parts;
+    _255_parts = (_254_maybeParts).dtor_value();
+    dafny.DafnySequence<? extends java.lang.Integer> _256_vs;
+    _256_vs = Std.Collections.Seq.__default.<dafny.DafnySequence<? extends java.lang.Byte>, java.lang.Integer>Map(MinimalWellFormedCodeUnitSeq._typeDescriptor(), Std.Unicode.Base.ScalarValue._typeDescriptor(), __default::DecodeMinimalWellFormedCodeUnitSubsequence, _255_parts);
+    maybeVs = Std.Wrappers.Option.<dafny.DafnySequence<? extends java.lang.Integer>>create_Some(dafny.DafnySequence.<java.lang.Integer>_typeDescriptor(Std.Unicode.Base.ScalarValue._typeDescriptor()), _256_vs);
     return maybeVs;
   }
   @Override

@@ -2,7 +2,9 @@
 // Dafny class digit compiled into Java
 package Std.Strings.HexConversion;
 
+import JavaInternal.*;
 import Std.Wrappers.*;
+import Std.FileIOInternalExterns.*;
 import Std.BoundedInts.*;
 import Std.Base64.*;
 import Std.Math.*;

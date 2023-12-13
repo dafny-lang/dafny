@@ -1,4 +1,5 @@
 includes = [
+  "**/*.dfy",
   "../systemModulePopulator.dfy",  
   "../../DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo"
 ]
