@@ -403,19 +403,61 @@ let Std_Wrappers = (function() {
   }
   return $module;
 })(); // end of module Std_Wrappers
-let Std_ConcurrentDafny = (function() {
+let Std_Concurrent = (function() {
   let $module = {};
 
 
+  $module.Lock = class Lock {
+    constructor () {
+      this._tname = "Std.JavaScriptConcurrent.Lock";
+    }
+    _parentTraits() {
+      return [];
+    }
+    __ctor() {
+      let _this = this;
+      return;
+    }
+    __Lock() {
+      let _this = this;
+      return;
+    }
+    Unlock() {
+      let _this = this;
+      return;
+    }
+  };
+
+  $module.AtomicBox = class AtomicBox {
+    constructor () {
+      this._tname = "Std.JavaScriptConcurrent.AtomicBox";
+      this.boxed = undefined;
+    }
+    _parentTraits() {
+      return [];
+    }
+    Get() {
+      let _this = this;
+      let t = undefined;
+      t = _this.boxed;
+      return t;
+    }
+    Put(t) {
+      let _this = this;
+      (_this).boxed = t;
+      return;
+    }
+  };
+
   $module.MutableMap = class MutableMap {
     constructor () {
-      this._tname = "Std.ConcurrentDafny.MutableMap";
+      this._tname = "Std.JavaScriptConcurrent.MutableMap";
       this.internal = _dafny.Map.Empty;
     }
     _parentTraits() {
       return [];
     }
-    __ctor(inv) {
+    __ctor() {
       let _this = this;
       (_this).internal = _dafny.Map.Empty.slice();
       return;
@@ -467,55 +509,8 @@ let Std_ConcurrentDafny = (function() {
       return c;
     }
   };
-
-  $module.AtomicBox = class AtomicBox {
-    constructor () {
-      this._tname = "Std.ConcurrentDafny.AtomicBox";
-      this.boxed = undefined;
-    }
-    _parentTraits() {
-      return [];
-    }
-    __ctor(inv, t) {
-      let _this = this;
-      (_this).boxed = t;
-      return;
-    }
-    Get() {
-      let _this = this;
-      let t = undefined;
-      t = _this.boxed;
-      return t;
-    }
-    Put(t) {
-      let _this = this;
-      (_this).boxed = t;
-      return;
-    }
-  };
-
-  $module.Lock = class Lock {
-    constructor () {
-      this._tname = "Std.ConcurrentDafny.Lock";
-    }
-    _parentTraits() {
-      return [];
-    }
-    __ctor() {
-      let _this = this;
-      return;
-    }
-    __Lock() {
-      let _this = this;
-      return;
-    }
-    Unlock() {
-      let _this = this;
-      return;
-    }
-  };
   return $module;
-})(); // end of module Std_ConcurrentDafny
+})(); // end of module Std_Concurrent
 (function() {
   let $module = Std_FileIOInternalExterns;
 

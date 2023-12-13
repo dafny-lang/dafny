@@ -1,10 +1,10 @@
 /*******************************************************************************
-*  Copyright by the contributors to the Dafny Project
-*  SPDX-License-Identifier: MIT
-*******************************************************************************/
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
 
-var DafnyStdLibsExterns = DafnyStdLibsExterns || {};
-DafnyStdLibsExterns.FileIO = (function() {
+var Std_FileIOInternalExterns = Std_FileIOInternalExterns || {};
+Std_FileIOInternalExterns.__default = (function() {
   const buffer = require("buffer");
   const fs = require("fs");
   const nodePath = require("path");
@@ -21,7 +21,7 @@ DafnyStdLibsExterns.FileIO = (function() {
    * We return these values individually because `Result` is not defined in the runtime but instead in library code.
    * It is the responsibility of library code to construct an equivalent `Result` value.
    */
-  $module.INTERNAL_ReadBytesFromFile = function(path) {
+  $module.INTERNAL__ReadBytesFromFile = function(path) {
     const emptySeq = _dafny.Seq.of();
     try {
       const readOpts = { encoding: null };  // read as buffer, not string
@@ -45,7 +45,7 @@ DafnyStdLibsExterns.FileIO = (function() {
    * We return these values individually because `Result` is not defined in the runtime but instead in library code.
    * It is the responsibility of library code to construct an equivalent `Result` value.
    */
-  $module.INTERNAL_WriteBytesToFile = function(path, bytes) {
+  $module.INTERNAL__WriteBytesToFile = function(path, bytes) {
     try {
       const buf = buffer.Buffer.from(bytes);
       const pathStr = path.toVerbatimString(false)

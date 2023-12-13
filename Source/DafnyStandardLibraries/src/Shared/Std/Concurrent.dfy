@@ -44,20 +44,25 @@ replaceable module Std.Concurrent {
     */
   class AtomicBox<T> {
 
-    constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
-      requires inv(t)
-      ensures this.inv == inv
-
     // Invariant on values this box may hold
     ghost const inv: T -> bool
 
+    ghost predicate Valid()
+      reads this
+
+    constructor (ghost inv: T -> bool, t: T)
+      requires inv(t)
+      ensures this.inv == inv
+
     method Get() returns (t: T)
       reads {}
+      requires Valid()
       ensures inv(t)
 
     method Put(t: T)
       reads {}
       requires inv(t)
+      ensures Valid()
   }
 
   /**
@@ -69,11 +74,11 @@ replaceable module Std.Concurrent {
     */
   class MutableMap<K(==), V(==)> {
 
-    constructor(ghost inv: (K, V) -> bool)
-      ensures this.inv == inv
-
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
+
+    constructor(ghost inv: (K, V) -> bool)
+      ensures this.inv == inv
 
     method Keys() returns (keys: set<K>)
       reads {}
