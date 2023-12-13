@@ -7,39 +7,29 @@ using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration; 
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class PartialValue {
 
-  private static string ElementNamePrefix = "$";
-  private static ExpressionAnalyzer analyzer = new();
+  public static string ElementNamePrefix = "$";
+  public readonly IdentifierExpr ElementIdentifier;
   public readonly Model.Element Element; // the element in the counterexample model associated with the value
-  public HashSet<Expression> constraints; // constraints imposed on this value
-  public IEnumerable<Expression> ResolvableConstraints =>
-    constraints.Where(constraint => analyzer.AllTypesAreKnown(constraint));
-  public Expression definition;
-  public HashSet<Expression> potentialDefinitions;
-  private HashSet<PartialValue> relatedValues;
+  public List<Constraint> constraints;
+  private List<PartialValue> relatedValues;
   private readonly PartialState state; // corresponding state in the counterexample model
   private readonly Type type;
   private bool haveExpanded;
-  private string ElementName => ElementNamePrefix + Element.Id;
   private static Dictionary<PartialState, Dictionary<Model.Element, PartialValue>> allPartialValues = new();
-  public bool HasCompleteDefinition => analyzer.DefinitionIsComplete(definition);
-  
-  public IEnumerable<Expression> Values() {
-    if (!HasCompleteDefinition) {
+
+  public IEnumerable<Expression> Values(Dictionary<PartialValue, Expression> definitions) {
+    if (definitions.ContainsKey(this)) {
       yield break;
     }
 
-    yield return definition;
+    yield return definitions[this];
     foreach (var constraint in constraints) {
-      if (constraint is BinaryExpr { Op: BinaryExpr.Opcode.Eq } binaryExpr) {
-        if (binaryExpr.E0.ToString() == definition.ToString()) {
-          yield return binaryExpr.E1;
-        } else if (binaryExpr.E1.ToString() == definition.ToString()) {
-          yield return binaryExpr.E0;
-        }
+      if (constraint.definesValue == this) {
+        yield return constraint.AsExpression(definitions, false);
       }
     }
   }
@@ -63,19 +53,17 @@ public class PartialValue {
   private PartialValue(Model.Element element, PartialState state) {
     Element = element;
     this.state = state;
-    type = state.Model.GetFormattedDafnyType(element);
     constraints = new();
-    definition = new IdentifierExpr(Token.NoToken, ElementName);
-    definition.Type = type;
-    // TODO: do not add the constraint if the type cannot be fully reconstructed
-    constraints.Add(new TypeTestExpr(Token.NoToken, definition, type));
-    potentialDefinitions = new();
-    relatedValues = new HashSet<PartialValue>();
+    relatedValues = new();
     haveExpanded = false;
     if (!allPartialValues.ContainsKey(state)) {
       allPartialValues[state] = new();
     }
     allPartialValues[state][element] = this;
+    type = state.Model.GetFormattedDafnyType(element);
+    ElementIdentifier = new IdentifierExpr(Token.NoToken, ElementNamePrefix + Element.Id);
+    ElementIdentifier.Type = type;
+    AddConstraint(new TypeTestExpr(Token.NoToken, ElementIdentifier, type), new());
   }
 
   public IEnumerable<PartialValue> GetRelatedValues() {
@@ -86,7 +74,9 @@ public class PartialValue {
       yield break;
     }
     foreach (var value in state.Model.GetExpansion(state, this)) {
-      relatedValues.Add(value);
+      if (!relatedValues.Contains(value)) {
+        relatedValues.Add(value);
+      }
       yield return value;
     }
     haveExpanded = true;
@@ -99,80 +89,39 @@ public class PartialValue {
         if (involvedValues[i] == involvedValues[j]) {
           continue;
         }
-        involvedValues[i].relatedValues.Add(involvedValues[j]);
-        involvedValues[j].relatedValues.Add(involvedValues[i]);
+        if (!involvedValues[i].relatedValues.Contains(involvedValues[j])) {
+          involvedValues[i].relatedValues.Add(involvedValues[j]);
+        }
+        if (!involvedValues[j].relatedValues.Contains(involvedValues[i])) {
+          involvedValues[j].relatedValues.Add(involvedValues[i]);
+        }
       }
     }
   }
 
-  internal void AddConstraint(Expression constraint, List<PartialValue> involvedValues) { 
-    constraint.Type = Type.Bool;
+  internal void AddConstraint(Expression constrainingExpression, List<PartialValue> referencedValues) { 
+    if (!referencedValues.Contains(this)) {
+      referencedValues.Add(this);
+    }
+    var constraint = new Constraint(constrainingExpression, referencedValues);
     constraints.Add(constraint);
-    AddRelatedValuesConnections(involvedValues);
-  }
-
-  private void PropagateRelatedDefinition(PartialValue updatedValue) {
-    var newConstraints = new HashSet<Expression>();
-    var newPotentialDefinitions = new HashSet<Expression>();
-    var substituter = new DefinitionSubstituter(updatedValue.ElementName, updatedValue.definition);
-    foreach (var constraint in constraints) {
-      newConstraints.Add(substituter.CloneExpr(constraint));
-    }
-    Expression newDefinition = null;
-    foreach (var constraint in potentialDefinitions) {
-      var newPotentialDefinition = substituter.CloneExpr(constraint);
-      newPotentialDefinitions.Add(newPotentialDefinition);
-      if (analyzer.DefinitionIsComplete(newPotentialDefinition)) {
-        newDefinition = newPotentialDefinition;
-      }
-    }
-    constraints = newConstraints;
-    potentialDefinitions = newPotentialDefinitions;
-    if (newDefinition != null) {
-      potentialDefinitions.Remove(newDefinition);
-      SetDefinition(newDefinition);
-    }
-  }
-
-  private void SetDefinition(Expression definition) {
-    this.definition = definition;
-    HashSet<Expression> newConstraints = new();
-    var substituter = new DefinitionSubstituter(ElementName, definition);
-    foreach (var constraint in constraints) {
-      newConstraints.Add(substituter.CloneExpr(constraint));
-    }
-    foreach (var notADefinition in potentialDefinitions) {
-      newConstraints.Add(new BinaryExpr(
-        Token.NoToken, 
-        BinaryExpr.Opcode.Eq, 
-        definition, 
-        substituter.CloneExpr(notADefinition)));
-    }
-    potentialDefinitions = new HashSet<Expression>();
-    constraints = newConstraints;
-    foreach (var relatedValue in relatedValues) {
-      relatedValue.PropagateRelatedDefinition(this);
-    }
+    AddRelatedValuesConnections(referencedValues);
   }
   
-  internal void AddDefinition(Expression definition, List<PartialValue> involvedValues) {
-    definition.Type = Type;
-    AddRelatedValuesConnections(involvedValues);
-    var newDefinitionIsComplete = analyzer.DefinitionIsComplete(definition);
-    var currentDefinitionIsComplete = analyzer.DefinitionIsComplete(this.definition);
-    if (currentDefinitionIsComplete) {
-      constraints.Add(new BinaryExpr(
-        Token.NoToken, 
-        BinaryExpr.Opcode.Eq,
-        this.definition,
-        definition));
-      return;
+  internal void AddDefinition(Expression constrainingExpression, List<PartialValue> referencedValues) {
+    constrainingExpression.Type = type;
+    if (referencedValues.Contains(this)) {
+      referencedValues.Remove(this);
     }
-    if (!newDefinitionIsComplete) {
-      potentialDefinitions.Add(definition);
-      return;
-    } 
-    SetDefinition(definition);
+    var constraint = new Constraint(constrainingExpression, referencedValues, this);
+    constraints.Add(constraint);
+    AddRelatedValuesConnections(referencedValues);
+  }
+  
+  internal void AddName(Expression constrainingExpression) {
+    constrainingExpression.Type = type;
+    var constraint = new Constraint(constrainingExpression, new List<PartialValue> {this}, this);
+    constraints.Add(constraint);
   }
 
   public bool IsPrimitive => false; // TODO
@@ -189,7 +138,7 @@ public class PartialValue {
 
   public Dictionary<PartialValue, PartialValue> Mappings = new(); // TODO
 
-  public int? Cardinality() {
+  public int? Cardinality(Dictionary<PartialValue, Expression> definitions) {
     if (Type is not SeqType or SetType or MapType) {
       return -1;
     }
@@ -197,16 +146,11 @@ public class PartialValue {
     LiteralExpr cardinality = null;
     foreach (var constraint in constraints.OfType<BinaryExpr>()
                .Where(binaryExpr => binaryExpr.Op == BinaryExpr.Opcode.Eq)) {
-      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr0
-          && constraint.E1 is LiteralExpr literalExpr1
-          && unaryOpExpr0.E.ToString() == definition.ToString()) {
-        cardinality = literalExpr1;
-        break;
-      }
-      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr1
-          && constraint.E1 is LiteralExpr literalExpr0
-          && unaryOpExpr1.E.ToString() == definition.ToString()) {
-        cardinality = literalExpr0;
+      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
+          && constraint.E1 is LiteralExpr literalExpr
+          && unaryOpExpr.E is IdentifierExpr identifierExpr 
+          && identifierExpr.Name == ElementIdentifier.Name) {
+        cardinality = literalExpr;
         break;
       }
     }
@@ -214,9 +158,10 @@ public class PartialValue {
     if (cardinality == null) {
       foreach (var relatedValue in relatedValues) {
         var relatedValueDescribesCardinality = false;
-        foreach (var definition in relatedValue.Values()) {
+        foreach (var definition in relatedValue.Values(definitions)) {
           if (definition is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
-              && unaryOpExpr.E.ToString() == this.definition.ToString()) {
+              && unaryOpExpr.E is IdentifierExpr identifierExpr 
+              && identifierExpr.Name == ElementIdentifier.Name) {
             relatedValueDescribesCardinality = true;
             break;
           }
@@ -226,7 +171,7 @@ public class PartialValue {
           continue;
         }
 
-        cardinality = relatedValue.Values().OfType<LiteralExpr>().First();
+        cardinality = relatedValue.Values(definitions).OfType<LiteralExpr>().First();
         break;
       }
     }
@@ -255,68 +200,10 @@ public class PartialValue {
   public override string ToString() {
     var printOptions = DafnyOptions.Default;
     var constraintsToPrint = new List<string>();
-    foreach (var potentialDefinition in potentialDefinitions) {
-      constraintsToPrint.Add(Printer.ExprToString(printOptions, new BinaryExpr(Token.NoToken,  BinaryExpr.Opcode.Eq, definition, potentialDefinition)));
-    }
     foreach (var constraint in constraints) {
-      constraintsToPrint.Add(Printer.ExprToString(printOptions, constraint));
+      constraintsToPrint.Add(Printer.ExprToString(printOptions, constraint.rawExpression));
     }
-    return Printer.ExprToString(printOptions, definition) + " : " + string.Join(", ", constraintsToPrint);
+    return string.Join(", ", constraintsToPrint);
   }
-
-
-  private class DefinitionSubstituter : Cloner {
-
-    private string name;
-    private Expression definition;
-
-    public DefinitionSubstituter(string name, Expression definition) {
-      this.name = name;
-      this.definition = definition;
-    }
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is IdentifierExpr identifierExpr && identifierExpr.Name == name) {
-        return definition;
-      }
-      var result = base.CloneExpr(expr);
-      if (result is DatatypeValue datatypeValue) {
-        datatypeValue.Bindings.AcceptArgumentExpressionsAsExactParameterList();
-      }
-      return result;
-    }
-  }
-
-  private class ExpressionAnalyzer : Cloner {
-
-    private bool definitionComplete = true;
-    private bool allTypesAreKnown = true;
-
-    public bool DefinitionIsComplete(Expression definition) {
-      definitionComplete = true;
-      CloneExpr(definition);
-      return definitionComplete;
-    }
-
-    public bool AllTypesAreKnown(Expression constraint) {
-      allTypesAreKnown = true;
-      CloneExpr(constraint);
-      return allTypesAreKnown;
-    }
-
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is IdentifierExpr identifierExpr && identifierExpr.Name.StartsWith(ElementNamePrefix)) {
-        definitionComplete = false;
-      }
-
-      return base.CloneExpr(expr);
-    }
-
-    public override Type CloneType(Type typ) {
-      if (typ is UserDefinedType userDefinedType && userDefinedType.Name == DafnyModel.UnknownType.Name) {
-        allTypesAreKnown = false;
-      }
-
-      return base.CloneType(typ);
-    }
-  }
+  
 }

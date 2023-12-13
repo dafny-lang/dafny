@@ -264,10 +264,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
-      // Assert.Equal(1, counterExamples[0].Variables.Count);
-      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      // Assert.Equal("(with_underscore_ := 42)", counterExamples[0].Variables["v:_module.Value"]);
+      Assert.Contains("v is Value", counterExamples[0].Assumption);
+      Assert.Matches("(v.with_underscore_|42) is int", counterExamples[0].Assumption);
+      Assert.Matches("(v.with_underscore_ == 42|42 == v.with_underscore_)", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -794,10 +793,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
-      // Assert.Equal(1, counterExamples[0].Variables.Count);
-      // Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value"));
-      // Assert.Equal("(b := 2)", counterExamples[0].Variables["v:_module.Value"]);
+      Assert.Contains("v is Value", counterExamples[0].Assumption);
+      Assert.Matches("(v.b|2) is bv5", counterExamples[0].Assumption);
+      Assert.Matches("(v.b == 2|2 == v.b)", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -1005,6 +1003,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
+      Assert.Fail("This test needs to be updated");
       Assert.Equal(2, counterExamples.Length);
       // Assert.True(counterExamples[1].Variables.ContainsKey("multiplier:int"));
       // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
@@ -1528,7 +1527,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
+      Assert.Fail("This test needs to be updated"); // TODO: need to make sure there is a comparison with null
       // Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C?"));
       // Assert.True(counterExamples[0].Variables["c:M.C?"] is
       //  "(c1 := '\\u1023', c2 := '\\u1023')" or

@@ -14,6 +14,7 @@ public class PartialState {
 
   public string isGuard = null;
   public List<string> loopGuards = new();
+  public Dictionary<PartialValue, List<string>> knownVariableNames = new();
   internal readonly DafnyModel Model;
   internal readonly Model.CapturedState State;
   private const string InitialStateName = "<initial>";
@@ -67,30 +68,40 @@ public class PartialState {
   }
   
   public Statement AsAssumption() {
-    var variables = ExpandedVariableSet(-1).ToArray();
-    var boundVars = new List<BoundVar>();
-    // TODO: make sure bound variable identifiers are not already taken
-    for (int i = 0; i < variables.Length; i++) {
-      if (!variables[i].HasCompleteDefinition) {
-        boundVars.Add(new BoundVar(Token.NoToken, BoundVarPrefix + boundVars.Count, variables[i].Type));
-        variables[i].AddDefinition(new IdentifierExpr(Token.NoToken, boundVars.Last()), new());
-      }
+    var allVariableNames = new Dictionary<PartialValue, Expression>();
+    foreach (var partialValue in knownVariableNames.Keys) {
+      allVariableNames[partialValue] = new IdentifierExpr(Token.NoToken, knownVariableNames[partialValue].First());
+      allVariableNames[partialValue].Type = partialValue.Type;
     }
-    var constraints = new HashSet<Expression>();
+    var variables = ExpandedVariableSet(-1).ToArray();
+    var constraints = new List<Constraint>();
     foreach (var variable in variables) {
-      foreach (var constraint in variable.ResolvableConstraints) {
+      foreach (var constraint in variable.constraints) {
         constraints.Add(constraint);
       }
     }
+    Constraint.FindDefinitions(allVariableNames, constraints);
+    
+    var boundVars = new List<BoundVar>();
+    // TODO: make sure bound variable identifiers are not already taken
+    for (int i = 0; i < variables.Length; i++) {
+      if (!allVariableNames.ContainsKey(variables[i])) {
+        boundVars.Add(new BoundVar(Token.NoToken, BoundVarPrefix + boundVars.Count, variables[i].Type));
+        allVariableNames[variables[i]] = new IdentifierExpr(Token.NoToken, boundVars.Last());
+      }
+    }
+
+    var constraintsAsExpressions = constraints.ConvertAll(constraint => constraint.AsExpression(allVariableNames, true))
+      .Where(constraint => constraint != null).ToList();
 
     Expression expression = null;
-    if (constraints.Count == 0) {
+    if (constraintsAsExpressions.Count == 0) {
       expression = new LiteralExpr(Token.NoToken, true);
     }
-    if (constraints.Count == 1) {
-      expression = constraints.First();
+    if (constraintsAsExpressions.Count == 1) {
+      expression = constraintsAsExpressions.First();
     } else {
-      foreach (var constraint in constraints) {
+      foreach (var constraint in constraintsAsExpressions) {
         if (expression == null) {
           expression = constraint;
           continue;
@@ -100,7 +111,7 @@ public class PartialState {
       }
     }
 
-    if (constraints.Count > 1 && boundVars.Count > 0) {
+    if (constraintsAsExpressions.Count > 1 && boundVars.Count > 0) {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
     }
 
@@ -153,7 +164,11 @@ public class PartialState {
       }
 
       var value = PartialValue.Get(val, this);
-      value.AddDefinition(new IdentifierExpr(Token.NoToken, v.Split("#").First()), new());
+      value.AddName(new IdentifierExpr(Token.NoToken, v.Split("#").First()));
+      if (!knownVariableNames.ContainsKey(value)) {
+        knownVariableNames[value] = new List<string>();
+      }
+      knownVariableNames[value].Add(v.Split("#").First());
     }
   }
 
@@ -175,7 +190,11 @@ public class PartialState {
       }
 
       var value = PartialValue.Get(f.GetConstant(), this);
-      value.AddDefinition(new IdentifierExpr(Token.NoToken, name), new());
+      value.AddName(new IdentifierExpr(Token.NoToken, name));
+      if (!knownVariableNames.ContainsKey(value)) {
+        knownVariableNames[value] = new();
+      }
+      knownVariableNames[value].Add(name);
     }
   }
   
