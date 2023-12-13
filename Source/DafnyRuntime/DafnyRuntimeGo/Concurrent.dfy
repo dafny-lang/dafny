@@ -1,6 +1,6 @@
 module
   {:compile false}
-{:extern "DafnyStdLibs_Concurrent"}
+{:extern}
 {:dummyImportMember "Dummy__", true}
 Std.GoLangConcurrent replaces Concurrent {
 

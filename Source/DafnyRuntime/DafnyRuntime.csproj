@@ -23,6 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DafnyRuntimeGo\output\" />
+    <Folder Include="DafnyRuntimeGo\input\" />
     <Folder Include="DafnyRuntimeJava\build\libs" />
     <Folder Include="DafnyRuntimeJava\src\main\java\Std\" />
   </ItemGroup>

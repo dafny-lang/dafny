@@ -32,15 +32,6 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\GoLang\**\*.go">
-      <LinkBase>DafnyStandardLibraries_go</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\Python\**\*.py">
-      <LinkBase>DafnyStandardLibraries_py</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries.doo">
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -62,7 +53,7 @@
       <LinkBase>DafnyRuntimeCsharp</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\**\*.go" Exclude="..\DafnyRuntime\DafnyRuntimeGo\**\*_test.go">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeGo\output\**\*.go" Exclude="..\DafnyRuntime\DafnyRuntimeGo\output\**\*_test.go">
       <LinkBase>DafnyRuntimeGo</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

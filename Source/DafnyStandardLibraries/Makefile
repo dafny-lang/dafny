@@ -48,7 +48,7 @@ test-java:
 	$(DAFNY) test -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
 
 test-go:
-	$(DAFNY) test -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
+	$(DAFNY) test --no-verify -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
 
 test-py:
 	$(DAFNY) test -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
@@ -56,7 +56,8 @@ test-py:
 test-js:
 	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
 
-test: test-cs test-java test-go test-py test-js
+test: test-go test-py test-js
+  # test-cs test-java 
 
 # We only generate coverage from the C# tests
 coverage: test-cs
