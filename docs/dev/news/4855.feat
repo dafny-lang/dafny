@@ -1,1 +1,0 @@
-Let the IDE provide code navigation in situations where the program parses but has resolution errors. Note that this only works for modules whose dependency tree does not have errors, or modules who contain errors themselves, but not for modules whose dependencies contain errors.
