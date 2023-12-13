@@ -85,14 +85,17 @@ public class AssumedProofObligationDependency : ProofDependency {
 public class RequiresDependency : ProofDependency {
   private Expression requires;
 
+  private IToken tok;
+
   public override RangeToken Range =>
-    requires.RangeToken;
+    tok as RangeToken ?? requires.RangeToken;
 
   public override string Description =>
     $"requires clause";
 
-  public RequiresDependency(Expression requires) {
+  public RequiresDependency(IToken token, Expression requires) {
     this.requires = requires;
+    this.tok = token;
   }
 }
 
@@ -100,14 +103,17 @@ public class RequiresDependency : ProofDependency {
 public class EnsuresDependency : ProofDependency {
   private readonly Expression ensures;
 
+  private readonly IToken tok;
+
   public override RangeToken Range =>
-    ensures.RangeToken;
+    tok as RangeToken ?? ensures.RangeToken;
 
   public override string Description =>
     "ensures clause";
 
-  public EnsuresDependency(Expression ensures) {
+  public EnsuresDependency(IToken token, Expression ensures) {
     this.ensures = ensures;
+    this.tok = token;
   }
 }
 
@@ -168,18 +174,18 @@ public class AssumptionDependency : ProofDependency {
     Expr.RangeToken;
 
   public override string Description =>
-    comment ?? $"assume {OriginalString()}";
+    comment ?? OriginalString();
+
+  public bool WarnWhenUnused { get; }
 
   private readonly string comment;
 
   public Expression Expr { get; }
 
-  public bool IsAssumeStatement { get; }
-
-  public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
+  public AssumptionDependency(bool warnWhenUnused, string comment, Expression expr) {
+    this.WarnWhenUnused = warnWhenUnused;
     this.comment = comment;
     this.Expr = expr;
-    this.IsAssumeStatement = isAssumeStatement;
   }
 }
 
