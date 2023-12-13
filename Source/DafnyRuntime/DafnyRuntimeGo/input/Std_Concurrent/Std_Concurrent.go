@@ -56,7 +56,7 @@ func (_this *MutableMap) ParentTraits_() []*_dafny.TraitID {
 }
 var _ _dafny.TraitOffspring = &MutableMap{}
 
-func (_this *MutableMap) Ctor__(inv func (interface{}, interface{}) bool) {
+func (_this *MutableMap) Ctor__() {
   {
   }
 }

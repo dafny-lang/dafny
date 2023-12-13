@@ -1456,7 +1456,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
-      if (!module.CanCompile()) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         // the purpose of an abstract module is to skip compilation
         return;
       }
@@ -1478,6 +1478,11 @@ namespace Microsoft.Dafny.Compilers {
 
       if (!module.ShouldCompile(program.Compilation)) {
         DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+        return;
+      }
+      
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        // the purpose of an abstract module is to skip compilation
         return;
       }
 

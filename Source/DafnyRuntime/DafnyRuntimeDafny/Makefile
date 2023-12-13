@@ -6,7 +6,7 @@ SOURCE_DIR=.
 SOURCES=$(shell find $(SOURCE_DIR) -name '*.dfy')
 
 GENERATED_CODE_GO_SOURCE=src/dafnyRuntimeGo-go/src/dafny/dafny.go
-GENERATED_CODE_GO_TARGET=../DafnyRuntimeGo/output/dafny/dafnyFromDafny.go
+GENERATED_CODE_GO_TARGET=../obj/systemModulePopulator-go/src/dafny
 
 all: test check-format
 
@@ -20,7 +20,8 @@ check-go: build-go
 	diff $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)
 
 update-go: build-go
-	cp $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)
+	mkdir -p ${GENERATED_CODE_GO_TARGET}
+	cp $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)/dafnyFromDafny.go
 
 test: check-go
 

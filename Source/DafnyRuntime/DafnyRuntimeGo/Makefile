@@ -12,6 +12,7 @@ test:
 
 build-system-module:
 	rm -r -f $(GENERATED_SYSTEM_MODULE_SOURCE)
+	make -C ../DafnyRuntimeDafny update-go
 	$(DAFNY) translate go --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:../obj/systemModulePopulator
 	rm $(GENERATED_SYSTEM_MODULE_SOURCE)/systemModulePopulator.go
 

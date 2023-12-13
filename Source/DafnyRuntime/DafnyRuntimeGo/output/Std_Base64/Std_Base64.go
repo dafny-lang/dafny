@@ -17,7 +17,7 @@ var _ = os.Args
 var _ _System.Dummy__
 var _ Std_Wrappers.Dummy__
 var _ Std_Concurrent.Dummy__
-var _ = Std_FileIOInternalExterns.INTERNAL__ReadBytesFromFile
+var _ Std_FileIOInternalExterns.Dummy__
 var _ Std_BoundedInts.Dummy__
 
 type Dummy__ struct{}

@@ -1,6 +1,5 @@
 
 update-system-module:
-	make -C DafnyRuntimeDafny update-go
 	# make -C DafnyRuntimeCSharp update-system-module
 	# make -C DafnyRuntimeJava update-system-module
 	make -C DafnyRuntimeGo update-system-module
