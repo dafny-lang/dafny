@@ -198,8 +198,9 @@ namespace Microsoft.Dafny {
       return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
-    private Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, string comment = null, bool isAssumeStatement = false, Bpl.QKeyValue attributes = null) {
-      return TrAssumeCmdWithDependenciesAndExtend(etran, tok, dafnyExpr, e => e, comment, isAssumeStatement, attributes);
+    private Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, string comment = null,
+      bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
+      return TrAssumeCmdWithDependenciesAndExtend(etran, tok, dafnyExpr, e => e, comment, warnWhenUnused, attributes);
     }
 
     // This method translates a Dafny expression to a Boogie expression,
@@ -208,10 +209,11 @@ namespace Microsoft.Dafny {
     // expressions, for instance), creates an assume statement in Boogie,
     // and then adds information to track that assumption as a potential
     // proof dependency.
-    private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr, string comment = null, bool isAssumeStatement = false, Bpl.QKeyValue attributes = null) {
+    private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
+      string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(isAssumeStatement, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 

@@ -360,7 +360,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      return newArguments == null && printablePreType == PrintablePreType ? this : new DPreType(Decl, newArguments, printablePreType);
+      if (newArguments == null && printablePreType == PrintablePreType) {
+        return this;
+      }
+      return new DPreType(Decl, newArguments ?? Arguments, printablePreType);
     }
 
     /// <summary>
