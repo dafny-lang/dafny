@@ -569,8 +569,6 @@ public partial class BoogieGenerator {
     }
   }
 
-  private int Cutoff = 0;
-
   /// <summary>
   /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
   /// the receiver parameter of the function should be included among the lit formals.
