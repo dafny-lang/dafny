@@ -4,11 +4,11 @@
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:js "%s" >> "%t"
 // RUN: node %S/CompileAndThenRun.js >> "%t"
 
-// RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:go "%s" >> "%t"
+// RUN: %build --target:go --unicode-char:false --verbose "%s" >> "%t"
 // RUN: %S/CompileAndThenRun >> "%t"
 
-// RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:java "%s" >> "%t"
-// RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/CompileAndThenRun-java CompileAndThenRun >> "%t"
+// RUN: %build --target:java --unicode-char:false --verbose "%s" >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/CompileAndThenRun.jar CompileAndThenRun >> "%t"
 
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:cpp "%s" >> "%t"
 // RUN: %S/CompileAndThenRun.exe >> "%t"
