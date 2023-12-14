@@ -9,7 +9,7 @@ all: check-system-module
 
 build-system-module:
 	rm -rf $(GENERATED_SYSTEM_MODULE_SOURCE)
-	$(DAFNY) translate py --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:../obj/systemModulePopulator
+	$(DAFNY) translate py --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:../obj/systemModulePopulator
 	rm $(GENERATED_SYSTEM_MODULE_SOURCE)/__main__.py
 	cp -r input/ $(GENERATED_SYSTEM_MODULE_TARGET)
 

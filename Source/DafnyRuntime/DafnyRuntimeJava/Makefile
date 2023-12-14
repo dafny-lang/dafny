@@ -15,7 +15,7 @@ test:
 
 # TODO: Add --optimize-erasable-datatype-wrapper:false elsewhere too
 build-system-module:
-	$(DAFNY) translate java --no-verify --use-basename-for-filename --optimize-erasable-datatype-wrapper:false --system-module:OmitAllOtherModules dfyconfig.toml --output:dfybuild/generated
+	$(DAFNY) translate java --use-basename-for-filename --optimize-erasable-datatype-wrapper:false --system-module:OmitAllOtherModules dfyconfig.toml --output:dfybuild/generated
 	rm ${GENERATED_DAFNY_MODULE_SOURCE}/generated.java
 
 check-system-module: build-system-module

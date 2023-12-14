@@ -9,7 +9,7 @@ all: check-system-module
 
 build-system-module:
 	rm -rf output
-	$(DAFNY) translate js --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:build/runtime
+	$(DAFNY) translate js --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:build/runtime
 	cp -r input/ build
 
 check-system-module: build-system-module

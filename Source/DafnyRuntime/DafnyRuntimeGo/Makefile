@@ -13,7 +13,7 @@ test:
 build-system-module:
 	rm -r -f build
 	make -C ../DafnyRuntimeDafny update-go
-	$(DAFNY) translate go --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:build/generated
+	$(DAFNY) translate go --use-basename-for-filename --system-module:OmitAllOtherModules dfyconfig.toml --output:build/generated
 	mv build/generated-go/src/* build/
 	rm build/generated.go
 	rm -r build/generated-go
