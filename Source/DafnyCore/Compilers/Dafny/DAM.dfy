@@ -2,7 +2,7 @@
  * This file specifies:
  * 1. A core language for Dafny based on call-by-push-value (CBPV) with
  *    state (mutable references), control (letcc/throw) for early returns, etc., and recursion 
- * 2. A novel CEK-machine interpreter that extends the CK machine for CBPV
+ * 2. A novel CESK-machine interpreter that extends the CK machine for CBPV
  * 3. A simple type system that is sound with respect to the interpreter
 */ 
 
@@ -115,37 +115,33 @@ module {:extern "DAM"} DAM {
     import opened Utils
 
     // The environment accumulates substitutions made along the course of machine execution, i.e.,
-    // maps variables to addresses of values - closed intro. forms of positive type
+    // maps variables to addresses
+    
+    // The store maps addresses to values - closed intro. forms of positive type
+
     type Ptr = nat
 
     // Alist instead of map so we can do induction on envs for type synthesis
     type Env = Alist<Var, Ptr>
+
     type Store = seq<Val>
 
     predicate Allocated(sto: Store, ptr: Ptr) {
       ptr < |sto|
     }
 
-    function Alloc(env: Env, sto: Store, var_: Var, val: Val): (Env, Store) {
-      (Update(var_, |sto|, env), sto + [val])
-    }
+    type ClosedExpr = (Env, Expr)
 
-    function Deref(env: Env, sto: Store, var_: Var): Option<Val> {
-      var ptr :- Get(env, var_);
-      if Allocated(sto, ptr) then
-        Some(sto[ptr])
-      else
-        None
-    }
+    type ClosedStmt = (Env, Stmt)
 
     // To implement lexical scope, thunks and stacks are closures that save the environment they're defined in
     datatype Val =
       Unit
-    | Bool(bool)
+    | Bool(answer: bool)
     | Int(int)
-    | Thunk(Env, Stmt)
-    | Ref(Ptr)
-    | Stack(Env, Stack)
+    | Thunk(closure: ClosedStmt)
+    | Ref(ptr: Ptr)
+    | Stack(stack: Stack)
 
     // Stacks accumulate negative eliminations
     datatype Stack = Empty | Push(top: Frame, rest: Stack) {
@@ -157,12 +153,13 @@ module {:extern "DAM"} DAM {
     }
 
     datatype Frame =
-      Bind(var_: Var, rhs: Stmt)
-    | Call(arg: Expr)
+      // Note: var_ can be free in rhs, so it's not closed entirely
+      Bind(var_: Var, rhs: ClosedStmt)
+    | Call(arg: ClosedExpr)
     | Select(field: Field)
 
     // States of the CESK Machine
-    type     In  = (Env, Store, Stmt, Stack)
+    type     In  = (Store, ClosedStmt, Stack)
     datatype Out = Next(In) | Terminal
   }
 
@@ -293,8 +290,8 @@ module {:extern "DAM"} DAM {
       SynthStmt(g, stmt) == Some(t)
     }
 
-    // G |- stack <= start- => end-
-    function SynthStack(g: Context, stack: Stack, start: Neg): Option<Neg> decreases stack {
+    // start- => stack => end-
+    function SynthStack(stack: Stack, start: Neg): Option<Neg> decreases stack {
       match stack
       case Empty => Some(start)
       case Push(Bind(var_, rhs), stack) => (
@@ -347,7 +344,7 @@ module {:extern "DAM"} DAM {
         var t :- SynthStmt(g, stmt);
         Some(Pos.Thunk(t))
       )
-      case Ref(ptr) => if ptr < |s| then Some(s[ptr]) else None
+      case Ref(ptr) => if ptr < |s| then Some(Pos.Ref(s[ptr])) else None
       /*case Stack(env, stack) => (
         var g :- SynthEnv(s, env);
         var end :- SynthStack(g, stack, start);
@@ -361,8 +358,7 @@ module {:extern "DAM"} DAM {
       SynthVal(s, val) == Some(t)
     }
 
-    function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env
-    {
+    function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env {
       match env
       case Empty => Some(Alist.Empty)
       case Update(var_, ptr, env) =>
@@ -377,11 +373,20 @@ module {:extern "DAM"} DAM {
     predicate CheckEnv(s: StoreTyping, env: Env, g: Context) {
       SynthEnv(s, env) == Some(g)
     }
+
+    lemma CheckEnvInduction(s: StoreTyping, env: Env, g: Context, var_: Var, t: Pos)
+      requires CheckEnv(s, env, g)
+      ensures CheckEnv(s + [t], Update(var_, |s| + 1, env), Update(var_, t, g))
     
     // sto |- S
     predicate {:induction sto} CheckStore(s: StoreTyping, sto: Store) {
       forall ptr | 0 <= ptr < |sto| :: ptr < |s| && CheckVal(s, sto[ptr], s[ptr])
     }
+
+    lemma CheckStoreInduction(s: StoreTyping, sto: Store, val: Val, t: Pos)
+      requires CheckStore(s, sto)
+      requires CheckVal(s, val, t)
+      ensures  CheckStore(s + [t], sto + [val])
 
     // S |- input => end
     function SynthIn(s: StoreTyping, input: In): Option<Neg> {
@@ -413,13 +418,28 @@ module {:extern "DAM"} DAM {
     import opened Machine
     import opened Statics
 
-    // Small-step semantics are divided between evaluation of expressions and stepping of the machine
+    // Well-typed reference allocation and initialization
+    function Alloc(ghost s: StoreTyping, sto: Store, env: Env, ghost g: Context, var_: Var, val: Val, ghost t: Pos): (out: (Env, Store))
+      requires CheckStore(s, sto)
+      requires CheckEnv(s, env, g)
+      requires CheckVal(s, val, t)
+      ensures
+        var s' := s + [t];
+        var g' := Update(var_, t, env);
+        && CheckStore(s', out.1)
+        && CheckEnv(s', out.0, g')
+    {
+      (Update(var_, |sto|, env), sto + [val])
+    }
+
+    // Big-step evaluation of expressions
     function Eval(ghost s: StoreTyping, sto: Store, env: Env, ghost g: Context, expr: Expr, ghost t: Pos): (out: Val)
       requires CheckStore(s, sto)    // sto |- S
-      requires CheckEnv(s, env, g)   // S |- env => G
-      requires CheckExpr(g, expr, t) // G |- expr : t
-      ensures  CheckVal(s, out, t)   // S |- out  : t
+      requires CheckEnv(s, env, g)   // S |- env <= G
+      requires CheckExpr(g, expr, t) // G |- expr <= t
+      ensures  CheckVal(s, out, t)   // S |- out  <= t
     {
+      // Proof by inversion on t
       match expr
       case Var(x)      => (
         assume Get(env, x).Some?;
@@ -427,17 +447,25 @@ module {:extern "DAM"} DAM {
         assume CheckVal(s, sto[Get(env, x).Extract()], t);
         sto[Get(env, x).Extract()]
       )
-      case Unit        => assert CheckVal(s, Val.Unit, t); Val.Unit
-      case Bool(b)     => assert CheckExpr(g, expr, Pos.Bool);Val.Bool(b)
-      case Int(i)      => assert CheckExpr(g, expr, Pos.Int);Val.Int(i)
-      case Thunk(stmt) => assume CheckVal(s, Val.Thunk(env, stmt), t);Val.Thunk(env, stmt)
+      case Unit        =>
+        assert CheckExpr(s, expr, Pos.Unit);
+        Val.Unit
+      case Bool(b)     =>
+        assert CheckExpr(g, expr, Pos.Bool);
+        Val.Bool(b)
+      case Int(i)      =>
+        assert CheckExpr(g, expr, Pos.Int);
+        Val.Int(i)
+      case Thunk(stmt) =>
+        assume CheckVal(s, Val.Thunk(env, stmt), t);
+        Val.Thunk(env, stmt)
     }
 
     // Type-preserving small-step reduction for the CESK machine
-    // Progress is implicit by its totality
+    // Progress = totality, preservation = requires + ensures clause
     function Step(ghost s: StoreTyping, input: In, ghost end: Neg): (output: Out)
       requires CheckIn(s, input, end)
-      // s' is always >= s b/c no deallocations occur
+      // s <= s' b/c no deallocations occur...for now!
       ensures  exists s' | s <= s' :: CheckOut(s', output, end)
     {
       var (env, sto, stmt, stack) := input;
@@ -449,206 +477,119 @@ module {:extern "DAM"} DAM {
 
       match stmt
       case Bind(lhs, var_, rhs) =>
-        Next((env, sto, lhs, Push(Frame.Bind(var_, rhs), stack)))
+        var output := Next((env, sto, lhs, Push(Frame.Bind(var_, rhs), stack)));
+        assert CheckOut(s, output, end);
+        output
       
       case Pure(expr) => (
         match stack.Pop()
         case Some((Bind(var_, rhs), stack')) => (
-          assert start.Value?;
           ghost var t := start.pos;
 
-          assert CheckExpr(g, expr, t);
           var val := Eval(s, sto, env, g, expr, t);
-          assert CheckVal(s, val, t);
 
           ghost var s' := s + [t];
           ghost var g' := Update(var_, t, g);
           var (env', sto') := Alloc(env, sto, var_, val);
 
-          //assume CheckVal(s', val, t);
-          assume CheckStore(s', sto');
-          assume CheckEnv(s', env', g');
-          
+          CheckStoreInduction(s, sto, val, t);
+          CheckEnvInduction(s, env, g, var_, t);
           var start' := SynthStmt(g', rhs).Extract();
           SynthStackWeakening(g, stack', start', var_, t);
-          assert CheckStack(g', stack', start', end);
 
-          var out := Next((env', sto', rhs, stack'));
-
-          assert CheckOut(s', out, end);
-          //assert s <= s';
-          assert exists s' | s <= s' :: CheckOut(s', out, end);
-
-          out//Next((env', sto', rhs, stack'))
+          var output := Next((env', sto', rhs, stack'));
+          assert CheckOut(s', output, end);
+          output
         )
-        case None => Terminal
+        case None =>
+          var output := Terminal;
+          assert CheckOut(s, output, end);
+          output
       )
 
       case Call(func, arg) =>
-        Next((env, sto, func, Push(Frame.Call(arg), stack)))
+        var output := Next((env, sto, func, Push(Frame.Call(arg), stack)));
+        assert CheckOut(s, output, end);
+        output
       
       case Func(bound, _, body) => (
         match stack.Pop()
         case Some((Call(arg), stack')) =>
-          assert start.Function?;
           ghost var dom := start.dom;
           ghost var cod := start.cod;
 
-          assert CheckExpr(g, arg, dom);
-          var val := Eval(s, sto, env, g, arg, start.dom);
-          assert CheckVal(s, val, dom);
+          var val := Eval(s, sto, env, g, arg, dom);
 
           ghost var g' := Update(bound, dom, g);
           ghost var s' := s + [dom];
-
           var (env', sto') := Alloc(env, sto, bound, val);
-          assume CheckStore(s', sto');
-          assume CheckEnv(s', env', g');
-
-          assert CheckStmt(g', body, cod);
           
+          CheckStoreInduction(s, sto, val, dom);
+          CheckEnvInduction(s, env, g, bound, dom);
+          assert CheckStmt(g', body, cod);
           SynthStackWeakening(g, stack', cod, bound, dom);
-          assert CheckStack(g', stack', cod, end);
 
           var output := Next((env', sto', body, stack'));
-
           assert CheckOut(s', output, end);
           output
         
-        case None => Terminal
+        case None =>
+          var output := Terminal;
+          assert CheckOut(s, output, end);
+          output
       )
 
-      case Ite(_, _, _) => Terminal
-
       case Select(record, field) =>
-        Next((env, sto, record, Push(Frame.Select(field), stack)))
-
-      case Record(_) => Terminal
-
-      case Force(_) => Terminal
-
-      case New(_, _, _) => Terminal
-      case Read(_, _, _) => Terminal
-      case Write(_, _, _) => Terminal
-
-      case Print(_, _) => Terminal
-
-      case Rec(_, _) => Terminal
+        var output := Next((env, sto, record, Push(Frame.Select(field), stack)));
+        assert CheckOut(s, output, end);
+        output
       
-      case LetCS(_, _) => Terminal
-
-      case Throw(_, _) => Terminal
-      /*case Ite(guard, then_, else_) => {
-        var val := Eval(env, guard);
-        match val
-        case Some(Bool(answer)) =>
-          var val := Val.Bool(answer);
-          out := Next((env, if answer then then_ else else_, stack));
-
-          // Proof of preservation
-          forall s : Store ensures StepPreservation(s, state, out) {
-            match SynthEnv(s, env)
-            case None => {}
-            case Some(g) => {
-              match SynthStmt(g, comp)
-              case None => {}
-              case Some(start) => {
-                match SynthStack(g, stack, start)
-                case None => {}
-                case Some(end) => {
-                  assert CheckExpr(g, guard, Pos.Bool);
-                  assert EvalPreservation(s, env, guard, val);
-                  assert CheckVal(s, val, Pos.Bool);
-                  
-                  match SynthStmt(g, then_)
-                  case None => {}
-                  case Some(start) => {
-                    assert CheckStmt(g, else_, start);
-                    assert CheckStack(g, stack, start, end);
-                  }
-                }
-              }
-            }
-          }
-
-          return;
-        case Some(_) => return Stuck;
-        case None => return Stuck;
-      }
-      
-      case Record(fields) => {
+      case Record(fields) => (
         match stack.Pop()
-        case Some((Select(lbl), stack')) => {
-          match Get(fields, lbl)
-          case Some(field) =>
-            out := Next((env, field, stack'));
-            forall s : Store ensures StepPreservation(s, state, out) {
-              match SynthEnv(s, env)
-              case None => {}
-              case Some(g) => {
-                match SynthStmt(g, comp)
-                case None => {}
-                case Some(start) => {
-                  match SynthStack(g, stack, start)
-                  case None => {}
-                  case Some(end) => {
-                    match start
-                    case Record(fieldts) => {
-                      match Get(fieldts, lbl)
-                      case None => {}
-                      case Some(fieldt) =>
-                        assert CheckEnv(s, env, g);
-                        assume CheckStmt(g, field, fieldt);
-                        assert CheckStack(g, stack', fieldt, end);
-                    }
-                    case _ => {}
-                  }
-                }
-              }
-            }
-            return;
-          case None        => return Stuck;
-        }
-        case Some(_) => return Stuck;
-        case None    => return Terminal;
-      }
+        case Some((Select(lbl), stack')) => (
+          var fieldt := Get(SynthRecord(g, fields).Extract(), lbl).Extract();
+          assume Get(fields, lbl).Some?;
+          var field := Get(fields, lbl).Extract();
+          var output := Next((env, sto, field, stack'));
+          assume CheckStmt(g, field, fieldt);
+          assert CheckOut(s, output, end);
+          output
+        )
 
+        case None =>
+          var output := Terminal;
+          assert CheckOut(s, output, end);
+          output
+      )
+      
+      case Ite(guard, then_, else_) => (
+        var val := Eval(s, sto, env, g, guard, Pos.Bool);
+        var output := Next((env, sto, if val.answer then then_ else else_, stack));
+        assert CheckOut(s, output, end);
+        output
+      )
+
+      case Print(expr, next) => (
+        ghost var t := SynthExpr(g, expr).Extract();
+        var val := Eval(s, sto, env, g, expr, t);
+        //print val, "\n";
+        var output := Next((env, sto, next, stack));
+        assert CheckOut(s, output, end);
+        output
+      )
+
+      /*
       // Lexical scope restores the env of the closure
       case Force(thunk) => {
-        var val := Eval(env, thunk);
-        match val
-        case Some(Thunk(env', stmt)) =>
-          out := Next((env', stmt, stack));
-          forall s : Store ensures StepPreservation(s, state, out) {
-            match SynthEnv(s, env)
-            case None => {}
-            case Some(g) => {
-              match SynthStmt(g, comp)
-              case None => {}
-              case Some(start) => {
-                match SynthStack(g, stack, start)
-                case None => {}
-                case Some(end) => {
-                  match SynthExpr(g, thunk)
-                  case Some(Thunk(t)) => {
-                    assert EvalPreservation(s, env, thunk, val.value);
-                    assert CheckVal(s, val.value, Pos.Thunk(t));
-                    // Context of env' is smaller than g
-                    match SynthEnv(s, env')
-                    case None => {}
-                    case Some(g') => {
-                      assume CheckStack(g', stack, start, end);
-                    }
-                  }
-                  case Some(_) => {}
-                  case None    => {}
-                }
-              }
-            }
-          }
-        case _                      => return Stuck;
+        var closure := Eval(env, thunk);
+        out := Next((closure.env, closure.stmt, stack));
       }*/
 
+      case _ =>
+        var output := Terminal;
+        assert CheckOut(s, output, end);
+        output
+      
       /*
       case New(init, var_, next) => {
         match Eval(env, init)
@@ -672,13 +613,7 @@ module {:extern "DAM"} DAM {
         case _        => return Stuck;
       }
 
-      case Print(expr, next) => {
-        match Eval(env, expr)
-        case Some(val) =>
-          print val, "\n";
-          return Next((env, next, stack));
-        case None => return Stuck;
-      }
+      
       
       case Rec(self, body) =>
         return Next((Update(self, Val.Thunk(env, comp), env), body, stack));
@@ -693,14 +628,15 @@ module {:extern "DAM"} DAM {
       }*/
     }
 
-    //codatatype Trace = Step(In, Trace) | Stuck | Terminal
-    // Coinductive big-step semantics a la Leroy
-    /*method Run(s: In) decreases * {
-      print("\n");
-      var o := Step(s);
-      match o
-      case Next(s) => print(s, "\n"); Run(s);
-      case _ => print "done/stuck\n"; return;
+    // Leroy-style executable big-step semantics for the machine
+    /*codatatype Trace = Stepping(In, Trace) | Done
+
+    function Run(ghost s: StoreTyping, input: In, ghost end: Neg): Trace
+      requires CheckIn(s, input, end)
+    {
+      match Step(s, input, end)
+      case Next(next) => Stepping(next, Run(s, next, end))
+      case Terminal   => Done
     }*/
 
     // Initial configuration
