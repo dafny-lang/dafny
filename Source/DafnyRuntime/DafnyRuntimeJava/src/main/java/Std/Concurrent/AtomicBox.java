@@ -6,14 +6,15 @@ public class AtomicBox<T> {
 
     private volatile T val;
 
-    public void __ctor() {}
-    
-    public AtomicBox(T t) {
+    public void __ctor(T t) {
         val = t;
     }
+    
+    public AtomicBox() {
+    }
 
-    public AtomicBox(dafny.TypeDescriptor td, T t) {
-        this(t);
+    public AtomicBox(dafny.TypeDescriptor td) {
+        this();
     }
 
     public void Put(T t) {

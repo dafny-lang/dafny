@@ -403,66 +403,19 @@ let Std_Wrappers = (function() {
   }
   return $module;
 })(); // end of module Std_Wrappers
-let Std_Concurrent = (function() {
-  let $module = {};
+(function() {
+  let $module = Std_Concurrent;
 
-
-  $module.Lock = class Lock {
-    constructor () {
-      this._tname = "Std.JavaScriptConcurrent.Lock";
-    }
-    _parentTraits() {
-      return [];
-    }
-    __ctor() {
-      let _this = this;
-      return;
-    }
-    __Lock() {
-      let _this = this;
-      return;
-    }
-    Unlock() {
-      let _this = this;
-      return;
-    }
-  };
-
-  $module.AtomicBox = class AtomicBox {
-    constructor () {
-      this._tname = "Std.JavaScriptConcurrent.AtomicBox";
-      this.boxed = undefined;
-    }
-    _parentTraits() {
-      return [];
-    }
-    __ctor(t) {
-      let _this = this;
-      (_this).boxed = t;
-      return;
-    }
-    Get() {
-      let _this = this;
-      let t = undefined;
-      t = _this.boxed;
-      return t;
-    }
-    Put(t) {
-      let _this = this;
-      (_this).boxed = t;
-      return;
-    }
-  };
 
   $module.MutableMap = class MutableMap {
     constructor () {
-      this._tname = "Std.JavaScriptConcurrent.MutableMap";
+      this._tname = "Std.InternalGenerateJavaScriptConcurrent.MutableMap";
       this.internal = _dafny.Map.Empty;
     }
     _parentTraits() {
       return [];
     }
-    __ctor() {
+    __ctor(inv) {
       let _this = this;
       (_this).internal = _dafny.Map.Empty.slice();
       return;
@@ -512,6 +465,53 @@ let Std_Concurrent = (function() {
       let c = _dafny.ZERO;
       c = new BigNumber((_this.internal).length);
       return c;
+    }
+  };
+
+  $module.AtomicBox = class AtomicBox {
+    constructor () {
+      this._tname = "Std.InternalGenerateJavaScriptConcurrent.AtomicBox";
+      this.boxed = undefined;
+    }
+    _parentTraits() {
+      return [];
+    }
+    __ctor(inv, t) {
+      let _this = this;
+      (_this).boxed = t;
+      return;
+    }
+    Get() {
+      let _this = this;
+      let t = undefined;
+      t = _this.boxed;
+      return t;
+    }
+    Put(t) {
+      let _this = this;
+      (_this).boxed = t;
+      return;
+    }
+  };
+
+  $module.Lock = class Lock {
+    constructor () {
+      this._tname = "Std.InternalGenerateJavaScriptConcurrent.Lock";
+    }
+    _parentTraits() {
+      return [];
+    }
+    __ctor() {
+      let _this = this;
+      return;
+    }
+    __Lock() {
+      let _this = this;
+      return;
+    }
+    Unlock() {
+      let _this = this;
+      return;
     }
   };
   return $module;

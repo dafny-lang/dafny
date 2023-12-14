@@ -47,24 +47,17 @@ replaceable module Std.Concurrent {
     // Invariant on values this box may hold
     ghost const inv: T -> bool
 
-    ghost predicate Valid()
-      reads this
-
     constructor (ghost inv: T -> bool, t: T)
       requires inv(t)
       ensures this.inv == inv
-      ensures Valid()
 
     method Get() returns (t: T)
-      reads this
-      requires Valid()
+      reads {}
       ensures inv(t)
 
     method Put(t: T)
       reads {}
-      modifies this
       requires inv(t)
-      ensures Valid()
   }
 
   /**
@@ -79,53 +72,40 @@ replaceable module Std.Concurrent {
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
 
-    ghost predicate Valid()
-      reads this
-
-    constructor(ghost inv: (K, V) -> bool)
+    constructor (ghost inv: (K, V) -> bool)
       ensures this.inv == inv
 
     method Keys() returns (keys: set<K>)
-      reads this
-      requires Valid()
+      reads {}
       ensures forall k <- keys :: exists v :: inv(k, v)
 
     method HasKey(k: K) returns (used: bool)
-      reads this
-      requires Valid()
+      reads {}
       ensures used ==> exists v :: inv(k, v)
 
     method Values() returns (values: set<V>)
-      reads this
-      requires Valid()
+      reads {}
       ensures forall v <- values :: exists k :: inv(k,v)
 
     method Items() returns (items: set<(K,V)>)
-      reads this
-      requires Valid()
+      reads {}
       ensures forall t <- items :: inv(t.0, t.1)
 
     method Put(k: K, v: V)
-      reads this
-      modifies this
-      requires Valid()
+      reads {}
       requires inv(k, v)
 
     method Get(k: K) returns (r: Option<V>)
-      reads this
-      requires Valid()
+      reads {}
       ensures r.Some? ==> inv(k, r.value)
 
     method Remove(k: K)
-      reads this
-      modifies this
-      requires Valid()
+      reads {}
       // TODO: this isn't really necessary, if it's not true
       // then Remove(k) will just never have any effect
       requires exists v :: inv(k, v)
 
     method Size() returns (c: nat)
-      reads this
-      requires Valid()
+      reads {}
   }
 }

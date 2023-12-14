@@ -1,66 +1,86 @@
-
 /**
-Dafny-native implementation, possible because JavaScript is single threadded 
+This module is marked as an extern, but its implementation is also written in Dafny, 
+in the module InternalGenerateJavaScriptConcurrent.
+By not compiling this module, and mapping the Compilename of InternalGenerateJavaScriptConcurrent
+to the CompileName of this module, we can let the later implement the behavior of the former.
+
+The reason for this indirection is to circumvent some of Dafny's rules,
+which has the potential to be unsound, 
+but much less so than an actually external implementation in JavaScript would be.
+
+The reason we need to circumvent some Dafny rules is to allow us to 
+add requires and reads clauses to the definitions from Concurrent, which we need to write the implementation.
+Adding such clauses inside the module that actually replaces Concurrent is not allowed. 
 */
-module Std.JavaScriptConcurrent replaces Concurrent {
+module {:extern} {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
 
-  class Lock ... {
+  class {:extern} MutableMap<K(==), V(==)> ... {
 
-    constructor() {
-      isLocked := false;
-    }
-
-    method Lock()
-    {
-      // Written this way so that we don't get a warning about
-      // "requires !isLocked" being an unnecessary precondition.
-      isLocked := !isLocked;
-    }
-
-    method Unlock()
-    {
-      // Written this way so that we don't get a warning about
-      // "requires isLocked" being an unnecessary precondition.
-      isLocked := !isLocked;
-    }
-
-  }
-
-  class AtomicBox<T> ... {
-
-    var boxed: T
+    constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
 
     ghost predicate Valid()
     {
-      this.inv(boxed)
+      true
     }
 
-    constructor (ghost inv: T -> bool, t: T)
-    {
-      boxed := t;
-      this.inv := inv;
-    }
+    method {:extern} {:axiom} Keys() returns (keys: set<K>)
 
-    method Get() returns (t: T)
-    {
-      t := boxed;
-    }
+    method {:extern} {:axiom} HasKey(k: K) returns (used: bool)
 
-    method Put(t: T)
-    {
-      boxed := t;
-    }
+    method {:extern} {:axiom} Values() returns (values: set<V>)
+
+    method {:extern} {:axiom} Items() returns (items: set<(K,V)>)
+
+    method {:extern} {:axiom} Put(k: K, v: V)
+
+    method {:extern} {:axiom} Get(k: K) returns (r: Option<V>)
+
+    method {:extern} {:axiom} Remove(k: K)
+
+    method {:extern} {:axiom} Size() returns (c: nat)
 
   }
 
-  class MutableMap<K(==), V(==)> ... {
+  class {:extern} AtomicBox<T> ... {
 
+    constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
+
+    ghost predicate Valid() { true }
+
+    method {:extern} {:axiom} Get() returns (t: T)
+
+    method {:extern} {:axiom} Put(t: T)
+
+  }
+
+  class {:extern} Lock ... {
+
+    constructor {:extern} {:axiom} ()
+
+    method {:extern} {:axiom} Lock()
+
+    method {:extern} {:axiom} Unlock()
+
+  }
+}
+
+/**
+Dafny-native implementation, used to generate the extern implementation
+possible because JavaScript is single threadded 
+*/
+module {:extern "Std_Concurrent"} Std.InternalGenerateJavaScriptConcurrent {
+
+  import opened Wrappers
+
+  class MutableMap<K(==), V(==)> {
+
+    ghost const inv: (K, V) -> bool
     ghost var knownKeys: set<K>
     ghost var knownValues: set<V>
 
     var internal: map<K, V>
 
-    constructor (ghost inv: (K, V) -> bool)
+    constructor (inv: (K, V) -> bool)
       ensures Valid()
       ensures this.inv == inv
     {
@@ -77,39 +97,55 @@ module Std.JavaScriptConcurrent replaces Concurrent {
     }
 
     ghost predicate Valid()
+      reads this
     {
       forall k :: k in internal.Keys ==> inv(k, internal[k]) && Contained()
     }
 
     method Keys() returns (keys: set<K>)
+      requires Valid()
+      ensures forall k :: k in keys ==> exists v :: v in knownValues && inv(k,v)
     {
       reveal Contained();
       keys := internal.Keys;
     }
 
     method HasKey(k: K) returns (used: bool)
+      requires Valid()
+      ensures used ==> exists v :: v in knownValues && inv(k,v)
     {
       reveal Contained();
       used := k in internal.Keys;
     }
 
     method Values() returns (values: set<V>)
+      requires Valid()
+      ensures forall v :: v in values ==> exists k :: k in knownKeys && inv(k,v)
     {
       reveal Contained();
       values := internal.Values;
     }
 
     method Items() returns (items: set<(K,V)>)
+      requires Valid()
+      ensures forall t :: t in items ==> inv(t.0, t.1)
     {
       items := internal.Items;
     }
 
     method Get(k: K) returns (r: Option<V>)
+      requires Valid()
+      ensures r.Some? ==> inv(k, r.value)
     {
       r := if k in internal.Keys then Some(internal[k]) else None;
     }
 
     method Put(k: K, v: V)
+      requires Valid()
+      requires inv(k, v)
+      modifies this
+      ensures Valid()
+
     {
       internal := internal[k := v];
       knownKeys := knownKeys + {k};
@@ -118,6 +154,10 @@ module Std.JavaScriptConcurrent replaces Concurrent {
     }
 
     method Remove(k: K)
+      requires Valid()
+      requires exists v :: inv(k,v)
+      modifies this
+      ensures Valid()
     {
       // only here to mollify the auditor
       assert exists v :: inv(k,v);
@@ -127,6 +167,7 @@ module Std.JavaScriptConcurrent replaces Concurrent {
     }
 
     method Size() returns (c: nat)
+      requires Valid()
     {
       // only here to mollify the auditor
       reveal Contained();
@@ -136,4 +177,73 @@ module Std.JavaScriptConcurrent replaces Concurrent {
     }
 
   }
+
+  class AtomicBox<T> {
+
+    ghost const inv: T -> bool
+
+    var boxed: T
+
+    constructor (inv: T -> bool, t: T)
+      requires inv(t)
+      ensures Valid()
+      ensures this.inv == inv
+    {
+      boxed := t;
+      this.inv := inv;
+    }
+
+    ghost predicate Valid()
+      reads this
+    {
+      inv(boxed)
+    }
+
+    method Get() returns (t: T)
+      requires Valid()
+      ensures inv(t)
+    {
+      t := boxed;
+    }
+
+    method Put(t: T)
+      requires inv(t)
+      modifies this
+      ensures Valid()
+    {
+      boxed := t;
+    }
+
+  }
+
+  class Lock {
+
+    ghost var isLocked: bool
+
+    constructor() {
+      isLocked := false;
+    }
+
+    method Lock()
+      requires !isLocked
+      modifies this
+      ensures isLocked
+    {
+      // Written this way so that we don't get a warning about
+      // "requires !isLocked" being an unnecessary precondition.
+      isLocked := !isLocked;
+    }
+
+    method Unlock()
+      requires isLocked
+      modifies this
+      ensures !isLocked
+    {
+      // Written this way so that we don't get a warning about
+      // "requires isLocked" being an unnecessary precondition.
+      isLocked := !isLocked;
+    }
+
+  }
+
 }

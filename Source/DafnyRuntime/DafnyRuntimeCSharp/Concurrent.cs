@@ -62,13 +62,12 @@ namespace Std.Concurrent {
     private T val;
     private Lock l;
 
-    public AtomicBox(T t) {
-      val = t;
+    public AtomicBox() {
       l = new Lock();
     }
 
-    public void __ctor() {
-
+    public void __ctor(T t) {
+      val = t;
     }
 
     public void Put(T t) {

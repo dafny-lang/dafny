@@ -188,7 +188,7 @@ func (_this *AtomicBox) ParentTraits_() []*_dafny.TraitID {
 }
 var _ _dafny.TraitOffspring = &AtomicBox{}
 
-func (_this *AtomicBox) Ctor__(inv func (interface{}) bool, t interface{}) {
+func (_this *AtomicBox) Ctor__(t interface{}) {
   {
     _this.mu.Lock()
     _this.Boxed = t
