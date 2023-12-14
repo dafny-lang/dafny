@@ -22,7 +22,7 @@ public class PartialValue {
   private static Dictionary<PartialState, Dictionary<Model.Element, PartialValue>> allPartialValues = new();
 
   public IEnumerable<Expression> Values(Dictionary<PartialValue, Expression> definitions) {
-    if (definitions.ContainsKey(this)) {
+    if (!definitions.ContainsKey(this)) {
       yield break;
     }
 
@@ -64,6 +64,7 @@ public class PartialValue {
     ElementIdentifier = new IdentifierExpr(Token.NoToken, ElementNamePrefix + Element.Id);
     ElementIdentifier.Type = type;
     AddConstraint(new TypeTestExpr(Token.NoToken, ElementIdentifier, type), new());
+    state.Model.AddTypeConstraints(this);
   }
 
   public IEnumerable<PartialValue> GetRelatedValues() {
@@ -160,8 +161,7 @@ public class PartialValue {
         var relatedValueDescribesCardinality = false;
         foreach (var definition in relatedValue.Values(definitions)) {
           if (definition is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
-              && unaryOpExpr.E is IdentifierExpr identifierExpr 
-              && identifierExpr.Name == ElementIdentifier.Name) {
+              && unaryOpExpr.E == definitions[this]) {
             relatedValueDescribesCardinality = true;
             break;
           }

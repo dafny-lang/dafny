@@ -10,6 +10,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using MapType = Microsoft.Dafny.MapType;
+using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
 
 namespace DafnyTestGeneration {
@@ -48,6 +49,8 @@ namespace DafnyTestGeneration {
     private Dictionary<string, string> defaultValueForType = new();
     private readonly Modifications cache;
 
+    private readonly Dictionary<PartialValue, Expression> constraintContext;
+
     public TestMethod(DafnyInfo dafnyInfo, string log, Modifications cache) {
       DafnyInfo = dafnyInfo;
       this.cache = cache;
@@ -57,6 +60,11 @@ namespace DafnyTestGeneration {
       MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
+      constraintContext = new Dictionary<PartialValue, Expression>();
+      foreach (var partialValue in dafnyModel.States.First().knownVariableNames.Keys) {
+        constraintContext[partialValue] = new Microsoft.Dafny.IdentifierExpr(Token.NoToken, dafnyModel.States.First().knownVariableNames[partialValue].First());
+        constraintContext[partialValue].Type = partialValue.Type;
+      }
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
 
@@ -263,13 +271,13 @@ namespace DafnyTestGeneration {
           return GetPrimitiveAsType(variable.Value, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
-          if (variable?.Cardinality() == -1) {
+          if (variable?.Cardinality(constraintContext) == -1) {
             if (seqType.Arg is CharType) {
               return "\"\"";
             }
             return AddValue(asType ?? variableType, "[]");
           }
-          for (var i = 0; i < variable?.Cardinality(); i++) {
+          for (var i = 0; i < variable?.Cardinality(constraintContext); i++) {
             var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();

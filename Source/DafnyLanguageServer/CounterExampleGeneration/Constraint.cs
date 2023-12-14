@@ -18,8 +18,11 @@ public class Constraint {
   }
 
   public Expression? AsExpression(Dictionary<PartialValue, Expression> definitions, bool wrapDefinitions) {
+    if (!analyzer.AllTypesAreKnown(rawExpression)) {
+      return null;
+    }
     var newExpression = new DefinitionSubstituter(definitions).CloneExpr(rawExpression);
-    if (!analyzer.AllTypesAreKnown(newExpression) || !analyzer.DefinitionIsComplete(newExpression)) {
+    if (!analyzer.DefinitionIsComplete(newExpression)) {
       return null;
     }
     if (definesValue == null) {
@@ -40,6 +43,17 @@ public class Constraint {
   public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints) {
     var foundANewDefinition = true;
     var substituter = new DefinitionSubstituter(knownDefinitions);
+    foreach (var constraint in constraints) { // First add as constraints the literal expressions
+      if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
+          !constraint.ReferencedValues.Any()) {
+        var definition = substituter.CloneExpr(constraint.rawExpression);
+        definition.Type = constraint.rawExpression.Type;
+        knownDefinitions[constraint.definesValue] = definition;
+        substituter.AddSubstitution(constraint.definesValue, definition);
+        foundANewDefinition = true;
+        break;
+      }
+    }
     while (foundANewDefinition) {
       foundANewDefinition = false;
       foreach (var constraint in constraints) {
@@ -77,6 +91,9 @@ public class Constraint {
     public override Expression CloneExpr(Expression expr) {
       if (expr is IdentifierExpr identifierExpr && substMap.TryGetValue(identifierExpr.Name, out var cloneExpr)) {
         return cloneExpr;
+      } 
+      if (expr is IdentifierExpr identifierExpr2 && identifierExpr2.Name.StartsWith(PartialValue.ElementNamePrefix)) {
+        return expr;
       }
       var result = base.CloneExpr(expr);
       if (result is DatatypeValue datatypeValue) {
