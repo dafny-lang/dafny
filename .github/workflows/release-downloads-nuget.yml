@@ -43,7 +43,7 @@ jobs:
         java-version: 18
         distribution: corretto
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Load Z3

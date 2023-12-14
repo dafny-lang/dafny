@@ -7,6 +7,7 @@ layout: default
 
 - [Current development version](https://dafny.org/dafny)
 - [Latest release snapshot](https://dafny.org/latest)
+- [v4.4.0](https://dafny.org/v4.4.0)
 - [v4.3.0](https://dafny.org/v4.3.0)
 - [v4.2.0](https://dafny.org/v4.2.0)
 - [v4.1.0](https://dafny.org/v4.1.0)

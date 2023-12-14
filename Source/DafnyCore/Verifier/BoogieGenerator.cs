@@ -10,22 +10,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
-using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
-using Core;
 using DafnyCore.Verifier;
-using Microsoft.BaseTypes;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Triggers;
-using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
@@ -1431,8 +1423,12 @@ namespace Microsoft.Dafny {
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
       AddVerboseNameAttribute(impl, proc.VerboseName);
-      if (DisableNonLinearArithmetic) {
-        AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
+      if (options.IsUsingZ3()) {
+        if (DisableNonLinearArithmetic) {
+          AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
+        }
+
+        AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
       }
       sink.AddTopLevelDeclaration(impl);
       return impl;
@@ -2926,7 +2922,7 @@ namespace Microsoft.Dafny {
     }
 
     private static void AddSmtOptionAttribute(Bpl.NamedDeclaration targetDecl, string name, string value) {
-      targetDecl.AddAttribute("smt_option", new object[] { name, value });
+      targetDecl.Attributes = new QKeyValue(targetDecl.tok, "smt_option", new List<object>() { name, value }, targetDecl.Attributes);
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
@@ -3427,7 +3423,6 @@ namespace Microsoft.Dafny {
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, desc));
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
@@ -3445,7 +3440,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
@@ -3470,7 +3465,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 
@@ -4450,14 +4445,36 @@ namespace Microsoft.Dafny {
     internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
-    public bool DisableNonLinearArithmetic {
+    private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
+    private int ArithmeticSolver {
       get {
-        return DetermineDisableNonLinearArithmetic(forModule, options);
+        var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3ArithmeticSolver");
+
+        // The value 2 tends to lead to the best all-around arithmetic
+        // performance, though some programs can be verified more quickly
+        // (or verified at all) using a different solver.
+        // https://microsoft.github.io/z3guide/programming/Parameters/
+        var defaultSolver = 2;
+        if (arithmeticSolver == null) {
+          return defaultSolver;
+        }
+
+        var arg = arithmeticSolver.Args.Count > 0 ? arithmeticSolver.Args[0] : null;
+        if (arg == null) {
+          return defaultSolver;
+        }
+
+        Expression.IsIntLiteral(arg, out var value);
+        try {
+          return (int)value;
+        } catch (OverflowException) {
+          return defaultSolver;
+        }
       }
     }
 
     public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions) {
-      var nlaAttribute = Attributes.Find(module.Attributes, "disable_nonlinear_arithmetic");
+      var nlaAttribute = Attributes.Find(module.Attributes, "disableNonlinearArithmetic");
       if (nlaAttribute != null) {
         var value = true;
         var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;

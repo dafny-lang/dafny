@@ -10,7 +10,6 @@ TestAuditor.dfy(139,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier did not attempt verification
 TestAuditor.dfy(22,6): Error: Ghost declaration has no body and has an ensures clause.
-TestAuditor.dfy(27,15): Error: Ghost declaration has no body and has an ensures clause.
 TestAuditor.dfy(38,2): Error: Definition has [assume] statement in body.
 TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a ensures clause.
 TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a requires clause.
@@ -29,6 +28,5 @@ TestAuditor.dfy(143,2): Error: Definition contains loop with no body.
 TestAuditor.dfy(150,2): Error: Assertion has explicit temporary [{:only}] attribute.
 TestAuditor.dfy(154,15): Error: Member has explicit temporary [{:only}] attribute.
 TestAuditor.dfy(164,28): Error: Function with [{:extern}] attribute.
-IgnoredAssumptions.dfy(2,15): Error: Ghost declaration has no body and has an ensures clause.
 TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 Wrote textual form of partial target program to assumptions-lib/assumptions.doo
