@@ -569,6 +569,8 @@ public partial class BoogieGenerator {
     }
   }
 
+  private int Cutoff = 0;
+
   /// <summary>
   /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
   /// the receiver parameter of the function should be included among the lit formals.
@@ -877,9 +879,10 @@ public partial class BoogieGenerator {
 
       var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
       // Traits as datatypes might require boxing
-      var conclusion = etranBody.TrExpr(new BinaryExpr(Token.NoToken, BinaryExpr.ResolvedOpcode.EqCommon,
+      var conclusion = etranBody.TrExpr(new BinaryExpr(f.tok, BinaryExpr.ResolvedOpcode.EqCommon,
         new BoogieWrapper(funcAppl, f.ResultType), bodyWithSubst
-      ));
+      ) { RangeToken = f.RangeToken });
+
       tastyVegetarianOption = BplAnd(etranBody.CanCallAssumption(bodyWithSubst),
         BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), conclusion));
     }
