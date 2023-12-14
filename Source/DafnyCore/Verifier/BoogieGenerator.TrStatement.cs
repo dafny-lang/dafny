@@ -649,7 +649,7 @@ namespace Microsoft.Dafny {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
           adjustFuelForExists = true;
-          b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
+          b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
           stmtContext = StmtType.NONE;
         }
       }
@@ -661,7 +661,7 @@ namespace Microsoft.Dafny {
         // Adding the assume stmt, resetting the stmtContext
         stmtContext = StmtType.ASSUME;
         adjustFuelForExists = true;
-        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assume statement", true));
+        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
         stmtContext = StmtType.NONE;
       }
 
