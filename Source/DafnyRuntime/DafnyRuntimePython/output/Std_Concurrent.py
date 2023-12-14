@@ -69,8 +69,12 @@ class MutableMap:
 
 
 class AtomicBox:
-    def __init__(self, t) -> None:
+    def __init__(self) -> None:
+        pass
+        
+    def ctor__(self, t):
         self.boxed = t
+        pass
 
     def Get(self):
         return self.boxed

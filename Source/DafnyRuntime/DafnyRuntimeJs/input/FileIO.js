@@ -3,6 +3,8 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
+var Std_Concurrent = Std_Concurrent || {};
+
 var Std_FileIOInternalExterns = Std_FileIOInternalExterns || {};
 Std_FileIOInternalExterns.__default = (function() {
   const buffer = require("buffer");
