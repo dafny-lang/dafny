@@ -14,7 +14,7 @@ public class RustBackend : DafnyExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
-  public override bool IsStable => false;
+  public override bool IsStable => true;
   public override bool IsInternal => true;
   public override string TargetExtension => "rs";
   public override int TargetIndentSize => 4;
@@ -40,11 +40,19 @@ public class RustBackend : DafnyExecutableBackend {
     }
   }
 
+  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      throw new UnsupportedFeatureException(dafnyProgram.Tok, Feature.StandardLibrary);
+    }
+    base.Compile(dafnyProgram, output);
+  }
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
     var runtimeDirectory = Path.Combine(targetDirectory, "runtime");
+
     if (Directory.Exists(runtimeDirectory)) {
       Directory.Delete(runtimeDirectory, true);
     }

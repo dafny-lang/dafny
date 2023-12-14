@@ -131,7 +131,7 @@ The exact file format is internal and may evolve over time to support additional
 
 Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
 
-## 13.4. Dafny Standard Libraries
+## 13.4. Dafny Standard Libraries {#sec-standard-library}
 
 As of Dafny 4.4, the `dafny` tool includes standard libraries that any Dafny code base can depend on.
 For now they are only available when the `--standard-libraries` option is provided,

@@ -17,7 +17,7 @@ build-system-module:
 	mv build/generated-go/src/* build/
 	rm build/generated.go
 	rm -r build/generated-go
-	cp -r input/ build/
+	cp -r input/* build/
 
 check-system-module: build-system-module
 	diff -r $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)

@@ -53,9 +53,10 @@ replaceable module Std.Concurrent {
     constructor (ghost inv: T -> bool, t: T)
       requires inv(t)
       ensures this.inv == inv
+      ensures Valid()
 
     method Get() returns (t: T)
-      reads {}
+      reads this
       requires Valid()
       ensures inv(t)
 
