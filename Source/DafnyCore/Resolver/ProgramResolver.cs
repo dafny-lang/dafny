@@ -76,6 +76,7 @@ public class ProgramResolver {
 
     Type.DisableScopes();
 
+    InstantiateReplaceableModules(Program);
     CheckDuplicateModuleNames(Program);
 
     foreach (var rewriter in rewriters) {
@@ -209,6 +210,20 @@ public class ProgramResolver {
           priorModDef.tok.val, m.tok.val, compileName);
       } else {
         compileNameMap.Add(compileName, m);
+      }
+    }
+  }
+
+  protected void InstantiateReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        var target = compiledModule.Implements.Target.Def;
+        if (target.Replacement != null) {
+          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
+            "a replaceable module may only be replaced once");
+        } else {
+          target.Replacement = compiledModule.Replacement ?? compiledModule;
+        }
       }
     }
   }
