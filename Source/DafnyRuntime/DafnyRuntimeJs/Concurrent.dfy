@@ -31,7 +31,6 @@ module Std.JavaScriptConcurrent replaces Concurrent {
     var boxed: T
 
     ghost predicate Valid()
-      reads this 
     {
       this.inv(boxed)
     }

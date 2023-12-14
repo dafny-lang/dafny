@@ -436,6 +436,11 @@ let Std_Concurrent = (function() {
     _parentTraits() {
       return [];
     }
+    __ctor(t) {
+      let _this = this;
+      (_this).boxed = t;
+      return;
+    }
     Get() {
       let _this = this;
       let t = undefined;
