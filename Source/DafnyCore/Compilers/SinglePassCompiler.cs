@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny.Compilers {
         DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
         return;
       }
-      
+
       if (module.ModuleKind == ModuleKindEnum.Replaceable) {
         // the purpose of an abstract module is to skip compilation
         return;
