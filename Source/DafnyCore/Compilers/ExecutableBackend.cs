@@ -40,7 +40,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
           Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-            "a module that replaces another may not have an {:extern} attribute");
+            "inside a module that replaces another, {:extern} attributes may only be used without arguments");
         }
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
