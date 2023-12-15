@@ -34,6 +34,10 @@ module {:extern "DAM"} DAM {
         else
           Get(rest, key)
     }
+
+    function SeqGet<A>(s: seq<A>, idx: nat): Option<A> {
+      if idx < |s| then Some(s[idx]) else None
+    }
   }
 
   // CBPV distinguishes between expressions and statements of positive and negative type, respectively
@@ -113,34 +117,30 @@ module {:extern "DAM"} DAM {
   module Machine {
     import opened Syntax
     import opened Utils
+    
+    type Addr = nat
 
     // The environment accumulates substitutions made along the course of machine execution, i.e.,
     // maps variables to addresses
-    
-    // The store maps addresses to values - closed intro. forms of positive type
-
-    type Ptr = nat
-
     // Alist instead of map so we can do induction on envs for type synthesis
-    type Env = Alist<Var, Ptr>
+    type Env = Alist<Var, Addr>
 
+    // The store maps addresses to values - closed intro. forms of positive type
     type Store = seq<Val>
 
-    predicate Allocated(sto: Store, ptr: Ptr) {
-      ptr < |sto|
-    }
-
+    // Closed expressions are evaluated into values
     type ClosedExpr = (Env, Expr)
 
+    // Closed statements are closures!
     type ClosedStmt = (Env, Stmt)
 
-    // To implement lexical scope, thunks and stacks are closures that save the environment they're defined in
+    // To implement lexical scope, thunks are closures
     datatype Val =
       Unit
     | Bool(answer: bool)
     | Int(int)
     | Thunk(closure: ClosedStmt)
-    | Ref(ptr: Ptr)
+    | Ref(ptr: Addr)
     | Stack(stack: Stack)
 
     // Stacks accumulate negative eliminations
@@ -159,8 +159,8 @@ module {:extern "DAM"} DAM {
     | Select(field: Field)
 
     // States of the CESK Machine
-    type     In  = (Store, ClosedStmt, Stack)
-    datatype Out = Next(In) | Terminal
+    type     Input  = (Store, ClosedStmt, Stack)
+    datatype Output = Next(Input) | Terminal
   }
 
   module Statics {
@@ -178,10 +178,9 @@ module {:extern "DAM"} DAM {
       case Unit     => Some(Pos.Unit)
       case Bool(_)  => Some(Pos.Bool)
       case Int(_)   => Some(Pos.Int)
-      case Thunk(s) => (
+      case Thunk(s) =>
         var t :- SynthStmt(g, s);
         Some(Pos.Thunk(t))
-      )
     }
 
     // G |- expr <= t+
@@ -192,10 +191,9 @@ module {:extern "DAM"} DAM {
     // G |- stmt => t-
     function SynthStmt(g: Context, stmt: Stmt): Option<Neg> decreases stmt, 0 {
       match stmt
-      case Pure(e) => (
+      case Pure(e) =>
         var t :- SynthExpr(g, e);
         Some(Neg.Value(t))
-      )
 
       case Bind(lhs, var_, rhs) => (
         match SynthStmt(g, lhs)
@@ -238,18 +236,14 @@ module {:extern "DAM"} DAM {
         var _ :- SynthExpr(g, expr);
         SynthStmt(g, next)
 
-      case Record(fields) => (
+      case Record(fields) =>
         var fields :- SynthRecord(g, fields);
         Some(Neg.Record(fields))
-      )
 
-      case Select(record, field) => (
+      case Select(record, lbl) => (
         match SynthStmt(g, record)
-        case Some(Record(fields)) => (
-          match Get(fields, field)
-          case Some(field) => Some(field)
-          case None        => None
-        )
+        case Some(Record(fields)) =>
+          Get(fields, lbl)
         case _ => None
       )
 
@@ -290,46 +284,87 @@ module {:extern "DAM"} DAM {
       SynthStmt(g, stmt) == Some(t)
     }
 
-    // start- => stack => end-
-    function SynthStack(stack: Stack, start: Neg): Option<Neg> decreases stack {
+    // S |- env => G
+    function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env {
+      match env
+      case Empty => Some(Alist.Empty)
+      case Update(var_, addr, env) =>
+        var t :- SeqGet(s, addr);
+        var rest :- SynthEnv(s, env);
+        Some(Update(var_, t, rest))
+    }
+
+    // S |- env <= G
+    // Sleight of hand: assumes synthesis produces context in the same order as g
+    predicate CheckEnv(s: StoreTyping, env: Env, g: Context) {
+      SynthEnv(s, env) == Some(g)
+    }
+
+    // S |- (env, expr) => t+
+    function SynthClosedExpr(s: StoreTyping, expr: ClosedExpr): Option<Pos> {
+      var (env, expr) := expr;
+      var g :- SynthEnv(s, env);
+      SynthExpr(g, expr)
+    }
+
+    // S |- (env, expr) <= t+
+    predicate CheckClosedExpr(s: StoreTyping, expr: ClosedExpr, t: Pos) {
+      SynthClosedExpr(s, expr) == Some(t)
+    }
+
+    lemma CheckClosedExprWeakening(s: StoreTyping, s': StoreTyping, expr: ClosedExpr, t: Pos)
+      requires CheckClosedExpr(s, expr, t)
+      requires s <= s'
+      ensures  CheckClosedExpr(s', expr, t)
+
+    // S |- (env, stmt) => t-
+    function SynthClosedStmt(s: StoreTyping, stmt: ClosedStmt): Option<Neg> {
+      var (env, stmt) := stmt;
+      var g :- SynthEnv(s, env);
+      SynthStmt(g, stmt)
+    }
+
+    // S |- start- => stack => end-
+    function SynthStack(s: StoreTyping, start: Neg, stack: Stack): Option<Neg> decreases stack {
       match stack
       case Empty => Some(start)
-      case Push(Bind(var_, rhs), stack) => (
+      case Push(Bind(var_, (env, rhs)), stack) => (
         match start
-        case Value(t) => (
-          match SynthStmt(Update(var_, t, g), rhs)
-          case Some(start) => SynthStack(g, stack, start)
-          case None        => None
-        )
+        case Value(t) =>
+          var g :- SynthEnv(s, env);
+          var start :- SynthStmt(Update(var_, t, g), rhs);
+          SynthStack(s, start, stack)
         case _        => None
       )
 
-      case Push(Select(field), stack) => (
+      case Push(Select(lbl), stack) => (
         match start
         case Record(fields) =>
-          var field :- Get(fields, field);
-          SynthStack(g, stack, field)
+          var start :- Get(fields, lbl);
+          SynthStack(s, start, stack)
         case _ => None
       )
 
       case Push(Call(arg), stack) => (
         match start
         case Function(dom, cod) =>
-          if CheckExpr(g, arg, dom) then
-            SynthStack(g, stack, cod)
+          if CheckClosedExpr(s, arg, dom) then
+            SynthStack(s, cod, stack)
           else
             None
         case _ => None
       )
     }
 
-    // G |- stack <= start- <= end-
-    predicate CheckStack(g: Context, stack: Stack, start: Neg, end: Neg) {
-      SynthStack(g, stack, start) == Some(end)
+    // S |- stack <= start- <= end-
+    predicate CheckStack(s: StoreTyping, start: Neg, stack: Stack, end: Neg) {
+      SynthStack(s, start, stack) == Some(end)
     }
 
-    lemma SynthStackWeakening(g: Context, stack: Stack, start: Neg, var_: Var, t: Pos)
-    ensures SynthStack(Update(var_, t, g), stack, start) == SynthStack(g, stack, start)
+    lemma CheckStackWeakening(s: StoreTyping, s': StoreTyping, start: Neg, stack: Stack, end: Neg)
+      requires s <= s'
+      requires CheckStack(s, start, stack, end)
+      ensures CheckStack(s', start, stack, end)
 
     type StoreTyping = seq<Pos>
 
@@ -339,75 +374,48 @@ module {:extern "DAM"} DAM {
       case Unit        => Some(Pos.Unit)
       case Bool(_)     => Some(Pos.Bool)
       case Int(_)      => Some(Pos.Int)
-      case Thunk(env, stmt) => (
-        var g :- SynthEnv(s, env);
-        var t :- SynthStmt(g, stmt);
+      case Thunk(stmt) =>
+        var t :- SynthClosedStmt(s, stmt);
         Some(Pos.Thunk(t))
-      )
-      case Ref(ptr) => if ptr < |s| then Some(Pos.Ref(s[ptr])) else None
-      /*case Stack(env, stack) => (
-        var g :- SynthEnv(s, env);
-        var end :- SynthStack(g, stack, start);
+      case Ref(addr) =>
+        var t :- SeqGet(s, addr);
+        Some(Pos.Ref(t))
+      case Stack(_) => None
+      /*var end :- SynthStack(s, start, stack);
         Some(Pos.Stack(end))
-      )*/
-      case _ => None
+      */
     }
 
     // S |- val <= t+
     predicate CheckVal(s: StoreTyping, val: Val, t: Pos) {
       SynthVal(s, val) == Some(t)
     }
-
-    function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env {
-      match env
-      case Empty => Some(Alist.Empty)
-      case Update(var_, ptr, env) =>
-        if ptr < |s| then
-          var rest :- SynthEnv(s, env);
-          Some(Update(var_, s[ptr], rest))
-        else
-          None
-    }
-
-    // Sleight of hand: assumes synthesis produces context in the same order as g
-    predicate CheckEnv(s: StoreTyping, env: Env, g: Context) {
-      SynthEnv(s, env) == Some(g)
-    }
-
-    lemma CheckEnvInduction(s: StoreTyping, env: Env, g: Context, var_: Var, t: Pos)
-      requires CheckEnv(s, env, g)
-      ensures CheckEnv(s + [t], Update(var_, |s| + 1, env), Update(var_, t, g))
     
     // sto |- S
-    predicate {:induction sto} CheckStore(s: StoreTyping, sto: Store) {
-      forall ptr | 0 <= ptr < |sto| :: ptr < |s| && CheckVal(s, sto[ptr], s[ptr])
+    predicate CheckStore(s: StoreTyping, store: Store) {
+      |store| <= |s| && forall addr | 0 <= addr < |store| :: CheckVal(s, store[addr], s[addr])
     }
 
-    lemma CheckStoreInduction(s: StoreTyping, sto: Store, val: Val, t: Pos)
-      requires CheckStore(s, sto)
-      requires CheckVal(s, val, t)
-      ensures  CheckStore(s + [t], sto + [val])
-
     // S |- input => end
-    function SynthIn(s: StoreTyping, input: In): Option<Neg> {
-      var (env, sto, stmt, stack) := input;
+    function SynthInput(s: StoreTyping, input: Input): Option<Neg> {
+      var (sto, stmt, stack) := input;
       if CheckStore(s, sto) then
-        var g :- SynthEnv(s, env);
-        var start :- SynthStmt(g, stmt);
-        var end :- SynthStack(g, stack, start);
+        var start :- SynthClosedStmt(s, stmt);
+        var end :- SynthStack(s, start, stack);
         Some(end)
       else
         None
     }
 
     // S |- input <= end
-    predicate CheckIn(s: StoreTyping, input: In, end: Neg) {
-      SynthIn(s, input) == Some(end)
+    predicate CheckInput(s: StoreTyping, input: Input, end: Neg) {
+      SynthInput(s, input) == Some(end)
     }
 
-    predicate CheckOut(s: StoreTyping, out: Out, end: Neg) {
+    // S |- output <= end
+    predicate CheckOutput(s: StoreTyping, out: Output, end: Neg) {
       match out
-      case Next(next) => CheckIn(s, next, end)
+      case Next(next) => CheckInput(s, next, end)
       case Terminal   => true
     }
   }
@@ -419,175 +427,161 @@ module {:extern "DAM"} DAM {
     import opened Statics
 
     // Well-typed reference allocation and initialization
-    function Alloc(ghost s: StoreTyping, sto: Store, env: Env, ghost g: Context, var_: Var, val: Val, ghost t: Pos): (out: (Env, Store))
-      requires CheckStore(s, sto)
+    function Alloc(ghost s: StoreTyping, store: Store, env: Env, ghost g: Context, var_: Var, val: Val, ghost t: Pos): (out: (Store, Env))
+      requires CheckStore(s, store)
       requires CheckEnv(s, env, g)
       requires CheckVal(s, val, t)
       ensures
         var s' := s + [t];
-        var g' := Update(var_, t, env);
-        && CheckStore(s', out.1)
-        && CheckEnv(s', out.0, g')
+        var g' := Update(var_, t, g);
+        && CheckStore(s', out.0)
+        && CheckEnv(s', out.1, g')
     {
-      (Update(var_, |sto|, env), sto + [val])
+      ghost var s' := s + [t];
+      ghost var g' := Update(var_, t, g);
+
+      var store' := store + [val];
+      var env'   := Update(var_, |store|, env);
+
+      assume CheckStore(s', store');
+      assume CheckEnv(s', env', g');
+      (store', env')
     }
 
     // Big-step evaluation of expressions
-    function Eval(ghost s: StoreTyping, sto: Store, env: Env, ghost g: Context, expr: Expr, ghost t: Pos): (out: Val)
-      requires CheckStore(s, sto)    // sto |- S
-      requires CheckEnv(s, env, g)   // S |- env <= G
-      requires CheckExpr(g, expr, t) // G |- expr <= t
-      ensures  CheckVal(s, out, t)   // S |- out  <= t
+    function Eval(ghost s: StoreTyping, sto: Store, expr: ClosedExpr, ghost t: Pos): (output: Val)
+      requires CheckStore(s, sto)          // S |- sto
+      requires CheckClosedExpr(s, expr, t) // S |- expr <= t
+      ensures  CheckVal(s, output, t)      // S |- output <= t
     {
       // Proof by inversion on t
+      var (env, expr) := expr;
       match expr
-      case Var(x)      => (
+      case Var(x)      =>
         assume Get(env, x).Some?;
         assume Get(env, x).value < |sto|;
         assume CheckVal(s, sto[Get(env, x).Extract()], t);
         sto[Get(env, x).Extract()]
-      )
-      case Unit        =>
-        assert CheckExpr(s, expr, Pos.Unit);
-        Val.Unit
-      case Bool(b)     =>
-        assert CheckExpr(g, expr, Pos.Bool);
-        Val.Bool(b)
-      case Int(i)      =>
-        assert CheckExpr(g, expr, Pos.Int);
-        Val.Int(i)
-      case Thunk(stmt) =>
-        assume CheckVal(s, Val.Thunk(env, stmt), t);
-        Val.Thunk(env, stmt)
+      case Unit        => Val.Unit
+      case Bool(b)     => Val.Bool(b)
+      case Int(i)      => Val.Int(i)
+      case Thunk(stmt) => Val.Thunk((env, stmt))
     }
 
     // Type-preserving small-step reduction for the CESK machine
     // Progress = totality, preservation = requires + ensures clause
-    function Step(ghost s: StoreTyping, input: In, ghost end: Neg): (output: Out)
-      requires CheckIn(s, input, end)
+    function Step(ghost s: StoreTyping, input: Input, ghost end: Neg): (output: Output)
+      requires CheckInput(s, input, end)
       // s <= s' b/c no deallocations occur...for now!
-      ensures  exists s' | s <= s' :: CheckOut(s', output, end)
+      ensures  exists s' | s <= s' :: CheckOutput(s', output, end)
     {
-      var (env, sto, stmt, stack) := input;
+      var (store, (env, stmt), stack) := input;
 
-      assert CheckStore(s, sto);
+      assert CheckStore(s, store);
       ghost var g     := SynthEnv(s, env).Extract();
       ghost var start := SynthStmt(g, stmt).Extract();
-      ghost var end   := SynthStack(g, stack, start).Extract();
+      ghost var end   := SynthStack(s, start, stack).Extract();
 
       match stmt
+      case Ite(guard, then_, else_) =>
+        var val := Eval(s, store, (env, guard), Pos.Bool);
+        var output := Next((store, (env, if val.answer then then_ else else_), stack));
+        assert CheckOutput(s, output, end);
+        output
+      
       case Bind(lhs, var_, rhs) =>
-        var output := Next((env, sto, lhs, Push(Frame.Bind(var_, rhs), stack)));
-        assert CheckOut(s, output, end);
+        var output := Next((store, (env, lhs), Push(Frame.Bind(var_, (env, rhs)), stack)));
+        assert CheckOutput(s, output, end);
         output
       
       case Pure(expr) => (
         match stack.Pop()
-        case Some((Bind(var_, rhs), stack')) => (
+        case Some((Bind(var_, (env', rhs)), stack)) =>
           ghost var t := start.pos;
+          var val := Eval(s, store, (env, expr), t);
 
-          var val := Eval(s, sto, env, g, expr, t);
+          ghost var g := SynthEnv(s, env').Extract();
+          var (store, env) := Alloc(s, store, env', g, var_, val, t);
 
-          ghost var s' := s + [t];
           ghost var g' := Update(var_, t, g);
-          var (env', sto') := Alloc(env, sto, var_, val);
+          ghost var s' := s + [t];
+          ghost var start := SynthStmt(g', rhs).Extract();
+          CheckStackWeakening(s, s', start, stack, end);
 
-          CheckStoreInduction(s, sto, val, t);
-          CheckEnvInduction(s, env, g, var_, t);
-          var start' := SynthStmt(g', rhs).Extract();
-          SynthStackWeakening(g, stack', start', var_, t);
-
-          var output := Next((env', sto', rhs, stack'));
-          assert CheckOut(s', output, end);
+          var output := Next((store, (env, rhs), stack));
+          assert CheckOutput(s', output, end);
           output
-        )
         case None =>
           var output := Terminal;
-          assert CheckOut(s, output, end);
+          assert CheckOutput(s, output, end);
           output
       )
 
+      // Lexical scope restores the closure
+      case Force(thunk) =>
+        var val := Eval(s, store, (env, thunk), Pos.Thunk(start));
+        var output := Next((store, val.closure, stack));
+        assert CheckOutput(s, output, end);
+        output
+    
       case Call(func, arg) =>
-        var output := Next((env, sto, func, Push(Frame.Call(arg), stack)));
-        assert CheckOut(s, output, end);
+        var output := Next((store, (env, func), Push(Frame.Call((env, arg)), stack)));
+        assert CheckOutput(s, output, end);
         output
       
       case Func(bound, _, body) => (
         match stack.Pop()
-        case Some((Call(arg), stack')) =>
+        case Some((Call(arg), stack)) =>
           ghost var dom := start.dom;
-          ghost var cod := start.cod;
 
-          var val := Eval(s, sto, env, g, arg, dom);
+          var val := Eval(s, store, arg, dom);
+          var (store, env) := Alloc(s, store, env, g, bound, val, dom);
 
-          ghost var g' := Update(bound, dom, g);
           ghost var s' := s + [dom];
-          var (env', sto') := Alloc(env, sto, bound, val);
-          
-          CheckStoreInduction(s, sto, val, dom);
-          CheckEnvInduction(s, env, g, bound, dom);
-          assert CheckStmt(g', body, cod);
-          SynthStackWeakening(g, stack', cod, bound, dom);
+          CheckStackWeakening(s, s', start.cod, stack, end);
 
-          var output := Next((env', sto', body, stack'));
-          assert CheckOut(s', output, end);
+          var output := Next((store, (env, body), stack));
+          assert CheckOutput(s', output, end);
           output
-        
         case None =>
           var output := Terminal;
-          assert CheckOut(s, output, end);
+          assert CheckOutput(s, output, end);
           output
       )
 
       case Select(record, field) =>
-        var output := Next((env, sto, record, Push(Frame.Select(field), stack)));
-        assert CheckOut(s, output, end);
+        var output := Next((store, (env, record), Push(Frame.Select(field), stack)));
+        assert CheckOutput(s, output, end);
         output
-      
+
       case Record(fields) => (
         match stack.Pop()
-        case Some((Select(lbl), stack')) => (
+        case Some((Select(lbl), stack)) =>
           var fieldt := Get(SynthRecord(g, fields).Extract(), lbl).Extract();
           assume Get(fields, lbl).Some?;
           var field := Get(fields, lbl).Extract();
-          var output := Next((env, sto, field, stack'));
+          var output := Next((store, (env, field), stack));
           assume CheckStmt(g, field, fieldt);
-          assert CheckOut(s, output, end);
+          assert CheckOutput(s, output, end);
           output
-        )
-
+        
         case None =>
           var output := Terminal;
-          assert CheckOut(s, output, end);
+          assert CheckOutput(s, output, end);
           output
       )
-      
-      case Ite(guard, then_, else_) => (
-        var val := Eval(s, sto, env, g, guard, Pos.Bool);
-        var output := Next((env, sto, if val.answer then then_ else else_, stack));
-        assert CheckOut(s, output, end);
-        output
-      )
 
-      case Print(expr, next) => (
+      case Print(expr, next) =>
         ghost var t := SynthExpr(g, expr).Extract();
-        var val := Eval(s, sto, env, g, expr, t);
+        var val := Eval(s, store, (env, expr), t);
         //print val, "\n";
-        var output := Next((env, sto, next, stack));
-        assert CheckOut(s, output, end);
+        var output := Next((store, (env, next), stack));
+        assert CheckOutput(s, output, end);
         output
-      )
-
-      /*
-      // Lexical scope restores the env of the closure
-      case Force(thunk) => {
-        var closure := Eval(env, thunk);
-        out := Next((closure.env, closure.stmt, stack));
-      }*/
 
       case _ =>
         var output := Terminal;
-        assert CheckOut(s, output, end);
+        assert CheckOutput(s, output, end);
         output
       
       /*
@@ -612,8 +606,6 @@ module {:extern "DAM"} DAM {
           return Next((env, next, stack));
         case _        => return Stuck;
       }
-
-      
       
       case Rec(self, body) =>
         return Next((Update(self, Val.Thunk(env, comp), env), body, stack));
@@ -640,8 +632,8 @@ module {:extern "DAM"} DAM {
     }*/
 
     // Initial configuration
-    function Initial(comp: Stmt): In
-      { (Alist.Empty, [], comp, Stack.Empty) }
+    function Initial(stmt: Stmt): Input
+      { ([], (Alist.Empty, stmt), Stack.Empty) }
   }
 }
 
