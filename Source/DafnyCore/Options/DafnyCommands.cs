@@ -87,6 +87,7 @@ public static class DafnyCommands {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.GeneralTraits,
+    CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
