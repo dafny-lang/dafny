@@ -1,4 +1,4 @@
-module {:extern} {:compile false} Std.Concurrent refines ConcurrentInterface {
+module {:extern} {:compile false} Std.CSharpConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

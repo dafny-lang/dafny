@@ -1,4 +1,4 @@
-abstract module Std.ConcurrentInterface {
+replaceable module Std.Concurrent {
 
   import opened Wrappers
 

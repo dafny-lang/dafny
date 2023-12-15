@@ -1,4 +1,4 @@
-namespace Concurrent {
+namespace Std.Concurrent {
     using System.Collections.Concurrent;
     using Std.Wrappers;
 

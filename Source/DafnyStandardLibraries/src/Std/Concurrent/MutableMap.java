@@ -1,4 +1,4 @@
-package DafnyStdLibsExterns.Concurrent;
+package Std.Concurrent;
 
 import dafny.*;
 import Std.Wrappers.*;

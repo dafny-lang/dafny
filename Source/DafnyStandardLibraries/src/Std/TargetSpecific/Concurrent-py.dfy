@@ -1,4 +1,4 @@
-module {:compile false} Std.Concurrent refines ConcurrentInterface {
+module {:compile false} Std.PythonConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

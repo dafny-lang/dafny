@@ -1,8 +1,7 @@
 module
   {:compile false}
-{:extern "DafnyStdLibs_Concurrent"}
 {:dummyImportMember "Dummy__", true}
-Std.Concurrent refines ConcurrentInterface {
+Std.GoConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 

@@ -1,6 +1,6 @@
-module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines ConcurrentInterface {
+module {:extern} Std.JavaConcurrent replaces Concurrent {
 
-  class {:extern "MutableMap"} MutableMap<K(==), V(==)> ... {
+  class {:extern} MutableMap<K(==), V(==)> ... {
 
     constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
       ensures this.inv == inv

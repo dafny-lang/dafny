@@ -1,5 +1,5 @@
 
-module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.Concurrent refines ConcurrentInterface {
+module {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
@@ -55,7 +55,7 @@ module  {:extern "Std_ConcurrentDafny"} {:compile false} Std.Concurrent refines 
 }
 
 // Dafny-native implementation, used to generate the extern implementation
-module Std.ConcurrentDafny {
+module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
 
   import opened Wrappers
 

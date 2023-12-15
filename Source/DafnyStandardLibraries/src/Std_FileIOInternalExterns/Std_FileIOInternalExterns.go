@@ -6,6 +6,8 @@ import (
 	filepath "path/filepath"
 )
 
+type Dummy__ struct{}
+
 func INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead _dafny.Sequence, errorMsg _dafny.Sequence) {
 	p := _dafny.SequenceVerbatimString(path, false)
 	dat, err := os.ReadFile(p)
