@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
-    private List<System.Action> confirmations = new();
+    private List<ConfirmationInfo> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -172,7 +172,9 @@ namespace Microsoft.Dafny {
       PrintList("Default-type advice", defaultAdvice, advice => {
         return $"{advice.PreType} ~-~-> {advice.WhatString}";
       });
-      options.OutputWriter.WriteLine($"    Post-inference confirmations: {confirmations.Count}");
+      PrintList("Post-inference confirmations", confirmations, confirmationInfo => {
+        return confirmationInfo.DebugInformation();
+      });
     }
 
     void PrintLegend() {
@@ -469,30 +471,38 @@ namespace Microsoft.Dafny {
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
-      confirmations.Add(() => {
-        if (!ConfirmConstraint(check, preType, null)) {
-          PreTypeResolver.ReportError(tok, errorFormatString, preType);
-        }
-      });
+      confirmations.Add(new ConfirmationInfo(tok,
+        () => ConfirmConstraint(check, preType, null),
+        () => string.Format(errorFormatString, preType)));
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, Type toType, IToken tok, string errorFormatString) {
       Contract.Requires(toType is NonProxyType);
       var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
-      confirmations.Add(() => {
-        if (!ConfirmConstraint(check, preType, toPreType)) {
-          PreTypeResolver.ReportError(tok, errorFormatString, preType);
-        }
-      });
+      confirmations.Add(new ConfirmationInfo(tok,
+        () => ConfirmConstraint(check, preType, toPreType),
+        () => string.Format(errorFormatString, preType)));
     }
 
-    public void AddConfirmation(System.Action confirm) {
-      confirmations.Add(confirm);
+    public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
+      confirmations.Add(new ConfirmationInfo(tok, check, errorMessage));
     }
 
     void ConfirmTypeConstraints() {
       foreach (var confirmation in confirmations) {
-        confirmation();
+        confirmation.Confirm(PreTypeResolver);
+      }
+    }
+
+    record ConfirmationInfo(IToken Tok, Func<bool> Check, Func<string> ErrorMessage) {
+      public void Confirm(ResolverPass reporter) {
+        if (!Check()) {
+          reporter.ReportError(Tok, ErrorMessage());
+        }
+      }
+
+      public string DebugInformation() {
+        return ErrorMessage();
       }
     }
 
@@ -520,6 +530,8 @@ namespace Microsoft.Dafny {
       Sizeable,
       Freshable,
       IsCoDatatype,
+      IsNewtypeBaseTypeLegacy,
+      IsNewtypeBaseTypeGeneral,
     };
 
     private bool ConfirmConstraint(CommonConfirmationBag check, PreType preType, DPreType auxPreType) {

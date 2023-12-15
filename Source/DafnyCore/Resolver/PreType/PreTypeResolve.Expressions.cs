@@ -515,17 +515,21 @@ namespace Microsoft.Dafny {
         var toPreType = Type2PreType(e.ToType);
         AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
           "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
-        Constraints.AddConfirmation(() => {
-          // TODO: all of these tests should be revisited (they don't seem right in the presence of newtype's)
-          var fromPT = e.E.PreType.NormalizeWrtScope() as DPreType;
-          var toPT = toPreType.NormalizeWrtScope() as DPreType;
-          if (fromPT != null && toPT != null && IsSuperPreTypeOf(toPT, fromPT)) {
-            // This test is allowed and it always returns true
-          } else if (fromPT == null || toPT == null || !IsSuperPreTypeOf(fromPT, toPT)) {
-            // TODO: I think this line can never be reached, since we get here only if we get past the guarded Comparable constraint
-            ReportError(e.tok, "a type test to '{0}' must be from a compatible type (got '{1}')", toPreType, e.E.PreType);
-          }
-        });
+        Constraints.AddConfirmation(e.tok,
+          () => {
+            // TODO: all of these tests should be revisited (they don't seem right in the presence of newtype's)
+            var fromPT = e.E.PreType.NormalizeWrtScope() as DPreType;
+            var toPT = toPreType.NormalizeWrtScope() as DPreType;
+            if (fromPT != null && toPT != null && IsSuperPreTypeOf(toPT, fromPT)) {
+              // This test is allowed and it always returns true
+            } else if (fromPT == null || toPT == null || !IsSuperPreTypeOf(fromPT, toPT)) {
+              // TODO: I think this line can never be reached, since we get here only if we get past the guarded Comparable constraint
+              return false;
+            }
+            return true;
+          },
+          () => string.Format("a type test to '{0}' must be from a compatible type (got '{1}')", toPreType, e.E.PreType)
+        );
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
