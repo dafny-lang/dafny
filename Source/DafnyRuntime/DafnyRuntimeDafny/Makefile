@@ -5,8 +5,8 @@ DAFNY = dotnet run --project ../../Dafny --no-build --
 SOURCE_DIR=.
 SOURCES=$(shell find $(SOURCE_DIR) -name '*.dfy')
 
-GENERATED_CODE_GO_SOURCE=src/dafnyRuntimeGo-go/src/dafny/dafny.go
-GENERATED_CODE_GO_TARGET=../dafnyRuntimeGo/build/dafny
+GENERATED_CODE_GO_SOURCE=src/DafnyRuntimeGo-go/src/dafny/dafny.go
+GENERATED_CODE_GO_TARGET=../DafnyRuntimeGo/build/dafny
 
 all: test check-format
 

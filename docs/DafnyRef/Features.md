@@ -1,5 +1,6 @@
 | Feature | C# | JavaScript | Go | Java | Python | C++ | Dafny Library (.doo) |
 |-|-|-|-|-|-|-|-|
+| [Standard library](#sec-standard-library) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Unbounded integers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Real numbers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Ordinals](#sec-ordinals) |  X  |  X  |  X  |  X  |  X  |  |  X  |
