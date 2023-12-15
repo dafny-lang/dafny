@@ -7,11 +7,23 @@ GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some nume
 GeneralNewtypeResolution.dfy(42,10): Error: a newtype must be based on some numeric type (got ReferenceTrait)
 GeneralNewtypeResolution.dfy(43,10): Error: a newtype must be based on some numeric type (got Cell?)
 GeneralNewtypeResolution.dfy(44,10): Error: a newtype must be based on some numeric type (got Cell)
-9 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(69,10): Error: a newtype must be based on some numeric type (got True)
+GeneralNewtypeResolution.dfy(70,10): Error: a newtype must be based on some numeric type (got True)
+GeneralNewtypeResolution.dfy(75,10): Error: a newtype must be based on some numeric type (got NonFiveOrdinal)
+GeneralNewtypeResolution.dfy(85,10): Error: a newtype must be based on some numeric type (got NonFiveTrait)
+GeneralNewtypeResolution.dfy(86,10): Error: a newtype must be based on some numeric type (got NonFiveReferenceTrait)
+GeneralNewtypeResolution.dfy(87,10): Error: a newtype must be based on some numeric type (got NonFiveCell?)
+GeneralNewtypeResolution.dfy(88,10): Error: a newtype must be based on some numeric type (got NonFiveCell)
+16 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Trait)
 GeneralNewtypeResolution.dfy(42,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ReferenceTrait)
 GeneralNewtypeResolution.dfy(43,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Cell?)
 GeneralNewtypeResolution.dfy(44,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Cell)
-6 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(75,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveOrdinal)
+GeneralNewtypeResolution.dfy(85,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveTrait)
+GeneralNewtypeResolution.dfy(86,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveReferenceTrait)
+GeneralNewtypeResolution.dfy(87,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveCell?)
+GeneralNewtypeResolution.dfy(88,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveCell)
+11 resolution/type errors detected in GeneralNewtypeResolution.dfy
