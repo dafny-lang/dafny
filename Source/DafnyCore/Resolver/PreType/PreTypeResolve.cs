@@ -570,6 +570,7 @@ namespace Microsoft.Dafny {
         foreach (var d in allDeclarations) {
           basicPreTypeResolver.ResolveDeclarationBody(d);
         }
+        basicPreTypeResolver.Constraints.AssertThatStateIsClear();
       }
     }
 
@@ -601,6 +602,7 @@ namespace Microsoft.Dafny {
       }
 
       preTypeResolver.ResolveDeclarationSignature(d);
+      preTypeResolver.Constraints.AssertThatStateIsClear();
 
       resolver.allTypeParameters.PopMarker();
       resolver.allTypeParameters = oldAllTypeParameters;
@@ -874,13 +876,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Constraint != null);
 
-      if (dd.Var != null) {
+      if (dd.Var == null) {
+        if (initialResolutionPass) {
+          Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
+        }
+      } else {
         if (initialResolutionPass == dd.Var.Type is TypeProxy) {
           scope.PushMarker();
           ScopePushExpectSuccess(dd.Var, dd.WhatKind + " variable", false);
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
           ConstrainTypeExprBool(dd.Constraint, dd.WhatKind + " constraint must be of type bool (instead got {0})");
           scope.PopMarker();
+          Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
+        } else {
           Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
         }
       }

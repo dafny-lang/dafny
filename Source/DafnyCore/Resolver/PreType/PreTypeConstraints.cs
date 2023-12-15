@@ -157,6 +157,15 @@ namespace Microsoft.Dafny {
       PreTypeResolver.allPreTypeProxies.Clear();
     }
 
+    public void AssertThatStateIsClear() {
+      Contract.Assert(unnormalizedSubtypeConstraints.Count == 0);
+      Contract.Assert(equalityConstraints.Count == 0);
+      Contract.Assert(guardedConstraints.Count == 0);
+      Contract.Assert(defaultAdvice.Count == 0);
+      Contract.Assert(confirmations.Count == 0);
+      // Note, PreTypeResolver.allPreTypeProxies may still be nonempty, since it's not part of the PreTypeConstraint state proper
+    }
+
     public void PrintTypeInferenceState(string/*?*/ header = null) {
       if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
