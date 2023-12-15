@@ -10,6 +10,8 @@ namespace Std.Concurrent {
             map = new ConcurrentDictionary<K, V>();
         }
 
+        public void __ctor() { }
+
         public Dafny.ISet<K> Keys() {
             return Dafny.Set<K>.FromCollection(map.Keys);
         }
@@ -58,9 +60,12 @@ namespace Std.Concurrent {
         private T val;
         private Lock l;
 
-        public AtomicBox(T t) {
-            val = t;
+        public AtomicBox() {
             l = new Lock();
+        }
+
+        public void __ctor(T t) {
+          val = t;
         }
 
         public void Put(T t) {
@@ -80,6 +85,9 @@ namespace Std.Concurrent {
     public class Lock {
 
         private static System.Threading.Mutex mut = new System.Threading.Mutex();
+
+        public void __ctor() {
+        }
 
         public void __Lock() {
             mut.WaitOne();

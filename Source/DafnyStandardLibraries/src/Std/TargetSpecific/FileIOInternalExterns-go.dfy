@@ -13,7 +13,7 @@ module
   // But it makes debugging the translated output a little clearer.
   {:compile false}
 {:extern}
-{:dummyImportMember "Dummy_", true}
+{:dummyImportMember "Dummy__", true}
 Std.GoFileIOInternalExterns replaces FileIOInternalExterns {
   method
     {:extern}
