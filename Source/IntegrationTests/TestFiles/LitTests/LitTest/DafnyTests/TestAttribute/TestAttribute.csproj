@@ -9,7 +9,4 @@
     <PackageReference Include="Moq" Version="4.16.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Build" />
-  </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 // RUN: %verify "%s" > "%t"
 // RUN: %translate cs %args %s --include-runtime --include-test-runner --unicode-char false --no-verify --output %S/Output/manual/program.cs >> "%t"
-// RUN: ! dotnet run -v q --property WarningLevel=0 --project %S/DafnyTests.csproj >> "%t"
+// RUN: ! dotnet run -v q --property WarningLevel=0 --project %S/RunAllTests.csproj >> "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:cs "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:java "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:go "%s" >> "%t"
@@ -8,8 +8,8 @@
 // RUN: ! %baredafny test %args --unicode-char:false --no-verify --target:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t" 
 
-include "../exceptions/VoidOutcomeDt.dfy"
-include "../exceptions/NatOutcomeDt.dfy"
+include "../../exceptions/VoidOutcomeDt.dfy"
+include "../../exceptions/NatOutcomeDt.dfy"
 
 method {:test} Passing1() {
   expect 2 == 2;
