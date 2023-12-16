@@ -38,6 +38,16 @@ module {:extern "DAM"} DAM {
     function SeqGet<A>(s: seq<A>, idx: nat): Option<A> {
       if idx < |s| then Some(s[idx]) else None
     }
+
+    function UpdateSeq<A>(s: seq<A>, idx: nat, val: A): seq<A>
+      requires idx <= |s|
+    {
+      if idx < |s| then s[idx := val] else s + [val]
+    }
+
+    function Extend<A>(s: seq<A>, elt: A): (nat, seq<A>) {
+      (|s|, s + [elt])
+    }
   }
 
   // CBPV distinguishes between expressions and statements of positive and negative type, respectively
@@ -51,7 +61,7 @@ module {:extern "DAM"} DAM {
     | Bool
     | Int
     | Thunk(neg: Neg)
-    | Ref(pos: Pos)
+    | Ref(ref: Pos)
     | Stack(start: Neg)
 
     datatype Neg =
@@ -131,14 +141,14 @@ module {:extern "DAM"} DAM {
     // Closed expressions are evaluated into values
     type ClosedExpr = (Env, Expr)
 
-    // Closed statements are closures!
+    // Closed statements - closed expressions that are thunks
     type ClosedStmt = (Env, Stmt)
-
-    // To implement lexical scope, thunks are closures
+    
     datatype Val =
       Unit
     | Bool(answer: bool)
     | Int(int)
+    // To implement lexical scope, thunks are closures
     | Thunk(closure: ClosedStmt)
     | Ref(ptr: Addr)
     | Stack(stack: Stack)
@@ -270,7 +280,7 @@ module {:extern "DAM"} DAM {
       case _ => None
     }
 
-    function SynthRecord(g: Context, fields: Alist<Field, Stmt>): Option<Alist<Field, Neg>> decreases fields {
+    function {:induction fields} SynthRecord(g: Context, fields: Alist<Field, Stmt>): Option<Alist<Field, Neg>> decreases fields {
       match fields
       case Empty => Some(Alist.Empty)
       case Update(field, stmt, rest) =>
@@ -285,6 +295,7 @@ module {:extern "DAM"} DAM {
     }
 
     // S |- env => G
+    // rewrite in terms of maps? []
     function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env {
       match env
       case Empty => Some(Alist.Empty)
@@ -393,7 +404,11 @@ module {:extern "DAM"} DAM {
     
     // sto |- S
     predicate CheckStore(s: StoreTyping, store: Store) {
-      |store| <= |s| && forall addr | 0 <= addr < |store| :: CheckVal(s, store[addr], s[addr])
+      // We want |store| == |s| so that extensions s'
+      // to s allow CheckStack, etc. to admit weakening on s'
+      // (they wouldn't if s instead were *updated* in case |store| < |s|)
+      // downside: CheckInput/Output don't admit weakening on s
+      |store| == |s| && forall addr | 0 <= addr < |store| :: CheckVal(s, store[addr], s[addr])
     }
 
     // S |- input => end
@@ -427,30 +442,24 @@ module {:extern "DAM"} DAM {
     import opened Statics
 
     // Well-typed reference allocation and initialization
-    function Alloc(ghost s: StoreTyping, store: Store, env: Env, ghost g: Context, var_: Var, val: Val, ghost t: Pos): (out: (Store, Env))
+    lemma UpdateStore(s: StoreTyping, store: Store, val : Val, t: Pos)
       requires CheckStore(s, store)
-      requires CheckEnv(s, env, g)
       requires CheckVal(s, val, t)
+      ensures  var (addr, store') := Extend(store, val);
+               var (addr', s')    := Extend(s, t);
+               addr == addr' && CheckStore(s', store')
+    
+    // Well-typed updates to the environment
+    lemma UpdateEnv(s: StoreTyping, env: Env, g: Context, var_: Var, t: Pos)
+      requires CheckEnv(s, env, g)
+      // This is true even when var_ shadows an existing binding in env/g
       ensures
-        var s' := s + [t];
-        var g' := Update(var_, t, g);
-        && CheckStore(s', out.0)
-        && CheckEnv(s', out.1, g')
-    {
-      ghost var s' := s + [t];
-      ghost var g' := Update(var_, t, g);
-
-      var store' := store + [val];
-      var env'   := Update(var_, |store|, env);
-
-      assume CheckStore(s', store');
-      assume CheckEnv(s', env', g');
-      (store', env')
-    }
+        var (addr, s') := Extend(s, t);
+        CheckEnv(s', Update(var_, addr, env), Update(var_, t, g))
 
     // Big-step evaluation of expressions
-    function Eval(ghost s: StoreTyping, sto: Store, expr: ClosedExpr, ghost t: Pos): (output: Val)
-      requires CheckStore(s, sto)          // S |- sto
+    function Eval(ghost s: StoreTyping, store: Store, expr: ClosedExpr, ghost t: Pos): (output: Val)
+      requires CheckStore(s, store)          // S |- sto
       requires CheckClosedExpr(s, expr, t) // S |- expr <= t
       ensures  CheckVal(s, output, t)      // S |- output <= t
     {
@@ -458,17 +467,22 @@ module {:extern "DAM"} DAM {
       var (env, expr) := expr;
       match expr
       case Var(x)      =>
+        ghost var g := SynthEnv(s, env).Extract();
+        ghost var t' := Get(g, x).Extract();
+        assert t' == t;
+        //assume Get(env, x) == Some(t);
         assume Get(env, x).Some?;
-        assume Get(env, x).value < |sto|;
-        assume CheckVal(s, sto[Get(env, x).Extract()], t);
-        sto[Get(env, x).Extract()]
+        var addr := Get(env, x).Extract();
+        assume addr < |store|;
+        assume CheckVal(s, store[addr], t);
+        store[addr]
       case Unit        => Val.Unit
       case Bool(b)     => Val.Bool(b)
       case Int(i)      => Val.Int(i)
       case Thunk(stmt) => Val.Thunk((env, stmt))
     }
 
-    // Type-preserving small-step reduction for the CESK machine
+    // Small-step reduction for the CESK machine
     // Progress = totality, preservation = requires + ensures clause
     function Step(ghost s: StoreTyping, input: Input, ghost end: Neg): (output: Output)
       requires CheckInput(s, input, end)
@@ -500,15 +514,16 @@ module {:extern "DAM"} DAM {
           ghost var t := start.pos;
           var val := Eval(s, store, (env, expr), t);
 
+          var (addr, store') := Extend(store, val);
+          ghost var (_, s') := Extend(s, t);
+          UpdateStore(s, store, val, t);
+
           ghost var g := SynthEnv(s, env').Extract();
-          var (store, env) := Alloc(s, store, env', g, var_, val, t);
+          UpdateEnv(s, env', g, var_, t);
 
-          ghost var g' := Update(var_, t, g);
-          ghost var s' := s + [t];
-          ghost var start := SynthStmt(g', rhs).Extract();
-          CheckStackWeakening(s, s', start, stack, end);
+          CheckStackWeakening(s, s', SynthStmt(Update(var_, t, g), rhs).Extract(), stack, end);
 
-          var output := Next((store, (env, rhs), stack));
+          var output := Next((store', (Update(var_, addr, env'), rhs), stack));
           assert CheckOutput(s', output, end);
           output
         case None =>
@@ -533,14 +548,17 @@ module {:extern "DAM"} DAM {
         match stack.Pop()
         case Some((Call(arg), stack)) =>
           ghost var dom := start.dom;
-
           var val := Eval(s, store, arg, dom);
-          var (store, env) := Alloc(s, store, env, g, bound, val, dom);
 
-          ghost var s' := s + [dom];
+          var (addr, store') := Extend(store, val);
+          ghost var (_, s') := Extend(s, dom);
+          UpdateStore(s, store, val, dom);
+
+          UpdateEnv(s, env, g, bound, dom);
+          
           CheckStackWeakening(s, s', start.cod, stack, end);
 
-          var output := Next((store, (env, body), stack));
+          var output := Next((store', (Update(bound, addr, env), body), stack));
           assert CheckOutput(s', output, end);
           output
         case None =>
@@ -578,21 +596,35 @@ module {:extern "DAM"} DAM {
         var output := Next((store, (env, next), stack));
         assert CheckOutput(s, output, end);
         output
+      
+      /*case New(init, var_, next) => (
+        ghost var t := SynthExpr(g, init).Extract();
+        var val := Eval(s, store, (env, init), t);
+
+        // Tedious: 
+        var (addr, store') := Extend(store, val);
+        var (addr', store) := Extend(store, val);
+
+        ghost var (_, s') := Extend(s, t);
+        Extend(s, Pos.Ref(t))
+
+        UpdateStore(s, store, val, t);
+
+        UpdateEnv(s, env, g, , t);
+        CheckStackWeakening(s, s', start, stack, end);
+
+        var output := Next((store', (Update(var_, addr, env), next), stack));
+        assert CheckOutput(s', output, end);
+        output
+      )*/
 
       case _ =>
         var output := Terminal;
         assert CheckOutput(s, output, end);
         output
-      
       /*
-      case New(init, var_, next) => {
-        match Eval(env, init)
-        case Some(init) =>
-          var ptr := new Ptr(init);
-          return Next((Update(var_, Val.Ref(ptr), env), next, stack));
-        case None => return Stuck;
-      }
-
+      
+      
       case Read(ref, var_, next) => {
         match Eval(env, ref)
         case Some(Ref(ptr)) => return Next((Update(var_, ptr.deref, env), next, stack));
