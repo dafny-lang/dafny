@@ -21,20 +21,6 @@ module {:extern "DAM"} DAM {
       }
     }
 
-    datatype Alist<K, V> =
-      Update(key: K, val: V, rest: Alist<K, V>)
-    | Empty
-
-    function Get<K(==), V>(alist: Alist<K, V>, key: K): Option<V> decreases alist {
-      match alist
-      case Empty  => None
-      case Update(key', val, rest) =>
-        if key == key' then
-          Some(val)
-        else
-          Get(rest, key)
-    }
-
     function SeqGet<A>(s: seq<A>, idx: nat): Option<A> {
       if idx < |s| then Some(s[idx]) else None
     }
@@ -47,6 +33,14 @@ module {:extern "DAM"} DAM {
 
     function Extend<A>(s: seq<A>, elt: A): (nat, seq<A>) {
       (|s|, s + [elt])
+    }
+
+    function mapGet<K, V>(m: map<K, V>, k: K): Option<V> {
+      if k in m then Some(m[k]) else None
+    }
+
+    function mapOption<K, V>(m: map<K, Option<V>>): Option<map<K, V>> {
+      if forall k <- m :: m[k].Some? then Some(map k <- m :: m[k].Extract()) else None
     }
   }
 
@@ -67,8 +61,7 @@ module {:extern "DAM"} DAM {
     datatype Neg =
       Value(pos: Pos)
     | Function(dom: Pos, cod: Neg)
-    // Alist instead of map so we can do induction on the set of fields for type synthesis
-    | Record(fields: Alist<Field, Neg>)
+    | Record(fields: map<Field, Neg>)
 
     type Var = string
 
@@ -91,7 +84,7 @@ module {:extern "DAM"} DAM {
     | Func(bound: Var, dom: Pos, body: Stmt)
     | Call(func: Stmt, arg: Expr)
     // Record intro & elim
-    | Record(fields: Alist<Field, Stmt>)
+    | Record(fields: map<Field, Stmt>)
     | Select(record: Stmt, field: Field)
     // Thunk elim
     | Force(Expr)
@@ -132,8 +125,7 @@ module {:extern "DAM"} DAM {
 
     // The environment accumulates substitutions made along the course of machine execution, i.e.,
     // maps variables to addresses
-    // Alist instead of map so we can do induction on envs for type synthesis
-    type Env = Alist<Var, Addr>
+    type Env = map<Var, Addr>
 
     // The store maps addresses to values - closed intro. forms of positive type
     type Store = seq<Val>
@@ -150,7 +142,7 @@ module {:extern "DAM"} DAM {
     | Int(int)
     // To implement lexical scope, thunks are closures
     | Thunk(closure: ClosedStmt)
-    | Ref(ptr: Addr)
+    | Ref(addr: Addr)
     | Stack(stack: Stack)
 
     // Stacks accumulate negative eliminations
@@ -179,12 +171,12 @@ module {:extern "DAM"} DAM {
     import opened Machine
 
     // Honestly, I forgot why this is an alist
-    type Context = Alist<Var, Pos>
+    type Context = map<Var, Pos>
 
     // G |- expr => t+
     function SynthExpr(g: Context, expr: Expr): Option<Pos> decreases expr, 0 {
       match expr
-      case Var(x)   => Get(g, x)
+      case Var(x)   => mapGet(g, x)
       case Unit     => Some(Pos.Unit)
       case Bool(_)  => Some(Pos.Bool)
       case Int(_)   => Some(Pos.Int)
@@ -207,7 +199,7 @@ module {:extern "DAM"} DAM {
 
       case Bind(lhs, var_, rhs) => (
         match SynthStmt(g, lhs)
-        case Some(Value(t)) => SynthStmt(Update(var_, t, g), rhs)
+        case Some(Value(t)) => SynthStmt(g[var_ := t], rhs)
         case _              => None
       )
       
@@ -223,7 +215,7 @@ module {:extern "DAM"} DAM {
       )
 
       case Func(bound, dom, body) =>
-        var cod :- SynthStmt(Update(bound, dom, g), body);
+        var cod :- SynthStmt(g[bound := dom], body);
         Some(Function(dom, cod))
       
       case Call(func, arg) => (
@@ -247,23 +239,23 @@ module {:extern "DAM"} DAM {
         SynthStmt(g, next)
 
       case Record(fields) =>
-        var fields :- SynthRecord(g, fields);
+        var fields :- mapOption(map lbl <- fields :: SynthStmt(g, fields[lbl]));
         Some(Neg.Record(fields))
 
       case Select(record, lbl) => (
         match SynthStmt(g, record)
         case Some(Record(fields)) =>
-          Get(fields, lbl)
+          mapGet(fields, lbl)
         case _ => None
       )
 
       case New(init, var_, next) =>
         var t :- SynthExpr(g, init);
-        SynthStmt(Update(var_, Pos.Ref(t), g), next)
+        SynthStmt(g[var_ := Pos.Ref(t)], next)
 
       case Read(ref, var_, next) => (
         match SynthExpr(g, ref)
-        case Some(Ref(t)) => SynthStmt(Update(var_, t, g), next)
+        case Some(Ref(t)) => SynthStmt(g[var_ := t], next)
         case _            => None
       )
 
@@ -280,15 +272,6 @@ module {:extern "DAM"} DAM {
       case _ => None
     }
 
-    function {:induction fields} SynthRecord(g: Context, fields: Alist<Field, Stmt>): Option<Alist<Field, Neg>> decreases fields {
-      match fields
-      case Empty => Some(Alist.Empty)
-      case Update(field, stmt, rest) =>
-        var fieldt :- SynthStmt(g, stmt);
-        var rest  :- SynthRecord(g, rest);
-        Some(Update(field, fieldt, rest))
-    }
-
     // G |- stmt <= t-
     predicate CheckStmt(g: Context, stmt: Stmt, t: Neg) decreases stmt, 1 {
       SynthStmt(g, stmt) == Some(t)
@@ -297,16 +280,10 @@ module {:extern "DAM"} DAM {
     // S |- env => G
     // rewrite in terms of maps? []
     function SynthEnv(s: StoreTyping, env: Env): Option<Context> decreases env {
-      match env
-      case Empty => Some(Alist.Empty)
-      case Update(var_, addr, env) =>
-        var t :- SeqGet(s, addr);
-        var rest :- SynthEnv(s, env);
-        Some(Update(var_, t, rest))
+      mapOption(map var_ <- env :: SeqGet(s, env[var_]))
     }
 
     // S |- env <= G
-    // Sleight of hand: assumes synthesis produces context in the same order as g
     predicate CheckEnv(s: StoreTyping, env: Env, g: Context) {
       SynthEnv(s, env) == Some(g)
     }
@@ -343,7 +320,7 @@ module {:extern "DAM"} DAM {
         match start
         case Value(t) =>
           var g :- SynthEnv(s, env);
-          var start :- SynthStmt(Update(var_, t, g), rhs);
+          var start :- SynthStmt(g[var_ := t], rhs);
           SynthStack(s, start, stack)
         case _        => None
       )
@@ -351,7 +328,7 @@ module {:extern "DAM"} DAM {
       case Push(Select(lbl), stack) => (
         match start
         case Record(fields) =>
-          var start :- Get(fields, lbl);
+          var start :- mapGet(fields, lbl);
           SynthStack(s, start, stack)
         case _ => None
       )
@@ -393,14 +370,18 @@ module {:extern "DAM"} DAM {
         Some(Pos.Ref(t))
       case Stack(_) => None
       /*var end :- SynthStack(s, start, stack);
-        Some(Pos.Stack(end))
-      */
+        Some(Pos.Stack(end)) */
     }
 
     // S |- val <= t+
     predicate CheckVal(s: StoreTyping, val: Val, t: Pos) {
       SynthVal(s, val) == Some(t)
     }
+
+    lemma CheckValWeakening(s: StoreTyping, s': StoreTyping, val: Val, t: Pos)
+      requires s <= s'
+      requires CheckVal(s, val, t)
+      ensures CheckVal(s', val, t)
     
     // sto |- S
     predicate CheckStore(s: StoreTyping, store: Store) {
@@ -455,27 +436,17 @@ module {:extern "DAM"} DAM {
       // This is true even when var_ shadows an existing binding in env/g
       ensures
         var (addr, s') := Extend(s, t);
-        CheckEnv(s', Update(var_, addr, env), Update(var_, t, g))
+        CheckEnv(s', env[var_ := addr], g[var_ := t])
 
     // Big-step evaluation of expressions
     function Eval(ghost s: StoreTyping, store: Store, expr: ClosedExpr, ghost t: Pos): (output: Val)
-      requires CheckStore(s, store)          // S |- sto
+      requires CheckStore(s, store)        // S |- sto
       requires CheckClosedExpr(s, expr, t) // S |- expr <= t
       ensures  CheckVal(s, output, t)      // S |- output <= t
     {
-      // Proof by inversion on t
       var (env, expr) := expr;
       match expr
-      case Var(x)      =>
-        ghost var g := SynthEnv(s, env).Extract();
-        ghost var t' := Get(g, x).Extract();
-        assert t' == t;
-        //assume Get(env, x) == Some(t);
-        assume Get(env, x).Some?;
-        var addr := Get(env, x).Extract();
-        assume addr < |store|;
-        assume CheckVal(s, store[addr], t);
-        store[addr]
+      case Var(x)      => store[env[x]]
       case Unit        => Val.Unit
       case Bool(b)     => Val.Bool(b)
       case Int(i)      => Val.Int(i)
@@ -521,9 +492,9 @@ module {:extern "DAM"} DAM {
           ghost var g := SynthEnv(s, env').Extract();
           UpdateEnv(s, env', g, var_, t);
 
-          CheckStackWeakening(s, s', SynthStmt(Update(var_, t, g), rhs).Extract(), stack, end);
+          CheckStackWeakening(s, s', SynthStmt(g[var_ := t], rhs).Extract(), stack, end);
 
-          var output := Next((store', (Update(var_, addr, env'), rhs), stack));
+          var output := Next((store', (env'[var_ := addr], rhs), stack));
           assert CheckOutput(s', output, end);
           output
         case None =>
@@ -558,7 +529,7 @@ module {:extern "DAM"} DAM {
           
           CheckStackWeakening(s, s', start.cod, stack, end);
 
-          var output := Next((store', (Update(bound, addr, env), body), stack));
+          var output := Next((store', (env[bound := addr], body), stack));
           assert CheckOutput(s', output, end);
           output
         case None =>
@@ -575,11 +546,7 @@ module {:extern "DAM"} DAM {
       case Record(fields) => (
         match stack.Pop()
         case Some((Select(lbl), stack)) =>
-          var fieldt := Get(SynthRecord(g, fields).Extract(), lbl).Extract();
-          assume Get(fields, lbl).Some?;
-          var field := Get(fields, lbl).Extract();
-          var output := Next((store, (env, field), stack));
-          assume CheckStmt(g, field, fieldt);
+          var output := Next((store, (env, fields[lbl]), stack));
           assert CheckOutput(s, output, end);
           output
         
@@ -597,24 +564,60 @@ module {:extern "DAM"} DAM {
         assert CheckOutput(s, output, end);
         output
       
-      /*case New(init, var_, next) => (
+      case New(init, var_, next) => (
         ghost var t := SynthExpr(g, init).Extract();
         var val := Eval(s, store, (env, init), t);
+        
+        var (addr1, store1) := Extend(store, val);
+        var (addr2, store2) := Extend(store1, Val.Ref(addr1));
 
-        // Tedious: 
-        var (addr, store') := Extend(store, val);
-        var (addr', store) := Extend(store, val);
-
-        ghost var (_, s') := Extend(s, t);
-        Extend(s, Pos.Ref(t))
+        ghost var (_, s1) := Extend(s, t);
+        ghost var (_, s2) := Extend(s1, Pos.Ref(t));
 
         UpdateStore(s, store, val, t);
+        UpdateStore(s1, store1, Val.Ref(addr1), Pos.Ref(t));
+        
+        assert CheckEnv(s, env, g);
+        assume CheckEnv(s1, env, g);
+        UpdateEnv(s1, env, g, var_, Pos.Ref(t));
 
-        UpdateEnv(s, env, g, , t);
-        CheckStackWeakening(s, s', start, stack, end);
+        CheckStackWeakening(s, s2, start, stack, end);
 
-        var output := Next((store', (Update(var_, addr, env), next), stack));
-        assert CheckOutput(s', output, end);
+        var output := Next((store2, (env[var_ := addr2], next), stack));
+        assert CheckOutput(s2, output, end);
+        output
+      )
+
+      case Write(lhs, rhs, next) => (
+        var tl := SynthExpr(g, lhs).Extract();
+        var tr := SynthExpr(g, rhs).Extract();
+
+        var lval := Eval(s, store, (env, lhs), tl).addr;
+        var rval := Eval(s, store, (env, rhs), tr);
+
+        var output := Next((store[lval := rval], (env, next), stack));
+        assert CheckOutput(s, output, end);
+        output
+      )
+
+      /*case Read(ref, var_, next) => (
+        ghost var t := SynthExpr(g, ref).Extract();
+        var addr := Eval(s, store, (env, ref), t).addr;
+        
+        var (addr', store') := Extend(store, env[addr]);
+
+        ghost var (_, s') := Extend(s, t.ref);
+
+        UpdateStore(s, store, val, t);
+        
+        assert CheckEnv(s, env, g);
+        assume CheckEnv(s1, env, g);
+        UpdateEnv(s1, env, g, var_, Pos.Ref(t));
+
+        CheckStackWeakening(s, s2, start, stack, end);
+
+        var output := Next((store2, (env[var_ := addr2], next), stack));
+        assert CheckOutput(s2, output, end);
         output
       )*/
 
@@ -622,23 +625,8 @@ module {:extern "DAM"} DAM {
         var output := Terminal;
         assert CheckOutput(s, output, end);
         output
+      
       /*
-      
-      
-      case Read(ref, var_, next) => {
-        match Eval(env, ref)
-        case Some(Ref(ptr)) => return Next((Update(var_, ptr.deref, env), next, stack));
-        case _              => return Stuck;
-      }
-
-      case Write(lval, rval, next) => {
-        match Eval(env, lval)
-        case Some(Ref(ptr)) =>
-          //ptr.deref := Eval(env, rval);
-          return Next((env, next, stack));
-        case _        => return Stuck;
-      }
-      
       case Rec(self, body) =>
         return Next((Update(self, Val.Thunk(env, comp), env), body, stack));
       
@@ -653,19 +641,21 @@ module {:extern "DAM"} DAM {
     }
 
     // Leroy-style executable big-step semantics for the machine
-    /*codatatype Trace = Stepping(In, Trace) | Done
+    codatatype Trace = Stepping(Input, Trace) | Done
 
-    function Run(ghost s: StoreTyping, input: In, ghost end: Neg): Trace
-      requires CheckIn(s, input, end)
+    function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace
+      requires CheckInput(s, input, end)
     {
       match Step(s, input, end)
-      case Next(next) => Stepping(next, Run(s, next, end))
+      case Next(next) =>
+        ghost var s' :| CheckInput(s', next, end);
+        Stepping(next, Run(s', next, end))
       case Terminal   => Done
-    }*/
+    }
 
     // Initial configuration
     function Initial(stmt: Stmt): Input
-      { ([], (Alist.Empty, stmt), Stack.Empty) }
+      { ([], (map[], stmt), Stack.Empty) }
   }
 }
 
