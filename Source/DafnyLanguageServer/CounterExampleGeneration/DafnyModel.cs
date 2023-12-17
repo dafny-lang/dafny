@@ -296,11 +296,19 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       return result;
     }
 
+    private Expression GetLiteralExpression(Model.Element element, Type type) {
+      var result = GetLiteralExpressionHelper(element, type);
+      if (result != null && type != null) {
+        result.Type = type;
+      }
+      return result;
+    }
+
     /// <summary>
     /// If the provided <param name="element"></param> represents a literal in Dafny, return that literal.
     /// Otherwise, return null.
     /// </summary>
-    public Expression GetLiteralExpression(Model.Element element) {
+    private Expression GetLiteralExpressionHelper(Model.Element element, Type type) {
       if (element == fNull.GetConstant()) {
         // TODO: check that this is how you write a null literal
         return new LiteralExpr(Token.NoToken);
@@ -323,11 +331,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         switch (datatypeValue.ConstructorName) {
           case "-":
             return new NegationExpression(Token.NoToken,
-              GetLiteralExpression(datatypeValue.Arguments.First()));
+              GetLiteralExpression(datatypeValue.Arguments.First(), type));
           case "/":
             return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Div,
-              GetLiteralExpression(datatypeValue.Arguments[0]),
-              GetLiteralExpression(datatypeValue.Arguments[1]));
+              GetLiteralExpression(datatypeValue.Arguments[0], type),
+              GetLiteralExpression(datatypeValue.Arguments[1], type));
         }
       }
 
@@ -335,7 +343,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       unboxedValue ??= fU2Bool.OptEval(element);
       unboxedValue ??= fU2Real.OptEval(element);
       if (unboxedValue != null) {
-        return GetLiteralExpression(unboxedValue);
+        return GetLiteralExpression(unboxedValue, type);
       }
 
       if (fCharToInt.OptEval(element) != null) {
@@ -356,7 +364,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue value) {
-      var literalExpr = GetLiteralExpression(value.Element);
+      var literalExpr = GetLiteralExpression(value.Element, value.Type);
       if (literalExpr != null) {
         value.AddDefinition(literalExpr, new());
         yield break;
@@ -364,7 +372,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
       // If this partial value is a primitive but we don't know its exact representation,
       // we must assume that it is different from all other primitives of the same type
-      ModelFuncWrapper otherValuesFunction = null;
+      /*ModelFuncWrapper otherValuesFunction = null;
       switch (value.Type) {
         case BitvectorType bitvectorType: {
           var funcName = "U_2_bv" + bitvectorType.Width;
@@ -398,7 +406,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             GetLiteralExpression(otherInteger.Args[0])), new());
         }
         yield break;
-      }
+      }*/
 
       if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
         value.AddConstraint(
@@ -461,11 +469,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           }
 
           for (int i = 0; i < elements.Count; i++) {
+            var index = new LiteralExpr(Token.NoToken, i);
+            index.Type = Type.Int;
             elements[i].AddDefinition(new SeqSelectExpr(
                 Token.NoToken,
                 true,
                 value.ElementIdentifier,
-                new LiteralExpr(Token.NoToken, i),
+                index,
                 null,
                 Token.NoToken),
               new() { value, elements[i] });
@@ -497,10 +507,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
         case SetType: {
           if (fSetEmpty.AppWithResult(value.Element) != null) {
+            var zero = new LiteralExpr(Token.NoToken, 0);
+            zero.Type = Type.Int;
             value.AddConstraint(
               new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
                 new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier),
-                new LiteralExpr(Token.NoToken, 0)), new() { value });
+                zero), new() { value });
             yield break;
           }
 
@@ -586,9 +598,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if ((fields.Any() || constantFields.Any())
               && value.Type is UserDefinedType userDefinedType
               && userDefinedType.Name.EndsWith("?")) {
+            var nullValue = new LiteralExpr(Token.NoToken);
+            nullValue.Type = userDefinedType;
             value.AddConstraint(
               new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier,
-                new LiteralExpr(Token.NoToken)), new List<PartialValue> { value });
+                nullValue), new List<PartialValue> { value });
           }
 
           foreach (var fieldFunc in constantFields) {

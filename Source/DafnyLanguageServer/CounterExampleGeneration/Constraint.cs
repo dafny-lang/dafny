@@ -75,7 +75,7 @@ public class Constraint {
   }
 
   private class DefinitionSubstituter : Cloner {
-
+    
     private Dictionary<string, Expression> substMap;
 
     public DefinitionSubstituter(Dictionary<PartialValue, Expression> substMap) {
@@ -98,6 +98,10 @@ public class Constraint {
       var result = base.CloneExpr(expr);
       if (result is DatatypeValue datatypeValue) {
         datatypeValue.Bindings.AcceptArgumentExpressionsAsExactParameterList();
+      }
+
+      if (result is LiteralExpr) {
+        result.Type = expr.Type;
       }
       return result;
     }
