@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
 
     public bool IsLeafType() {
       var t = Normalize();
-      if (!(t is DPreType pt)) {
+      if (t is not DPreType pt) {
         return false;
       } else if (pt.Decl is TraitDecl) {
         return false;
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny {
 
     public bool IsRootType() {
       var t = Normalize();
-      if (!(t is DPreType pt)) {
+      if (t is not DPreType pt) {
         return false;
       } else if (PreTypeResolver.HasTraitSupertypes(pt)) {
         return false;
