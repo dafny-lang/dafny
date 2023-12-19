@@ -1,4 +1,4 @@
-abstract module Std.ConcurrentInterface {
+replaceable module Std.Concurrent {
 
   import opened Wrappers
 
@@ -47,6 +47,10 @@ abstract module Std.ConcurrentInterface {
     // Invariant on values this box may hold
     ghost const inv: T -> bool
 
+    constructor (ghost inv: T -> bool, t: T)
+      requires inv(t)
+      ensures this.inv == inv
+
     method Get() returns (t: T)
       reads {}
       ensures inv(t)
@@ -67,6 +71,9 @@ abstract module Std.ConcurrentInterface {
 
     // Invariant on key-value pairs this map may hold
     ghost const inv: (K, V) -> bool
+
+    constructor (ghost inv: (K, V) -> bool)
+      ensures this.inv == inv
 
     method Keys() returns (keys: set<K>)
       reads {}

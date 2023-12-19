@@ -1,4 +1,4 @@
-package DafnyStdLibs_FileIOInternalExterns
+package Std_FileIOInternalExterns
 
 import (
 	_dafny "dafny"
@@ -6,7 +6,14 @@ import (
 	filepath "path/filepath"
 )
 
-func INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead _dafny.Sequence, errorMsg _dafny.Sequence) {
+type Dummy__ struct{}
+
+type CompanionStruct_Default___ struct {
+}
+var Companion_Default___ = CompanionStruct_Default___ {
+}
+
+func (_static *CompanionStruct_Default___) INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead _dafny.Sequence, errorMsg _dafny.Sequence) {
 	p := _dafny.SequenceVerbatimString(path, false)
 	dat, err := os.ReadFile(p)
 	if err != nil {
@@ -17,7 +24,7 @@ func INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead 
 	return false, datAsSequence, _dafny.EmptySeq
 }
 
-func INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (isError bool, errorMsg _dafny.Sequence) {
+func (_static *CompanionStruct_Default___) INTERNAL__WriteBytesToFile(path _dafny.Sequence, bytes _dafny.Sequence) (isError bool, errorMsg _dafny.Sequence) {
 	p := _dafny.SequenceVerbatimString(path, false)
 
 	// Create directories

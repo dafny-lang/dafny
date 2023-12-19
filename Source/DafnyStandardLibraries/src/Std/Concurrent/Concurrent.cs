@@ -1,4 +1,4 @@
-namespace Concurrent {
+namespace Std.Concurrent {
     using System.Collections.Concurrent;
     using Std.Wrappers;
 
@@ -9,6 +9,8 @@ namespace Concurrent {
         public MutableMap() {
             map = new ConcurrentDictionary<K, V>();
         }
+
+        public void __ctor() { }
 
         public Dafny.ISet<K> Keys() {
             return Dafny.Set<K>.FromCollection(map.Keys);
@@ -58,9 +60,12 @@ namespace Concurrent {
         private T val;
         private Lock l;
 
-        public AtomicBox(T t) {
-            val = t;
+        public AtomicBox() {
             l = new Lock();
+        }
+
+        public void __ctor(T t) {
+          val = t;
         }
 
         public void Put(T t) {
@@ -80,6 +85,9 @@ namespace Concurrent {
     public class Lock {
 
         private static System.Threading.Mutex mut = new System.Threading.Mutex();
+
+        public void __ctor() {
+        }
 
         public void __Lock() {
             mut.WaitOne();
