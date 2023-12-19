@@ -10,6 +10,9 @@ import Std_Wrappers
 
 
 class MutableMap:
+    def ctor__(self):
+        pass
+        
     def __init__(self) -> None:
         self.map = dict()
         self.lock = Lock()
@@ -66,8 +69,12 @@ class MutableMap:
 
 
 class AtomicBox:
-    def __init__(self, t) -> None:
+    def __init__(self) -> None:
+        pass
+        
+    def ctor__(self, t):
         self.boxed = t
+        pass
 
     def Get(self):
         return self.boxed
@@ -76,6 +83,9 @@ class AtomicBox:
         self.boxed = t
 
 class Lock:
+    def ctor__(self):
+        pass
+        
     def __init__(self) -> None:
         self.lock = threading.Lock()
 

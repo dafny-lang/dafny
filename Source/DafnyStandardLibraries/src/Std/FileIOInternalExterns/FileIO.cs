@@ -3,13 +3,13 @@
 *  SPDX-License-Identifier: MIT
 *******************************************************************************/
 
-namespace DafnyStdLibsExterns {
+namespace Std.FileIOInternalExterns {
   using System;
   using System.IO;
 
   using Dafny;
 
-  public class FileIO {
+  public class __default {
     /// <summary>
     /// Attempts to read all bytes from the file at the given path, and outputs the following values:
     /// <list>
@@ -36,7 +36,7 @@ namespace DafnyStdLibsExterns {
     /// We output these values individually because Result is not defined in the runtime but instead in library code.
     /// It is the responsibility of library code to construct an equivalent Result value.
     /// </summary>
-    public static void INTERNAL_ReadBytesFromFile(ISequence<Dafny.Rune> path, out bool isError, out ISequence<byte> bytesRead,
+    public static void INTERNAL__ReadBytesFromFile(ISequence<Dafny.Rune> path, out bool isError, out ISequence<byte> bytesRead,
       out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
       bytesRead = Sequence<byte>.Empty;
@@ -70,7 +70,7 @@ namespace DafnyStdLibsExterns {
     /// We output these values individually because Result is not defined in the runtime but instead in library code.
     /// It is the responsibility of library code to construct an equivalent Result value.
     /// </summary>
-    public static void INTERNAL_WriteBytesToFile(ISequence<Dafny.Rune> path, ISequence<byte> bytes, out bool isError, out ISequence<Dafny.Rune> errorMsg) {
+    public static void INTERNAL__WriteBytesToFile(ISequence<Dafny.Rune> path, ISequence<byte> bytes, out bool isError, out ISequence<Dafny.Rune> errorMsg) {
       isError = true;
       errorMsg = Sequence<Rune>.Empty;
       try {
