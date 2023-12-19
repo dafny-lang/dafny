@@ -1,6 +1,6 @@
 module RelationExamples {
 
-  import opened DafnyStdLibs.Relations
+  import opened Std.Relations
 
   const partialOrdering := (a: int, b: int) => !(a == 9 && b == 10) && a <= b
   lemma TestRelationProperties()

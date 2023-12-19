@@ -9,28 +9,20 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
-using DafnyCore.Verifier;
 using Microsoft.Boogie;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
   public class DafnyMain {
-    public static readonly Dictionary<string, Uri> standardLibrariesDooUriTarget = new();
+    public static readonly Dictionary<string, Uri> StandardLibrariesDooUriTarget = new();
     public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
       new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
-    public static readonly Uri StandardLibrariesArithmeticDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries-arithmetic.dfy",
-      new("dllresource://DafnyPipeline/DafnyStandardLibraries-arithmetic.doo"));
 
     static DafnyMain() {
       foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
-        standardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
+        StandardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
           new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
       }
     }

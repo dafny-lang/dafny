@@ -10,8 +10,6 @@
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
-* Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
-
 ### Member `MinusBv8Assume`
 
 * Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.

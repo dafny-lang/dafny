@@ -1,8 +1,8 @@
 abstract module AbstractWrapper {
-  import DafnyStdLibs.Strings
-  import opened DafnyStdLibs.BoundedInts
-  import opened DafnyStdLibs.Unicode.UnicodeStringsWithUnicodeChar
-  import opened DafnyStdLibs.JSON.Errors
+  import Std.Strings
+  import opened Std.BoundedInts
+  import opened Std.Unicode.UnicodeStringsWithUnicodeChar
+  import opened Std.JSON.Errors
 
   type JSON
 
@@ -15,9 +15,9 @@ abstract module AbstractWrapper {
     var js  :- expect Deserialize(bs);
     // print indent, "=> ", js, "\n";
     var bs'  :- expect Serialize(js);
-    print indent, "=> ", FromUTF8Checked(bs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(bs'), "\n";
     var sbs' :- expect SpecSerialize(js);
-    print indent, "=> ", FromUTF8Checked(sbs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(sbs'), "\n";
     var js'  :- expect Deserialize(bs');
     Check(bs, js, bs', sbs', js');
   }
@@ -32,18 +32,18 @@ abstract module AbstractWrapper {
       var input := vectors[i];
       var idx := Strings.OfInt(i);
       var indent := seq(|idx| + 1, _ => ' ');
-      print "[", idx, "]: ", input, "\n";
+      // print "[", idx, "]: ", input, "\n";
       TestString(input, indent);
-      print "\n";
+      // print "\n";
     }
   }
 }
 
 module ZeroCopyWrapper refines AbstractWrapper {
-  import opened DafnyStdLibs.Wrappers
-  import DafnyStdLibs.JSON.Grammar
-  import DafnyStdLibs.JSON.ZeroCopy.API
-  import DafnyStdLibs.JSON.ConcreteSyntax.Spec
+  import opened Std.Wrappers
+  import Std.JSON.Grammar
+  import Std.JSON.ZeroCopy.API
+  import Std.JSON.ConcreteSyntax.Spec
 
   type JSON = Grammar.JSON
 
@@ -67,11 +67,11 @@ module ZeroCopyWrapper refines AbstractWrapper {
 }
 
 module AbstractSyntaxWrapper refines AbstractWrapper {
-  import opened DafnyStdLibs.Wrappers
-  import DafnyStdLibs.JSON.Grammar
-  import DafnyStdLibs.JSON.API
-  import DafnyStdLibs.JSON.Values
-  import DafnyStdLibs.JSON.Spec
+  import opened Std.Wrappers
+  import Std.JSON.Grammar
+  import Std.JSON.API
+  import Std.JSON.Values
+  import Std.JSON.Spec
 
   type JSON = Values.JSON
 
@@ -96,7 +96,7 @@ module AbstractSyntaxWrapper refines AbstractWrapper {
 module MainTests {
   import ZeroCopyWrapper
   import AbstractSyntaxWrapper
-  import opened DafnyStdLibs.Collections.Seqs
+  import opened Std.Collections.Seq
 
   const VECTORS := [
     "true",
@@ -127,7 +127,7 @@ module MainTests {
      Stress test - this used to cause stack overflow errors because of non-tail-recursive functions.
      We should have these kinds of tests direclty in the Unicode module too.
      */
-    "\"" + Seqs.Repeat('a', 100) + "\""
+    "\"" + Seq.Repeat('a', 100) + "\""
   ]
 
   method {:test} Main() {

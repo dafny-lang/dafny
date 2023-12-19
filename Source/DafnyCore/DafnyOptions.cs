@@ -794,7 +794,7 @@ namespace Microsoft.Dafny {
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+      if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath();
         SetZ3Options(z3Version);
       }
@@ -802,6 +802,10 @@ namespace Microsoft.Dafny {
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
+    }
+
+    public bool IsUsingZ3() {
+      return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
     public override string AttributeHelp =>
@@ -1151,11 +1155,6 @@ namespace Microsoft.Dafny {
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
       SetZ3Option("smt.case_split", "3");
-
-      // This option tends to lead to the best all-around arithmetic
-      // performance, though some programs can be verified more quickly
-      // (or verified at all) using a different solver.
-      SetZ3Option("smt.arith.solver", "2");
 
       if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");

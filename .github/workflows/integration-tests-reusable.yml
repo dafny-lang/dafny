@@ -64,7 +64,7 @@ jobs:
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.dotnet-version }}
     - name: C++ for ubuntu 20.04
@@ -88,7 +88,7 @@ jobs:
         java-version: 18
         distribution: corretto
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with: 
         python-version: '3.11'
     - name: Upgrade outdated pip

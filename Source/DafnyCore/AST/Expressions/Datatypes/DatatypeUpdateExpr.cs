@@ -63,7 +63,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return LegalSourceConstructors;
+    return (IEnumerable<IDeclarationOrUsage>)LegalSourceConstructors ?? Array.Empty<IDeclarationOrUsage>();
   }
 
   public IToken NameToken => tok;

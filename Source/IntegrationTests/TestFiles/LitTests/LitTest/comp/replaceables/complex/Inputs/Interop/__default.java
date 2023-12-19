@@ -14,11 +14,11 @@ public class __default {
   public static BigInteger Int32ToInt(Integer value) {
     return BigInteger.valueOf(value);
   }
-  public static DafnyStdLibs.Wrappers.Option<Integer> IntToInt32(BigInteger value) {
+  public static Std.Wrappers.Option<Integer> IntToInt32(BigInteger value) {
     try {
-      return DafnyStdLibs.Wrappers.Option.create_Some(TypeDescriptor.intWithDefault(0), (Integer)value.intValueExact());
+      return Std.Wrappers.Option.create_Some(TypeDescriptor.intWithDefault(0), (Integer)value.intValueExact());
     } catch(ArithmeticException e) {
-      return DafnyStdLibs.Wrappers.Option.create_None(TypeDescriptor.intWithDefault(0));
+      return Std.Wrappers.Option.create_None(TypeDescriptor.intWithDefault(0));
     }
   }
 }

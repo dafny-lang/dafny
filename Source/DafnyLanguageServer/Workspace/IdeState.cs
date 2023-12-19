@@ -273,18 +273,16 @@ public record IdeState(
 
     var cancellationToken = CancellationToken.None; // TODO ?
     SymbolTable? symbolTable = null;
-    CompilationUnit compilationUnit;
-    if (errors.Any()) {
-      // TODO add symbol table migration?
-      compilationUnit = new CompilationUnit(Input.Project.Uri, finishedResolution.ResolvedProgram);
-    } else {
-      symbolTable = SymbolTable.CreateFrom(finishedResolution.ResolvedProgram, cancellationToken);
-
-      var project = Input.Project;
-      var beforeLegacyServerResolution = DateTime.Now;
-      compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
-      // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
+    try {
+      symbolTable = SymbolTable.CreateFrom(logger, finishedResolution.ResolvedProgram, cancellationToken);
+    } catch (Exception e) {
+      logger.LogError(e, "failed to create symbol table");
     }
+
+    var project = Input.Project;
+    var beforeLegacyServerResolution = DateTime.Now;
+    var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
+    // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
     var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(compilationUnit, cancellationToken);
 
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
