@@ -80,7 +80,7 @@ public class PartialState {
         constraints.Add(constraint);
       }
     }
-    Constraint.FindDefinitions(allVariableNames, constraints);
+    Constraint.FindDefinitions(allVariableNames, constraints, true);
     
     var boundVars = new List<BoundVar>();
     // TODO: make sure bound variable identifiers are not already taken

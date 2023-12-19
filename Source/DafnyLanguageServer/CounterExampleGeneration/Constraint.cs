@@ -11,6 +11,8 @@ public class Constraint {
   public IEnumerable<PartialValue> ReferencedValues => referencedValues.AsEnumerable();
   public readonly PartialValue? definesValue;
 
+  public bool IsIdentifier => rawExpression is IdentifierExpr;
+
   public Constraint(Expression expression, IEnumerable<PartialValue> referencedValues, PartialValue? definesValue=null) {
     this.rawExpression = expression;
     this.referencedValues = referencedValues.ToList();
@@ -40,10 +42,10 @@ public class Constraint {
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, valueDefinition, newExpression);
   }
 
-  public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints) {
+  public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints, bool allowNewIdentifiers) {
     var foundANewDefinition = true;
     var substituter = new DefinitionSubstituter(knownDefinitions);
-    foreach (var constraint in constraints) { // First add as constraints the literal expressions
+    foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
       if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
           !constraint.ReferencedValues.Any()) {
         var definition = substituter.CloneExpr(constraint.rawExpression);
@@ -56,7 +58,7 @@ public class Constraint {
     }
     while (foundANewDefinition) {
       foundANewDefinition = false;
-      foreach (var constraint in constraints) {
+      foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
             constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value))) {
           var definition = substituter.CloneExpr(constraint.rawExpression);
