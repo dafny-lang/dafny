@@ -170,7 +170,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         var biggerResourceCountFirst =
           Comparer<(string content, long resources)>.Create(
           (left, right) =>
-            (int)(right.resources / 1000000) - (int)(left.resources / 1000000)
+            MapLongToInt(right.resources) - MapLongToInt(left.resources)
         );
         errors.Sort(biggerResourceCountFirst);
         other.Sort(biggerResourceCountFirst);
@@ -191,6 +191,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return null;
     }
 
+    // Maps 1 to 1 and long.MaxValue to int.MaxValue,
+    // but ensures that lower numbers are more comparable than bigger ones
+    // Because long has double digits compared to int,
+    // every time the input reaches a new square, it will increase the output by 1
+    private int MapLongToInt(long input) {
+      double logScaled = Math.Log(input + 1);
+
+      // Map the normalized logarithmic value to the int range
+      return (int)Math.Exp((logScaled / Math.Log(long.MaxValue) * Math.Log(int.MaxValue)));
+    }
     private string GetTopLevelInformation(TopLevelDeclMemberVerificationTree node, List<AssertionBatchVerificationTree> orderedAssertionBatches) {
       int assertionBatchCount = orderedAssertionBatches.Count;
       var information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
