@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --type-system-refresh
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh --general-newtypes
 
 method Main() {
   SimpleBoolAndint.Test();

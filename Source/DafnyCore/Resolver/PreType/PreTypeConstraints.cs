@@ -485,14 +485,6 @@ namespace Microsoft.Dafny {
         () => string.Format(errorFormatString, preType)));
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, Type toType, IToken tok, string errorFormatString) {
-      Contract.Requires(toType is NonProxyType);
-      var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
-      confirmations.Add(new ConfirmationInfo(tok,
-        () => ConfirmConstraint(check, preType, toPreType),
-        () => string.Format(errorFormatString, preType)));
-    }
-
     public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
       confirmations.Add(new ConfirmationInfo(tok, check, errorMessage));
     }
@@ -665,8 +657,9 @@ namespace Microsoft.Dafny {
     /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
     /// "super<L>" is a supertype of "sub<subArguments>".
     /// Otherwise, return "null".
+    /// If "forAsOrIs" is "true", then allow "sub" to be replaced by an ancestore type of "sub" if "sub" is a newtype.
     /// </summary>
-    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool allowNewtypeRelationships) {
+    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool forAsOrIs) {
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -680,7 +673,7 @@ namespace Microsoft.Dafny {
             return arguments;
           }
         }
-        if (allowNewtypeRelationships && md is NewtypeDecl newtypeDecl) {
+        if (forAsOrIs && md is NewtypeDecl newtypeDecl) {
           var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
           var arguments = GetTypeArgumentsForSuperType(super, basePreType.Decl, basePreType.Arguments, true);
           if (arguments != null) {

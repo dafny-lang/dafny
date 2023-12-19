@@ -473,35 +473,28 @@ namespace Microsoft.Dafny {
         var prevErrorCount = ErrorCount;
         resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         if (ErrorCount == prevErrorCount) {
+          string errorMessageFormat;
           var toPreType = (DPreType)Type2PreType(e.ToType);
           var ancestorDecl = AncestorDecl(toPreType.Decl);
           var familyDeclName = ancestorDecl.Name;
           if (familyDeclName == "int") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "real") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (IsBitvectorName(familyDeclName)) {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "char") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "ORDINAL") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, false,
-              "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')";
           } else if (ancestorDecl is TraitDecl) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, false,
-              "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')";
           } else {
-            // Non-numeric, non-reference types can be converted to/from newtypes of the same family where one is an ancestor of the other.
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
-              "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to type '{0}' must be from an expression assignable to it (got '{1}')";
           }
+          AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true, errorMessageFormat);
           e.PreType = toPreType;
         } else {
           e.PreType = CreatePreTypeProxy("'as' target type");
