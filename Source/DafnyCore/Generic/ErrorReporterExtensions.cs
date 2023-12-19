@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using VCGeneration;
 
 namespace Microsoft.Dafny;
@@ -25,21 +27,24 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    foreach (var related in relatedInformation) {
-      dafnyToken = new NestedToken(dafnyToken, related.Token, related.Message);
+    var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
+    IToken previous = tokens.Last();
+    foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
+      previous = new NestedToken(outer, previous, inner.Message);
     }
-    reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, dafnyToken, error.Msg);
+    reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, previous, error.Msg);
   }
 
   private const string RelatedLocationCategory = "Related location";
-  private const string RelatedLocationMessage = RelatedLocationCategory;
+  public const string RelatedLocationMessage = RelatedLocationCategory;
   public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
   private static string FormatRelated(string related) {
     return $"Could not prove: {related}";
   }
 
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
-    var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
+    message ??= RelatedLocationMessage;
+    var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
     if (dafnyToken is RangeToken rangeToken) {
       if (message == PostConditionFailingMessage) {
@@ -52,7 +57,7 @@ public static class ErrorReporterExtensions {
 
     yield return new DafnyRelatedInformation(token, message);
     if (inner != null) {
-      foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, RelatedLocationMessage)) {
+      foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage)) {
         yield return nestedInformation;
       }
     }

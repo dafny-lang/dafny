@@ -33,10 +33,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return false;
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
+
       if (rootTok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? "Related location")
+            nestedToken.Inner, nestedToken.Message ?? ErrorReporterExtensions.RelatedLocationMessage)
         );
       }
 

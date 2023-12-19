@@ -281,7 +281,9 @@ public record IdeState(
 
     var project = Input.Project;
     var beforeLegacyServerResolution = DateTime.Now;
-    var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
+    var compilationUnit = finishedResolution.ResolvedProgram.Reporter.HasErrorsUntilResolver
+      ? new CompilationUnit(project.Uri, finishedResolution.ResolvedProgram)
+      : new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
     // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
     var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(compilationUnit, cancellationToken);
 
