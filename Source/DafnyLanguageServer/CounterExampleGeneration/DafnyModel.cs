@@ -44,6 +44,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     // the model will begin assigning characters starting from this utf value
     private static readonly Regex UnderscoreRemovalRegex = new("__");
+    
+    // This set is used by GetDafnyType to prevent infinite recursion
+    private HashSet<Model.Element> exploredElements = new();
 
     public DafnyModel(Model model, DafnyOptions options) {
       loopGuards = new List<string>(); 
@@ -247,6 +250,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     
     /// <summary> Get the Dafny type of an element </summary>
     internal Type GetFormattedDafnyType(Model.Element element) {
+      exploredElements = new HashSet<Model.Element>();
       return DafnyModelTypeUtils.GetInDafnyFormat(GetDafnyType(element));
     }
 
@@ -261,6 +265,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     /// <summary> Get the Dafny type of an element </summary>
     private Type GetDafnyType(Model.Element element) {
+      if (exploredElements.Contains(element)) {
+        return UnknownType;
+      }
+      exploredElements.Add(element);
       switch (element.Kind) {
         case Model.ElementKind.Boolean:
           return Type.Bool;
@@ -656,31 +664,27 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
       }
       var seqOperation = fSeqAppend.AppWithResult(element);
-      seqOperation ??= fSeqDrop.AppWithResult(element);
-      seqOperation ??= fSeqTake.AppWithResult(element);
-      seqOperation ??= fSeqUpdate.AppWithResult(element);
-      if (seqOperation != null) {
-        return GetDafnyType(seqOperation.Args[0]);
-      }
+      if (seqOperation != null && !exploredElements.Contains(seqOperation.Args[0])) { return GetDafnyType(seqOperation.Args[0]); }
+      seqOperation = fSeqDrop.AppWithResult(element);
+      if (seqOperation != null && !exploredElements.Contains(seqOperation.Args[0])) { return GetDafnyType(seqOperation.Args[0]); }
+      seqOperation = fSeqTake.AppWithResult(element);
+      if (seqOperation != null && !exploredElements.Contains(seqOperation.Args[0])) { return GetDafnyType(seqOperation.Args[0]); }
+      seqOperation = fSeqUpdate.AppWithResult(element);
+      if (seqOperation != null && !exploredElements.Contains(seqOperation.Args[0])) { return GetDafnyType(seqOperation.Args[0]); }
       seqOperation = fSeqBuild.AppWithResult(element);
-      if (seqOperation != null) {
-        return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1])));
-      }
+      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args[1]))) { return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1]))); }
       seqOperation = fSeqCreate.AppWithResult(element);
-      seqOperation ??= fSeqEmpty.AppWithResult(element);
-      if (seqOperation != null) {
-        return new SeqType(ReconstructType(seqOperation.Args.First()));
-      }
+      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
+      seqOperation = fSeqEmpty.AppWithResult(element);
+      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
       var setOperation = fSetUnion.AppWithResult(element);
-      setOperation ??= fSetIntersection.AppWithResult(element);
-      setOperation ??= fSetDifference.AppWithResult(element);
-      if (setOperation != null) {
-        return GetDafnyType(setOperation.Args[0]);
-      }
+      if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
+      setOperation = fSetIntersection.AppWithResult(element);
+      if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
+      setOperation = fSetDifference.AppWithResult(element);
+      if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetUnionOne.AppWithResult(element);
-      if (setOperation != null) {
-        return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1])));
-      }
+      if (setOperation != null && !exploredElements.Contains(setOperation.Args[1])) { return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1]))); }
       setOperation = fSetEmpty.AppWithResult(element);
       if (setOperation != null) {
         var setElement = fSetSelect.AppWithArg(0, element);
