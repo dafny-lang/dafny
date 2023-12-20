@@ -42,9 +42,15 @@ namespace Microsoft.Dafny {
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
-    // TODO reduce useages
     public static async Task<int> RunLegacyCompiler(DafnyOptions options) {
 
+      if (options.DafnyProject == null) {
+        var uri = options.CliRootSourceUris.First();
+        options.DafnyProject = new DafnyProject {
+          Includes = Array.Empty<string>(),
+          Uri = uri
+        };
+      }
       options.RunningBoogieFromCommandLine = true;
 
       var backend = GetBackend(options);

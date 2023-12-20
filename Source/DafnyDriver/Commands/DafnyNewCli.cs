@@ -80,6 +80,14 @@ public class DafnyNewCli {
 
   public async Task<int> RunCompilerWithCliAsUi() {
 
+    if (options.DafnyProject == null) {
+      var uri = options.CliRootSourceUris.First();
+      options.DafnyProject = new DafnyProject {
+        Includes = Array.Empty<string>(),
+        Uri = uri
+      };
+    }
+
     options.RunningBoogieFromCommandLine = true;
 
     var input = new CompilationInput(options, 0, options.DafnyProject);
@@ -286,13 +294,6 @@ public class DafnyNewCli {
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       dafnyOptions.UsingNewCli = true;
-      if (dafnyOptions.DafnyProject == null) {
-        var uri = dafnyOptions.CliRootSourceUris.First();
-        dafnyOptions.DafnyProject = new DafnyProject {
-          Includes = Array.Empty<string>(),
-          Uri = uri
-        };
-      }
       context.ExitCode = await continuation(dafnyOptions, context);
     }
 
