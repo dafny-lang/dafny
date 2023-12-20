@@ -49,7 +49,7 @@ public class Constraint {
       foundANewDefinition = false;
       foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value) && constraint.ReferencedValues.Any())) {
+            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value)) && constraint.ReferencedValues.Count() > 0) {
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
           knownDefinitions[constraint.definesValue] = definition;
@@ -61,7 +61,7 @@ public class Constraint {
       if (foundANewDefinition) { continue; }
       foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            !constraint.ReferencedValues.Any()) {
+            constraint.ReferencedValues.Count() == 0) {
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
           knownDefinitions[constraint.definesValue] = definition;
