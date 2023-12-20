@@ -16,7 +16,7 @@ public static class CliCompilationExtensions {
     return (int)exitValue;
   }
   
-  public static async Task VerifyAll(this Compilation compilation) {
+  public static async Task VerifyAllAndPrintReport(this Compilation compilation) {
     var options = compilation.Input.Options;
     var statSum = new PipelineStatistics();
     var canVerifyResults = new Dictionary<IToken, CanVerifyResults>();

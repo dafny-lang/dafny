@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using System.Threading.Tasks;
 using DafnyDriver.Commands;
 using JetBrains.Annotations;
 
@@ -20,9 +21,8 @@ public static class VerifyCommand {
         options.TrackVerificationCoverage = true;
       }
       var compilation = CliCompilation.Create(options);
-      var verifyTask = compilation.VerifyAll();
       compilation.Start();
-      await verifyTask;
+      await compilation.VerifyAllAndPrintReport();
       return compilation.ExitCode();
     });
     return result;
