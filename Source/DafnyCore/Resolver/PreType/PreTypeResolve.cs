@@ -494,10 +494,11 @@ namespace Microsoft.Dafny {
     }
 
     void AddComparableConstraint(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString) {
-      // A "comparable types" constraint involves a disjunction. In order to better make progress during type inference,
-      // only an approximate version of "comparable types" is added as a guarded constraint. The full disjunction is
-      // checked post inference.
-      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, forAsOrIs, errorFormatString));
+      // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
+      // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
+      // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
+      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, forAsOrIs,
+        "(Duplicate error message) " + errorFormatString, false));
       Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, forAsOrIs), () => string.Format(errorFormatString, a, b));
     }
 
@@ -571,7 +572,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString) {
+    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var ptA = a.Normalize() as DPreType;
@@ -582,7 +583,7 @@ namespace Microsoft.Dafny {
           // use B :> A
           var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
-          Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString);
+          Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
         subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, forAsOrIs);
@@ -590,7 +591,7 @@ namespace Microsoft.Dafny {
           // use A :> B
           var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
-          Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString);
+          Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
 
@@ -599,7 +600,9 @@ namespace Microsoft.Dafny {
         }
 
         // neither A :> B nor B :> A is possible
-        ReportError(tok, errorFormatString, a, b);
+        if (reportErrors) {
+          ReportError(tok, errorFormatString, a, b);
+        }
         return true;
       }
 
@@ -607,12 +610,12 @@ namespace Microsoft.Dafny {
         if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
           // use B :> A
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
-          Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString);
+          Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
         } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
           // use A :> B
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
-          Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString);
+          Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
           return true;
         }
       }
@@ -631,9 +634,9 @@ namespace Microsoft.Dafny {
           var bb = ptB.Arguments[i];
           var msgFormat = $"{errorFormatString} (type argument {i})"; // TODO: this should be improved to use ptA/ptB
           if (ptA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
-            Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat);
+            Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
-            Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat));
+            Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
           }
         }
 
