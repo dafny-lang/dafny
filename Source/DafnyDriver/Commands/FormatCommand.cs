@@ -16,7 +16,7 @@ static class FormatCommand {
   public static Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
 If no dafny file is provided, will look for every available Dafny file.
-Use '--print -' to output the content of the formatted files instead of overwriting them.");
+Use '--print' to output the content of the formatted files instead of overwriting them.");
     result.AddArgument(DafnyCommands.FilesArgument);
 
     foreach (var option in Options) {

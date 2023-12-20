@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Help;
@@ -16,15 +15,11 @@ using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Logging;
 using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
-public class DafnyNewCli {
+public static class DafnyNewCli {
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
   
@@ -80,6 +75,15 @@ public class DafnyNewCli {
       var options = new Options(optionValues, new Dictionary<Argument, object>());
       dafnyOptions.Options = options;
 
+      foreach (var argument in command.Arguments) {
+        var result = context.ParseResult.FindResultFor(argument)?.GetValueOrDefault();
+        if (result != null) {
+          options.Arguments[argument] = result;
+        }
+      }
+
+      ProcessOption(context, CommonOptionBag.UseBaseFileName, dafnyOptions);
+      
       var singleFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       if (singleFile != null) {
         if (!await ProcessFile(dafnyOptions, singleFile)) {
@@ -96,49 +100,11 @@ public class DafnyNewCli {
           }
         }
       }
-
-      foreach (var argument in command.Arguments) {
-        var result = context.ParseResult.FindResultFor(argument)?.GetValueOrDefault();
-        if (result != null) {
-          options.Arguments[argument] = result;
+      foreach (var option in command.Options) {        
+        if (option == CommonOptionBag.UseBaseFileName) {
+          continue;
         }
-      }
-
-      foreach (var option in command.Options) {
-        var result = context.ParseResult.FindResultFor(option);
-        object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, dafnyOptions.ErrorWriter, out projectFileValue) ?? false;
-        object value;
-        if (option.Arity.MaximumNumberOfValues <= 1) {
-          // If multiple values aren't allowed, CLI options take precedence over project file options
-          value = (result == null || Equals(result.Token, null)) && hasProjectFileValue
-            ? projectFileValue
-            : GetValueForOption(context.ParseResult, option);
-        } else {
-          // If multiple values ARE allowed, CLI options come after project file options
-          var elementType = option.ValueType.GetGenericArguments()[0];
-          var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-          if (hasProjectFileValue) {
-            foreach (var element in (IEnumerable)projectFileValue) {
-              valueAsList.Add(element);
-            }
-          }
-          if (result != null) {
-            foreach (var element in (IEnumerable)GetValueForOption(context.ParseResult, option)) {
-              valueAsList.Add(element);
-            }
-          }
-
-          value = valueAsList;
-        }
-
-        options.OptionArguments[option] = value;
-        try {
-          dafnyOptions.ApplyBinding(option);
-        } catch (Exception e) {
-          context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
-            $"Invalid value for option {option.Name}: {e.Message}");
+        if (!ProcessOption(context, option, dafnyOptions)) {
           return;
         }
       }
@@ -151,6 +117,48 @@ public class DafnyNewCli {
     command.SetHandler(Handle);
   }
 
+  private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
+    var options = dafnyOptions.Options;
+    var result = context.ParseResult.FindResultFor(option);
+    object projectFileValue = null;
+    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, dafnyOptions.ErrorWriter, out projectFileValue) ?? false;
+    object value;
+    if (option.Arity.MaximumNumberOfValues <= 1) {
+      // If multiple values aren't allowed, CLI options take precedence over project file options
+      value = (result == null || Equals(result.Token, null)) && hasProjectFileValue
+        ? projectFileValue
+        : GetValueForOption(context.ParseResult, option);
+    } else {
+      // If multiple values ARE allowed, CLI options come after project file options
+      var elementType = option.ValueType.GetGenericArguments()[0];
+      var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
+      if (hasProjectFileValue) {
+        foreach (var element in (IEnumerable)projectFileValue) {
+          valueAsList.Add(element);
+        }
+      }
+      if (result != null) {
+        foreach (var element in (IEnumerable)GetValueForOption(context.ParseResult, option)) {
+          valueAsList.Add(element);
+        }
+      }
+
+      value = valueAsList;
+    }
+
+    options.OptionArguments[option] = value;
+    try {
+      dafnyOptions.ApplyBinding(option);
+    } catch (Exception e) {
+      context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
+      dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+        $"Invalid value for option {option.Name}: {e.Message}");
+      return false;
+    }
+
+    return true;
+  }
+  
   public static Task<int> Execute(IConsole console, string[] arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
@@ -190,7 +198,8 @@ public class DafnyNewCli {
       : singleFile.FullName;
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       if (dafnyOptions.DafnyProject != null) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {dafnyOptions.DafnyProject.Uri.LocalPath} and {filePathForErrors} were specified");
+        var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
+        await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
         return false;
       }
 
@@ -198,7 +207,7 @@ public class DafnyNewCli {
         await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, new Uri(singleFile.FullName));
+      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
       if (projectFile == null) {
         return false;
       }
@@ -214,6 +223,9 @@ public class DafnyNewCli {
 
       projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.DafnyProject = projectFile;
+      if (projectFile.Errors.HasErrors) {
+        return false;
+      }
     } else {
       dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }
