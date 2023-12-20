@@ -6,7 +6,7 @@
  *    Notably, the environment does not point to addresses like a CESK machine. This avoids spurious
  *    allocations (and, therefore, proof burden about the store) for lexically-scoped bindings.
  * 3. A simple type system that is sound with respect to the interpreter
-*/ 
+*/
 
 module {:extern "DAM"} DAM {
   module Utils {
@@ -93,8 +93,8 @@ module {:extern "DAM"} DAM {
     // Recursion
     | Rec(bound: Var, fix: Neg, body: Stmt)
     // Let-current-stack/letcc and throw
-    | LetCS(bound: Var, body: Stmt)
-    | Throw(stack: Expr, next: Stmt)
+    | LetCS(bound: Var, start: Neg, body: Stmt)
+    | Throw(stack: Expr, oldstart: Neg, next: Stmt)
 
     // Let, which is notably distinct from Bind
     function Let(lhs: Expr, var_ : string, ty: Pos, rhs: Stmt): Stmt
@@ -160,9 +160,16 @@ module {:extern "DAM"} DAM {
     | Call(arg: ClosedExpr)
     | Select(field: Field)
 
-    // States of the CESK Machine
+    datatype Event = Silent | Print(Val)
+
+    // States of the CESK Machine; outputs can raise events (a top-level effect not to be handled by the interpreter)
     type     Input  = (Store, ClosedStmt, Stack)
-    datatype Output = Next(Input) | Terminal
+    datatype Output = Raise(event: Event, next: Input) | Terminal
+
+    // Most of the time, there is no such event
+    function Next(next: Input): Output {
+      Raise(Silent, next)
+    }
   }
 
   module Statics {
@@ -273,16 +280,18 @@ module {:extern "DAM"} DAM {
         case _            => None
       )
 
-      /*case Throw(stmt, stack, start) => (
+      case LetCS(bound, start, body) =>
+        SynthStmt(g[bound := Pos.Stack(start)], body)
+      
+      case Throw(stack, oldstart, next) => (
         match SynthExpr(g, stack)
-        case Some(Stack(newstart)) =>
-          if CheckStmt(g, stmt, newstart) then
-            Some(start)
+        case Some(Stack(start)) =>
+          if CheckStmt(g, next, start) then
+            Some(oldstart)
           else
             None
-      )*/
-
-      case _ => None
+        case _ => None
+      )
     }
 
     // G |- stmt <= t-
@@ -304,7 +313,7 @@ module {:extern "DAM"} DAM {
     // S |- (env, expr) => t+
     function SynthClosedExpr(s: StoreTyping, expr: ClosedExpr): Option<Pos> {
       var (env, expr) := expr;
-      var g :- mapOption(map var_ <- env :: SynthVal(s, env[var_]));
+      var g :- SynthEnv(s, env);
       SynthExpr(g, expr)
     }
 
@@ -366,7 +375,7 @@ module {:extern "DAM"} DAM {
       case Bool(_)     => Some(Pos.Bool)
       case Int(_)      => Some(Pos.Int)
       case Thunk((env, stmt)) =>
-        // No problem, the intrinsic order on values safely extends to closure's environment values
+        // No problem, rose tree ordering
         assume {:axiom} forall var_ <- env :: env[var_] < val;
         var g :- mapOption(map var_ <- env :: SynthVal(s, env[var_]));
         var t :- SynthStmt(g, stmt);
@@ -421,8 +430,8 @@ module {:extern "DAM"} DAM {
     // S |- output <= end
     predicate CheckOutput(s: StoreTyping, out: Output, end: Neg) {
       match out
-      case Next(next) => CheckInput(s, next, end)
-      case Terminal   => true
+      case Raise(_, next) => CheckInput(s, next, end)
+      case Terminal       => true
     }
   }
 
@@ -559,8 +568,7 @@ module {:extern "DAM"} DAM {
       case Print(expr, next) =>
         ghost var t := SynthExpr(g, expr).Extract();
         var val := Eval(s, (env, expr), t);
-        //print val, "\n";
-        var output := Next((store, (env, next), stack));
+        var output := Raise(Event.Print(val), (store, (env, next), stack));
         assert CheckOutput(s, output, end);
         output
       
@@ -603,25 +611,28 @@ module {:extern "DAM"} DAM {
         assert CheckOutput(s, output, end);
         output
       
-      /*case LetCS(bound, body) =>
-         Next((Update(bound, Val.Stack(env, stack), env), body, stack));
+      case LetCS(bound, start, body) =>
+        assume {:axiom} false;
+        Next((store, (env[bound := Val.Stack(start, stack)], body), stack))
       
-      case Throw(stack, next) => {
-        match Eval(env, stack)
-        case Some(Stack(stack)) => Next((env, next, stack));
-      }*/
+      case Throw(expr, _, next) => (
+        ghost var t := SynthExpr(g, expr).Extract();
+        var val := Eval(s, (env, expr), t);
+        assume {:axiom} false;
+        Next((store, (env, next), val.stack))
+      )
     }
 
     // Leroy-style executable big-step semantics for the machine
-    codatatype Trace = Stepping(Input, Trace) | Done
+    codatatype Trace = Stepping(Event, Input, Trace) | Done
 
     function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace
       requires CheckInput(s, input, end)
     {
       match Step(s, input, end)
-      case Next(next) =>
+      case Raise(evt, next) =>
         ghost var s' :| CheckInput(s', next, end);
-        Stepping(next, Run(s', next, end))
+        Stepping(evt, next, Run(s', next, end))
       case Terminal   => Done
     }
 
@@ -633,9 +644,15 @@ module {:extern "DAM"} DAM {
       ([], (map[], stmt), Stack.Empty)
     }
 
-    function RunChecked(stmt: Stmt): Option<Trace> {
+    function RunSafe(stmt: Stmt): Option<Trace> {
       var end :- SynthStmt(map[], stmt);
       Some(Run([], Initial(stmt, end), end))
+    }
+    
+    function RunUnsafe(stmt: Stmt): Trace {
+      assume {:axiom} exists end :: CheckStmt(map[], stmt, end);
+      ghost var end :| CheckStmt(map[], stmt, end);
+      Run([], Initial(stmt, end), end)
     }
   }
 }

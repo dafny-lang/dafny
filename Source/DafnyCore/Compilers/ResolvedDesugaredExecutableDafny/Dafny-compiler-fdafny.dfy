@@ -2,31 +2,14 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
   import opened DAST
   import PrettyPrinter
   import UnsupportedFeature
+  import DAM
   import DS = DAM.Syntax
 
-  class COMP {
+  class Lower {
+    var main: DS.Stmt
 
-    static method Compile(p: seq<Module>) returns (s: string) {
-      //print(p);
-      /*for i := 0 to |p| {
-        var m := p[i];
-        if m.name == "__default" {
-          var m := EmitModule(p[i]);
-        }
-        //print p[i], "\n\n";
-        
-        //var t := EmitModuleType(p[i]);
-        print m;
-        print "\n\n";
-        //print t;
-        print "\n\n";
-      }*/
-      
-      s := PrettyPrinter.PrettyPrint(p);
-    }
+    constructor() {
 
-    static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
-      s := "";
     }
 
     static method PolarizePos(t: Type) returns (p: DS.Pos) {
@@ -37,21 +20,6 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         return DS.Pos.Bool;
       case _ => UnsupportedFeature.Throw(); p := DS.Pos.Unit;
     }
-
-    /*static method EmitModuleType(m: Module) returns (t: DS.Neg) {
-      var members := map[];
-      for i := 0 to |m.body| {
-        match m.body[i]
-        case Module(m) =>
-          var tm := EmitModuleType(m);
-          members := members[m.name := tm];
-        case Class(c) =>
-          var tc := EmitClassType(c);
-          members := members[c.name := tc];
-        case _ => continue;
-      }
-      t := DS.Neg.Record(members);
-    }*/
 
     /*static method EmitClassType(c: Class) returns (t: DS.Neg) {
       var members := map[];
@@ -76,7 +44,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
     }*/
 
     // Modules are just records
-    static method EmitModule(m: Module) returns (s: DS.Stmt) {
+    method EmitModule(m: Module) returns (s: DS.Stmt) modifies this {
       var members := map[];
       for i := 0 to |m.body| {
         match m.body[i]
@@ -94,7 +62,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
 
     // TODO: Classes are fixed points of records: rec(\this. {field1 = ..., fieldn = ...})
     // Methods are just functions
-    static method EmitClass(c: Class) returns (s: DS.Stmt) {
+    method EmitClass(c: Class) returns (s: DS.Stmt) modifies this {
       var fields := map[];
       // TODO: normal fields turn into references
       /*for i := 0 to |c.fields| {
@@ -112,10 +80,10 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       s := DS.Stmt.Record(fields);
     }
 
-    static method EmitMethod(m: Method) returns (s: DS.Stmt) {
+    method EmitMethod(m: Method) returns (s: DS.Stmt) modifies this {
       // Label a point for early returns
       var body := EmitBlock(m.body);
-      s := DS.LetCS("return", body);
+      s := DS.LetCS("return", DS.Command(), body);
 
       // Out parameters turn into input references
       match m.outVars
@@ -138,6 +106,10 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
           s := DS.Func(arg, DS.Pos.Ref(dom), s);
       }
       // Expectation: body returns DS.Command()
+      
+      if m.name == "Main" {
+        main := s;
+      }
     }
 
     // Dafny expressions are actually DAM statements, since they are sensitive to evaluation order
@@ -145,10 +117,30 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       match e
       case Literal(BoolLiteral(b)) =>
         return DS.Pure(DS.Expr.Bool(b));
+      
       /*case Literal(IntLiteral(i)) =>
         return DS.Pure(DS.Expr.Int(i));*/
+      
+      case Companion(path) =>
+        expect |path| > 0;
+        s := DS.Force(DS.Var(path[0].id));
+        for i := 1 to |path| {
+          s := DS.Stmt.Select(s, path[i].id);
+        }
+      
+      case Call(obj, Ident(meth), _, args) =>
+        s := EmitExpr(obj);
+        s := DS.Stmt.Select(s, meth);
+        for i := 0 to |args| {
+          var arg := EmitExpr(args[i]);
+          s :=
+            DS.Stmt.Bind(arg, "var",
+              DS.Stmt.New(DS.Var("var"), "var", DS.Stmt.Call(s, DS.Var("var"))));
+        }
+
       case Ident(v) =>
-        return DS.Pure(DS.Var(v));
+        return DS.Read(DS.Var(v), "var", DS.Pure(DS.Var("var")));
+      
       case This()   =>
         return DS.Pure(DS.Var("this"));
       
@@ -190,24 +182,24 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case Break(lab) => {
         match lab
         case Some(lab) =>
-          return DS.Throw(DS.Var(lab), DS.Skip());
+          return DS.Throw(DS.Var(lab), DS.Command(), DS.Skip());
         case None =>
           UnsupportedFeature.Throw();
           return DS.Skip();
       }
 
       case EarlyReturn() =>
-        return DS.Throw(DS.Var("return"), DS.Skip());
+        return DS.Throw(DS.Var("return"), DS.Command(), DS.Skip());
       
       case Return(expr) =>
         var ret := EmitExpr(expr);
-        return DS.Throw(DS.Var("return"), ret);
+        return DS.Throw(DS.Var("return"), DS.Command(), ret);
 
       case Labeled(lab, stmt) =>
         // No problem, multiset ordering
         assume {:axiom} stmt + next < next;
         var block := EmitBlock(stmt + next);
-        return DS.LetCS(lab, block);
+        return DS.LetCS(lab, DS.Command(), block);
       
       case DeclareVar(var_, _, Some(init)) =>
         var init := EmitExpr(init);
@@ -235,14 +227,10 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
               DS.Stmt.New(DS.Var("var"), "var", DS.Stmt.Call(st, DS.Var("var"))));
         }
         
-        match outs
         // Simplifying assumption: out parameters were already initialized
+        match outs
         case Some(outs) =>
           for i := 0 to |outs| {
-            /*var arg := EmitExpr(InitializationValue(Primitive(Bool)));
-            st :=
-              DS.Stmt.Bind(arg, "var",
-                DS.Stmt.New(DS.Var("var"), "var", DS.Stmt.Call(st, DS.Var("var"))));*/
             st := DS.Stmt.Call(st, DS.Var(outs[i].id));
           }
         case None => {}
@@ -259,6 +247,34 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case _ =>
         UnsupportedFeature.Throw();
         return DS.Skip();
+    }
+  }
+
+  class COMP {
+    static method Compile(p: seq<Module>) returns (s: string) {
+      var lower := new Lower();
+
+      var body := DS.Skip();
+      for i := 0 to |p| {
+        print "Lowering module ", p[i].name , " into the DAM instruction set...\n";
+        var m      := lower.EmitModule(p[i]);
+        var mthunk := DS.Expr.Thunk(m);
+        var mtype  := DAM.Statics.SynthExpr(map[], mthunk);
+        if (mtype.None?) {
+          print "Unable to synthesize type for module ", p[i].name, "!\n";
+          UnsupportedFeature.Throw();
+          break;
+        }
+        body := DS.Let(mthunk, p[i].name, mtype.value, body);
+      }
+      print "\n", body, "\n";
+      print "Tracing execution of Main() below\n";
+      print(DAM.Dynamics.RunSafe(lower.main));
+      s := "";
+    }
+
+    static method EmitCallToMain(fullName: seq<string>) returns (s: string) {
+      s := "";
     }
   }
 }
