@@ -541,9 +541,9 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool IsConversionCompatible(DPreType a, DPreType b) {
-      a = AncestorPreType(a);
-      b = AncestorPreType(b);
+    bool IsConversionCompatible(DPreType aOrig, DPreType bOrig) {
+      var a = AncestorPreType(aOrig);
+      var b = AncestorPreType(bOrig);
 
       if (PreType.Same(a, b)) {
         return true;
@@ -552,7 +552,10 @@ namespace Microsoft.Dafny {
       if (IsBitvectorName(a.Decl.Name, out _) && IsBitvectorName(b.Decl.Name, out _)) {
         return true;
       }
-      if (a.Decl.Name == "int" && (b.Decl.Name is "real" or "char" or "ORDINAL" || IsBitvectorName(b.Decl.Name))) {
+      if (a.Decl.Name == "int" && (bOrig.Decl.Name == "char" || IsBitvectorName(b.Decl.Name))) {
+        return true;
+      }
+      if (aOrig.Decl.Name == "int" && bOrig.Decl.Name is "real" or "ORDINAL") {
         return true;
       }
 
