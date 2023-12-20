@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
@@ -222,31 +221,36 @@ public class ExpectContracts : IRewriter {
   }
 
   /// <summary>
-  /// Add wrappers for certain top-level declarations in the given module.
-  /// This runs after the first pass of resolution so that it has access to
-  /// ghostness information, attributes and call targets.
+  /// Add wrappers for certain top-level declarations in the given program.
+  /// This runs after resolution so that it has access to ghostness
+  /// information, attributes and call targets. Run on the entire program,
+  /// rather than each module individually, to avoid bad interaction with
+  /// the refinement transformer.
   /// </summary>
-  /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
-  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-    // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-    List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+  /// <param name="program">The program to generate wrappers for and in.</param>
+  internal override void PostResolve(Program program) {
+    foreach (var moduleDefinition in program.Modules()) {
 
-    moduleDefinition.CallRedirector = new(Reporter);
+      // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
-    // Find module members to wrap.
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (ShouldGenerateWrapper(decl)) {
-          membersToWrap.Add((topLevelDecl, decl));
+      moduleDefinition.CallRedirector = new(Reporter);
+
+      // Find module members to wrap.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (ShouldGenerateWrapper(decl)) {
+            membersToWrap.Add((topLevelDecl, decl));
+          }
         }
       }
-    }
 
-    // Generate a wrapper for each of the members identified above.
-    foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(moduleDefinition, topLevelDecl, decl);
+      // Generate a wrapper for each of the members identified above.
+      foreach (var (topLevelDecl, decl) in membersToWrap) {
+        GenerateWrapper(moduleDefinition, topLevelDecl, decl);
+      }
+      moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
     }
-    moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
   }
 
   public override void PostVerification(Program program) {
