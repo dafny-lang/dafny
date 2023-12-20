@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
-      fMapDomain, fMapElements, fMapBuild, fIs, fIsBox, fUnbox;
+      fMapDomain, fMapElements, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
 
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
@@ -74,6 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 2 * tyArgMultiplier);
       fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 2 * tyArgMultiplier);
       fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 2 * tyArgMultiplier);
+      fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 0, 2 * tyArgMultiplier);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
       fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, tyArgMultiplier);
       fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgMultiplier);
@@ -541,6 +542,15 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           yield break;
         }
         case MapType: {
+          if (fMapEmpty.AppWithResult(value.Element) != null) {
+            var zero = new LiteralExpr(Token.NoToken, 0);
+            zero.Type = Type.Int;
+            value.AddConstraint(
+              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier),
+                zero), new() { value });
+            yield break;
+          }
           var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
           var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
           var current = value.Element;
