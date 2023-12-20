@@ -84,7 +84,9 @@ namespace Microsoft.Dafny {
       }
 
       var programResolver = new ProgramResolver(program);
+#pragma warning disable VSTHRD002
       LargeStackFactory.StartNew(() => programResolver.Resolve(CancellationToken.None)).Wait();
+#pragma warning restore VSTHRD002
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
       if (program.Reporter.ErrorCountUntilResolver != 0) {

@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿#nullable enable
+using Microsoft.Dafny.LanguageServer.Language;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;

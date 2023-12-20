@@ -59,7 +59,8 @@ public static class RunCommand {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return new DafnyNewCli(options).RunCompilerWithCliAsUi();
+      
+      return CompilerDriver.RunLegacyCompiler(options);
     });
     return result;
   }
