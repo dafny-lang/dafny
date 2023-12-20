@@ -47,7 +47,7 @@ public static class DafnyBackwardsCompatibleCli {
     switch (legacyResult) {
       case ParsedOptions success:
         var options = success.DafnyOptions;
-        return LegacyCompilerDriver.Run(options);
+        return LegacyCliCompilation.Run(options);
       case ExitImmediately failure:
         return Task.FromResult((int)failure.ExitValue);
       default: throw new Exception("unreachable");

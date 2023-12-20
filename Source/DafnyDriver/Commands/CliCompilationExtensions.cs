@@ -47,7 +47,7 @@ public static class CliCompilationExtensions {
               statSum.VerifiedCount += 1;
               break;
             case ProverInterface.Outcome.Invalid:
-              statSum.ErrorCount += 1;
+              statSum.ErrorCount += batchCompleted.VcResult.counterExamples.Count;
               break;
             case ProverInterface.Outcome.TimeOut:
               statSum.TimeoutCount += 1;
@@ -90,7 +90,7 @@ public static class CliCompilationExtensions {
       }
     }
 
-    LegacyCompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+    LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
   }
 }
 
