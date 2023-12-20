@@ -22,7 +22,7 @@ public static class VerifyCommand {
       }
       var compilation = CliCompilation.Create(options);
       compilation.Start();
-      await compilation.VerifyAllAndPrintReport();
+      await compilation.VerifyAllAndPrintSummary();
       return compilation.ExitCode();
     });
     return result;
