@@ -8,11 +8,15 @@ namespace Microsoft.Dafny;
 
 static class TranslateCommand {
 
+  static TranslateCommand() {
+  }
+
   public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
       IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
+      RunAllTestsMainMethod.IncludeTestRunner
     }.Concat(DafnyCommands.TranslationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

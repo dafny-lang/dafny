@@ -29,7 +29,7 @@ public static class RewriterCollection {
       result.Add(new ExpectContracts(reporter));
     }
 
-    if (reporter.Options.RunAllTests) {
+    if (reporter.Options.Get(RunAllTestsMainMethod.IncludeTestRunner)) {
       result.Add(new RunAllTestsMainMethod(reporter));
     }
 
