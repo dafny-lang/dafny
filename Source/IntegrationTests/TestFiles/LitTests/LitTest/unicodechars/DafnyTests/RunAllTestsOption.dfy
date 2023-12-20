@@ -5,4 +5,4 @@
 // RUN: ! %baredafny test %args --unicode-char --no-verify --target:js "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char --no-verify --target:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t" 
-include "../../DafnyTests/RunAllTestsOption.dfy"
+include "../../DafnyTests/RunAllTests/RunAllTestsOption.dfy"

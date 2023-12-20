@@ -69,9 +69,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
-    if (expected != null && errorTests.Matches(expected).Count >= 2) {
-      Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
-    }
     var hover = await RequestHover(documentItem, hoverPosition);
     if (expected == null) {
       Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
