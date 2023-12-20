@@ -356,7 +356,7 @@ public record IdeState(
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,
-        new DocumentVerificationTree(Program, uri) {
+        new DocumentVerificationTree(finishedParsing.Program, uri) {
           Children = trees[uri].Children
         });
     }
