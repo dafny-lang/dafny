@@ -45,17 +45,6 @@ public class Constraint {
   public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints, bool allowNewIdentifiers) {
     var foundANewDefinition = true;
     var substituter = new DefinitionSubstituter(knownDefinitions);
-    foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
-      if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-          !constraint.ReferencedValues.Any()) {
-        var definition = substituter.CloneExpr(constraint.rawExpression);
-        definition.Type = constraint.rawExpression.Type;
-        knownDefinitions[constraint.definesValue] = definition;
-        substituter.AddSubstitution(constraint.definesValue, definition);
-        foundANewDefinition = true;
-        break;
-      }
-    }
     while (foundANewDefinition) {
       foundANewDefinition = false;
       foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {

@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 2 * tyArgMultiplier);
       fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 2 * tyArgMultiplier);
       fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 2 * tyArgMultiplier);
-      fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 0, 2 * tyArgMultiplier);
+      fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 2, 0);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
       fIsBox = new ModelFuncWrapper(this, "$IsBox", 2, tyArgMultiplier);
       fBox = new ModelFuncWrapper(this, "$Box", 1, tyArgMultiplier);

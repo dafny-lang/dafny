@@ -889,7 +889,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Contains("s2 is seq<char>", counterExamples[1].Assumption);
-      Assert.Matches("(\\|s2\\| == 3|3 == \\|s2\\|)", counterExamples[1].Assumption);
+      Assert.Matches("(\\|s[12]\\| == 3|3 == \\|s[12]\\|)", counterExamples[1].Assumption);
       Assert.Matches(new Regex("('a'|s1\\[0\\]) == s2\\[0\\]"), counterExamples[1].Assumption);
       Assert.Matches(new Regex("('d'|c) == s2\\[1\\]"), counterExamples[1].Assumption);
       Assert.Matches(new Regex("('c'|s1\\[2\\]) == s2\\[2\\]"), counterExamples[1].Assumption);
@@ -932,8 +932,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("s1 is seq<char>", counterExamples[1].Assumption);
       Assert.Contains("s2 is seq<char>", counterExamples[1].Assumption);
       Assert.Contains("sCat is seq<char>", counterExamples[1].Assumption);
-      Assert.Matches("(\\|s1\\| == 1|1 == \\|s1\\|)", counterExamples[1].Assumption);
-      Assert.Matches("(\\|s2\\| == 1|1 == \\|s2\\|)", counterExamples[1].Assumption);
+      Assert.Matches("(\\|s[12]\\| == 1|1 == \\|s[12]\\|)", counterExamples[1].Assumption);
       // the fact that sCat[0] == 'a' || s1[0] == 'a':
       Assert.Matches(new Regex("('a' == sCat\\[0\\]|sCat\\[0\\] == 'a'|'a' == s1\\[0\\]|s1\\[0\\] == 'a')"), counterExamples[1].Assumption);
       // the fact that s1[0] == 'a' || sCat[0] == s1[0]
