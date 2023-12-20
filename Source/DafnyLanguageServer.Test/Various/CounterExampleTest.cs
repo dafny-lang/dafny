@@ -938,9 +938,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       // the fact that s1[0] == 'a' || sCat[0] == s1[0]
       Assert.Matches(new Regex("('a' == s1\\[0\\]|s1\\[0\\] == 'a'|sCat\\[0\\] == s1\\[0\\]|s1\\[0\\] == sCat\\[0\\])"), counterExamples[1].Assumption);
       // the fact that sCat[1] == 'b' || s2[0] == 'b':
-      Assert.Matches(new Regex("('b' == sCat\\[1\\]|sCat\\[1\\] == 'b'|'b' == s2\\[0\\]|s2\\[0\\] == 'b')"), counterExamples[1].Assumption);
+      Assert.Matches(new Regex("('b' == sCat\\[\\|s[12]\\|\\]|sCat\\[\\|s[12]\\|\\] == 'b'|'b' == sCat\\[1\\]|sCat\\[1\\] == 'b'|'b' == s2\\[0\\]|s2\\[0\\] == 'b')"), counterExamples[1].Assumption);
       // the fact that s1[0] == 'b' || sCat[1] == s2[0]
-      Assert.Matches(new Regex("('b' == s2\\[0\\]|s2\\[0\\] == 'b'|sCat\\[1\\] == s2\\[0\\]|s2\\[0\\] == sCat\\[1\\])"), counterExamples[1].Assumption);
+      Assert.Matches(new Regex("('b' == s2\\[0\\]|s2\\[0\\] == 'b'|sCat\\[\\|s[12]\\|\\] == s2\\[0\\]|s2\\[0\\] == sCat\\[\\|s[12]\\|\\])"), counterExamples[1].Assumption);
     }
 
     [Theory]
