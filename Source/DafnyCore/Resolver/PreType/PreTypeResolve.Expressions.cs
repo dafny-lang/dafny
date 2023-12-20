@@ -488,11 +488,11 @@ namespace Microsoft.Dafny {
           } else if (familyDeclName == "ORDINAL") {
             errorMessageFormat = "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-            errorMessageFormat = "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')";
+            errorMessageFormat = "type cast to reference type '{0}' must be from an expression of a compatible type (got '{1}')";
           } else if (ancestorDecl is TraitDecl) {
-            errorMessageFormat = "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')";
+            errorMessageFormat = "type cast to trait type '{0}' must be from an expression of a compatible type (got '{1}')";
           } else {
-            errorMessageFormat = "type cast to type '{0}' must be from an expression assignable to it (got '{1}')";
+            errorMessageFormat = "type cast to type '{0}' must be from an expression of a compatible type (got '{1}')";
           }
           AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true, errorMessageFormat);
           e.PreType = toPreType;
