@@ -60,7 +60,7 @@ public static class RunCommand {
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
 
-      return CompilerDriver.RunLegacyCompiler(options);
+      return LegacyCompilerDriver.Run(options);
     });
     return result;
   }

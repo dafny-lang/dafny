@@ -39,7 +39,7 @@ static class MeasureComplexityCommand {
     }
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
-      return CompilerDriver.RunLegacyCompiler(options);
+      return LegacyCompilerDriver.Run(options);
     });
     return result;
   }

@@ -1,4 +1,5 @@
 using System.CommandLine;
+using DafnyDriver.Commands;
 
 namespace Microsoft.Dafny;
 
@@ -10,10 +11,11 @@ static class ResolveCommand {
     foreach (var option in DafnyCommands.ConsoleOutputOptions.Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
-      options.Compile = false;
-      options.Verify = false;
-      return new DafnyNewCli(options).RunCompilerWithCliAsUi();
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+      var compilation = CliCompilation.Create(options);
+      compilation.Start();
+      await compilation.Resolution;
+      return compilation.ExitCode();
     });
     return result;
   }

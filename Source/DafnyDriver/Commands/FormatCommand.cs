@@ -33,7 +33,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = LegacyCompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
@@ -67,7 +67,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
       string tempFileName = null;
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        LegacyCompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
           OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
@@ -101,7 +101,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
             }
 
             if (!doCheck && !doPrint) {
-              CompilerDriver.WriteFile(dafnyFile.FilePath, result);
+              LegacyCompilerDriver.WriteFile(dafnyFile.FilePath, result);
             }
           }
         } else {

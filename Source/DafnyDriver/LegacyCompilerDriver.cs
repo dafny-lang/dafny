@@ -35,14 +35,14 @@ namespace Microsoft.Dafny {
   /// 
   /// Will be replaced by CompilationManager
   /// </summary>
-  public class CompilerDriver : IDisposable {
+  public class LegacyCompilerDriver : IDisposable {
     private readonly ExecutionEngine engine;
 
-    public CompilerDriver(DafnyOptions dafnyOptions) {
+    public LegacyCompilerDriver(DafnyOptions dafnyOptions) {
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
-    public static async Task<int> RunLegacyCompiler(DafnyOptions options) {
+    public static async Task<int> Run(DafnyOptions options) {
 
       if (options.DafnyProject == null) {
         var uri = options.CliRootSourceUris.First();
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
         return (int)ExitValue.PREPROCESSING_ERROR;
       }
 
-      using var driver = new CompilerDriver(options);
+      using var driver = new LegacyCompilerDriver(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
 

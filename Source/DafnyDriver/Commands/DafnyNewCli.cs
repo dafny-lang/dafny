@@ -24,159 +24,10 @@ using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
-class TelemetryPublisher : ITelemetryPublisher {
-  private readonly ILogger<ITelemetryPublisher> logger;
-
-  public TelemetryPublisher(ILogger<ITelemetryPublisher> logger) {
-    this.logger = logger;
-  }
-
-  public void PublishTelemetry(ImmutableDictionary<string, object> data) {
-    // TODO throw new NotImplementedException();
-  }
-
-  // TODO make ITelemetryPublisher abstract class and move this there.
-  public void PublishUnhandledException(Exception e) {
-    logger.LogError(e, "exception occurred");
-    PublishTelemetry(ImmutableDictionary.Create<string, object>().
-      Add("kind", ITelemetryPublisher.TelemetryEventKind.UnhandledException).
-      Add("payload", e.ToString()));
-  }
-}
-
 public class DafnyNewCli {
-  private readonly DafnyOptions options;
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-
-  private readonly CreateCompilation createCompilation;
-
-  public DafnyNewCli(DafnyOptions options) {
-    this.options = options;
-
-    var fileSystem = OnDiskFileSystem.Instance;
-    ILoggerFactory factory = new LoggerFactory();
-    var telemetryPublisher = new TelemetryPublisher(factory.CreateLogger<ITelemetryPublisher>());
-    createCompilation = (engine, input) => new Compilation(factory.CreateLogger<Compilation>(), fileSystem,
-      new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
-        new DafnyLangParser(this.options, fileSystem, telemetryPublisher,
-          factory.CreateLogger<DafnyLangParser>(),
-          factory.CreateLogger<CachingParser>()),
-        new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(),
-          factory.CreateLogger<CachingResolver>(),
-          telemetryPublisher)), new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()),
-      engine, input);
-  }
-
-  struct CanVerifyResults {
-    public readonly TaskCompletionSource Finished = new();
-    public readonly List<(IImplementationTask, Completed)> CompletedParts = new();
-    public readonly HashSet<IImplementationTask> Tasks = new();
-
-    public CanVerifyResults() {
-    }
-  }
-
-
-  public async Task<int> RunCompilerWithCliAsUi() {
-
-    if (options.DafnyProject == null) {
-      var uri = options.CliRootSourceUris.First();
-      options.DafnyProject = new DafnyProject {
-        Includes = Array.Empty<string>(),
-        Uri = uri
-      };
-    }
-
-    options.RunningBoogieFromCommandLine = true;
-
-    var input = new CompilationInput(options, 0, options.DafnyProject);
-    var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
-    var compilation = createCompilation(executionEngine, input);
-
-    var statSum = new PipelineStatistics();
-    var er = new ConsoleErrorReporter(options);
-
-    var canVerifyResults = new Dictionary<Boogie.IToken, CanVerifyResults>();
-
-    compilation.Updates.Subscribe(ev => {
-      if (ev is NewDiagnostic newDiagnostic) {
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        er.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
-      }
-
-      if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
-        foreach (var part in canVerifyPartsIdentified.Parts) {
-          canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok].Tasks.Add(part);
-        }
-      }
-
-      if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok)];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
-          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
-            canVerifyResult.Finished.SetResult();
-          }
-        }
-        if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
-          switch (batchCompleted.VcResult.outcome) {
-            case ProverInterface.Outcome.Valid:
-            case ProverInterface.Outcome.Bounded:
-              statSum.VerifiedCount += 1;
-              break;
-            case ProverInterface.Outcome.Invalid:
-              statSum.ErrorCount += 1;
-              break;
-            case ProverInterface.Outcome.TimeOut:
-              statSum.TimeoutCount += 1;
-              break;
-            case ProverInterface.Outcome.OutOfMemory:
-              statSum.OutOfMemoryCount += 1;
-              break;
-            case ProverInterface.Outcome.OutOfResource:
-              statSum.OutOfResourceCount += 1;
-              break;
-            case ProverInterface.Outcome.Undetermined:
-              statSum.InconclusiveCount += 1;
-              break;
-            default:
-              throw new ArgumentOutOfRangeException();
-          }
-        }
-      }
-    });
-    compilation.Start();
-
-    var resolution = await compilation.Resolution;
-    var canVerifies = resolution.CanVerifies?.ToList();
-
-    if (canVerifies != null) {
-      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
-        canVerifyResults[canVerify.Tok] = new CanVerifyResults();
-        await compilation.VerifyCanVerify(canVerify, false);
-      }
-
-      foreach (var canVerify in orderedCanVerifies) {
-        var results = canVerifyResults[canVerify.Tok];
-        await results.Finished.Task;
-        foreach (var (task, completed) in results.CompletedParts) {
-          foreach (var vcResult in completed.Result.VCResults) {
-            Compilation.ReportDiagnosticsInResult(options, task, vcResult, er);
-          }
-        }
-        await compilation.VerifyCanVerify(canVerify, false);
-      }
-    }
-
-    CompilerDriver.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
-
-    var exitValue = er.ErrorCount > 0 ? ExitValue.VERIFICATION_ERROR : ExitValue.SUCCESS;
-    return (int)exitValue;
-  }
-
+  
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
   }
@@ -300,10 +151,7 @@ public class DafnyNewCli {
     command.SetHandler(Handle);
   }
 
-  public static async Task<int> Execute(TextWriter outputWriter,
-    TextWriter errorWriter,
-    TextReader inputReader, string[] arguments) {
-
+  public static Task<int> Execute(IConsole console, string[] arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
       if (!allowHidden) {
@@ -317,8 +165,7 @@ public class DafnyNewCli {
       }
     }
 
-    var console = new WritersConsole(inputReader, outputWriter, errorWriter);
-    return await Parser.InvokeAsync(arguments, console);
+    return Parser.InvokeAsync(arguments, console);
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;

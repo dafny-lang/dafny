@@ -1,14 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.CommandLine.Help;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
@@ -43,30 +38,20 @@ public static class DafnyBackwardsCompatibleCli {
 
   private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
     Contract.Requires(cce.NonNullElements(args));
-    return Execute(outputWriter, errorWriter, inputReader, args, async parseArgumentResult => {
-
-      switch (parseArgumentResult) {
-        case ParsedOptions success:
-          var options = success.DafnyOptions;
-          return await CompilerDriver.RunLegacyCompiler(options);
-        case ExitImmediately failure:
-          return (int)failure.ExitValue;
-        default: throw new Exception("unreachable");
-      }
-    });
-  }
-
-  private static async Task<int> Execute(TextWriter outputWriter,
-    TextWriter errorWriter,
-    TextReader inputReader, string[] arguments,
-    Func<ILegacyParseArguments, Task<int>> onLegacyArguments) {
-
-    var legacyResult = TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, arguments);
-    if (legacyResult != null) {
-      return await onLegacyArguments(legacyResult);
+    var legacyResult = TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, args);
+    if (legacyResult == null) {
+      var console = new WritersConsole(inputReader, outputWriter, errorWriter);
+      return DafnyNewCli.Execute(console, args);
     }
 
-    return await DafnyNewCli.Execute(outputWriter, errorWriter, inputReader, arguments);
+    switch (legacyResult) {
+      case ParsedOptions success:
+        var options = success.DafnyOptions;
+        return LegacyCompilerDriver.Run(options);
+      case ExitImmediately failure:
+        return Task.FromResult((int)failure.ExitValue);
+      default: throw new Exception("unreachable");
+    }
   }
 
   private static ILegacyParseArguments TryLegacyArgumentParser(
