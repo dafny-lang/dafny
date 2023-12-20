@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Until we get proper dependency to previous Dafny, you have to generate the file GeneratedFromDafny.cs
 # To remove this manual build process, when it will be appropriate:
 # 1. Delete the file GeneratedFromDafny.cs
@@ -28,4 +28,4 @@ with open ('$output.cs', 'r' ) as f:
 with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include $output.cs 
+dotnet format whitespace --include $output.cs 

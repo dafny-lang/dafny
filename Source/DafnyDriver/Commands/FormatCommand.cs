@@ -16,7 +16,7 @@ static class FormatCommand {
   public static Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
 If no dafny file is provided, will look for every available Dafny file.
-Use '--print -' to output the content of the formatted files instead of overwriting them.");
+Use '--print' to output the content of the formatted files instead of overwriting them.");
     result.AddArgument(DafnyCommands.FilesArgument);
 
     foreach (var option in Options) {
@@ -43,10 +43,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
 
     var exitValue = ExitValue.SUCCESS;
     Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
-    dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => {
-      return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, new Uri(name))).ToList();
-    })).ToList();
+    dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => GetFilesForFolder(options, folderPath))).ToList();
 
     var failedToParseFiles = new List<string>();
     var emptyFiles = new List<string>();
@@ -56,17 +53,23 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     var neededFormatting = 0;
     foreach (var file in dafnyFiles) {
       var dafnyFile = file;
-      if (!dafnyFile.Uri.IsFile && !doCheck && !doPrint) {
+      if (dafnyFile.Uri.Scheme == "stdin" && !doCheck && !doPrint) {
         await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.");
+        exitValue = ExitValue.PREPROCESSING_ERROR;
+        continue;
+      }
+      if (dafnyFile.Extension == ".doo" && !doCheck && !doPrint) {
+        await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;
       }
 
       string tempFileName = null;
-      if (!dafnyFile.Uri.IsFile) {
+      if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = new DafnyFile(options, new Uri(tempFileName));
+        dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
+          OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
 
       using var content = dafnyFile.GetContent();
@@ -149,5 +152,11 @@ Use '--print -' to output the content of the formatted files instead of overwrit
     }
 
     return exitValue;
+  }
+
+  public static IEnumerable<DafnyFile> GetFilesForFolder(DafnyOptions options, string folderPath) {
+    return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
+      .Select(name => DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance,
+        options, new Uri(name), Token.Cli));
   }
 }

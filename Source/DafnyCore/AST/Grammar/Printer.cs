@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
 Everything - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
+Serialization - print the source that will be included in a compiled dll.
 NoIncludes - disable printing of {:verify false} methods
     incorporated via the include mechanism, as well as datatypes and
     fields included from other files.
@@ -567,8 +567,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.IsAbstract) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         wr.Write("abstract ");
+      }
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -579,8 +582,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Implements != null) {
+        var kindString = module.Implements.Kind switch {
+          ImplementationKind.Refinement => "refines",
+          ImplementationKind.Replacement => "replaces",
+          _ => throw new ArgumentOutOfRangeException()
+        };
+        wr.Write($"{kindString} {module.Implements.Target} ");
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
@@ -1018,6 +1026,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
+      var readsExpressions = method.Reads.Expressions;
+      if (readsExpressions != null) {
+        var isDefault = readsExpressions.Count == 1 && readsExpressions[0].E is WildcardExpr;
+        if (!isDefault) {
+          PrintFrameSpecLine("reads", method.Reads, ind);
+        }
+      }
       if (method.Mod.Expressions != null) {
         PrintFrameSpecLine("modifies", method.Mod, ind);
       }
@@ -1236,6 +1251,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (expectStmt != null && expectStmt.Message != null) {
           wr.Write(", ");
           PrintExpression(expectStmt.Message, true);
+          wr.Write(";");
         } else {
           wr.Write(";");
         }
@@ -2679,6 +2695,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("var ");
           PrintCasePattern(e.Lhs);
           wr.Write(" :- ");
+        } else {
+          wr.Write(":- ");
         }
         PrintExpression(e.Rhs, true);
         wr.Write("; ");

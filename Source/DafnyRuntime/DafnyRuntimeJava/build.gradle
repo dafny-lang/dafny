@@ -17,12 +17,16 @@ dependencies {
 }
 
 group = 'org.dafny'
-version = '4.2.0'
+version = '4.4.0'
 sourceCompatibility = '1.8'
 
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+sourceSets["main"].java {
+    srcDir("src/main/dafny-generated")
 }
 
 tasks.withType(JavaCompile) {

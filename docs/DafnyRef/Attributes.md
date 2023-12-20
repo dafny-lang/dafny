@@ -173,6 +173,9 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
 
+### 11.1.5. `{:disable-nonlinear-arithmetic}` {#sec-disable-nonlinear-arithmetic}
+This attribute only applies to module declarations. It overrides the global option `--disable-nonlinear-arithmetic` for that specific module. The attribute can be given true or false to disable or enable nonlinear arithmetic. When no value is given, the default value is true.
+
 ## 11.2. Attributes on functions and methods
 
 ### 11.2.1. `{:abstemious}`
@@ -444,7 +447,7 @@ of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
 ### 11.2.16. `{:tailrecursion}`
-This attribute is used on method declarations. It has a boolean argument.
+This attribute is used on method or function declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
 requested no tail recursion, so none is done.
@@ -458,6 +461,80 @@ recursion was explicitly requested.
 * Only direct recursion is supported, not mutually recursive methods.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
+
+If you have a stack overflow, it might be that you have
+a function on which automatic attempts of tail recursion
+failed, but for which efficient iteration can be implemented by hand. To do this,
+use a [function by method](#sec-function-by-method) and
+define the loop in the method yourself,
+proving that it implements the function.
+
+Using a function by method to implement recursion can
+be tricky. It usually helps to look at the result of the function
+on two to three iterations, without simplification,
+and see what should be the first computation. For example,
+consider the following tail-recursion implementation:
+
+<!-- %check-verify -->
+```dafny
+datatype Result<V,E> = Success(value: V) | Failure(error: E)
+
+function f(x: int): Result<int, string>
+
+//  {:tailrecursion true}  Not possible here
+function MakeTailRec(
+  obj: seq<int>
+): Result<seq<int>, string>
+{
+  if |obj| == 0 then Success([])
+  else
+    var tail := MakeTailRec(obj[1..]);
+    var r := f(obj[0]);
+    if r.Failure? then
+      Failure(r.error)
+    else if tail.Failure? then
+      tail
+    else
+      Success([r.value] + tail.value)
+} by method {
+  var i: nat := |obj|;
+  var tail := Success([]); // Base case
+  while i != 0
+    decreases i
+    invariant tail == MakeTailRec(obj[i..])
+  {
+    i := i - 1;
+    var r := f(obj[i]);
+    if r.Failure? {
+      tail := Failure(r.error);
+    } else if tail.Success? {
+      tail := Success([r.value] + tail.value);
+    } else {
+    }
+  }
+  return tail;
+}
+```
+
+The rule of thumb to unroll a recursive call into a sequential one
+is to look at how the result would be computed if the operations were not
+simplified. For example, unrolling the function on `[1, 2, 3]` yields the result
+`Success([f(1).value] + ([f(2).value] + ([f(3).value] + [])))`.
+If you had to compute this expression manually, you'd start with
+`([f(3).value] + [])`, then add `[f(2).value]` to the left, then 
+`[f(1).value]`.
+This is why the method loop iterates with the objects
+from the end, and why the intermediate invariants are
+all about proving `tail == MakeTailRec(obj[i..])`, which
+makes verification succeed easily because we replicate
+exactly the behavior of `MakeTailRec`.
+If we were not interested in the first error but the last one,
+a possible optimization would be, on the first error, to finish
+iterate with a ghost loop that is not executed.
+
+Note that the function definition can be changed by computing
+the tail closer to where it's used or switching the order of computing
+`r` and `tail`, but the `by method` body can stay the same.
 
 ### 11.2.17. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
@@ -646,9 +723,22 @@ options revert to their previous values.
 Only a small subset of Dafny's command line options is supported.  Use the
 `/attrHelp` flag to see which ones.
 
-## 11.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assertions}
+## 11.3. Attributes on reads and modifies clauses
 
-### 11.3.1. `{:only}` {#sec-only}
+### 11.3.1. `{:assume_concurrent}`
+This attribute is used to allow non-empty `reads` or `modifies` clauses on methods
+with the `{:concurrent}` attribute, which would otherwise reject them.
+
+In some cases it is possible to know that Dafny code that reads or writes shared mutable state
+is in fact safe to use in a concurrent setting, especially when that state is exclusively ghost.
+Since the semantics of `{:concurrent}` aren't directly expressible in Dafny syntax,
+it isn't possible to express this assumption with an `assume {:axiom} ...` statement.
+
+See also the [`{:concurrent}`](#sec-concurrent-attribute) attribute.
+
+## 11.4. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assertions}
+
+### 11.4.1. `{:only}` {#sec-only}
 
 `assert {:only} X;` temporarily transforms all other non-`{:only}` assertions in the surrounding declaration into assumptions.
 
@@ -685,7 +775,7 @@ As soon as a declaration contains one `assert {:only}`, none of the postconditio
 
 You can also isolate the verification of a single member using [a similar `{:only}` attribute](#sec-only-functions-methods).
 
-### 11.3.2. `{:focus}` {#sec-focus}
+### 11.4.2. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 The first batch considers all assertions that are not on the block containing the `assert {:focus} X;`
 The second batch considers all assertions that are on the block containing the `assert {:focus} X;` and those that will _always_ follow afterwards.
@@ -742,7 +832,7 @@ method doFocus2(x: bool) returns (y: int) {
 }
 ```
 
-### 11.3.3. `{:split_here}` {#sec-split_here}
+### 11.4.3. `{:split_here}` {#sec-split_here}
 `assert {:split_here} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 It verifies the code leading to this point (excluded) in a first assertion batch,
 and the code leading from this point (included) to the next `{:split_here}` or until the end in a second assertion batch.
@@ -771,12 +861,12 @@ method doSplitHere(x: bool) returns (y: int) {
 }
 ```
 
-### 11.3.4. `{:subsumption n}`
+### 11.4.4. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 `{:subsumption 0}` checks an assertion but does not assume it after proving it.
 You can achieve the same effect using [labelled assertions](#sec-labeling-revealing-assertions).
 
-### 11.3.5. `{:error "errorMessage", "successMessage"}` {#sec-error-attribute}
+### 11.4.5. `{:error "errorMessage", "successMessage"}` {#sec-error-attribute}
 Provides a custom error message in case the assertion fails.
 As a hint, messages indicating what the user needs to do to fix the error are usually better than messages that indicate the error only.
 For example:
@@ -805,9 +895,9 @@ method Test()
 
 The success message is optional but is recommended if errorMessage is set.
 
-## 11.4. Attributes on variable declarations
+## 11.5. Attributes on variable declarations
 
-### 11.4.1. `{:assumption}` {#sec-assumption}
+### 11.5.1. `{:assumption}` {#sec-assumption}
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
@@ -816,16 +906,16 @@ Boogie output to a declaration followed by an `assume b` command.
 See [@LeinoWuestholz2015], Section 3, for example uses of the `{:assumption}`
 attribute in Boogie.
 
-## 11.5. Attributes on quantifier expressions (forall, exists)
+## 11.6. Attributes on quantifier expressions (forall, exists)
 
-### 11.5.1. `{:heapQuantifier}`
+### 11.6.1. `{:heapQuantifier}`
 
 _This attribute has been removed._
 
-### 11.5.2. `{:induction}` {#sec-induction-quantifier}
+### 11.6.2. `{:induction}` {#sec-induction-quantifier}
 See [`{:induction}`](#sec-induction) for functions and methods.
 
-### 11.5.3. `{:trigger}` {#sec-trigger}
+### 11.6.3. `{:trigger}` {#sec-trigger}
 Trigger attributes are used on quantifiers and comprehensions.
 
 The verifier instantiates the body of a quantified expression only when it can find an expression that matches the provided trigger.  
@@ -871,7 +961,7 @@ Here are ways one can prove `assert P(j + 4);`:
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
 
 
-## 11.6. Deprecated attributes
+## 11.7. Deprecated attributes
 
 These attributes have been deprecated or removed. They are no longer useful (or perhaps never were) or were experimental.
 They will likely be removed entirely sometime soon after the release of Dafny 4.
@@ -884,7 +974,7 @@ Removed:
 Deprecated:
 - :opaque : This attribute has been promoted to a first-class modifier for functions. Find more information [here](#sec-opaque).
 
-## 11.7. Other undocumented verification attributes
+## 11.8. Other undocumented verification attributes
 
 A scan of Dafny's sources shows it checks for the
 following attributes.

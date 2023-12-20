@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 

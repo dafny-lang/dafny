@@ -9,7 +9,7 @@ using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
 
-namespace DafnyCore; 
+namespace DafnyCore;
 
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
@@ -69,9 +69,18 @@ public class DooFile {
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
   public static DooFile Read(string path) {
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    return Read(archive);
+  }
+
+  public static DooFile Read(Stream stream) {
+    using var archive = new ZipArchive(stream);
+    return Read(archive);
+  }
+
+  private static DooFile Read(ZipArchive archive) {
     var result = new DooFile();
 
-    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
@@ -107,24 +116,30 @@ public class DooFile {
   private DooFile() {
   }
 
-  public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
-    if (currentCommand == null) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
-      return false;
+  /// <summary>
+  /// Returns the options as specified by the DooFile
+  /// </summary>
+  public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+    if (!options.UsingNewCli) {
+      reporter.Error(MessageSource.Project, origin,
+        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+      return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
-      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
-      return false;
+      reporter.Error(MessageSource.Project, origin,
+        $"cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+      return null;
     }
 
+    var result = new DafnyOptions(options);
     var success = true;
-    var revelantOptions = currentCommand.Options.ToHashSet();
+    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
-      if (!revelantOptions.Contains(option)) {
+      if (!relevantOptions.Contains(option)) {
         continue;
       }
 
@@ -132,17 +147,24 @@ public class DooFile {
 
       object libraryValue = null;
       if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
-        if (!TomlUtil.TryGetValueFromToml(Console.Out, null,
+        if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
-          return false;
+          return null;
         }
       } else if (option.ValueType == typeof(IEnumerable<string>)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
         libraryValue = Array.Empty<string>();
       }
-      success = success && check(options, option, localValue, filePath, libraryValue);
+
+      result.Options.OptionArguments[option] = libraryValue;
+      success = success && check(reporter, origin, option, localValue, filePath, libraryValue);
     }
-    return success;
+
+    if (!success) {
+      return null;
+    }
+
+    return result;
   }
 
   private static object GetOptionValue(DafnyOptions options, Option option) {
@@ -199,16 +221,39 @@ public class DooFile {
   // more difficult to completely categorize, which is the main reason the LibraryBackend
   // is restricted to only the new CLI.
 
-  public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
+  public delegate bool OptionCheck(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue);
   private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
   private static readonly HashSet<Option> NoChecksNeeded = new();
 
-  public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+  public static bool CheckOptionMatches(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
     if (OptionValuesEqual(option, localValue, libraryValue)) {
       return true;
     }
 
-    options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    return false;
+  }
+
+  /// Checks that the library option ==> the local option.
+  /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
+  /// Generally the right check for options that weaken guarantees.
+  public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
+    if (OptionValuesImplied(option, libraryValue, localValue)) {
+      return true;
+    }
+
+    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    return false;
+  }
+
+  /// Checks that the local option ==> the library option.
+  /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
+  /// Generally the right check for options that strengthen guarantees.
+  public static bool CheckOptionLocalImpliesLibrary(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
+    if (OptionValuesImplied(option, localValue, libraryValue)) {
+      return true;
+    }
+    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -222,6 +267,12 @@ public class DooFile {
     }
 
     return false;
+  }
+
+  private static bool OptionValuesImplied(Option option, object first, object second) {
+    var lhs = (bool)first;
+    var rhs = (bool)second;
+    return !lhs || rhs;
   }
 
   private static string OptionValueToString(Option option, object value) {

@@ -11,6 +11,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   
   <ItemGroup>

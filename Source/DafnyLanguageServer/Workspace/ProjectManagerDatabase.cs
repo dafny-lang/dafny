@@ -68,20 +68,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       manager.Save(documentId);
     }
 
-    public async Task CloseDocumentAsync(TextDocumentIdentifier documentId) {
+    public void CloseDocument(TextDocumentIdentifier documentId) {
       fileSystem.CloseDocument(documentId);
 
-      Task close;
       lock (myLock) {
         if (!managersBySourceFile.Remove(documentId.Uri.ToUri(), out var manager)) {
           return;
         }
 
-        if (manager.CloseDocument(out close)) {
+        if (manager.CloseDocument(documentId.Uri.ToUri())) {
           managersByProject.Remove(manager.Project.Uri, out _);
         }
       }
-      await close;
     }
 
     public async Task<IdeState?> GetParsedDocumentNormalizeUri(TextDocumentIdentifier documentId) {
@@ -118,22 +116,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<CompilationAfterParsing?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
-      // Resolves drive letter capitalisation issues in Windows that occur when this method is called
-      // from an in-process client without serializing documentId
-      var normalizedUri = DocumentUri.From(documentId.Uri.ToString());
-      documentId = documentId with {
-        Uri = normalizedUri
-      };
-      var manager = await GetProjectManager(documentId, false);
-      if (manager != null) {
-        return await manager.GetLastDocumentAsync();
-      }
-
-      logger.LogDebug($"GetLastDocumentAsync returned null for {documentId.Uri}");
-      return null;
-    }
-
     public Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId) {
       return GetProjectManager(documentId, false);
     }
@@ -154,10 +136,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             var projectFileContentHasChanged = projectManagerForFile.Project.Uri == project.Uri;
             if (projectFileContentHasChanged) {
               // Scrap the project manager.
-              var _ = projectManagerForFile.CloseAsync();
+              projectManagerForFile.CloseAsync();
               managersByProject.Remove(project.Uri);
             } else {
-              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(out _);
+              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
               if (previousProjectHasNoDocuments) {
                 // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);

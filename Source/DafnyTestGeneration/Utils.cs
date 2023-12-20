@@ -4,10 +4,12 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
@@ -83,10 +85,11 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
-      uri ??= new Uri(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+      uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
-      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
-        reporter, CancellationToken.None);
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var program = new ProgramParser().ParseFiles(uri.LocalPath,
+        new[] { DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken) }, reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;
@@ -130,36 +133,25 @@ namespace DafnyTestGeneration {
     /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
     public static string GetBlockId(Block block, DafnyOptions options) {
-      var state = block.cmds.OfType<AssumeCmd>().FirstOrDefault(
+      return AllBlockIds(block, options).FirstOrDefault((string)null);
+    }
+
+    /// <summary>
+    /// Extract string mapping this basic block to locations in Dafny code.
+    /// </summary>
+    [ItemCanBeNull]
+    public static List<string> AllBlockIds(Block block, DafnyOptions options) {
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
+      var state = block.cmds.OfType<AssumeCmd>()
+        .Where(
           cmd => cmd.Attributes != null &&
                  cmd.Attributes.Key == "captureState" &&
                  cmd.Attributes.Params != null &&
                  cmd.Attributes.Params.Count() == 1)
-        ?.Attributes.Params[0].ToString();
-      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
-      return state == null ? null : Regex.Replace(state, @"\s+", "") + uniqueId;
-    }
-
-    /// <summary>
-    /// Given a file URI and a one-based line number, return the position of the character at the start of the line.
-    /// Use a cache to prevent reading the same file twice.
-    /// </summary>
-    public static int GetPosFromLine(Uri fileUri, int lineNum, Dictionary<Uri, int[]> cache) {
-      if (!cache.ContainsKey(fileUri)) {
-        var source = new StreamReader(fileUri.LocalPath).ReadToEnd();
-        var lines = source.Split("\n");
-        var pos = 0;
-        var line = 0;
-        var linePositions = new int[lines.Length + 1];
-        while (pos < source.Length) {
-          linePositions[line] = pos;
-          pos += lines[line].Length + 1;
-          line++;
-        }
-        linePositions[^1] = pos;
-        cache[fileUri] = linePositions;
-      }
-      return cache[fileUri][lineNum - 1]; // subtract one because lineNum is one-based
+        .Select(
+          cmd => cmd.Attributes.Params[0].ToString())
+        .Select(cmd => Regex.Replace(cmd, @"\s+", "") + uniqueId);
+      return state.ToList();
     }
 
     public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {

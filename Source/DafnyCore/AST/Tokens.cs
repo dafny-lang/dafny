@@ -55,14 +55,9 @@ public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
 /// </summary>
 public class Token : IToken {
 
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
+  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new Token();
-
-  static Token() {
-    NoToken.Next = NoToken;
-    NoToken.Prev = NoToken;
-  }
-
+  public static readonly Token Cli = new Token();
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {
@@ -199,6 +194,10 @@ public abstract class TokenWrapper : IToken {
 public static class TokenExtensions {
 
   public static string TokenToString(this IToken tok, DafnyOptions options) {
+    if (tok == Token.Cli) {
+      return "CLI";
+    }
+
     if (tok.Uri == null) {
       return $"({tok.line},{tok.col - 1})";
     }

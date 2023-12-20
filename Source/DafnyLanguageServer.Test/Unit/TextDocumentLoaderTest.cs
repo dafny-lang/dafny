@@ -9,7 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Test;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Xunit;
@@ -65,10 +65,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(
           It.IsAny<Compilation>(),
-          It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, source.Token);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -79,19 +78,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
     }
 
-    private static Compilation GetCompilation() {
+    private Compilation GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
-      var compilation = new Compilation(0, ProjectManagerDatabase.ImplicitProject(versionedTextDocumentIdentifier.Uri.ToUri()), new[] { versionedTextDocumentIdentifier.Uri.ToUri() });
+      var uri = versionedTextDocumentIdentifier.Uri.ToUri();
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
+      var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(DafnyOptions.Default), fs, DafnyOptions.Default, uri, Token.NoToken);
+      var input = new CompilationInput(DafnyOptions.Default, 0,
+        ProjectManagerDatabase.ImplicitProject(uri));
+      var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
+        CustomStackSizePoolTaskScheduler.Create(0, 0));
+      var compilation = new Compilation(new Mock<ILogger<Compilation>>().Object, new Mock<IFileSystem>().Object, textDocumentLoader,
+        new Mock<IProgramVerifier>().Object, engine, input);
+      compilation.RootFiles = new[] { file };
       return compilation;
     }
 
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<Compilation>(),
-          It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.ParseAsync(DafnyOptions.Default, GetCompilation(), ImmutableDictionary<Uri, DocumentVerificationTree>.Empty, default);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

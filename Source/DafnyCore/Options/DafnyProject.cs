@@ -11,11 +11,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Options;
+using JetBrains.Annotations;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
 using Tomlyn.Model;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
   public const string FileName = "dfyconfig.toml";
@@ -163,7 +164,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
 
     var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
-    var parseResult = option.Parse(new[] { option.Aliases.First(), printTomlValue });
+    var parseResult = option.Parse(printTomlValue.ToArray());
     if (parseResult.Errors.Any()) {
       errorWriter.WriteLine($"Error: Could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
       value = null;
@@ -175,28 +176,32 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return true;
   }
 
-  string PrintTomlOptionToCliValue(object value, Option valueType) {
+  [ItemCanBeNull]
+  IEnumerable<string> PrintTomlOptionToCliValue(object value, Option valueType) {
     var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
 
     if (value is TomlArray array) {
+      List<string> elements;
       if (valueType.ValueType.IsAssignableTo(typeof(IEnumerable<FileInfo>))) {
-        return string.Join(" ", array.Select(element => {
+        elements = array.Select(element => {
           if (element is string elementString) {
             return Path.GetFullPath(elementString, projectDirectory!);
           }
 
           return element.ToString();
-        }));
+        }).ToList();
+      } else {
+        elements = array.Select(o => o.ToString()).ToList();
       }
 
-      return string.Join(" ", array);
+      return elements.SelectMany(e => new[] { valueType.Aliases.First(), e });
     }
 
     if (value is string stringValue && valueType.ValueType == typeof(FileInfo)) {
       value = Path.GetFullPath(stringValue, projectDirectory);
     }
 
-    return value.ToString();
+    return new[] { valueType.Aliases.First(), value.ToString() };
   }
 
   public bool Equals(DafnyProject other) {

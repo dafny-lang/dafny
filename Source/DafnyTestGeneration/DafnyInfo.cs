@@ -428,7 +428,7 @@ namespace DafnyTestGeneration {
       }
 
       private void Visit(LiteralModuleDecl d) {
-        if (d.ModuleDef.IsAbstract) {
+        if (d.ModuleDef.ModuleKind != ModuleKindEnum.Concrete) {
           return;
         }
         if (info.ToImportAs.ContainsValue(d.Name)) {

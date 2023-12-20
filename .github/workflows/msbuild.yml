@@ -23,17 +23,20 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         submodules: recursive
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
+    - name: Check whitespace and style
+      working-directory: dafny
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
     - name: Get Boogie Version
       run: |
         sudo apt-get update
@@ -43,7 +46,7 @@ jobs:
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
@@ -51,11 +54,8 @@ jobs:
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
-    - name: Check whitespace and style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs --exclude DafnyCore/GeneratedFromDafny.cs
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
       run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
@@ -85,13 +85,13 @@ jobs:
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: dafny
           submodules: recursive
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{env.dotnet-version}}
 

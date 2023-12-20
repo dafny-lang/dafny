@@ -73,8 +73,6 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
     var s = new DefaultValueSubstituter(resolver, visited, this.receiver, this.substMap, typeMap);
     this.ResolvedExpression = s.Substitute(this.formal.DefaultValue);
     visited[this] = WorkProgress.Done;
-
-    this.ResolvedExpression.Type = this.Type;
   }
 
   class DefaultValueSubstituter : Substituter {

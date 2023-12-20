@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Test;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
@@ -52,20 +53,26 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     public const string LanguageId = "dafny";
     protected static int fileIndex;
     protected readonly TextWriter output;
+    protected readonly ILogger logger;
 
     public ILanguageServer Server { get; protected set; }
 
     public IProjectDatabase Projects => Server.GetRequiredService<IProjectDatabase>();
 
     protected DafnyLanguageServerTestBase(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
-      : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => {
-        builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
-        builder.AddFilter("OmniSharp", LogLevel.Warning);
-        builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
-        builder.AddConsole();
-      }))) {
+      : base(new JsonRpcTestOptions(CreateLoggerFactory(dafnyLogLevel))) {
       this.output = new WriterFromOutputHelper(output);
+      logger = CreateLoggerFactory(dafnyLogLevel).CreateLogger("default");
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(LogLevel dafnyLogLevel) {
+      return LoggerFactory.Create(
+        builder => {
+          builder.AddFilter("OmniSharp.Extensions.JsonRpc", LogLevel.None);
+          builder.AddFilter("OmniSharp", LogLevel.Warning);
+          builder.AddFilter("Microsoft.Dafny", dafnyLogLevel);
+          builder.AddConsole();
+        });
     }
 
     protected virtual void ServerOptionsAction(LanguageServerOptions serverOptions) {
@@ -99,7 +106,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       var dafnyOptions = DafnyOptions.Create(output);
       dafnyOptions.Set(ProjectManager.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
-      Microsoft.Dafny.LanguageServer.LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
+      dafnyOptions.UsingNewCli = true;
+      LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
         options.WithDafnyLanguageServer(() => { });
@@ -130,18 +138,25 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
+      DocumentUri uri;
       if (filePath == null) {
         var index = Interlocked.Increment(ref fileIndex);
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
       }
-      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
-        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+
+      if (filePath.StartsWith("untitled:")) {
+        uri = DocumentUri.Parse(filePath);
+      } else {
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
+          filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+        }
+        filePath = Path.GetFullPath(filePath);
+        uri = DocumentUri.FromFileSystemPath(filePath);
       }
-      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
+        Uri = uri,
         Version = version
       };
     }

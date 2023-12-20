@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -17,19 +19,59 @@ public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
   protected SinglePassCompiler compiler;
 
-  protected ExecutableBackend(DafnyOptions options) {
-    Options = options;
+  protected ExecutableBackend(DafnyOptions options) : base(options) {
   }
-
-  public DafnyOptions Options { get; }
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 
   public override bool SupportsDatatypeWrapperErasure =>
     CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
+  public override string ModuleSeparator => Compiler.ModuleSeparator;
+
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-    compiler.Compile(dafnyProgram, output);
+    CheckInstantiationReplaceableModules(dafnyProgram);
+    ProcessOuterModules(dafnyProgram);
+    Compiler.Compile(dafnyProgram, output);
+  }
+
+  protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules()) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            "inside a module that replaces another, {:extern} attributes may only be used without arguments");
+        }
+      }
+
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+        if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        }
+      }
+    }
+  }
+
+  protected void ProcessOuterModules(Program dafnyProgram) {
+    var outerModules = GetOuterModules();
+    ModuleDefinition rootUserModule = null;
+    foreach (var outerModule in outerModules) {
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
+        null, null, null);
+      newRoot.EnclosingModule = rootUserModule;
+      rootUserModule = newRoot;
+    }
+
+    if (rootUserModule != null) {
+      dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
+      dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
+    }
+
+    foreach (var module in dafnyProgram.CompileModules) {
+      module.ClearNameCache();
+    }
   }
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
@@ -37,19 +79,29 @@ public abstract class ExecutableBackend : IExecutableBackend {
     compiler = CreateCompiler();
   }
 
+  SinglePassCompiler Compiler {
+    get {
+      if (compiler == null) {
+        compiler = CreateCompiler();
+      }
+
+      return compiler;
+    }
+  }
+
   public override void OnPostCompile() {
     base.OnPostCompile();
-    compiler.Coverage.WriteLegendFile();
+    Compiler.Coverage.WriteLegendFile();
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
 
   public override string PublicIdProtect(string name) {
-    return compiler.PublicIdProtect(name);
+    return Compiler.PublicIdProtect(name);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
-    compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+    Compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
   }
 
   public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
@@ -140,11 +192,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
-    if (compiler == null) {
+    if (Compiler == null) {
       return;
     }
 
-    instrumenter.Instrument(this, compiler, dafnyProgram);
+    instrumenter.Instrument(this, Compiler, dafnyProgram);
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {

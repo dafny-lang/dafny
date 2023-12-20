@@ -55,15 +55,20 @@ namespace IntegrationTests {
         return (extraDafnyArguments is null ? args : args.Append(extraDafnyArguments)).Concat(local);
       }
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
-      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--cores:2", "--verification-time-limit:300" };
+      // Note we disallow standard libraries by default in tests,
+      // to discourage the language itself from depending on them.
+      // These explicit defaults are here, and should remain here independent of the user-facing defaults.
+      // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
+
+      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
+      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300" };
+      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300" };
+      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false --cores:2 --verification-time-limit:300" },
+        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
@@ -175,10 +180,18 @@ namespace IntegrationTests {
     }
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      return invokeDirectly
-        ? new DafnyDriverLitCommand(arguments, config)
-        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
+      if (invokeDirectly) {
+        return new DafnyDriverLitCommand(arguments, config);
+      }
+
+      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
+      if (dafnyReleaseDir == null) {
+        return new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
           config.PassthroughEnvironmentVariables);
+      }
+
+      var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
+      return new ShellLitCommand(dafnyCliPath, arguments, config.PassthroughEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;
@@ -239,7 +252,7 @@ namespace IntegrationTests {
               return false;
             }
 
-            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run" or "translate")) {
+            if (arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
               return true;
             }
           }

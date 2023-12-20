@@ -1,19 +1,26 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Linq;
+using DafnyCore;
 using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
 static class TranslateCommand {
+
+  static TranslateCommand() {
+  }
+
   public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
+      IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
+      RunAllTestsMainMethod.IncludeTestRunner
     }.Concat(DafnyCommands.TranslationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
+
 
   public static Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");

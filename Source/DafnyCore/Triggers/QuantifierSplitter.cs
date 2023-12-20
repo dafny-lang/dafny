@@ -147,8 +147,8 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   class MatchingLoopRewriter {
-    public MatchingLoopRewriter(DafnyOptions options) {
-      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
+    public MatchingLoopRewriter(DafnyOptions options, ModuleDefinition forModule) {
+      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options, forModule);
     }
 
     TriggersCollector triggersCollector;

@@ -506,6 +506,40 @@ module M {
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
+    public async Task CoverageReport(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module M {
+  method {:testEntry} m(a:int) returns (b:bool)
+    requires a > 0
+  {                                             // fully covered (method's entry point)
+    b := if IsPositive(a) then true else false; // partially covered because there are two branches
+    if !IsPositive(a) {                         // fully covered
+      b := false;                               // not covered
+    }
+  }                                             // fully covered (method's exit point)
+  predicate {:testInline} IsPositive(n:int) {
+    n > 0                                       // fully covered
+  }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      options.TestGenOptions.WarnDeadCode = true;
+      options.TestGenOptions.Mode = TestGenerationOptions.Modes.InlinedBlock;
+      var coverageReport = new CoverageReport("", "", "", null);
+      await Main.GetDeadCodeStatistics(new StringReader(source), null, options, coverageReport).ToListAsync();
+      Assert.NotEmpty(coverageReport.AllFiles());
+      var fileId = coverageReport.AllFiles().First();
+      Assert.Equal(6, coverageReport.CoverageSpansForFile(fileId).Count());
+      Assert.Equal(4, coverageReport.CoverageSpansForFile(fileId).Count(
+        coverageSpan => coverageSpan.Label == CoverageLabel.FullyCovered));
+      Assert.Equal(1, coverageReport.CoverageSpansForFile(fileId).Count(
+        coverageSpan => coverageSpan.Label == CoverageLabel.PartiallyCovered));
+      Assert.Equal(1, coverageReport.CoverageSpansForFile(fileId).Count(
+        coverageSpan => coverageSpan.Label == CoverageLabel.NotCovered));
+    }
+
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
     public async Task NoDeadCode(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 method {:testEntry} m(a:int) returns (b:int)
