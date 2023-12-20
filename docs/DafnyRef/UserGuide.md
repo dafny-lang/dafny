@@ -826,6 +826,7 @@ excludes = ["**/ignore.dfy"]
 [options]
 enforce-determinism = true
 warn-shadowing = true
+default-function-opacity = "Opaque"
 ```
 
 - At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
