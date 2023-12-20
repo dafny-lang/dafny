@@ -467,6 +467,7 @@ public class Compilation : IDisposable {
   public static void ReportDiagnosticsInResult(DafnyOptions options, IImplementationTask task, VCResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.outcome);
+    result.counterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.counterExamples) //.OrderBy(d => d.GetLocation()))
     {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
