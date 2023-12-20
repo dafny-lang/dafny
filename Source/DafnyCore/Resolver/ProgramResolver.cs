@@ -245,7 +245,7 @@ public class ProgramResolver {
       refinementTarget.Root = other;
       if (!res) {
         Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
-          $"module {module.Implements} named as refinement base does not exist");
+          $"module {module.Implements.Target} named as {module.Implements.Kind.ToString().ToLower()} base does not exist");
       } else {
         declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
