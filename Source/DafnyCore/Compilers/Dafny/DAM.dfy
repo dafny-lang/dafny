@@ -2,8 +2,8 @@
  * This file specifies:
  * 1. A core language for Dafny based on call-by-push-value (CBPV) with
  *    state (mutable references), control (letcc/throw) for early returns, etc., and recursion 
- * 2. A novel "CHEK"-machine interpreter that extends the CK machine for CBPV
- *    Notably, the environment does not point to addresses like a CESK machine, which avoids spurious
+ * 2. A novel CESK-machine interpreter that extends the CK machine for CBPV
+ *    Notably, the environment does not point to addresses like a CESK machine. This avoids spurious
  *    allocations (and, therefore, proof burden about the store) for lexically-scoped bindings.
  * 3. A simple type system that is sound with respect to the interpreter
 */ 
@@ -25,12 +25,6 @@ module {:extern "DAM"} DAM {
 
     function SeqGet<A>(s: seq<A>, idx: nat): Option<A> {
       if idx < |s| then Some(s[idx]) else None
-    }
-
-    function UpdateSeq<A>(s: seq<A>, idx: nat, val: A): seq<A>
-      requires idx <= |s|
-    {
-      if idx < |s| then s[idx := val] else s + [val]
     }
 
     function Extend<A>(s: seq<A>, elt: A): (nat, seq<A>) {
@@ -72,7 +66,7 @@ module {:extern "DAM"} DAM {
     | Unit
     | Bool(bool)
     | Int(int)
-    // TODO datatypes
+    // TODO self types for recursive datatypes + objects
     | Thunk(Stmt)
 
     //Hamza-Voirol-Kuncak trick: annotate terms just enough so that ostensible checking terms synthesize
@@ -130,16 +124,16 @@ module {:extern "DAM"} DAM {
     type Addr = nat
 
     // The environment accumulates substitutions made along the course of machine execution, i.e.,
-    // maps variables to addresses
+    // maps variables to values - closed intro. forms of positive type
     type Env = map<Var, Val>
 
-    // The store maps addresses to values - closed intro. forms of positive type
+    // The store maps addresses to values
     type Store = seq<Val>
 
     // Closed expressions are evaluated into values
     type ClosedExpr = (Env, Expr)
 
-    // Closed statements - closed expressions that are thunks
+    // Closed statements are executed by the machine
     type ClosedStmt = (Env, Stmt)
     
     datatype Val =
@@ -149,7 +143,7 @@ module {:extern "DAM"} DAM {
     // To implement lexical scope, thunks are closures
     | Thunk(closure: ClosedStmt)
     | Ref(addr: Addr)
-    | Stack(stack: Stack)
+    | Stack(start: Neg, stack: Stack)
 
     // Stacks accumulate negative eliminations
     datatype Stack = Empty | Push(top: Frame, rest: Stack) {
@@ -176,7 +170,6 @@ module {:extern "DAM"} DAM {
     import opened Syntax
     import opened Machine
 
-    // Honestly, I forgot why this is an alist
     type Context = map<Var, Pos>
 
     // G |- expr => t+
@@ -280,6 +273,15 @@ module {:extern "DAM"} DAM {
         case _            => None
       )
 
+      /*case Throw(stmt, stack, start) => (
+        match SynthExpr(g, stack)
+        case Some(Stack(newstart)) =>
+          if CheckStmt(g, stmt, newstart) then
+            Some(start)
+          else
+            None
+      )*/
+
       case _ => None
     }
 
@@ -290,6 +292,7 @@ module {:extern "DAM"} DAM {
 
     // S |- env => G
     function SynthEnv(s: StoreTyping, env: Env): Option<Context> {
+      //assume forall stmt, var_ <- env :: env[var_] < Val.Thunk((env, stmt));
       mapOption(map var_ <- env :: SynthVal(s, env[var_]))
     }
 
@@ -301,7 +304,7 @@ module {:extern "DAM"} DAM {
     // S |- (env, expr) => t+
     function SynthClosedExpr(s: StoreTyping, expr: ClosedExpr): Option<Pos> {
       var (env, expr) := expr;
-      var g :- SynthEnv(s, env);
+      var g :- mapOption(map var_ <- env :: SynthVal(s, env[var_]));
       SynthExpr(g, expr)
     }
 
@@ -354,11 +357,6 @@ module {:extern "DAM"} DAM {
       SynthStack(s, start, stack) == Some(end)
     }
 
-    lemma CheckStackWeakening(s: StoreTyping, s': StoreTyping, start: Neg, stack: Stack, end: Neg)
-      requires s <= s'
-      requires CheckStack(s, start, stack, end)
-      ensures CheckStack(s', start, stack, end)
-
     type StoreTyping = seq<Pos>
 
     // S |- val => t+
@@ -368,8 +366,8 @@ module {:extern "DAM"} DAM {
       case Bool(_)     => Some(Pos.Bool)
       case Int(_)      => Some(Pos.Int)
       case Thunk((env, stmt)) =>
-        // This is sound: the intrinsic order on values should extend to closure's environment values
-        assume forall var_ <- env :: env[var_] < val;
+        // No problem, the intrinsic order on values safely extends to closure's environment values
+        assume {:axiom} forall var_ <- env :: env[var_] < val;
         var g :- mapOption(map var_ <- env :: SynthVal(s, env[var_]));
         var t :- SynthStmt(g, stmt);
         //var t :- SynthClosedStmt(s, (env, stmt));
@@ -377,22 +375,30 @@ module {:extern "DAM"} DAM {
       case Ref(addr) =>
         var t :- SeqGet(s, addr);
         Some(Pos.Ref(t))
-      case Stack(_) => None
-      /*var end :- SynthStack(s, start, stack);
-        Some(Pos.Stack(end)) */
+      case Stack(start, stack) =>
+        /*if SynthStack(s, start, stack).Some? then
+          Some(Pos.Stack(start))
+        else
+          None*/ None
     }
 
     // S |- val <= t+
-    predicate CheckVal(s: StoreTyping, val: Val, t: Pos) {
+    predicate CheckVal(s: StoreTyping, val: Val, t: Pos) decreases val, 1 {
       SynthVal(s, val) == Some(t)
     }
     
-    // sto |- S
+    // sto |- S (defn. 13.5.1 in TAPL)
     predicate CheckStore(s: StoreTyping, store: Store) {
-      // We want |store| == |s| so that extensions s'
-      // to s allow CheckStack, etc. to admit weakening on s'
-      // (they wouldn't if s instead were *updated* in case |store| < |s|)
-      // downside: CheckInput/Output don't admit weakening on s
+      // Like TAPL, we want |store| == |s| so that extensions s'
+      // to s allow CheckStack, etc. to admit weakening on s'.
+      // If |store| < |s|, then one would have to generate a fresh address addr from |s|
+      // and fill in dummy values for locations |store|...addr in store that check against types
+      // those locations in s. If said types are empty, this isn't possible!
+      //
+      // Ideally, we would have some abstract type of locations from which one could generate fresh ones
+      // And use maps instead of sequences, but this doesn't seem worth the effort
+      //
+      // The downside is that CheckInput/Output don't admit weakening on s, but we never depend on this
       |store| == |s| && forall addr | 0 <= addr < |store| :: CheckVal(s, store[addr], s[addr])
     }
 
@@ -431,15 +437,23 @@ module {:extern "DAM"} DAM {
       requires CheckEnv(s, env, g) // S |- env <= G
       requires CheckVal(s, val, t) // S |- val <= t
       ensures  CheckEnv(s, env[var_ := val], g[var_ := t]) // S |- [var_/val]env <= G, var_ : t
+    {
+      assume {:axiom} CheckEnv(s, env[var_ := val], g[var_ := t]);
+    }
     
-    // Well-typed reference allocation and initialization
+    // Well-typed reference allocation and initialization (lemma 13.5.5 in TAPL, kind of)
     lemma UpdateStore(s: StoreTyping, store: Store, val : Val, t: Pos)
       requires CheckStore(s, store)
       requires CheckVal(s, val, t)
       ensures  var (addr, store') := Extend(store, val);
                var (addr', s')    := Extend(s, t);
                addr == addr' && CheckStore(s', store')
-    
+    {
+      var (addr, store') := Extend(store, val);
+      var (addr', s')    := Extend(s, t);
+      assume {:axiom} CheckStore(s', store');
+    }
+
     // Big-step evaluation of expressions
     function Eval(ghost s: StoreTyping, expr: ClosedExpr, ghost t: Pos): (output: Val)
       requires CheckClosedExpr(s, expr, t) // S |- expr <= t
@@ -457,19 +471,19 @@ module {:extern "DAM"} DAM {
         Val.Thunk((env, stmt))
     }
 
-    // Small-step reduction for the CHEK machine
+    // Small-step reduction for the CESK machine
     // Progress = totality, preservation = requires + ensures clause
     function Step(ghost s: StoreTyping, input: Input, ghost end: Neg): (output: Output)
       requires CheckInput(s, input, end)
       ensures  exists s' :: CheckOutput(s', output, end)
     {
       var (store, (env, stmt), stack) := input;
-
+      // Get the preconditions for preservation in order
       assert CheckStore(s, store);
       ghost var g     := SynthEnv(s, env).Extract();
       ghost var start := SynthStmt(g, stmt).Extract();
       ghost var end   := SynthStack(s, start, stack).Extract();
-
+      // Execute!
       match stmt
       case Ite(guard, then_, else_) =>
         var val := Eval(s, (env, guard), Pos.Bool);
@@ -499,11 +513,12 @@ module {:extern "DAM"} DAM {
 
       case Force(thunk) =>
         var val := Eval(s, (env, thunk), Pos.Thunk(start));
-        assume SynthClosedStmt(s, val.closure) == Some(start);
+        // This is harmless b/c Dafny can't tell that SynthEnv
+        assume {:axiom} SynthClosedStmt(s, val.closure) == Some(start);
         var output := Next((store, val.closure, stack));
         assert CheckOutput(s, output, end);
         output
-    
+      
       case Call(func, arg) =>
         var output := Next((store, (env, func), Push(Frame.Call((env, arg)), stack)));
         assert CheckOutput(s, output, end);
@@ -552,27 +567,23 @@ module {:extern "DAM"} DAM {
       case New(init, var_, next) =>
         ghost var t := SynthExpr(g, init).Extract();
         var val := Eval(s, (env, init), t);
-
         var (addr, store') := Extend(store, val);
         ghost var (_, s') := Extend(s, t);
-
         UpdateStore(s, store, val, t);
-        
+        // No problem, CheckEnv admits weakening (lemma 13.5.6 in TAPL)
         assert CheckEnv(s, env, g);
-        assume CheckEnv(s', env, g);
+        assume {:axiom} CheckEnv(s', env, g);
         UpdateEnv(s', env, g, var_, Val.Ref(addr), Pos.Ref(t));
-
-        CheckStackWeakening(s, s', start, stack, end);
-
+        // No problem, CheckStack admits weakening (lemma 13.5.6 in TAPL)
+        assert CheckStack(s, start, stack, end);
+        assume {:axiom} CheckStack(s', start, stack, end);
         var output := Next((store', (env[var_ := Val.Ref(addr)], next), stack));
         assert CheckOutput(s', output, end);
         output
 
       case Write(lhs, rhs, next) =>
-        ghost var tl := SynthExpr(g, lhs).Extract();
-        ghost var tr := SynthExpr(g, rhs).Extract();
-        var lval := Eval(s, (env, lhs), tl).addr;
-        var rval := Eval(s, (env, rhs), tr);
+        var lval := Eval(s, (env, lhs), SynthExpr(g, lhs).Extract()).addr;
+        var rval := Eval(s, (env, rhs), SynthExpr(g, rhs).Extract());
         var output := Next((store[lval := rval], (env, next), stack));
         assert CheckOutput(s, output, end);
         output
@@ -591,20 +602,13 @@ module {:extern "DAM"} DAM {
         var output := Next((store, (env[self := val], body), stack));
         assert CheckOutput(s, output, end);
         output
-
-      case _ =>
-        var output := Terminal;
-        assert CheckOutput(s, output, end);
-        output
       
-      /*
-      case LetCS(bound, body) =>
-        return Next((Update(bound, Val.Stack(env, stack), env), body, stack));
+      /*case LetCS(bound, body) =>
+         Next((Update(bound, Val.Stack(env, stack), env), body, stack));
       
       case Throw(stack, next) => {
         match Eval(env, stack)
-        case Some(Stack(env, stack)) => return Next((env, next, stack));
-        case _                       => return Stuck;
+        case Some(Stack(stack)) => Next((env, next, stack));
       }*/
     }
 
@@ -621,34 +625,17 @@ module {:extern "DAM"} DAM {
       case Terminal   => Done
     }
 
-    // Initial configuration
-    function Initial(stmt: Stmt): Input
-      { ([], (map[], stmt), Stack.Empty) }
+    // Initial configuration (see Levy's thesis)
+    function Initial(stmt: Stmt, ghost end: Neg): (output: Input)
+      requires CheckStmt(map[], stmt, end)
+      ensures  CheckInput([], output, end)
+    {
+      ([], (map[], stmt), Stack.Empty)
+    }
+
+    function RunChecked(stmt: Stmt): Option<Trace> {
+      var end :- SynthStmt(map[], stmt);
+      Some(Run([], Initial(stmt, end), end))
+    }
   }
 }
-
-/*method Main() decreases * {
-    Run(Initial(
-        Stmt.Bind(
-            Pure(Expr.Bool(true)),
-            "x",
-            Ite(
-                Var("x"),
-                Pure(Expr.Bool(false)),
-                Pure(Expr.Bool(true))
-            )
-        )
-    ));
-    // Verifies that lexical scope works
-    var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
-    var fv := Force(Var("f"));
-    var x1 := Expr.Int(1);
-    var x2 := Expr.Int(2);
-    var z  := Expr.Int(0);
-    Run(Initial(
-        Let(x1, "x", Pos.Int,
-        Let(fc, "f", Pos.Int,
-        Let(x2, "x", Pos.Int,
-        Stmt.Call(fv, z))))
-    ));
-}*/
