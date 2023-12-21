@@ -308,14 +308,15 @@ public abstract class Type : TokenNode {
   [System.Diagnostics.Contracts.Pure]
   public abstract bool Equals(Type that, bool keepConstraints = false);
 
-  public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
-  public bool IsCharType { get { return NormalizeExpand() is CharType; } }
-  public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
-  public bool IsRealType { get { return NormalizeExpand() is RealType; } }
-  public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
-  public bool IsBitVectorType { get { return AsBitVectorType != null; } }
-  public bool IsStringType { get { return AsSeqType?.Arg.IsCharType == true; } }
-  public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
+  public bool IsBoolType => NormalizeExpand() is BoolType;
+  public bool IsCharType => NormalizeExpand() is CharType;
+  public bool IsIntegerType => NormalizeExpand() is IntType;
+  public bool IsRealType => NormalizeExpand() is RealType;
+  public bool IsBigOrdinalType => NormalizeExpand() is BigOrdinalType;
+  public bool IsBitVectorType => AsBitVectorType != null;
+  public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
+  public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
+
   public bool IsNumericBased() {
     var t = NormalizeExpand();
     return t.IsIntegerType || t.IsRealType || t.AsNewtype?.BaseType.IsNumericBased() == true;
@@ -718,58 +719,32 @@ public abstract class Type : TokenNode {
       }
     }
   }
-  public bool IsArrowType {
-    get { return AsArrowType != null; }
-  }
-  public ArrowType AsArrowType {
-    get {
-      var t = NormalizeExpand();
-      return t as ArrowType;
-    }
-  }
+  public bool IsArrowType => AsArrowType != null;
 
-  public bool IsMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && t.Finite;
-    }
-  }
-  public bool IsIMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && !t.Finite;
-    }
-  }
-  public bool IsISetType {
-    get {
-      var t = NormalizeExpand() as SetType;
-      return t != null && !t.Finite;
-    }
-  }
+  public ArrowType AsArrowType => NormalizeExpand() as ArrowType;
+
+  public bool IsMapType => NormalizeExpand() is MapType { Finite: true };
+
+  public bool IsIMapType => NormalizeExpand() is MapType { Finite: false };
+
+  public bool IsISetType => NormalizeExpand() is SetType { Finite: false };
+
   public NewtypeDecl AsNewtype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      return udt == null ? null : udt.ResolvedClass as NewtypeDecl;
+      return udt?.ResolvedClass as NewtypeDecl;
     }
   }
   public TypeSynonymDecl AsTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as TypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as TypeSynonymDecl;
     }
   }
   public InternalTypeSynonymDecl AsInternalTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as InternalTypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as InternalTypeSynonymDecl;
     }
   }
   public RedirectingTypeDecl AsRedirectingType {
@@ -785,59 +760,33 @@ public abstract class Type : TokenNode {
   public RevealableTypeDecl AsRevealableType {
     get {
       var udt = this as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return (udt.ResolvedClass as RevealableTypeDecl);
-      }
+      return udt?.ResolvedClass as RevealableTypeDecl;
     }
   }
-  public bool IsRevealableType {
-    get { return AsRevealableType != null; }
-  }
-  public bool IsDatatype {
-    get {
-      return AsDatatype != null;
-    }
-  }
+  public bool IsRevealableType => AsRevealableType != null;
+
+  public bool IsDatatype => AsDatatype != null;
+
   public DatatypeDecl AsDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as DatatypeDecl;
-      }
+      return udt?.ResolvedClass as DatatypeDecl;
     }
   }
-  public bool IsIndDatatype {
-    get {
-      return AsIndDatatype != null;
-    }
-  }
+  public bool IsIndDatatype => AsIndDatatype != null;
+
   public IndDatatypeDecl AsIndDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as IndDatatypeDecl;
-      }
+      return udt?.ResolvedClass as IndDatatypeDecl;
     }
   }
-  public bool IsCoDatatype {
-    get {
-      return AsCoDatatype != null;
-    }
-  }
+  public bool IsCoDatatype => AsCoDatatype != null;
+
   public CoDatatypeDecl AsCoDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as CoDatatypeDecl;
-      }
+      return udt?.ResolvedClass as CoDatatypeDecl;
     }
   }
   public bool InvolvesCoDatatype {
@@ -845,23 +794,18 @@ public abstract class Type : TokenNode {
       return IsCoDatatype;  // TODO: should really check structure of the type recursively
     }
   }
-  public bool IsTypeParameter {
-    get {
-      return AsTypeParameter != null;
-    }
-  }
-  public bool IsInternalTypeSynonym {
-    get { return AsInternalTypeSynonym != null; }
-  }
+  public bool IsTypeParameter => AsTypeParameter != null;
+
+  public bool IsInternalTypeSynonym => AsInternalTypeSynonym != null;
+
   public TypeParameter AsTypeParameter {
     get {
       var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
       return ct?.ResolvedClass as TypeParameter;
     }
   }
-  public bool IsAbstractType {
-    get { return AsAbstractType != null; }
-  }
+  public bool IsAbstractType => AsAbstractType != null;
+
   public AbstractTypeDecl AsAbstractType {
     get {
       var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
