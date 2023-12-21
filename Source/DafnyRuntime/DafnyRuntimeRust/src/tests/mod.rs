@@ -4,6 +4,9 @@
 mod tests {
     use std::{rc::Rc, fmt::Formatter};
 
+    use num::{BigInt, One, Zero};
+    use once_cell::sync::Lazy;
+
     use crate::{DafnyClone, DafnyPrint, deallocate, allocate};
 
     use super::*;
@@ -152,5 +155,58 @@ mod tests {
         assert_eq!((*value).as_ref(), "Jane".to_string());
     }
 
+    // Now let's encode a codatatype from Dafny
+    // A codatatype is like a datatype but it can expand infinitely
+    // For example, an infinite stream of numbers
+    /*codatatype NumberStream = NumberStream(value: int, tail: NumberStream)
+    {
+        static function from(i: int): NumberStream {
+            NumberStream(i, from(i + 1))
+        }
+        function get(i: nat): int {
+            if i == 0 then value else tail.get(i-1)
+        }
+    } */
+    type LazyNumberStream = Lazy<Rc<NumberStream>, Box<dyn FnOnce() -> Rc<NumberStream>>>;
+
+    struct NumberStream {
+        value: Rc<BigInt>,
+        // tail is a lazily initialized Rc<NumberStream>
+        tail: LazyNumberStream
+    }
+    impl NumberStream {
+        fn from(i: &BigInt) -> Rc<NumberStream> {
+            let i_copy = i.clone(); // Create a cloned BigInt
+            let closure: Box<dyn FnOnce() -> Rc<NumberStream>> =
+                Box::new(move || NumberStream::from(&((&i_copy).clone() + BigInt::one())));
+            let thunk = Lazy::new(closure);
+            Rc::new(NumberStream {
+                value: Rc::new(i.clone()),
+                tail: thunk
+            })
+        }
+        fn value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.value)
+        }
+        fn tail(&self) -> Rc<NumberStream> {
+            Rc::clone(Lazy::force(&self.tail))
+        }
+
+        fn get(&self, i: &BigInt) -> Rc<BigInt> {
+            if i == &BigInt::zero() {
+                Rc::clone(&self.value)
+            } else {
+                self.tail().get(&(i.clone() - BigInt::one()))
+            }
+        }
+    }
+
+    #[test]
+    fn test_numberstream() {
+        let stream = NumberStream::from(&BigInt::zero());
+        assert_eq!(*stream.get(&BigInt::zero()), BigInt::zero());
+        assert_eq!(*stream.get(&BigInt::one()), BigInt::one());
+    }
+    
 }
 // Struct containing two reference-counted fields
