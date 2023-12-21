@@ -1,4 +1,10 @@
-use std::{fmt::{Display, Formatter}, rc::Rc, ops::{Deref, Add}, collections::{HashSet, HashMap}, cell::RefCell};
+#[cfg(test)]
+mod tests;
+use std::{fmt::{Display, Formatter},
+          rc::Rc, ops::{Deref, Add},
+          collections::{HashSet, HashMap},
+          cell::RefCell,
+          mem::ManuallyDrop};
 use num::{Integer, Signed, One};
 pub use once_cell::unsync::Lazy;
 
@@ -8,6 +14,127 @@ pub use num::FromPrimitive;
 pub use num::NumCast;
 pub use num::Zero;
 pub use itertools;
+
+// An atomic box is just a RefCell in Rust
+pub type AtomicBox<T> = Box<RefCell<T>>;
+pub type SizeT = usize;
+
+// Three elements
+// ArraySequence(var isString: bool, nodeCount: SizeT, immutable_array)
+// ConcatSequence(var isString: bool, nodeCount: SizeT, left: Sequence, right: Sequence)
+// LazySequence(length: BigInteger, box: AtomicBox<Sequence<T>>)
+// We use the named version using {...}, and use snake_case format
+
+// The T must be either a ManuallyDrop (allocated) OR a Reference Counting (immutable)
+// To explicit bounds
+enum Sequence<T>
+  where
+    ManuallyDrop<T>: Default,
+    Rc<T>: Clone,
+{
+    ArraySequence {
+        is_string: bool,
+        node_count: usize,
+        length: SizeT,
+        // Values is a native array (not a Vec<> that will actually perform bound checks),*
+        // because we will know statically that all 
+        // accesses are in bounds when using this data structure
+        values: Box<[T]>,
+    },
+    ConcatSequence {
+        is_string: bool,
+        node_count: usize,
+        left: Box<Sequence<T>>,
+        right: Box<Sequence<T>>,
+    },
+    LazySequence {
+        is_string: bool,
+        node_count: usize,
+        length: SizeT,
+        boxed: AtomicBox<Sequence<T>>
+    }
+}
+impl <T> Sequence<T>
+where
+  ManuallyDrop<T>: Default,
+  Rc<T>: Clone {
+    /// Returns the cardinality of this [`Sequence<T>`].
+    // The cardinality returns the length of the sequence
+    fn cardinality(&self) -> SizeT {
+        match self {
+            Sequence::ArraySequence { length, .. } =>
+              // The length of the elements
+              *length,
+            Sequence::ConcatSequence { left, right, .. } =>
+              left.cardinality() + right.cardinality(),
+            Sequence::LazySequence { length, .. } =>
+              *length,
+        }
+    }
+    /*fn to_array(&self): [T] {
+        match self {
+            Sequence::ArraySequence { values, .. } =>
+              // The length of the elements
+              *values,
+            Sequence::ConcatSequence { left, right, .. } =>
+              [left.to_array(), right.to_array()].concat(),
+            Sequence::LazySequence { boxed, .. } =>
+              boxed.borrow().to_array(),
+        }
+    
+    }
+    fn select(&self, index: SizeT) -> Option<&T> {
+        match self {
+            Sequence::ArraySequence { values, .. } =>
+              // The length of the elements
+              values.get(index),
+            Sequence::ConcatSequence { left, right, .. } =>
+              if index < left.cardinality() {
+                  left.select(index)
+              } else {
+                  right.select(index - left.cardinality())
+              },
+            Sequence::LazySequence { boxed, .. } =>
+              boxed.borrow().select(index),
+        }
+    }*/
+    
+}
+
+
+// Generic function to allocate and return a raw pointer immediately
+#[inline]
+pub fn allocate<T>(value: Box<T>) -> *const T {
+    Box::into_raw(value)
+}
+
+// Generic function to safely deallocate a raw pointer
+#[inline]
+pub fn deallocate<T>(pointer: *const T) {
+    unsafe {
+        // Takes ownership of the reference,
+        // so that it's deallocated at the end of the method
+        let _ = Box::from_raw(pointer as *mut T);
+    }
+}
+
+pub trait DafnyClone {
+    fn clone_value(&self) -> Self;
+}
+
+impl <T> DafnyClone for Rc<T> {
+    #[inline]
+    fn clone_value(&self) -> Self {
+        Rc::clone(self)
+    }
+}
+
+impl <T> DafnyClone for *const T {
+    #[inline]
+    fn clone_value(&self) -> Self {
+        *self
+    }
+}
 
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
     euclidian_division(r.numer().clone(), r.denom().clone())
@@ -435,6 +562,12 @@ pub trait DafnyPrint {
     #[inline]
     fn is_char() -> bool {
         false
+    }
+}
+
+impl <T> DafnyPrint for *const T {
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        write!(f, "<{} object>", std::any::type_name::<T>())
     }
 }
 
