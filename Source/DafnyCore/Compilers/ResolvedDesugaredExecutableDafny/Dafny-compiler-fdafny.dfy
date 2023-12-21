@@ -6,11 +6,10 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
   import DS = DAM.Syntax
 
   class Lower {
+    // Dummy for finding the main method so that the driver can execute it
     var main: DS.Stmt
 
-    constructor() {
-
-    }
+    constructor() {}
 
     static method PolarizePos(t: Type) returns (p: DS.Pos) {
       match t
@@ -86,7 +85,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       s := DS.LetCS("return", DS.Command(), body);
 
       // Out parameters turn into input references
-      match m.outVars
+      match m.outVars {
       case Some(outs) => {
         for i := 0 to |outs| {
           match outs[|outs| - i - 1]
@@ -97,6 +96,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         }
       }
       case None => {}
+      }
       
       // In parameters also turn into input references
       for i := 0 to |m.params| {
@@ -201,8 +201,8 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         var block := EmitBlock(stmt + next);
         return DS.LetCS(lab, DS.Command(), block);
       
-      case DeclareVar(var_, _, Some(init)) =>
-        var init := EmitExpr(init);
+      case DeclareVar(var_, ty, init) =>
+        var init := EmitRHS(ty, init);
         var next := EmitBlock(next);
         return DS.Stmt.Bind(init, "var", DS.Stmt.New(DS.Expr.Var("var"), var_, next));
       
@@ -228,12 +228,14 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         }
         
         // Simplifying assumption: out parameters were already initialized
-        match outs
-        case Some(outs) =>
-          for i := 0 to |outs| {
-            st := DS.Stmt.Call(st, DS.Var(outs[i].id));
-          }
-        case None => {}
+        match outs {
+          case Some(outs) =>
+            for i := 0 to |outs| {
+              st := DS.Stmt.Call(st, DS.Var(outs[i].id));
+            }
+          case None => {}
+        }
+
         var next := EmitBlock(next);
         st := DS.Then(st, next);
       }
@@ -248,29 +250,50 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         UnsupportedFeature.Throw();
         return DS.Skip();
     }
+
+    static method EmitRHS(type_: Type, rhs: Optional<Expression>) returns (out: DS.Stmt) {
+      match (type_, rhs)
+      case (_, Some(init))      => out := EmitExpr(init);
+      case (Primitive(Int), _)  => out := DS.Pure(DS.Expr.Int(0));
+      case (Primitive(Bool), _) => out := DS.Pure(DS.Expr.Bool(false));
+      case _                    => UnsupportedFeature.Throw(); out := DS.Skip();
+    }
   }
 
   class COMP {
     static method Compile(p: seq<Module>) returns (s: string) {
       var lower := new Lower();
+      s := "";
 
-      var body := DS.Skip();
+      // Forward pass to compile modules in dependency order
+      var modules := [];
+      var bindings := map[];
       for i := 0 to |p| {
-        print "Lowering module ", p[i].name , " into the DAM instruction set...\n";
+        var name := p[i].name;
+        print "Lowering module ", name, " into the DAM instruction set...\n";
         var m      := lower.EmitModule(p[i]);
         var mthunk := DS.Expr.Thunk(m);
-        var mtype  := DAM.Statics.SynthExpr(map[], mthunk);
+        var mtype  := DAM.Statics.SynthExpr(bindings, mthunk);
         if (mtype.None?) {
-          print "Unable to synthesize type for module ", p[i].name, "!\n";
+          print "Unable to synthesize type for module ", name, "!\n";
           UnsupportedFeature.Throw();
-          break;
+          return;
         }
-        body := DS.Let(mthunk, p[i].name, mtype.value, body);
+        print "Successfully synthesized type for module ", name, "\n";
+        modules := modules + [(name, mthunk, mtype.Extract())];
+        bindings := bindings[name := mtype.Extract()];
       }
-      print "\n", body, "\n";
+
+      // Backward pass to emit call to main
+      var body := DS.Stmt.Select(DS.Stmt.Select(DS.Force(DS.Var("_module")), "__default"), "Main");
+      for i := 0 to |modules| {
+        var (name, mod, modtype) := modules[|modules| - i - 1];
+        body := DS.Let(mod, name, modtype, body);
+      }
+
+      // Execute main!
       print "Tracing execution of Main() below\n";
-      print(DAM.Dynamics.RunSafe(lower.main));
-      s := "";
+      print DAM.Dynamics.RunSafe(body), "\n";
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {

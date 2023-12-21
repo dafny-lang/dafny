@@ -6,7 +6,7 @@
  *    Notably, the environment does not point to addresses like a CESK machine. This avoids spurious
  *    allocations (and, therefore, proof burden about the store) for lexically-scoped bindings.
  * 3. A simple type system that is sound with respect to the interpreter
-*/
+ */
 
 module {:extern "DAM"} DAM {
   module Utils {
@@ -656,3 +656,19 @@ module {:extern "DAM"} DAM {
     }
   }
 }
+
+/*
+method Main() {
+    // Verifies that lexical scope works
+    var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
+    var fv := Force(Var("f"));
+    var x1 := Expr.Int(1);
+    var x2 := Expr.Int(2);
+    var z  := Expr.Int(0);
+    Run(Initial(
+      Let(x1, "x", Pos.Int,
+      Let(fc, "f", Pos.Int,
+      Let(x2, "x", Pos.Int,
+      Stmt.Call(fv, z))))));
+  }
+*/
