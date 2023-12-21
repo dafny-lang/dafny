@@ -5,6 +5,8 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
   import DAM
   import DS = DAM.Syntax
 
+  //import Std.Strings
+
   class COMP {
     static method PolarizePos(t: Type) returns (p: DS.Pos) {
       match t
@@ -109,8 +111,8 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case Literal(BoolLiteral(b)) =>
         return DS.Pure(DS.Expr.Bool(b));
       
-      /*case Literal(IntLiteral(i)) =>
-        return DS.Pure(DS.Expr.Int(i));*/
+      case Literal(IntLiteral(i, _)) =>
+        return DS.Pure(DS.Expr.Int(0));
       
       case Companion(path) =>
         expect |path| > 0;
@@ -139,7 +141,20 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         var cond := EmitExpr(cond);
         var thn  := EmitExpr(thn);
         var els  := EmitExpr(els);
-        s := DS.Stmt.Bind(cond, "if", DS.Ite(DS.Var("if"), thn, els));
+        return DS.Stmt.Bind(cond, "if", DS.Ite(DS.Var("if"), thn, els));
+      
+      case BinOp(op, lhs, rhs) =>
+        var lhs := EmitExpr(lhs);
+        var rhs := EmitExpr(rhs);
+        var lvar := DS.Var("var_lhs");
+        var rvar := DS.Var("var_rhs");
+        var end;
+        match op {
+          case Passthrough("+") => end := DS.Pure(DS.Plus(lvar, rvar));
+          case Passthrough("<") => end := DS.Pure(DS.LT(lvar, rvar));
+          case _                => UnsupportedFeature.Throw(); end := DS.Skip();
+        }
+        return DS.Stmt.Bind(lhs, "var_lhs", DS.Stmt.Bind(rhs, "var_rhs", end));
       
       case InitializationValue(Primitive(Int)) =>
         return DS.Pure(DS.Expr.Int(0));
@@ -218,7 +233,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
               DS.Stmt.New(DS.Var("var"), "var", DS.Stmt.Call(st, DS.Var("var"))));
         }
         
-        // Simplifying assumption: out parameters were already initialized
+        // Assumption about SinglePassCompiler: out parameters were already initialized
         match outs {
           case Some(outs) =>
             for i := 0 to |outs| {
@@ -278,26 +293,13 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         body := DS.Let(mod, name, modtype, body);
       }
 
-      print body, "\n";
-
       // Sanity check
-      expect DAM.Statics.SynthStmt(map[], body).Some?;
+      var end := DAM.Statics.SynthStmt(map[], body);
+      expect end.Some?;
 
       // Execute main!
       print "Tracing execution of _module.__default.Main() below\n";
-      var trace := DAM.Dynamics.RunSafe(body).Extract();
-      print trace, "\n", trace.Stepping?;
-      while trace.Stepping? decreases * {
-        match trace {
-          case Stepping(evt, state, rest) => {
-            print "-> event: ", evt, "state: ", state, "\n";
-            trace := rest;
-          }
-          case Terminal => {
-            print "-> done.\n";
-          }
-        }
-      }
+      DAM.Dynamics.Interpret(body, traced := true);
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {

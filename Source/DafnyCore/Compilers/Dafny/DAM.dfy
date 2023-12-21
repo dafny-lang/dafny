@@ -9,6 +9,8 @@
  */
 
 module {:extern "DAM"} DAM {
+  //import opened Std.Wrappers
+
   module Utils {
     datatype Option<A> = None | Some(value: A) {
       predicate IsFailure() { this.None? }
@@ -66,7 +68,9 @@ module {:extern "DAM"} DAM {
     | Unit
     | Bool(bool)
     | Int(int)
-    // TODO self types for recursive datatypes + objects
+    | LT(Expr, Expr)
+    | Plus(Expr, Expr)
+    // TODO recursive datatypes
     | Thunk(Stmt)
 
     //Hamza-Voirol-Kuncak trick: annotate terms just enough so that ostensible checking terms synthesize
@@ -139,7 +143,7 @@ module {:extern "DAM"} DAM {
     datatype Val =
       Unit
     | Bool(answer: bool)
-    | Int(int)
+    | Int(number: int)
     // To implement lexical scope, thunks are closures
     | Thunk(closure: ClosedStmt)
     | Ref(addr: Addr)
@@ -186,6 +190,10 @@ module {:extern "DAM"} DAM {
       case Unit     => Some(Pos.Unit)
       case Bool(_)  => Some(Pos.Bool)
       case Int(_)   => Some(Pos.Int)
+      case LT(lhs, rhs) =>
+        if CheckExpr(g, lhs, Pos.Int) && CheckExpr(g, rhs, Pos.Int) then Some(Pos.Bool) else None
+      case Plus(lhs, rhs) =>
+        if CheckExpr(g, lhs, Pos.Int) && CheckExpr(g, rhs, Pos.Int) then Some(Pos.Int) else None
       case Thunk(s) =>
         var t :- SynthStmt(g, s);
         Some(Pos.Thunk(t))
@@ -301,7 +309,6 @@ module {:extern "DAM"} DAM {
 
     // S |- env => G
     function SynthEnv(s: StoreTyping, env: Env): Option<Context> {
-      //assume forall stmt, var_ <- env :: env[var_] < Val.Thunk((env, stmt));
       mapOption(map var_ <- env :: SynthVal(s, env[var_]))
     }
 
@@ -467,6 +474,7 @@ module {:extern "DAM"} DAM {
     function Eval(ghost s: StoreTyping, expr: ClosedExpr, ghost t: Pos): (output: Val)
       requires CheckClosedExpr(s, expr, t) // S |- expr <= t
       ensures  CheckVal(s, output, t)      // S |- output <= t
+      decreases expr.1
     {
       var (env, expr) := expr;
       match expr
@@ -474,6 +482,20 @@ module {:extern "DAM"} DAM {
       case Unit        => Val.Unit
       case Bool(b)     => Val.Bool(b)
       case Int(i)      => Val.Int(i)
+      case LT(lhs, rhs) =>
+        ghost var g := SynthEnv(s, env).Extract();
+        assert CheckExpr(g, lhs, Pos.Int);
+        assert CheckExpr(g, rhs, Pos.Int);
+        var lhs := Eval(s, (env, lhs), Pos.Int).number;
+        var rhs := Eval(s, (env, rhs), Pos.Int).number;
+        Val.Bool(false)
+      case Plus(lhs, rhs) =>
+        ghost var g := SynthEnv(s, env).Extract();
+        assert CheckExpr(g, lhs, Pos.Int);
+        assert CheckExpr(g, rhs, Pos.Int);
+        var lhs := Eval(s, (env, lhs), Pos.Int).number;
+        var rhs := Eval(s, (env, rhs), Pos.Int).number;
+        Val.Int(0)
       case Thunk(stmt) =>
         // Because Dafny can't figure out that mapoption in synthval = synthenv
         assert CheckVal(s, Val.Thunk((env, stmt)), t);
@@ -626,7 +648,19 @@ module {:extern "DAM"} DAM {
       )
     }
 
+    // Initial configuration (see Levy's thesis)
+    function Initial(stmt: Stmt, ghost end: Neg): (output: Input)
+      requires CheckStmt(map[], stmt, end)
+      ensures  CheckInput([], output, end)
+    {
+      ([], (map[], stmt), Stack.Empty)
+    }
+
     // Leroy-style executable big-step semantics for the machine
+    // Labeled transition system for indicating top-level effects (print, I/O, etc.)
+    // ***DO NOT USE THIS***: there is apparently a bug in coinduction that causes
+    // the returnee of Run* etc. to satisfy both trace.Stepping? and trace.Done?
+    // Use TraceExec() instead
     codatatype Trace = Stepping(Event, Input, Trace) | Done
 
     function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace
@@ -639,14 +673,6 @@ module {:extern "DAM"} DAM {
       case Terminal   => Done
     }
 
-    // Initial configuration (see Levy's thesis)
-    function Initial(stmt: Stmt, ghost end: Neg): (output: Input)
-      requires CheckStmt(map[], stmt, end)
-      ensures  CheckInput([], output, end)
-    {
-      ([], (map[], stmt), Stack.Empty)
-    }
-
     function RunSafe(stmt: Stmt): Option<Trace> {
       var end :- SynthStmt(map[], stmt);
       Some(Run([], Initial(stmt, end), end))
@@ -657,21 +683,57 @@ module {:extern "DAM"} DAM {
       ghost var end :| CheckStmt(map[], stmt, end);
       Run([], Initial(stmt, end), end)
     }
-  }
-}
 
-/*
-method Main() {
+    method PrintVal(val: Val) {
+      match val
+      case Unit    => print "()\n";
+      case Bool(b) => print b, "\n";
+      case Int(i)  => print i, "\n";
+      case _       => print val, "\n";
+    }
+
+    method Interpret(stmt: Stmt, traced: bool := false) decreases * {
+      var endOption := SynthStmt(map[], stmt);
+      if endOption.None? {
+        if traced {
+          print "Statement fails to typecheck.\n";
+        }
+        return;
+      }
+      var end := endOption.Extract();
+      var input := Initial(stmt, end);
+      ghost var s :| CheckInput(s, input, end);
+      while true
+        invariant CheckInput(s, input, end)
+        decreases *
+      {
+        match Step(s, input, end)
+        case Raise(evt, output) =>
+          if traced { print "event: ",  evt, ", state: ", output, "\n\n"; }
+          else {
+            match evt
+            case Print(val) => PrintVal(val);
+            case Silent     => {}
+          }
+          input := output;
+          s :| CheckInput(s, input, end);
+        case Terminal =>
+          if traced { print "done.\n"; }
+          break;
+      }
+    }
+
+    method Test() {
     // Verifies that lexical scope works
     var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
     var fv := Force(Var("f"));
     var x1 := Expr.Int(1);
     var x2 := Expr.Int(2);
     var z  := Expr.Int(0);
-    Run(Initial(
-      Let(x1, "x", Pos.Int,
+    var term := Let(x1, "x", Pos.Int,
       Let(fc, "f", Pos.Int,
       Let(x2, "x", Pos.Int,
-      Stmt.Call(fv, z))))));
+      Stmt.Call(fv, z))));
+    }
   }
-*/
+}
