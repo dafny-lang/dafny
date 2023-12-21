@@ -15,6 +15,7 @@ static class ResolveCommand {
       var compilation = CliCompilation.Create(options);
       compilation.Start();
       await compilation.Resolution;
+      await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
       return compilation.ExitCode();
     });
     return result;

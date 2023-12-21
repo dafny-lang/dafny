@@ -54,7 +54,12 @@ public class CliCompilation {
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     var compilation = createCompilation(executionEngine, input);
-    var consoleReporter = new ConsoleErrorReporter(options);
+    
+    ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
+      _ => throw new ArgumentOutOfRangeException()
+    };
 
     compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
