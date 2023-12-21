@@ -461,6 +461,7 @@ module {:extern "DAM"} DAM {
       requires CheckVal(s, val, t) // S |- val <= t
       ensures  CheckEnv(s, env[var_ := val], g[var_ := t]) // S |- [var_/val]env <= G, var_ : t
     {
+      // TODO proof
       assume {:axiom} CheckEnv(s, env[var_ := val], g[var_ := t]);
     }
     
@@ -472,6 +473,7 @@ module {:extern "DAM"} DAM {
                var (addr', s')    := Extend(s, t);
                addr == addr' && CheckStore(s', store')
     {
+      // TODO proof
       var (addr, store') := Extend(store, val);
       var (addr', s')    := Extend(s, t);
       assume {:axiom} CheckStore(s', store');
@@ -643,6 +645,8 @@ module {:extern "DAM"} DAM {
         output
       
       case LetCS(bound, start, body) =>
+        // SynthVal doesn't synthesize stack types at the moment because the termination checker
+        // rejects that case for some reason
         assume {:axiom} CheckVal(s, Val.Stack(start, stack), Pos.Stack(start));
         var output := Next((store, (env[bound := Val.Stack(start, stack)], body), stack));
         assert CheckOutput(s, output, end);
@@ -665,45 +669,17 @@ module {:extern "DAM"} DAM {
       ([], (map[], stmt), Stack.Empty)
     }
 
-    // Leroy-style executable big-step semantics for the machine
-    // Labeled transition system for indicating top-level effects (print, I/O, etc.)
-    // ***DO NOT USE THIS***: there is apparently a bug in coinduction that causes
-    // the returnee of Run* etc. to satisfy both trace.Stepping? and trace.Done?
-    // Use Interpret() instead
-    /*
-    codatatype Trace = Stepping(Event, Input, Trace) | Done
-
-    function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace
-      requires CheckInput(s, input, end)
-    {
-      match Step(s, input, end)
-      case Raise(evt, next) =>
-        ghost var s' :| CheckInput(s', next, end);
-        Stepping(evt, next, Run(s', next, end))
-      case Terminal   => Done
-    }
-
-    function RunSafe(stmt: Stmt): Option<Trace> {
-      var end :- SynthStmt(map[], stmt);
-      Some(Run([], Initial(stmt, end), end))
-    }
-    
-    function RunUnsafe(stmt: Stmt): Trace {
-      assume {:axiom} exists end :: CheckStmt(map[], stmt, end);
-      ghost var end :| CheckStmt(map[], stmt, end);
-      Run([], Initial(stmt, end), end)
-    }
-    */
-    
     method PrintVal(val: Val) {
       match val
       case Unit      => print "()";
       case Bool(b)   => print b;
       case Int(i)    => print i;
-      case String(s) => print s[..];
+      case String(s) => print s;
       case _         => print val;
     }
 
+    // Almost-Leroy-style executable big-step semantics for the machine
+    // Events raised at each step are executed imperatively
     method Interpret(stmt: Stmt, traced: bool := false) decreases * {
       var endOption := SynthStmt(map[], stmt);
       if endOption.None? {
@@ -733,19 +709,6 @@ module {:extern "DAM"} DAM {
           if traced { print "done.\n"; }
           break;
       }
-    }
-
-    method Test() {
-      // Verifies that lexical scope works
-      var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
-      var fv := Force(Var("f"));
-      var x1 := Expr.Int(1);
-      var x2 := Expr.Int(2);
-      var z  := Expr.Int(0);
-      var term := Let(x1, "x", Pos.Int,
-        Let(fc, "f", Pos.Int,
-        Let(x2, "x", Pos.Int,
-        Stmt.Call(fv, z))));
     }
   }
 }

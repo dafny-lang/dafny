@@ -41,6 +41,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case _ => UnsupportedFeature.Throw(); p := DS.Pos.Unit;
     }
 
+    // You're gonna need this for object this. field access
     /*static method EmitClassType(c: Class) returns (t: DS.Neg) {
       var members := map[];
       for i := 0 to |c.body| {
@@ -145,15 +146,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       }
 
       case Literal(StringLiteral(str)) =>
-        // Have to decode escaped characters
-        /*if |str| > 1 {
-          for i := 0 to (|str| - 1) {
-            assert i < |str|;
-            if str[i] == '\\' && str[i + 1] == 'n' {
-              str := str[..i] + ['\n'] + str[(i + 2)..|str|];
-            }
-          }
-        }*/
+        // TODO Have to decode escaped characters
         return DS.Pure(DS.Expr.String(str));
       
       case Companion(path) =>
@@ -359,7 +352,6 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         print "Tracing execution of _module.__default.Main() below\n";
       }
       
-      //print body, "\n";
       DAM.Dynamics.Interpret(body, traced);
     }
 
