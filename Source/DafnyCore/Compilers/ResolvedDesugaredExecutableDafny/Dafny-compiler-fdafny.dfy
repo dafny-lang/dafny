@@ -143,6 +143,18 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
           return DS.Skip();
         }
       }
+
+      case Literal(StringLiteral(str)) =>
+        // Have to decode escaped characters
+        /*if |str| > 1 {
+          for i := 0 to (|str| - 1) {
+            assert i < |str|;
+            if str[i] == '\\' && str[i + 1] == 'n' {
+              str := str[..i] + ['\n'] + str[(i + 2)..|str|];
+            }
+          }
+        }*/
+        return DS.Pure(DS.Expr.String(str));
       
       case Companion(path) =>
         expect |path| > 0;
@@ -265,10 +277,11 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         
         // Assumption about SinglePassCompiler: out parameters were already initialized
         match outs {
-          case Some(outs) =>
+          case Some(outs) => {
             for i := 0 to |outs| {
               st := DS.Stmt.Call(st, DS.Var(outs[i].id));
             }
+          }
           case None => {}
         }
 
@@ -298,20 +311,34 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
     static method Compile(p: seq<Module>) returns (s: string) decreases * {
       s := "";
 
+      var traced := false;
+
       // Forward pass to compile modules in dependency order
       var modules := [];
       var bindings := map[];
       for i := 0 to |p| {
         var name := p[i].name;
-        print "Lowering module ", name, " into the DAM instruction set...\n";
+
+        if traced {
+          print "Lowering module ", name, " into the DAM instruction set...\n";
+        }
+
         var m      := EmitModule(p[i]);
         var mthunk := DS.Expr.Thunk(m);
         var mtype  := DAM.Statics.SynthExpr(bindings, mthunk);
         if (mtype.None?) {
-          print "Unable to synthesize type for module ", name, "!\n";
+
+          if traced {
+            print "Unable to synthesize type for module ", name, "!\n";
+          }
+
           return;
         }
-        print "Successfully synthesized type for module ", name, "\n";
+
+        if traced {
+          print "Successfully synthesized type for module ", name, "\n";
+        }
+
         modules := modules + [(name, mthunk, mtype.Extract())];
         bindings := bindings[name := mtype.Extract()];
       }
@@ -323,13 +350,17 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         body := DS.Let(mod, name, modtype, body);
       }
 
-      // Sanity check
+      // Sanity check: does compilation preserve typability?
       var end := DAM.Statics.SynthStmt(map[], body);
-      expect end.Some?;
+      expect end.Some?, "RDE Dafny -> DAM did not preserve typability!";
 
       // Execute main!
-      print "Tracing execution of _module.__default.Main() below\n";
-      DAM.Dynamics.Interpret(body, traced := true);
+      if traced {
+        print "Tracing execution of _module.__default.Main() below\n";
+      }
+      
+      //print body, "\n";
+      DAM.Dynamics.Interpret(body, traced);
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {

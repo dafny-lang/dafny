@@ -54,6 +54,7 @@ module {:extern "DAM"} DAM {
       Unit
     | Bool
     | Int
+    | String
     | Thunk(neg: Neg)
     | Ref(ref: Pos)
     | Stack(start: Neg)
@@ -70,6 +71,7 @@ module {:extern "DAM"} DAM {
     | Unit
     | Bool(bool)
     | Int(int)
+    | String(string)
     | LT(Expr, Expr)
     | Plus(Expr, Expr)
     // TODO recursive datatypes
@@ -118,8 +120,8 @@ module {:extern "DAM"} DAM {
       { Pure(Expr.Unit) }
 
     function While(guard: Stmt, body: Stmt, next: Stmt): Stmt {
-      Rec("while", Command(), Stmt.Bind(guard, "if",
-        Ite(Var("if"), Then(body, Force(Var("while"))), next)))
+      Then(Rec("while", Command(), Stmt.Bind(guard, "if",
+        Ite(Var("if"), Then(body, Force(Var("while"))), Skip()))), next)
     }
   }
 
@@ -146,6 +148,7 @@ module {:extern "DAM"} DAM {
       Unit
     | Bool(answer: bool)
     | Int(number: int)
+    | String(str: string)
     // To implement lexical scope, thunks are closures
     | Thunk(closure: ClosedStmt)
     | Ref(addr: Addr)
@@ -188,10 +191,11 @@ module {:extern "DAM"} DAM {
     // G |- expr => t+
     function SynthExpr(g: Context, expr: Expr): Option<Pos> decreases expr, 0 {
       match expr
-      case Var(x)   => mapGet(g, x)
-      case Unit     => Some(Pos.Unit)
-      case Bool(_)  => Some(Pos.Bool)
-      case Int(_)   => Some(Pos.Int)
+      case Var(x)    => mapGet(g, x)
+      case Unit      => Some(Pos.Unit)
+      case Bool(_)   => Some(Pos.Bool)
+      case Int(_)    => Some(Pos.Int)
+      case String(_) => Some(Pos.String)
       case LT(lhs, rhs) =>
         if CheckExpr(g, lhs, Pos.Int) && CheckExpr(g, rhs, Pos.Int) then Some(Pos.Bool) else None
       case Plus(lhs, rhs) =>
@@ -383,6 +387,7 @@ module {:extern "DAM"} DAM {
       case Unit        => Some(Pos.Unit)
       case Bool(_)     => Some(Pos.Bool)
       case Int(_)      => Some(Pos.Int)
+      case String(_)   => Some(Pos.String)
       case Thunk((env, stmt)) =>
         // No problem, rose tree ordering
         assume {:axiom} forall var_ <- env :: env[var_] < val;
@@ -484,20 +489,21 @@ module {:extern "DAM"} DAM {
       case Unit        => Val.Unit
       case Bool(b)     => Val.Bool(b)
       case Int(i)      => Val.Int(i)
+      case String(s)   => Val.String(s)
       case LT(lhs, rhs) =>
         ghost var g := SynthEnv(s, env).Extract();
         assert CheckExpr(g, lhs, Pos.Int);
         assert CheckExpr(g, rhs, Pos.Int);
         var lhs := Eval(s, (env, lhs), Pos.Int).number;
         var rhs := Eval(s, (env, rhs), Pos.Int).number;
-        Val.Bool(false)
+        Val.Bool(lhs < rhs)
       case Plus(lhs, rhs) =>
         ghost var g := SynthEnv(s, env).Extract();
         assert CheckExpr(g, lhs, Pos.Int);
         assert CheckExpr(g, rhs, Pos.Int);
         var lhs := Eval(s, (env, lhs), Pos.Int).number;
         var rhs := Eval(s, (env, rhs), Pos.Int).number;
-        Val.Int(0)
+        Val.Int(lhs + rhs)
       case Thunk(stmt) =>
         // Because Dafny can't figure out that mapoption in synthval = synthenv
         assert CheckVal(s, Val.Thunk((env, stmt)), t);
@@ -546,8 +552,9 @@ module {:extern "DAM"} DAM {
 
       case Force(thunk) =>
         var val := Eval(s, (env, thunk), Pos.Thunk(start));
-        // This is harmless b/c Dafny can't tell that SynthEnv
-        assume {:axiom} SynthClosedStmt(s, val.closure) == Some(start);
+        assert CheckVal(s, val, Pos.Thunk(start));
+        // Actually not sure why Dafny can't figure this out
+        assume {:axiom} CheckStmt(SynthEnv(s, val.closure.0).Extract(), val.closure.1, start);
         var output := Next((store, val.closure, stack));
         assert CheckOutput(s, output, end);
         output
@@ -663,6 +670,7 @@ module {:extern "DAM"} DAM {
     // ***DO NOT USE THIS***: there is apparently a bug in coinduction that causes
     // the returnee of Run* etc. to satisfy both trace.Stepping? and trace.Done?
     // Use Interpret() instead
+    /*
     codatatype Trace = Stepping(Event, Input, Trace) | Done
 
     function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace
@@ -685,13 +693,15 @@ module {:extern "DAM"} DAM {
       ghost var end :| CheckStmt(map[], stmt, end);
       Run([], Initial(stmt, end), end)
     }
-
+    */
+    
     method PrintVal(val: Val) {
       match val
-      case Unit    => print "()\n";
-      case Bool(b) => print b, "\n";
-      case Int(i)  => print i, "\n";
-      case _       => print val, "\n";
+      case Unit      => print "()";
+      case Bool(b)   => print b;
+      case Int(i)    => print i;
+      case String(s) => print s[..];
+      case _         => print val;
     }
 
     method Interpret(stmt: Stmt, traced: bool := false) decreases * {
@@ -726,16 +736,16 @@ module {:extern "DAM"} DAM {
     }
 
     method Test() {
-    // Verifies that lexical scope works
-    var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
-    var fv := Force(Var("f"));
-    var x1 := Expr.Int(1);
-    var x2 := Expr.Int(2);
-    var z  := Expr.Int(0);
-    var term := Let(x1, "x", Pos.Int,
-      Let(fc, "f", Pos.Int,
-      Let(x2, "x", Pos.Int,
-      Stmt.Call(fv, z))));
+      // Verifies that lexical scope works
+      var fc := Expr.Thunk(Func("y", Pos.Int, Pure(Var("x"))));
+      var fv := Force(Var("f"));
+      var x1 := Expr.Int(1);
+      var x2 := Expr.Int(2);
+      var z  := Expr.Int(0);
+      var term := Let(x1, "x", Pos.Int,
+        Let(fc, "f", Pos.Int,
+        Let(x2, "x", Pos.Int,
+        Stmt.Call(fv, z))));
     }
   }
 }
