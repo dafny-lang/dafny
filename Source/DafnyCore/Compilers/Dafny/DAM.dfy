@@ -9,9 +9,11 @@
  */
 
 module {:extern "DAM"} DAM {
-  //import opened Std.Wrappers
-
   module Utils {
+    // Can't use Dafny Standard Libraries here
+    // because GeneratedFromDafny.cs would contain
+    // code that is not compilable...for some reason
+
     datatype Option<A> = None | Some(value: A) {
       predicate IsFailure() { this.None? }
       function PropagateFailure<B>(): Option<B>
@@ -660,7 +662,7 @@ module {:extern "DAM"} DAM {
     // Labeled transition system for indicating top-level effects (print, I/O, etc.)
     // ***DO NOT USE THIS***: there is apparently a bug in coinduction that causes
     // the returnee of Run* etc. to satisfy both trace.Stepping? and trace.Done?
-    // Use TraceExec() instead
+    // Use Interpret() instead
     codatatype Trace = Stepping(Event, Input, Trace) | Done
 
     function Run(ghost s: StoreTyping, input: Input, ghost end: Neg): Trace

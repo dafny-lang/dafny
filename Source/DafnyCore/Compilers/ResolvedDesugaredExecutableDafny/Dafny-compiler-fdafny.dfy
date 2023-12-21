@@ -5,9 +5,33 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
   import DAM
   import DS = DAM.Syntax
 
-  //import Std.Strings
+  // Ripped from Standard Libraries because we can't compile with them yet
+
+  function ToNat(str: string): (n: DAM.Utils.Option<nat>)
+    {
+      var charToDigit := map[
+        '0' := 0, '1' := 1, '2' := 2, '3' := 3, '4' := 4, '5' := 5, '6' := 6, '7' := 7, '8' := 8, '9' := 9
+      ];
+      if str == [] then DAM.Utils.Some(0)
+      else
+        var c := str[|str| - 1];
+        var d :- if c in charToDigit then DAM.Utils.Some(charToDigit[c]) else DAM.Utils.None;
+        var rest :- ToNat(str[..|str| - 1]);
+        DAM.Utils.Some(rest * 10 + d)
+    }
+
+  function ToInt(str: string, minus: char): (s: DAM.Utils.Option<int>)
+    {
+      if [minus] <= str then (
+        match ToNat(str[1..])
+        case Some(i) => DAM.Utils.Some(-(i as int))
+        case None    => DAM.Utils.None
+      )
+      else ToNat(str)
+    }
 
   class COMP {
+    // Call-by-value polarization strategy
     static method PolarizePos(t: Type) returns (p: DS.Pos) {
       match t
       case Primitive(Int)  =>
@@ -111,8 +135,14 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case Literal(BoolLiteral(b)) =>
         return DS.Pure(DS.Expr.Bool(b));
       
-      case Literal(IntLiteral(i, _)) =>
-        return DS.Pure(DS.Expr.Int(0));
+      case Literal(IntLiteral(i, _)) => {
+        match ToInt(i, '-')
+        case Some(i) => return DS.Pure(DS.Expr.Int(i));
+        case None    => {
+          UnsupportedFeature.Throw();
+          return DS.Skip();
+        }
+      }
       
       case Companion(path) =>
         expect |path| > 0;
