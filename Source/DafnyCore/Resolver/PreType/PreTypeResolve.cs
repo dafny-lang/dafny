@@ -561,6 +561,9 @@ namespace Microsoft.Dafny {
 
       var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
       if (legacy) {
+        if (a.Decl.Name == "int" && bOrig.Decl.Name == "ORDINAL") {
+          return true;
+        }
         if (a.Decl.Name == "real" && (b.Decl.Name is "int" or "char" or "ORDINAL" || IsBitvectorName(b.Decl.Name))) {
           return true;
         }
