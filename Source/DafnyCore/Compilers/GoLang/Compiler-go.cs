@@ -3191,15 +3191,18 @@ namespace Microsoft.Dafny.Compilers {
 
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
+      t = TrimNewtypes(t);
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
              t.NormalizeExpand() is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {
+      t = TrimNewtypes(t);
       return t.IsIntegerType || t.IsRealType || t.IsBigOrdinalType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
     }
 
     private bool IsComparedByEquals(Type t) {
+      t = TrimNewtypes(t);
       return t.IsIndDatatype || t.NormalizeExpand() is CollectionType;
     }
 

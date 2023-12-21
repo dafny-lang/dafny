@@ -3068,6 +3068,18 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
+    /// <summary>
+    /// Trim away newtypes to get to an ancestor type that either is not a newtype or is a native type.
+    /// </summary>
+    protected Type TrimNewtypes(Type typ) {
+      Contract.Requires(typ != null);
+      while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
+        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
+        typ = newtypeDecl.BaseType.Subst(subst);
+      }
+      return typ.NormalizeExpand();
+    }
+
     protected bool NeedsEuclideanDivision(Type typ) {
       if (AsNativeType(typ) is { LowerBound: var lb }) {
         // Dafny's division differs from '/' only on negative numbers

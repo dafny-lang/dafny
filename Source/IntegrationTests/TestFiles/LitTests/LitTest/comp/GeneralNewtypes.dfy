@@ -28,6 +28,7 @@ module SimpleBoolAndint {
     var g := M(2 < 19 < 17 < 19);
     print b, " ", c, " ", e, " ", f, " ", g, "\n"; // true true false false false
     TestMore();
+    Operators(true);
   }
 
   method TestMore() {
@@ -50,6 +51,10 @@ module SimpleBoolAndint {
     b := x as MyInt < y;
     c := x < y as int;
     print b, " ", c, "\n"; // false false
+  }
+
+  method Operators(b: MyBool) {
+    print b == b && !(b != b) && (b <==> b) && (b ==> b) && (!b ==> b) && (b <== b) && (b <== !b) && (b && b) && (b || b), "\n"; // true
   }
 }
 
@@ -76,6 +81,7 @@ module TrivialConstraint {
     var g := M(2 < 19 < 17 < 19);
     print b, " ", c, " ", e, " ", f, " ", g, "\n"; // true true false false false
     TestMore();
+    Operators(true);
   }
 
   method TestMore() {
@@ -98,5 +104,9 @@ module TrivialConstraint {
     b := x as MyInt < y;
     c := x < y as int;
     print b, " ", c, "\n"; // false false
+  }
+
+  method Operators(b: MyBool) {
+    print b == b && !(b != b) && (b <==> b) && (b ==> b) && (!b ==> b) && (b <== b) && (b <== !b) && (b && b) && (b || b), "\n"; // true
   }
 }
