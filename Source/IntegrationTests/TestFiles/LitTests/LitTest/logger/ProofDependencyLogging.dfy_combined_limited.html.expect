@@ -133,8 +133,8 @@
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(345,12\)-\(345,16\): requires clause
-// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,12\)-\(333,25\) from call
-// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,12\)-\(333,25\) from call
+// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,12\)-\(333,16\) from call
+// CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencyLogging.dfy\(333,21\)-\(333,25\) from call
 // CHECK:       ProofDependencyLogging.dfy\(348,9\)-\(348,47\): requires clause at ProofDependencyLogging.dfy\(332,12\)-\(332,16\) from call
 //
 // CHECK: Results for M.FalseAntecedentRequiresClauseMethod \(correctness\)
@@ -148,7 +148,7 @@
 //
 // CHECK: Results for M.FalseAntecedentEnsuresClauseMethod \(correctness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencyLogging.dfy\(368,11\)-\(368,25\): ensures clause
+// CHECK:       ProofDependencyLogging.dfy\(368,21\)-\(368,25\): ensures clause
 // CHECK:       ProofDependencyLogging.dfy\(370,3\)-\(370,13\): assignment \(or return\)
 //
 // CHECK: Results for M.ObviouslyUnreachableIfExpressionBranchFunc \(well-formedness\)

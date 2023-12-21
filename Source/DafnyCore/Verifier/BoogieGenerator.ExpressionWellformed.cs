@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using DafnyCore.Verifier;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
