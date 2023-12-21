@@ -31,6 +31,20 @@ module EmptyBool {
   method NonStop(x: AnyBool) {
     NonStop(!x); // error: termination failure
   }
+
+  method Stops(x: AnyBool) {
+    if x {
+      Stops(!x);
+    }
+  }
+
+  method AllCases(m: MyBool, a: AnyBool) {
+    if
+    case !m && !a as MyBool =>
+    case !m as AnyBool && a =>
+    case m as bool && !a as bool as AnyBool as bool =>
+    case m as bool as AnyBool && a =>
+  }
 }
 
 module TrueBoolModule {
@@ -40,7 +54,7 @@ module TrueBoolModule {
   {
     assert x;
     y := x;
-    var z := x && !x ==> x;
+    var z := x ==> x;
     assert z;
   }
 
@@ -53,6 +67,12 @@ module TrueBoolModule {
     Recursive(true);
   }
 
+  method Literals() {
+    var x: TrueBool;
+    x := true;
+    x := false; // error: false is not a TrueBool
+  }
+
   method Recursive(x: TrueBool)
     decreases x
   {
@@ -61,5 +81,101 @@ module TrueBoolModule {
       assert false; // we never get here
       Recursive(false);
     }
+  }
+
+  method IntermediateExpressions0(x: TrueBool) {
+    while x {
+      break;
+    }
+    while {
+      case false =>
+      case x => break;
+      case true => break;
+    }
+
+    if
+    case true =>
+      var u := x && !x; // error: !x is not a TrueBool
+    case x =>
+      var u := (!(x as bool) || x as bool) as TrueBool;
+  }
+
+  newtype FalseBool = b | !b
+
+  method IntermediateExpressions1(x: TrueBool, y: FalseBool) {
+    if * {
+      var _ := true && (x <==> x);
+    } else if * {
+      var _ := false || (y <==> y); // error: (y <==> y) is not a FalseBool
+    } else if * {
+      var _ := (true && x == x && !(y == y)) || false; // result is a bool, so anything goes
+    } else if * {
+      var a: TrueBool := true && x == x;
+    } else if * {
+      var _ := false || y == y; // result is a bool, so anything goes
+      var z: bool := false || y == y; // result is a bool, so anything goes
+      var b: FalseBool := false || y == y; // error: (y == y) is not a FalseBool
+    } else if * {
+      var a: TrueBool := true && y != y; // error: (y != y) is not a TrueBool
+    } else if * {
+      var b: FalseBool := false || x != x;
+    }
+  }
+
+  method IntermediateExpressions2(x: TrueBool, y: FalseBool) {
+    if * {
+      var _ := x ==> !x; // error: !x is not a TrueBool
+    } else if * {
+      var _ := x <== !x; // error: !x is not a TrueBool
+    } else if * {
+      var _ := y ==> !y; // error: (y ==> !y) is not a FalseBool
+    } else if * {
+      var _ := y <== !y; // error: !y is not a FalseBool
+    }
+  }
+
+  method IntermediateExpressions3(x: TrueBool, y: FalseBool) {
+    if * {
+      var _ := x && x;
+      var _ := x || x;
+      var _ := y && y;
+      var _ := y || y;
+    } else if * {
+      var _ := true && x && x;
+      var _ := false || x || x; // error: false is not a TrueBool
+    } else if * {
+      var _ := y || false || y;
+      var _ := y && y && true;
+      var _ := y || true || y; // error: true is not a FalseBool
+    } else if * {
+      var a0 := if x then x else !x;
+      var a1: FalseBool := if x then y else !y;
+      var a2 := if y then !y else y;
+      var a3 := if y then x else !x; // error: !x is not a TrueBool
+    }
+  }
+
+  codatatype Stream = More(Stream)
+
+  method IntermediateExpressions4(s: Stream, k: nat, o: ORDINAL, i: int) returns (ghost x: TrueBool, ghost y: FalseBool) {
+    if
+    case true =>
+      x := s ==#[k] s;
+    case true =>
+      x := s ==#[o] s;
+    case true =>
+      x := s !=#[k] s; // error: RHS is not a TrueBool
+    case true =>
+      x := s !=#[o] s; // error: RHS is not a TrueBool
+    case true =>
+      y := s ==#[k] s; // error: RHS is not a FalseBool
+    case true =>
+      y := s ==#[o] s; // error: RHS is not a FalseBool
+    case true =>
+      y := s !=#[k] s;
+    case true =>
+      y := s !=#[o] s;
+    case true =>
+      x := s ==#[i] s; // error: i may be negative
   }
 }

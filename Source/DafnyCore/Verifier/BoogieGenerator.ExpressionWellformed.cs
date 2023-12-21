@@ -897,6 +897,7 @@ namespace Microsoft.Dafny {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case BinaryExpr binaryExpr: {
@@ -940,7 +941,6 @@ namespace Microsoft.Dafny {
                         Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
                   }
                 }
-                CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
                 break;
               case BinaryExpr.ResolvedOpcode.Div:
               case BinaryExpr.ResolvedOpcode.Mod: {
@@ -954,7 +954,6 @@ namespace Microsoft.Dafny {
                   }
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                   builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(e.E1), wfOptions.AssertKv));
-                  CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.LeftShift:
@@ -1019,8 +1018,6 @@ namespace Microsoft.Dafny {
                     CheckOperand(e.E0);
                     CheckOperand(e.E1);
                   }
-
-
                 }
                 break;
               default:
@@ -1028,6 +1025,7 @@ namespace Microsoft.Dafny {
                 break;
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case TernaryExpr ternaryExpr: {
@@ -1047,6 +1045,7 @@ namespace Microsoft.Dafny {
                 break;
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case LetExpr letExpr:

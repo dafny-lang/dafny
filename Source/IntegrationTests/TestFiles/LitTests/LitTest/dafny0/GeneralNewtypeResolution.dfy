@@ -87,3 +87,44 @@ module BaseTypesThatAreSubsetTypes {
   newtype MyCell? = NonFiveCell? // error: cannot base newtype on class
   newtype MyCell = NonFiveCell // error: cannot base newtype on class
 }
+
+module SomeOperators {
+  newtype TrueBool = b | b witness true
+  newtype FalseBool = b | !b
+  codatatype Stream = More(Stream)
+
+  method Comparisons(x: TrueBool, y: FalseBool, z: bool, s: Stream, k: nat, o: ORDINAL) returns (r: TrueBool, r': FalseBool) {
+    r := x == x;
+    r := y == y;
+    r := z == z;
+    r := s ==#[k] s;
+    r := s ==#[o] s;
+    r := k == k;
+    r := o == o;
+
+    r := x <==> x;
+    r := y <==> y; // error: <==> always results in the same type as its operands
+    r := z <==> z; // error: <==> always results in the same type as its operands
+
+    r := x ==> x;
+    r := y ==> y; // error: ==> always results in the same type as its operands
+    r := z ==> z; // error: ==> always results in the same type as its operands
+
+    r := x <== x;
+    r := y <== y; // error: <== always results in the same type as its operands
+    r := z <== z; // error: <== always results in the same type as its operands
+
+    r := x && x;
+    r := y && y; // error: && always results in the same type as its operands
+    r := z && z; // error: && always results in the same type as its operands
+
+    r := x || x;
+    r := y || y; // error: || always results in the same type as its operands
+    r := z || z; // error: || always results in the same type as its operands
+
+    r := k <= k;
+    r := k >= k;
+    r' := k < k;
+    r' := k > k;
+  }
+}
