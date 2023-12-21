@@ -20,6 +20,8 @@ TypeConstraints.dfy(450,8): Error: type array<nat> is not assignable to LHS (of 
 TypeConstraints.dfy(452,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(455,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(542,9): Error: type test for type 'Cell<?>' must be from an expression assignable to it (got 'object')
+TypeConstraints.dfy(559,11): Error: type cast to reference type 'Cell<?>' must be from an expression assignable to it (got 'object')
 // TypeConstraints.dfy
 
 /*
@@ -929,4 +931,52 @@ module SameSCC {
 
   codatatype G6 = G6(array<G0>)
 }
-22 resolution/type errors detected in TypeConstraints.dfy
+
+module UnderspecifiedTypeConversions0 {
+  /* CALL GRAPH for module UnderspecifiedTypeConversions0:
+   */
+  method M(c: Cell<int>)
+  {
+    if c is UCell<int, ?> {
+      print "yes";
+    }
+  }
+
+  method N(c: object)
+  {
+    if c is Cell<?> {
+      print "yes";
+    }
+  }
+
+  class Cell<X> { }
+  /*-- non-null type
+  type {:axiom} Cell(==)<X> = c: Cell?<X> | c != null /*special witness*/
+  */
+
+  type UCell<U, V> = Cell<U>
+}
+
+module UnderspecifiedTypeConversions1 {
+  /* CALL GRAPH for module UnderspecifiedTypeConversions1:
+   */
+  method M(c: Cell<int>)
+  {
+    var d: Cell<int>;
+    d := c as UCell<int, ?>;
+  }
+
+  method N(c: object)
+  {
+    var d: object;
+    d := c as Cell<?>;
+  }
+
+  class Cell<X> { }
+  /*-- non-null type
+  type {:axiom} Cell(==)<X> = c: Cell?<X> | c != null /*special witness*/
+  */
+
+  type UCell<U, V> = Cell<U>
+}
+24 resolution/type errors detected in TypeConstraints.dfy
