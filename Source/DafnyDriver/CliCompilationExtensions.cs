@@ -17,6 +17,11 @@ public static class CliCompilationExtensions {
   }
   
   public static async Task VerifyAllAndPrintSummary(this Compilation compilation) {
+    var resolution = await compilation.Resolution;
+    if (resolution.ResolvedProgram.Reporter.HasErrorsUntilResolver) {
+      return;
+    }
+    
     var options = compilation.Input.Options;
     var statSum = new PipelineStatistics();
     var canVerifyResults = new Dictionary<IToken, CanVerifyResults>();
@@ -68,7 +73,6 @@ public static class CliCompilationExtensions {
       }
     });
     
-    var resolution = await compilation.Resolution;
     var canVerifies = resolution.CanVerifies?.ToList();
 
     if (canVerifies != null) {

@@ -66,7 +66,16 @@ public class CliCompilation {
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
         consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+      } else if (ev is FinishedResolution finishedResolution) {
+        DafnyMain.MaybePrintProgram(finishedResolution.ResolvedProgram, options.DafnyPrintResolvedFile, true);
+
+        if (finishedResolution.ResolvedProgram.Reporter.ErrorCountUntilResolver != 0) {
+          var message = string.Format("{0} resolution/type errors detected in {1}", finishedResolution.ResolvedProgram.Reporter.Count(ErrorLevel.Error),
+            finishedResolution.ResolvedProgram.Name);
+          options.OutputWriter.WriteLine(message);
+        }
       }
+      
     });
     return compilation;
   }
