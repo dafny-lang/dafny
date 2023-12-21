@@ -5,8 +5,8 @@ DAFNY = dotnet run --project ../../Dafny --no-build --
 SOURCE_DIR=.
 SOURCES=$(shell find $(SOURCE_DIR) -name '*.dfy')
 
-GENERATED_CODE_GO_SOURCE=src/dafnyRuntimeGo-go/src/dafny/dafny.go
-GENERATED_CODE_GO_TARGET=../DafnyRuntimeGo/dafny/dafnyFromDafny.go
+GENERATED_CODE_GO_SOURCE=src/DafnyRuntimeGo-go/src/dafny/dafny.go
+GENERATED_CODE_GO_TARGET=../DafnyRuntimeGo/build/dafny
 
 all: test check-format
 
@@ -14,13 +14,14 @@ verify:
 	$(DAFNY) verify $(SOURCES)
 
 build-go: verify
-	$(DAFNY) translate go --unicode-char:false --no-verify --use-basename-for-filename --bootstrapping src/dafnyRuntimeGo.dfy
+	$(DAFNY) translate go --unicode-char:false --use-basename-for-filename --bootstrapping src/dafnyRuntimeGo.dfy
 
 check-go: build-go
 	diff $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)
 
 update-go: build-go
-	cp $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)
+	mkdir -p ${GENERATED_CODE_GO_TARGET}
+	cp $(GENERATED_CODE_GO_SOURCE) $(GENERATED_CODE_GO_TARGET)/dafnyFromDafny.go
 
 test: check-go
 

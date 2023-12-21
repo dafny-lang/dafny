@@ -1456,7 +1456,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
-      if (!module.CanCompile()) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         // the purpose of an abstract module is to skip compilation
         return;
       }
@@ -1478,6 +1478,11 @@ namespace Microsoft.Dafny.Compilers {
 
       if (!module.ShouldCompile(program.Compilation)) {
         DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+        return;
+      }
+
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        // the purpose of an abstract module is to skip compilation
         return;
       }
 
@@ -1706,7 +1711,8 @@ namespace Microsoft.Dafny.Compilers {
       // An original source file at <root>/A/B/C.ext will become a manifest resource
       // with a name like 'DafnyPipeline.<root>.A.B.C.<ext>'
       String header = $"DafnyPipeline.{root}";
-      foreach (var file in files.Where(f => f.StartsWith(header))) {
+      var matchingFiles = files.Where(f => f.StartsWith(header));
+      foreach (var file in matchingFiles) {
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
         ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);

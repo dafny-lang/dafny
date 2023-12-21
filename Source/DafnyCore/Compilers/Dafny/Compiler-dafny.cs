@@ -69,6 +69,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.StandardLibrary,
       Feature.Ordinals,
       Feature.Iterators,
       Feature.Multisets,

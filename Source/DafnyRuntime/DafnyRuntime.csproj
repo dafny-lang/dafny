@@ -23,8 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DafnyRuntimeGo\output\" />
+    <Folder Include="DafnyRuntimeGo\input\" />
     <Folder Include="DafnyRuntimeJava\build\libs" />
+    <Folder Include="DafnyRuntimeJava\src\main\java\Std\" />
+    <Folder Include="DafnyRuntimeJs\output\" />
   </ItemGroup>
+    
   <PropertyGroup>
     <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.4.0.jar</DafnyRuntimeJar>
   </PropertyGroup>

@@ -2,11 +2,11 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../../Dafny --no-build --
 
-GENERATED_SYSTEM_MODULE_SOURCE=../obj/systemModulePopulator-java/_System
+GENERATED_SYSTEM_MODULE_SOURCE=dfybuild/generated-java/_System
 GENERATED_SYSTEM_MODULE_TARGET=src/main/dafny-generated/_System
 
-GENERATED_DAFNY_MODULE_SOURCE=../obj/systemModulePopulator-java/dafny
-GENERATED_DAFNY_MODULE_TARGET=src/main/dafny-generated/dafny
+GENERATED_DAFNY_MODULE_SOURCE=dfybuild/generated-java
+GENERATED_DAFNY_MODULE_TARGET=src/main/dafny-generated
 
 all: check-system-module test
 
@@ -15,7 +15,8 @@ test:
 
 # TODO: Add --optimize-erasable-datatype-wrapper:false elsewhere too
 build-system-module:
-	$(DAFNY) translate java --no-verify --use-basename-for-filename --optimize-erasable-datatype-wrapper:false --system-module:OmitAllOtherModules ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
+	$(DAFNY) translate java --use-basename-for-filename --optimize-erasable-datatype-wrapper:false --system-module:OmitAllOtherModules dfyconfig.toml --output:dfybuild/generated
+	rm ${GENERATED_DAFNY_MODULE_SOURCE}/generated.java
 
 check-system-module: build-system-module
 	diff $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)

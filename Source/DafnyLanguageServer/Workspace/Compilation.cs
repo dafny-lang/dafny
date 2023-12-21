@@ -130,13 +130,9 @@ public class Compilation : IDisposable {
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
-        var targetName = Options.CompilerName ?? "notarget";
-        var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
-      }
-
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      var stdLib = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
+      stdLib.IsPrecompiled = true;
+      result.Add(stdLib);
     }
 
     foreach (var library in Options.Get(CommonOptionBag.Libraries)) {

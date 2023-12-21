@@ -69,9 +69,6 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
       }
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-        EmitRuntimeSource("DafnyStandardLibraries_go", wr);
-      }
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";

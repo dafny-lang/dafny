@@ -415,19 +415,21 @@ namespace Microsoft.Dafny {
       }
 
       var relativeTarget = NormalizeRelativeFilename(paths.RelativeFilename);
-      if (targetProgramHasErrors) {
-        // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
-        // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
-        // of the Verbose settings.
-        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
-      } else if (options.Verbose) {
-        outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
+      if (options.SpillTargetCode != 0) {
+        if (targetProgramHasErrors) {
+          // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
+          // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
+          // of the Verbose settings.
+          outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
+        } else if (options.Verbose) {
+          outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
+        }
       }
 
       foreach (var entry in otherFiles) {
         var filename = entry.Key;
         WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
-        if (options.Verbose) {
+        if (options.Verbose && options.SpillTargetCode != 0) {
           outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
@@ -514,7 +516,6 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
-        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {

@@ -49,9 +49,9 @@ The sections below describe how to use each library:
 - [Std.Base64](src/Std/Base64) -- base-64 encoding and decoding
 - [Std.BoundedInts](src/Std/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
 - [Std.Collections](src/Std/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
-- [Std.Concurrent](src/Std/TargetSpecific) -- types for using Dafny in concurrent environments
-- [Std.DynamicArray](src/Std/DynamicArray.dfy) -- an array that can grow and shrink
-- [Std.FileIO](src/Std/TargetSpecific) -- basic file I/O operations
+- [Std.Concurrent](src/Std/Concurrent) -- types for using Dafny in concurrent environments
+- [Std.DynamicArray](src/Std/DynamicArray) -- an array that can grow and shrink
+- [Std.FileIO](src/Std/FileIO) -- basic file I/O operations
 - [Std.Functions](src/Std/Functions) -- properties of functions
 - [Std.JSON](src/Std/JSON) -- JSON serialization and deserialization
 - [Std.Math](src/Std/Math) -- common mathematical functions, such as Min and Abs

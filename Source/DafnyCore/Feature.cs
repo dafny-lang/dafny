@@ -38,6 +38,9 @@ public class FeatureDescriptionAttribute : Attribute {
 }
 
 public enum Feature {
+  [FeatureDescription("Standard library", "sec-standard-library")]
+  StandardLibrary,
+
   [FeatureDescription("Unbounded integers", "sec-numeric-types")]
   UnboundedIntegers,
 

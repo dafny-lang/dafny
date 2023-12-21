@@ -294,7 +294,7 @@ Change the default opacity of functions.
 `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.".TrimStart()) {
   };
 
-  public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries", () => false,
+  public static readonly Option<bool> UseStandardLibraries = new("--standard-libraries",
     @"
 Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
 See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.

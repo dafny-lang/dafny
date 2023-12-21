@@ -40,11 +40,19 @@ public class RustBackend : DafnyExecutableBackend {
     }
   }
 
+  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      throw new UnsupportedFeatureException(dafnyProgram.Tok, Feature.StandardLibrary);
+    }
+    base.Compile(dafnyProgram, output);
+  }
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
     var runtimeDirectory = Path.Combine(targetDirectory, "runtime");
+
     if (Directory.Exists(runtimeDirectory)) {
       Directory.Delete(runtimeDirectory, true);
     }

@@ -99,9 +99,6 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
       }
-      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
-        EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
-      }
 
       if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
         EmitCoverageReportInstrumentation(program, wr);
@@ -973,6 +970,11 @@ namespace Microsoft.Dafny.Compilers {
       return base.NeedsCustomReceiver(member);
     }
 
+    protected override void EmitSeqBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, bool inLetExprBody,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(of, wr, inLetExprBody, wStmts);
+      wr.Write((includeDuplicates ? ".CloneAsArray()" : ".UniqueElements"));
+    }
 
     private void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
       Contract.Requires(dt != null);
