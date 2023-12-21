@@ -5,12 +5,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
   import DAM
   import DS = DAM.Syntax
 
-  class Lower {
-    // Dummy for finding the main method so that the driver can execute it
-    var main: DS.Stmt
-
-    constructor() {}
-
+  class COMP {
     static method PolarizePos(t: Type) returns (p: DS.Pos) {
       match t
       case Primitive(Int)  =>
@@ -43,7 +38,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
     }*/
 
     // Modules are just records
-    method EmitModule(m: Module) returns (s: DS.Stmt) modifies this {
+    static method EmitModule(m: Module) returns (s: DS.Stmt) {
       var members := map[];
       for i := 0 to |m.body| {
         match m.body[i]
@@ -61,7 +56,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
 
     // TODO: Classes are fixed points of records: rec(\this. {field1 = ..., fieldn = ...})
     // Methods are just functions
-    method EmitClass(c: Class) returns (s: DS.Stmt) modifies this {
+    static method EmitClass(c: Class) returns (s: DS.Stmt) {
       var fields := map[];
       // TODO: normal fields turn into references
       /*for i := 0 to |c.fields| {
@@ -79,7 +74,7 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       s := DS.Stmt.Record(fields);
     }
 
-    method EmitMethod(m: Method) returns (s: DS.Stmt) modifies this {
+    static method EmitMethod(m: Method) returns (s: DS.Stmt) {
       // Label a point for early returns
       var body := EmitBlock(m.body);
       s := DS.LetCS("return", DS.Command(), body);
@@ -106,10 +101,6 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
           s := DS.Func(arg, DS.Pos.Ref(dom), s);
       }
       // Expectation: body returns DS.Command()
-      
-      if m.name == "Main" {
-        main := s;
-      }
     }
 
     // Dafny expressions are actually DAM statements, since they are sensitive to evaluation order
@@ -258,11 +249,8 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       case (Primitive(Bool), _) => out := DS.Pure(DS.Expr.Bool(false));
       case _                    => UnsupportedFeature.Throw(); out := DS.Skip();
     }
-  }
 
-  class COMP {
-    static method Compile(p: seq<Module>) returns (s: string) {
-      var lower := new Lower();
+    static method Compile(p: seq<Module>) returns (s: string) decreases * {
       s := "";
 
       // Forward pass to compile modules in dependency order
@@ -271,12 +259,11 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
       for i := 0 to |p| {
         var name := p[i].name;
         print "Lowering module ", name, " into the DAM instruction set...\n";
-        var m      := lower.EmitModule(p[i]);
+        var m      := EmitModule(p[i]);
         var mthunk := DS.Expr.Thunk(m);
         var mtype  := DAM.Statics.SynthExpr(bindings, mthunk);
         if (mtype.None?) {
           print "Unable to synthesize type for module ", name, "!\n";
-          UnsupportedFeature.Throw();
           return;
         }
         print "Successfully synthesized type for module ", name, "\n";
@@ -291,9 +278,26 @@ module {:extern "ResolvedDesugaredExecutableDafnyPlugin"} ResolvedDesugaredExecu
         body := DS.Let(mod, name, modtype, body);
       }
 
+      print body, "\n";
+
+      // Sanity check
+      expect DAM.Statics.SynthStmt(map[], body).Some?;
+
       // Execute main!
-      print "Tracing execution of Main() below\n";
-      print DAM.Dynamics.RunSafe(body), "\n";
+      print "Tracing execution of _module.__default.Main() below\n";
+      var trace := DAM.Dynamics.RunSafe(body).Extract();
+      print trace, "\n", trace.Stepping?;
+      while trace.Stepping? decreases * {
+        match trace {
+          case Stepping(evt, state, rest) => {
+            print "-> event: ", evt, "state: ", state, "\n";
+            trace := rest;
+          }
+          case Terminal => {
+            print "-> done.\n";
+          }
+        }
+      }
     }
 
     static method EmitCallToMain(fullName: seq<string>) returns (s: string) {

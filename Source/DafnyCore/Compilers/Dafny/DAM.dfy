@@ -612,14 +612,17 @@ module {:extern "DAM"} DAM {
         output
       
       case LetCS(bound, start, body) =>
-        assume {:axiom} false;
-        Next((store, (env[bound := Val.Stack(start, stack)], body), stack))
+        assume {:axiom} CheckVal(s, Val.Stack(start, stack), Pos.Stack(start));
+        var output := Next((store, (env[bound := Val.Stack(start, stack)], body), stack));
+        assert CheckOutput(s, output, end);
+        output
       
       case Throw(expr, _, next) => (
         ghost var t := SynthExpr(g, expr).Extract();
         var val := Eval(s, (env, expr), t);
-        assume {:axiom} false;
-        Next((store, (env, next), val.stack))
+        var output := Next((store, (env, next), val.stack));
+        assert CheckOutput(s, output, end);
+        output
       )
     }
 
