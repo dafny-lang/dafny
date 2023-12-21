@@ -221,7 +221,7 @@ public class ExpectContracts : IRewriter {
   }
 
   /// <summary>
-  /// Add wrappers for certain top-level declarations in the given program.
+  /// Adds wrappers for certain top-level declarations in the given program.
   /// This runs after resolution so that it has access to ghostness
   /// information, attributes and call targets. Run on the entire program,
   /// rather than each module individually, to avoid bad interaction with
