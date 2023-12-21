@@ -16,5 +16,4 @@ git-issue-2134.dfy(60,8): Error: Cyclic dependency among declarations: X -> B ->
 git-issue-2134.dfy(59,17): Error: arguments must have comparable types (got ?1 and ?0)
 git-issue-2134.dfy(65,11): Error: Cyclic dependency among declarations: X -> B -> X
 git-issue-2134.dfy(64,7): Error: Cyclic dependency among declarations: B -> B -> X
-git-issue-2134.dfy(64,17): Error: arguments must have comparable types (got ?1 and ?1)
-19 resolution/type errors detected in git-issue-2134.dfy
+18 resolution/type errors detected in git-issue-2134.dfy
