@@ -50,4 +50,8 @@
     <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pipeline\" />
+  </ItemGroup>
+
 </Project>
