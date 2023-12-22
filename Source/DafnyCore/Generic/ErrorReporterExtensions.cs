@@ -49,7 +49,7 @@ public static class ErrorReporterExtensions {
       if (message == PostConditionFailingMessage) {
         var postcondition = rangeToken.PrintOriginal();
         message = $"This postcondition might not hold: {postcondition}";
-      } else if (message == RelatedLocationMessage) {
+      } else if (message == null || message == RelatedLocationMessage) {
         message = FormatRelated(rangeToken.PrintOriginal());
       }
     }
