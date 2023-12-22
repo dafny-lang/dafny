@@ -3,8 +3,7 @@ mod tests;
 use std::{fmt::{Display, Formatter},
           rc::Rc, ops::{Deref, Add},
           collections::{HashSet, HashMap},
-          cell::RefCell,
-          mem::ManuallyDrop};
+          cell::RefCell};
 use num::{Integer, Signed, One};
 pub use once_cell::unsync::Lazy;
 
@@ -28,76 +27,133 @@ pub type SizeT = usize;
 // The T must be either a ManuallyDrop (allocated) OR a Reference Counting (immutable)
 // To explicit bounds
 enum Sequence<T>
-  where
-    ManuallyDrop<T>: Default,
-    Rc<T>: Clone,
+  where T: DafnyClone,
 {
     ArraySequence {
         is_string: bool,
         node_count: usize,
-        length: SizeT,
         // Values is a native array (not a Vec<> that will actually perform bound checks),*
         // because we will know statically that all 
         // accesses are in bounds when using this data structure
-        values: Box<[T]>,
+        values: Rc<Vec<T>>,
     },
     ConcatSequence {
         is_string: bool,
         node_count: usize,
-        left: Box<Sequence<T>>,
-        right: Box<Sequence<T>>,
+        left: Rc<Sequence<T>>,
+        right: Rc<Sequence<T>>,
+        length: SizeT,
     },
     LazySequence {
         is_string: bool,
         node_count: usize,
         length: SizeT,
-        boxed: AtomicBox<Sequence<T>>
+        boxed: RefCell<Rc<Sequence<T>>>
     }
 }
 impl <T> Sequence<T>
-where
-  ManuallyDrop<T>: Default,
-  Rc<T>: Clone {
+where T: DafnyClone {
+    fn new_array_sequence(values: &Rc<Vec<T>>) -> Rc<Sequence<T>> {        
+        Sequence::<T>::new_array_sequence_is_string(values, false)
+    }
+    fn new_array_sequence_is_string(values: &Rc<Vec<T>>, is_string: bool) -> Rc<Sequence<T>> {        
+        Rc::new(Sequence::ArraySequence {
+            is_string,
+            node_count: 1,
+            values: Rc::clone(values),
+        })
+    }
+    fn new_concat_sequence(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
+        Sequence::<T>::new_concat_sequence_is_string(left, right, false)
+    }
+    fn new_concat_sequence_is_string(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
+        Rc::new(Sequence::ConcatSequence {
+            is_string,
+            node_count: 1 + left.node_count() + right.node_count(),
+            left: Rc::clone(&left),
+            right: Rc::clone(&right),
+            length: left.cardinality() + right.cardinality(),
+        })
+    }
+    fn new_lazy_sequence(boxed: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
+        Sequence::<T>::new_lazy_sequence_is_string(boxed, false)
+    }
+    fn new_lazy_sequence_is_string(underlying: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
+        Rc::new(Sequence::LazySequence {
+            is_string,
+            node_count: underlying.node_count() + 1,
+            length: underlying.cardinality(),
+            boxed: RefCell::new(Rc::clone(underlying)),
+        })
+    }
+
+    fn to_array(&self) -> Rc<Vec<T>> {
+        // We convert the match above to statements using the Rust "it" idiom
+        if let Sequence::ArraySequence { values, .. } = self {
+            // The length of the elements
+            Rc::clone(values)
+        } else if let Sequence::ConcatSequence { length, .. } = self {
+            let mut array: Vec<T> = Vec::with_capacity(*length);
+            Sequence::<T>::append_recursive(&mut array, self);
+            Rc::new(array)
+        } else if let Sequence::LazySequence { boxed, is_string, ..  } = self {
+            let result = boxed.borrow().to_array();
+            // Put the value back into boxed
+            boxed.replace(Rc::clone(
+                &Sequence::<T>::new_array_sequence_is_string(&result, *is_string)));
+            result
+        } else {
+            panic!("This should never happen")
+        }
+    }
+
+    fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
+        match this {
+            Sequence::ArraySequence { values, .. } =>
+              // The length of the elements
+              for value in values.iter() {
+                array.push(value.clone_value());
+              },
+            Sequence::ConcatSequence { left, right, .. } =>
+              // Let's create an array of size length and fill it up recursively
+              {
+                Sequence::<T>::append_recursive(array, left);
+                Sequence::<T>::append_recursive(array, right);
+              }
+            Sequence::LazySequence { boxed, .. } =>
+            Sequence::<T>::append_recursive(array, boxed.borrow().as_ref()),
+        }
+    }
+
+    fn node_count(&self) -> usize {
+        match self {
+            Sequence::ArraySequence { node_count, .. } =>
+              // The length of the elements
+              *node_count,
+            Sequence::ConcatSequence { node_count, ..  } =>
+              *node_count,
+            Sequence::LazySequence { node_count, .. } =>
+              *node_count,
+        }
+    
+    }
     /// Returns the cardinality of this [`Sequence<T>`].
     // The cardinality returns the length of the sequence
     fn cardinality(&self) -> SizeT {
         match self {
-            Sequence::ArraySequence { length, .. } =>
+            Sequence::ArraySequence { values, .. } =>
               // The length of the elements
+              values.len(),
+            Sequence::ConcatSequence { length, .. } =>
               *length,
-            Sequence::ConcatSequence { left, right, .. } =>
-              left.cardinality() + right.cardinality(),
             Sequence::LazySequence { length, .. } =>
               *length,
         }
     }
-    /*fn to_array(&self): [T] {
-        match self {
-            Sequence::ArraySequence { values, .. } =>
-              // The length of the elements
-              *values,
-            Sequence::ConcatSequence { left, right, .. } =>
-              [left.to_array(), right.to_array()].concat(),
-            Sequence::LazySequence { boxed, .. } =>
-              boxed.borrow().to_array(),
-        }
-    
+    fn select(&self, index: SizeT) -> T {
+        let array = self.to_array();
+        array[index].clone_value()
     }
-    fn select(&self, index: SizeT) -> Option<&T> {
-        match self {
-            Sequence::ArraySequence { values, .. } =>
-              // The length of the elements
-              values.get(index),
-            Sequence::ConcatSequence { left, right, .. } =>
-              if index < left.cardinality() {
-                  left.select(index)
-              } else {
-                  right.select(index - left.cardinality())
-              },
-            Sequence::LazySequence { boxed, .. } =>
-              boxed.borrow().select(index),
-        }
-    }*/
     
 }
 
@@ -566,7 +622,7 @@ pub trait DafnyPrint {
 }
 
 impl <T> DafnyPrint for *const T {
-    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
         write!(f, "<{} object>", std::any::type_name::<T>())
     }
 }

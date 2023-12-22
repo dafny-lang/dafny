@@ -2,14 +2,12 @@
 // Test module
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, fmt::Formatter};
+    use std::{rc::Rc, fmt::Formatter, borrow::Borrow};
 
     use num::{BigInt, One, Zero};
     use once_cell::sync::Lazy;
 
-    use crate::{DafnyClone, DafnyPrint, deallocate, allocate};
-
-    use super::*;
+    use crate::{DafnyClone, DafnyPrint, deallocate, allocate, Sequence};
 
     // A datatype encoded in Rust
     // T can either be an allocated type *const X or a reference type Rc<X>
@@ -63,7 +61,7 @@ mod tests {
         last: Rc<String>,
     }
     impl DafnyPrint for MyStruct {
-        fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
             write!(f, "MyStruct({}, {})", self.first, self.last)
         }
     }
@@ -207,6 +205,54 @@ mod tests {
         assert_eq!(*stream.get(&BigInt::zero()), BigInt::zero());
         assert_eq!(*stream.get(&BigInt::one()), BigInt::one());
     }
+
+    impl DafnyClone for i32 {
+        fn clone_value(&self) -> Self {
+            *self
+        }
+    }
     
+    #[test]
+    fn test_sequence() {
+        let values = Rc::new(vec![1, 2, 3]);
+        let seq = Sequence::<i32>::new_array_sequence(&values);
+        assert_eq!(seq.node_count(), 1);
+        assert_eq!(seq.cardinality(), 3);
+        assert_eq!(seq.to_array(), values);
+    
+        // Create a concat array, wrap it into a lazy one, get the i-th element,
+        // and verify that this operation flattened the array
+        let left = Sequence::<i32>::new_array_sequence(&Rc::new(vec![1, 2, 3]));
+        let right = Sequence::<i32>::new_array_sequence(&Rc::new(vec![4, 5, 6]));
+        let concat = Sequence::<i32>::new_concat_sequence(&left, &right);
+
+        let lazy = Sequence::<i32>::new_lazy_sequence(&concat);
+        assert_eq!(lazy.node_count(), 4);
+        assert_eq!(lazy.cardinality(), 6);
+        match lazy.borrow() {
+            Sequence::LazySequence { boxed, .. } =>
+            match (&*boxed.borrow()).borrow() {
+                Sequence::ConcatSequence { is_string, node_count, length, .. } =>
+                {
+                    assert_eq!(*is_string, false);
+                    assert_eq!(*node_count, 3);
+                    assert_eq!(*length, 6);
+                },
+                _ => panic!("This should never happen")
+            },
+            _ => panic!("This should never happen")        
+        }
+        let value = lazy.select(0);
+        assert_eq!(value, 1);
+        match lazy.borrow() {
+            Sequence::LazySequence { boxed, .. } =>
+            match (&*boxed.borrow()).borrow() {
+                Sequence::ArraySequence { values, .. } =>
+                  assert_eq!(values, &Rc::new(vec![1, 2, 3, 4, 5, 6])),
+                _ => panic!("This should never happen")
+            },
+            _ => panic!("This should never happen")        
+        }
+    }
 }
 // Struct containing two reference-counted fields
