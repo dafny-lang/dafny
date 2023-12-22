@@ -9,14 +9,30 @@ public static class DafnyCommands {
 
   public static Argument<FileInfo> FileArgument { get; }
   public static Argument<List<FileInfo>> FilesArgument { get; }
-
+  
   static DafnyCommands() {
-
+    string PrefixErrorMessage(string s) => $"The Dafny CLI uses a double-dash '--' as a prefix for specifying options. " +
+                                           $"To avoid confusion, the Dafny CLI does not except filenames starting with this prefix, such as {s}";
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
+    FileArgument.AddValidator(r => {
+      var path = r.GetValueOrDefault<string>();
+      if (path.StartsWith("--")) {
+        r.ErrorMessage = PrefixErrorMessage(path);
+      }
+    });
     FilesArgument = new("file", r => {
-      return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
+      var result = new List<FileInfo>();
+      foreach (var token in r.Tokens) {
+        if (token.Value.StartsWith("--")) {
+          r.ErrorMessage = PrefixErrorMessage(token.Value);
+        } else if (!string.IsNullOrEmpty(token.Value)) {
+          result.Add(new FileInfo(token.Value));
+        }
+      }
+      return result;
     }, false, "Dafny input files and/or a Dafny project file");
   }
+  
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
     CommonOptionBag.FormatPrint,
