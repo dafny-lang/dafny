@@ -43,14 +43,6 @@ namespace Microsoft.Dafny {
     }
 
     public static async Task<int> Run(DafnyOptions options) {
-
-      if (options.DafnyProject == null) {
-        var uri = options.CliRootSourceUris.First();
-        options.DafnyProject = new DafnyProject {
-          Includes = Array.Empty<string>(),
-          Uri = uri
-        };
-      }
       options.RunningBoogieFromCommandLine = true;
 
       var backend = GetBackend(options);
