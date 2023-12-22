@@ -55,6 +55,18 @@ mod tests {
         }
     }
 
+    trait HasFirst
+    {
+        // Encoding of "var first"
+        fn _get_first(&self) -> Rc<String>;
+        fn _set_first(&self, new_first: &Rc<String>);
+        fn replace_first(&self, new_first: &Rc<String>) -> Rc<String> {
+            let old_first = self._get_first();
+            self._set_first(new_first);
+            old_first
+        }
+    }
+
     #[derive(PartialEq)]
     struct MyStruct {
         first: Rc<String>,
@@ -75,6 +87,26 @@ mod tests {
             unsafe {(*(this as *mut MyStruct)).last = last};
             this
         }
+    }
+    impl HasFirst for MyStruct {
+        // Use unsafe and pointer casting if necessary
+        fn _get_first(&self) -> Rc<String> {
+            self.first.clone_value()
+        }
+        fn _set_first(&self, new_first: &Rc<String>) {
+            let this = self as *const MyStruct;
+            unsafe {(*(this as *mut MyStruct)).first = Rc::clone(new_first)};
+        }
+    }
+    #[test]
+    fn test_has_first() {
+        let theobject: *const MyStruct = MyStruct::constructor(
+            Rc::new("John".to_string()),
+            Rc::new("Doe".to_string()));
+        assert_eq!(*unsafe{std::ptr::read(&(*theobject).first)}, "John".to_string());
+        unsafe {(*(theobject as *mut MyStruct)).first = Rc::new("Jane".to_string())};
+        assert_eq!(*unsafe{std::ptr::read(&(*theobject).first)}, "Jane".to_string());
+        deallocate(theobject);
     }
     // Function to test allocation and aliasing
     #[test]
