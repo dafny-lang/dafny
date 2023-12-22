@@ -14,14 +14,14 @@ namespace DafnyDriver.Commands;
 
 public class CliCompilation {
   private readonly DafnyOptions options;
-  
+
   private readonly CreateCompilation createCompilation;
 
   public static Compilation Create(DafnyOptions options) {
     var me = new CliCompilation(options);
     return me.Create();
   }
-  
+
   public CliCompilation(DafnyOptions options) {
     this.options = options;
 
@@ -54,7 +54,7 @@ public class CliCompilation {
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     var compilation = createCompilation(executionEngine, input);
-    
+
     ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
@@ -75,7 +75,7 @@ public class CliCompilation {
           options.OutputWriter.WriteLine(message);
         }
       }
-      
+
     });
     return compilation;
   }

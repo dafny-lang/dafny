@@ -53,16 +53,16 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
       var innerMessage = nestedToken.Message;
       if (innerMessage == null) {
-        innerMessage = "[Related location]";
+        innerMessage = "Related location";
       } else {
         innerMessage = "Related location: " + innerMessage;
       }
 
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
     }
-    
+
     Options.OutputWriter.Write(errorLine);
-      
+
 
     if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
       TextWriter tw = new StringWriter();
@@ -73,7 +73,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     if (Options.OutputWriter == Console.Out) {
       Console.ForegroundColor = previousColor;
     }
-    
+
     return true;
   }
 

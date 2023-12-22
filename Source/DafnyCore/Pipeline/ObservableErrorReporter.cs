@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (rootTok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? ErrorReporterExtensions.RelatedLocationMessage)
+            nestedToken.Inner, nestedToken.Message)
         );
       }
 

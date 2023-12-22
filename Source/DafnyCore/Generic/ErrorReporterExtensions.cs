@@ -43,14 +43,13 @@ public static class ErrorReporterExtensions {
   }
 
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
-    message ??= RelatedLocationMessage;
     var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
     if (dafnyToken is RangeToken rangeToken) {
       if (message == PostConditionFailingMessage) {
         var postcondition = rangeToken.PrintOriginal();
         message = $"This postcondition might not hold: {postcondition}";
-      } else if (message == "Related location") {
+      } else if (message == RelatedLocationMessage) {
         message = FormatRelated(rangeToken.PrintOriginal());
       }
     }

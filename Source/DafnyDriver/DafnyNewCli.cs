@@ -22,7 +22,7 @@ namespace Microsoft.Dafny;
 public static class DafnyNewCli {
   public const string ToolchainDebuggingHelpName = "--help-internal";
   public static readonly RootCommand RootCommand = new("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
-  
+
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
   }
@@ -83,7 +83,7 @@ public static class DafnyNewCli {
       }
 
       ProcessOption(context, CommonOptionBag.UseBaseFileName, dafnyOptions);
-      
+
       var singleFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       if (singleFile != null) {
         if (!await ProcessFile(dafnyOptions, singleFile)) {
@@ -100,7 +100,7 @@ public static class DafnyNewCli {
           }
         }
       }
-      foreach (var option in command.Options) {        
+      foreach (var option in command.Options) {
         if (option == CommonOptionBag.UseBaseFileName) {
           continue;
         }
@@ -158,7 +158,7 @@ public static class DafnyNewCli {
 
     return true;
   }
-  
+
   public static Task<int> Execute(IConsole console, string[] arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {

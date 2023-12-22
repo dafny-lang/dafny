@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -12,16 +13,24 @@ namespace DafnyDriver.Commands;
 public static class CliCompilationExtensions {
 
   public static int ExitCode(this Compilation compilation) {
-    var exitValue = compilation.Reporter.ErrorCount > 0 ? ExitValue.VERIFICATION_ERROR : ExitValue.SUCCESS;
+    ExitValue exitValue;
+    if (compilation.Reporter.HasErrorsUntilResolver) {
+      exitValue = ExitValue.DAFNY_ERROR;
+    } else if (compilation.Reporter.ErrorCount > 0) {
+      exitValue = ExitValue.VERIFICATION_ERROR;
+    } else {
+      exitValue = ExitValue.SUCCESS;
+    }
+
     return (int)exitValue;
   }
-  
+
   public static async Task VerifyAllAndPrintSummary(this Compilation compilation) {
     var resolution = await compilation.Resolution;
     if (resolution.ResolvedProgram.Reporter.HasErrorsUntilResolver) {
       return;
     }
-    
+
     var options = compilation.Input.Options;
     var statSum = new PipelineStatistics();
     var canVerifyResults = new Dictionary<IToken, CanVerifyResults>();
@@ -49,22 +58,22 @@ public static class CliCompilationExtensions {
           switch (batchCompleted.VcResult.outcome) {
             case ProverInterface.Outcome.Valid:
             case ProverInterface.Outcome.Bounded:
-              statSum.VerifiedCount += 1;
+              Interlocked.Increment(ref statSum.VerifiedCount);
               break;
             case ProverInterface.Outcome.Invalid:
-              statSum.ErrorCount += batchCompleted.VcResult.counterExamples.Count;
+              Interlocked.Add(ref statSum.ErrorCount, batchCompleted.VcResult.counterExamples.Count);
               break;
             case ProverInterface.Outcome.TimeOut:
-              statSum.TimeoutCount += 1;
+              Interlocked.Increment(ref statSum.TimeoutCount);
               break;
             case ProverInterface.Outcome.OutOfMemory:
-              statSum.OutOfMemoryCount += 1;
+              Interlocked.Increment(ref statSum.OutOfMemoryCount);
               break;
             case ProverInterface.Outcome.OutOfResource:
-              statSum.OutOfResourceCount += 1;
+              Interlocked.Increment(ref statSum.OutOfResourceCount);
               break;
             case ProverInterface.Outcome.Undetermined:
-              statSum.InconclusiveCount += 1;
+              Interlocked.Increment(ref statSum.InconclusiveCount);
               break;
             default:
               throw new ArgumentOutOfRangeException();
@@ -72,7 +81,7 @@ public static class CliCompilationExtensions {
         }
       }
     });
-    
+
     var canVerifies = resolution.CanVerifies?.ToList();
 
     if (canVerifies != null) {
@@ -90,10 +99,8 @@ public static class CliCompilationExtensions {
             Compilation.ReportDiagnosticsInResult(options, task, vcResult, compilation.Reporter);
           }
         }
-        await compilation.VerifyCanVerify(canVerify, false);
       }
     }
-
     LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
   }
 }
