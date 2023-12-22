@@ -1,20 +1,20 @@
 // RUN: %exits-with 3 %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
-// RUN: ! dotnet test -v:q %S 2>> %t
+// RUN: ! dotnet test -v:q %S/TestAttribute.csproj 2>> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
 // CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method MockField\).*
 // CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method ParametrizedMock\).*
-// CHECK: .*_module.__default.FailingTest_CheckForFailureForXunit.*
 // CHECK: .*_module.__default.FailingTestUsingMock.*
-// CHECK: .*_module.__default.FailingTestUsingExpectWithMessage.*
-// CHECK: .*_module.__default.FailingTestUsingExpect.*
 // CHECK: .*_module.__default.FailingTestUsingNoLHSAssignOrHalt.*
+// CHECK: .*_module.__default.FailingTestUsingExpectWithMessage.*
+// CHECK: .*_module.__default.FailingTest_CheckForFailureForXunit.*
 // CHECK: .*_module.__default.FailingTestUsingAssignOrHalt.*
+// CHECK: .*_module.__default.FailingTestUsingExpect.*
 // CHECK-NOT: .*PassingTest.*
 
-include "../exceptions/VoidOutcomeDt.dfy"
-include "../exceptions/NatOutcomeDt.dfy"
+include "../../exceptions/VoidOutcomeDt.dfy"
+include "../../exceptions/NatOutcomeDt.dfy"
 
 function SafeDivide(a: nat, b: nat): NatOutcome {
   if b == 0 then

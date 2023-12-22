@@ -3404,7 +3404,6 @@ namespace Microsoft.Dafny {
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, desc));
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
@@ -3422,7 +3421,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
@@ -3447,7 +3446,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 

@@ -1,12 +1,21 @@
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
 
 public class RunAllTestsMainMethod : IRewriter {
+
+  static RunAllTestsMainMethod() {
+    DooFile.RegisterNoChecksNeeded(IncludeTestRunner);
+  }
+
+  public static Option<bool> IncludeTestRunner = new("--include-test-runner",
+    "Include a program entry point that will run all methods marked with {:test}");
 
   /** The name used for Main when executing tests. Should be a name that cannot be a Dafny name,
       that Dafny will not use as a mangled Dafny name for any backend, and that is not likely

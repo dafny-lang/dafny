@@ -205,8 +205,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       return compileName;
     }
 
-    if (Replacement != null) {
-      return Replacement.GetCompileName(options);
+    if (Implements is { Kind: ImplementationKind.Replacement }) {
+      return Implements.Target.Def.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
