@@ -21,7 +21,7 @@ public static class BuildCommand {
       options.Compile = true;
       options.RunAfterCompile = false;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return LegacyCliCompilation.Run(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }

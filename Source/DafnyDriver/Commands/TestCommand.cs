@@ -46,7 +46,7 @@ static class TestCommand {
       options.Set(RunAllTestsMainMethod.IncludeTestRunner, true);
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       options.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
-      return LegacyCliCompilation.Run(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }

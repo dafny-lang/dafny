@@ -19,7 +19,7 @@ public static class VerifyCommand {
         options.TrackVerificationCoverage = true;
       }
       options.Compile = false;
-      return LegacyCliCompilation.Run(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }

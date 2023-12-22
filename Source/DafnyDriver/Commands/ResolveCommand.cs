@@ -13,7 +13,7 @@ static class ResolveCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;
-      return LegacyCliCompilation.Run(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }

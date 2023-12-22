@@ -25,7 +25,7 @@ static class AuditCommand {
       options.Compile = false;
       options.Verify = false;
       options.AuditProgram = true;
-      return LegacyCliCompilation.Run(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }
