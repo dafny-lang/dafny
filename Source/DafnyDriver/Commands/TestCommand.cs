@@ -40,13 +40,13 @@ static class TestCommand {
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = true;
       options.RunAfterCompile = true;
       options.Set(RunAllTestsMainMethod.IncludeTestRunner, true);
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       options.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
-      return CompilerDriver.RunCompiler(options);
+      return LegacyCliCompilation.Run(options);
     });
     return result;
   }
