@@ -4,6 +4,6 @@ namespace Dafny;
 
 public class Dafny {
   public static int Main(string[] args) {
-    return DafnyCli.Main(args);
+    return DafnyBackwardsCompatibleCli.Main(args);
   }
 }
