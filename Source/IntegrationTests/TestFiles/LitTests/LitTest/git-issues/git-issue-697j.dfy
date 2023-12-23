@@ -50,4 +50,23 @@ method Main() {
   print |cc|, " ", |cc'0|, " ", |cc'1|, " ", |cc'2|, "\n"; // 3 3 2 1
 
   // TODO: check a compilable constraint with a non-compilable base type
+
+  AnotherTest.Test();
+}
+
+module AnotherTest {
+  predicate P(s: seq<int>) { |s| <= 1 }
+
+  type T = seq<int>
+  type SST = s: T | P(s)
+
+  method Test() {
+    var a0: T := [];
+    var a1: T := [25];
+    var a2: T := [100, 101];
+    var a3: T := [22];
+    var S: set<T> := { a0, a1, a2, a3 };
+    var s1 := set m: SST | m in S;
+    print |s1|, "\n"; // 3
+  }
 }

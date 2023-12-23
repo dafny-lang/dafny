@@ -5764,23 +5764,19 @@ namespace Microsoft.Dafny.Compilers {
           userDefinedType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints &&
           declWithConstraints.Var != null) {
 
-        if (declWithConstraints.Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType {
-          ResolvedClass: SubsetTypeDecl
-        } normalizedVariableType) {
+        var baseType = declWithConstraints.Var.Type.NormalizeExpandKeepConstraints();
+        if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
               inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
-        var bvIdentifier = new IdentifierExpr(tok, boundVar);
+        var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), baseType) { Type = baseType };
         var typeParameters = TypeParameter.SubstitutionMap(declWithConstraints.TypeArgs, userDefinedType.TypeArgs);
         var subContract = new Substituter(null,
-          new Dictionary<IVariable, Expression>()
-          {
-            {declWithConstraints.Var, bvIdentifier}
+          new Dictionary<IVariable, Expression>() {
+            {declWithConstraints.Var, theValue}
           },
-          new Dictionary<TypeParameter, Type>(
-            typeParameters
-          )
+          typeParameters
         );
         var constraintInContext = subContract.Substitute(declWithConstraints.Constraint);
         var wStmts = wr.Fork();
