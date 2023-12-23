@@ -1641,8 +1641,11 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+        new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
     }
 
     /// <summary>
