@@ -3395,7 +3395,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (Options.Compile || Options.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+      if (Options.Compile || Options.Get(RunAllTestsMainMethod.IncludeTestRunner) || !Attributes.Contains(decl.Attributes, "test")) {
         return;
       }
 
