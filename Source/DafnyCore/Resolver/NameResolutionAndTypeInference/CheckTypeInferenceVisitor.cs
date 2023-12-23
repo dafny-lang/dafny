@@ -248,7 +248,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
         } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
           // it's fine
-        } else if (!e.ToType.IsRefType) {
+        } else if (!e.ToType.IsRefType && !e.ToType.IsTraitType) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,
             "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
         }

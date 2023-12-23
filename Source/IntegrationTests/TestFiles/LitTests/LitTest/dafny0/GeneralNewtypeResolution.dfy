@@ -128,3 +128,59 @@ module SomeOperators {
     r' := k > k;
   }
 }
+
+module WhatCanBeCompiled {
+  newtype MyBool = bool
+  newtype AnyBool = b: bool | true
+  newtype TrueBool = b | b
+
+  function Exp(x: int, n: nat): int {
+    if n == 0 then 1 else x * Exp(x, n - 1)
+  }
+  newtype FermatBool = b | b <==>
+    forall x, y, z, n: nat :: 1 <= x && 1 <= y && 1 <= z && Exp(x, n) + Exp(y, n) == Exp(z, n) ==> n <= 2
+    witness *
+
+  ghost predicate G(b: bool) { b }
+  newtype GhostBool = b | G(b)
+
+  newtype OnTopOfGhostBool = g: GhostBool | true witness false
+
+  method AsTest(b: bool) {
+    if
+    case true =>
+      var m: MyBool;
+      m := b as MyBool;
+    case true =>
+      var a: AnyBool;
+      a := b as AnyBool;
+    case true =>
+      var t: TrueBool;
+      t := b as TrueBool;
+    case true =>
+      var f: FermatBool;
+      f := b as FermatBool;
+    case true =>
+      var g: GhostBool;
+      g := b as GhostBool;
+    case true =>
+      var o: OnTopOfGhostBool;
+      o := b as OnTopOfGhostBool;
+  }
+
+  method IsTest(b: bool) returns (r: bool) {
+    if
+    case true =>
+      r := b is MyBool; // error: currently not supported (but could be)
+    case true =>
+      r := b is AnyBool; // error: currently not supported (but could be)
+    case true =>
+      r := b is TrueBool; // error: currently not supported (but could be)
+    case true =>
+      r := b is FermatBool; // error: this type test is ghost
+    case true =>
+      r := b is GhostBool; // error: this type test is ghost
+    case true =>
+      r := b is OnTopOfGhostBool; // error: this type test is ghost
+  }
+}

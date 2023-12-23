@@ -1166,6 +1166,12 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
+          void CheckIfCompilable(RedirectingTypeDecl constraintIsCompilableDecl) {
+            constraintIsCompilableDecl.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null,
+              constraintIsCompilableDecl.Constraint, new CodeContextWrapper(constraintIsCompilableDecl, true));
+            constraintIsCompilableDecl.CheckedIfConstraintIsCompilable = true;
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
@@ -1177,9 +1183,7 @@ namespace Microsoft.Dafny {
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1193,6 +1197,8 @@ namespace Microsoft.Dafny {
             if (newtypeDecl.Var != null) {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
+              CheckIfCompilable(newtypeDecl);
+
               if (newtypeDecl.Witness != null) {
                 CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               }

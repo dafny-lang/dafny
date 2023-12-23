@@ -357,7 +357,7 @@ public class ExpressionTester {
     // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
     // are allowed only in ghost contexts.
     var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
-    if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+    if (udtTo.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
       return false;
     }
 

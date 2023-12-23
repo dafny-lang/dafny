@@ -64,6 +64,16 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
   Expression RedirectingTypeDecl.Constraint { get { return null; } }
+
+  bool RedirectingTypeDecl.ConstraintIsCompilable {
+    get => false;
+    set => throw new NotSupportedException();
+  }
+  bool RedirectingTypeDecl.CheckedIfConstraintIsCompilable {
+    get => true;
+    set => throw new NotSupportedException();
+  }
+
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
   Expression RedirectingTypeDecl.Witness { get { return null; } }
   FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
