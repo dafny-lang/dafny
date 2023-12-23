@@ -17,7 +17,6 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
 
   [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set; }
-  [FilledInDuringResolution] bool RedirectingTypeDecl.CheckedIfConstraintIsCompilable { get; set; } = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
 
   public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
     List<MemberDecl> members, Attributes attributes, bool isRefining)

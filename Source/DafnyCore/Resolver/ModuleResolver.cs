@@ -1176,7 +1176,6 @@ namespace Microsoft.Dafny {
             }
             // TODO: should also check base type
             declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
-            declWithConstraint.CheckedIfConstraintIsCompilable = true;
           }
 
           if (d is IteratorDecl) {

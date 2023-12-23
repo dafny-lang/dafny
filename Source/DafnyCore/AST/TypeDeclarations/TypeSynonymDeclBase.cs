@@ -69,10 +69,6 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     get => false;
     set => throw new NotSupportedException();
   }
-  bool RedirectingTypeDecl.CheckedIfConstraintIsCompilable {
-    get => true;
-    set => throw new NotSupportedException();
-  }
 
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
   Expression RedirectingTypeDecl.Witness { get { return null; } }

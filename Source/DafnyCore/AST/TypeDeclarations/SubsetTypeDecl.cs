@@ -13,7 +13,6 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
 
   [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set;  }
-  [FilledInDuringResolution] bool RedirectingTypeDecl.CheckedIfConstraintIsCompilable { get; set; } = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
 
   public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,

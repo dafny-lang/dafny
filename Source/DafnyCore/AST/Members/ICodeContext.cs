@@ -172,5 +172,4 @@ public interface RedirectingTypeDecl : ICallable {
   FreshIdGenerator IdGenerator { get; }
 
   [FilledInDuringResolution] bool ConstraintIsCompilable { get; set;  }
-  [FilledInDuringResolution] bool CheckedIfConstraintIsCompilable { get; set; } // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
 }
