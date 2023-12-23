@@ -1167,8 +1167,15 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
           void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
-            declWithConstraint.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null,
-              declWithConstraint.Constraint, new CodeContextWrapper(declWithConstraint, true));
+            bool constraintIsCompilable;
+            if (declWithConstraint.Constraint == null) {
+              constraintIsCompilable = true;
+            } else {
+              constraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
+            }
+            // TODO: should also check base type
+            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
             declWithConstraint.CheckedIfConstraintIsCompilable = true;
           }
 
@@ -1197,15 +1204,15 @@ namespace Microsoft.Dafny {
             if (newtypeDecl.Var != null) {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
-              CheckIfCompilable(newtypeDecl);
-
-              if (newtypeDecl.Witness != null) {
-                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              }
             }
-            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+            CheckIfCompilable(newtypeDecl);
+
+            if (newtypeDecl.Witness != null) {
+              CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+              }
             }
 
             FigureOutNativeType(newtypeDecl);

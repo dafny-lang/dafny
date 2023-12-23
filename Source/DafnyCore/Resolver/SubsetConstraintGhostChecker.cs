@@ -86,24 +86,21 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
-          if (declWithConstraint is SubsetTypeDecl && !declWithConstraint.ConstraintIsCompilable) {
-            var constraintIsCompilable = declWithConstraint.ConstraintIsCompilable;
+          if (!declWithConstraint.ConstraintIsCompilable) {
 
-            if (!constraintIsCompilable) {
-              IToken finalToken = boundVar.tok;
-              if (declWithConstraint.Constraint.tok.line != 0) {
-                var errorCollector = new FirstErrorCollector(reporter.Options);
-                ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
-                  new CodeContextWrapper(declWithConstraint, true));
-                if (errorCollector.Collected) {
-                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
-                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
-                  );
-                }
+            IToken finalToken = boundVar.tok;
+            if (declWithConstraint.Constraint.tok.line != 0) {
+              var errorCollector = new FirstErrorCollector(reporter.Options);
+              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
+              if (errorCollector.Collected) {
+                finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                  "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
+                );
               }
-              this.reporter.Error(MessageSource.Resolver, finalToken,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
+            this.reporter.Error(MessageSource.Resolver, finalToken,
+              $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
           }
         }
       }
