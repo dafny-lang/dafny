@@ -87,11 +87,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       foreach (var boundVar in e.BoundVars) {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
           if (declWithConstraint is SubsetTypeDecl && !declWithConstraint.ConstraintIsCompilable) {
-            // Builtin types were never resolved.
-            var constraintIsCompilable = ExpressionTester.CheckIsCompilable(reporter.Options, null,
-              declWithConstraint.Constraint, new CodeContextWrapper(declWithConstraint, true));
-            declWithConstraint.CheckedIfConstraintIsCompilable = true;
-            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
+            var constraintIsCompilable = declWithConstraint.ConstraintIsCompilable;
 
             if (!constraintIsCompilable) {
               IToken finalToken = boundVar.tok;
