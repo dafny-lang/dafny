@@ -83,7 +83,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     string what = e.WhatKind;
 
-    if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
+    if (e is QuantifierExpr or SetComprehension or MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
           if (!declWithConstraint.ConstraintIsCompilable) {
