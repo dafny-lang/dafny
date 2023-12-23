@@ -5760,16 +5760,11 @@ namespace Microsoft.Dafny.Compilers {
       IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
       if (!boundVarType.Equals(collectionElementType, true) &&
-          boundVarType.NormalizeExpand(true) is UserDefinedType {
-            TypeArgs: var typeArgs,
-            ResolvedClass:
-            SubsetTypeDecl {
-              TypeArgs: var typeParametersArgs,
-              Var: var variable,
-              Constraint: var constraint
-            }
-          }) {
-        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType {
+          boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType userDefinedType &&
+          userDefinedType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints &&
+          declWithConstraints.Var != null) {
+
+        if (declWithConstraints.Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType {
           ResolvedClass: SubsetTypeDecl
         } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
@@ -5777,17 +5772,17 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);
-        var typeParameters = TypeParameter.SubstitutionMap(typeParametersArgs, typeArgs);
+        var typeParameters = TypeParameter.SubstitutionMap(declWithConstraints.TypeArgs, userDefinedType.TypeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
           {
-            {variable, bvIdentifier}
+            {declWithConstraints.Var, bvIdentifier}
           },
           new Dictionary<TypeParameter, Type>(
             typeParameters
           )
         );
-        var constraintInContext = subContract.Substitute(constraint);
+        var constraintInContext = subContract.Substitute(declWithConstraints.Constraint);
         var wStmts = wr.Fork();
         var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
         EmitExpr(constraintInContext, inLetExprBody, guardWriter, wStmts);
