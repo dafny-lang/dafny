@@ -85,34 +85,29 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.NormalizeExpand().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
-          // First, make sure declWithConstraint.ConstraintIsCompilable has been computed
-          if (!declWithConstraint.CheckedIfConstraintIsCompilable) {
-            bool constraintIsCompilable;
-            if (declWithConstraint.Constraint == null) {
-              constraintIsCompilable = true;
-            } else {
-              // Builtin types were never resolved.
-              constraintIsCompilable = ExpressionTester.CheckIsCompilable(reporter.Options, null, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
-            }
+        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
+          if (declWithConstraint is SubsetTypeDecl && !declWithConstraint.ConstraintIsCompilable) {
+            // Builtin types were never resolved.
+            var constraintIsCompilable = ExpressionTester.CheckIsCompilable(reporter.Options, null,
+              declWithConstraint.Constraint, new CodeContextWrapper(declWithConstraint, true));
             declWithConstraint.CheckedIfConstraintIsCompilable = true;
             declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
-          }
 
-          if (!declWithConstraint.ConstraintIsCompilable) {
-            var finalToken = boundVar.tok;
-            if (declWithConstraint.Constraint.tok.line != 0) {
-              var errorCollector = new FirstErrorCollector(reporter.Options);
-              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint, new CodeContextWrapper(declWithConstraint, true));
-              if (errorCollector.Collected) {
-                finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
-                  "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
-                );
+            if (!constraintIsCompilable) {
+              IToken finalToken = boundVar.tok;
+              if (declWithConstraint.Constraint.tok.line != 0) {
+                var errorCollector = new FirstErrorCollector(reporter.Options);
+                ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
+                  new CodeContextWrapper(declWithConstraint, true));
+                if (errorCollector.Collected) {
+                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
+                  );
+                }
               }
+              this.reporter.Error(MessageSource.Resolver, finalToken,
+                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
-            this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
           }
         }
       }
