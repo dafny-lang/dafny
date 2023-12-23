@@ -1166,10 +1166,10 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
-          void CheckIfCompilable(RedirectingTypeDecl constraintIsCompilableDecl) {
-            constraintIsCompilableDecl.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null,
-              constraintIsCompilableDecl.Constraint, new CodeContextWrapper(constraintIsCompilableDecl, true));
-            constraintIsCompilableDecl.CheckedIfConstraintIsCompilable = true;
+          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
+            declWithConstraint.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null,
+              declWithConstraint.Constraint, new CodeContextWrapper(declWithConstraint, true));
+            declWithConstraint.CheckedIfConstraintIsCompilable = true;
           }
 
           if (d is IteratorDecl) {
