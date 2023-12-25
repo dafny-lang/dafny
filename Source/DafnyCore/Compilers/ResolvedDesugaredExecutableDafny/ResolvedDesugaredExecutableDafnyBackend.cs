@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
-using System.Text.RegularExpressions;
+using Dafny;
+using D2DInterpreter;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -21,6 +23,13 @@ public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
     return new ResolvedDesugaredExecutableDafnyCompiler();
   }
 
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    Sequence<DAST.Module> program = ((ResolvedDesugaredExecutableDafnyCompiler)dafnyCompiler).Program;
+    Interpreter.Run(program);
+    return true;
+  }
+  
   public ResolvedDesugaredExecutableDafnyBackend(DafnyOptions options) : base(options) {
   }
 }

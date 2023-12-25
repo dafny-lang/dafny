@@ -1,4 +1,4 @@
-module {:extern "D2DPrettyPrinter"} PrettyPrinter {
+module PrettyPrinter {
 
   import DAST
   import UnsupportedFeature
