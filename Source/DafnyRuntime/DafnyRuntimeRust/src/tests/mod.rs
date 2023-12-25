@@ -78,13 +78,13 @@ mod tests {
         }
     }
     impl MyStruct {
-        fn constructor(first: Rc<String>, last: Rc<String>) -> *const MyStruct {
+        fn constructor(first: &Rc<String>, last: &Rc<String>) -> *const MyStruct {
             let this =
               allocate(Box::new(MyStruct {
                 first: Rc::new("".to_string()),
                 last: Rc::new("".to_string())}));
-            unsafe {(*(this as *mut MyStruct)).first = first};
-            unsafe {(*(this as *mut MyStruct)).last = last};
+            unsafe {(*(this as *mut MyStruct)).first = Rc::clone(first)};
+            unsafe {(*(this as *mut MyStruct)).last = Rc::clone(last)};
             this
         }
     }
@@ -100,14 +100,24 @@ mod tests {
     }
     #[test]
     fn test_has_first() {
-        let theobject: *const MyStruct = MyStruct::constructor(
-            Rc::new("John".to_string()),
-            Rc::new("Doe".to_string()));
-        assert_eq!(*unsafe{std::ptr::read(&(*theobject).first)}, "John".to_string());
-        unsafe {(*(theobject as *mut MyStruct)).first = Rc::new("Jane".to_string())};
-        assert_eq!(*unsafe{std::ptr::read(&(*theobject).first)}, "Jane".to_string());
+        let doe = Rc::new("Doe".to_string());
+        let theobject: *const dyn HasFirst = MyStruct::constructor(
+            &Rc::new("John".to_string()),
+            &doe);
+        let original_first = unsafe { (*theobject)._get_first() };
+        assert_eq!(original_first, Rc::new("John".to_string()), "Initial value should be 'John'");
+    
+        let new_first = Rc::new("Jane".to_string());
+        unsafe { (*theobject)._set_first(&new_first) };
+    
+        let replaced_value = unsafe { (*theobject).replace_first(&Rc::new("Jack".to_string())) };
+        assert_eq!(replaced_value, Rc::new("Jane".to_string()), "Replaced value should be 'Jane'");
+        let old_count = Rc::strong_count(&doe);
+        //unsafe { drop(Box::from_raw(theobject as *mut dyn HasFirst)) };
         deallocate(theobject);
+        assert_eq!(Rc::strong_count(&doe), old_count - 1, "Doe should be deallocated");
     }
+
     // Function to test allocation and aliasing
     #[test]
     fn test_full_reuse() {
@@ -119,8 +129,8 @@ mod tests {
     fn test_reuse(reuse: bool) {
         // Create a struct for "John" "Doe" and wrap it with the function allocate()
         let theobject: *const MyStruct = MyStruct::constructor(
-            Rc::new("John".to_string()),
-            Rc::new("Doe".to_string()));
+            &Rc::new("John".to_string()),
+            &Rc::new("Doe".to_string()));
 
         // Assign the result to a *const on a raw pointer named "theobject"
         let mut possiblealias: *const MyStruct = theobject;
@@ -129,8 +139,8 @@ mod tests {
         // Otherwise, use the method allocate() on a new structure
         if !reuse {
             possiblealias = MyStruct::constructor(
-                Rc::new("John".to_string()),
-                Rc::new("Doe".to_string()));
+                &Rc::new("John".to_string()),
+                &Rc::new("Doe".to_string()));
         }
 
         // Modify the field "first" to "Jane" in theobject (unsafe code is fine)
@@ -188,15 +198,15 @@ mod tests {
     // Now let's encode a codatatype from Dafny
     // A codatatype is like a datatype but it can expand infinitely
     // For example, an infinite stream of numbers
-    /*codatatype NumberStream = NumberStream(value: int, tail: NumberStream)
-    {
-        static function from(i: int): NumberStream {
-            NumberStream(i, from(i + 1))
-        }
-        function get(i: nat): int {
-            if i == 0 then value else tail.get(i-1)
-        }
-    } */
+    //codatatype NumberStream = NumberStream(value: int, tail: NumberStream)
+    //{
+    //    static function from(i: int): NumberStream {
+    //        NumberStream(i, from(i + 1))
+    //    }
+    //    function get(i: nat): int {
+    //        if i == 0 then value else tail.get(i-1)
+    //    }
+    // }
     type LazyNumberStream = Lazy<Rc<NumberStream>, Box<dyn FnOnce() -> Rc<NumberStream>>>;
 
     struct NumberStream {

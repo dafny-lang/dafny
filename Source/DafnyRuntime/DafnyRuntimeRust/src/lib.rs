@@ -166,7 +166,7 @@ pub fn allocate<T>(value: Box<T>) -> *const T {
 
 // Generic function to safely deallocate a raw pointer
 #[inline]
-pub fn deallocate<T>(pointer: *const T) {
+pub fn deallocate<T : ?Sized>(pointer: *const T) {
     unsafe {
         // Takes ownership of the reference,
         // so that it's deallocated at the end of the method
