@@ -29,7 +29,7 @@ pub type SizeT = usize;
 
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
 enum Sequence<T>
-  where T: DafnyClone,
+  where T: Clone,
 {
     ArraySequence {
         is_string: bool,
@@ -74,7 +74,7 @@ impl Sequence<u16> {
 }
 
 impl <T> Sequence<T>
-where T: DafnyClone {
+where T: Clone {
     fn is_string(&self) -> bool {
         match self {
             Sequence::ArraySequence { is_string, .. } => *is_string,
@@ -120,7 +120,7 @@ where T: DafnyClone {
     fn to_array_owned<X>(&self, elem_converter: fn(T) -> X) -> Vec<X> {
         let mut array: Vec<T> = Vec::with_capacity(self.cardinality());
         Sequence::<T>::append_recursive(&mut array, self);
-        array.iter().map(|x| elem_converter(x.clone_value())).collect()
+        array.iter().map(|x| elem_converter(x.clone())).collect()
     }
     fn from_array_owned<X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>> {
         let mut result: Vec<T> = Vec::with_capacity(array.len());
@@ -155,7 +155,7 @@ where T: DafnyClone {
             Sequence::ArraySequence { values, .. } =>
               // The length of the elements
               for value in values.iter() {
-                array.push(value.clone_value());
+                array.push(value.clone());
               },
             Sequence::ConcatSequence { left, right, .. } =>
               // Let's create an array of size length and fill it up recursively
@@ -195,11 +195,22 @@ where T: DafnyClone {
     }
     fn select(&self, index: SizeT) -> T {
         let array = self.to_array();
-        array[index].clone_value()
+        array[index].clone()
     }
     
 }
 
+// **************
+// Maps
+// **************
+
+impl <U, T> Sequence<(U, T)>
+  where U: Clone + PartialEq, T: Clone
+{
+
+}
+
+type Map<K, V> = Sequence<(K, V)>;
 
 // Generic function to allocate and return a raw pointer immediately
 #[inline]
@@ -214,17 +225,6 @@ pub fn deallocate<T : ?Sized>(pointer: *const T) {
         // Takes ownership of the reference,
         // so that it's deallocated at the end of the method
         let _ = Box::from_raw(pointer as *mut T);
-    }
-}
-
-pub trait DafnyClone {
-    fn clone_value(&self) -> Self;
-}
-
-impl<T: Clone> DafnyClone for T {
-    #[inline]
-    fn clone_value(&self) -> Self {
-        self.clone()
     }
 }
 

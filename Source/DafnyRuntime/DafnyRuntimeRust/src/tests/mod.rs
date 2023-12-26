@@ -7,20 +7,20 @@ mod tests {
     use num::{BigInt, One, Zero};
     use once_cell::sync::Lazy;
 
-    use crate::{DafnyClone, DafnyPrint, deallocate, allocate, Sequence};
+    use crate::{DafnyPrint, deallocate, allocate, Sequence};
 
     // A datatype encoded in Rust
     // T can either be an allocated type *const X or a reference type Rc<X>
-    // Either way, T must extend DafnyClone and DafnyPrint
+    // Either way, T must extend Clone and DafnyPrint
     // T must be equatable
     #[derive(PartialEq)]
-    enum Tree<T: DafnyClone>
+    enum Tree<T: Clone>
       where T: DafnyPrint
     {
         Leaf,
         Node{left: Rc<Tree<T>>, value: T, right: Rc<Tree<T>>}
     }
-    impl <T: DafnyClone> Tree<T>
+    impl <T: Clone> Tree<T>
       where T: DafnyPrint
     {
         fn _isLeaf(&self) -> bool {
@@ -38,7 +38,7 @@ mod tests {
         fn value(&self) -> T {
             match self {
                 Tree::Leaf => panic!("Leaf has not value"),
-                Tree::Node{value, ..} => value.clone_value()
+                Tree::Node{value, ..} => value.clone()
             }
         }
         fn left(&self) -> Rc<Tree<T>> {
@@ -91,7 +91,7 @@ mod tests {
     impl HasFirst for MyStruct {
         // Use unsafe and pointer casting if necessary
         fn _get_first(&self) -> Rc<String> {
-            self.first.clone_value()
+            self.first.clone()
         }
         fn _set_first(&self, new_first: &Rc<String>) {
             let this = self as *const MyStruct;
@@ -231,7 +231,7 @@ mod tests {
 
         fn get(&self, i: &BigInt) -> Rc<BigInt> {
             if i == &BigInt::zero() {
-                self.value.clone_value()
+                self.value.clone()
             } else {
                 self.tail().get(&(i.clone() - BigInt::one()))
             }
@@ -301,6 +301,18 @@ mod tests {
         assert_eq!(unsafe{*(*values).get_unchecked(0)}, 4);
 
         deallocate(values);
+    }
+
+    fn Test2(x: bool, y: &mut bool, z: &mut bool) {
+        *y = !x;
+        *z = !x || *y;
+    }
+    fn Test3() { 
+      let mut y = true; let mut z = true;
+      Test2(true, &mut y, &mut z);
+      let mut i; let mut j;
+      i = y;
+      j = z;
     }
 }
 // Struct containing two reference-counted fields
