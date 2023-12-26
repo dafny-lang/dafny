@@ -15,25 +15,26 @@ pub use num::Zero;
 pub use itertools;
 
 // An atomic box is just a RefCell in Rust
-pub type AtomicBox<T> = Box<RefCell<T>>;
 pub type SizeT = usize;
+
+/******************************************************************************
+ * Sequences
+ ******************************************************************************/
 
 // Three elements
 // ArraySequence(var isString: bool, nodeCount: SizeT, immutable_array)
 // ConcatSequence(var isString: bool, nodeCount: SizeT, left: Sequence, right: Sequence)
-// LazySequence(length: BigInteger, box: AtomicBox<Sequence<T>>)
+// LazySequence(length: BigInteger, box: RefCell<Rc<Sequence<T>>>)
 // We use the named version using {...}, and use snake_case format
 
-// The T must be either a ManuallyDrop (allocated) OR a Reference Counting (immutable)
-// To explicit bounds
+// The T must be either a *const T (allocated) OR a Reference Counting (immutable)
 enum Sequence<T>
   where T: DafnyClone,
 {
     ArraySequence {
         is_string: bool,
         node_count: usize,
-        // Values is a native array (not a Vec<> that will actually perform bound checks),*
-        // because we will know statically that all 
+        // Values could be a native array because we will know statically that all 
         // accesses are in bounds when using this data structure
         values: Rc<Vec<T>>,
     },
@@ -51,8 +52,36 @@ enum Sequence<T>
         boxed: RefCell<Rc<Sequence<T>>>
     }
 }
+// --unicode-chars:true (codepoints)
+impl Sequence<char> {
+    fn from_string(s: &str) -> Rc<Sequence<char>> {
+        Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
+    }
+    fn to_string(&self) -> String {
+        let characters = self.to_array();
+        characters.iter().collect::<String>()
+    }
+}
+// --unicode-chars:false
+impl Sequence<u16> {
+    fn from_string(s: &str) -> Rc<Sequence<u16>> {
+        Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
+    }
+    fn to_string(&self) -> String {
+        let characters = self.to_array();
+        String::from_utf16_lossy(&characters)
+    }
+}
+
 impl <T> Sequence<T>
 where T: DafnyClone {
+    fn is_string(&self) -> bool {
+        match self {
+            Sequence::ArraySequence { is_string, .. } => *is_string,
+            Sequence::ConcatSequence { is_string, .. } => *is_string,
+            Sequence::LazySequence { is_string, .. } => *is_string,
+        }
+    }
     fn new_array_sequence(values: &Rc<Vec<T>>) -> Rc<Sequence<T>> {        
         Sequence::<T>::new_array_sequence_is_string(values, false)
     }
@@ -68,7 +97,7 @@ where T: DafnyClone {
     }
     fn new_concat_sequence_is_string(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
         Rc::new(Sequence::ConcatSequence {
-            is_string,
+            is_string: is_string || (left.is_string() && right.is_string()),
             node_count: 1 + left.node_count() + right.node_count(),
             left: Rc::clone(&left),
             right: Rc::clone(&right),
@@ -80,11 +109,25 @@ where T: DafnyClone {
     }
     fn new_lazy_sequence_is_string(underlying: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
         Rc::new(Sequence::LazySequence {
-            is_string,
+            is_string: is_string || underlying.is_string(),
             node_count: underlying.node_count() + 1,
             length: underlying.cardinality(),
             boxed: RefCell::new(Rc::clone(underlying)),
         })
+    }
+
+    // Used for external conversions
+    fn to_array_owned<X>(&self, elem_converter: fn(T) -> X) -> Vec<X> {
+        let mut array: Vec<T> = Vec::with_capacity(self.cardinality());
+        Sequence::<T>::append_recursive(&mut array, self);
+        array.iter().map(|x| elem_converter(x.clone_value())).collect()
+    }
+    fn from_array_owned<X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>> {
+        let mut result: Vec<T> = Vec::with_capacity(array.len());
+        for elem in array.iter() {
+            result.push(elem_converter(elem));
+        }
+        Sequence::<T>::new_array_sequence(&Rc::new(result))
     }
 
     fn to_array(&self) -> Rc<Vec<T>> {
@@ -178,17 +221,10 @@ pub trait DafnyClone {
     fn clone_value(&self) -> Self;
 }
 
-impl <T> DafnyClone for Rc<T> {
+impl<T: Clone> DafnyClone for T {
     #[inline]
     fn clone_value(&self) -> Self {
-        Rc::clone(self)
-    }
-}
-
-impl <T> DafnyClone for *const T {
-    #[inline]
-    fn clone_value(&self) -> Self {
-        *self
+        self.clone()
     }
 }
 

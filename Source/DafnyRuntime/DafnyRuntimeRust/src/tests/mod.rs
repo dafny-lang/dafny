@@ -207,22 +207,19 @@ mod tests {
     //        if i == 0 then value else tail.get(i-1)
     //    }
     // }
-    type LazyNumberStream = Lazy<Rc<NumberStream>, Box<dyn FnOnce() -> Rc<NumberStream>>>;
-
     struct NumberStream {
         value: Rc<BigInt>,
         // tail is a lazily initialized Rc<NumberStream>
-        tail: LazyNumberStream
+        tail: Lazy<Rc<NumberStream>, Box<dyn FnOnce() -> Rc<NumberStream>>>
     }
     impl NumberStream {
         fn from(i: &BigInt) -> Rc<NumberStream> {
             let i_copy = i.clone(); // Create a cloned BigInt
-            let closure: Box<dyn FnOnce() -> Rc<NumberStream>> =
-                Box::new(move || NumberStream::from(&((&i_copy).clone() + BigInt::one())));
-            let thunk = Lazy::new(closure);
             Rc::new(NumberStream {
                 value: Rc::new(i.clone()),
-                tail: thunk
+                tail: Lazy::new(
+                    Box::new(move || NumberStream::from(&(i_copy + BigInt::one())))
+                as Box<dyn FnOnce() -> Rc<NumberStream>>)
             })
         }
         fn value(&self) -> Rc<BigInt> {
@@ -234,7 +231,7 @@ mod tests {
 
         fn get(&self, i: &BigInt) -> Rc<BigInt> {
             if i == &BigInt::zero() {
-                Rc::clone(&self.value)
+                self.value.clone_value()
             } else {
                 self.tail().get(&(i.clone() - BigInt::one()))
             }
@@ -248,12 +245,6 @@ mod tests {
         assert_eq!(*stream.get(&BigInt::one()), BigInt::one());
     }
 
-    impl DafnyClone for i32 {
-        fn clone_value(&self) -> Self {
-            *self
-        }
-    }
-    
     #[test]
     fn test_sequence() {
         let values = Rc::new(vec![1, 2, 3]);
@@ -295,6 +286,21 @@ mod tests {
             },
             _ => panic!("This should never happen")        
         }
+    }
+
+    #[test]
+    fn test_native_array_pointer() {
+        let values: *const Vec<i32> = Box::into_raw(Box::new(vec![1, 2, 3]));
+        // allocate another vec of size 100
+        let values2: *const Vec<i32> = allocate(Box::new(vec![0; 100]));
+
+        // Verify that the length of values is 3
+        assert_eq!(unsafe{(*values).len()}, 3);
+        // If we change the first element to 4, we should read it as being 4 again
+        unsafe{*(*(values as *mut Vec<i32>)).get_unchecked_mut(0) = 4};
+        assert_eq!(unsafe{*(*values).get_unchecked(0)}, 4);
+
+        deallocate(values);
     }
 }
 // Struct containing two reference-counted fields
