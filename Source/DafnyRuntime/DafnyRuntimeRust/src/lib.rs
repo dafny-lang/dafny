@@ -117,10 +117,10 @@ where T: Clone {
     }
 
     // Used for external conversions
-    fn to_array_owned<X>(&self, elem_converter: fn(T) -> X) -> Vec<X> {
+    fn to_array_owned<X>(&self, elem_converter: fn(&T) -> X) -> Vec<X> {
         let mut array: Vec<T> = Vec::with_capacity(self.cardinality());
         Sequence::<T>::append_recursive(&mut array, self);
-        array.iter().map(|x| elem_converter(x.clone())).collect()
+        array.iter().map(|x| elem_converter(x)).collect()
     }
     fn from_array_owned<X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>> {
         let mut result: Vec<T> = Vec::with_capacity(array.len());
@@ -201,16 +201,88 @@ where T: Clone {
 }
 
 // **************
-// Maps
+// Immutable maps
 // **************
 
-impl <U, T> Sequence<(U, T)>
-  where U: Clone + PartialEq, T: Clone
+struct Map<K, V> 
+  where K: Clone + Eq + std::hash::Hash, V: Clone
 {
-
+    data: Rc<Sequence<(K, V)>>,
+    // Any time we explicitly access this map, we index the data
+    cache: RefCell<Option<HashMap<K, V>>>
 }
-
-type Map<K, V> = Sequence<(K, V)>;
+impl <K, V> Map<K, V>
+  where K: Clone + Eq + std::hash::Hash, V: Clone
+{
+    fn new_empty() -> Rc<Map<K, V>> {
+        Rc::new(Map {
+            data: Sequence::new_array_sequence(&Rc::new(Vec::new())),
+            cache: RefCell::new(None)
+        })
+    }
+    fn new_from_sequence(data: &Rc<Sequence<(K, V)>>) -> Rc<Map<K, V>> {
+        Rc::new(Map {
+            data: Rc::clone(data),
+            cache: RefCell::new(None)
+        })
+    }
+    fn to_hashmap_owned<K2, V2>(&self, converter_k: fn(&K)->K2, converter_v: fn(&V)->V2) -> HashMap<K2, V2>
+      where K2: Eq + std::hash::Hash, V2: Clone
+    {
+        let mut result: HashMap<K2, V2> = HashMap::new();
+        for (k, v) in self.data.to_array().iter() {
+            result.insert(converter_k(k), converter_v(v));
+        }
+        result
+    }
+    fn from_hashmap_owned<K2, V2>(map: &HashMap<K2, V2>, converter_k: fn(&K2)->K, converter_v: fn(&V2)->V)
+        -> Rc<Map<K, V>> {
+        let mut result: Vec<(K, V)> = Vec::new();
+        for (k, v) in map.iter() {
+            result.push((converter_k(k), converter_v(v)));
+        }
+        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
+        Rc::new(Map {
+            data: s,
+            cache: RefCell::new(None)
+        })
+    }
+    fn compute_hashmap(&self) {
+        let mut cache = self.cache.borrow_mut();
+        if cache.is_none() {
+            *cache = Some(self.to_hashmap_owned(
+                |x| x.clone(),
+                |x| x.clone()
+            ));
+        }
+    }
+    // Dafny will normally guarantee that the key exists.
+    fn get(&self, key: &K) -> V {
+        self.compute_hashmap();
+        self.cache.borrow_mut().as_ref().unwrap().get(key).unwrap().clone()
+    }
+    fn add(&self, key: K, value: V) -> Rc<Map<K, V>> {
+        let newData = Sequence::<(K, V)>::new_array_sequence(
+            &Rc::new(vec![(key, value)]));
+        let combinedData = Sequence::<(K, V)>::new_concat_sequence(
+            &self.data, &newData);
+        Rc::new(Map {
+            data: combinedData,
+            cache: RefCell::new(None)
+        })
+    }
+    fn add_multiple(&self, other: &Rc<Map<K, V>>) -> Rc<Map<K, V>> {
+        let newData = Rc::clone(&other.data);
+        let combinedData = Sequence::<(K, V)>::new_concat_sequence(
+            &self.data, &newData);
+        Rc::new(Map {
+            data: combinedData,
+            cache: RefCell::new(None)
+        })
+    
+    }
+    // TODO: Remaining methods + check names
+}
 
 // Generic function to allocate and return a raw pointer immediately
 #[inline]
