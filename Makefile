@@ -7,6 +7,10 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
+dfyprod:
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
 dfydev:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser

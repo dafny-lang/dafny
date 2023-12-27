@@ -5,7 +5,7 @@ use std::{fmt::{Display, Formatter},
           collections::{HashSet, HashMap},
           cell::RefCell, any::Any};
 use num::{Integer, Signed, One};
-use as_any::{AsAny, Downcast};
+use as_any::{AsAny};
 
 pub use once_cell::unsync::Lazy;
 
@@ -30,6 +30,8 @@ pub type SizeT = usize;
 // We use the named version using {...}, and use snake_case format
 
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
+
+#[allow(dead_code)]
 enum Sequence<T>
   where T: Clone,
 {
@@ -54,6 +56,8 @@ enum Sequence<T>
         boxed: RefCell<Rc<Sequence<T>>>
     }
 }
+
+#[allow(dead_code)]
 // --unicode-chars:true (codepoints)
 impl Sequence<char> {
     fn from_string(s: &str) -> Rc<Sequence<char>> {
@@ -64,6 +68,8 @@ impl Sequence<char> {
         characters.iter().collect::<String>()
     }
 }
+
+#[allow(dead_code)]
 // --unicode-chars:false
 impl Sequence<u16> {
     fn from_string(s: &str) -> Rc<Sequence<u16>> {
@@ -75,6 +81,7 @@ impl Sequence<u16> {
     }
 }
 
+#[allow(dead_code)]
 impl <T> Sequence<T>
 where T: Clone {
     fn is_string(&self) -> bool {
@@ -206,6 +213,7 @@ where T: Clone {
 // Immutable maps
 // **************
 
+#[allow(dead_code)]
 struct Map<K, V> 
   where K: Clone + Eq + std::hash::Hash, V: Clone
 {
@@ -213,6 +221,8 @@ struct Map<K, V>
     // Any time we explicitly access this map, we index the data
     cache: RefCell<Option<HashMap<K, V>>>
 }
+
+#[allow(dead_code)]
 impl <K, V> Map<K, V>
   where K: Clone + Eq + std::hash::Hash, V: Clone
 {
@@ -264,21 +274,21 @@ impl <K, V> Map<K, V>
         self.cache.borrow_mut().as_ref().unwrap().get(key).unwrap().clone()
     }
     fn add(&self, key: K, value: V) -> Rc<Map<K, V>> {
-        let newData = Sequence::<(K, V)>::new_array_sequence(
+        let new_data = Sequence::<(K, V)>::new_array_sequence(
             &Rc::new(vec![(key, value)]));
-        let combinedData = Sequence::<(K, V)>::new_concat_sequence(
-            &self.data, &newData);
+        let combined_data = Sequence::<(K, V)>::new_concat_sequence(
+            &self.data, &new_data);
         Rc::new(Map {
-            data: combinedData,
+            data: combined_data,
             cache: RefCell::new(None)
         })
     }
     fn add_multiple(&self, other: &Rc<Map<K, V>>) -> Rc<Map<K, V>> {
-        let newData = Rc::clone(&other.data);
-        let combinedData = Sequence::<(K, V)>::new_concat_sequence(
-            &self.data, &newData);
+        let new_data = Rc::clone(&other.data);
+        let combined_data = Sequence::<(K, V)>::new_concat_sequence(
+            &self.data, &new_data);
         Rc::new(Map {
-            data: combinedData,
+            data: combined_data,
             cache: RefCell::new(None)
         })
     
