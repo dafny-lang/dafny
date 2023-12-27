@@ -2,12 +2,12 @@
 // Test module
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, fmt::Formatter, borrow::Borrow};
-
+    use std::{rc::Rc, fmt::Formatter, borrow::Borrow, any::Any};
+    use as_any::{AsAny, Downcast};
     use num::{BigInt, One, Zero};
     use once_cell::sync::Lazy;
 
-    use crate::{DafnyPrint, deallocate, allocate, Sequence};
+    use crate::{DafnyPrint, deallocate, allocate, Sequence, is_instance_of};
 
     // A datatype encoded in Rust
     // T can either be an allocated type *const X or a reference type Rc<X>
@@ -55,7 +55,7 @@ mod tests {
         }
     }
 
-    trait HasFirst
+    trait HasFirst: AsAny
     {
         // Encoding of "var first"
         fn _get_first(&self) -> Rc<String>;
@@ -66,6 +66,7 @@ mod tests {
             old_first
         }
     }
+    struct NoStruct {}
 
     #[derive(PartialEq)]
     struct MyStruct {
@@ -101,7 +102,7 @@ mod tests {
     #[test]
     fn test_has_first() {
         let doe = Rc::new("Doe".to_string());
-        let theobject: *const dyn HasFirst = MyStruct::constructor(
+        let mut theobject: *const dyn HasFirst = MyStruct::constructor(
             &Rc::new("John".to_string()),
             &doe);
         let original_first = unsafe { (*theobject)._get_first() };
@@ -109,7 +110,17 @@ mod tests {
     
         let new_first = Rc::new("Jane".to_string());
         unsafe { (*theobject)._set_first(&new_first) };
-    
+
+        // Test if the pointer theobject points to a struct HasFirst, and then if it's a pointer to a Tree
+        // In the first case, do nothing, in the second case, panic
+        let is_no_struct = unsafe { &*theobject }.as_any().downcast_ref::<NoStruct>().is_some();
+        assert!(!is_no_struct, "The value should not be a NoStruct");
+        assert!(!is_instance_of::<dyn HasFirst, NoStruct>(theobject));
+        
+        let is_has_first = unsafe { &*theobject }.as_any().downcast_ref::<MyStruct>().is_some();
+        assert!(is_has_first, "The value should be a HasFirst");
+        assert!(!is_instance_of::<dyn HasFirst, MyStruct>(theobject));
+
         let replaced_value = unsafe { (*theobject).replace_first(&Rc::new("Jack".to_string())) };
         assert_eq!(replaced_value, Rc::new("Jane".to_string()), "Replaced value should be 'Jane'");
         let old_count = Rc::strong_count(&doe);

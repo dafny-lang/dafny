@@ -3,8 +3,10 @@ mod tests;
 use std::{fmt::{Display, Formatter},
           rc::Rc, ops::{Deref, Add},
           collections::{HashSet, HashMap},
-          cell::RefCell};
+          cell::RefCell, any::Any};
 use num::{Integer, Signed, One};
+use as_any::{AsAny, Downcast};
+
 pub use once_cell::unsync::Lazy;
 
 pub use num::bigint::BigInt;
@@ -298,6 +300,10 @@ pub fn deallocate<T : ?Sized>(pointer: *const T) {
         // so that it's deallocated at the end of the method
         let _ = Box::from_raw(pointer as *mut T);
     }
+}
+
+pub fn is_instance_of<T: ?Sized + Any, U: 'static>(theobject: *const T) -> bool {
+    unsafe { &*theobject }.as_any().downcast_ref::<U>().is_some()
 }
 
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
