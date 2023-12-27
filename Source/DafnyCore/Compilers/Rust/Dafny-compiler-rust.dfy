@@ -2,18 +2,8 @@ include "../Dafny/AST.dfy"
 
 // Rust AST
 module RAST {
-  // https://stackoverflow.com/questions/62722832/convert-numbers-to-strings
-  type stringNat = s: string |
-      |s| > 0 && (|s| > 1 ==> s[0] != '0') &&
-      forall i | 0 <= i < |s| :: s[i] in "0123456789"
-    witness "1"
-
-  function natToString(n: nat): stringNat {
-    match n
-    case 0 => "0" case 1 => "1" case 2 => "2" case 3 => "3" case 4 => "4"
-    case 5 => "5" case 6 => "6" case 7 => "7" case 8 => "8" case 9 => "9"
-    case _ => natToString(n / 10) + natToString(n % 10)
-  }
+  import opened Std.Wrappers
+  import opened Std.Strings
 
   const IND := "  "
   // Indentation level
@@ -124,17 +114,55 @@ module RAST {
   }
   datatype ImplDecl =
     | RawImplDecl(content: string)
+    | FunDecl(fun: Fun)
   {
     function ToString(ind: string): string {
       content
+    }
+  }
+
+  datatype Formal =
+    Formal(name: string, tpe: Type)
+  {
+    function ToString(ind: string): string {
+      name + ": " + tpe.ToString(ind)
+    }
+  }
+
+  datatype Expr =
+    RawExpr(content: string)
+  {
+    function ToString(ind: string): string {
+      content
+    }
+  }
+
+  datatype Fun =
+    Fun(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
+      returnType: Option<Type>, body: Expr)
+  {
+    function ToString(ind: string): string {
+      "fn " + name + TypeParam.ToStringMultiple(typeParams, ind) +
+      "(" + SeqToString(formals, (formal: Formal) => formal.ToString(ind), ", ") + ")" +
+      (match returnType case Some(t) => " -> " + t.ToString(ind) case _ => "") + " {\n" + ind + IND +
+        body.ToString(ind + IND) +
+      "\n" + ind + "}"
     }
   }
 }
 
 module {:extern "DCOMP"} DCOMP {
   import opened DAST
-  import opened R = RAST
+  import Strings = Std.Strings
+  import R = RAST
+  const IND := R.IND
   type Type = DAST.Type
+  type Formal = DAST.Formal
+
+  function runtime(suffix: string): string {
+    "::dafny_runtime" + suffix
+  }
+  const DafnyErasable := runtime("::DafnyErasable")
 
   predicate has_special(i: string) {
     if |i| == 0 then false
@@ -249,11 +277,11 @@ module {:extern "DCOMP"} DCOMP {
           var tp := params[tpI];
           typeParamsSet := typeParamsSet + {tp};
           var genTp := GenType(tp, false, false);
-          typeParams := typeParams + [RawTypeParam(genTp)];
+          typeParams := typeParams + [R.RawTypeParam(genTp)];
           var baseConstraints := ": ::dafny_runtime::DafnyErasable + ::dafny_runtime::DafnyUnerasable<" + genTp + "> + Clone + ::dafny_runtime::DafnyPrint + ::std::default::Default";
           constrainedTypeParams := constrainedTypeParams + [R.RawTypeParam(genTp + baseConstraints + " + 'static")];
           whereConstraints := whereConstraints + "<" + genTp + " as ::dafny_runtime::DafnyErasable>::Erased: ::std::cmp::PartialEq" + ", ";
-          constrainedEraseParams := constrainedEraseParams + [RawTypeParam(genTp + "__Erased" + ", " + genTp + baseConstraints + " + ::dafny_runtime::DafnyUnerasable<" + genTp + "__Erased> + 'static")];
+          constrainedEraseParams := constrainedEraseParams + [R.RawTypeParam(genTp + "__Erased" + ", " + genTp + baseConstraints + " + ::dafny_runtime::DafnyUnerasable<" + genTp + "__Erased> + 'static")];
           unerasedParams := unerasedParams + genTp + "__Erased" + ", ";
           erasedParams := erasedParams + genTp + "::Erased" + ", ";
           tpI := tpI + 1;
@@ -291,8 +319,8 @@ module {:extern "DCOMP"} DCOMP {
       var typeParamI := 0;
       while typeParamI < |c.typeParams| {
         var tpeGen := GenType(c.typeParams[typeParamI], false, false);
-        fields := fields + [R.FieldDecl("_phantom_type_param_" + natToString(typeParamI) + ": ::std::marker::PhantomData<" + tpeGen + ">")];
-        fieldInits := fieldInits + "_phantom_type_param_" + natToString(typeParamI) + ": ::std::marker::PhantomData,\n";
+        fields := fields + [R.FieldDecl("_phantom_type_param_" + Strings.OfNat(typeParamI) + ": ::std::marker::PhantomData<" + tpeGen + ">")];
+        fieldInits := fieldInits + "_phantom_type_param_" + Strings.OfNat(typeParamI) + ": ::std::marker::PhantomData,\n";
 
         typeParamI := typeParamI + 1;
       }
@@ -309,7 +337,7 @@ module {:extern "DCOMP"} DCOMP {
         sConstrainedTypeParams,
         R.RawType(escapeIdent(c.name) + typeParams),
         whereConstraints,
-        [RawImplDecl(implBody)]
+        [R.RawImplDecl(implBody)]
       );
       s := s + "\n" + IND + i.ToString(IND);
       if (|c.superClasses| > 0) {
@@ -345,11 +373,9 @@ module {:extern "DCOMP"} DCOMP {
         R.RawType("::std::default::Default"),
         R.RawType(escapeIdent(c.name) + typeParams),
         whereConstraints,
-        [R.RawImplDecl(
-          "fn default() -> Self {\n" +
-          escapeIdent(c.name) + "::new()\n" +
-          "}"
-        )]
+        [R.FunDecl(
+          R.Fun("default", [], [], Some(R.RawType("Self")),
+          R.RawExpr(escapeIdent(c.name) + "::new()")))]
       );
       var defaultImpl := IND + d.ToString(IND);
 
@@ -1062,7 +1088,7 @@ module {:extern "DCOMP"} DCOMP {
               idx := "::dafny_runtime::DafnyErasable::erase_owned(" + idx + ")";
             }
 
-            generated := generated + "let __idx" + natToString(i) + " = <usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap();\n";
+            generated := generated + "let __idx" + Strings.OfNat(i) + " = <usize as ::dafny_runtime::NumCast>::from(" + idx + ").unwrap();\n";
 
             readIdents := readIdents + recIdentsIdx;
 
@@ -1072,7 +1098,7 @@ module {:extern "DCOMP"} DCOMP {
           generated := generated + onExpr + ".borrow_mut()";
           i := 0;
           while i < |indices| {
-            generated := generated + "[__idx" + natToString(i) + "]";
+            generated := generated + "[__idx" + Strings.OfNat(i) + "]";
             i := i + 1;
           }
 
@@ -1360,7 +1386,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := {};
         }
         case Literal(CharLiteral(c)) => {
-          s := "::std::primitive::char::from_u32(" + natToString(c as nat) + ").unwrap()";
+          s := "::std::primitive::char::from_u32(" + Strings.OfNat(c as nat) + ").unwrap()";
           isOwned := true;
           isErased := false;
           readIdents := {};
@@ -1979,7 +2005,7 @@ module {:extern "DCOMP"} DCOMP {
               if i > 0 {
                 args := args + ", ";
               }
-              args := args + "arg" + natToString(i);
+              args := args + "arg" + Strings.OfNat(i);
               i := i + 1;
             }
             s := s + "move |" + args + "| {\n";
@@ -2134,7 +2160,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case TupleSelect(on, idx) => {
           var onString, _, tupErased, recIdents := GenExpr(on, selfIdent, params, false);
-          s := "(" + onString + ")." + natToString(idx);
+          s := "(" + onString + ")." + Strings.OfNat(idx);
           if mustOwn {
             s := "(" + s + ")" + ".clone()";
             isOwned := true;
