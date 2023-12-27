@@ -1,7 +1,6 @@
 include "../Dafny/AST.dfy"
 
-module {:extern "DCOMP"} DCOMP {
-  import opened DAST
+module RAST {
 
   // https://stackoverflow.com/questions/62722832/convert-numbers-to-strings
   type stringNat = s: string |
@@ -20,24 +19,78 @@ module {:extern "DCOMP"} DCOMP {
     if |i| == 0 then
       ""
     else if i[0] == '.' then
-      "_" + replaceDots(i[1..])
+      "#d" + replaceDots(i[1..])
+    else if i[0] == '_' then
+      if |i| >= 2 then
+        match i[1]
+        case '_' => "_" + replaceDots(i[2..])
+        case 'q' => "q#" + replaceDots(i[2..])
+        case 'k' => "k#" + replaceDots(i[2..])
+        case 'b' => "b#" + replaceDots(i[2..])
+        case 'h' => "h#" + replaceDots(i[2..])
+        case _ => "_" + replaceDots(i[1..])
+      else
+        "_" + replaceDots(i[1..])
     else
       [i[0]] + replaceDots(i[1..])
   }
 
+  // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
+  const reserved_rust := {"as","async","await","break","const","continue",
+    "crate","dyn","else","enum","extern","false","fn","for","if","impl",
+    "in","let","loop","match","mod","move","mut","pub","ref","return",
+    "Self","self","static","struct","super","trait","true","type","union",
+    "unsafe","use","where","while","Keywords","The","abstract","become",
+    "box","do","final","macro","override","priv","try","typeof","unsized",
+    "virtual","yield"}
+
   function escapeIdent(i: string): string {
-    "r#" + replaceDots(i)
+    var r := replaceDots(i);
+    if r in reserved_rust then "r#" + r else r
   }
+
+  const IND := "  "
+
+  // Rust AST definition for Dafny
+  datatype Mod = 
+    | Mod(name: string, body: seq<ModDecl>)
+    | ExternMod(name: string) {
+    function ToString(ind: string): string {
+      match this {
+        case ExternMod(name) =>
+          "mod " + name + ";"
+        case Mod(name, body) =>
+          "mod " + name + " {" + 
+          SeqToString(body,
+            (modDecl: ModDecl) => "\n" + ind + IND + modDecl.ToString(ind + IND))
+          + "\n" + ind + "}"
+      }
+    }
+  }
+  function SeqToString<T>(s: seq<T>, f: T -> string): string {
+    if |s| == 0 then "" else
+    f(s[0]) + SeqToString(s[1..], f)
+  }
+  datatype ModDecl = ModDecl(body: string) {
+    function ToString(ind: string): string {
+      body
+    }
+  }
+}
+
+module {:extern "DCOMP"} DCOMP {
+  import opened DAST
+  import opened R = RAST
 
   class COMP {
     static method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: string) {
       var body := GenModuleBody(mod.body, containingPath + [Ident.Ident(mod.name)]);
 
-      if mod.isExtern {
-        s := "mod " + escapeIdent(mod.name) + ";";
-      } else {
-        s := "mod " + escapeIdent(mod.name) + " {\n" + body + "\n}";
-      }
+      var m := if mod.isExtern then
+        R.ExternMod(R.escapeIdent(mod.name))
+      else
+        R.Mod(R.escapeIdent(mod.name), [R.ModDecl(body)]);
+      s := m.ToString("");
     }
 
     static method GenModuleBody(body: seq<ModuleItem>, containingPath: seq<Ident>) returns (s: string) {

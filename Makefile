@@ -1,4 +1,4 @@
-DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
@@ -8,8 +8,8 @@ exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
 dfydev:
-	(cd ${DIR}/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
-	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
