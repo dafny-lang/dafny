@@ -5,9 +5,9 @@ mod tests {
     use std::{rc::Rc, fmt::Formatter, borrow::Borrow, any::Any};
     use as_any::{AsAny, Downcast};
     use num::{BigInt, One, Zero};
-    use once_cell::sync::Lazy;
+    use once_cell::unsync::Lazy;
 
-    use crate::{DafnyPrint, deallocate, allocate, Sequence, is_instance_of};
+    use crate::{DafnyPrint, deallocate, allocate, Sequence, is_instance_of, LazyFieldWrapper};
 
     // A datatype encoded in Rust
     // T can either be an allocated type *const X or a reference type Rc<X>
@@ -221,39 +221,42 @@ mod tests {
     struct NumberStream {
         value: Rc<BigInt>,
         // tail is a lazily initialized Rc<NumberStream>
-        tail: Lazy<Rc<NumberStream>, Box<dyn FnOnce() -> Rc<NumberStream>>>
+        tail: LazyFieldWrapper<Rc<NumberStream>>
     }
     impl NumberStream {
-        fn from(i: &BigInt) -> Rc<NumberStream> {
+        fn from(i: &Rc<BigInt>) -> Rc<NumberStream> {
             let i_copy = i.clone(); // Create a cloned BigInt
             Rc::new(NumberStream {
-                value: Rc::new(i.clone()),
-                tail: Lazy::new(
+                value: i.clone(),
+                tail: LazyFieldWrapper(Lazy::new(::std::boxed::Box::new({
+                    move || NumberStream::from(&Rc::new(i_copy.as_ref() + BigInt::one()))})))
+                
+                /*Lazy::new(
                     Box::new(move || NumberStream::from(&(i_copy + BigInt::one())))
-                as Box<dyn FnOnce() -> Rc<NumberStream>>)
+                as Box<dyn FnOnce() -> Rc<NumberStream>>)*/
             })
         }
         fn value(&self) -> Rc<BigInt> {
             Rc::clone(&self.value)
         }
         fn tail(&self) -> Rc<NumberStream> {
-            Rc::clone(Lazy::force(&self.tail))
+            Rc::clone(Lazy::force(&self.tail.0))
         }
 
-        fn get(&self, i: &BigInt) -> Rc<BigInt> {
-            if i == &BigInt::zero() {
+        fn get(&self, i: &Rc<BigInt>) -> Rc<BigInt> {
+            if i.as_ref() == &BigInt::zero() {
                 self.value.clone()
             } else {
-                self.tail().get(&(i.clone() - BigInt::one()))
+                self.tail().get(&Rc::new(i.as_ref() - BigInt::one()))
             }
         }
     }
 
     #[test]
     fn test_numberstream() {
-        let stream = NumberStream::from(&BigInt::zero());
-        assert_eq!(*stream.get(&BigInt::zero()), BigInt::zero());
-        assert_eq!(*stream.get(&BigInt::one()), BigInt::one());
+        let stream = NumberStream::from(&Rc::new(BigInt::zero()));
+        assert_eq!(*stream.get(&Rc::new(BigInt::zero())), BigInt::zero());
+        assert_eq!(*stream.get(&Rc::new(BigInt::one())), BigInt::one());
     }
 
     #[test]

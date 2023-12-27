@@ -1,7 +1,12 @@
 module {:extern "DAST"} DAST {
   datatype Module = Module(name: string, isExtern: bool, body: seq<ModuleItem>)
 
-  datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
+  datatype ModuleItem =
+    | Module(Module)
+    | Class(Class)
+    | Trait(Trait)
+    | Newtype(Newtype)
+    | Datatype(Datatype)
 
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
