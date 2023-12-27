@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
-static class FormatCommand {
+public static class FormatCommand {
 
   public static IEnumerable<Option> Options => DafnyCommands.FormatOptions;
 
