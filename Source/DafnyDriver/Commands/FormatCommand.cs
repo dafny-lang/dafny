@@ -86,7 +86,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
         var result = originalText;
         if (firstToken != null) {
           result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram));
+            IndentationFormatter.ForProgram(dafnyProgram, file.Uri));
           if (result != originalText) {
             neededFormatting += 1;
             if (doCheck) {
