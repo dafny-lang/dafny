@@ -4186,6 +4186,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
       }
