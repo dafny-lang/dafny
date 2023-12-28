@@ -7,6 +7,7 @@ using System.Numerics;
 using Microsoft.BaseTypes;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -519,7 +520,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-        _IOptional<DAST._IExpression> rhsExpr = null;
+        _IOption<DAST._IExpression> rhsExpr = null;
         if (rhs != null) {
           rhsExpr = compiler.bufferedInitializationValue;
           compiler.bufferedInitializationValue = null;
@@ -528,7 +529,7 @@ namespace Microsoft.Dafny.Compilers {
             throw new InvalidOperationException();
           }
         } else {
-          rhsExpr = Optional<DAST._IExpression>.create_None();
+          rhsExpr = Option<DAST._IExpression>.create_None();
         }
 
         builder.AddField((DAST.Formal)DAST.Formal.create_Formal(
@@ -571,7 +572,7 @@ namespace Microsoft.Dafny.Compilers {
 
         if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
           var returnBuilder = stmtContainer.Builder.Return();
-          returnBuilder.AddExpr((DAST.Expression)rhsValue.dtor_Some_a0);
+          returnBuilder.AddExpr((DAST.Expression)rhsValue.dtor_value);
         } else {
           throw new InvalidOperationException();
         }
@@ -615,7 +616,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // sometimes, the compiler generates the initial value before the declaration,
     // so we buffer it here
-    _IOptional<DAST._IExpression> bufferedInitializationValue = null;
+    _IOption<DAST._IExpression> bufferedInitializationValue = null;
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
@@ -624,30 +625,30 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         type = type.NormalizeExpandKeepConstraints();
         if (usePlaceboValue) {
-          bufferedInitializationValue = Optional<DAST._IExpression>.create_None();
+          bufferedInitializationValue = Option<DAST._IExpression>.create_None();
         } else {
           if (type.AsNewtype != null && type.AsNewtype.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
             EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf), null);
-            bufferedInitializationValue = Optional<DAST._IExpression>.create_Some(buf.Finish());
+            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
             EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf), null);
-            bufferedInitializationValue = Optional<DAST._IExpression>.create_Some(buf.Finish());
+            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
           } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
             var elems = new List<DAST._IExpression>();
             for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
               if (!tupleDecl.Ctors[0].Formals[i].IsGhost) {
                 TypeInitializationValue(type.TypeArgs[i], wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-                elems.Add(bufferedInitializationValue.dtor_Some_a0);
+                elems.Add(bufferedInitializationValue.dtor_value);
                 bufferedInitializationValue = null;
               }
             }
 
             if (elems.Count == 1) {
-              bufferedInitializationValue = Optional<DAST._IExpression>.create_Some(elems[0]);
+              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(elems[0]);
             } else {
-              bufferedInitializationValue = Optional<DAST._IExpression>.create_Some(
+              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
                 DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
               );
             }
@@ -655,7 +656,7 @@ namespace Microsoft.Dafny.Compilers {
             throwGeneralUnsupported();
             throw new InvalidOperationException();
           } else {
-            bufferedInitializationValue = Optional<DAST._IExpression>.create_Some(
+            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
             );
           }
@@ -958,7 +959,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Break(
-          label == null ? Optional<ISequence<Rune>>.create_None() : Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("goto_" + label))
+          label == null ? Option<ISequence<Rune>>.create_None() : Option<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("goto_" + label))
         ));
       } else {
         throw new InvalidOperationException();
@@ -968,7 +969,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_Break(
-          Optional<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("continue_" + label))
+          Option<ISequence<Rune>>.create_Some(Sequence<Rune>.UnicodeFromString("continue_" + label))
         ));
       } else {
         throw new InvalidOperationException();
@@ -1780,8 +1781,8 @@ namespace Microsoft.Dafny.Compilers {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_IndexRange(
           sourceExpr,
           fromArray,
-          loExpr != null ? Optional<DAST._IExpression>.create_Some(loExpr) : Optional<DAST._IExpression>.create_None(),
-          hiExpr != null ? Optional<DAST._IExpression>.create_Some(hiExpr) : Optional<DAST._IExpression>.create_None()
+          loExpr != null ? Option<DAST._IExpression>.create_Some(loExpr) : Option<DAST._IExpression>.create_None(),
+          hiExpr != null ? Option<DAST._IExpression>.create_Some(hiExpr) : Option<DAST._IExpression>.create_None()
         ));
       } else {
         throw new InvalidOperationException();

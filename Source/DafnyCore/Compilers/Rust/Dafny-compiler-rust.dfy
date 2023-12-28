@@ -92,32 +92,37 @@ module RAST {
     }
   }
   datatype Type =
+    | Self | SelfOwned | SelfMut
     | RawType(content: string)
   {
     function ToString(ind: string): string {
+      if Self? then "&Self" else
+      if SelfOwned? then "Self" else
+      if SelfMut? then "&mut Self" else 
       content
     }
   }
 
   datatype Impl =
-    | ImplFor(typeParams: seq<TypeParam>, tpe: Type, forType: Type, where: string, body: seq<ImplDecl>)
-    | Impl(typeParams: seq<TypeParam>, tpe: Type, where: string, body: seq<ImplDecl>)
+    | ImplFor(typeParams: seq<TypeParam>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
+    | Impl(typeParams: seq<TypeParam>, tpe: Type, where: string, body: seq<ImplMember>)
   {
     function ToString(ind: string): string {
       "impl " + TypeParam.ToStringMultiple(typeParams, ind) + tpe.ToString(ind)
       + (if ImplFor? then " for " + forType.ToString(ind + IND) else "")
       + (if where != "" then "\n" + ind + IND + where else "")
       + " {" +
-        SeqToString(body, (implDecl: ImplDecl) => "\n" + ind + IND + implDecl.ToString(ind + IND), "")
+        SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
       + "\n" + ind + "}"
     }
   }
-  datatype ImplDecl =
+  datatype ImplMember =
     | RawImplDecl(content: string)
-    | FunDecl(fun: Fun)
+    | FnDecl(fun: Fn)
   {
     function ToString(ind: string): string {
-      content
+      if FnDecl? then fun.ToString(ind)
+      else assert RawImplDecl?; content
     }
   }
 
@@ -125,8 +130,15 @@ module RAST {
     Formal(name: string, tpe: Type)
   {
     function ToString(ind: string): string {
+      if name == "self" && tpe.SelfOwned? then name
+      else if name == "&self" && tpe.Self? then name
+      else if name == "&mut self" && tpe.SelfMut? then name
+      else
       name + ": " + tpe.ToString(ind)
     }
+    static const self := Formal("&self", Self)
+    static const selfOwned := Formal("self", SelfOwned)
+    static const selfMut := Formal("&mut self", SelfMut)
   }
 
   datatype Expr =
@@ -137,8 +149,8 @@ module RAST {
     }
   }
 
-  datatype Fun =
-    Fun(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
+  datatype Fn =
+    Fn(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
       returnType: Option<Type>, body: Expr)
   {
     function ToString(ind: string): string {
@@ -154,6 +166,7 @@ module RAST {
 module {:extern "DCOMP"} DCOMP {
   import opened DAST
   import Strings = Std.Strings
+  import opened Std.Wrappers
   import R = RAST
   const IND := R.IND
   type Type = DAST.Type
@@ -373,8 +386,8 @@ module {:extern "DCOMP"} DCOMP {
         R.RawType("::std::default::Default"),
         R.RawType(escapeIdent(c.name) + typeParams),
         whereConstraints,
-        [R.FunDecl(
-          R.Fun("default", [], [], Some(R.RawType("Self")),
+        [R.FnDecl(
+          R.Fn("default", [], [], Some(R.RawType("Self")),
           R.RawExpr(escapeIdent(c.name) + "::new()")))]
       );
       var defaultImpl := IND + d.ToString(IND);
@@ -385,9 +398,12 @@ module {:extern "DCOMP"} DCOMP {
           R.RawType("::dafny_runtime::DafnyPrint"),
           R.RawType(escapeIdent(c.name) + typeParams),
           "",
-          [R.RawImplDecl(
-          "fn fmt_print(&self, __fmt_print_formatter: &mut ::std::fmt::Formatter, _in_seq: bool) -> std::fmt::Result {\n"
-          + "write!(__fmt_print_formatter, \"" + c.enclosingModule.id + "." + c.name + "\")\n}")]
+          [R.FnDecl(R.Fn(
+            "fmt_print", [],
+            [R.Formal.self, R.Formal("__fmt_print_formatter", R.RawType("&mut ::std::fmt::Formatter")), R.Formal("_in_seq", R.RawType("bool"))],
+            Some(R.RawType("std::fmt::Result")),
+            R.RawExpr("write!(__fmt_print_formatter, \"" + c.enclosingModule.id + "." + c.name + "\")")
+          ))]
         );
       var printImpl := IND + p.ToString(IND)+"\n";
 
@@ -396,9 +412,13 @@ module {:extern "DCOMP"} DCOMP {
         R.RawType("::std::cmp::PartialEq"),
         R.RawType(escapeIdent(c.name) + typeParams),
         "",
-        [R.RawImplDecl("fn eq(&self, other: &Self) -> bool {\n"
-                      + "::std::ptr::eq(self, other)"
-                      + "\n}")]
+        [R.FnDecl(
+          R.Fn(
+            "eq", [],
+            [R.Formal.self, R.Formal("other", R.Self)],
+            Some(R.RawType("bool")),
+            R.RawExpr("::std::ptr::eq(self, other)")
+          ))]
       );
       var ptrPartialEqImpl := IND + pp.ToString(IND) + "\n";
 
@@ -1029,7 +1049,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenStmts(stmts: seq<Statement>, selfIdent: Optional<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
+    static method GenStmts(stmts: seq<Statement>, selfIdent: Option<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
       generated := "";
       var declarations := {};
       readIdents := {};
@@ -1055,7 +1075,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenAssignLhs(lhs: AssignLhs, rhs: string, selfIdent: Optional<string>, params: seq<string>) returns (generated: string, needsIIFE: bool, readIdents: set<string>) {
+    static method GenAssignLhs(lhs: AssignLhs, rhs: string, selfIdent: Option<string>, params: seq<string>) returns (generated: string, needsIIFE: bool, readIdents: set<string>) {
       match lhs {
         case Ident(Ident(id)) => {
           if id in params {
@@ -1108,7 +1128,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenStmt(stmt: Statement, selfIdent: Optional<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
+    static method GenStmt(stmt: Statement, selfIdent: Option<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
       match stmt {
         case DeclareVar(name, typ, Some(expression)) => {
           var typeString := GenType(typ, true, false);
@@ -1332,7 +1352,7 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenExpr(e: Expression, selfIdent: Optional<string>, params: seq<string>, mustOwn: bool) returns (s: string, isOwned: bool, isErased: bool, readIdents: set<string>)
+    static method GenExpr(e: Expression, selfIdent: Option<string>, params: seq<string>, mustOwn: bool) returns (s: string, isOwned: bool, isErased: bool, readIdents: set<string>)
       ensures mustOwn ==> isOwned
       decreases e {
       match e {

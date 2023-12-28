@@ -36,11 +36,15 @@ else
 fi
 
 ../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs $noverify
+
+# We will remove all the namespaces Std.* except Std.Wrappers
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:
   content = f.read()
-  content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
+  content_trimmed = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
+  content_new = re.sub('\\r?\\nnamespace\\s+(Std\\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\\S+)\\s*\\{[\\s\\S]*?\\}\\s*// end of namespace \\\\1', '', content_trimmed, flags = re.M)
+
 with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
