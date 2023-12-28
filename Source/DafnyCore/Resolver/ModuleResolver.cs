@@ -1166,6 +1166,25 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
+          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
+            var constraintIsCompilable = true;
+
+            // Check base type
+            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
+            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
+              CheckIfCompilable(baseDecl);
+              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
+            }
+
+            // Check the type's constraint
+            if (declWithConstraint.Constraint != null) {
+              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
+            }
+
+            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
@@ -1177,9 +1196,7 @@ namespace Microsoft.Dafny {
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1193,13 +1210,15 @@ namespace Microsoft.Dafny {
             if (newtypeDecl.Var != null) {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
-              if (newtypeDecl.Witness != null) {
-                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              }
             }
-            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+            CheckIfCompilable(newtypeDecl);
+
+            if (newtypeDecl.Witness != null) {
+              CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+              }
             }
 
             FigureOutNativeType(newtypeDecl);
@@ -1628,8 +1647,11 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+        new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
     }
 
     /// <summary>
