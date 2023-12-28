@@ -14,6 +14,8 @@ method Main() {
 
   Regressions.Test0();
   Regressions.Test1();
+
+  EvolvingNativeTypes.Test();
 }
 
 module Tests {
@@ -277,5 +279,27 @@ module Regressions {
     var u := set b: Byyyte | Filter(b as int);
 
     print |s|, " ", |t|, " ", |u|, "\n"; // 4 4 4
+  }
+}
+
+module EvolvingNativeTypes {
+  newtype Nat = x: int | 0 <= x && x != 1
+  newtype uint32 = x: Nat | x < 0x1_0000_0000 && x != 3
+  newtype byte = x: uint32 | x < 256 && x != 5
+  newtype Not7Either = x: byte | x != 7
+
+  predicate R(x: int) {
+    match x
+    case 5 => true
+    case 1 | 3 | 7 | 9 => true
+    case _ => false
+  }
+
+  method Test() {
+    assert R(7);
+    var u: byte :| R(u as int) && u != 9;
+    assert R(9);
+    var v: Not7Either :| R(v as int);
+    print u, " ", v, "\n"; // 7 9
   }
 }
