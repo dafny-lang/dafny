@@ -15,6 +15,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public SubsetTypeDecl.WKind WitnessKind { get; set; } = SubsetTypeDecl.WKind.CompiledZero;
   public Expression/*?*/ Witness { get; set; } // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
+
+  [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set; }
+
   public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
     List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
