@@ -1167,14 +1167,21 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
           void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
-            bool constraintIsCompilable;
-            if (declWithConstraint.Constraint == null) {
-              constraintIsCompilable = true;
-            } else {
-              constraintIsCompilable = ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
+            var constraintIsCompilable = true;
+
+            // Check base type
+            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
+            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
+              CheckIfCompilable(baseDecl);
+              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
+            }
+
+            // Check the type's constraint
+            if (declWithConstraint.Constraint != null) {
+              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
                 new CodeContextWrapper(declWithConstraint, true));
             }
-            // TODO: should also check base type
+
             declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
           }
 

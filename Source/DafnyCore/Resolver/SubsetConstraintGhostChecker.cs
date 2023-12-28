@@ -81,15 +81,13 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       return base.Traverse(expr, field, parent);
     }
 
-    string what = e.WhatKind;
-
     if (e is QuantifierExpr or SetComprehension or MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
         if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
           if (!declWithConstraint.ConstraintIsCompilable) {
 
             IToken finalToken = boundVar.tok;
-            if (declWithConstraint.Constraint.tok.line != 0) {
+            if (declWithConstraint.Constraint != null && declWithConstraint.Constraint.tok.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
               ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
                 new CodeContextWrapper(declWithConstraint, true));
@@ -100,7 +98,8 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
               }
             }
             this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
+              $"{boundVar.Type} is a {declWithConstraint.WhatKind} and its constraint is not compilable, " +
+              $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
           }
         }
       }

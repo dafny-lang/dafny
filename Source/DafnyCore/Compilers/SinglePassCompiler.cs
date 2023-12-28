@@ -1410,6 +1410,12 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr);
 
+    /// <summary>
+    /// Returns a pair (ty, f) where
+    ///   * "f" is a closure that, to a given writer, emits code that enumerates an integer-valued range from
+    ///     "wLo" to "wHi" using the target type of "type"
+    ///   * "ty" is a Dafny type whose target type is the same as the target type of "type"
+    /// </summary>
     protected virtual (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
       Type result;
       if (AsNativeType(type) != null) {
@@ -3788,6 +3794,12 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    /// <summary>
+    /// Returns a type whose target type is the same as the target type of the values returned by the emitted enumeration.
+    /// The output value of "collectionWriter" is an action that emits the enumeration.
+    /// Note that, while the values returned bny the enumeration have the target representation of "bv.Type", they may
+    /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
+    /// </summary>
     Type CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
         Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
@@ -5759,37 +5771,40 @@ namespace Microsoft.Dafny.Compilers {
       Type collectionElementType, bool inLetExprBody,
       IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
-      if (!boundVarType.Equals(collectionElementType, true) &&
-          boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType userDefinedType &&
-          userDefinedType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints &&
-          declWithConstraints.Var != null) {
 
-        var baseType = declWithConstraints.Var.Type.NormalizeExpandKeepConstraints();
+      var needsConstraintCheck = collectionElementType.AsNewtype != null || !boundVarType.Equals(collectionElementType, true);
+      if (needsConstraintCheck &&
+          boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType userDefinedType &&
+          userDefinedType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
+
+        var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
         if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
               inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
-        var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), baseType) { Type = baseType };
-        var typeParameters = TypeParameter.SubstitutionMap(declWithConstraints.TypeArgs, userDefinedType.TypeArgs);
-        var subContract = new Substituter(null,
-          new Dictionary<IVariable, Expression>() {
-            {declWithConstraints.Var, theValue}
-          },
-          typeParameters
-        );
-        var constraintInContext = subContract.Substitute(declWithConstraints.Constraint);
-        var wStmts = wr.Fork();
-        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-        EmitExpr(constraintInContext, inLetExprBody, guardWriter, wStmts);
-        if (isReturning) {
-          var elseBranch = wr;
-          elseBranch = EmitBlock(elseBranch);
-          elseBranch = EmitReturnExpr(elseBranch);
-          wStmts = elseBranch.Fork();
-          EmitExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+        if (declWithConstraint.Var != null) {
+          var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), baseType) { Type = baseType };
+          var typeParameters = TypeParameter.SubstitutionMap(declWithConstraint.TypeArgs, userDefinedType.TypeArgs);
+          var subContract = new Substituter(null,
+            new Dictionary<IVariable, Expression>() {
+              {declWithConstraint.Var, theValue}
+            },
+            typeParameters
+          );
+          var constraintInContext = subContract.Substitute(declWithConstraint.Constraint);
+          var wStmts = wr.Fork();
+          var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
+          EmitExpr(constraintInContext, inLetExprBody, guardWriter, wStmts);
+          if (isReturning) {
+            var elseBranch = wr;
+            elseBranch = EmitBlock(elseBranch);
+            elseBranch = EmitReturnExpr(elseBranch);
+            wStmts = elseBranch.Fork();
+            EmitExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          }
+          wr = thenWriter;
         }
-        wr = thenWriter;
       }
 
       if (isReturning && !isSubfiltering) {
