@@ -190,8 +190,6 @@ namespace Microsoft.Dafny {
             return e0 != (bool)e1;
           }
           break;
-        default:
-          break;
       }
       return null;
     }
