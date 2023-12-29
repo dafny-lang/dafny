@@ -144,15 +144,11 @@ namespace Microsoft.Dafny {
         }
 
       } else if (e is SeqSelectExpr sse) {
-        var b = GetAnyConst(sse.Seq, constants) as string;
-        var index = (BigInteger)GetAnyConst(sse.E0, constants);
-        if (b == null) {
-          return null;
+        if (GetAnyConst(sse.Seq, constants) is string b && GetAnyConst(sse.E0, constants) is BigInteger index) {
+          if (0 <= index && index < b.Length && index <= int.MaxValue) {
+            return b[(int)index].ToString();
+          }
         }
-        if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
-          return null; // Index out of range
-        }
-        return b[(int)index].ToString();
 
       } else if (e is ITEExpr ite) {
         if (GetAnyConst(ite.Test, constants) is bool b) {
