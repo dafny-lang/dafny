@@ -72,6 +72,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     [CanBeNull]
     static object GetAnyConst(Expression e, Stack<ConstantField> constants) {
+      e = e.Resolved;
+
       if (e is LiteralExpr l) {
         return l.Value;
       } else if (e is UnaryOpExpr un) {
@@ -269,8 +271,6 @@ namespace Microsoft.Dafny {
           return null;
         }
         return ((bool)b) ? GetAnyConst(ite.Thn, constants) : GetAnyConst(ite.Els, constants);
-      } else if (e is ConcreteSyntaxExpression n) {
-        return GetAnyConst(n.ResolvedExpression, constants);
       } else {
         return null;
       }
