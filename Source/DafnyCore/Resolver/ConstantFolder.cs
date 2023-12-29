@@ -93,275 +93,29 @@ namespace Microsoft.Dafny {
         }
       } else if (e is BinaryExpr bin) {
         var e0 = GetAnyConst(bin.E0, constants);
-        var e1 = GetAnyConst(bin.E1, constants);
-        var isBool = bin.E0.Type == Type.Bool && bin.E1.Type == Type.Bool;
-        var shortCircuit = isBool && (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And
-                                      || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or
-                                      || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp);
-
-        if (e0 == null || (!shortCircuit && e1 == null)) {
+        if (e0 == null) {
           return null;
         }
-        var isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)
-                        && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Real);
-        var isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)
-                       && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Int);
-        var isReal = bin.Type.IsRealType;
-        var isInt = bin.Type.IsIntegerType;
-        var isBv = bin.E0.Type.IsBitVectorType;
-        var isString = e0 is string && e1 is string;
-        switch (bin.ResolvedOp) {
-          case BinaryExpr.ResolvedOpcode.Add:
-            if (isInt) {
-              return (BigInteger)e0 + (BigInteger)e1;
-            }
-            if (isBv) {
-              return ((BigInteger)e0 + (BigInteger)e1) & MaxBv(bin.Type);
-            }
-            if (isReal) {
-              return (BaseTypes.BigDec)e0 + (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Concat:
-            if (isString) {
-              return (string)e0 + (string)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Sub:
-            if (isInt) {
-              return (BigInteger)e0 - (BigInteger)e1;
-            }
-            if (isBv) {
-              return ((BigInteger)e0 - (BigInteger)e1) & MaxBv(bin.Type);
-            }
-            if (isReal) {
-              return (BaseTypes.BigDec)e0 - (BaseTypes.BigDec)e1;
-            }
-            // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
-            // then we generally do not fold the operations, because we do not determine whether the
-            // result of the operation satisfies the new type constraint. However, on the occasion that
-            // a newtype aliases int without a constraint, it occurs that a value of the newtype is initialized
-            // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
-            // is a nuisance not to constant-fold the result, as not doing so can alter the determination
-            // of the representation type.
-            if (isAnyInt && AsUnconstrainedType(bin.Type) != null) {
-              return ((BigInteger)e0) - ((BigInteger)e1);
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Mul:
-            if (isInt) {
-              return (BigInteger)e0 * (BigInteger)e1;
-            }
-            if (isBv) {
-              return ((BigInteger)e0 * (BigInteger)e1) & MaxBv(bin.Type);
-            }
-            if (isReal) {
-              return (BaseTypes.BigDec)e0 * (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-            Contract.Assert(isBv);
-            return (BigInteger)e0 & (BigInteger)e1;
-          case BinaryExpr.ResolvedOpcode.BitwiseOr:
-            Contract.Assert(isBv);
-            return (BigInteger)e0 | (BigInteger)e1;
-          case BinaryExpr.ResolvedOpcode.BitwiseXor:
-            Contract.Assert(isBv);
-            return (BigInteger)e0 ^ (BigInteger)e1;
-          case BinaryExpr.ResolvedOpcode.Div:
-            if (isInt) {
-              if ((BigInteger)e1 == 0) {
-                return null; // Divide by zero
-              } else {
-                var a0 = (BigInteger)e0;
-                var a1 = (BigInteger)e1;
-                var d = a0 / a1;
-                return a0 >= 0 || a0 == d * a1 ? d : a1 > 0 ? d - 1 : d + 1;
-              }
-            }
-            if (isBv) {
-              if ((BigInteger)e1 == 0) {
-                return null; // Divide by zero
-              } else {
-                return ((BigInteger)e0) / ((BigInteger)e1);
-              }
-            }
-            if (isReal) {
-              if ((BaseTypes.BigDec)e1 == BaseTypes.BigDec.ZERO) {
-                return null; // Divide by zero
-              } else {
-                // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
-                return null;
-              }
-            }
+        var e1 = GetAnyConst(bin.E1, constants);
 
-            break;
-          case BinaryExpr.ResolvedOpcode.Mod:
-            if (isInt) {
-              if ((BigInteger)e1 == 0) {
-                return null; // Mod by zero
-              } else {
-                var a = BigInteger.Abs((BigInteger)e1);
-                var d = (BigInteger)e0 % a;
-                return (BigInteger)e0 >= 0 ? d : d + a;
-              }
-            }
-            if (isBv) {
-              if ((BigInteger)e1 == 0) {
-                return null; // Mod by zero
-              } else {
-                return (BigInteger)e0 % (BigInteger)e1;
-              }
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.LeftShift: {
-              if ((BigInteger)e1 < 0) {
-                return null; // Negative shift
-              }
-              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
-                return null; // Shift is too large
-              }
-              return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBv(bin.E0.Type);
-            }
-          case BinaryExpr.ResolvedOpcode.RightShift: {
-              if ((BigInteger)e1 < 0) {
-                return null; // Negative shift
-              }
-              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
-                return null; // Shift too large
-              }
-              return (BigInteger)e0 >> (int)(BigInteger)e1;
-            }
-          case BinaryExpr.ResolvedOpcode.And: {
-              if ((bool)e0 && e1 == null) {
-                return null;
-              }
-              return (bool)e0 && (bool)e1;
-            }
-          case BinaryExpr.ResolvedOpcode.Or: {
-              if (!(bool)e0 && e1 == null) {
-                return null;
-              }
-              return (bool)e0 || (bool)e1;
-            }
-          case BinaryExpr.ResolvedOpcode.Imp: { // ==> and <==
-              if ((bool)e0 && e1 == null) {
-                return null;
-              }
-              return !(bool)e0 || (bool)e1;
-            }
-          case BinaryExpr.ResolvedOpcode.Iff: return (bool)e0 == (bool)e1; // <==>
-          case BinaryExpr.ResolvedOpcode.Gt:
-            if (isAnyInt) {
-              return (BigInteger)e0 > (BigInteger)e1;
-            }
-            if (isBv) {
-              return (BigInteger)e0 > (BigInteger)e1;
-            }
-            if (isAnyReal) {
-              return (BaseTypes.BigDec)e0 > (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.GtChar:
-            if (bin.E0.Type.IsCharType) {
-              return ((string)e0)[0] > ((string)e1)[0];
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Ge:
-            if (isAnyInt) {
-              return (BigInteger)e0 >= (BigInteger)e1;
-            }
-            if (isBv) {
-              return (BigInteger)e0 >= (BigInteger)e1;
-            }
-            if (isAnyReal) {
-              return (BaseTypes.BigDec)e0 >= (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.GeChar:
-            if (bin.E0.Type.IsCharType) {
-              return ((string)e0)[0] >= ((string)e1)[0];
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Lt:
-            if (isAnyInt) {
-              return (BigInteger)e0 < (BigInteger)e1;
-            }
-            if (isBv) {
-              return (BigInteger)e0 < (BigInteger)e1;
-            }
-            if (isAnyReal) {
-              return (BaseTypes.BigDec)e0 < (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.LtChar:
-            if (bin.E0.Type.IsCharType) {
-              return ((string)e0)[0] < ((string)e1)[0];
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.ProperPrefix:
-            if (isString) {
-              return ((string)e1).StartsWith((string)e0) && !((string)e1).Equals((string)e0);
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Le:
-            if (isAnyInt) {
-              return (BigInteger)e0 <= (BigInteger)e1;
-            }
-            if (isBv) {
-              return (BigInteger)e0 <= (BigInteger)e1;
-            }
-            if (isAnyReal) {
-              return (BaseTypes.BigDec)e0 <= (BaseTypes.BigDec)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.LeChar:
-            if (bin.E0.Type.IsCharType) {
-              return ((string)e0)[0] <= ((string)e1)[0];
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Prefix:
-            if (isString) {
-              return ((string)e1).StartsWith((string)e0);
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.EqCommon: {
-              if (isBool) {
-                return (bool)e0 == (bool)e1;
-              } else if (isAnyInt || isBv) {
-                return (BigInteger)e0 == (BigInteger)e1;
-              } else if (isAnyReal) {
-                return (BaseTypes.BigDec)e0 == (BaseTypes.BigDec)e1;
-              } else if (bin.E0.Type.IsCharType) {
-                return ((string)e0)[0] == ((string)e1)[0];
-              }
-              break;
-            }
-          case BinaryExpr.ResolvedOpcode.SeqEq:
-            if (isString) {
-              return (string)e0 == (string)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.SeqNeq:
-            if (isString) {
-              return (string)e0 != (string)e1;
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.NeqCommon: {
-              if (isBool) {
-                return (bool)e0 != (bool)e1;
-              } else if (isAnyInt || isBv) {
-                return (BigInteger)e0 != (BigInteger)e1;
-              } else if (isAnyReal) {
-                return (BaseTypes.BigDec)e0 != (BaseTypes.BigDec)e1;
-              } else if (bin.E0.Type.IsCharType) {
-                return ((string)e0)[0] != ((string)e1)[0];
-              } else if (isString) {
-                return (string)e0 != (string)e1;
-              }
-              break;
-            }
+        if (bin.E0.Type == Type.Bool && bin.E1.Type == Type.Bool) {
+          return FoldBoolean(bin, (bool)e0, (bool?)e1);
         }
+
+        if (e1 == null) {
+          return null;
+        }
+
+        if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+          return FoldInteger(bin, (BigInteger)e0, (BigInteger)e1);
+        } else if (bin.E0.Type.IsBitVectorType && (bin.E1.Type.IsBitVectorType || bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Int))) {
+          return FoldBitvector(bin, (BigInteger)e0, (BigInteger)e1);
+        } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real) && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          return FoldReal(bin, (BaseTypes.BigDec)e0, (BaseTypes.BigDec)e1);
+        } else if (e0 is string s0 && e1 is string s1) {
+          return FoldCharOrString(bin, s0, s1);
+        }
+
       } else if (e is ConversionExpr ce) {
         var o = GetAnyConst(ce.E, constants);
         if (o == null || ce.E.Type == ce.Type) {
@@ -507,6 +261,229 @@ namespace Microsoft.Dafny {
         return null;
       }
 
+      return null;
+    }
+
+    private static bool? FoldBoolean(BinaryExpr bin, bool e0, bool? e1) {
+      switch (bin.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.And:
+          if (e0) {
+            return e1;
+          } else {
+            return false;
+          }
+        case BinaryExpr.ResolvedOpcode.Or:
+          if (e0) {
+            return true;
+          } else {
+            return e1;
+          }
+        case BinaryExpr.ResolvedOpcode.Imp:
+          if (e0) {
+            return e1;
+          } else {
+            return true;
+          }
+        case BinaryExpr.ResolvedOpcode.Iff:
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          if (e1 != null) {
+            return e0 == (bool)e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          if (e1 != null) {
+            return e0 != (bool)e1;
+          }
+          break;
+        default:
+          break;
+      }
+      return null;
+    }
+
+    private static object FoldInteger(BinaryExpr bin, BigInteger e0, BigInteger e1) {
+      var isUnconstrained = AsUnconstrainedType(bin.Type) != null;
+
+      switch (bin.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Add:
+          if (isUnconstrained) {
+            return e0 + e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Sub:
+          if (isUnconstrained) {
+            return e0 - e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mul:
+          if (isUnconstrained) {
+            return e0 * e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Div:
+          if (isUnconstrained && e1 != 0) {
+            // use Euclidean division
+            var d = e0 / e1;
+            if (0 <= e0 || e0 == d * e1) {
+              return d;
+            } else if (0 < e1) {
+              return d - 1;
+            } else {
+              return d + 1;
+            }
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mod:
+          if (isUnconstrained && e1 != 0) {
+            // use Euclidean modulo
+            var a = BigInteger.Abs(e1);
+            var d = e0 % a;
+            return 0 <= e0 ? d : d + a;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+          return e0 > e1;
+        case BinaryExpr.ResolvedOpcode.Ge:
+          return e0 >= e1;
+        case BinaryExpr.ResolvedOpcode.Lt:
+          return e0 < e1;
+        case BinaryExpr.ResolvedOpcode.Le:
+          return e0 <= e1;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          return e0 == e1;
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          return e0 != e1;
+      }
+      return null;
+    }
+
+    private static object FoldBitvector(BinaryExpr bin, BigInteger e0, BigInteger e1) {
+      Contract.Assert(0 <= e0);
+
+      switch (bin.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Add:
+          // modular arithmetic
+          return (e0 + e1) & MaxBv(bin.Type);
+        case BinaryExpr.ResolvedOpcode.Sub:
+          // modular arithmetic
+          return (e0 - e1) & MaxBv(bin.Type);
+        case BinaryExpr.ResolvedOpcode.Mul:
+          // modular arithmetic
+          return (e0 * e1) & MaxBv(bin.Type);
+        case BinaryExpr.ResolvedOpcode.Div:
+          if (e1 != 0) {
+            return e0 / e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mod:
+          if (e1 != 0) {
+            return e0 % e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          return e0 & e1;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          return e0 | e1;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          return e0 ^ e1;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+          if (0 <= e1 && e1 <= bin.Type.AsBitVectorType.Width) {
+            return (e0 << (int)e1) & MaxBv(bin.E0.Type);
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.RightShift:
+          if (0 <= e1 && e1 <= bin.Type.AsBitVectorType.Width) {
+            return e0 >> (int)e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+          return e0 > e1;
+        case BinaryExpr.ResolvedOpcode.Ge:
+          return e0 >= e1;
+        case BinaryExpr.ResolvedOpcode.Lt:
+          return e0 < e1;
+        case BinaryExpr.ResolvedOpcode.Le:
+          return e0 <= e1;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          return e0 == e1;
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          return e0 != e1;
+      }
+      return null;
+    }
+
+    private static object FoldReal(BinaryExpr bin, BaseTypes.BigDec e0, BaseTypes.BigDec e1) {
+      var isUnconstrained = AsUnconstrainedType(bin.Type) != null;
+
+      switch (bin.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Add:
+          if (isUnconstrained) {
+            return e0 + e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Sub:
+          if (isUnconstrained) {
+            return e0 - e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mul:
+          if (isUnconstrained) {
+            return e0 * e1;
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+          return e0 > e1;
+        case BinaryExpr.ResolvedOpcode.Ge:
+          return e0 >= e1;
+        case BinaryExpr.ResolvedOpcode.Lt:
+          return e0 < e1;
+        case BinaryExpr.ResolvedOpcode.Le:
+          return e0 <= e1;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          return e0 == e1;
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          return e0 != e1;
+      }
+      return null;
+    }
+
+    private static object FoldCharOrString(BinaryExpr bin, string e0, string e1) {
+      if (bin.E0.Type.IsCharType) {
+        Contract.Assert(bin.E1.Type.IsCharType);
+        Contract.Assert(e0.Length == 1);
+        Contract.Assert(e1.Length == 1);
+      }
+
+      switch (bin.ResolvedOp) {
+        case BinaryExpr.ResolvedOpcode.Concat:
+          return e0 + e1;
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          Contract.Assert(bin.E0.Type.IsCharType);
+          return e0[0] > e1[0];
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          Contract.Assert(bin.E0.Type.IsCharType);
+          return e0[0] >= e1[0];
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          Contract.Assert(bin.E0.Type.IsCharType);
+          return e0[0] < e1[0];
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          Contract.Assert(bin.E0.Type.IsCharType);
+          return e0[0] <= e1[0];
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+          return e1.StartsWith(e0) && e0 != e1;;
+        case BinaryExpr.ResolvedOpcode.Prefix:
+          return e1.StartsWith(e0);
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          Contract.Assert(bin.E0.Type.IsCharType); // the string case is handled in SeqEq
+          return e0[0] == e1[0];
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+          Contract.Assert(bin.E0.Type.IsCharType); // the string case is handled in SeqEq
+          return e0[0] != e1[0];
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+          return e0 == e1;
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+          return e0 != e1;
+      }
       return null;
     }
   }
