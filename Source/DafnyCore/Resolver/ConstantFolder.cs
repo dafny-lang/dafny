@@ -41,12 +41,15 @@ namespace Microsoft.Dafny {
       return ee as BigInteger?;
     }
 
+    public static bool IsUnconstrainedType(Type t) {
+      return AsUnconstrainedType(t) != null;
+    }
 
     /// <summary>
     /// Returns null if the argument is a constrained newtype (recursively)
     /// Returns the transitive base type if the argument is recursively unconstrained
     /// </summary>
-    static Type AsUnconstrainedType(Type t) {
+    public  static Type AsUnconstrainedType(Type t) {
       while (true) {
         if (t.AsNewtype == null) {
           return t;
@@ -315,7 +318,7 @@ namespace Microsoft.Dafny {
     }
 
     private static object FoldInteger(BinaryExpr bin, BigInteger e0, BigInteger e1) {
-      var isUnconstrained = AsUnconstrainedType(bin.Type) != null;
+      var isUnconstrained = IsUnconstrainedType(bin.Type);
 
       switch (bin.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Add:
@@ -426,7 +429,7 @@ namespace Microsoft.Dafny {
     }
 
     private static object FoldReal(BinaryExpr bin, BaseTypes.BigDec e0, BaseTypes.BigDec e1) {
-      var isUnconstrained = AsUnconstrainedType(bin.Type) != null;
+      var isUnconstrained = IsUnconstrainedType(bin.Type);
 
       switch (bin.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Add:
