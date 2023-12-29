@@ -160,7 +160,7 @@ public abstract class Type : TokenNode {
     Type t = this;
     while (true) {
       t = t.NormalizeExpand();
-      if (t.AsNewtype is {} newtypeDecl) {
+      if (t.AsNewtype is { } newtypeDecl) {
         var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, t.TypeArgs);
         t = newtypeDecl.BaseType.Subst(subst);
       } else {
