@@ -139,125 +139,8 @@ namespace Microsoft.Dafny {
 
       } else if (e is ConversionExpr ce) {
         var o = GetAnyConst(ce.E, constants);
-        if (o == null || ce.E.Type == ce.Type) {
-          return o;
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) && ce.Type.IsBitVectorType) {
-          ((BaseTypes.BigDec)o).FloorCeiling(out var ff, out _);
-          if (ff < 0 || ff > MaxBv(ce.Type)) {
-            return null; // Out of range
-          }
-          if (((BaseTypes.BigDec)o) != BaseTypes.BigDec.FromBigInt(ff)) {
-            return null; // Out of range
-          }
-          return ff;
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-          ((BaseTypes.BigDec)o).FloorCeiling(out var ff, out _);
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          if (((BaseTypes.BigDec)o) != BaseTypes.BigDec.FromBigInt(ff)) {
-            return null; // Argument not an integer
-          }
-          return ff;
-        }
-
-        if (ce.E.Type.IsBitVectorType && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return o;
-        }
-
-        if (ce.E.Type.IsBitVectorType && ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return BaseTypes.BigDec.FromBigInt((BigInteger)o);
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) && ce.Type.IsBitVectorType) {
-          var b = (BigInteger)o;
-          if (b < 0 || b > MaxBv(ce.Type)) {
-            return null; // Argument out of range
-          }
-          return o;
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-          // This case includes int-based newtypes to int-based new types
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return o;
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) && ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          // This case includes real-based newtypes to real-based new types
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return o;
-        }
-
-        if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
-          var b = (BigInteger)o;
-          if (b < 0 || b > MaxBv(ce.Type)) {
-            return null; // Argument out of range
-          }
-          return o;
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) && ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return BaseTypes.BigDec.FromBigInt((BigInteger)o);
-        }
-
-        if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-          var c = ((String)o)[0];
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return new BigInteger(((string)o)[0]);
-        }
-
-        if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
-          var c = ((String)o)[0];
-          if ((int)c > MaxBv(ce.Type)) {
-            return null; // Argument out of range
-          }
-          return new BigInteger(((string)o)[0]);
-        }
-
-        if ((ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || ce.E.Type.IsBitVectorType) && ce.Type.IsCharType) {
-          var b = (BigInteger)o;
-          if (b < BigInteger.Zero || b > new BigInteger(65535)) {
-            return null; // Argument out of range
-          }
-          return ((char)(int)b).ToString();
-        }
-
-        if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          if (AsUnconstrainedType(ce.Type) == null) {
-            return null;
-          }
-          return BaseTypes.BigDec.FromInt(((string)o)[0]);
-        }
-
-        if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) && ce.Type.IsCharType) {
-          ((BaseTypes.BigDec)o).FloorCeiling(out var ff, out _);
-          if (((BaseTypes.BigDec)o) != BaseTypes.BigDec.FromBigInt(ff)) {
-            return null; // Argument not an integer
-          }
-          if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
-            return null; // Argument out of range
-          }
-          return ((char)(int)ff).ToString();
+        if (o != null) {
+          return FoldConversion(o, ce.E.Type, ce.ToType);
         }
 
       } else if (e is SeqSelectExpr sse) {
@@ -500,6 +383,131 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.SeqNeq:
           return e0 != e1;
       }
+      return null;
+    }
+
+    private static object FoldConversion(object value, Type fromType, Type toType) {
+      if (fromType == toType) {
+        return value;
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsBitVectorType) {
+        ((BaseTypes.BigDec)value).FloorCeiling(out var ff, out _);
+        if (ff < 0 || ff > MaxBv(toType)) {
+          return null; // Out of range
+        }
+        if (((BaseTypes.BigDec)value) != BaseTypes.BigDec.FromBigInt(ff)) {
+          return null; // Out of range
+        }
+        return ff;
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        ((BaseTypes.BigDec)value).FloorCeiling(out var ff, out _);
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        if (((BaseTypes.BigDec)value) != BaseTypes.BigDec.FromBigInt(ff)) {
+          return null; // Argument not an integer
+        }
+        return ff;
+      }
+
+      if (fromType.IsBitVectorType && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return value;
+      }
+
+      if (fromType.IsBitVectorType && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return BaseTypes.BigDec.FromBigInt((BigInteger)value);
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsBitVectorType) {
+        var b = (BigInteger)value;
+        if (b < 0 || b > MaxBv(toType)) {
+          return null; // Argument out of range
+        }
+        return value;
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        // This case includes int-based newtypes to int-based new types
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return value;
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // This case includes real-based newtypes to real-based new types
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return value;
+      }
+
+      if (fromType.IsBitVectorType && toType.IsBitVectorType) {
+        var b = (BigInteger)value;
+        if (b < 0 || b > MaxBv(toType)) {
+          return null; // Argument out of range
+        }
+        return value;
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return BaseTypes.BigDec.FromBigInt((BigInteger)value);
+      }
+
+      if (fromType.IsCharType && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        var c = ((String)value)[0];
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return new BigInteger(((string)value)[0]);
+      }
+
+      if (fromType.IsCharType && toType.IsBitVectorType) {
+        var c = ((String)value)[0];
+        if ((int)c > MaxBv(toType)) {
+          return null; // Argument out of range
+        }
+        return new BigInteger(((string)value)[0]);
+      }
+
+      if ((fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType) && toType.IsCharType) {
+        var b = (BigInteger)value;
+        if (b < BigInteger.Zero || b > new BigInteger(65535)) {
+          return null; // Argument out of range
+        }
+        return ((char)(int)b).ToString();
+      }
+
+      if (fromType.IsCharType && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (!IsUnconstrainedType(toType)) {
+          return null;
+        }
+        return BaseTypes.BigDec.FromInt(((string)value)[0]);
+      }
+
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsCharType) {
+        ((BaseTypes.BigDec)value).FloorCeiling(out var ff, out _);
+        if (((BaseTypes.BigDec)value) != BaseTypes.BigDec.FromBigInt(ff)) {
+          return null; // Argument not an integer
+        }
+        if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
+          return null; // Argument out of range
+        }
+        return ((char)(int)ff).ToString();
+      }
+
       return null;
     }
   }
