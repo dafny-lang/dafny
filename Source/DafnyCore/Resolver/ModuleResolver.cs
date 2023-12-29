@@ -2048,23 +2048,6 @@ namespace Microsoft.Dafny {
       reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
     }
 
-    /// <summary>
-    /// Returns the largest value that can be stored in bitvector type "t".
-    /// </summary>
-    public static BigInteger MaxBV(Type t) {
-      Contract.Requires(t != null);
-      Contract.Requires(t.IsBitVectorType);
-      return MaxBV(t.AsBitVectorType.Width);
-    }
-
-    /// <summary>
-    /// Returns the largest value that can be stored in bitvector type of "bits" width.
-    /// </summary>
-    public static BigInteger MaxBV(int bits) {
-      Contract.Requires(0 <= bits);
-      return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
-    }
-
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
 
@@ -2213,7 +2196,7 @@ namespace Microsoft.Dafny {
               }
 
               if (isBV) {
-                return ((BigInteger)e0 + (BigInteger)e1) & MaxBV(bin.Type);
+                return ((BigInteger)e0 + (BigInteger)e1) & ConstantFolder.MaxBV(bin.Type);
               }
 
               if (isReal) {
@@ -2233,7 +2216,7 @@ namespace Microsoft.Dafny {
               }
 
               if (isBV) {
-                return ((BigInteger)e0 - (BigInteger)e1) & MaxBV(bin.Type);
+                return ((BigInteger)e0 - (BigInteger)e1) & ConstantFolder.MaxBV(bin.Type);
               }
 
               if (isReal) {
@@ -2256,7 +2239,7 @@ namespace Microsoft.Dafny {
               }
 
               if (isBV) {
-                return ((BigInteger)e0 * (BigInteger)e1) & MaxBV(bin.Type);
+                return ((BigInteger)e0 * (BigInteger)e1) & ConstantFolder.MaxBV(bin.Type);
               }
 
               if (isReal) {
@@ -2326,7 +2309,7 @@ namespace Microsoft.Dafny {
                 if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
                   return null; // Shift is too large
                 }
-                return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
+                return ((BigInteger)e0 << (int)(BigInteger)e1) & ConstantFolder.MaxBV(bin.E0.Type);
               }
             case BinaryExpr.ResolvedOpcode.RightShift: {
                 if ((BigInteger)e1 < 0) {
@@ -2497,7 +2480,7 @@ namespace Microsoft.Dafny {
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsBitVectorType) {
             ((BaseTypes.BigDec)o).FloorCeiling(out var ff, out _);
-            if (ff < 0 || ff > MaxBV(ce.Type)) {
+            if (ff < 0 || ff > ConstantFolder.MaxBV(ce.Type)) {
               return null; // Out of range
             }
             if (((BaseTypes.BigDec)o) != BaseTypes.BigDec.FromBigInt(ff)) {
@@ -2540,7 +2523,7 @@ namespace Microsoft.Dafny {
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                 ce.Type.IsBitVectorType) {
             BigInteger b = (BigInteger)o;
-            if (b < 0 || b > MaxBV(ce.Type)) {
+            if (b < 0 || b > ConstantFolder.MaxBV(ce.Type)) {
               return null; // Argument out of range
             }
             return o;
@@ -2568,7 +2551,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
             BigInteger b = (BigInteger)o;
-            if (b < 0 || b > MaxBV(ce.Type)) {
+            if (b < 0 || b > ConstantFolder.MaxBV(ce.Type)) {
               return null; // Argument out of range
             }
             return o;
@@ -2594,7 +2577,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
             char c = ((String)o)[0];
-            if ((int)c > MaxBV(ce.Type)) {
+            if ((int)c > ConstantFolder.MaxBV(ce.Type)) {
               return null; // Argument out of range
             }
             return new BigInteger(((string)o)[0]);
