@@ -76,6 +76,7 @@ namespace Microsoft.Dafny {
 
       if (e is LiteralExpr l) {
         return l.Value;
+
       } else if (e is UnaryOpExpr un) {
         if (un.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot && GetAnyConst(un.E, constants) is bool b) {
           return !b;
@@ -87,26 +88,27 @@ namespace Microsoft.Dafny {
         if (un.ResolvedOp == UnaryOpExpr.ResolvedOpcode.SeqLength && GetAnyConst(un.E, constants) is string ss) {
           return (BigInteger)(ss.Length);
         }
+
       } else if (e is MemberSelectExpr m) {
-        if (m.Member is ConstantField c && c.IsStatic && c.Rhs != null) {
+        if (m.Member is ConstantField { IsStatic: true, Rhs: { } } c) {
           // This aspect of type resolution happens before the check for cyclic references
           // so we have to do a check here as well. If cyclic, null is silently returned,
           // counting on the later error message to alert the user.
-          if (constants.Contains(c)) { return null; }
+          if (constants.Contains(c)) {
+            return null;
+          }
           constants.Push(c);
           var o = GetAnyConst(c.Rhs, constants);
           constants.Pop();
           return o;
-        } else if (m.Member is SpecialField sf) {
-          var nm = sf.Name;
-          if (nm == "Floor") {
-            var ee = GetAnyConst(m.Obj, constants);
-            if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-              ((BaseTypes.BigDec)ee).FloorCeiling(out var f, out _);
-              return f;
-            }
+        } else if (m.Member is SpecialField { Name: "Floor" }) {
+          var ee = GetAnyConst(m.Obj, constants);
+          if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+            ((BaseTypes.BigDec)ee).FloorCeiling(out var f, out _);
+            return f;
           }
         }
+
       } else if (e is BinaryExpr bin) {
         var e0 = GetAnyConst(bin.E0, constants);
         if (e0 == null) {
@@ -265,14 +267,11 @@ namespace Microsoft.Dafny {
           return null; // Index out of range
         }
         return b[(int)index].ToString();
+
       } else if (e is ITEExpr ite) {
-        var b = GetAnyConst(ite.Test, constants);
-        if (b == null) {
-          return null;
+        if (GetAnyConst(ite.Test, constants) is bool b) {
+          return b ? GetAnyConst(ite.Thn, constants) : GetAnyConst(ite.Els, constants);
         }
-        return ((bool)b) ? GetAnyConst(ite.Thn, constants) : GetAnyConst(ite.Els, constants);
-      } else {
-        return null;
       }
 
       return null;
