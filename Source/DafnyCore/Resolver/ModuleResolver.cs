@@ -2154,9 +2154,7 @@ namespace Microsoft.Dafny {
       // These fold any constant computations, including symbolic constants,
       // returning null if folding is not possible. If an operation is undefined
       // (divide by zero, conversion out of range, etc.), then null is returned.
-      Func<Expression, BigInteger?> GetConst = null;
-      Func<Expression, Stack<ConstantField>, Object> GetAnyConst = null;
-      GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
+      object GetAnyConst(Expression e, Stack<ConstantField> consts) {
         if (e is LiteralExpr l) {
           return l.Value;
         } else if (e is UnaryOpExpr un) {
@@ -2657,10 +2655,12 @@ namespace Microsoft.Dafny {
         }
         return null;
       };
-      GetConst = (Expression e) => {
+
+      BigInteger? GetConst(Expression e) {
         Object ee = GetAnyConst(e.Resolved ?? e, new Stack<ConstantField>());
         return ee as BigInteger?;
       };
+
       // Now, then, let's go through them types.
       // FIXME - should first go through the bounds to find the most constraining values
       // then check those values against the possible types. Note that also presumes the types are in order.
