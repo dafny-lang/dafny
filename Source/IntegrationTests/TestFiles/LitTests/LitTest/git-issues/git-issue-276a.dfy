@@ -30,18 +30,20 @@ module Main {
   newtype c3 = x | 0 <= x < "abcde"[6] as int
 }
 
-newtype GoodUint32 = i: int | 0 <= i <
-  if "abcrimini"[2 + 1 - 1] == 'c' then
-    0x1_0000_0000 + 1 - 1
-  else
-    3
+module Regression {
+  newtype GoodUint32 = i: int | 0 <= i <
+    if "abcrimini"[2 + 1 - 1] == 'c' then
+      0x1_0000_0000 + 1 - 1
+    else
+      3
 
-// Regression test: The following once crashed, because it had expected
-// the SeqSelect index to really be a folded integer
-newtype NotUint32 = i: int | 0 <= i <
-  if "abcrimini"[2 + 1 - 1 + k] == 'c' then
-    0x1_0000_0000 + 1 - 1
-  else
-    3
+  // Regression test: The following once crashed, because it had expected
+  // the SeqSelect index to really be a folded integer
+  newtype NotUint32 = i: int | 0 <= i <
+    if "abcrimini"[2 + 1 - 1 + k] == 'c' then
+      0x1_0000_0000 + 1 - 1
+    else
+      3
 
-const k: int
+  const k: int
+}
