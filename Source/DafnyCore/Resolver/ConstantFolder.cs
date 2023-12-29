@@ -390,6 +390,9 @@ namespace Microsoft.Dafny {
       if (fromType == toType) {
         return value;
       }
+      if (!IsUnconstrainedType(toType)) {
+        return null;
+      }
 
       if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsBitVectorType) {
         ((BaseTypes.BigDec)value).FloorCeiling(out var ff, out _);
@@ -404,9 +407,6 @@ namespace Microsoft.Dafny {
 
       if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         ((BaseTypes.BigDec)value).FloorCeiling(out var ff, out _);
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         if (((BaseTypes.BigDec)value) != BaseTypes.BigDec.FromBigInt(ff)) {
           return null; // Argument not an integer
         }
@@ -414,16 +414,10 @@ namespace Microsoft.Dafny {
       }
 
       if (fromType.IsBitVectorType && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return value;
       }
 
       if (fromType.IsBitVectorType && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return BaseTypes.BigDec.FromBigInt((BigInteger)value);
       }
 
@@ -437,17 +431,11 @@ namespace Microsoft.Dafny {
 
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // This case includes int-based newtypes to int-based new types
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return value;
       }
 
       if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // This case includes real-based newtypes to real-based new types
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return value;
       }
 
@@ -460,17 +448,11 @@ namespace Microsoft.Dafny {
       }
 
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return BaseTypes.BigDec.FromBigInt((BigInteger)value);
       }
 
       if (fromType.IsCharType && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         var c = ((String)value)[0];
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return new BigInteger(((string)value)[0]);
       }
 
@@ -491,9 +473,6 @@ namespace Microsoft.Dafny {
       }
 
       if (fromType.IsCharType && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        if (!IsUnconstrainedType(toType)) {
-          return null;
-        }
         return BaseTypes.BigDec.FromInt(((string)value)[0]);
       }
 
