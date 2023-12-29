@@ -2131,13 +2131,13 @@ namespace Microsoft.Dafny {
         if (bound is ComprehensionExpr.IntBoundedPool) {
           var bnd = (ComprehensionExpr.IntBoundedPool)bound;
           if (bnd.LowerBound != null) {
-            BigInteger? lower = ConstantFolder.GetConst(bnd.LowerBound);
+            BigInteger? lower = ConstantFolder.TryFoldInteger(bnd.LowerBound);
             if (lower != null && (lowest == null || lower < lowest)) {
               lowest = lower;
             }
           }
           if (bnd.UpperBound != null) {
-            BigInteger? upper = ConstantFolder.GetConst(bnd.UpperBound);
+            BigInteger? upper = ConstantFolder.TryFoldInteger(bnd.UpperBound);
             if (upper != null && (highest == null || upper > highest)) {
               highest = upper;
             }

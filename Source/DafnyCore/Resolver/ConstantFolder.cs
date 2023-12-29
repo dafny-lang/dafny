@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
     /// Folds "e" into an integer literal, if possible.
     /// Returns "null" if not possible (or not easy).
     /// </summary>
-    public static BigInteger? GetConst(Expression e) {
+    public static BigInteger? TryFoldInteger(Expression e) {
       var ee = GetAnyConst(e.Resolved ?? e, new Stack<ConstantField>());
       return ee as BigInteger?;
     }
