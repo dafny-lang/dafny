@@ -2132,7 +2132,7 @@ namespace Microsoft.Dafny {
       }
 
       // Returns null if the argument is a constrained newtype (recursively)
-      // Returns the transitive base type if the argument is recusively unconstrained
+      // Returns the transitive base type if the argument is recursively unconstrained
       Type AsUnconstrainedType(Type t) {
         while (true) {
           if (t.AsNewtype == null) {
