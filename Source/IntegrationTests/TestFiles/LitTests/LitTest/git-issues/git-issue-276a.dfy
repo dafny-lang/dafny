@@ -47,3 +47,20 @@ module Regression {
 
   const k: int
 }
+
+module MoreTests {
+  const bv: bv19 := 203
+
+  newtype EmptyFitsIntoInt8 = i: int |
+    -128 <= i < if !true then 128 else -200
+    witness *
+
+  newtype int8 = i: int |
+    -128 <= i < if !true then -200 else 128
+
+  newtype AnotherInt8 = i: int |
+    -128 <= i < if true ==> bv == 203 then 128 else -200
+
+  newtype Int16 = i: int |
+    -128 <= i < if true ==> bv == 204 then 128 else 1234
+}
