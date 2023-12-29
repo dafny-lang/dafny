@@ -41,8 +41,11 @@ namespace Microsoft.Dafny {
       return ee as BigInteger?;
     }
 
-    // Returns null if the argument is a constrained newtype (recursively)
-    // Returns the transitive base type if the argument is recursively unconstrained
+
+    /// <summary>
+    /// Returns null if the argument is a constrained newtype (recursively)
+    /// Returns the transitive base type if the argument is recursively unconstrained
+    /// </summary>
     static Type AsUnconstrainedType(Type t) {
       while (true) {
         if (t.AsNewtype == null) {
@@ -57,6 +60,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Try to fold "e" into constants.
+    /// Return null if folding is not possible.
+    /// If an operation is undefined (divide by zero, conversion out of range, etc.), then null is returned.
+    ///
+    /// Caution: This method defines the semantics of some expressions. It is important that these be the same
+    /// as what the verifier and compilers use. For example, it is essential that no undefined expressions
+    /// are folded. Yet, this method is likely to receive much less testing than the verifier and compiler,
+    /// since it's not common for all of these expressions to appear in expressions where folding is applied.
+    /// </summary>
+    [CanBeNull]
     static object GetAnyConst(Expression e, Stack<ConstantField> constants) {
       if (e is LiteralExpr l) {
         return l.Value;

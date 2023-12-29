@@ -2117,12 +2117,6 @@ namespace Microsoft.Dafny {
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
-      // But first, define a local, recursive function GetConst/GetAnyConst:
-      // These fold any constant computations, including symbolic constants,
-      // returning null if folding is not possible. If an operation is undefined
-      // (divide by zero, conversion out of range, etc.), then null is returned.
-
-      // Now, then, let's go through them types.
       // FIXME - should first go through the bounds to find the most constraining values
       // then check those values against the possible types. Note that also presumes the types are in order.
       BigInteger? lowest = null;
