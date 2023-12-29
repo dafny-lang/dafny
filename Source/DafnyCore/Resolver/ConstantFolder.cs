@@ -26,5 +26,21 @@ namespace Microsoft.Dafny {
       return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
     }
 
+    // Returns null if the argument is a constrained newtype (recursively)
+    // Returns the transitive base type if the argument is recursively unconstrained
+    public static Type AsUnconstrainedType(Type t) {
+      while (true) {
+        if (t.AsNewtype == null) {
+          return t;
+        }
+
+        if (t.AsNewtype.Constraint != null) {
+          return null;
+        }
+
+        t = t.AsNewtype.BaseType;
+      }
+    }
+
   }
 }

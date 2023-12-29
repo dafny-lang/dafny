@@ -2114,22 +2114,6 @@ namespace Microsoft.Dafny {
         bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
 
-      // Returns null if the argument is a constrained newtype (recursively)
-      // Returns the transitive base type if the argument is recursively unconstrained
-      Type AsUnconstrainedType(Type t) {
-        while (true) {
-          if (t.AsNewtype == null) {
-            return t;
-          }
-
-          if (t.AsNewtype.Constraint != null) {
-            return null;
-          }
-
-          t = t.AsNewtype.BaseType;
-        }
-      }
-
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
@@ -2229,7 +2213,7 @@ namespace Microsoft.Dafny {
               // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
               // is a nuisance not to constant-fold the result, as not doing so can alter the determination
               // of the representation type.
-              if (isAnyInt && AsUnconstrainedType(bin.Type) != null) {
+              if (isAnyInt && ConstantFolder.AsUnconstrainedType(bin.Type) != null) {
                 return ((BigInteger)e0) - ((BigInteger)e1);
               }
               break;
@@ -2492,7 +2476,7 @@ namespace Microsoft.Dafny {
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             ((BaseTypes.BigDec)o).FloorCeiling(out var ff, out _);
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2504,7 +2488,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2513,7 +2497,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2532,7 +2516,7 @@ namespace Microsoft.Dafny {
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             // This case includes int-based newtypes to int-based new types
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2542,7 +2526,7 @@ namespace Microsoft.Dafny {
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             // This case includes real-based newtypes to real-based new types
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2559,7 +2543,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2568,7 +2552,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             char c = ((String)o)[0];
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
@@ -2594,7 +2578,7 @@ namespace Microsoft.Dafny {
 
           if (ce.E.Type.IsCharType &&
               ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            if (AsUnconstrainedType(ce.Type) == null) {
+            if (ConstantFolder.AsUnconstrainedType(ce.Type) == null) {
               return null;
             }
 
