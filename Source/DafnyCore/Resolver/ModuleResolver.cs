@@ -2170,7 +2170,7 @@ namespace Microsoft.Dafny {
         } else {
           var detectedRange = emptyRange ? "empty" : $"{lowest} .. {highest}";
           reporter.Info(MessageSource.Resolver, dd.tok,
-            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (Detected Range: {detectedRange})");
+            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,
