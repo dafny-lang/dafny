@@ -2723,6 +2723,13 @@ namespace Microsoft.Dafny {
       foreach (var nativeT in bigEnoughNativeTypes) {
         if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
+          if (constraintConsistsSolelyOfRangeConstraints) {
+            dd.NativeTypeRangeImpliesAllConstraints = true;
+          }
+          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
+              lowest == nativeT.LowerBound && highest == nativeT.UpperBound) {
+            dd.TargetTypeCoversAllBitPatterns = true;
+          }
           break;
         }
       }
@@ -2731,8 +2738,15 @@ namespace Microsoft.Dafny {
         // one particular native type, in which case that must have been the one picked.
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+          if (dd.TargetTypeCoversAllBitPatterns) {
+            reporter.Info(MessageSource.Resolver, dd.tok,
+              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
+          }
         } else {
-          reporter.Info(MessageSource.Resolver, dd.tok, "newtype " + dd.Name + " resolves as {:nativeType \"" + dd.NativeType.Name + "\"} (Detected Range: " + lowest + " .. " + highest + ")");
+          var detectedRange = emptyRange ? "empty" : $"{lowest} .. {highest}";
+          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
+          reporter.Info(MessageSource.Resolver, dd.tok,
+            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected {targetComplete}range: {detectedRange})");
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,
