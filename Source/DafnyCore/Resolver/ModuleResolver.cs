@@ -2686,27 +2686,27 @@ namespace Microsoft.Dafny {
         return ee as BigInteger?;
       };
       // Now, then, let's go through them types.
-      // FIXME - should first go through the bounds to find the most constraining values
-      // then check those values against the possible types. Note that also presumes the types are in order.
       BigInteger? lowest = null;
       BigInteger? highest = null;
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool bnd) {
-          if (bnd.LowerBound != null && ConstantFolder.TryFoldInteger(bnd.LowerBound) is not null and var lower) {
+          if (bnd.LowerBound != null && GetConst(bnd.LowerBound) is not null and var lower) {
             if (lowest == null || lower < lowest) {
               lowest = lower;
             }
           }
-          if (bnd.UpperBound != null && ConstantFolder.TryFoldInteger(bnd.UpperBound) is not null and var upper) {
+          if (bnd.UpperBound != null && GetConst(bnd.UpperBound) is not null and var upper) {
             if (highest == null || upper > highest) {
               highest = upper;
             }
           }
         }
       }
+
+      var emptyRange = lowest != null && highest != null && highest <= lowest;
       foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = (lowest != null && nativeT.LowerBound <= lowest);
-        bool upperOk = (highest != null && nativeT.UpperBound >= highest);
+        bool lowerOk = emptyRange || (lowest != null && nativeT.LowerBound <= lowest);
+        bool upperOk = emptyRange || (highest != null && nativeT.UpperBound >= highest);
         if (lowerOk && upperOk) {
           bigEnoughNativeTypes.Add(nativeT);
         } else if (nativeTypeChoices != null) {
