@@ -59,10 +59,9 @@ public class Constraint {
           break;
         }
       }
-      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
+      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value)) && constraint.ReferencedValues.Count() > 0
-            && constraint.antecedents.All(constraints.Contains)) {
+            constraint.ReferencedValues.Count() == 0 && constraint.antecedents.All(constraints.Contains)) {
           constraints.Add(constraint);
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
@@ -73,9 +72,10 @@ public class Constraint {
         }
       }
       if (foundANewDefinition) { continue; }
-      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
+      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            constraint.ReferencedValues.Count() == 0 && constraint.antecedents.All(constraints.Contains)) {
+            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value)) && constraint.ReferencedValues.Count() > 0
+            && constraint.antecedents.All(constraints.Contains)) {
           constraints.Add(constraint);
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
