@@ -2138,9 +2138,11 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      var emptyRange = lowest != null && highest != null && highest <= lowest;
       foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = (lowest != null && nativeT.LowerBound <= lowest);
-        bool upperOk = (highest != null && nativeT.UpperBound >= highest);
+        bool lowerOk = emptyRange || (lowest != null && nativeT.LowerBound <= lowest);
+        bool upperOk = emptyRange || (highest != null && nativeT.UpperBound >= highest);
         if (lowerOk && upperOk) {
           bigEnoughNativeTypes.Add(nativeT);
         } else if (nativeTypeChoices != null) {
@@ -2166,7 +2168,9 @@ namespace Microsoft.Dafny {
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
         } else {
-          reporter.Info(MessageSource.Resolver, dd.tok, "newtype " + dd.Name + " resolves as {:nativeType \"" + dd.NativeType.Name + "\"} (Detected Range: " + lowest + " .. " + highest + ")");
+          var detectedRange = emptyRange ? "empty" : $"{lowest} .. {highest}";
+          reporter.Info(MessageSource.Resolver, dd.tok,
+            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (Detected Range: {detectedRange})");
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,

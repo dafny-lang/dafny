@@ -51,8 +51,8 @@ module Regression {
 module MoreTests {
   const bv: bv19 := 203
 
-  newtype EmptyFitsIntoInt8 = i: int |
-    -128 <= i < if !true then 128 else -200
+  newtype EmptyFitsIntoUint8 = i: int |
+    -0x8000_0000 <= i < if !true then 128 else -0x1_0000_0000 // empty range
     witness *
 
   newtype int8 = i: int |
