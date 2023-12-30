@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -19,6 +20,9 @@ public class PartialValue {
   private readonly PartialState state; // corresponding state in the counterexample model
   private readonly Type type;
   private bool haveExpanded;
+
+  private bool nullable = false;
+  public bool Nullable => nullable;
   private static Dictionary<PartialState, Dictionary<Model.Element, PartialValue>> allPartialValues = new();
 
   public IEnumerable<Expression> Values(Dictionary<PartialValue, Expression> definitions) {
@@ -100,28 +104,33 @@ public class PartialValue {
     }
   }
 
-  internal void AddConstraint(Expression constrainingExpression, List<PartialValue> referencedValues) { 
+  internal Constraint AddConstraint(Expression constrainingExpression, List<PartialValue> referencedValues) {
+    if (constrainingExpression is TypeTestExpr typeTestExpr && typeTestExpr.ToType is UserDefinedType userDefinedType && userDefinedType.Name.EndsWith("?")) {
+      nullable = true;
+    }
     if (!referencedValues.Contains(this)) {
       referencedValues.Add(this);
     }
-    var constraint = new Constraint(constrainingExpression, referencedValues);
+    constrainingExpression.Type = Type.Bool;
+    var constraint = new Constraint(constrainingExpression, referencedValues, new List<Constraint>());
     constraints.Add(constraint);
     AddRelatedValuesConnections(referencedValues);
+    return constraint;
   }
   
-  internal void AddDefinition(Expression constrainingExpression, List<PartialValue> referencedValues) {
+  internal void AddDefinition(Expression constrainingExpression, List<PartialValue> referencedValues, List<Constraint> antecedents) {
     constrainingExpression.Type = type;
     if (referencedValues.Contains(this)) {
       referencedValues.Remove(this);
     }
-    var constraint = new Constraint(constrainingExpression, referencedValues, this);
+    var constraint = new Constraint(constrainingExpression, referencedValues, antecedents, this);
     constraints.Add(constraint);
     AddRelatedValuesConnections(referencedValues);
   }
   
   internal void AddName(Expression constrainingExpression) {
     constrainingExpression.Type = type;
-    var constraint = new Constraint(constrainingExpression, new List<PartialValue> {this}, this);
+    var constraint = new Constraint(constrainingExpression, new List<PartialValue> {this}, new List<Constraint>(), this);
     constraints.Add(constraint);
   }
 

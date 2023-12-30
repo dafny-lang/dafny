@@ -8,15 +8,17 @@ public class Constraint {
   private static ExpressionAnalyzer analyzer = new();
   internal Expression rawExpression;
   private List<PartialValue> referencedValues;
+  private List<Constraint> antecedents; // these constraints should go prior to this one to guarantee well-formedness
   public IEnumerable<PartialValue> ReferencedValues => referencedValues.AsEnumerable();
   public readonly PartialValue? definesValue;
 
   public bool IsIdentifier => rawExpression is IdentifierExpr;
 
-  public Constraint(Expression expression, IEnumerable<PartialValue> referencedValues, PartialValue? definesValue=null) {
+  public Constraint(Expression expression, IEnumerable<PartialValue> referencedValues, IEnumerable<Constraint> antecedents, PartialValue? definesValue=null) {
     this.rawExpression = expression;
     this.referencedValues = referencedValues.ToList();
     this.definesValue = definesValue;
+    this.antecedents = antecedents.ToList();
   }
 
   public Expression? AsExpression(Dictionary<PartialValue, Expression> definitions, bool wrapDefinitions) {
@@ -45,11 +47,23 @@ public class Constraint {
   public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints, bool allowNewIdentifiers) {
     var foundANewDefinition = true;
     var substituter = new DefinitionSubstituter(knownDefinitions);
+    var oldConstraints = new List<Constraint>();
+    oldConstraints.AddRange(constraints);
+    constraints.Clear();
     while (foundANewDefinition) {
       foundANewDefinition = false;
-      foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
+      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
+        if (!constraints.Contains(constraint) && constraint.definesValue == null && constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value))) {
+          constraints.Add(constraint);
+          foundANewDefinition = true;
+          break;
+        }
+      }
+      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value)) && constraint.ReferencedValues.Count() > 0) {
+            constraint.ReferencedValues.All(value => knownDefinitions.ContainsKey(value)) && constraint.ReferencedValues.Count() > 0
+            && constraint.antecedents.All(constraints.Contains)) {
+          constraints.Add(constraint);
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
           knownDefinitions[constraint.definesValue] = definition;
@@ -59,9 +73,10 @@ public class Constraint {
         }
       }
       if (foundANewDefinition) { continue; }
-      foreach (var constraint in constraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
+      foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) { // First add as constraints the literal expressions
         if (constraint.definesValue != null && !knownDefinitions.ContainsKey(constraint.definesValue) &&
-            constraint.ReferencedValues.Count() == 0) {
+            constraint.ReferencedValues.Count() == 0 && constraint.antecedents.All(constraints.Contains)) {
+          constraints.Add(constraint);
           var definition = substituter.CloneExpr(constraint.rawExpression);
           definition.Type = constraint.rawExpression.Type;
           knownDefinitions[constraint.definesValue] = definition;
@@ -69,6 +84,16 @@ public class Constraint {
           foundANewDefinition = true;
           break;
         }
+      }
+    }
+    foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
+      if (!constraints.Contains(constraint) && constraint.definesValue == null) {
+        constraints.Add(constraint);
+      }
+    }
+    foreach (var constraint in oldConstraints.Where(constraint => allowNewIdentifiers || !constraint.IsIdentifier)) {
+      if (!constraints.Contains(constraint) && constraint.definesValue != null) {
+        constraints.Add(constraint);
       }
     }
   }
@@ -103,9 +128,10 @@ public class Constraint {
         datatypeValue.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
 
-      if (result is LiteralExpr) {
+      if (expr != null && expr.Type != null) {
         result.Type = expr.Type;
       }
+
       return result;
     }
   }

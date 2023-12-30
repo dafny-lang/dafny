@@ -375,7 +375,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue value) {
       var literalExpr = GetLiteralExpression(value.Element, value.Type);
       if (literalExpr != null) {
-        value.AddDefinition(literalExpr, new());
+        value.AddDefinition(literalExpr, new(), new());
         yield break;
       }
 
@@ -437,7 +437,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var element = PartialValue.Get(Unbox(func.OptEval(value.Element)), state);
             var elementName = UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_");
             element.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, elementName),
-              new() { value });
+              new() { value }, new());
             yield return element;
           }
         } else {
@@ -449,10 +449,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             yield return element;
           }
 
-          value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value.ElementIdentifier,
-              new DatatypeValue(Token.NoToken, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(),
-                elements.ConvertAll(element => element.ElementIdentifier).OfType<Expression>().ToList())),
-            elements);
+          var datatypeValue = new DatatypeValue(Token.NoToken, value.Type.ToString(),
+            fnTuple.Func.Name.Split(".").Last(),
+            elements.ConvertAll(element => element.ElementIdentifier).OfType<Expression>().ToList());
+          datatypeValue.Type = value.Type;
+          value.AddDefinition(datatypeValue, elements, new());
         }
 
         yield break;
@@ -464,10 +465,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if (lenghtTuple != null) {
             var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
             lengthValue.AddDefinition(
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value });
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value }, new());
             yield return lengthValue;
           }
-
+          
           // Sequences can be constructed with the build operator:
           List<PartialValue> elements = new();
 
@@ -480,6 +481,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           for (int i = 0; i < elements.Count; i++) {
             var index = new LiteralExpr(Token.NoToken, i);
             index.Type = Type.Int;
+            var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), index), new() {value});
             elements[i].AddDefinition(new SeqSelectExpr(
                 Token.NoToken,
                 true,
@@ -487,13 +489,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                 index,
                 null,
                 Token.NoToken),
-              new() { value, elements[i] });
+              new() { value, elements[i] }, new List<Constraint>() {lengthConstraint});
             yield return elements[i];
           }
 
           if (elements.Count == 0) {
             foreach (var funcTuple in fSeqIndex.AppsWithArg(0, value.Element)) {
               var elementId = PartialValue.Get(funcTuple.Args[1], state);
+              var elementIdTry = GetLiteralExpression(funcTuple.Args[1], Type.Int);
+              if (elementIdTry != null && elementIdTry.ToString().Contains("-")) {
+                continue;
+              }
+              var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), elementId.ElementIdentifier), new() {value, elementId});
               var element = PartialValue.Get(Unbox(funcTuple.Result), state);
               element.AddDefinition(new SeqSelectExpr(
                   Token.NoToken,
@@ -502,14 +509,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                   elementId.ElementIdentifier,
                   null,
                   Token.NoToken),
-                new() { value, elementId, element });
+                new() { value, elementId, element }, new List<Constraint>() {lengthConstraint});
               yield return element;
               yield return elementId;
             }
           } else {
             value.AddDefinition(
               new SeqDisplayExpr(Token.NoToken,
-                elements.ConvertAll(element => element.ElementIdentifier as Expression)), elements);
+                elements.ConvertAll(element => element.ElementIdentifier as Expression)), elements, new());
           }
 
           yield break;
@@ -518,10 +525,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if (fSetEmpty.AppWithResult(value.Element) != null) {
             var zero = new LiteralExpr(Token.NoToken, 0);
             zero.Type = Type.Int;
-            value.AddConstraint(
-              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier),
-                zero), new() { value });
+            var cardinalityExpr =
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
+            cardinalityExpr.Type = Type.Int;
+            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
             yield break;
           }
 
@@ -545,10 +552,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           if (fMapEmpty.AppWithResult(value.Element) != null) {
             var zero = new LiteralExpr(Token.NoToken, 0);
             zero.Type = Type.Int;
-            value.AddConstraint(
-              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq,
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier),
-                zero), new() { value });
+            var cardinalityExpr =
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
+            cardinalityExpr.Type = Type.Int;
+            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
             yield break;
           }
           var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
@@ -613,21 +620,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
           var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
 
-          if ((fields.Any() || constantFields.Any())
-              && value.Type is UserDefinedType userDefinedType
-              && userDefinedType.Name.EndsWith("?")) {
+          var notNullConstraints = new List<Constraint>();
+          if ((fields.Any() || constantFields.Any()) && value.Nullable) {
             var nullValue = new LiteralExpr(Token.NoToken);
-            nullValue.Type = userDefinedType;
-            value.AddConstraint(
-              new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier,
-                nullValue), new List<PartialValue> { value });
+            nullValue.Type = new InferredTypeProxy();
+            notNullConstraints.Add(value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier, nullValue), new List<PartialValue> { value }));
           }
 
           foreach (var fieldFunc in constantFields) {
             var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
             var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
             field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-              new() { value });
+              new() { value }, notNullConstraints);
             yield return field;
           }
 
@@ -639,13 +643,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
               if (fieldName != "alloc") {
                 var field = PartialValue.Get(Unbox(tpl.Result), state);
+                // TODO: WellFormedNess of arrays!
                 if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
                   field.AddDefinition(
                     new SeqSelectExpr(Token.NoToken, true, value.ElementIdentifier,
-                      new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value });
+                      new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value }, notNullConstraints);
                 } else {
                   field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-                    new() { value });
+                    new() { value }, notNullConstraints);
                 }
 
                 yield return field;
@@ -830,7 +835,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       var key = PartialValue.Get(keyElement, state);
       var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
       var constraint = new BinaryExpr(Token.NoToken, opcode, key.ElementIdentifier, mapVariable.ElementIdentifier);
-      mapVariable.AddConstraint(constraint, new() {key});
+      var containsConstraints = new List<Constraint>();
+      containsConstraints.Add(mapVariable.AddConstraint(constraint, new() {key}));
       if (valueElement != null) {
         var value = PartialValue.Get(valueElement, state);
         var seqSelectExpression = new SeqSelectExpr(
@@ -840,7 +846,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           key.ElementIdentifier, 
           null, 
           Token.NoToken);
-        value.AddDefinition(seqSelectExpression, new() {mapVariable, key});
+        value.AddDefinition(seqSelectExpression, new() {mapVariable, key}, containsConstraints);
         yield return value;
       } 
       keySet.Add(keyElement);

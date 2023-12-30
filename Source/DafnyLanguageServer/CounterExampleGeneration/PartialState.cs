@@ -91,7 +91,8 @@ public class PartialState {
       }
     }
 
-    var constraintsAsExpressions = constraints.ConvertAll(constraint => constraint.AsExpression(allVariableNames, true))
+    var constraintsAsExpressions = constraints
+      .Select(constraint => constraint.AsExpression(allVariableNames, true))
       .Where(constraint => constraint != null).ToList();
 
     Expression expression = null;
