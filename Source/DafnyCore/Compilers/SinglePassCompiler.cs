@@ -5760,7 +5760,9 @@ namespace Microsoft.Dafny.Compilers {
       IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
 
-      var needsConstraintCheck = collectionElementType.AsNewtype != null || !boundVarType.Equals(collectionElementType, true);
+      var needsConstraintCheck =
+        (collectionElementType.AsNewtype is { NativeTypeRangeImpliesAllConstraints: false }) ||
+        !boundVarType.Equals(collectionElementType, true);
       if (needsConstraintCheck &&
           boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType userDefinedType &&
           userDefinedType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
