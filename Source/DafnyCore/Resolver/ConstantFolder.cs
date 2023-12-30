@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
     /// Returns null if the argument is a constrained newtype (recursively)
     /// Returns the transitive base type if the argument is recursively unconstrained
     /// </summary>
-    public  static Type AsUnconstrainedType(Type t) {
+    public static Type AsUnconstrainedType(Type t) {
       while (true) {
         if (t.AsNewtype == null) {
           return t;
@@ -363,7 +363,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(bin.E0.Type.IsCharType);
           return e0[0] <= e1[0];
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          return e1.StartsWith(e0) && e0 != e1;;
+          return e1.StartsWith(e0) && e0 != e1; ;
         case BinaryExpr.ResolvedOpcode.Prefix:
           return e1.StartsWith(e0);
         case BinaryExpr.ResolvedOpcode.EqCommon:
