@@ -2691,8 +2691,7 @@ namespace Microsoft.Dafny {
       BigInteger? lowest = null;
       BigInteger? highest = null;
       foreach (var bound in bounds) {
-        if (bound is ComprehensionExpr.IntBoundedPool) {
-          var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+        if (bound is ComprehensionExpr.IntBoundedPool bnd) {
           if (bnd.LowerBound != null) {
             BigInteger? lower = GetConst(bnd.LowerBound);
             if (lower != null && (lowest == null || lower < lowest)) {
