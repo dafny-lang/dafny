@@ -2148,7 +2148,7 @@ namespace Microsoft.Dafny {
         } else if (nativeTypeChoices != null) {
           reporter.Error(MessageSource.Resolver, dd,
             "Dafny's heuristics failed to confirm '{0}' to be a compatible native type.  " +
-            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'",
+            "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'",
             nativeT.Name);
           return;
         }
@@ -2178,7 +2178,7 @@ namespace Microsoft.Dafny {
       } else if (mustUseNativeType) {
         reporter.Error(MessageSource.Resolver, dd,
           "Dafny's heuristics cannot find a compatible native type.  " +
-          "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'");
       }
     }
 
