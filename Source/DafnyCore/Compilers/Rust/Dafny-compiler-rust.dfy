@@ -42,6 +42,7 @@ module RAST {
     | StructDecl(struct: Struct)
     | EnumDecl(enum: Enum)
     | ImplDecl(impl: Impl)
+    | TraitDecl(tr: Trait)
   {
     function ToString(ind: string): string
       decreases this
@@ -50,6 +51,7 @@ module RAST {
       else if StructDecl? then struct.ToString(ind)
       else if ImplDecl? then impl.ToString(ind)
       else if EnumDecl? then enum.ToString(ind)
+      else if TraitDecl? then tr.ToString(ind)
       else assert RawDecl?; body
     }
   }
@@ -149,6 +151,18 @@ module RAST {
     }
   }
 
+  datatype Trait =
+    | Trait(typeParams: seq<TypeParam>, tpe: Type, where: string, body: seq<ImplMember>)
+  {
+    function ToString(ind: string): string {
+      "trait " + TypeParam.ToStringMultiple(typeParams, ind) + tpe.ToString(ind)
+      + (if where != "" then "\n" + ind + IND + where else "")
+      + " {" +
+      SeqToString(body, (member: ImplMember) => "\n" + ind + IND + member.ToString(ind + IND), "")
+      + (if |body| == 0 then "" else "\n" + ind) + "}"
+    }
+  }
+
   datatype Impl =
     | ImplFor(typeParams: seq<TypeParam>, tpe: Type, forType: Type, where: string, body: seq<ImplMember>)
     | Impl(typeParams: seq<TypeParam>, tpe: Type, where: string, body: seq<ImplMember>)
@@ -220,6 +234,19 @@ module RAST {
     }
   }
 
+  // When a raw stream is given, try to put some indentation on it
+  function AddIndent(raw: string, ind: string): string {
+    if |raw| == 0 then raw
+    else if raw[0] in "[({" then
+      [raw[0]] + AddIndent(raw[1..], ind + IND)
+    else if raw[0] in "})]" && |ind| > 2 then
+      [raw[0]] + AddIndent(raw[1..], ind[..|ind|-2])
+    else if raw[0] == '\n' then
+      [raw[0]] + ind + AddIndent(raw[1..], ind)
+    else
+      [raw[0]] + AddIndent(raw[1..], ind)
+  }
+
   datatype Expr =
       RawExpr(content: string)
     | Match(matchee: Expr, cases: seq<MatchCase>)
@@ -239,12 +266,12 @@ module RAST {
         "{\n" + ind + IND + underlying.ToString(ind + IND) + "\n" + ind + "}"
       else if StructBuild? then
         name + " {" +
-          SeqToString(assignments, (assignment: AssignIdentifier)
-            requires assignment < this
-          =>
-            "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
+        SeqToString(assignments, (assignment: AssignIdentifier)
+                    requires assignment < this
+                    =>
+                      "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
         (if |assignments| > 0 then "\n" + ind else "") + "}"
-      else assert RawExpr?; content
+      else assert RawExpr?; AddIndent(content, ind)
     }
     function Then(rhs2: Expr): Expr {
       StmtExpr(this, rhs2)
@@ -253,14 +280,22 @@ module RAST {
 
   datatype Fn =
     Fn(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
-       returnType: Option<Type>, body: Expr)
+       returnType: Option<Type>,
+       where: string,
+       body: Option<Expr>)
   {
     function ToString(ind: string): string {
       "fn " + name + TypeParam.ToStringMultiple(typeParams, ind) +
       "(" + SeqToString(formals, (formal: Formal) => formal.ToString(ind), ", ") + ")" +
-      (match returnType case Some(t) => " -> " + t.ToString(ind) case _ => "") + " {\n" + ind + IND +
-      body.ToString(ind + IND) +
-      "\n" + ind + "}"
+      (match returnType case Some(t) => " -> " + t.ToString(ind) case _ => "") +
+      (if where == "" then "" else "\n" + ind + IND + where) +
+      match body {
+        case None => ";"
+        case Some(body) =>
+          " {\n" + ind + IND +
+          body.ToString(ind + IND) +
+          "\n" + ind + "}"
+      }
     }
   }
 }
@@ -279,6 +314,16 @@ module {:extern "DCOMP"} DCOMP {
   }
   const DafnyErasable := runtime("::DafnyErasable")
 
+  // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
+  const reserved_rust := {
+    "as","async","await","break","const","continue",
+    "crate","dyn","else","enum","extern","false","fn","for","if","impl",
+    "in","let","loop","match","mod","move","mut","pub","ref","return",
+    "Self","self","static","struct","super","trait","true","type","union",
+    "unsafe","use","where","while","Keywords","The","abstract","become",
+    "box","do","final","macro","override","priv","try","typeof","unsized",
+    "virtual","yield"}
+
   predicate is_tuple_numeric(i: string) {
     |i| >= 2 && i[0] == '_' &&
     i[1] in "0123456789" &&
@@ -289,6 +334,7 @@ module {:extern "DCOMP"} DCOMP {
   predicate has_special(i: string) {
     if |i| == 0 then false
     else if i[0] == '.' then true
+    else if i[0] == '#' then true // otherwise "escapeIdent("r#") becomes "r#""
     else if i[0] == '_' then
       if 2 <= |i| then
         if i[1] != '_' then true
@@ -300,16 +346,12 @@ module {:extern "DCOMP"} DCOMP {
   }
 
   function idiomatic_rust(i: string): string
-    requires !has_special(i) || is_tuple_numeric(i)
+    requires !has_special(i)
   {
     if |i| == 0 then ""
     else if i[0] == '_' then
-      assert 2 <= |i|;
-      if i[1] == '_' then
-        "_" + idiomatic_rust(i[2..])
-      else
-        assert is_tuple_numeric(i);
-        i
+      assert 2 <= |i| && i[1] == '_';
+      "_" + idiomatic_rust(i[2..])
     else
       [i[0]] + idiomatic_rust(i[1..])
   }
@@ -322,15 +364,6 @@ module {:extern "DCOMP"} DCOMP {
     else
       [i[0]] + replaceDots(i[1..])
   }
-
-  // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
-  const reserved_rust := {"as","async","await","break","const","continue",
-                          "crate","dyn","else","enum","extern","false","fn","for","if","impl",
-                          "in","let","loop","match","mod","move","mut","pub","ref","return",
-                          "Self","self","static","struct","super","trait","true","type","union",
-                          "unsafe","use","where","while","Keywords","The","abstract","become",
-                          "box","do","final","macro","override","priv","try","typeof","unsized",
-                          "virtual","yield"}
 
   predicate is_tuple_builder(i: string) {
     && |i| >= 9
@@ -345,13 +378,26 @@ module {:extern "DCOMP"} DCOMP {
     "_T" + i[8..]
   }
 
+  predicate is_dafny_generated_id(i: string) {
+    && |i| > 0 && i[0] == '_' && !has_special(i[1..])
+    && (|i| >= 2 ==> i[1] != 'T') // To avoid conflict with tuple builders _T<digits>
+  }
+
+  predicate is_idiomatic_rust(i: string) {
+    0 < |i| && !has_special(i) && i !in reserved_rust
+  }
+
   function escapeIdent(i: string): string {
-    if (!has_special(i) && i !in reserved_rust) || is_tuple_numeric(i) then
-      idiomatic_rust(i)
+    if is_tuple_numeric(i) then
+      i
     else if is_tuple_builder(i) then
       better_tuple_builder_name(i)
     else if i in reserved_rust then
       "r#" + i
+    else if is_idiomatic_rust(i) then
+      idiomatic_rust(i)
+    else if is_dafny_generated_id(i) then
+      i // Dafny-generated identifiers like "_module", cannot be written in Dafny itself
     else
       var r := replaceDots(i);
       "r#_" + r
@@ -377,14 +423,12 @@ module {:extern "DCOMP"} DCOMP {
             var mm := GenModule(m, containingPath);
             generated := [R.ModDecl(mm)];
           case Class(c) =>
-            var cc := GenClass(c, containingPath + [Ident.Ident(c.name)]);
-            generated := cc;
+            generated := GenClass(c, containingPath + [Ident.Ident(c.name)]);
           case Trait(t) =>
             var tt := GenTrait(t, containingPath);
             generated := [R.RawDecl(tt)];
           case Newtype(n) =>
-            var nn := GenNewtype(n);
-            generated := [R.RawDecl(nn)];
+            generated := GenNewtype(n);
           case Datatype(d) =>
             generated := GenDatatype(d);
         }
@@ -489,11 +533,12 @@ module {:extern "DCOMP"} DCOMP {
            R.Fn(
              "new",
              [], [], Some(R.SelfOwned),
-             R.StructBuild(
-               escapeIdent(c.name),
-               fieldInits
-             )
-           ))] + [R.RawImplMember(implBodyRaw)];
+             "",
+             Some(R.StructBuild(
+                    escapeIdent(c.name),
+                    fieldInits
+                  ))
+           ))] + implBodyRaw;
 
       var i := R.Impl(
         sConstrainedTypeParams,
@@ -510,19 +555,20 @@ module {:extern "DCOMP"} DCOMP {
             case Path(traitPath, typeArgs, Trait(_)) => {
               var pathStr := GenPath(traitPath);
               var typeArgs := GenTypeArgs(typeArgs, false, false);
-              var body := "";
+              var body: seq<R.ImplMember> := [];
               if traitPath in traitBodies {
                 body := traitBodies[traitPath];
               }
 
               var genSelfPath := GenPath(path);
-              var x := R.ImplDecl(R.ImplFor(
-                                    sConstrainedTypeParams,
-                                    R.RawType(pathStr + typeArgs),
-                                    R.RawType("::std::rc::Rc<" + genSelfPath + typeParams + ">"),
-                                    whereConstraints,
-                                    [R.RawImplMember(body)]
-                                  ));
+              var x := R.ImplDecl(
+                R.ImplFor(
+                  sConstrainedTypeParams,
+                  R.RawType(pathStr + typeArgs),
+                  R.RawType("::std::rc::Rc<" + genSelfPath + typeParams + ">"),
+                  whereConstraints,
+                  body
+                ));
               s := s + [x];
             }
             case _ => {}
@@ -538,8 +584,10 @@ module {:extern "DCOMP"} DCOMP {
         whereConstraints,
         [R.FnDecl(
            R.PRIV,
-           R.Fn("default", [], [], Some(R.SelfOwned),
-                R.RawExpr(escapeIdent(c.name) + "::new()")))]
+           R.Fn(
+             "default", [], [], Some(R.SelfOwned),
+             "",
+             Some(R.RawExpr(escapeIdent(c.name) + "::new()"))))]
       );
       var defaultImpl := [R.ImplDecl(d)];
 
@@ -555,7 +603,8 @@ module {:extern "DCOMP"} DCOMP {
                "fmt_print", [],
                [R.Formal.self, R.Formal("_formatter", R.RawType("&mut ::std::fmt::Formatter")), R.Formal("_in_seq", R.RawType("bool"))],
                Some(R.RawType("std::fmt::Result")),
-               R.RawExpr("write!(_formatter, \"" + c.enclosingModule.id + "." + c.name + "\")")
+               "",
+               Some(R.RawExpr("write!(_formatter, \"" + c.enclosingModule.id + "." + c.name + "\")"))
              ))]
         );
       var printImpl := [R.ImplDecl(p)];
@@ -571,7 +620,8 @@ module {:extern "DCOMP"} DCOMP {
              "eq", [],
              [R.Formal.self, R.Formal("other", R.Self)],
              Some(R.RawType("bool")),
-             R.RawExpr("::std::ptr::eq(self, other)")
+             "",
+             Some(R.RawExpr("::std::ptr::eq(self, other)"))
            ))]
       );
       var ptrPartialEqImpl := [R.ImplDecl(pp)];
@@ -612,44 +662,52 @@ module {:extern "DCOMP"} DCOMP {
 
       var fullPath := containingPath + [Ident.Ident(t.name)];
       var implBody, _ := GenClassImplBody(t.body, true, Type.Path(fullPath, [], ResolvedType.Trait(fullPath)), typeParamsSet);
-      s := "pub trait " + escapeIdent(t.name) + typeParams + " {\n" + implBody +  "\n}";
+      s :=
+        R.TraitDecl(R.Trait(
+                      [], R.RawType(escapeIdent(t.name) + typeParams),
+                      "",
+                      implBody
+                    )).ToString(IND);
     }
 
-    static method GenNewtype(c: Newtype) returns (s: string) {
+    static method GenNewtype(c: Newtype) returns (s: seq<R.ModDecl>) {
       var typeParamsSet, sTypeParams, sConstrainedTypeParams, whereConstraints, _, _, _ := GenTypeParameters(c.typeParams);
       var typeParams := R.TypeParam.ToStringMultiple(sTypeParams, R.IND + R.IND);
       var constrainedTypeParams := R.TypeParam.ToStringMultiple(sConstrainedTypeParams, R.IND + R.IND);
 
       var underlyingType := GenType(c.base, false, false);
-      s := R.Struct(
-        [
-          R.RawAttribute("#[derive(Clone, PartialEq)]"),
-          R.RawAttribute("#[repr(transparent)]")
-        ],
-        escapeIdent(c.name),
-        sTypeParams,
-        R.NamelessFormals([R.RawType("pub " + underlyingType)])
-      ).ToString(R.IND) + "\n";
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::dafny_runtime::DafnyErasable"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        "",
-        [R.RawImplMember("type Erased = " + underlyingType + ";")]
-      ).ToString(IND) + "\n";
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::dafny_runtime::DafnyUnerasable<" + underlyingType + ">"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        "", []).ToString(IND) + "\n";
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::dafny_runtime::DafnyUnerasable<" + escapeIdent(c.name) + typeParams + ">"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        "", []).ToString(IND) + "\n";
+      s := [R.StructDecl(
+              R.Struct(
+                [
+                  R.RawAttribute("#[derive(Clone, PartialEq)]"),
+                  R.RawAttribute("#[repr(transparent)]")
+                ],
+                escapeIdent(c.name),
+                sTypeParams,
+                R.NamelessFormals([R.RawType("pub " + underlyingType)])
+              ))];
+      s := s +
+      [R.ImplDecl(R.ImplFor(
+                    sConstrainedTypeParams,
+                    R.RawType("::dafny_runtime::DafnyErasable"),
+                    R.RawType(escapeIdent(c.name) + typeParams),
+                    "",
+                    [R.RawImplMember("type Erased = " + underlyingType + ";")]
+                  ))];
+      s := s +
+      [R.ImplDecl(
+         R.ImplFor(
+           sConstrainedTypeParams,
+           R.RawType("::dafny_runtime::DafnyUnerasable<" + underlyingType + ">"),
+           R.RawType(escapeIdent(c.name) + typeParams),
+           "", []))];
+      s := s +
+      [R.ImplDecl(
+         R.ImplFor(
+           sConstrainedTypeParams,
+           R.RawType("::dafny_runtime::DafnyUnerasable<" + escapeIdent(c.name) + typeParams + ">"),
+           R.RawType(escapeIdent(c.name) + typeParams),
+           "", []))];
 
       var fnBody := "";
 
@@ -669,39 +727,44 @@ module {:extern "DCOMP"} DCOMP {
           R.PRIV,
           R.Fn(
             "default", [], [], Some(R.SelfOwned),
-            R.RawExpr(fnBody)
+            "",
+            Some(R.RawExpr(fnBody))
           ));
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::std::default::Default"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        whereConstraints,
-        [body]).ToString(IND) + "\n";
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::dafny_runtime::DafnyPrint"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        "",
-        [R.FnDecl(R.PRIV,
-                  R.Fn("fmt_print", [],
-                       [R.Formal.self, R.Formal("_formatter", R.RawType("&mut ::std::fmt::Formatter")), R.Formal("in_seq", R.RawType("bool"))],
-                       Some(R.RawType("::std::fmt::Result")),
-                       R.RawExpr("::dafny_runtime::DafnyPrint::fmt_print(&self.0, _formatter, in_seq)")
-                  ))]).ToString(IND) + "\n";
-      s := s + IND +
-      R.ImplFor(
-        sConstrainedTypeParams,
-        R.RawType("::std::ops::Deref"),
-        R.RawType(escapeIdent(c.name) + typeParams),
-        "",
-        [R.RawImplMember("type Target = " + underlyingType + ";"),
-         R.FnDecl(
-           R.PRIV,
-           R.Fn("deref", [],
-                [R.Formal.self], Some(R.RawType("&Self::Target")),
-                R.RawExpr("&self.0")))]).ToString(IND) + "\n";
+      s := s + [
+        R.ImplDecl(
+          R.ImplFor(
+            sConstrainedTypeParams,
+            R.RawType("::std::default::Default"),
+            R.RawType(escapeIdent(c.name) + typeParams),
+            whereConstraints,
+            [body]))];
+      s := s + [
+        R.ImplDecl(R.ImplFor(
+                     sConstrainedTypeParams,
+                     R.RawType("::dafny_runtime::DafnyPrint"),
+                     R.RawType(escapeIdent(c.name) + typeParams),
+                     "",
+                     [R.FnDecl(R.PRIV,
+                               R.Fn("fmt_print", [],
+                                    [R.Formal.self, R.Formal("_formatter", R.RawType("&mut ::std::fmt::Formatter")), R.Formal("in_seq", R.RawType("bool"))],
+                                    Some(R.RawType("::std::fmt::Result")),
+                                    "",
+                                    Some(R.RawExpr("::dafny_runtime::DafnyPrint::fmt_print(&self.0, _formatter, in_seq)"))
+                               ))]))];
+      s := s + [
+        R.ImplDecl(
+          R.ImplFor(
+            sConstrainedTypeParams,
+            R.RawType("::std::ops::Deref"),
+            R.RawType(escapeIdent(c.name) + typeParams),
+            "",
+            [R.RawImplMember("type Target = " + underlyingType + ";"),
+             R.FnDecl(
+               R.PRIV,
+               R.Fn("deref", [],
+                    [R.Formal.self], Some(R.RawType("&Self::Target")),
+                    "",
+                    Some(R.RawExpr("&self.0"))))]))];
     }
 
     static method GenDatatype(c: Datatype) returns (s: seq<R.ModDecl>) {
@@ -732,7 +795,7 @@ module {:extern "DCOMP"} DCOMP {
 
       var selfPath := [Ident.Ident(c.name)];
       var implBodyRaw, traitBodies := GenClassImplBody(c.body, false, Type.Path([], [], ResolvedType.Datatype(selfPath)), typeParamsSet);
-      var implBody: seq<R.ImplMember> := [R.RawImplMember(implBodyRaw)];
+      var implBody: seq<R.ImplMember> := implBodyRaw;
       i := 0;
       var emittedFields: set<string> := {};
       while i < |c.ctors| {
@@ -798,7 +861,8 @@ module {:extern "DCOMP"} DCOMP {
                 R.Fn(
                   escapeIdent(formal.name),
                   [], [R.Formal.self], Some(R.RawType("&" + formalType )),
-                  methodBody
+                  "",
+                  Some(methodBody)
                 ))];
           }
           j := j + 1;
@@ -858,7 +922,7 @@ module {:extern "DCOMP"} DCOMP {
         var ctorMatch := escapeIdent(ctor.name) + " { ";
 
         var modulePrefix := if c.enclosingModule.id == "_module" then "" else c.enclosingModule.id + ".";
-        var printRhs := 
+        var printRhs :=
           R.RawExpr("write!(_formatter, \"" + modulePrefix + c.name + "." + escapeIdent(ctor.name) + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
 
         var j := 0;
@@ -910,7 +974,8 @@ module {:extern "DCOMP"} DCOMP {
                  "fmt_print", [],
                  [R.Formal.self, R.Formal("_formatter", R.RawType("&mut ::std::fmt::Formatter")), R.Formal("_in_seq", R.RawType("bool"))],
                  Some(R.RawType("std::fmt::Result")),
-                 printImplBody))]
+                 "",
+                 Some(printImplBody)))]
           ))];
 
       var defaultImpl := [];
@@ -935,10 +1000,11 @@ module {:extern "DCOMP"} DCOMP {
               [R.FnDecl(
                  R.PRIV,
                  R.Fn("default", [], [], Some(R.SelfOwned),
-                   R.StructBuild(
-                    structName,
-                    structAssignments
-                   ))
+                      "",
+                      Some(R.StructBuild(
+                             structName,
+                             structAssignments
+                           )))
                )]
             ))];
       }
@@ -1096,8 +1162,10 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenClassImplBody(body: seq<ClassItem>, forTrait: bool, enclosingType: Type, enclosingTypeParams: set<Type>) returns (s: string, traitBodies: map<seq<Ident>, string>) {
-      s := "";
+    static method GenClassImplBody(body: seq<ClassItem>, forTrait: bool, enclosingType: Type, enclosingTypeParams: set<Type>)
+      returns (s: seq<R.ImplMember>, traitBodies: map<seq<Ident>, seq<R.ImplMember>>)
+    {
+      s := [];
       traitBodies := map[];
 
       var i := 0;
@@ -1106,54 +1174,40 @@ module {:extern "DCOMP"} DCOMP {
           case Method(m) => {
             match m.overridingPath {
               case Some(p) => {
-                var existing := "";
+                var existing: seq<R.ImplMember> := [];
                 if p in traitBodies {
                   existing := traitBodies[p];
                 }
 
-                if |existing| > 0 {
-                  existing := existing + "\n";
-                }
-
                 var genMethod := GenMethod(m, true, enclosingType, enclosingTypeParams);
-                existing := existing + genMethod;
+                existing := existing + [genMethod];
 
                 traitBodies := traitBodies + map[p := existing];
               }
               case None => {
                 var generated := GenMethod(m, forTrait, enclosingType, enclosingTypeParams);
-                s := s + generated;
+                s := s + [generated];
               }
             }
           }
         }
-
-        if |s| > 0 {
-          s := s + "\n";
-        }
-
         i := i + 1;
       }
     }
 
-    static method GenParams(params: seq<Formal>) returns (s: string) {
-      s := "";
+    static method GenParams(params: seq<Formal>) returns (s: seq<R.Formal>) {
+      s := [];
       var i := 0;
       while i < |params| {
         var param := params[i];
         var paramType := GenType(param.typ, false, false);
-        s := s + escapeIdent(param.name) + ": &" + paramType;
-
-        if i < |params| - 1 {
-          s := s + ", ";
-        }
-
+        s := s + [R.Formal(escapeIdent(param.name), R.RawType(" &" + paramType))];
         i := i + 1;
       }
     }
 
-    static method GenMethod(m: Method, forTrait: bool, enclosingType: Type, enclosingTypeParams: set<Type>) returns (s: string) {
-      var params := GenParams(m.params);
+    static method GenMethod(m: Method, forTrait: bool, enclosingType: Type, enclosingTypeParams: set<Type>) returns (s: R.ImplMember) {
+      var params: seq<R.Formal> := GenParams(m.params);
       var paramNames := [];
       var paramI := 0;
       while paramI < |m.params| {
@@ -1163,10 +1217,10 @@ module {:extern "DCOMP"} DCOMP {
 
       if (!m.isStatic) {
         if (forTrait) {
-          params := "&self" + ", " + params;
+          params := [R.Formal.self] + params;
         } else {
           var enclosingTypeString := GenType(enclosingType, false, false);
-          params := "self: &" + enclosingTypeString + ", " + params;
+          params := [R.Formal("self", R.RawType("&" + enclosingTypeString))] + params;
         }
       }
 
@@ -1188,11 +1242,8 @@ module {:extern "DCOMP"} DCOMP {
         retType := retType + ")";
       }
 
-      if forTrait {
-        s := "fn " + escapeIdent(m.name);
-      } else {
-        s := "pub fn " + escapeIdent(m.name);
-      }
+      var visibility := if forTrait then R.PUB else R.PRIV;
+      var fnName := escapeIdent(m.name);
 
       var typeParamsFiltered := [];
       var typeParamI := 0;
@@ -1207,28 +1258,28 @@ module {:extern "DCOMP"} DCOMP {
 
       var whereClauses := "";
 
+      var typeParams: seq<R.TypeParam> := [];
+
       if (|typeParamsFiltered| > 0) {
-        s := s + "<";
         whereClauses := whereClauses + " where ";
 
         var i := 0;
         while i < |typeParamsFiltered| {
           if i > 0 {
-            s := s + ", ";
             whereClauses := whereClauses + ", ";
           }
 
           var typeString := GenType(typeParamsFiltered[i], false, false);
-          s := s + typeString + ": ::dafny_runtime::DafnyErasable + ::dafny_runtime::DafnyUnerasable<" + typeString + "> + Clone + ::dafny_runtime::DafnyPrint + ::std::default::Default + 'static";
+          typeParams := typeParams + [
+            R.RawTypeParam(typeString + ": ::dafny_runtime::DafnyErasable + ::dafny_runtime::DafnyUnerasable<" + typeString + "> + Clone + ::dafny_runtime::DafnyPrint + ::std::default::Default + 'static")
+          ];
           whereClauses := whereClauses + "<" + typeString + " as ::dafny_runtime::DafnyErasable>::Erased: ::std::cmp::PartialEq";
 
           i := i + 1;
         }
-
-        s := s + ">";
       }
 
-      s := s + "(" + params + ") -> " + retType + whereClauses;
+      var fBody: Option<R.Expr>;
 
       if m.hasBody {
         var earlyReturn := "return;";
@@ -1253,10 +1304,21 @@ module {:extern "DCOMP"} DCOMP {
 
         var body, _ := GenStmts(m.body, if m.isStatic then None else Some("self"), paramNames, true, earlyReturn);
 
-        s := s + " {\n" + body + "\n}\n";
+        fBody := Some(R.RawExpr(body));
       } else {
-        s := s + ";\n";
+        fBody := None;
       }
+      s := R.FnDecl(
+        visibility,
+        R.Fn(
+          fnName,
+          typeParams,
+          params,
+          Some(R.RawType(retType)),
+          whereClauses,
+          fBody
+        )
+      );
     }
 
     static method GenStmts(stmts: seq<Statement>, selfIdent: Option<string>, params: seq<string>, isLast: bool, earlyReturn: string) returns (generated: string, readIdents: set<string>) {
@@ -2496,7 +2558,7 @@ module {:extern "DCOMP"} DCOMP {
 
             var typStr := GenType(params[i].typ, false, true);
 
-            paramsString := paramsString + params[i].name + ": &" + typStr;
+            paramsString := paramsString + escapeIdent(params[i].name) + ": &" + typStr;
             paramTypes := paramTypes + "&" + typStr;
             i := i + 1;
           }

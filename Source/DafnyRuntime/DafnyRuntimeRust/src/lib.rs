@@ -32,6 +32,98 @@ pub type SizeT = usize;
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
 
 #[allow(dead_code)]
+mod dafny_runtime_conversions {
+    use num::BigInt;
+
+    use crate::Sequence;
+    use crate::Map;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    use std::convert;
+    use std::rc::Rc;
+    use std::hash::Hash;
+    pub fn dafny_int_to_bigint(i: &Rc<BigInt>) -> BigInt {
+        i.as_ref().clone()
+    }
+    pub fn bigint_to_dafny_int(i: &BigInt) -> Rc<BigInt> {
+        Rc::new(i.clone())
+    }
+
+    pub fn dafny_sequence_to_vec<T, X>(s: &Sequence<T>, elem_converter: fn(&T) -> X) -> Vec<X>
+      where T: Clone
+    {
+        let mut array: Vec<T> = Vec::with_capacity(s.cardinality());
+        Sequence::<T>::append_recursive(&mut array, s);
+        array.iter().map(|x| elem_converter(x)).collect()
+    }
+
+    // Used for external conversions
+    pub fn vec_to_dafny_sequence<T, X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>>
+      where T: Clone
+    {
+        let mut result: Vec<T> = Vec::with_capacity(array.len());
+        for elem in array.iter() {
+            result.push(elem_converter(elem));
+        }
+        Sequence::<T>::new_array_sequence(&Rc::new(result))
+    }
+    
+    fn dafny_map_to_hashmap<K, V, K2, V2>(m: &Rc<Map<K, V>>, converter_k: fn(&K)->K2, converter_v: fn(&V)->V2) -> HashMap<K2, V2>
+      where
+          K: Eq + Clone + Hash, V: Clone,
+          K2: Eq + Hash, V2: Clone
+    {
+        m.to_hashmap_owned(converter_k, converter_v)
+    }
+
+    fn hashmap_to_dafny_map<K2, V2, K, V>(map: &HashMap<K2, V2>, converter_k: fn(&K2)->K, converter_v: fn(&V2)->V)
+        -> Rc<Map<K, V>>
+      where
+        K: Eq + Clone + Hash, V: Clone,
+        K2: Eq + Hash, V2: Clone
+    {
+        let mut result: Vec<(K, V)> = Vec::new();
+        for (k, v) in map.iter() {
+            result.push((converter_k(k), converter_v(v)));
+        }
+        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
+        Rc::new(Map {
+            data: s,
+            cache: RefCell::new(None)
+        })
+    }
+
+    // --unicode-chars:true
+    pub mod unicode_chars_true {
+        use crate::Sequence;
+        use std::rc::Rc;
+
+        use super::unicode_chars_false;
+        pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
+            Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
+        }
+        pub fn dafny_string_to_string(s: &Rc<Sequence<char>>) -> String {
+            let characters = s.to_array();
+            characters.iter().collect::<String>()
+        }
+    }
+    
+    // --unicode-chars:false
+    pub mod unicode_chars_false {
+        use crate::Sequence;
+        use std::rc::Rc;
+        pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<u16>> {
+            Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
+        }
+        pub fn dafny_string_to_string(s: &Rc<Sequence<u16>>) -> String {
+            let characters = s.to_array();
+            String::from_utf16_lossy(&characters)
+        }
+    }
+    
+}
+
+#[allow(dead_code)]
 enum Sequence<T>
   where T: Clone,
 {
@@ -54,30 +146,6 @@ enum Sequence<T>
         node_count: usize,
         length: SizeT,
         boxed: RefCell<Rc<Sequence<T>>>
-    }
-}
-
-#[allow(dead_code)]
-// --unicode-chars:true (codepoints)
-impl Sequence<char> {
-    fn from_string(s: &str) -> Rc<Sequence<char>> {
-        Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
-    }
-    fn to_string(&self) -> String {
-        let characters = self.to_array();
-        characters.iter().collect::<String>()
-    }
-}
-
-#[allow(dead_code)]
-// --unicode-chars:false
-impl Sequence<u16> {
-    fn from_string(s: &str) -> Rc<Sequence<u16>> {
-        Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
-    }
-    fn to_string(&self) -> String {
-        let characters = self.to_array();
-        String::from_utf16_lossy(&characters)
     }
 }
 
@@ -123,20 +191,6 @@ where T: Clone {
             length: underlying.cardinality(),
             boxed: RefCell::new(Rc::clone(underlying)),
         })
-    }
-
-    // Used for external conversions
-    fn to_array_owned<X>(&self, elem_converter: fn(&T) -> X) -> Vec<X> {
-        let mut array: Vec<T> = Vec::with_capacity(self.cardinality());
-        Sequence::<T>::append_recursive(&mut array, self);
-        array.iter().map(|x| elem_converter(x)).collect()
-    }
-    fn from_array_owned<X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>> {
-        let mut result: Vec<T> = Vec::with_capacity(array.len());
-        for elem in array.iter() {
-            result.push(elem_converter(elem));
-        }
-        Sequence::<T>::new_array_sequence(&Rc::new(result))
     }
 
     fn to_array(&self) -> Rc<Vec<T>> {
@@ -246,18 +300,6 @@ impl <K, V> Map<K, V>
             result.insert(converter_k(k), converter_v(v));
         }
         result
-    }
-    fn from_hashmap_owned<K2, V2>(map: &HashMap<K2, V2>, converter_k: fn(&K2)->K, converter_v: fn(&V2)->V)
-        -> Rc<Map<K, V>> {
-        let mut result: Vec<(K, V)> = Vec::new();
-        for (k, v) in map.iter() {
-            result.push((converter_k(k), converter_v(v)));
-        }
-        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
-        Rc::new(Map {
-            data: s,
-            cache: RefCell::new(None)
-        })
     }
     fn compute_hashmap(&self) {
         let mut cache = self.cache.borrow_mut();
