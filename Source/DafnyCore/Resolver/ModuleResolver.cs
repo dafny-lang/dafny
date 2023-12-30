@@ -2146,11 +2146,13 @@ namespace Microsoft.Dafny {
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
       List<ComprehensionExpr.BoundedPool> bounds;
+      bool constraintConsistsSolelyOfRangeConstraints;
       if (ddVar == null) {
         // There are no bounds at all
         bounds = new List<ComprehensionExpr.BoundedPool>();
+        constraintConsistsSolelyOfRangeConstraints = true;
       } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
       }
 
       // Returns null if the argument is a constrained newtype (recursively)
