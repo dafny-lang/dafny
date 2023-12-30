@@ -2692,15 +2692,13 @@ namespace Microsoft.Dafny {
       BigInteger? highest = null;
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool bnd) {
-          if (bnd.LowerBound != null) {
-            BigInteger? lower = GetConst(bnd.LowerBound);
-            if (lower != null && (lowest == null || lower < lowest)) {
+          if (bnd.LowerBound != null && ConstantFolder.TryFoldInteger(bnd.LowerBound) is not null and var lower) {
+            if (lowest == null || lower < lowest) {
               lowest = lower;
             }
           }
-          if (bnd.UpperBound != null) {
-            BigInteger? upper = GetConst(bnd.UpperBound);
-            if (upper != null && (highest == null || upper > highest)) {
+          if (bnd.UpperBound != null && ConstantFolder.TryFoldInteger(bnd.UpperBound) is not null and var upper) {
+            if (highest == null || upper > highest) {
               highest = upper;
             }
           }
