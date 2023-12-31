@@ -17,8 +17,9 @@ public static class BuildCommand {
                Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.Compile = true;
+      options.CompilerExecutable = context.ParseResult.GetValueForOption(CommonOptionBag.TargetExecPath);
       options.RunAfterCompile = false;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       return CompilerDriver.Run(options);

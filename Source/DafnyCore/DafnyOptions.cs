@@ -255,6 +255,7 @@ namespace Microsoft.Dafny {
     public bool FormatCheck = false;
 
     public string CompilerName;
+    public string CompilerExecutable = null;
     public IExecutableBackend Backend;
     public bool Verbose = true;
     public bool EnforcePrintEffects = false;

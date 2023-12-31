@@ -151,10 +151,17 @@ js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
 cpp - Compile to C++.
+rs - Compile to Rust.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
     ArgumentHelpName = "language",
+  };
+
+  public static readonly Option<string> TargetExecPath = new(new[] { "--target-executable", "-T" }, @"
+Executable to use for designated target.".TrimStart()
+  ) {
+    ArgumentHelpName = "executable",
   };
 
   public static readonly Option<bool> UnicodeCharacters = new("--unicode-char", () => true,
@@ -323,6 +330,8 @@ Note that the C++ backend has various limitations (see
 Docs/Compilation/Cpp.md). This includes lack of support for
 BigIntegers (aka int), most higher order functions, and advanced
 features like traits or co-inductive types.".TrimStart(), "cs");
+
+    DafnyOptions.RegisterLegacyUi(TargetExecPath, DafnyOptions.ParseString, "Compilation options");
 
     DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
 0 - Include all non-ghost datatype constructors in the compiled code
@@ -510,6 +519,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PluginOption,
       Prelude,
       Target,
+      TargetExecPath,
       Verbose,
       WarnDeprecation,
       FormatPrint,

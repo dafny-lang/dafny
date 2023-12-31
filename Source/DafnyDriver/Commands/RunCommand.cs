@@ -57,6 +57,7 @@ public static class RunCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
       options.Compile = true;
+      options.CompilerExecutable = context.ParseResult.GetValueForOption(CommonOptionBag.TargetExecPath);
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
       return CompilerDriver.Run(options);
