@@ -1,19 +1,19 @@
+git-issue-697j.dfy(23,10): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(27,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(28,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(29,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(32,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(33,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(37,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(38,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(39,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(41,8): Warning: /!\ No terms found to trigger on.
+git-issue-697j.dfy(42,8): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 6 verified, 0 errors
 3
 5 2 4
 true false
 5 2 4
 true false
 3 3 2 1
-3
-3 3 3 3
-5 5 5
-3 3 3 3
-5 5 5
-3 3 3 3
-5 5 5
-3 3 3 3
-5 5 5
-4 4 3 3 3 3
-9
-4 4 4
-7 9
