@@ -6,6 +6,13 @@ git-issue-276a.dfy(54,10): Info: newtype EmptyFitsIntoUint8 resolves as {:native
 git-issue-276a.dfy(58,10): Info: newtype int8 resolves as {:nativeType "sbyte"} (detected range: -128 .. 128)
 git-issue-276a.dfy(61,10): Info: newtype AnotherInt8 resolves as {:nativeType "sbyte"} (detected range: -128 .. 128)
 git-issue-276a.dfy(64,10): Info: newtype Int16 resolves as {:nativeType "short"} (detected range: -128 .. 1234)
+git-issue-276a.dfy(69,10): Info: newtype Just7 resolves as {:nativeType "byte"} (detected range: 7 .. 8)
+git-issue-276a.dfy(70,10): Info: newtype Just8 resolves as {:nativeType "byte"} (detected range: 8 .. 9)
+git-issue-276a.dfy(71,10): Info: newtype Also8 resolves as {:nativeType "sbyte"} (detected range: 8 .. 9)
+git-issue-276a.dfy(72,10): Info: newtype Small resolves as {:nativeType "sbyte"} (detected range: -2 .. 100)
+git-issue-276a.dfy(73,10): Info: newtype Only8ButDoesNotDetectCompleteRange resolves as {:nativeType "byte"} (detected range: 8 .. 9)
+git-issue-276a.dfy(74,10): Info: newtype Empty resolves as {:nativeType "byte"} (detected range: 8 .. 9)
+git-issue-276a.dfy(76,10): Info: newtype ByteWithKnownRange resolves as {:nativeType "byte"} (detected range: 2 .. 6)
 git-issue-276a.dfy(5,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(5,26): Related location
 git-issue-276a.dfy(5,29): Error: possible division by zero
@@ -44,4 +51,4 @@ git-issue-276a.dfy(30,26): Related location
 git-issue-276a.dfy(30,35): Error: index out of range
 git-issue-276a.dfy(43,18): Error: index out of range
 
-Dafny program verifier finished with 8 verified, 28 errors
+Dafny program verifier finished with 15 verified, 28 errors

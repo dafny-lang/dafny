@@ -2122,20 +2122,24 @@ namespace Microsoft.Dafny {
       BigInteger? lowest = null;
       BigInteger? highest = null;
       foreach (var bound in bounds) {
-        if (bound is ComprehensionExpr.IntBoundedPool) {
-          var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-          if (bnd.LowerBound != null) {
-            BigInteger? lower = ConstantFolder.TryFoldInteger(bnd.LowerBound);
-            if (lower != null && (lowest == null || lower < lowest)) {
-              lowest = lower;
-            }
+        void UpdateBounds(BigInteger? lo, BigInteger? hi) {
+          if (lo != null && (lowest == null || lo < lowest)) {
+            lowest = lo;
           }
-          if (bnd.UpperBound != null) {
-            BigInteger? upper = ConstantFolder.TryFoldInteger(bnd.UpperBound);
-            if (upper != null && (highest == null || upper > highest)) {
-              highest = upper;
-            }
+          if (hi != null && (highest == null || hi > highest)) {
+            highest = hi;
           }
+        }
+
+        if (bound is ComprehensionExpr.IntBoundedPool range) {
+          if (range.LowerBound != null && ConstantFolder.TryFoldInteger(range.LowerBound) is not null and var lo) {
+            UpdateBounds(lo, null);
+          }
+          if (range.UpperBound != null && ConstantFolder.TryFoldInteger(range.UpperBound) is not null and var hi) {
+            UpdateBounds(null, hi);
+          }
+        } else if (bound is ComprehensionExpr.ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
+          UpdateBounds(value, value + 1);
         }
       }
 

@@ -64,3 +64,14 @@ module MoreTests {
   newtype Int16 = i: int |
     -128 <= i < if true ==> bv == 204 then 128 else 1234
 }
+
+module NotJustInequalityConstraints {
+  newtype Just7 = x: int | 0 <= x < 256 && x == 7 witness 7 // 7..8
+  newtype Just8 = x: int | x == 8 && x == 8 witness 8 // 8..9
+  newtype Also8 = x: int | 8 == x && x < 10 && x < 100 && -2 <= x witness 8 // 8..9
+  newtype Small = x: int | x < 10 && x < 100 && -2 <= x witness 8 // -2..10
+  newtype Only8ButDoesNotDetectCompleteRange = x: int | x == 8 && true witness 8 // 8..9
+  newtype Empty = x: int | x == 8 && 0 <= x < 256 && x == 7 witness * // 8..9
+  newtype Byte = x: int | x in {2, 3, 5} witness 3
+  newtype ByteWithKnownRange = x: int | x in {2, 3, 5} && 2 <= x <= 5 witness 3 // 2..6
+}
