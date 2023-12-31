@@ -108,7 +108,7 @@ public class GoBackend : ExecutableBackend {
     goArgs.Add(targetFilename);
     goArgs.AddRange(Options.MainArgs);
 
-    var psi = PrepareProcessStartInfo("go", goArgs);
+    var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? "go", goArgs);
 
     psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
     // Dafny compiles to the old Go package system, whereas Go has moved on to a module

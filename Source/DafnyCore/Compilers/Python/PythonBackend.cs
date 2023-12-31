@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Compilers;
@@ -32,6 +33,16 @@ public class PythonBackend : ExecutableBackend {
   }
 
   private static readonly Regex ModuleLine = new(@"^\s*#\s*Module:\s+([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)\s*$");
+
+  private static readonly Dictionary<OSPlatform, string> PlatformDefaults = new() {
+    {OSPlatform.Linux, "python3"},
+    {OSPlatform.Windows, "python"},
+    {OSPlatform.FreeBSD, "python3"},
+    {OSPlatform.OSX, "python3"},
+  };
+  private static string DefaultPythonCommand {
+    get => PlatformDefaults.Single(kv => RuntimeInformation.IsOSPlatform(kv.Key)).Value;
+  }
 
   private static string FindModuleName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
@@ -88,7 +99,7 @@ public class PythonBackend : ExecutableBackend {
       }
     }
     if (!runAfterCompile) {
-      var psi = PrepareProcessStartInfo("python3");
+      var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
       return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
     }
@@ -99,7 +110,7 @@ public class PythonBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-    var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
     return 0 == RunProcess(psi, outputWriter, errorWriter);
   }

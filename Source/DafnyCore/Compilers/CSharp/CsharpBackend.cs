@@ -155,7 +155,7 @@ public class CsharpBackend : ExecutableBackend {
     if (crx.CompiledAssembly == null) {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
-    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
+    var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? "dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter, errorWriter) == 0;
   }
 

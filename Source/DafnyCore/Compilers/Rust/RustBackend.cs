@@ -116,7 +116,7 @@ public class RustBackend : DafnyExecutableBackend {
       args.Add(Path.GetFileNameWithoutExtension(targetFilename));
     }
 
-    var psi = PrepareProcessStartInfo("cargo", args);
+    var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? "cargo", args);
     psi.WorkingDirectory = targetDirectory;
     return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files.");
   }

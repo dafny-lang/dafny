@@ -24,7 +24,7 @@ public class CppCompilerBackend : ExecutableBackend {
     var codebase = Path.GetDirectoryName(assemblyLocation);
     Contract.Assert(codebase != null);
     compilationResult = null;
-    var psi = PrepareProcessStartInfo("g++", new List<string> {
+    var psi = PrepareProcessStartInfo(Options.CompilerExecutable ?? "g++", new List<string> {
       "-Wall",
       "-Wextra",
       "-Wpedantic",

@@ -53,7 +53,7 @@ public class JavaScriptBackend : ExecutableBackend {
     TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-    var psi = new ProcessStartInfo("node", "") {
+    var psi = new ProcessStartInfo(Options.CompilerExecutable ?? "node", "") {
       RedirectStandardInput = true,
       RedirectStandardOutput = true,
       RedirectStandardError = true,
