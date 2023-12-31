@@ -2117,17 +2117,15 @@ namespace Microsoft.Dafny {
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
-      // FIXME - should first go through the bounds to find the most constraining values
-      // then check those values against the possible types. Note that also presumes the types are in order.
-      BigInteger? lowest = null;
-      BigInteger? highest = null;
+      BigInteger? lowBound = null;
+      BigInteger? highBound = null;
       foreach (var bound in bounds) {
         void UpdateBounds(BigInteger? lo, BigInteger? hi) {
-          if (lo != null && (lowest == null || lo < lowest)) {
-            lowest = lo;
+          if (lo != null && (lowBound == null || lowBound < lo)) {
+            lowBound = lo; // we found a more restrictive lower bound
           }
-          if (hi != null && (highest == null || hi > highest)) {
-            highest = hi;
+          if (hi != null && (highBound == null || hi < highBound)) {
+            highBound = hi; // we found a more restrictive lower bound
           }
         }
 
@@ -2143,10 +2141,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var emptyRange = lowest != null && highest != null && highest <= lowest;
+      var emptyRange = lowBound != null && highBound != null && highBound <= lowBound;
       foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = emptyRange || (lowest != null && nativeT.LowerBound <= lowest);
-        bool upperOk = emptyRange || (highest != null && nativeT.UpperBound >= highest);
+        bool lowerOk = emptyRange || (lowBound != null && nativeT.LowerBound <= lowBound);
+        bool upperOk = emptyRange || (highBound != null && nativeT.UpperBound >= highBound);
         if (lowerOk && upperOk) {
           bigEnoughNativeTypes.Add(nativeT);
         } else if (nativeTypeChoices != null) {
@@ -2172,7 +2170,7 @@ namespace Microsoft.Dafny {
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
         } else {
-          var detectedRange = emptyRange ? "empty" : $"{lowest} .. {highest}";
+          var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
           reporter.Info(MessageSource.Resolver, dd.tok,
             $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
