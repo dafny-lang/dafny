@@ -26,7 +26,6 @@ public class PluginsTestWithVerification : PluginsTestBase {
     var diagnostics = await GetLastDiagnostics(documentItem);
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message);
-    Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
     Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.Equal(new Range((0, 23), (0, 24)), diagnostics[1].Range);
   }

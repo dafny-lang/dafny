@@ -158,7 +158,7 @@ public static class DafnyNewCli {
 
     return true;
   }
-  
+
   public static Task<int> Execute(IConsole console, string[] arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
@@ -175,7 +175,7 @@ public static class DafnyNewCli {
 
     return Parser.InvokeAsync(arguments, console);
   }
-  
+
   private static readonly MethodInfo GetValueForOptionMethod;
   private static readonly System.CommandLine.Parsing.Parser Parser;
 

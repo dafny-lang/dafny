@@ -82,7 +82,7 @@ module Consumer {
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Equal("Project references no files", diagnostics.First().Message);
+    Assert.Equal("no Dafny source files were specified as input", diagnostics.First().Message);
   }
 
   [Fact]
