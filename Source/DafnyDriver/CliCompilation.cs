@@ -53,10 +53,12 @@ public class CliCompilation {
 
   public void Start() {
     if (options.DafnyProject == null) {
-      var uri = options.CliRootSourceUris.FirstOrDefault() ?? new Uri(Directory.GetCurrentDirectory());
+      var firstFile = options.CliRootSourceUris.FirstOrDefault();
+      var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
       options.DafnyProject = new DafnyProject {
         Includes = Array.Empty<string>(),
-        Uri = uri
+        Uri = uri,
+        ImplicitFromCli = true
       };
     }
 
@@ -87,9 +89,7 @@ public class CliCompilation {
         DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
 
         if (errorCount > 0) {
-          var message = string.Format("{0} resolution/type errors detected in {1}", errorCount,
-            finishedResolution.Result.ResolvedProgram.Name);
-          options.OutputWriter.WriteLine(message);
+          options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected");
         }
       }
 

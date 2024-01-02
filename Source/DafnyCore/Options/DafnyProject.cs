@@ -33,8 +33,9 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
+  public bool ImplicitFromCli;
 
-  public IToken StartingToken => new Token {
+  public IToken StartingToken => ImplicitFromCli ? Token.Cli : new Token {
     Uri = Uri,
     line = 1,
     col = 1

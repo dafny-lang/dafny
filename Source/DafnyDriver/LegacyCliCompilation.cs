@@ -48,7 +48,8 @@ namespace Microsoft.Dafny {
         var uri = options.CliRootSourceUris.FirstOrDefault() ?? new Uri(Directory.GetCurrentDirectory());
         options.DafnyProject = new DafnyProject {
           Includes = Array.Empty<string>(),
-          Uri = uri
+          Uri = uri,
+          ImplicitFromCli = true
         };
       }
       options.RunningBoogieFromCommandLine = true;

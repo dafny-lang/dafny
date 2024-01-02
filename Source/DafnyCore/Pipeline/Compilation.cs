@@ -178,7 +178,8 @@ public class Compilation : IDisposable {
     }
 
     if (!result.Any()) {
-      errorReporter.Error(MessageSource.Project, CompilerErrors.ErrorId.None, Project.StartingToken, "No Dafny source files were specified as input.");
+      errorReporter.Error(MessageSource.Project, CompilerErrors.ErrorId.None, Project.StartingToken, 
+        "no Dafny source files were specified as input.");
     }
 
     return result;

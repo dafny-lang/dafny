@@ -1,1 +1,4 @@
-*** Error: No input files were specified in command-line. Command-line arguments: resolve
+CLI: Error: no Dafny source files were specified as input.
+1 resolution/type errors detected
+
+Dafny program verifier did not attempt verification
