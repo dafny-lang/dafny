@@ -77,7 +77,7 @@ public static class DafnyNewCli {
 
     return Parser.InvokeAsync(arguments, console);
   }
-  
+
   public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
   public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
 
@@ -205,8 +205,7 @@ public static class DafnyNewCli {
     return true;
   }
 
-  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors)
-  {
+  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors) {
     if (dafnyOptions.DafnyProject != null) {
       var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -135,8 +136,13 @@ public class Compilation : IDisposable {
         result.Add(file);
       } else {
         var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-        errorReporter.Error(MessageSource.Parser,Token.Cli, $"Command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).");
+        errorReporter.Error(MessageSource.Project, Token.Cli, $"Command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).");
+        return result;
       }
+    }
+    if (Options.UseStdin) {
+      var uri = new Uri("stdin:///");
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
@@ -163,10 +169,12 @@ public class Compilation : IDisposable {
       var projectDirectory = Path.GetDirectoryName(projectPath)!;
       var filesMessage = string.Join("\n", result.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
       if (filesMessage.Any()) {
-        errorReporter.Info(MessageSource.Parser, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
-      } else {
-        errorReporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, Project.StartingToken, "Project references no files");
+        errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
       }
+    }
+
+    if (!result.Any()) {
+      errorReporter.Error(MessageSource.Project, CompilerErrors.ErrorId.None, Project.StartingToken, "No Dafny source files were specified as input.");
     }
 
     return result;

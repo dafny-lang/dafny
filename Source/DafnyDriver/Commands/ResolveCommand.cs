@@ -1,3 +1,4 @@
+using System;
 using System.CommandLine;
 using DafnyDriver.Commands;
 
@@ -14,9 +15,12 @@ static class ResolveCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       var compilation = CliCompilation.Create(options);
       compilation.Start();
-      await compilation.Resolution;
+      try {
+        await compilation.Resolution;
+      } catch (OperationCanceledException) {
+      }
       await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
-      return compilation.ExitCode();
+      return compilation.ExitCode;
     });
     return result;
   }
