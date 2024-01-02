@@ -537,7 +537,7 @@ namespace IntegrationTests {
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = DafnyCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
+      var exitCode = DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
       return (exitCode, "", "");
     }
 
