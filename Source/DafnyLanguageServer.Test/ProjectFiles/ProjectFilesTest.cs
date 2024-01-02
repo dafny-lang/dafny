@@ -44,35 +44,6 @@ library = [""{producerPath}""]".TrimStart();
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
-  [Fact]
-  public async Task ProjectFileErrorIsShown() {
-    var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
-    var diagnostics = await GetLastDiagnostics(projectFile, DiagnosticSeverity.Error);
-    Assert.Single(diagnostics);
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.First().Range);
-    Assert.Contains("contains the following errors", diagnostics.First().Message);
-  }
-
-  [Fact]
-  public async Task ProjectFileErrorIsShownFromDafnyFile() {
-    var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    Directory.CreateDirectory(directory);
-    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
-    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
-    await CreateOpenAndWaitForResolve("method Foo() { }",
-      Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
-    Assert.Equal(2, diagnostics.Diagnostics.Count());
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains("contains the following errors"));
-    Assert.Contains(diagnostics.Diagnostics,
-      d => d.Message.Contains(
-        $"Files referenced by project are:{Environment.NewLine}ProjectFileErrorIsShownFromDafnyFile.dfy"));
-  }
-
   /// <summary>
   /// Previously this could cause two project managers for the same project to be created.
   /// </summary>

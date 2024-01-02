@@ -94,6 +94,7 @@ public class CliCompilation {
       }
 
     });
+    Compilation.Start();
   }
 
   public static CliCompilation Create(DafnyOptions options) {

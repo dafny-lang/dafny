@@ -61,23 +61,6 @@ public static class DafnyNewCli {
     Parser = builder.Build();
   }
 
-  public static Task<int> Execute(IConsole console, string[] arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
-    foreach (var symbol in AllSymbols) {
-      if (!allowHidden) {
-        symbol.IsHidden = false;
-      }
-
-      if (symbol is Option option) {
-        if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
-          option.AllowMultipleArgumentsPerToken = true;
-        }
-      }
-    }
-
-    return Parser.InvokeAsync(arguments, console);
-  }
-
   public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
   public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
 
@@ -175,7 +158,24 @@ public static class DafnyNewCli {
 
     return true;
   }
+  
+  public static Task<int> Execute(IConsole console, string[] arguments) {
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    foreach (var symbol in AllSymbols) {
+      if (!allowHidden) {
+        symbol.IsHidden = false;
+      }
 
+      if (symbol is Option option) {
+        if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+          option.AllowMultipleArgumentsPerToken = true;
+        }
+      }
+    }
+
+    return Parser.InvokeAsync(arguments, console);
+  }
+  
   private static readonly MethodInfo GetValueForOptionMethod;
   private static readonly System.CommandLine.Parsing.Parser Parser;
 

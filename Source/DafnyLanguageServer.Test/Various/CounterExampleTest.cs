@@ -1555,7 +1555,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       (await RequestCounterExamples(documentItem.Uri)).ToList();
     }
 
-    public CounterExampleTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
+    public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
 }
