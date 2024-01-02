@@ -5764,7 +5764,7 @@ namespace Microsoft.Dafny.Compilers {
       bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr,
       bool isReturning = false, bool elseReturnValue = false, bool isSubfiltering = false) {
 
-      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl and var declWithConstraint } udt ) {
+      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl and var declWithConstraint } udt) {
         if (declWithConstraint is SubsetTypeDecl or NewtypeDecl { NativeTypeRangeImpliesAllConstraints: false }) {
           // the type is a subset type or newtype with non-trivial constraints
 
