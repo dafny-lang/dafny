@@ -11,12 +11,13 @@ public static class DafnyCommands {
   public static Argument<List<FileInfo>> FilesArgument { get; }
   
   static DafnyCommands() {
-    string PrefixErrorMessage(string s) => $"The Dafny CLI uses a double-dash '--' as a prefix for specifying options. " +
-                                           $"To avoid confusion, the Dafny CLI does not except filenames starting with this prefix, such as {s}";
+    string PrefixErrorMessage(string file) =>
+      $"Command-line argument '{file}' is neither a recognized option nor a filename.";
+    
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
     FileArgument.AddValidator(r => {
       var path = r.GetValueOrDefault<string>();
-      if (path.StartsWith("--")) {
+      if (!File.Exists(path)) {
         r.ErrorMessage = PrefixErrorMessage(path);
       }
     });
