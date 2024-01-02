@@ -221,14 +221,18 @@ public class ExpectContracts : IRewriter {
   }
 
   /// <summary>
-  /// Adds wrappers for certain top-level declarations in the given program.
+  /// Adds wrappers for certain top-level declarations in the given
+  /// program and redirects callers to call those wrappers instead of
+  /// the original members.
+  ///
   /// This runs after resolution so that it has access to ghostness
-  /// information, attributes and call targets. Run on the entire program,
-  /// rather than each module individually, to avoid bad interaction with
-  /// the refinement transformer.
+  /// information, attributes and call targets. It runs on the entire
+  /// program, rather than each module individually, so that it can
+  /// generate all wrappers before redirecting calls.
   /// </summary>
   /// <param name="program">The program to generate wrappers for and in.</param>
-  internal override void PostResolve(Program program) {
+  public override void PostVerification(Program program) {
+    // Create wrappers
     foreach (var moduleDefinition in program.Modules()) {
 
       // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
@@ -251,9 +255,8 @@ public class ExpectContracts : IRewriter {
       }
       moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
     }
-  }
 
-  public override void PostVerification(Program program) {
+    // Put redirections in place
     foreach (var module in program.CompileModules) {
       foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
