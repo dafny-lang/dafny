@@ -5774,13 +5774,14 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         if (declWithConstraint.Var != null) {
-          var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), baseType) { Type = baseType };
-          var typeParameters = TypeParameter.SubstitutionMap(declWithConstraint.TypeArgs, userDefinedType.TypeArgs);
+          var typeMap = TypeParameter.SubstitutionMap(declWithConstraint.TypeArgs, userDefinedType.TypeArgs);
+          var instantiatedBaseType = baseType.Subst(typeMap);
+          var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), instantiatedBaseType) { Type = instantiatedBaseType };
           var subContract = new Substituter(null,
             new Dictionary<IVariable, Expression>() {
               {declWithConstraint.Var, theValue}
             },
-            typeParameters
+            typeMap
           );
           var constraintInContext = subContract.Substitute(declWithConstraint.Constraint);
           var wStmts = wr.Fork();
