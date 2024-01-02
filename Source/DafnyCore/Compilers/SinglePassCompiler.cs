@@ -5744,9 +5744,7 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            var elseLiteral = new LiteralExpr(tok, elseReturnValue) {
-              Type = Type.Bool
-            };
+            var elseLiteral = Expression.CreateBoolLiteral(tok, elseReturnValue);
             EmitExpr(elseLiteral, inLetExprBody, wr, wStmts);
           }
           wr = thenWriter;
