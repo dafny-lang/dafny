@@ -15,6 +15,7 @@ public class Program : TokenNode {
     Contract.Invariant(DefaultModule != null);
   }
 
+  public bool HasParseErrors { get; set; }
   public readonly string FullName;
 
   // Resolution essentially flattens the module hierarchy, for

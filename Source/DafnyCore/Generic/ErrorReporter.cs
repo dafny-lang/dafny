@@ -12,9 +12,11 @@ public abstract class ErrorReporter {
 
   public bool ErrorsOnly { get; set; }
 
+  [Obsolete("Only required for LegacyCliCompilation")]
   public bool HasErrors => ErrorCount > 0;
   public int ErrorCount => Count(ErrorLevel.Error);
-  public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
+
+  [Obsolete("Only required for LegacyCliCompilation")]
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
   public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {

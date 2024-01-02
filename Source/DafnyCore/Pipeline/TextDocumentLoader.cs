@@ -38,26 +38,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<ResolutionResult> ResolveAsync(CompilationInput input,
+    public async Task<ResolutionResult> ResolveAsync(Compilation compilation,
       Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(input, program, cancellationToken), cancellationToken);
+        async () => ResolveInternal(compilation, program, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
     }
 
-    private ResolutionResult ResolveInternal(CompilationInput input, Program program, CancellationToken cancellationToken) {
-
-      var errorReporter = (ObservableErrorReporter)program.Reporter;
-      if (errorReporter.HasErrors) {
+    private ResolutionResult ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
+      if (program.HasParseErrors) {
         throw new TaskCanceledException();
       }
 
-      symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
+      symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
 
       List<ICanVerify>? verifiables;
-      if (errorReporter.HasErrorsUntilResolver) {
+      if (compilation.HasErrors) {
         verifiables = null;
       } else {
         var symbols = SymbolExtensions.GetSymbolDescendants(program.DefaultModule);
@@ -68,6 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       return new ResolutionResult(
+        compilation.HasErrors,
         program,
         verifiables
       );

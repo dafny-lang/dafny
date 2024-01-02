@@ -31,34 +31,32 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private readonly ResolutionCache resolutionCache = new();
-    public void ResolveSymbols(DafnyProject project, Program program, CancellationToken cancellationToken) {
+    public void ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        RunDafnyResolver(project, program, cancellationToken);
+        RunDafnyResolver(compilation, program, cancellationToken);
       }
       finally {
         resolverMutex.Release();
       }
     }
 
-    private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
+    private void RunDafnyResolver(Compilation compilation, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = program.Options.Get(UseCaching)
           ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
           : new ProgramResolver(program);
         resolver.Resolve(cancellationToken);
-        int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
-        if (resolverErrors > 0) {
-          logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
-          project.Uri);
+        if (compilation.HasErrors) {
+          logger.LogDebug($"encountered errors while resolving {compilation.Project.Uri}");
         }
       }
       finally {
-        telemetryPublisher.PublishTime("Resolution", project.Uri.ToString(), DateTime.Now - beforeResolution);
+        telemetryPublisher.PublishTime("Resolution", compilation.Project.Uri.ToString(), DateTime.Now - beforeResolution);
       }
     }
   }

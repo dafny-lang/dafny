@@ -274,18 +274,13 @@ public record IdeState(
     var cancellationToken = CancellationToken.None; // TODO ?
     SymbolTable? symbolTable = null;
     try {
-      symbolTable = SymbolTable.CreateFrom(logger, finishedResolution.ResolvedProgram, cancellationToken);
+      symbolTable = SymbolTable.CreateFrom(logger, finishedResolution.Result.ResolvedProgram, cancellationToken);
     } catch (Exception e) {
       logger.LogError(e, "failed to create symbol table");
     }
 
-    var project = Input.Project;
-    var beforeLegacyServerResolution = DateTime.Now;
-    var compilationUnit = finishedResolution.ResolvedProgram.Reporter.HasErrorsUntilResolver
-      ? new CompilationUnit(project.Uri, finishedResolution.ResolvedProgram)
-      : new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, finishedResolution.ResolvedProgram);
-    // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
-    var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(compilationUnit, cancellationToken);
+    var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(Input,
+      finishedResolution.Result, cancellationToken);
 
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
       GetGhostStateDiagnostics(legacySignatureAndCompletionTable, cancellationToken);
@@ -294,14 +289,14 @@ public record IdeState(
     if (status == CompilationStatus.ResolutionSucceeded) {
       foreach (var uri in trees.Keys) {
         trees = trees.SetItem(uri,
-          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, finishedResolution.ResolvedProgram,
+          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, finishedResolution.Result.ResolvedProgram,
             previousState.VerificationTrees[uri]));
       }
     }
 
-    var verificationResults = finishedResolution.CanVerifies == null
+    var verificationResults = finishedResolution.Result.CanVerifies == null
       ? previousState.VerificationResults
-      : finishedResolution.CanVerifies.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
+      : finishedResolution.Result.CanVerifies.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
         k => k.GroupBy<ICanVerify, Range>(l => l.NameToken.GetLspRange()).ToImmutableDictionary(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
@@ -312,7 +307,7 @@ public record IdeState(
     return previousState with {
       StaticDiagnostics = finishedResolution.Diagnostics,
       Status = status,
-      ResolvedProgram = finishedResolution.ResolvedProgram,
+      ResolvedProgram = finishedResolution.Result.ResolvedProgram,
       SymbolTable = symbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = ghostRanges,

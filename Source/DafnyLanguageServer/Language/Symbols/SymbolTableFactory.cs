@@ -21,12 +21,22 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       this.logger = logger;
     }
 
-    public LegacySignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
-      var program = compilationUnit.Program;
+
+    public LegacySignatureAndCompletionTable CreateFrom(CompilationInput input,
+      ResolutionResult resolutionResult,
+      CancellationToken cancellationToken) {
+
+      var beforeLegacyServerResolution = DateTime.Now;
+      var compilationUnit = resolutionResult.HasErrors
+        ? new CompilationUnit(input.Project.Uri, resolutionResult.ResolvedProgram)
+        : new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(input.Project.Uri, resolutionResult.ResolvedProgram);
+      // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
+
+      var program = resolutionResult.ResolvedProgram;
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, compilationUnit, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
-      var symbolsResolved = !program.Reporter.HasErrorsUntilResolver;
+      var symbolsResolved = !resolutionResult.HasErrors;
       if (symbolsResolved) {
         designatorVisitor.Visit(program);
         declarationLocationVisitor.Visit(compilationUnit);

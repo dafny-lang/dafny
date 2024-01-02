@@ -74,17 +74,21 @@ public class CliCompilation {
 
     Compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
-        errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source, _ => 1, (_, previous) => previous + 1);
-        Interlocked.Increment(ref errorCount);
+        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source,
+            _ => 1,
+            (_, previous) => previous + 1);
+          Interlocked.Increment(ref errorCount);
+        }
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
         consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedResolution finishedResolution) {
-        DafnyMain.MaybePrintProgram(finishedResolution.ResolvedProgram, options.DafnyPrintResolvedFile, true);
+        DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
 
-        if (finishedResolution.ResolvedProgram.Reporter.ErrorCountUntilResolver != 0) {
-          var message = string.Format("{0} resolution/type errors detected in {1}", finishedResolution.ResolvedProgram.Reporter.Count(ErrorLevel.Error),
-            finishedResolution.ResolvedProgram.Name);
+        if (errorCount > 0) {
+          var message = string.Format("{0} resolution/type errors detected in {1}", errorCount,
+            finishedResolution.Result.ResolvedProgram.Name);
           options.OutputWriter.WriteLine(message);
         }
       }

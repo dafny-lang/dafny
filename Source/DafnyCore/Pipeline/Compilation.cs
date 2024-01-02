@@ -4,7 +4,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -15,7 +14,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
@@ -43,6 +41,7 @@ public class Compilation : IDisposable {
 
   private readonly TaskCompletionSource started = new();
   private readonly CancellationTokenSource cancellationSource;
+
   private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
     staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
@@ -71,12 +70,13 @@ public class Compilation : IDisposable {
   private bool disposed;
   private readonly ObservableErrorReporter errorReporter;
 
-  public Task<Program> Program { get; }
+  public Task<Program> ParsedProgram { get; }
   public Task<ResolutionResult> Resolution { get; }
 
   public ErrorReporter Reporter => errorReporter;
 
   public IReadOnlyList<DafnyFile>? RootFiles { get; set; }
+  public bool HasErrors { get; private set; }
 
   public Compilation(
     ILogger<Compilation> logger,
@@ -96,15 +96,19 @@ public class Compilation : IDisposable {
 
     errorReporter = new ObservableErrorReporter(Options, Project.Uri);
     errorReporter.Updates.Subscribe(updates);
-    staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
-      staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
+    staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic => {
+      if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+        HasErrors = true;
+      }
+      staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic);
+    });
 
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
     verificationTickets.Enqueue(Unit.Default);
 
-    Program = ParseAsync();
+    ParsedProgram = ParseAsync();
     Resolution = ResolveAsync();
   }
 
@@ -203,13 +207,12 @@ public class Compilation : IDisposable {
 
   private async Task<ResolutionResult> ResolveAsync() {
     try {
-      await Program;
-      var resolution = await documentLoader.ResolveAsync(Input, transformedProgram!, cancellationSource.Token);
+      await ParsedProgram;
+      var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
       updates.OnNext(new FinishedResolution(
-        GetDiagnosticsCopy(),
-        transformedProgram!,
-        resolution.CanVerifies));
+        resolution,
+        GetDiagnosticsCopy()));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
@@ -242,7 +245,7 @@ public class Compilation : IDisposable {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
-    if (resolution.ResolvedProgram.Reporter.HasErrorsUntilResolver) {
+    if (resolution.HasErrors) {
       throw new TaskCanceledException();
     }
 
@@ -432,9 +435,9 @@ public class Compilation : IDisposable {
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
-    var program = await Program;
+    var program = await ParsedProgram;
 
-    if (program.Reporter.HasErrors) {
+    if (program.HasParseErrors) {
       return null;
     }
 

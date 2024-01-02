@@ -1,8 +1,9 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public interface ISymbolResolver {
-    void ResolveSymbols(DafnyProject project, Program program, CancellationToken cancellationToken);
+    void ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken);
   }
 }
