@@ -189,6 +189,7 @@ public class Compilation : IDisposable {
     try {
       await started.Task;
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
+      transformedProgram.HasParseErrors = HasErrors;
 
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);

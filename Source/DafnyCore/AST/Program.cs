@@ -53,6 +53,7 @@ public class Program : TokenNode {
     SystemModuleManager = original.SystemModuleManager;
     Reporter = original.Reporter;
     Compilation = original.Compilation;
+    HasParseErrors = original.HasParseErrors;
 
     if (cloner.CloneResolvedFields) {
       throw new NotImplementedException();
