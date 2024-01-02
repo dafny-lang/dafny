@@ -16,14 +16,14 @@ static class FormatCommand {
   public static Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
 If no dafny file is provided, will look for every available Dafny file.
-Use '--print -' to output the content of the formatted files instead of overwriting them.");
+Use '--print' to output the content of the formatted files instead of overwriting them.");
     result.AddArgument(DafnyCommands.FilesArgument);
 
     foreach (var option in Options) {
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DoFormatting(options);
       return (int)exitValue;
@@ -33,7 +33,7 @@ Use '--print -' to output the content of the formatted files instead of overwrit
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }

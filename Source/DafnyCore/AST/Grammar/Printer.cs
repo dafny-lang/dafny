@@ -583,7 +583,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("{0} ", module.Name);
       if (module.Implements != null) {
-        wr.Write("refines {0} ", module.Implements.Target);
+        var kindString = module.Implements.Kind switch {
+          ImplementationKind.Refinement => "refines",
+          ImplementationKind.Replacement => "replaces",
+          _ => throw new ArgumentOutOfRangeException()
+        };
+        wr.Write($"{kindString} {module.Implements.Target} ");
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
