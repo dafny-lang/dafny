@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -22,7 +23,7 @@ public class CliCompilation {
     return me.Create();
   }
 
-  public CliCompilation(DafnyOptions options) {
+  private CliCompilation(DafnyOptions options) {
     this.options = options;
 
     var fileSystem = OnDiskFileSystem.Instance;
@@ -40,9 +41,8 @@ public class CliCompilation {
   }
 
   private Compilation Create() {
-    var me = new CliCompilation(options);
     if (options.DafnyProject == null) {
-      var uri = options.CliRootSourceUris.First();
+      var uri = options.CliRootSourceUris.FirstOrDefault() ?? new Uri(Directory.GetCurrentDirectory());
       options.DafnyProject = new DafnyProject {
         Includes = Array.Empty<string>(),
         Uri = uri

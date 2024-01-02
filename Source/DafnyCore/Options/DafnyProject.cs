@@ -19,7 +19,8 @@ using Tomlyn.Model;
 namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
-  public const string FileName = "dfyconfig.toml";
+  public const string Extension = ".toml";
+  public const string FileName = "dfyconfig" + Extension;
 
   public string ProjectName => Uri.ToString();
 

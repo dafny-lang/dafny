@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
     public static async Task<int> Run(DafnyOptions options) {
 
       if (options.DafnyProject == null) {
-        var uri = options.CliRootSourceUris.First();
+        var uri = options.CliRootSourceUris.FirstOrDefault() ?? new Uri(Directory.GetCurrentDirectory());
         options.DafnyProject = new DafnyProject {
           Includes = Array.Empty<string>(),
           Uri = uri

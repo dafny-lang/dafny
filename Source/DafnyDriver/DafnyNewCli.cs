@@ -61,6 +61,23 @@ public static class DafnyNewCli {
     Parser = builder.Build();
   }
 
+  public static Task<int> Execute(IConsole console, string[] arguments) {
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    foreach (var symbol in AllSymbols) {
+      if (!allowHidden) {
+        symbol.IsHidden = false;
+      }
+
+      if (symbol is Option option) {
+        if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
+          option.AllowMultipleArgumentsPerToken = true;
+        }
+      }
+    }
+
+    return Parser.InvokeAsync(arguments, console);
+  }
+  
   public delegate Task<int> ContinueWithOptions(DafnyOptions dafnyOptions, InvocationContext context);
   public static void SetHandlerUsingDafnyOptionsContinuation(Command command, ContinueWithOptions continuation) {
 
@@ -159,23 +176,6 @@ public static class DafnyNewCli {
     return true;
   }
 
-  public static Task<int> Execute(IConsole console, string[] arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
-    foreach (var symbol in AllSymbols) {
-      if (!allowHidden) {
-        symbol.IsHidden = false;
-      }
-
-      if (symbol is Option option) {
-        if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
-          option.AllowMultipleArgumentsPerToken = true;
-        }
-      }
-    }
-
-    return Parser.InvokeAsync(arguments, console);
-  }
-
   private static readonly MethodInfo GetValueForOptionMethod;
   private static readonly System.CommandLine.Parsing.Parser Parser;
 
@@ -196,38 +196,45 @@ public static class DafnyNewCli {
     var filePathForErrors = dafnyOptions.UseBaseNameForFileName
       ? Path.GetFileName(singleFile.FullName)
       : singleFile.FullName;
-    if (Path.GetExtension(singleFile.FullName) == ".toml") {
-      if (dafnyOptions.DafnyProject != null) {
-        var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
-        return false;
-      }
+    var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
+    if (isProjectFile) {
+      return await ProcessProjectFile(dafnyOptions, singleFile, filePathForErrors);
+    }
 
-      if (!File.Exists(singleFile.FullName)) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
-        return false;
-      }
-      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
-      if (projectFile == null) {
-        return false;
-      }
+    dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
+    return true;
+  }
 
-      foreach (var diagnostic in projectFile.Errors.AllMessages) {
-        var message = $"{diagnostic.Level}: {diagnostic.Message}";
-        if (diagnostic.Level == ErrorLevel.Error) {
-          await dafnyOptions.ErrorWriter.WriteLineAsync(message);
-        } else {
-          await dafnyOptions.OutputWriter.WriteLineAsync(message);
-        }
-      }
+  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors)
+  {
+    if (dafnyOptions.DafnyProject != null) {
+      var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
+      return false;
+    }
 
-      projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
-      dafnyOptions.DafnyProject = projectFile;
-      if (projectFile.Errors.HasErrors) {
-        return false;
+    if (!File.Exists(singleFile.FullName)) {
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
+      return false;
+    }
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
+    if (projectFile == null) {
+      return false;
+    }
+
+    foreach (var diagnostic in projectFile.Errors.AllMessages) {
+      var message = $"{diagnostic.Level}: {diagnostic.Message}";
+      if (diagnostic.Level == ErrorLevel.Error) {
+        await dafnyOptions.ErrorWriter.WriteLineAsync(message);
+      } else {
+        await dafnyOptions.OutputWriter.WriteLineAsync(message);
       }
-    } else {
-      dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
+    }
+
+    projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
+    dafnyOptions.DafnyProject = projectFile;
+    if (projectFile.Errors.HasErrors) {
+      return false;
     }
     return true;
   }
