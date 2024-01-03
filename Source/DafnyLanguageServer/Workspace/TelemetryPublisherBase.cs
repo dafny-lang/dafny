@@ -9,7 +9,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Implementations of this interface are responsible to publish telemetry events
   /// of a <see cref="CompilationInput"/> to the LSP client.
   /// </summary>
-  public interface ITelemetryPublisher {
+  public abstract class TelemetryPublisherBase
+  {
+    protected ILogger<TelemetryPublisherBase> logger;
+
     protected enum TelemetryEventKind {
       UpdateComplete,
       UnhandledException,
@@ -18,11 +21,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Time
     }
 
+    protected TelemetryPublisherBase(ILogger<TelemetryPublisherBase> logger) {
+      this.logger = logger;
+    }
+
     protected void PublishTelemetry(TelemetryEventKind kind, object? payload) {
       PublishTelemetry(ImmutableDictionary.Create<string, object>().Add("kind", kind).Add("payload", payload!));
     }
 
-    public void PublishTelemetry(ImmutableDictionary<string, object> data);
+    public abstract void PublishTelemetry(ImmutableDictionary<string, object> data);
 
     /// <summary>
     /// Signal the completion of a document update.
@@ -31,11 +38,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishTelemetry(TelemetryEventKind.UpdateComplete, null);
     }
 
-    /// <summary>
-    /// Signal an unhandled error.
-    /// </summary>
-    public void PublishUnhandledException(Exception e);
-
+    public override void PublishUnhandledException(Exception e) {
+      logger.LogError(e, "exception occurred");
+      PublishTelemetry(ImmutableDictionary.Create<string, object>().
+        Add("kind", TelemetryPublisherBase.TelemetryEventKind.UnhandledException).
+        Add("payload", e.ToString()));
+    }
+    
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
     }

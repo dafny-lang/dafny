@@ -14,7 +14,7 @@ The `-t` or `--target` options specifies which backend compiler to use for
 those dafny commands that compile dafny to other programming languages. 
 This error message says that the named language is not supported.
 
-## **Error: no Dafny source files were specified as input.  Dafny program verifier did not attempt verification** {#cli_no_files}
+## **Error: no Dafny source files were specified as input** {#cli_no_files}
 
 <!-- %check-cli -->
 ```bash
@@ -50,7 +50,7 @@ instance of this error message identifies non-.dfy files that still
 have permitted extensions (according to the target platform) but
 cannot be found in the file system.
     
-## **Error: Command-line argument '--zzz' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).  Dafny program verifier did not attempt verification** {#cli_bad_option}
+## **Error: Command-line argument '--zzz' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).** {#cli_bad_option}
 
 <!-- %check-cli -->
 ```bash

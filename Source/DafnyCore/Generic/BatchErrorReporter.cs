@@ -14,8 +14,6 @@ public class BatchErrorReporter : ErrorReporter {
     }
   }
 
-  public new bool HasErrors => ErrorCount > 0;
-
   public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
     AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {

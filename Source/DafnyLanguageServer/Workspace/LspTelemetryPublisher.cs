@@ -6,23 +6,16 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class LspTelemetryPublisher : ITelemetryPublisher {
+  public class LspTelemetryPublisher : TelemetryPublisherBase {
     private readonly ILanguageServerFacade languageServer;
-    private readonly ILogger<LspTelemetryPublisher> logger;
 
-    public LspTelemetryPublisher(ILanguageServerFacade languageServer, ILogger<LspTelemetryPublisher> logger) {
+    public LspTelemetryPublisher(ILanguageServerFacade languageServer, ILogger<LspTelemetryPublisher> logger) 
+      : base(logger) 
+    {
       this.languageServer = languageServer;
-      this.logger = logger;
     }
 
-    public void PublishUnhandledException(Exception e) {
-      logger.LogError(e, "exception occurred");
-      PublishTelemetry(ImmutableDictionary.Create<string, object>().
-          Add("kind", ITelemetryPublisher.TelemetryEventKind.UnhandledException).
-          Add("payload", e.ToString()));
-    }
-
-    public void PublishTelemetry(ImmutableDictionary<string, object> data) {
+    public override void PublishTelemetry(ImmutableDictionary<string, object> data) {
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = data
       });

@@ -350,11 +350,6 @@ public class Compilation : IDisposable {
     }
   }
 
-  public IEnumerable<FilePosition> LeftOver() {
-    return translatedModules.Select(kv => kv.Value.Result).SelectMany(d => d.Keys).Except(
-      implementationsPerVerifiable.ToList().Select(kv => kv.Key.NameToken.GetFilePosition()));
-  }
-
   private void VerifyTask(ICanVerify canVerify, IImplementationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
@@ -494,13 +489,11 @@ public class Compilation : IDisposable {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
     }
 
-    var implementation = task.Implementation;
-
-
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
+    var implementation = task.Implementation;
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.counterExamples);

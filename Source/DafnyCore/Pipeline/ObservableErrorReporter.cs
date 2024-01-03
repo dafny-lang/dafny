@@ -11,7 +11,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly Subject<NewDiagnostic> updates = new();
     public IObservable<NewDiagnostic> Updates => updates;
 
-
     private readonly Uri entryUri;
     private readonly Dictionary<ErrorLevel, int> counts = new();
     private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();

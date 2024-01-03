@@ -22,9 +22,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly ILogger logger;
     private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
 
-    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, ITelemetryPublisher telemetryPublisher) {
+    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, TelemetryPublisherBase telemetryPublisher) {
       this.logger = logger;
       this.innerLogger = innerLogger;
       this.telemetryPublisher = telemetryPublisher;

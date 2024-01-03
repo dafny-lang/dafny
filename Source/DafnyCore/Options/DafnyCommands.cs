@@ -17,6 +17,7 @@ public static class DafnyCommands {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
     }, false, "Dafny input files and/or a Dafny project file");
   }
+  
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
     CommonOptionBag.FormatPrint,

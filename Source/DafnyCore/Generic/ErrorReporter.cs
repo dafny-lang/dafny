@@ -12,7 +12,6 @@ public abstract class ErrorReporter {
 
   public bool ErrorsOnly { get; set; }
 
-  [Obsolete("Only required for LegacyCliCompilation")]
   public bool HasErrors => ErrorCount > 0;
   public int ErrorCount => Count(ErrorLevel.Error);
 

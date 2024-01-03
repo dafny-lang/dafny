@@ -100,7 +100,7 @@ public class CliCompilation {
   public static CliCompilation Create(DafnyOptions options) {
     var fileSystem = OnDiskFileSystem.Instance;
     ILoggerFactory factory = new LoggerFactory();
-    var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<ITelemetryPublisher>());
+    var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
     return new CliCompilation(CreateCompilation, options);
 
     Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>

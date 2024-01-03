@@ -77,7 +77,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly CreateCompilation createCompilation;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
   private IdeState latestIdeState;
   private ReplaySubject<IdeState> states = new(1);
@@ -88,7 +88,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
