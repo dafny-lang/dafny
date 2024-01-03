@@ -1,13 +1,11 @@
 ﻿#nullable enable
-using Microsoft.Dafny.LanguageServer.Language;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace {
+namespace Microsoft.Dafny {
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
   /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.

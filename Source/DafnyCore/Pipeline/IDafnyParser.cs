@@ -1,9 +1,6 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Threading;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+﻿using System.Threading;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny {
   /// <summary>
   /// Interface exposing parse methods to generate a syntax tree out of an arbitrary dafny source.
   /// </summary>

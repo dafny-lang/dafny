@@ -3,7 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace {
+namespace Microsoft.Dafny {
   /// <summary>
   /// Contains all the inputs of a Compilation
   /// </summary>

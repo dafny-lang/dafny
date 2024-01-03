@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace Microsoft.Dafny;
 
 public record DeterminedRootFiles(
   DafnyProject Project,

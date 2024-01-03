@@ -1,10 +1,9 @@
 using System;
 using System.Linq;
-using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace Microsoft.Dafny;
 
 public static class DiagnosticUtil {
   public static Diagnostic ToLspDiagnostic(this DafnyDiagnostic dafnyDiagnostic) {

@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using VCGeneration;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny {
   public class ObservableErrorReporter : ErrorReporter {
     private readonly Subject<NewDiagnostic> updates = new();
     public IObservable<NewDiagnostic> Updates => updates;
