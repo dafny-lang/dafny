@@ -184,3 +184,11 @@ module WhatCanBeCompiled {
       r := b is OnTopOfGhostBool; // error: this type test is ghost
   }
 }
+
+module DiscoverBounds {
+  newtype TrueAsCanBe = b: bool | b witness true
+
+  method Test(s: set<TrueAsCanBe>) {
+    assert forall x :: x in s ==> x == true;
+  }
+}

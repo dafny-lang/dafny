@@ -338,18 +338,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(knownBounds != null);
       Contract.Requires(knownBounds.Count == bvars.Count);
       var bv = bvars[j];
+      var bvType = bv.Type.NormalizeToAncestorType();
       var bounds = new List<ComprehensionExpr.BoundedPool>();
 
       // Maybe the type itself gives a bound
-      if (bv.Type.IsBoolType) {
+      if (bvType.IsBoolType) {
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
-      } else if (bv.Type.IsCharType) {
+      } else if (bvType.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
-      } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
-        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
-      } else if (bv.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+      } else if (bvType.IsDatatype && bvType.AsDatatype.HasFinitePossibleValues) {
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bvType.AsDatatype));
+      } else if (bvType.IsNumericBased(Type.NumericPersuasion.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-      } else if (!bv.Type.MayInvolveReferences) {
+      } else if (!bvType.MayInvolveReferences) {
+        // in the next line, use bv.Type, even though we compared with bvType
         bounds.Add(new ComprehensionExpr.AllocFreeBoundedPool(bv.Type));
       }
 
@@ -358,7 +360,7 @@ namespace Microsoft.Dafny {
         if (conjunct is IdentifierExpr) {
           var ide = (IdentifierExpr)conjunct;
           if (ide.Var == (IVariable)bv) {
-            Contract.Assert(bv.Type.IsBoolType);
+            Contract.Assert(bvType.IsBoolType);
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, true)));
           }
           continue;

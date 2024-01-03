@@ -31,7 +31,8 @@ GeneralNewtypeResolution.dfy(134,10): Error: a newtype must be based on some num
 GeneralNewtypeResolution.dfy(135,10): Error: a newtype must be based on some numeric type (got bool)
 GeneralNewtypeResolution.dfy(140,10): Error: a newtype must be based on some numeric type (got bool)
 GeneralNewtypeResolution.dfy(145,10): Error: a newtype must be based on some numeric type (got bool)
-33 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(189,10): Error: a newtype must be based on some numeric type (got bool)
+34 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Trait)

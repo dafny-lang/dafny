@@ -179,3 +179,36 @@ module TrueBoolModule {
       x := s ==#[i] s; // error: i may be negative
   }
 }
+
+module NewtypesAreDistinctFromBaseType {
+  newtype MyBool = bool
+  newtype AnotherBool = b: MyBool | true
+  type JustASubsetType = b: MyBool | true
+
+  method M(a: array<bool>, b: array<MyBool>, c: array<AnotherBool>, d: array<JustASubsetType>) {
+    assert a != b as object;
+    assert a as object != b;
+
+    assert b != c as object;
+    assert b != d as object;
+    assert c != d as object;
+
+    assert false; // error
+  }
+
+  newtype TrueAsCanBe = b: bool | b witness true
+
+  method P<K>(i: int, a: array<TrueAsCanBe>, s: set<TrueAsCanBe>, k: K, m: map<K, TrueAsCanBe>)
+  {
+    if 0 <= i < a.Length {
+      assert a[i];
+    }
+    assert |s| <= 1 by {
+      assert s <= {true};
+      assert s == {} || s == {true};
+    }
+    if k in m.Keys {
+      assert m[k];
+    }
+  }
+}

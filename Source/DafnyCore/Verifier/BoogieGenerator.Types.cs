@@ -818,7 +818,7 @@ public partial class BoogieGenerator {
   Expression Zero(IToken tok, Type typ) {
     Contract.Requires(tok != null);
     Contract.Requires(typ != null);
-    typ = typ.NormalizeExpand();
+    typ = typ.NormalizeToAncestorType();
     if (typ is BoolType) {
       return Expression.CreateBoolLiteral(tok, false);
     } else if (typ is CharType) {
