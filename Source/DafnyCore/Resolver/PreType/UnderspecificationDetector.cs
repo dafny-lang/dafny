@@ -357,14 +357,6 @@ namespace Microsoft.Dafny {
         // by specializing for IdentifierExpr, error messages will be clearer
         CheckPreTypeIsDetermined(expr.tok, expr.PreType, "variable");
 
-      } else if (expr is ConversionExpr) {
-        var e = (ConversionExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "cast target");
-
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "type test target");
-
       } else if (CheckPreTypeIsDetermined(expr.tok, expr.PreType, "expression")) {
         if (expr is UnaryOpExpr uop) {
           var resolvedOp = (uop.Op, PreTypeResolver.AncestorName(uop.E.PreType)) switch {
