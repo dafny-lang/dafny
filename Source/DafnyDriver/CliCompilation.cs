@@ -166,7 +166,7 @@ public class CliCompilation {
           }
 
           if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
-            canVerifyResult.Finished.SetResult();
+            canVerifyResult.Finished.TrySetResult();
           }
         }
       }
