@@ -226,9 +226,9 @@ public class ExpectContracts : IRewriter {
   /// the original members.
   ///
   /// This runs after resolution so that it has access to ghostness
-  /// information, attributes and call targets. It runs on the entire
-  /// program, rather than each module individually, so that it can
-  /// generate all wrappers before redirecting calls.
+  /// information, attributes and call targets and after verification
+  /// because that makes the interaction with the refinement transformer
+  /// more straightforward.
   /// </summary>
   /// <param name="program">The program to generate wrappers for and in.</param>
   public override void PostVerification(Program program) {
@@ -256,7 +256,8 @@ public class ExpectContracts : IRewriter {
       moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
     }
 
-    // Put redirections in place
+    // Put redirections in place. This needs to run after the wrappers have
+    // been created.
     foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
