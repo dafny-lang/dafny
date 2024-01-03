@@ -257,7 +257,7 @@ public class ExpectContracts : IRewriter {
     }
 
     // Put redirections in place
-    foreach (var module in program.CompileModules) {
+    foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
           if (decl is ICallable callable) {
@@ -271,7 +271,7 @@ public class ExpectContracts : IRewriter {
       return;
     }
 
-    foreach (var module in program.CompileModules) {
+    foreach (var module in program.Modules()) {
       if (module.CallRedirector == null) {
         continue;
       }
