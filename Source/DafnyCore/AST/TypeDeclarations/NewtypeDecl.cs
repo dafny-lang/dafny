@@ -24,6 +24,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     Contract.Requires(isRefining ^ (baseType != null));
     Contract.Requires(members != null);
     BaseType = baseType;
+    this.NewSelfSynonym();
   }
   public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
