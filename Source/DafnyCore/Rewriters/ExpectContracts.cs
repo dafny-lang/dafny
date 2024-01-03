@@ -249,20 +249,22 @@ public class ExpectContracts : IRewriter {
         }
       }
 
-      // Generate a wrapper for each of the members identified above.
+      // Generate a wrapper for each of the members identified above. This
+      // need to happen after all declarations to wrap have been identified
+      // because it adds new declarations and would invalidate the iterator
+      // used during identification.
       foreach (var (topLevelDecl, decl) in membersToWrap) {
         GenerateWrapper(moduleDefinition, topLevelDecl, decl);
       }
       moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
-    }
 
-    // Put redirections in place. This needs to run after the wrappers have
-    // been created.
-    foreach (var module in program.Modules()) {
-      foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      // Put redirections in place. Any wrappers to call will be in either
+      // this module or to a previously-processed module, so they'll already
+      // exist.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
           if (decl is ICallable callable) {
-            module.CallRedirector?.Visit(callable, decl);
+            moduleDefinition.CallRedirector?.Visit(callable, decl);
           }
         }
       }
