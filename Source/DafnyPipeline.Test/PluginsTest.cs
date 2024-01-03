@@ -96,7 +96,9 @@ public class PluginsTest {
     var reporter = new BatchErrorReporter(options);
     var dafnyProgram = Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
+#pragma warning disable CS0618 // Type or member is obsolete
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
+#pragma warning restore CS0618 // Type or member is obsolete
     Assert.Equal(1, reporter.ErrorCount);
   }
 }
