@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /verifyAllModules "%s" > "%t"
+// RUN: %verify --verify-included-files "%s" > "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:cs /unicodeChar:1 "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:go /unicodeChar:1 "%s" >> "%t"
 // RUN: ! %dafny /noVerify /compile:4 /compileTarget:java /unicodeChar:1 "%s" >> "%t"

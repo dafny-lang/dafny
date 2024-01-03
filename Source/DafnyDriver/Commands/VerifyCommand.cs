@@ -14,12 +14,12 @@ public static class VerifyCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         options.TrackVerificationCoverage = true;
       }
       options.Compile = false;
-      return CompilerDriver.RunCompiler(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }
@@ -30,21 +30,4 @@ public static class VerifyCommand {
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
-}
-
-static class ResolveCommand {
-
-  public static Command Create() {
-    var result = new Command("resolve", "Only check for parse and type resolution errors.");
-    result.AddArgument(DafnyCommands.FilesArgument);
-    foreach (var option in DafnyCommands.ConsoleOutputOptions.Concat(DafnyCommands.ResolverOptions)) {
-      result.AddOption(option);
-    }
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
-      options.Compile = false;
-      options.Verify = false;
-      return CompilerDriver.RunCompiler(options);
-    });
-    return result;
-  }
 }

@@ -1426,7 +1426,7 @@ method Find(a: array<int>, key: int) returns (index: int)
 ```
 
 This says that everything before, but excluding, the current
-index is not the key. Notice that upon entering the loop, `i`
+index is not the key. Notice that upon entering the loop, `index`
 is zero, so the first part of the implication is always false, and thus the
 quantified property is always true. This common situation is known as
 *vacuous truth*: the

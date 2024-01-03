@@ -11,8 +11,7 @@ namespace Microsoft.Dafny;
 
 public class SystemModuleManager {
   public DafnyOptions Options { get; }
-  public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
-    false, false, null, null, null);
+  public readonly ModuleDefinition SystemModule;
   internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
@@ -88,6 +87,8 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+      ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
@@ -476,7 +477,7 @@ public class SystemModuleManager {
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {
-    var moduleResolver = new ModuleResolver(programResolver);
+    var moduleResolver = new ModuleResolver(programResolver, programResolver.Options);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {

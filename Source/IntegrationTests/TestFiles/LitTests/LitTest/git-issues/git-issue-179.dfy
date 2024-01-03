@@ -1,5 +1,5 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"

@@ -28,21 +28,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine boogieEngine,
-      CompilationAfterResolution compilation,
+      ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
       var engine = boogieEngine;
 
-      var verifiableModules = BoogieGenerator.VerifiableModules(compilation.Program);
-      if (!verifiableModules.Contains(moduleDefinition)) {
+      if (!BoogieGenerator.ShouldVerifyModule(resolution.ResolvedProgram, moduleDefinition)) {
         throw new Exception("tried to get verification tasks for a module that is not verified");
       }
 
       await mutex.WaitAsync(cancellationToken);
       try {
 
-        var program = compilation.Program;
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+        var program = resolution.ResolvedProgram;
+        var errorReporter = (ObservableErrorReporter)program.Reporter;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -52,8 +51,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
             ReportRanges = true
           };
-          var translator = new BoogieGenerator(errorReporter, compilation.Program.ProofDependencyManager, translatorFlags);
-          return translator.DoTranslation(compilation.Program, moduleDefinition);
+          var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
+          return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;
 

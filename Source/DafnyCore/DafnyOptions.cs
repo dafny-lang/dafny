@@ -42,7 +42,6 @@ namespace Microsoft.Dafny {
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
     public DafnyProject DafnyProject { get; set; }
-    public Command CurrentCommand { get; set; }
 
     public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -262,7 +261,6 @@ namespace Microsoft.Dafny {
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
-    public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public uint SpillTargetCode = 0; // [0..4]
@@ -465,15 +463,6 @@ namespace Microsoft.Dafny {
         case "check": {
             if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
               FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
-            }
-
-            return true;
-          }
-
-        case "runAllTests": {
-            int runAllTests = 0;
-            if (ps.GetIntArgument(ref runAllTests, 2)) {
-              RunAllTests = runAllTests != 0; // convert to boolean
             }
 
             return true;
@@ -795,7 +784,7 @@ namespace Microsoft.Dafny {
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+      if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath();
         SetZ3Options(z3Version);
       }
@@ -803,6 +792,10 @@ namespace Microsoft.Dafny {
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
+    }
+
+    public bool IsUsingZ3() {
+      return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
     public override string AttributeHelp =>
@@ -1153,12 +1146,7 @@ namespace Microsoft.Dafny {
       // See: https://github.com/dafny-lang/dafny/discussions/3362
       SetZ3Option("smt.case_split", "3");
 
-      // This option tends to lead to the best all-around arithmetic
-      // performance, though some programs can be verified more quickly
-      // (or verified at all) using a different solver.
-      SetZ3Option("smt.arith.solver", "2");
-
-      if (DisableNLarith || 3 <= ArithMode) {
+      if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }
     }
@@ -1446,15 +1434,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     When running a Dafny file through /compile:3 or /compile:4, '--args' provides
     all arguments after it to the Main function, at index starting at 1.
     Index 0 is used to store the executable's name if it exists.
-/runAllTests:<n> (experimental)
-    0 (default) - Annotates compiled methods with the {{:test}}
-        attribute such that they can be tested using a testing framework
-        in the target language (e.g. xUnit for C#).
-    1 - Emits a main method in the target language that will execute
-        every method in the program with the {{:test}} attribute. Cannot
-        be used if the program already contains a main method. Note that
-        /compile:3 or 4 must be provided as well to actually execute
-        this main method!
 
 /compileVerbose:<n>
     0 - Don't print status of compilation to the console.

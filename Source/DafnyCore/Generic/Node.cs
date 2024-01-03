@@ -53,6 +53,16 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
+  public IEnumerable<IToken> CoveredTokens {
+    get {
+      var token = StartToken;
+      while (token.Prev != EndToken) {
+        yield return token;
+        token = token.Next;
+      }
+    }
+  }
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -126,7 +136,8 @@ public abstract class Node : INode {
     return Enumerable.Empty<Assumption>();
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+    reportError ??= _ => { };
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
@@ -147,7 +158,8 @@ public abstract class Node : INode {
       var nodeAfterChildren = toVisit.First;
       foreach (var child in current.Children) {
         if (child == null) {
-          throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
+          reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+          continue;
         }
 
         if (nodeAfterChildren == null) {
@@ -170,7 +182,7 @@ public abstract class Node : INode {
       return matches[^1].Value;
     }
 
-    if (StartToken.Prev.val is "|" or "{") {
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
         return matches[^1].Value;

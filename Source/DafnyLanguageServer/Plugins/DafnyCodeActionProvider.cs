@@ -52,7 +52,7 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
     var diagnostics = input.Diagnostics;
     var result = new List<DafnyCodeAction>();
     foreach (var diagnostic in diagnostics) {
-      var range = diagnostic.Token.GetLspRange();
+      var range = diagnostic.Range;
       var linesOverlap = range.Start.Line <= selection.Start.Line
                          && selection.Start.Line <= range.End.Line;
       if (linesOverlap) {
@@ -73,5 +73,5 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   /// <param name="dafnyDiagnostic"></param>
   /// <param name="selection">Where the user's caret is</param>
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection);
+    Diagnostic diagnostic, Range selection);
 }

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 2 %verify --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Frames {

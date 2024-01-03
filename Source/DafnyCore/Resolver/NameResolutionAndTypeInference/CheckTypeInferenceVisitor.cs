@@ -116,7 +116,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var n = (BigInteger)e.Value;
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
-        if (e.Type.IsBitVectorType && ModuleResolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+        if (e.Type.IsBitVectorType && ConstantFolder.MaxBv(e.Type.AsBitVectorType.Width) < absN) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -161,9 +161,16 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (e.Member is Function || e.Member is Method) {
         var i = 0;
         foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
-          var tp = i < e.TypeApplication_AtEnclosingClass.Count
-            ? e.Member.EnclosingClass.TypeArgs[i]
+          var tp = i < e.TypeApplication_AtEnclosingClass.Count ?
+              (e.Member.EnclosingClass is DefaultClassDecl ?
+                // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl
+                // and does not have type arguments
+                null :
+                e.Member.EnclosingClass.TypeArgs[i])
             : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+          if (tp == null) {
+            continue;
+          }
           if (!IsDetermined(p.Normalize())) {
             resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_not_determined, e.tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
