@@ -21,8 +21,8 @@ public static class ErrorReporterExtensions {
       }
     }
 
-    if (error.Tok is NestedToken { Inner: var innerToken }) {
-      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
+    if (error.Tok is NestedToken { Inner: var innerToken, Message: var msg }) {
+      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg));
     }
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);

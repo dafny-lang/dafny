@@ -11,7 +11,6 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using IToken = Microsoft.Dafny.IToken;
 
 namespace DafnyDriver.Commands;
 
@@ -32,7 +31,7 @@ public class CliCompilation {
 
   public int ExitCode => (int)ExitValue;
 
-  private ExitValue ExitValue {
+  public ExitValue ExitValue {
     get {
       if (HasErrorsFromSource(MessageSource.Project)) {
         return ExitValue.PREPROCESSING_ERROR;
@@ -89,7 +88,8 @@ public class CliCompilation {
         DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
 
         if (errorCount > 0) {
-          options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected");
+          var programName = finishedResolution.Result.ResolvedProgram.Name;
+          options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
         }
       }
 
@@ -120,11 +120,11 @@ public class CliCompilation {
     }
 
     var statSum = new PipelineStatistics();
-    var canVerifyResults = new Dictionary<IToken, CliCanVerifyResults>();
+    var canVerifyResults = new Dictionary<FilePosition, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
-        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok];
+        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok.GetFilePosition()];
         foreach (var part in canVerifyPartsIdentified.Parts) {
           canVerifyResult.Tasks.Add(part);
         }
@@ -135,7 +135,8 @@ public class CliCompilation {
 
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok)];
+          var dafnyToken = BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok);
+          var canVerifyResult = canVerifyResults[dafnyToken.GetFilePosition()];
           canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
           if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
             canVerifyResult.Finished.SetResult();
@@ -174,14 +175,15 @@ public class CliCompilation {
     if (canVerifies != null) {
       var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
       foreach (var canVerify in orderedCanVerifies) {
-        canVerifyResults[canVerify.Tok] = new CliCanVerifyResults();
+        canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
         await Compilation.VerifyCanVerify(canVerify, false);
       }
 
       foreach (var canVerify in orderedCanVerifies) {
-        var results = canVerifyResults[canVerify.Tok];
+        var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
         await results.Finished.Task;
-        foreach (var (task, completed) in results.CompletedParts) {
+        foreach (var (task, completed) in results.CompletedParts.
+                   OrderBy(t => t.Item1.Implementation.Name)) {
           foreach (var vcResult in completed.Result.VCResults) {
             Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
           }

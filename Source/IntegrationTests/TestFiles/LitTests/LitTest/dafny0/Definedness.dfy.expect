@@ -37,18 +37,15 @@ Definedness.dfy(79,15): Related location
 Definedness.dfy(133,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(133,21): Error: this loop invariant could not be proved on entry
-Definedness.dfy(133,21): Related message: loop invariant violation
 Definedness.dfy(134,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(143,14): Error: possible division by zero
 Definedness.dfy(162,14): Error: possible division by zero
 Definedness.dfy(175,27): Error: this loop invariant could not be proved on entry
-Definedness.dfy(175,27): Related message: loop invariant violation
 Definedness.dfy(181,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(196,18): Error: possible division by zero
 Definedness.dfy(196,22): Error: this loop invariant could not be proved on entry
-Definedness.dfy(196,22): Related message: loop invariant violation
 Definedness.dfy(196,27): Error: possible division by zero
 
 Dafny program verifier finished with 9 verified, 37 errors

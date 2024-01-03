@@ -2200,6 +2200,12 @@ public class MapType : CollectionType {
     this.finite = finite;
     this.range = range;
   }
+
+  public MapType(Cloner cloner, MapType original) : base(original.HasTypeArg() ? cloner.CloneType(original.Arg) : null) {
+    Finite = original.Finite;
+    range = cloner.CloneType(original.Range);
+  }
+
   public Type Domain {
     get { return Arg; }
   }
