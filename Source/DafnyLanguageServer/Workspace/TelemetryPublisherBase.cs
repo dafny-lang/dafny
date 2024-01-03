@@ -9,8 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Implementations of this interface are responsible to publish telemetry events
   /// of a <see cref="CompilationInput"/> to the LSP client.
   /// </summary>
-  public abstract class TelemetryPublisherBase
-  {
+  public abstract class TelemetryPublisherBase {
     protected ILogger<TelemetryPublisherBase> logger;
 
     protected enum TelemetryEventKind {
@@ -44,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Add("kind", TelemetryPublisherBase.TelemetryEventKind.UnhandledException).
         Add("payload", e.ToString()));
     }
-    
+
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
     }

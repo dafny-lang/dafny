@@ -140,9 +140,6 @@ public class CliCompilation {
           var dafnyToken = BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok);
           var canVerifyResult = canVerifyResults[dafnyToken.GetFilePosition()];
           canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
-          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
-            canVerifyResult.Finished.SetResult();
-          }
 
           switch (completed.Result.Outcome) {
             case ConditionGeneration.Outcome.Correct:
@@ -167,30 +164,34 @@ public class CliCompilation {
             default:
               throw new ArgumentOutOfRangeException();
           }
+
+          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+            canVerifyResult.Finished.SetResult();
+          }
         }
       }
     });
 
     var canVerifies = resolution.CanVerifies?.ToList();
 
-        if (canVerifies != null) {
-          var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-          foreach (var canVerify in orderedCanVerifies) {
-            canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
-            await Compilation.VerifyCanVerify(canVerify, false);
-          }
+    if (canVerifies != null) {
+      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
+        canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
+        await Compilation.VerifyCanVerify(canVerify, false);
+      }
 
-          foreach (var canVerify in orderedCanVerifies) {
-            var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
-            await results.Finished.Task;
-            foreach (var (task, completed) in results.CompletedParts.
-                       OrderBy(t => t.Item1.Implementation.Name)) {
-              foreach (var vcResult in completed.Result.VCResults) {
-                Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
-              }
-            }
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
+        await results.Finished.Task;
+        foreach (var (task, completed) in results.CompletedParts.
+                   OrderBy(t => t.Item1.Implementation.Name)) {
+          foreach (var vcResult in completed.Result.VCResults) {
+            Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
           }
         }
-        LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+      }
+    }
+    LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
   }
 }

@@ -9,9 +9,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class LspTelemetryPublisher : TelemetryPublisherBase {
     private readonly ILanguageServerFacade languageServer;
 
-    public LspTelemetryPublisher(ILanguageServerFacade languageServer, ILogger<LspTelemetryPublisher> logger) 
-      : base(logger) 
-    {
+    public LspTelemetryPublisher(ILanguageServerFacade languageServer, ILogger<LspTelemetryPublisher> logger)
+      : base(logger) {
       this.languageServer = languageServer;
     }
 
