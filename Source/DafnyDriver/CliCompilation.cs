@@ -11,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using VC;
 
 namespace DafnyDriver.Commands;
 
@@ -128,6 +129,7 @@ public class CliCompilation {
         foreach (var part in canVerifyPartsIdentified.Parts) {
           canVerifyResult.Tasks.Add(part);
         }
+
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.SetResult();
         }
@@ -141,26 +143,25 @@ public class CliCompilation {
           if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
             canVerifyResult.Finished.SetResult();
           }
-        }
-        if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
-          switch (batchCompleted.VcResult.outcome) {
-            case ProverInterface.Outcome.Valid:
-            case ProverInterface.Outcome.Bounded:
+
+          switch (completed.Result.Outcome) {
+            case ConditionGeneration.Outcome.Correct:
+            case ConditionGeneration.Outcome.ReachedBound:
               Interlocked.Increment(ref statSum.VerifiedCount);
               break;
-            case ProverInterface.Outcome.Invalid:
-              Interlocked.Add(ref statSum.ErrorCount, batchCompleted.VcResult.counterExamples.Count);
+            case ConditionGeneration.Outcome.Errors:
+              Interlocked.Add(ref statSum.ErrorCount, completed.Result.Errors.Count);
               break;
-            case ProverInterface.Outcome.TimeOut:
+            case ConditionGeneration.Outcome.TimedOut:
               Interlocked.Increment(ref statSum.TimeoutCount);
               break;
-            case ProverInterface.Outcome.OutOfMemory:
+            case ConditionGeneration.Outcome.OutOfMemory:
               Interlocked.Increment(ref statSum.OutOfMemoryCount);
               break;
-            case ProverInterface.Outcome.OutOfResource:
+            case ConditionGeneration.Outcome.OutOfResource:
               Interlocked.Increment(ref statSum.OutOfResourceCount);
               break;
-            case ProverInterface.Outcome.Undetermined:
+            case ConditionGeneration.Outcome.Inconclusive:
               Interlocked.Increment(ref statSum.InconclusiveCount);
               break;
             default:
@@ -172,24 +173,24 @@ public class CliCompilation {
 
     var canVerifies = resolution.CanVerifies?.ToList();
 
-    if (canVerifies != null) {
-      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
-        canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
-        await Compilation.VerifyCanVerify(canVerify, false);
-      }
+        if (canVerifies != null) {
+          var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+          foreach (var canVerify in orderedCanVerifies) {
+            canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
+            await Compilation.VerifyCanVerify(canVerify, false);
+          }
 
-      foreach (var canVerify in orderedCanVerifies) {
-        var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
-        await results.Finished.Task;
-        foreach (var (task, completed) in results.CompletedParts.
-                   OrderBy(t => t.Item1.Implementation.Name)) {
-          foreach (var vcResult in completed.Result.VCResults) {
-            Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
+          foreach (var canVerify in orderedCanVerifies) {
+            var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
+            await results.Finished.Task;
+            foreach (var (task, completed) in results.CompletedParts.
+                       OrderBy(t => t.Item1.Implementation.Name)) {
+              foreach (var vcResult in completed.Result.VCResults) {
+                Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
+              }
+            }
           }
         }
-      }
-    }
-    LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+        LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
   }
 }
