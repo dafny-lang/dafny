@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishTelemetry(TelemetryEventKind.UpdateComplete, null);
     }
 
-    public override void PublishUnhandledException(Exception e) {
+    public void PublishUnhandledException(Exception e) {
       logger.LogError(e, "exception occurred");
       PublishTelemetry(ImmutableDictionary.Create<string, object>().
         Add("kind", TelemetryPublisherBase.TelemetryEventKind.UnhandledException).
