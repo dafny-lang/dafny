@@ -17,7 +17,7 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
   IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeVerificationResult(VerificationPreparationState PreparationProgress, IReadOnlyDictionary<string, IdeImplementationView> Implementations);
+public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeImplementationView> Implementations);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -25,58 +25,77 @@ public record IdeVerificationResult(VerificationPreparationState PreparationProg
 /// </summary>
 public record IdeState(
   int Version,
-  Compilation Compilation,
+  ISet<Uri> OwnedUris,
+  CompilationInput Input,
+  CompilationStatus Status,
   Node Program,
-  IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> ResolutionDiagnostics,
+  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
+  Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> VerificationResults,
+  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
-  IReadOnlyDictionary<Uri, DocumentVerificationTree> VerificationTrees
+  ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
+  public Uri Uri => Input.Uri.ToUri();
 
-  public IdeState Migrate(Migrator migrator, int version) {
-    var migratedVerificationTrees = VerificationTrees.ToDictionary(
+  public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
+    return diagnostics.Select(diagnostic => diagnostic with {
+      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
+        ? diagnostic.Message
+        : OutdatedPrefix + diagnostic.Message
+    });
+  }
+
+  public const string OutdatedPrefix = "Outdated: ";
+
+  public IdeState Migrate(DafnyOptions options, Migrator migrator, int newVersion, bool clientSide) {
+    var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
 
+    var verificationResults = clientSide
+      ? VerificationResults
+      : MigrateImplementationViews(migrator, VerificationResults);
     return this with {
-      Version = version,
-      VerificationResults = MigrateImplementationViews(migrator, VerificationResults),
-      SignatureAndCompletionTable = Compilation.Options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
-        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(Compilation.Options, Compilation.Project),
+      Version = newVersion,
+      Status = CompilationStatus.Parsing,
+      VerificationResults = verificationResults,
+      SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
+        ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }
 
-  private ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
+  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
     Migrator migrator,
-    ImmutableDictionary<Uri, Dictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
     if (previous == null) {
       return oldVerificationDiagnostics;
     }
-    var result = new Dictionary<Range, IdeVerificationResult>();
+    var result = ImmutableDictionary<Range, IdeVerificationResult>.Empty;
     foreach (var entry in previous) {
       var newOuterRange = migrator.MigrateRange(entry.Key);
       if (newOuterRange == null) {
         continue;
       }
 
-      var newValue = new Dictionary<string, IdeImplementationView>();
+      var newValue = ImmutableDictionary<string, IdeImplementationView>.Empty;
       foreach (var innerEntry in entry.Value.Implementations) {
         var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
         if (newInnerRange != null) {
-          newValue.Add(innerEntry.Key, innerEntry.Value with {
+          newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
             Range = newInnerRange,
             Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
           });
         }
       }
 
-      result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);
@@ -92,7 +111,7 @@ public record IdeState(
   }
 
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
-    var resolutionDiagnostics = ResolutionDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
+    var resolutionDiagnostics = StaticDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
       return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
     });
@@ -120,7 +139,7 @@ public record IdeState(
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
-    return ResolutionDiagnostics.Keys.Concat(VerificationResults.Keys);
+    return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 }
 

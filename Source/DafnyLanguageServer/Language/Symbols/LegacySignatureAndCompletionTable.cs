@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
       var outerModule = new DefaultModuleDefinition();
-      var errorReporter = new DiagnosticErrorReporter(options, uri);
+      var errorReporter = new ObservableErrorReporter(options, uri);
       var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
 
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       var emptyProgram = new Program(
                            uri.ToString(),
-        new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
+        new LiteralModuleDecl(options, outerModule, null, Guid.NewGuid()),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         manager,
         errorReporter, compilation

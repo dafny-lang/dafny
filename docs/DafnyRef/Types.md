@@ -49,7 +49,7 @@ Dafny supports both reference types that contain the special `null` value
 
 A _Named Type_ is used to specify a user-defined type by a (possibly module- or class-qualified) name.
 Named types are introduced by
-class, trait, inductive, coinductive, synonym and opaque
+class, trait, inductive, coinductive, synonym and abstract
 type declarations. They are also used to refer to type variables.
 A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
@@ -1430,7 +1430,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.
 If the `= G` is omitted then the declaration just declares a name as an uninterpreted
-_opaque_ type, as described in [Section 5.6.2](#sec-abstract-types).  Such types may be
+_abstract_ type, as described in [Section 5.6.2](#sec-abstract-types).  Such types may be
 given a definition elsewhere in the Dafny program.
 
   Here, `T` is a

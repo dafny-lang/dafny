@@ -99,6 +99,9 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
       }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
+      }
 
       if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
         EmitCoverageReportInstrumentation(program, wr);
@@ -3390,7 +3393,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (Options.Compile || Options.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+      if (Options.Compile || Options.Get(RunAllTestsMainMethod.IncludeTestRunner) || !Attributes.Contains(decl.Attributes, "test")) {
         return;
       }
 

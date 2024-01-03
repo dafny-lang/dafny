@@ -21,15 +21,12 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneExpr(Expression expr, ref OldExpr/*?*/ enclosingOldContext) {
-      var e = expr as ComprehensionExpr;
-
       // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
-      if (e != null && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
-        if (e is SetComprehension || e is MapComprehension) {
+      if (expr is ComprehensionExpr e && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
+        if (e is SetComprehension or MapComprehension) {
           quantifiers.Add(e);
           quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(e, 1), reporter));
-        } else if (e is ForallExpr || e is ExistsExpr) {
-          var quantifier = e as QuantifierExpr;
+        } else if (e is QuantifierExpr quantifier) {
           quantifiers.Add(quantifier);
           if (quantifier.SplitQuantifier != null) {
             var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
@@ -41,8 +38,8 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      if (expr is OldExpr) {
-        enclosingOldContext = (OldExpr)expr;
+      if (expr is OldExpr oldExpr) {
+        enclosingOldContext = oldExpr;
       } else if (enclosingOldContext != null) { // FIXME be more restrctive on the type of stuff that we annotate
         // Add the association (expr, oldContext) to exprsInOldContext. However, due to chaining expressions,
         // expr may already be a key in exprsInOldContext.

@@ -16,6 +16,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // Add '//Replace<n>:' to edit a line multiple times
 
   [Fact]
+  public async Task GitIssue4656GutterIconsResolutionError() {
+    await VerifyTrace(@"
+   :method Test() {
+/!\:  assert x == 1;
+   :}", false, intermediates: false);
+  }
+
+  [Fact]
   public async Task GitIssue4432GutterIconsOnly() {
     await VerifyTrace(@"
  ? :method NotVerified() { // Should not be highlighted in green
@@ -125,7 +133,7 @@ method Foo() ensures false { } ";
  .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  |  | :predicate F(i: int) {

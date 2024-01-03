@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyCore.Test\DafnyCore.Test.csproj" />
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
+    <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -122,6 +123,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Synchronization\TestFiles\ProofDependencies\dfyconfig.toml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Formatting\TestFiles\empty.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = BlueX | WhiteX | PastelX

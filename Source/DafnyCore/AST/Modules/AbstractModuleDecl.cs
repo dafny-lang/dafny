@@ -20,9 +20,9 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
     QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
-  public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name,
+  public AbstractModuleDecl(DafnyOptions options, RangeToken rangeToken, ModuleQualifiedId qid, Name name,
     ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
-    : base(rangeToken, name, parent, opened, false, cloneId) {
+    : base(options, rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
