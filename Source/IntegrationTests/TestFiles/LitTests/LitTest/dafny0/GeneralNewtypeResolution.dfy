@@ -192,3 +192,51 @@ module DiscoverBounds {
     assert forall x :: x in s ==> x == true;
   }
 }
+
+module Char {
+  newtype MyChar = char
+  newtype UpperCase = ch | 'A' <= ch <= 'Z' witness 'D'
+
+  method Comparisons() returns (c: MyChar, u: UpperCase, r: bool) {
+    c := 'e';
+    u := 'E';
+
+    r := c == c;
+    r := u != u;
+    r := c == u; // error: types don't match
+
+    r := c < c;
+    r := c <= c;
+    r := c >= c;
+    r := c > c;
+
+    r := u <= u <= u;
+    r := u < c; // error: types don't match
+    r := u <= c; // error: types don't match
+    r := u >= c; // error: types don't match
+    r := u > c; // error: types don't match
+
+    if c == 'f' && u == 'D' {
+      r := true;
+    }
+  }
+
+  method PlusMinus(c: MyChar, u: UpperCase, ch: char) {
+    var d := c - c + c;
+    var v := u - 'A' + 'd';
+
+    var e0 := c + u; // error: types don't match
+    var e1 := ch + c; // error: types don't match
+
+    var d := c as char - c as char + c as char;
+    var A: char := 'A';
+    var v := u - A as UpperCase + 'd' as MyChar as UpperCase;
+
+    var x: int;
+    x := ch as int;
+    x := c as char as int;
+    x := u as char as int;
+    x := c as int; // error: cannot go directly from char-newtype to int
+    x := u as int; // error: cannot go directly from char-newtype to int
+  }
+}

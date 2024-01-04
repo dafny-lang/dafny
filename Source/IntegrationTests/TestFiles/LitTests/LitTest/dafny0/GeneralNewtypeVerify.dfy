@@ -212,3 +212,42 @@ module NewtypesAreDistinctFromBaseType {
     }
   }
 }
+
+module Char {
+  newtype MyChar = char
+  newtype UpperCase = ch | 'A' <= ch <= 'Z' witness 'D'
+
+  method Comparisons() returns (c: MyChar, u: UpperCase, r: bool) {
+    c := 'e';
+    u := 'E';
+
+    assert c == c;
+    assert !(u != u);
+
+    r := c < c;
+    assert !r;
+    r := c <= c;
+    assert r;
+    r := c >= c;
+    assert r;
+    r := c > c;
+    assert !r;
+
+    r := u <= u <= u;
+    assert r;
+
+    if c == 'f' && u == 'D' {
+      assert false;
+    }
+  }
+
+  method MyString(s: seq<UpperCase>) {
+    if s != [] {
+      var ch := s[|s| / 2];
+      var diff := ch - 'A' + 'A'; // error: result of '-' is not an UpperCase
+      var charDiff := ch as char - 'A' + 'B';
+      assert ch == 'Z' || (charDiff as UpperCase > ch);
+      assert charDiff as int == ch as char as int + 1;
+    }
+  }
+}

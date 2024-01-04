@@ -3896,8 +3896,8 @@ namespace Microsoft.Dafny {
     public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type leftOperandType, Type operandType) {
       Contract.Requires(leftOperandType != null);
       Contract.Requires(operandType != null);
-      leftOperandType = leftOperandType.NormalizeExpand();
-      operandType = operandType.NormalizeExpand();
+      leftOperandType = leftOperandType.NormalizeToAncestorType();
+      operandType = operandType.NormalizeToAncestorType();
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;
         case BinaryExpr.Opcode.Imp: return BinaryExpr.ResolvedOpcode.Imp;

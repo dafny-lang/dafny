@@ -1029,8 +1029,8 @@ public partial class BoogieGenerator {
     Contract.Requires(r != null);
     Contract.Requires(fromType != null);
     Contract.Requires(toType != null);
-    toType = toType.NormalizeExpand();
-    fromType = fromType.NormalizeExpand();
+    toType = toType.NormalizeToAncestorType();
+    fromType = fromType.NormalizeToAncestorType();
     if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
       if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // do nothing
