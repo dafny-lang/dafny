@@ -1591,6 +1591,12 @@ module {:extern "DCOMP"} DCOMP {
 
           match op {
             case Implies() => {
+              if !leftErased {
+                left := "::dafny_runtime::DafnyErasable::erase_owned(" + left + ")";
+              }
+              if !rightErased {
+                right := "::dafny_runtime::DafnyErasable::erase_owned(" + right + ")";
+              }
               s := "!(" + left + ") || " + right;
             }
             case In() => {

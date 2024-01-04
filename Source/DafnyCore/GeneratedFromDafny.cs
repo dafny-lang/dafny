@@ -15340,6 +15340,12 @@ namespace DCOMP {
             }
           } else if (_source72.is_Implies) {
             {
+              if (!(_2295_leftErased)) {
+                _2293_left = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyErasable::erase_owned("), _2293_left), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+              }
+              if (!(_2299_rightErased)) {
+                _2297_right = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyErasable::erase_owned("), _2297_right), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+              }
               s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!("), _2293_left), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(") || ")), _2297_right);
             }
           } else if (_source72.is_In) {
@@ -17385,7 +17391,7 @@ namespace DCOMP {
                 goto after__ASSIGN_SUCH_THAT_1;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 1933)");
+            throw new System.Exception("assign-such-that search produced no value (line 1939)");
           after__ASSIGN_SUCH_THAT_1:;
             if ((!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_2912_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) {
