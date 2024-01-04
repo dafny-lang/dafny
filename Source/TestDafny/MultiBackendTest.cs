@@ -265,7 +265,7 @@ public class MultiBackendTest {
         var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
         if (File.Exists(expectFileForVerifier)) {
           if (DiffCommand.UpdateExpectFile) {
-            var path = Path.GetFullPath(expectFileForVerifier);
+            var path = Path.GetFullPath(expectFileForVerifier).Replace("bin/Debug/net6.0/", "");
             File.WriteAllText(path, actualOutput);
           }
 

@@ -20,6 +20,11 @@ public static class VerifyCommand {
       if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         options.TrackVerificationCoverage = true;
       }
+
+      if (options.Get(CommonOptionBag.VerificationLogFormat).Any()) {
+        // Log-format is not yet supported by CliCompilation
+        return await LegacyCliCompilation.Run(options);
+      }
       var compilation = CliCompilation.Create(options);
       compilation.Start();
       await compilation.VerifyAllAndPrintSummary();

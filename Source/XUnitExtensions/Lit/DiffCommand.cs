@@ -33,7 +33,7 @@ namespace XUnitExtensions.Lit {
       TextWriter outputWriter, TextWriter errorWriter) {
       var actual = File.ReadAllText(ActualPath);
       if (UpdateExpectFile) {
-        var path = Path.GetFullPath(ExpectedPath);
+        var path = Path.GetFullPath(ExpectedPath).Replace("bin/Debug/net6.0/", "");
         File.WriteAllText(path, actual);
         return (0, "", "");
       }
