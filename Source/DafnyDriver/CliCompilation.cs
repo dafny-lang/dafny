@@ -124,11 +124,11 @@ public class CliCompilation {
     var statSum = new PipelineStatistics();
     // Using Token here instead of FilePosition, because refinement causes duplicate FilePositions for different tokens,
     // And then tests liker Predicates.dfy fail
-    var canVerifyResults = new Dictionary<IToken, CliCanVerifyResults>();
+    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
-        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok];
+        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
         foreach (var part in canVerifyPartsIdentified.Parts) {
           canVerifyResult.Tasks.Add(part);
         }
@@ -140,8 +140,7 @@ public class CliCompilation {
 
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
-          var dafnyToken = BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok);
-          var canVerifyResult = canVerifyResults[dafnyToken];
+          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
           canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
 
           switch (completed.Result.Outcome) {
@@ -186,12 +185,12 @@ public class CliCompilation {
       if (canVerifies != null) {
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
-          canVerifyResults[canVerify.Tok] = new CliCanVerifyResults();
+          canVerifyResults[canVerify] = new CliCanVerifyResults();
           await Compilation.VerifyCanVerify(canVerify, false);
         }
 
         foreach (var canVerify in orderedCanVerifies) {
-          var results = canVerifyResults[canVerify.Tok];
+          var results = canVerifyResults[canVerify];
           await results.Finished.Task;
           foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
             foreach (var vcResult in completed.Result.VCResults) {
