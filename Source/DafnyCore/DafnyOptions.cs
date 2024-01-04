@@ -205,11 +205,6 @@ namespace Microsoft.Dafny {
       Printer.Options = this;
     }
 
-    public DafnyConsolePrinter Printer {
-      get => (DafnyConsolePrinter)base.Printer;
-      set => base.Printer = value;
-    }
-
     public override string VersionNumber {
       get {
         return System.Diagnostics.FileVersionInfo

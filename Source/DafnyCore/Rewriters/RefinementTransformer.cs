@@ -26,10 +26,6 @@ namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper {
     public readonly ModuleDefinition InheritingModule;
 
-    public override string ToString() {
-      return $"Refinement of {WrappedToken} by {InheritingModule.Name}";
-    }
-
     public RefinementToken(IToken tok, ModuleDefinition m)
       : base(tok) {
       Contract.Requires(tok != null);
