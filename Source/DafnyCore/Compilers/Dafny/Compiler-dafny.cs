@@ -1361,6 +1361,8 @@ namespace Microsoft.Dafny.Compilers {
       ResolvedType resolvedType;
       if (topLevel is NewtypeDecl newType) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
+      } else if (topLevel is SubsetTypeDecl subsetType) {
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else if (topLevel is TypeSynonymDecl typeSynonym) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else if (topLevel is TraitDecl) {
@@ -1373,8 +1375,6 @@ namespace Microsoft.Dafny.Compilers {
       } else if (topLevel is ClassDecl) {
         // TODO(shadaj): have a separate type when we properly support classes
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
-      } else if (topLevel is SubsetTypeDecl subsetType) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else {
         throw new InvalidOperationException(topLevel.GetType().ToString());
       }
@@ -1401,8 +1401,7 @@ namespace Microsoft.Dafny.Compilers {
           topLevelType = rhs;
           if (rhs is UserDefinedType udt) {
             if (topLevelType != null) {
-              throwGeneralUnsupported(); // Warning: internal invariant error
-              //topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
+              topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
             } else {
               topLevelType = udt;
             }
