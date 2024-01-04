@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -44,6 +45,16 @@ public class PythonBackend : ExecutableBackend {
     }
     rd.Close();
     return Path.GetExtension(externFilename) == ".py" ? Path.GetFileNameWithoutExtension(externFilename) : null;
+  }
+
+  private static readonly Dictionary<OSPlatform, string> PlatformDefaults = new() {
+    {OSPlatform.Linux, "python3"},
+    {OSPlatform.Windows, "python"},
+    {OSPlatform.FreeBSD, "python3"},
+    {OSPlatform.OSX, "python3"},
+  };
+  private static string DefaultPythonCommand {
+    get => PlatformDefaults.Single(kv => RuntimeInformation.IsOSPlatform(kv.Key)).Value;
   }
 
   bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -88,7 +99,7 @@ public class PythonBackend : ExecutableBackend {
       }
     }
     if (!runAfterCompile) {
-      var psi = PrepareProcessStartInfo("python3");
+      var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
       return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
     }
@@ -99,7 +110,7 @@ public class PythonBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-    var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
     return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
