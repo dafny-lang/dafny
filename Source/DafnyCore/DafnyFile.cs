@@ -32,11 +32,11 @@ public class DafnyFile {
   }
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, IToken origin) {
+    DafnyOptions options, Uri uri, IToken origin, string errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
-      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin);
+      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
       if (result != null) {
         result.Uri = uri;
       }
@@ -143,6 +143,9 @@ public class DafnyFile {
       }
       getContent = () => new StringReader(sourceText);
     } else {
+      if (errorOnNotRecognized != null) {
+        reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
+      }
       return null;
     }
 

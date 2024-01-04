@@ -133,12 +133,12 @@ public class Compilation : IDisposable {
     }
 
     foreach (var uri in Options.CliRootSourceUris) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli);
+      var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
+        $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).");
       if (file != null) {
         result.Add(file);
       } else {
-        var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-        errorReporter.Error(MessageSource.Project, Token.Cli, $"Command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).");
         return result;
       }
     }

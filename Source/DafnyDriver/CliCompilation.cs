@@ -181,7 +181,7 @@ public class CliCompilation {
         return;
       }
 
-      var canVerifies = resolution.CanVerifies?.ToList();
+      var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
       if (canVerifies != null) {
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
