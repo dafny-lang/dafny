@@ -23,7 +23,7 @@ public static class InliningTranslator {
   public static bool TranslateForFutureInlining(Program dafnyProgram, DafnyOptions options, out Microsoft.Boogie.Program boogieProgram) {
     boogieProgram = null;
     // Substitute all :testInline-annotated functions with function-by-methods and remove all opaque attributes
-    new AddByMethodRewriter(new ConsoleErrorReporter(options), ShouldProcessForInlining).PreResolve(dafnyProgram);
+    new AddByMethodRewriter(new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer), ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Remove short-circuiting expressions from method and byMethod bodies
     new RemoveShortCircuitingRewriter(ShouldProcessForInlining).PreResolve(dafnyProgram);
     // Resolve the program (in particular, resolve all function calls)
@@ -34,7 +34,7 @@ public static class InliningTranslator {
     // Change by-method function calls to method calls
     new FunctionCallToMethodCallRewriter(ShouldProcessForInlining).PostResolve(dafnyProgram);
     // Separate by-method methods into standalone methods so that translator adds Call$$ procedures for them
-    new SeparateByMethodRewriter(new ConsoleErrorReporter(options)).PostResolve(dafnyProgram);
+    new SeparateByMethodRewriter(new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer)).PostResolve(dafnyProgram);
     // Translate Dafny to Boogie. 
     var boogiePrograms = Utils.Translate(dafnyProgram);
     if (dafnyProgram.Reporter.HasErrors) {

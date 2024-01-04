@@ -45,7 +45,7 @@ public class FirstPass {
   /// i.e. if there are any errors or if there are warnings and the --ignore-warnings flag is not used
   /// </summary>
   public bool IsOk(string source, Uri uri) {
-    var errorReporter = new ConsoleErrorReporter(options);
+    var errorReporter = new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer);
     var program = Utils.Parse(errorReporter, source, true, uri);
     diagnostics = new();
     if (errorReporter.HasErrors) {

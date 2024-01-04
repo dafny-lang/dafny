@@ -34,7 +34,7 @@ public class DooFileTest {
     const string fullFilePath = "untitled:foo";
     var rootUri = new Uri(fullFilePath);
     Microsoft.Dafny.Type.ResetScopes();
-    var errorReporter = new ConsoleErrorReporter(options);
+    var errorReporter = new ConsoleErrorReporter(options, new DafnyConsolePrinter(options));
     var program = new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
     Assert.Equal(0, errorReporter.ErrorCount);
     return program;

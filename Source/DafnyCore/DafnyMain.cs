@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       program = null;
 
       ErrorReporter reporter = options.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
         _ => throw new ArgumentOutOfRangeException()
       };
