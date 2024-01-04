@@ -58,7 +58,7 @@ public abstract class ErrorReporter {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId.ToString(), tok, String.Format(format, args));
+    Error(source, errorId.ToString(), tok, string.Format(format, args));
   }
 
   public void Error(MessageSource source, Enum errorId, IToken tok, string msg) {

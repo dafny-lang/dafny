@@ -79,7 +79,7 @@ namespace Microsoft.Dafny {
         if (ptSuper.Decl is not TraitDecl) {
           var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, constraints);
           var pt = new DPreType(ptSuper.Decl, arguments);
-          constraints.AddEqualityConstraint(sub, pt, tok, ErrorFormatString);
+          constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString);
           return true;
         }
       } else if (ptSub != null) {
