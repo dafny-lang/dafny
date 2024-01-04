@@ -891,13 +891,13 @@ namespace Microsoft.Dafny {
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, "'" + opString + "'");
           Constraints.AddGuardedConstraint(() => {
             // For "Innable x s", if s is known, then:
-            // if s == c<a> or s == c<a, b> where c is a collection type, then a :> x, else error.
+            // if s == c<a> or s == c<a, b> where c is a collection type, then a ~~ x, else error.
             var a0 = e0.PreType.NormalizeWrtScope();
             var a1 = e1.PreType.NormalizeWrtScope();
             var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
-              AddSubtypeConstraint(coll.Arguments[0], a0, tok, "expecting element type to be assignable to {0} (got {1})");
+              AddComparableConstraint(coll.Arguments[0], a0, tok, false, "expecting element type to be assignable to {0} (got {1})");
               return true;
             } else if (a1 is DPreType) {
               // type head is determined and it isn't a collection type
