@@ -12,6 +12,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using VC;
+using IToken = Microsoft.Dafny.IToken;
 
 namespace DafnyDriver.Commands;
 
@@ -121,11 +122,13 @@ public class CliCompilation {
 
   public async Task VerifyAllAndPrintSummary() {
     var statSum = new PipelineStatistics();
-    var canVerifyResults = new Dictionary<FilePosition, CliCanVerifyResults>();
+    // Using Token here instead of FilePosition, because refinement causes duplicate FilePositions for different tokens,
+    // And then tests liker Predicates.dfy fail
+    var canVerifyResults = new Dictionary<IToken, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
-        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok.GetFilePosition()];
+        var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify.Tok];
         foreach (var part in canVerifyPartsIdentified.Parts) {
           canVerifyResult.Tasks.Add(part);
         }
@@ -138,7 +141,7 @@ public class CliCompilation {
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
           var dafnyToken = BoogieGenerator.ToDafnyToken(false, boogieUpdate.ImplementationTask.Implementation.tok);
-          var canVerifyResult = canVerifyResults[dafnyToken.GetFilePosition()];
+          var canVerifyResult = canVerifyResults[dafnyToken];
           canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
 
           switch (completed.Result.Outcome) {
@@ -183,12 +186,12 @@ public class CliCompilation {
       if (canVerifies != null) {
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
-          canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
+          canVerifyResults[canVerify.Tok] = new CliCanVerifyResults();
           await Compilation.VerifyCanVerify(canVerify, false);
         }
 
         foreach (var canVerify in orderedCanVerifies) {
-          var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
+          var results = canVerifyResults[canVerify.Tok];
           await results.Finished.Task;
           foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
             foreach (var vcResult in completed.Result.VCResults) {
