@@ -85,6 +85,11 @@ public class CliCompilation {
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
         consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+      } else if (ev is FinishedParsing finishedParsing) {
+        if (errorCount > 0) {
+          var programName = finishedParsing.Program.Name;
+          options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
+        }
       } else if (ev is FinishedResolution finishedResolution) {
         DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
 
@@ -115,11 +120,6 @@ public class CliCompilation {
   }
 
   public async Task VerifyAllAndPrintSummary() {
-    var resolution = await Compilation.Resolution;
-    if (errorCount > 0) {
-      return;
-    }
-
     var statSum = new PipelineStatistics();
     var canVerifyResults = new Dictionary<FilePosition, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
@@ -172,26 +172,36 @@ public class CliCompilation {
       }
     });
 
-    var canVerifies = resolution.CanVerifies?.ToList();
-
-    if (canVerifies != null) {
-      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-      foreach (var canVerify in orderedCanVerifies) {
-        canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
-        await Compilation.VerifyCanVerify(canVerify, false);
+    try {
+      var resolution = await Compilation.Resolution;
+      if (errorCount > 0) {
+        return;
       }
 
-      foreach (var canVerify in orderedCanVerifies) {
-        var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
-        await results.Finished.Task;
-        foreach (var (task, completed) in results.CompletedParts.
-                   OrderBy(t => t.Item1.Implementation.Name)) {
-          foreach (var vcResult in completed.Result.VCResults) {
-            Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
+      var canVerifies = resolution.CanVerifies?.ToList();
+
+      if (canVerifies != null) {
+        var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+        foreach (var canVerify in orderedCanVerifies) {
+          canVerifyResults[canVerify.Tok.GetFilePosition()] = new CliCanVerifyResults();
+          await Compilation.VerifyCanVerify(canVerify, false);
+        }
+
+        foreach (var canVerify in orderedCanVerifies) {
+          var results = canVerifyResults[canVerify.Tok.GetFilePosition()];
+          await results.Finished.Task;
+          foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
+            foreach (var vcResult in completed.Result.VCResults) {
+              Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
+            }
           }
         }
       }
+
+      LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+
+    } catch (TaskCanceledException) {
+      // TODO add output message that we are not verifying because...?
     }
-    LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
   }
 }

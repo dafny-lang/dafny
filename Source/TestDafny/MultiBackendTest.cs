@@ -264,6 +264,11 @@ public class MultiBackendTest {
       foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
         var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
         if (File.Exists(expectFileForVerifier)) {
+          if (DiffCommand.UpdateExpectFile) {
+            var path = Path.GetFullPath(expectFileForVerifier);
+            File.WriteAllText(path, actualOutput);
+          }
+
           expectedOutput = File.ReadAllText(expectFileForVerifier);
           break;
         }
@@ -272,6 +277,7 @@ public class MultiBackendTest {
         output.WriteLine("Missing expect file: {0}", resolutionOption.ExpectFileSuffixes.Comma(suffix => $"{options.TestFile}{suffix}"));
         return 1;
       }
+
 
       // Compare the output
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput!, actualOutput);

@@ -180,7 +180,8 @@ public class Compilation : IDisposable {
         "no Dafny source files were specified as input");
     }
 
-    return result;
+    // Allow specifying the same file twice on the CLI
+    return result.DistinctBy(d => d.Uri).ToList();
   }
 
   private async Task<Program> ParseAsync() {
