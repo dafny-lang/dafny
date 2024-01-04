@@ -53,9 +53,10 @@ public class PythonBackend : ExecutableBackend {
     {OSPlatform.FreeBSD, "python3"},
     {OSPlatform.OSX, "python3"},
   };
-  private static string DefaultPythonCommand {
-    get => PlatformDefaults.Single(kv => RuntimeInformation.IsOSPlatform(kv.Key)).Value;
-  }
+  private static string DefaultPythonCommand => PlatformDefaults.SingleOrDefault(
+      kv => RuntimeInformation.IsOSPlatform(kv.Key),
+      new(OSPlatform.Linux, "python3")
+    ).Value;
 
   bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
