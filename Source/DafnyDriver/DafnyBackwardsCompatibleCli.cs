@@ -90,7 +90,7 @@ public static class DafnyBackwardsCompatibleCli {
 
           return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
         } catch (ProverException pe) {
-          new DafnyConsolePrinter(dafnyOptions).ErrorWriteLine(dafnyOptions.OutputWriter,
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** ProverException: {0}", pe.Message);
           return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
         }

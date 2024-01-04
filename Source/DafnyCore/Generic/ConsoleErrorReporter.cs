@@ -44,7 +44,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
     if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
       var tw = new StringWriter();
-      new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
+      Options.Printer.WriteSourceCodeSnippet(tok.ToRange(), tw);
       errorLine += tw.ToString();
     }
 
@@ -67,7 +67,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
       if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
         var tw = new StringWriter();
-        new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(innerToken.ToRange(), tw);
+        Options.Printer.WriteSourceCodeSnippet(innerToken.ToRange(), tw);
         errorLine += tw.ToString();
       }
     }
