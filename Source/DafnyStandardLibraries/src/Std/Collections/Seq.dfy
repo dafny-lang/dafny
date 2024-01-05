@@ -948,9 +948,9 @@ module Std.Collections.Seq {
   }
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
+  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires SortedBy(R, xs)
     requires SortedBy(R, ys)
-  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires TotalOrdering(R)
     requires multiset(xs) == multiset(ys)
     ensures xs == ys
