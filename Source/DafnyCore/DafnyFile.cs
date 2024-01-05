@@ -75,7 +75,7 @@ public class DafnyFile {
       baseName = "";
     }
 
-    var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+    var filePathForErrors = options.GetPrintPath(filePath);
     if (getContent != null) {
       isPreverified = false;
       isPrecompiled = false;
@@ -115,7 +115,16 @@ public class DafnyFile {
           return null;
         }
 
-        dooFile = DooFile.Read(filePath);
+        try {
+          dooFile = DooFile.Read(filePath);
+        } catch (InvalidDataException e) {
+          reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
+          return null;
+        } catch (ArgumentException e) {
+          reporter.Error(MessageSource.Project, origin, e.Message);
+          return null;
+        }
+
       }
 
       var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);

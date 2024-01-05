@@ -218,6 +218,10 @@ public static class TokenExtensions {
     if (token is BoogieRangeToken boogieRangeToken) {
       return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
     }
+
+    if (token is NestedToken nestedToken) {
+      return ToRange(nestedToken.Outer);
+    }
     return token as RangeToken ?? new RangeToken(token, token);
   }
 }

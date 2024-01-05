@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reactive.Concurrency;
@@ -208,7 +207,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var result = new DafnyOptions(serverOptions);
 
     foreach (var option in LanguageServer.Options) {
-      var hasProjectFileValue = projectOptions.TryGetValue(option, TextWriter.Null, out var projectFileValue);
+      var hasProjectFileValue = projectOptions.TryGetValue(option, out var projectFileValue);
       if (hasProjectFileValue) {
         result.Options.OptionArguments[option] = projectFileValue;
         result.ApplyBinding(option);

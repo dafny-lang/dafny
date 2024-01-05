@@ -94,10 +94,8 @@ Use '--print' to output the content of the formatted files instead of overwritin
             }
 
             if (doCheck && (!doPrint || options.Verbose)) {
-              await options.OutputWriter.WriteLineAsync("The file " +
-                                                        (options.UseBaseNameForFileName
-                                                          ? Path.GetFileName(dafnyFile.FilePath)
-                                                          : dafnyFile.FilePath) + " needs to be formatted");
+              await options.OutputWriter.WriteLineAsync(
+                $"The file {options.GetPrintPath(dafnyFile.FilePath)} needs to be formatted");
             }
 
             if (!doCheck && !doPrint) {
@@ -110,9 +108,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
             await options.ErrorWriter.WriteLineAsync(dafnyFile.BaseName + " was empty.");
           }
 
-          emptyFiles.Add((options.UseBaseNameForFileName
-            ? Path.GetFileName(dafnyFile.FilePath)
-            : dafnyFile.FilePath));
+          emptyFiles.Add(options.GetPrintPath(dafnyFile.FilePath));
         }
         if (doPrint) {
           await options.OutputWriter.WriteAsync(result);

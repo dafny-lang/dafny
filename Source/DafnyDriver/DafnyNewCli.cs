@@ -121,7 +121,7 @@ public static class DafnyNewCli {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
     object projectFileValue = null;
-    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, dafnyOptions.ErrorWriter, out projectFileValue) ?? false;
+    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, out projectFileValue) ?? false;
     object value;
     if (option.Arity.MaximumNumberOfValues <= 1) {
       // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -193,9 +193,7 @@ public static class DafnyNewCli {
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var filePathForErrors = dafnyOptions.UseBaseNameForFileName
-      ? Path.GetFileName(singleFile.FullName)
-      : singleFile.FullName;
+    var filePathForErrors = dafnyOptions.GetPrintPath(singleFile.FullName);
     var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
     if (isProjectFile) {
       return await ProcessProjectFile(dafnyOptions, singleFile, filePathForErrors);
@@ -207,7 +205,7 @@ public static class DafnyNewCli {
 
   private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors) {
     if (dafnyOptions.DafnyProject != null) {
-      var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
+      var first = dafnyOptions.GetPrintPath(dafnyOptions.DafnyProject.Uri.LocalPath);
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
       return false;
     }

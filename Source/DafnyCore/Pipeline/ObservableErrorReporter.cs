@@ -32,10 +32,11 @@ namespace Microsoft.Dafny {
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
 
+      var usingSnippets = Options.Get(DafnyConsolePrinter.ShowSnippets);
       if (rootTok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message)
+            nestedToken.Inner, nestedToken.Message, usingSnippets)
         );
       }
 

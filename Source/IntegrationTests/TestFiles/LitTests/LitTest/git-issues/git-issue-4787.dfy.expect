@@ -13,7 +13,7 @@ git-issue-4787.dfy(11,2): Error: a postcondition could not be proved on this ret
 11 |   {}
    |   ^
 
-git-issue-4787.dfy(10,12): Related location: This postcondition might not hold: |ToSet(xs)| <= |xs|
+git-issue-4787.dfy(10,12): Related location: this postcondition might not hold: |ToSet(xs)| <= |xs|
    |
 10 |     ensures |ToSet(xs)| <= |xs|
    |             ^^^^^^^^^^^^^^^^^^^

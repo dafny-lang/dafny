@@ -157,8 +157,9 @@ public class Compilation : IDisposable {
       result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
     }
 
-    foreach (var library in Options.Get(CommonOptionBag.Libraries)) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library.FullName), Project.StartingToken);
+    var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
+    foreach (var library in libraryFiles) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
       if (file != null) {
         file.IsPreverified = true;
         file.IsPrecompiled = true;
@@ -187,6 +188,10 @@ public class Compilation : IDisposable {
   private async Task<Program> ParseAsync() {
     try {
       await started.Task;
+      if (HasErrors) {
+        throw new OperationCanceledException();
+      }
+
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
       transformedProgram.HasParseErrors = HasErrors;
 
