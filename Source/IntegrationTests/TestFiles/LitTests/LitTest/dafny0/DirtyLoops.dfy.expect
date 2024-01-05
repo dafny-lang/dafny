@@ -83,6 +83,7 @@ DirtyLoops.dfy(356,13): Error: assertion might not hold
 DirtyLoops.dfy(369,13): Error: assertion might not hold
 DirtyLoops.dfy(380,9): Error: assertion might not hold
 DirtyLoops.dfy(401,18): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
 DirtyLoops.dfy(414,16): Error: target object might be null
 DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modifies clause
 DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause

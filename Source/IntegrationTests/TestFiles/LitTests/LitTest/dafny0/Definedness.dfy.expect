@@ -32,15 +32,18 @@ Definedness.dfy(79,15): Related location
 Definedness.dfy(133,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(133,21): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
 Definedness.dfy(134,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(143,14): Error: possible division by zero
 Definedness.dfy(162,14): Error: possible division by zero
 Definedness.dfy(175,27): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
 Definedness.dfy(181,16): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location
 Definedness.dfy(196,18): Error: possible division by zero
 Definedness.dfy(196,22): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
 Definedness.dfy(196,27): Error: possible division by zero
 Definedness.dfy(215,15): Error: a postcondition could not be proved on this return path
 Definedness.dfy(217,45): Related location: this is the postcondition that could not be proved
