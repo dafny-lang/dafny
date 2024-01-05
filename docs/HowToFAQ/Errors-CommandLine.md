@@ -50,7 +50,7 @@ instance of this error message identifies non-.dfy files that still
 have permitted extensions (according to the target platform) but
 cannot be found in the file system.
     
-## **Error: Command-line argument '--zzz' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).** {#cli_bad_option}
+## **Error: command-line argument '--zzz' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).** {#cli_bad_option}
 
 <!-- %check-cli -->
 ```bash
