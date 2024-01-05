@@ -6,7 +6,7 @@ using ResolvedDesugaredExecutableDafnyPlugin;
 
 namespace Microsoft.Dafny.Compilers;
 
-class ResolvedDesugaredExecutableDafnyCompiler : DafnyWrittenCompiler {
+class ResolvedDesugaredExecutableDafnyCodeGenerator : DafnyWrittenCodeGenerator {
 
   public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
     return COMP.Compile(program);

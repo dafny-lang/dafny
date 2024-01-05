@@ -2,8 +2,8 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny.Compilers;
 
-internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguration {
-  public static readonly InternalCompilersPluginConfiguration Singleton = new();
+internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration {
+  public static readonly InternalBackendsPluginConfiguration Singleton = new();
 
   public override IExecutableBackend[] GetCompilers(DafnyOptions options) {
     return new IExecutableBackend[] {
@@ -12,7 +12,7 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new GoBackend(options),
       new JavaBackend(options),
       new PythonBackend(options),
-      new CppCompilerBackend(options),
+      new CppBackend(options),
       new LibraryBackend(options),
       new RustBackend(options),
       new ResolvedDesugaredExecutableDafnyBackend(options)

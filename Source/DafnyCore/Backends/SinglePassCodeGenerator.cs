@@ -13,8 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using static Microsoft.Dafny.Compilers.CompilerErrors;
-
+using static Microsoft.Dafny.Compilers.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -39,7 +38,7 @@ namespace Microsoft.Dafny.Compilers {
     public abstract string PublicIdProtect(string name);
 
     public static Plugin Plugin =
-      new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
+      new ConfiguredPlugin(InternalBackendsPluginConfiguration.Singleton);
 
     public abstract IReadOnlySet<Feature> UnsupportedFeatures { get; }
 
@@ -96,7 +95,7 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
-      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle);
+      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(GeneratorErrors).TypeHandle);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {

@@ -6,7 +6,7 @@ using DCOMP;
 
 namespace Microsoft.Dafny.Compilers {
 
-  class RustCompiler : DafnyWrittenCompiler {
+  class RustCodeGenerator : DafnyWrittenCodeGenerator {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
       return COMP.Compile(program);

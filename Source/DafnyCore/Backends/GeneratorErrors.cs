@@ -6,7 +6,7 @@ using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class CompilerErrors {
+public class GeneratorErrors {
 
   public enum ErrorId {
     None,
@@ -52,7 +52,7 @@ public class CompilerErrors {
 
   }
 
-  static CompilerErrors() {
+  static GeneratorErrors() {
 
     Add(ErrorId.c_process_exit,
     @"

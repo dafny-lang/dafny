@@ -155,7 +155,7 @@ public class Compilation : IDisposable {
       if (filesMessage.Any()) {
         errorReporter.Info(MessageSource.Parser, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
       } else {
-        errorReporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, Project.StartingToken, "Project references no files");
+        errorReporter.Warning(MessageSource.Parser, GeneratorErrors.ErrorId.None, Project.StartingToken, "Project references no files");
       }
     }
 

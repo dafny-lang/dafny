@@ -17,8 +17,8 @@ public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-ResolvedDesugaredExecutableDafny/src";
 
-  protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
-    return new ResolvedDesugaredExecutableDafnyCompiler();
+  protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
+    return new ResolvedDesugaredExecutableDafnyCodeGenerator();
   }
 
   public ResolvedDesugaredExecutableDafnyBackend(DafnyOptions options) : base(options) {

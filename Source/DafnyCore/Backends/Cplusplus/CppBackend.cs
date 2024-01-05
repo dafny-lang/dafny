@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Dafny.Compilers;
 
-public class CppCompilerBackend : ExecutableBackend {
+public class CppBackend : ExecutableBackend {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return new CppCodeGenerator(Options, Reporter, OtherFileNames);
@@ -67,6 +67,6 @@ and advanced features like traits or co-inductive types.");
 
   public override bool TextualTargetIsExecutable => false;
 
-  public CppCompilerBackend(DafnyOptions options) : base(options) {
+  public CppBackend(DafnyOptions options) : base(options) {
   }
 }

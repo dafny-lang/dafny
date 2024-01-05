@@ -27,8 +27,8 @@ public class RustBackend : DafnyExecutableBackend {
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
-  protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
-    return new RustCompiler();
+  protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
+    return new RustCodeGenerator();
   }
 
   private string ComputeExeName(string targetFilename) {
