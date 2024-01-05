@@ -4,6 +4,7 @@ method Main() {
   Numerics.Test();
   SimpleBoolAndint.Test();
   TrivialConstraint.Test();
+  BaseTypesThatAreSubsetTypes.Test();
 }
 
 module Numerics {
@@ -138,5 +139,31 @@ module TrivialConstraint {
 
   method Operators(b: MyBool) {
     print b == b && !(b != b) && (b <==> b) && (b ==> b) && (!b ==> b) && (b <== b) && (b <== !b) && (b && b) && (b || b), "\n"; // true
+  }
+}
+
+module BaseTypesThatAreSubsetTypes {
+  type X = x: int | true
+  type Y = y: X | true
+
+  newtype A = a: int | true
+  newtype B = b: A | true
+
+  newtype M = m: X | true
+  newtype N = n: Y | true
+
+  method Test() {
+    var w: int := 99;
+
+    var x: X := 100;
+    var y: Y := 101;
+    
+    var a: A := 102;
+    var b: B := 103;
+
+    var m: M := 104;
+    var n: N := 105;
+
+    print w + x + y + a as int + b as int + m as X + n as X, "\n"; // 714
   }
 }
