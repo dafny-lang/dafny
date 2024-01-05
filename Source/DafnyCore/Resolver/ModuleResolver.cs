@@ -1166,6 +1166,25 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
+          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
+            var constraintIsCompilable = true;
+
+            // Check base type
+            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
+            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
+              CheckIfCompilable(baseDecl);
+              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
+            }
+
+            // Check the type's constraint
+            if (declWithConstraint.Constraint != null) {
+              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
+            }
+
+            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
@@ -1177,9 +1196,7 @@ namespace Microsoft.Dafny {
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1193,13 +1210,15 @@ namespace Microsoft.Dafny {
             if (newtypeDecl.Var != null) {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
-              if (newtypeDecl.Witness != null) {
-                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              }
             }
-            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+            CheckIfCompilable(newtypeDecl);
+
+            if (newtypeDecl.Witness != null) {
+              CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+              }
             }
 
             FigureOutNativeType(newtypeDecl);
@@ -1534,8 +1553,11 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+        new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
     }
 
     private void FillInPostConditionsAndBodiesOfPrefixLemmas(List<TopLevelDecl> declarations) {
@@ -1880,11 +1902,13 @@ namespace Microsoft.Dafny {
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
       List<ComprehensionExpr.BoundedPool> bounds;
+      bool constraintConsistsSolelyOfRangeConstraints;
       if (ddVar == null) {
         // There are no bounds at all
         bounds = new List<ComprehensionExpr.BoundedPool>();
+        constraintConsistsSolelyOfRangeConstraints = true;
       } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
       }
 
       // Find which among the allowable native types can hold "dd". Give an
@@ -1934,6 +1958,13 @@ namespace Microsoft.Dafny {
       foreach (var nativeT in bigEnoughNativeTypes) {
         if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
+          if (constraintConsistsSolelyOfRangeConstraints) {
+            dd.NativeTypeRangeImpliesAllConstraints = true;
+          }
+          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
+              lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound) {
+            dd.TargetTypeCoversAllBitPatterns = true;
+          }
           break;
         }
       }
@@ -1942,8 +1973,13 @@ namespace Microsoft.Dafny {
         // one particular native type, in which case that must have been the one picked.
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+          if (dd.TargetTypeCoversAllBitPatterns) {
+            reporter.Info(MessageSource.Resolver, dd.tok,
+              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
+          }
         } else {
           var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
+          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
           reporter.Info(MessageSource.Resolver, dd.tok,
             $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
