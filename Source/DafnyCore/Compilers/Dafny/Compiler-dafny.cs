@@ -262,6 +262,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       if (currentBuilder is NewtypeContainer builder) {
+        var erasedType = EraseNewtypeLayers(nt);
+
         List<DAST.Statement> witnessStmts = new();
         DAST.Expression witness = null;
         if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -269,14 +271,14 @@ namespace Microsoft.Dafny.Compilers {
           var statementBuf = new StatementBuffer();
           EmitExpr(
             nt.Witness, false,
-            EmitCoercionIfNecessary(nt.Witness.Type, nt.BaseType, null, new BuilderSyntaxTree<ExprContainer>(buf)),
+            EmitCoercionIfNecessary(nt.Witness.Type, erasedType, null, new BuilderSyntaxTree<ExprContainer>(buf)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf)
           );
           witness = buf.Finish();
           witnessStmts = statementBuf.PopAll();
         }
 
-        return new ClassWriter(this, false, builder.Newtype(nt.GetCompileName(Options), new(), GenType(nt.BaseType), witnessStmts, witness));
+        return new ClassWriter(this, false, builder.Newtype(nt.GetCompileName(Options), new(), GenType(erasedType), witnessStmts, witness));
       } else {
         throw new InvalidOperationException();
       }
@@ -1207,14 +1209,7 @@ namespace Microsoft.Dafny.Compilers {
             }
             break;
           default:
-            DAST.Type baseType;
-            if (e.Type.AsNewtype != null) {
-              baseType = GenType(e.Type.AsNewtype.BaseType);
-            } else if (e.Type.AsSubsetType != null) {
-              baseType = GenType(e.Type.AsSubsetType.Rhs);
-            } else {
-              baseType = GenType(e.Type);
-            }
+            DAST.Type baseType = GenType(e.Type.NormalizeToAncestorType());
 
             switch (e.Value) {
               case null:
