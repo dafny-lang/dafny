@@ -1388,57 +1388,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {
-      Type topLevelType = null;
-
-      while (true) {
-        if (topLevel is SubsetTypeDecl subsetType) {
-          var rhs = subsetType.Rhs;
-          topLevelType = rhs;
-          if (rhs is UserDefinedType udt) {
-            if (topLevelType != null) {
-              topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
-            } else {
-              topLevelType = udt;
-            }
-
-            topLevel = udt.ResolvedClass;
-          } else {
-            break;
-          }
-        } else if (topLevel is NewtypeDecl newtypeDecl) {
-          var rhs = newtypeDecl.BaseType;
-          topLevelType = rhs;
-          if (rhs is UserDefinedType udt) {
-            if (topLevelType != null) {
-              topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
-            } else {
-              topLevelType = udt;
-            }
-
-            topLevel = udt.ResolvedClass;
-          } else {
-            break;
-          }
-        } else if (topLevel is TypeSynonymDecl synonymDecl) {
-          var rhs = synonymDecl.Rhs;
-          topLevelType = rhs;
-          if (rhs is UserDefinedType udt) {
-            if (topLevelType != null) {
-              topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
-            } else {
-              topLevelType = udt;
-            }
-
-            topLevel = udt.ResolvedClass;
-          } else {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-
-      return topLevelType;
+      var topLevelType = UserDefinedType.FromTopLevelDecl(topLevel.tok, topLevel);
+      return topLevelType.NormalizeToAncestorType();
     }
 
     public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
