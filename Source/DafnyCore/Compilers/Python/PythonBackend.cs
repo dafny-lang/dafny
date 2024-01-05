@@ -28,8 +28,8 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new PythonCompiler(Options, Reporter);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new PythonCodeGenerator(Options, Reporter);
   }
 
   private static readonly Regex ModuleLine = new(@"^\s*#\s*Module:\s+([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)\s*$");

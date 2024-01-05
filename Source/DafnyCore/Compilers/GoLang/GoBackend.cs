@@ -19,8 +19,8 @@ public class GoBackend : ExecutableBackend {
 
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
-  protected override SinglePassCompiler CreateCompiler() {
-    return new GoCompiler(Options, Reporter);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new GoCodeGenerator(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,

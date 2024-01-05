@@ -18,8 +18,8 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  class JavaScriptCompiler : SinglePassCompiler {
-    public JavaScriptCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+  class JavaScriptCodeGenerator : SinglePassCodeGenerator {
+    public JavaScriptCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
     }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
+      var wr = (cw as JavaScriptCodeGenerator.ClassWriter).MethodWriter;
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr) as JavaScriptCodeGenerator.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -646,21 +646,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly JavaScriptCompiler Compiler;
+      public readonly JavaScriptCodeGenerator CodeGenerator;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
 
-      public ClassWriter(JavaScriptCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
-        Contract.Requires(compiler != null);
+      public ClassWriter(JavaScriptCodeGenerator codeGenerator, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
+        Contract.Requires(codeGenerator != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
-        this.Compiler = compiler;
+        this.CodeGenerator = codeGenerator;
         this.MethodWriter = methodWriter;
         this.FieldWriter = fieldWriter;
       }
 
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
+        return CodeGenerator.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -668,16 +668,16 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance, lookasideBody);
+        return CodeGenerator.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance, lookasideBody);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
+        return CodeGenerator.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
+        return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
+        CodeGenerator.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.

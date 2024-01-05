@@ -23,8 +23,8 @@ namespace ExtensionMethods {
 }
 
 namespace Microsoft.Dafny.Compilers {
-  class PythonCompiler : SinglePassCompiler {
-    public PythonCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+  class PythonCodeGenerator : SinglePassCodeGenerator {
+    public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
@@ -416,22 +416,22 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class ClassWriter : IClassWriter {
-      private readonly PythonCompiler Compiler;
+      private readonly PythonCodeGenerator codeGenerator;
       public readonly ConcreteSyntaxTree ConstructorWriter;
       public readonly ConcreteSyntaxTree MethodWriter;
 
-      public ClassWriter(PythonCompiler compiler, ConcreteSyntaxTree constructorWriter, ConcreteSyntaxTree methodWriter) {
-        Contract.Requires(compiler != null);
+      public ClassWriter(PythonCodeGenerator codeGenerator, ConcreteSyntaxTree constructorWriter, ConcreteSyntaxTree methodWriter) {
+        Contract.Requires(codeGenerator != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(constructorWriter != null);
-        Compiler = compiler;
+        this.codeGenerator = codeGenerator;
         ConstructorWriter = constructorWriter;
         MethodWriter = methodWriter;
       }
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
+        return codeGenerator.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -441,23 +441,23 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member,
+        return codeGenerator.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member,
           MethodWriter, forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
+        return codeGenerator.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
 
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, createBody, out setterWriter, methodWriter: MethodWriter);
+        return codeGenerator.CreateGetterSetter(name, createBody, out setterWriter, methodWriter: MethodWriter);
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, ConstructorWriter);
+        codeGenerator.DeclareField(name, isStatic, isConst, type, tok, rhs, ConstructorWriter);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {

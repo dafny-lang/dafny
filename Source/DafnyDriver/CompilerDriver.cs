@@ -651,7 +651,7 @@ namespace Microsoft.Dafny {
 
       var compiler = options.Backend;
 
-      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = SinglePassCodeGenerator.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;

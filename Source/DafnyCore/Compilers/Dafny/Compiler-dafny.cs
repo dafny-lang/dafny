@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.Compilers {
       if (Builder is StatementContainer statementContainer) {
         return new BuilderSyntaxTree<StatementContainer>(statementContainer.Fork());
       } else {
-        DafnyCompiler.throwGeneralUnsupported(); // Warning: this is an invalid operation: cannot fork builder of type Builder.GetType()
+        DafnyCodeGenerator.throwGeneralUnsupported(); // Warning: this is an invalid operation: cannot fork builder of type Builder.GetType()
         throw new InvalidOperationException();
       }
     }
@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class DafnyCompiler : SinglePassCompiler {
+  class DafnyCodeGenerator : SinglePassCodeGenerator {
     ProgramBuilder items;
     public object currentBuilder;
 
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
@@ -378,13 +378,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class ClassWriter : IClassWriter {
-      private readonly DafnyCompiler compiler;
+      private readonly DafnyCodeGenerator codeGenerator;
       private readonly ClassLike builder;
       private readonly bool hasTypeArgs;
       private readonly List<MethodBuilder> methods = new();
 
-      public ClassWriter(DafnyCompiler compiler, bool hasTypeArgs, ClassLike builder) {
-        this.compiler = compiler;
+      public ClassWriter(DafnyCodeGenerator codeGenerator, bool hasTypeArgs, ClassLike builder) {
+        this.codeGenerator = codeGenerator;
         this.hasTypeArgs = hasTypeArgs;
         this.builder = builder;
       }
@@ -401,13 +401,13 @@ namespace Microsoft.Dafny.Compilers {
             throwGeneralUnsupported(); //("Contravariance in type parameters")
           }
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(codeGenerator.IdProtect(typeArg.Formal.GetCompileName(codeGenerator.Options)))));
         }
 
         List<DAST.Formal> params_ = new();
         foreach (var param in m.Ins) {
           if (param is not ImplicitFormal && !param.IsGhost) {
-            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
+            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(codeGenerator.IdProtect(param.CompileName)), codeGenerator.GenType(param.Type)));
           }
         }
 
@@ -415,16 +415,16 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> outTypes = new();
         foreach (var outVar in m.Outs) {
           if (!outVar.IsGhost) {
-            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.CompileName)));
-            outTypes.Add(compiler.GenType(outVar.Type));
+            outVars.Add(Sequence<Rune>.UnicodeFromString(codeGenerator.IdProtect(outVar.CompileName)));
+            outTypes.Add(codeGenerator.GenType(outVar.Type));
           }
         }
 
         var overridingTrait = m.OverriddenMethod?.EnclosingClass;
         var builder = this.builder.Method(
           m.IsStatic, createBody,
-          overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
-          m.GetCompileName(compiler.Options),
+          overridingTrait != null ? codeGenerator.PathFromTopLevel(overridingTrait) : null,
+          m.GetCompileName(codeGenerator.Options),
           astTypeArgs, params_,
           outTypes, outVars
         );
@@ -455,13 +455,13 @@ namespace Microsoft.Dafny.Compilers {
             throwGeneralUnsupported(); //("Contravariance in type parameters");
           }
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(codeGenerator.IdProtect(typeArg.Formal.GetCompileName(codeGenerator.Options)))));
         }
 
         List<DAST.Formal> params_ = new();
         foreach (var param in formals) {
           if (!param.IsGhost) {
-            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
+            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(codeGenerator.IdProtect(param.CompileName)), codeGenerator.GenType(param.Type)));
           }
         }
 
@@ -469,11 +469,11 @@ namespace Microsoft.Dafny.Compilers {
 
         var builder = this.builder.Method(
           isStatic, createBody,
-          overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          overridingTrait != null ? codeGenerator.PathFromTopLevel(overridingTrait) : null,
           name,
           astTypeArgs, params_,
           new() {
-            compiler.GenType(resultType)
+            codeGenerator.GenType(resultType)
           }, null
         );
         methods.Add(builder);
@@ -495,11 +495,11 @@ namespace Microsoft.Dafny.Compilers {
 
         var builder = this.builder.Method(
           isStatic, createBody,
-          overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          overridingTrait != null ? codeGenerator.PathFromTopLevel(overridingTrait) : null,
           name,
           new(), new(),
           new() {
-            compiler.GenType(resultType)
+            codeGenerator.GenType(resultType)
           }, null
         );
         methods.Add(builder);
@@ -521,8 +521,8 @@ namespace Microsoft.Dafny.Compilers {
           IToken tok, string rhs, Field field) {
         _IOptional<DAST._IExpression> rhsExpr = null;
         if (rhs != null) {
-          rhsExpr = compiler.bufferedInitializationValue;
-          compiler.bufferedInitializationValue = null;
+          rhsExpr = codeGenerator.bufferedInitializationValue;
+          codeGenerator.bufferedInitializationValue = null;
 
           if (rhsExpr == null) {
             throw new InvalidOperationException();
@@ -533,7 +533,7 @@ namespace Microsoft.Dafny.Compilers {
 
         builder.AddField((DAST.Formal)DAST.Formal.create_Formal(
           Sequence<Rune>.UnicodeFromString(name),
-          compiler.GenType(type)
+          codeGenerator.GenType(type)
         ), rhsExpr);
       }
 
@@ -548,7 +548,7 @@ namespace Microsoft.Dafny.Compilers {
           builder.AddMethod(method.Build());
         }
 
-        compiler.currentBuilder = builder.Finish();
+        codeGenerator.currentBuilder = builder.Finish();
       }
     }
 

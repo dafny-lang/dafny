@@ -23,8 +23,8 @@ public class JavaScriptBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string>(new List<string> { "number" });
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new JavaScriptCompiler(Options, Reporter);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new JavaScriptCodeGenerator(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -68,7 +68,7 @@ public class JavaScriptBackend : ExecutableBackend {
       nodeProcess.StandardInput.Write(targetProgramText);
       if (callToMain != null && Options.RunAfterCompile) {
         nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
+        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCodeGenerator)codeGenerator).ToStringLiteral)) + "];");
         nodeProcess.StandardInput.Write(callToMain);
       }
       nodeProcess.StandardInput.Flush();

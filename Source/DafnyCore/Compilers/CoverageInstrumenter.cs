@@ -6,18 +6,18 @@ using System.Linq;
 namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
-  private readonly SinglePassCompiler compiler;
+  private readonly SinglePassCodeGenerator codeGenerator;
   private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
   private string talliesFilePath;
 
-  public CoverageInstrumenter(SinglePassCompiler compiler) {
-    this.compiler = compiler;
-    if (compiler.Options?.CoverageLegendFile != null
-        || compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+  public CoverageInstrumenter(SinglePassCodeGenerator codeGenerator) {
+    this.codeGenerator = codeGenerator;
+    if (codeGenerator.Options?.CoverageLegendFile != null
+        || codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
       legend = new List<(IToken, string)>();
     }
 
-    if (compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+    if (codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
       talliesFilePath = Path.GetTempFileName();
     }
   }
@@ -32,7 +32,7 @@ public class CoverageInstrumenter {
     Contract.Requires(wr != null || !IsRecording);
     if (legend != null) {
       wr.Write("DafnyProfiling.CodeCoverage.Record({0})", legend.Count);
-      compiler.EndStmt(wr);
+      codeGenerator.EndStmt(wr);
       legend.Add((tok, description));
     }
   }
@@ -67,7 +67,7 @@ public class CoverageInstrumenter {
         wr.Write($", @\"{talliesFilePath}\"");
       }
       wr.Write(")");
-      compiler.EndStmt(wr);
+      codeGenerator.EndStmt(wr);
     }
   }
 
@@ -75,19 +75,19 @@ public class CoverageInstrumenter {
     Contract.Requires(wr != null);
     if (legend != null) {
       wr.Write("DafnyProfiling.CodeCoverage.TearDown()");
-      compiler.EndStmt(wr);
+      codeGenerator.EndStmt(wr);
     }
   }
 
   public void WriteLegendFile() {
-    if (compiler.Options?.CoverageLegendFile != null) {
-      var filename = compiler.Options.CoverageLegendFile;
+    if (codeGenerator.Options?.CoverageLegendFile != null) {
+      var filename = codeGenerator.Options.CoverageLegendFile;
       Contract.Assert(filename != null);
-      TextWriter wr = filename == "-" ? compiler.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
+      TextWriter wr = filename == "-" ? codeGenerator.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
       {
         for (var i = 0; i < legend.Count; i++) {
           var e = legend[i];
-          wr.WriteLine($"{i}: {e.Item1.TokenToString(compiler.Options)}: {e.Item2}");
+          wr.WriteLine($"{i}: {e.Item1.TokenToString(codeGenerator.Options)}: {e.Item2}");
         }
       }
       legend = null;
@@ -95,7 +95,7 @@ public class CoverageInstrumenter {
   }
 
   public void PopulateCoverageReport(CoverageReport coverageReport) {
-    var coverageReportDir = compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport);
+    var coverageReportDir = codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport);
     if (coverageReportDir != null) {
       var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
       foreach (var ((token, _), tally) in legend.Zip(tallies)) {

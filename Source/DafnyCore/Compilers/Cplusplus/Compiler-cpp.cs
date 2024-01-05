@@ -15,11 +15,11 @@ using System.IO;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
-  class CppCompiler : SinglePassCompiler {
+  class CppCodeGenerator : SinglePassCodeGenerator {
 
     private readonly ReadOnlyCollection<string> headers;
 
-    public CppCompiler(DafnyOptions options, ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(options, reporter) {
+    public CppCodeGenerator(DafnyOptions options, ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(options, reporter) {
       this.headers = headers;
     }
 
@@ -706,19 +706,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected class ClassWriter : IClassWriter {
       public string ClassName;
-      public readonly CppCompiler Compiler;
+      public readonly CppCodeGenerator CodeGenerator;
       public readonly ConcreteSyntaxTree MethodDeclWriter;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
       public readonly ConcreteSyntaxTree Finisher;
 
-      public ClassWriter(string className, CppCompiler compiler, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
-        Contract.Requires(compiler != null);
+      public ClassWriter(string className, CppCodeGenerator codeGenerator, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
+        Contract.Requires(codeGenerator != null);
         Contract.Requires(methodDeclWriter != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
         this.ClassName = className;
-        this.Compiler = compiler;
+        this.CodeGenerator = codeGenerator;
         this.MethodDeclWriter = methodDeclWriter;
         this.MethodWriter = methodWriter;
         this.FieldWriter = fieldWriter;
@@ -726,7 +726,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
+        return CodeGenerator.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
@@ -735,18 +735,18 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs,
         List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateFunction(member.EnclosingClass.GetCompileName(Compiler.Options),
+        return CodeGenerator.CreateFunction(member.EnclosingClass.GetCompileName(CodeGenerator.Options),
           member.EnclosingClass.TypeArgs, name, typeArgs, formals, resultType, tok, isStatic, createBody, member,
           MethodDeclWriter, MethodWriter, lookasideBody);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, MethodDeclWriter, MethodWriter);
+        return CodeGenerator.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, MethodDeclWriter, MethodWriter);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
+        return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(ClassName, enclosingDecl.TypeArgs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
+        CodeGenerator.DeclareField(ClassName, enclosingDecl.TypeArgs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.

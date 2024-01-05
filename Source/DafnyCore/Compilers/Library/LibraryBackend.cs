@@ -53,7 +53,7 @@ public class LibraryBackend : ExecutableBackend {
   /// </summary>
   internal DooFile DooFile { get; set; }
 
-  protected override SinglePassCompiler CreateCompiler() {
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;
   }
 

@@ -28,17 +28,17 @@ namespace Microsoft.Dafny.Compilers;
 /// </summary>
 public class CsharpSynthesizer {
 
-  private readonly CsharpCompiler compiler;
+  private readonly CsharpCodeGenerator codeGenerator;
   private readonly ConcreteSyntaxTree ErrorWriter;
   // maps identifiers to the names of the corresponding mock:
   private Dictionary<IVariable, string> objectToMockName = new();
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
   private Method lastSynthesizedMethod = null;
-  private DafnyOptions Options => compiler.Options;
+  private DafnyOptions Options => codeGenerator.Options;
 
-  public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
-    this.compiler = compiler;
+  public CsharpSynthesizer(CsharpCodeGenerator codeGenerator, ConcreteSyntaxTree errorWriter) {
+    this.codeGenerator = codeGenerator;
     ErrorWriter = errorWriter;
   }
 
@@ -69,19 +69,19 @@ public class CsharpSynthesizer {
   /// }
   /// </summary>
   public ConcreteSyntaxTree SynthesizeMethod(Method method,
-    List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody,
+    List<SinglePassCodeGenerator.TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
     lastSynthesizedMethod = method;
     // The following few lines are identical to those in Compiler.CreateMethod:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
-                         compiler.NeedsCustomReceiver(method);
-    var keywords = compiler.Keywords(true, true);
-    var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
-    var typeParameters = compiler.TypeParameters(SinglePassCompiler.TypeArgumentInstantiation.
-      ToFormals(compiler.ForTypeParameters(typeArgs, method, lookasideBody)));
-    var parameters = compiler
+                         codeGenerator.NeedsCustomReceiver(method);
+    var keywords = codeGenerator.Keywords(true, true);
+    var returnType = codeGenerator.GetTargetReturnTypeReplacement(method, wr);
+    var typeParameters = codeGenerator.TypeParameters(SinglePassCodeGenerator.TypeArgumentInstantiation.
+      ToFormals(codeGenerator.ForTypeParameters(typeArgs, method, lookasideBody)));
+    var parameters = codeGenerator
       .GetMethodParameters(method, typeArgs, lookasideBody, customReceiver, returnType);
 
     // Out parameters cannot be used inside lambda expressions in Csharp
@@ -90,19 +90,19 @@ public class CsharpSynthesizer {
     // The solution is to rename the out parameters.
     var parameterString = parameters.ToString();
     var objectToReturnName = method.Outs.ToDictionary(o => o,
-      o => compiler.idGenerator.FreshId(o.CompileName + "Return"));
+      o => codeGenerator.idGenerator.FreshId(o.CompileName + "Return"));
     foreach (var (obj, returnName) in objectToReturnName) {
       parameterString = Regex.Replace(parameterString,
         $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
-    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
+    wr.FormatLine($"{keywords}{returnType} {codeGenerator.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
 
     // Initialize the mocks
     objectToMockName = method.Outs.ToDictionary(o => (IVariable)o,
-      o => compiler.idGenerator.FreshId(o.CompileName + "Mock"));
+      o => codeGenerator.idGenerator.FreshId(o.CompileName + "Mock"));
     foreach (var (obj, mockName) in objectToMockName) {
-      var typeName = compiler.TypeName(obj.Type, wr, obj.Tok);
+      var typeName = codeGenerator.TypeName(obj.Type, wr, obj.Tok);
       // Mocking a trait works only so long as no trait member is accessed
       if ((method.Outs.First().Type is UserDefinedType userDefinedType) &&
           userDefinedType.IsTraitType) {
@@ -151,7 +151,7 @@ public class CsharpSynthesizer {
   private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
-        wr.Append(compiler.Expr(literalExpr, false, wStmts));
+        wr.Append(codeGenerator.Expr(literalExpr, false, wStmts));
         break;
       case ApplySuffix applySuffix:
         SynthesizeExpression(wr, applySuffix, wStmts);
@@ -179,14 +179,14 @@ public class CsharpSynthesizer {
     var methodName = method.GetCompileName(Options);
 
     if (((Function)method).Ens.Count != 0) {
-      compiler.Error(CompilerErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.tok,
+      codeGenerator.Error(CompilerErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.tok,
         "Post-conditions on function {0} might " +
         "be unsatisfied when synthesizing code " +
         "for method {1}",
         ErrorWriter, methodName, lastSynthesizedMethod.Name);
     }
 
-    var tmpId = compiler.idGenerator.FreshId("tmp");
+    var tmpId = codeGenerator.idGenerator.FreshId("tmp");
     wr.Format($"{objectToMockName[receiver]}.Setup({tmpId} => {tmpId}.{methodName}(");
 
     // The remaining part of the method uses Moq's argument matching to
@@ -198,7 +198,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        wr.Append(compiler.Expr(arg, false, wStmts));
+        wr.Append(codeGenerator.Expr(arg, false, wStmts));
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");
@@ -223,12 +223,12 @@ public class CsharpSynthesizer {
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
       var fieldName = field.GetCompileName(Options);
-      compiler.Error(CompilerErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.tok,
+      codeGenerator.Error(CompilerErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.tok,
         "Stubbing fields is not recommended (field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
-      var tmpId = compiler.idGenerator.FreshId("tmp");
+      var tmpId = codeGenerator.idGenerator.FreshId("tmp");
       wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
-      wr.Append(compiler.Expr(binaryExpr.E1, false, wStmts));
+      wr.Append(codeGenerator.Expr(binaryExpr.E1, false, wStmts));
       wr.WriteLine(");");
       return;
     }
@@ -240,7 +240,7 @@ public class CsharpSynthesizer {
     wr.Write("(");
     for (int i = 0; i < applySuffix.Args.Count; i++) {
       var arg = applySuffix.Args[i];
-      var typeName = compiler.TypeName(arg.Type, wr, arg.tok);
+      var typeName = codeGenerator.TypeName(arg.Type, wr, arg.tok);
       var bound = GetBound(arg);
       if (bound != null) {
         wr.Format($"{typeName} {bound.Item1.CompileName}");
@@ -254,7 +254,7 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    wr.Append(compiler.Expr(binaryExpr.E1, false, wStmts));
+    wr.Append(codeGenerator.Expr(binaryExpr.E1, false, wStmts));
     wr.WriteLine(");");
   }
 
@@ -266,12 +266,12 @@ public class CsharpSynthesizer {
 
     // a MultiMatcher is created to convert an antecedent of the implication
     // following the forall statement to argument matching calls in Moq
-    var matcherName = compiler.idGenerator.FreshId("matcher");
+    var matcherName = codeGenerator.idGenerator.FreshId("matcher");
 
-    var tmpId = compiler.idGenerator.FreshId("tmp");
+    var tmpId = codeGenerator.idGenerator.FreshId("tmp");
     for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
       var boundVar = forallExpr.BoundVars[i];
-      var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
+      var varType = codeGenerator.TypeName(boundVar.Type, wr, boundVar.tok);
       bounds[boundVar] = $"It.Is<{varType}>(x => {matcherName}.Match(x))";
       declarations.Add($"var {boundVar.CompileName} = ({varType}) {tmpId}[{i}];");
     }
@@ -284,7 +284,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        wr.Append(compiler.Expr(binaryExpr.E0, false, wStmts));
+        wr.Append(codeGenerator.Expr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1.Resolved;
         break;

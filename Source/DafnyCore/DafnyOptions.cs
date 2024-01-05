@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
     public Version SolverVersion { get; set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
-      new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
+      new(new[] { SinglePassCodeGenerator.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
     public List<Plugin> AdditionalPlugins = new();

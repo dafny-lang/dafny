@@ -17,22 +17,22 @@ namespace Microsoft.Dafny.Compilers;
 
 public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
-  protected SinglePassCompiler compiler;
+  protected SinglePassCodeGenerator codeGenerator;
 
   protected ExecutableBackend(DafnyOptions options) : base(options) {
   }
 
-  public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
+  public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCodeGenerator().UnsupportedFeatures;
 
   public override bool SupportsDatatypeWrapperErasure =>
-    CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
+    CreateCodeGenerator()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
-  public override string ModuleSeparator => Compiler.ModuleSeparator;
+  public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
-    Compiler.Compile(dafnyProgram, output);
+    CodeGenerator.Compile(dafnyProgram, output);
   }
 
   protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
@@ -76,32 +76,32 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
-    compiler = CreateCompiler();
+    codeGenerator = CreateCodeGenerator();
   }
 
-  SinglePassCompiler Compiler {
+  SinglePassCodeGenerator CodeGenerator {
     get {
-      if (compiler == null) {
-        compiler = CreateCompiler();
+      if (codeGenerator == null) {
+        codeGenerator = CreateCodeGenerator();
       }
 
-      return compiler;
+      return codeGenerator;
     }
   }
 
   public override void OnPostCompile() {
     base.OnPostCompile();
-    Compiler.Coverage.WriteLegendFile();
+    CodeGenerator.Coverage.WriteLegendFile();
   }
 
-  protected abstract SinglePassCompiler CreateCompiler();
+  protected abstract SinglePassCodeGenerator CreateCodeGenerator();
 
   public override string PublicIdProtect(string name) {
-    return Compiler.PublicIdProtect(name);
+    return CodeGenerator.PublicIdProtect(name);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
-    Compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+    CodeGenerator.EmitCallToMain(mainMethod, baseName, callToMainTree);
   }
 
   public ProcessStartInfo PrepareProcessStartInfo(string programName, IEnumerable<string> args = null) {
@@ -192,16 +192,16 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
-    if (Compiler == null) {
+    if (CodeGenerator == null) {
       return;
     }
 
-    instrumenter.Instrument(this, Compiler, dafnyProgram);
+    instrumenter.Instrument(this, CodeGenerator, dafnyProgram);
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
     var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
-    SinglePassCompiler.WriteFromStream(rd, outputWriter);
+    SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
   protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {

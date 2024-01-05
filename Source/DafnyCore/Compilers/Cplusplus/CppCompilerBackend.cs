@@ -8,8 +8,8 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CppCompilerBackend : ExecutableBackend {
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new CppCompiler(Options, Reporter, OtherFileNames);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new CppCodeGenerator(Options, Reporter, OtherFileNames);
   }
 
   private string ComputeExeName(string targetFilename) {

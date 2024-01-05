@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract class SinglePassCompiler {
+  public abstract class SinglePassCodeGenerator {
     public DafnyOptions Options { get; }
 
     /// <summary>
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.Compilers {
     // uses an arrow of the matching arity for initialization.
     protected int MaxArrayDims => MaxArrowArity;
 
-    protected SinglePassCompiler(DafnyOptions options, ErrorReporter reporter) {
+    protected SinglePassCodeGenerator(DafnyOptions options, ErrorReporter reporter) {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
@@ -3176,16 +3176,16 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
-      readonly SinglePassCompiler compiler;
+      readonly SinglePassCodeGenerator codeGenerator;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(SinglePassCompiler c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumes_Visitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
-        compiler = c;
+        codeGenerator = c;
         this.wr = wr;
       }
       private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
         if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(ErrorId.c_assume_statement_may_not_be_compiled, tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
+          codeGenerator.Error(ErrorId.c_assume_statement_may_not_be_compiled, tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
         }
       }
       protected override void VisitOneStmt(Statement stmt) {
@@ -3196,12 +3196,12 @@ namespace Microsoft.Dafny.Compilers {
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
-            compiler.Error(ErrorId.c_forall_statement_has_no_body, stmt.Tok, "a forall statement without a body cannot be compiled", wr);
+            codeGenerator.Error(ErrorId.c_forall_statement_has_no_body, stmt.Tok, "a forall statement without a body cannot be compiled", wr);
           }
         } else if (stmt is OneBodyLoopStmt) {
           var s = (OneBodyLoopStmt)stmt;
           if (s.Body == null) {
-            compiler.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be compiled", wr);
+            codeGenerator.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be compiled", wr);
           }
         }
       }
@@ -4230,17 +4230,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class SimpleLvalueImpl : ILvalue {
-      private readonly SinglePassCompiler Compiler;
+      private readonly SinglePassCodeGenerator codeGenerator;
       private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
 
-      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
-        Compiler = compiler;
+      public SimpleLvalueImpl(SinglePassCodeGenerator codeGenerator, Action<ConcreteSyntaxTree> action) {
+        this.codeGenerator = codeGenerator;
         LvalueAction = action;
         RvalueAction = action;
       }
 
-      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
-        Compiler = compiler;
+      public SimpleLvalueImpl(SinglePassCodeGenerator codeGenerator, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
+        this.codeGenerator = codeGenerator;
         LvalueAction = lvalueAction;
         RvalueAction = rvalueAction;
       }
@@ -4250,27 +4250,27 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
-        Compiler.EmitAssignment(out var wLhs, null, out var wRhs, null, wr);
+        codeGenerator.EmitAssignment(out var wLhs, null, out var wRhs, null, wr);
         LvalueAction(wLhs);
         return wRhs;
       }
     }
 
     private class CoercedLvalueImpl : ILvalue {
-      private readonly SinglePassCompiler Compiler;
+      private readonly SinglePassCodeGenerator codeGenerator;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
       private readonly Type /*?*/ to;
 
-      public CoercedLvalueImpl(SinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
-        Compiler = compiler;
+      public CoercedLvalueImpl(SinglePassCodeGenerator codeGenerator, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+        this.codeGenerator = codeGenerator;
         this.lvalue = lvalue;
         this.from = from;
         this.to = to;
       }
 
       public void EmitRead(ConcreteSyntaxTree wr) {
-        wr = Compiler.EmitCoercionIfNecessary(from, to, Token.NoToken, wr);
+        wr = codeGenerator.EmitCoercionIfNecessary(from, to, Token.NoToken, wr);
         lvalue.EmitRead(wr);
       }
 
@@ -4305,7 +4305,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private class ArrayLvalueImpl : ILvalue {
-      private readonly SinglePassCompiler compiler;
+      private readonly SinglePassCodeGenerator codeGenerator;
       private readonly string array;
       private readonly List<Action<ConcreteSyntaxTree>> indices;
       private readonly Type lhsType;
@@ -4313,22 +4313,22 @@ namespace Microsoft.Dafny.Compilers {
       /// <summary>
       /// The "indices" are expected to already be of the native array-index type.
       /// </summary>
-      public ArrayLvalueImpl(SinglePassCompiler compiler, string array, List<Action<ConcreteSyntaxTree>> indices, Type lhsType) {
-        this.compiler = compiler;
+      public ArrayLvalueImpl(SinglePassCodeGenerator codeGenerator, string array, List<Action<ConcreteSyntaxTree>> indices, Type lhsType) {
+        this.codeGenerator = codeGenerator;
         this.array = array;
         this.indices = indices;
         this.lhsType = lhsType;
       }
 
       public void EmitRead(ConcreteSyntaxTree wr) {
-        var wrArray = compiler.EmitArraySelect(indices, lhsType, wr);
-        compiler.EmitIdentifier(array, wrArray);
+        var wrArray = codeGenerator.EmitArraySelect(indices, lhsType, wr);
+        codeGenerator.EmitIdentifier(array, wrArray);
       }
 
       public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
-        var (wrArray, wrRhs) = compiler.EmitArrayUpdate(indices, lhsType, wr);
-        compiler.EmitIdentifier(array, wrArray);
-        compiler.EndStmt(wr);
+        var (wrArray, wrRhs) = codeGenerator.EmitArrayUpdate(indices, lhsType, wr);
+        codeGenerator.EmitIdentifier(array, wrArray);
+        codeGenerator.EndStmt(wr);
         return wrRhs;
       }
     }

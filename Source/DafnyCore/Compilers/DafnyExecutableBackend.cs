@@ -16,9 +16,9 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
   }
 
-  protected override SinglePassCompiler CreateCompiler() {
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
     // becomes this.compiler
-    return new DafnyCompiler(Options, Reporter);
+    return new DafnyCodeGenerator(Options, Reporter);
   }
 
   protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();
@@ -31,9 +31,9 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
-    ((DafnyCompiler)compiler).Start();
-    compiler.Compile(dafnyProgram, new ConcreteSyntaxTree());
-    var dast = ((DafnyCompiler)compiler).Build();
+    ((DafnyCodeGenerator)codeGenerator).Start();
+    codeGenerator.Compile(dafnyProgram, new ConcreteSyntaxTree());
+    var dast = ((DafnyCodeGenerator)codeGenerator).Build();
     var o = dafnyCompiler.Compile((Sequence<DAST.Module>)Sequence<DAST.Module>.FromArray(dast.ToArray()));
     output.Write(o.ToVerbatimString(false));
   }

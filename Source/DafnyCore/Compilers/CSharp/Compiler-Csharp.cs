@@ -19,7 +19,7 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
-  public class CsharpCompiler : SinglePassCompiler {
+  public class CsharpCodeGenerator : SinglePassCodeGenerator {
     protected bool Synthesize = false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ArrowsWithMoreThan16Arguments
     };
 
-    public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+    public CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
     }
 
     const string DafnyISet = "Dafny.ISet";
@@ -1345,25 +1345,25 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly CsharpCompiler Compiler;
+      public readonly CsharpCodeGenerator CodeGenerator;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
       private readonly CsharpSynthesizer csharpSynthesizer;
 
-      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
-        Contract.Requires(compiler != null);
+      public ClassWriter(CsharpCodeGenerator codeGenerator, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
+        Contract.Requires(codeGenerator != null);
         Contract.Requires(instanceMemberWriter != null);
-        this.Compiler = compiler;
+        this.CodeGenerator = codeGenerator;
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
-        this.csharpSynthesizer = new CsharpSynthesizer(Compiler, ErrorWriter());
+        this.csharpSynthesizer = new CsharpSynthesizer(CodeGenerator, ErrorWriter());
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member?.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member))) {
+          if (isStatic || (member?.EnclosingClass is TraitDecl && CodeGenerator.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -1372,7 +1372,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
+        return CodeGenerator.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
@@ -1381,20 +1381,20 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
+        return CodeGenerator.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree /*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl /*?*/ member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
+        return CodeGenerator.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
 
       public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, IToken tok, bool createBody, MemberDecl /*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, Writer(false, createBody, member));
+        return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, Writer(false, createBody, member));
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IToken tok, string rhs, Field field) {
-        var typeName = Compiler.TypeName(type, this.StaticMemberWriter, tok);
-        Compiler.DeclareField(name, true, isStatic, isConst, typeName, rhs, this);
+        var typeName = CodeGenerator.TypeName(type, this.StaticMemberWriter, tok);
+        CodeGenerator.DeclareField(name, true, isStatic, isConst, typeName, rhs, this);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {

@@ -18,7 +18,7 @@ public class JavaBackend : ExecutableBackend {
   public override string TargetExtension => "java";
 
   public override string TargetBasename(string dafnyProgramName) =>
-    JavaCompiler.TransformToClassName(base.TargetBasename(dafnyProgramName));
+    JavaCodeGenerator.TransformToClassName(base.TargetBasename(dafnyProgramName));
 
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-java";
@@ -33,8 +33,8 @@ public class JavaBackend : ExecutableBackend {
     }
   }
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new JavaCompiler(Options, Reporter);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new JavaCodeGenerator(Options, Reporter);
   }
 
   private void EmitRuntimeJar(string targetDirectory) {

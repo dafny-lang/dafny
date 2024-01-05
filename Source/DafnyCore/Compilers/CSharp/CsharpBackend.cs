@@ -12,8 +12,8 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new CsharpCompiler(Options, Reporter);
+  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    return new CsharpCodeGenerator(Options, Reporter);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
@@ -160,7 +160,7 @@ public class CsharpBackend : ExecutableBackend {
   }
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {
-    compiler.Coverage.PopulateCoverageReport(coverageReport);
+    codeGenerator.Coverage.PopulateCoverageReport(coverageReport);
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {
