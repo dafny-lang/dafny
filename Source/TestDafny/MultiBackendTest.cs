@@ -358,7 +358,7 @@ public class MultiBackendTest {
       return 1;
     }
 
-    // If we hit errors, check for known unsupported features or bugs for this compilation target
+    // If we hit errors, check for known unsupported features or bugs for this translation target
     if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
       return 0;
     }

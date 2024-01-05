@@ -193,7 +193,7 @@ public enum Feature {
 public class UnsupportedFeatureException : Exception {
 
   public const string MessagePrefix =
-    "Feature not supported for this compilation target: ";
+    "Feature not supported for this translation target: ";
 
   public readonly IToken Token;
   public readonly Feature Feature;

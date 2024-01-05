@@ -2212,7 +2212,7 @@ namespace Microsoft.Dafny {
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,
-          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
+          "None of the types given in :nativeType arguments is supported by the current translation target. Try supplying others.");
       } else if (mustUseNativeType) {
         reporter.Error(MessageSource.Resolver, dd,
           "Dafny's heuristics cannot find a compatible native type.  " +

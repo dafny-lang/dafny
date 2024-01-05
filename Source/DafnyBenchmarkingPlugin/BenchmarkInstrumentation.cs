@@ -11,7 +11,7 @@ public class BenchmarkingCompilerInstrumenter : CompilerInstrumenter {
       javaCompiler.AddInstrumenter(new JavaBenchmarkCompilationInstrumenter(Reporter));
     } else {
       Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, program.GetStartOfFirstFileToken(),
-        $"The benchmarking plugin does not support this compilation target: {codeGenerator} (--target:{backend.TargetId})");
+        $"The benchmarking plugin does not support this translation target: {codeGenerator} (--target:{backend.TargetId})");
     }
   }
 }

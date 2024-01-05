@@ -121,7 +121,7 @@ a model view file using `/mv:<file>` and
 The model view file is an arbitrary non-existent file that is created and used as a temporary file
 during the creation of the counterexamples.
 
-## **Error: Feature not supported for this compilation target: _feature_** {#f_unsupported_feature}
+## **Error: Feature not supported for this translation target: _feature_** {#f_unsupported_feature}
 
 <!-- %check-run %exit 3 %options -t:cpp --unicode-char=true -->
 ```dafny
