@@ -844,7 +844,7 @@ module Std.Collections.Seq {
   }
 
   /* inv(b, xs) ==> inv(FoldLeft(f, b, xs), []). */
-  lemma LemmaInvFoldLeft<A,B>(inv: (B, seq<A>) -> bool,
+  lemma LemmaInvFoldLeft<A(!new), B(!new)>(inv: (B, seq<A>) -> bool,
                                            stp: (B, A, B) -> bool,
                                            f: (B, A) -> B,
                                            b: B,
@@ -901,7 +901,7 @@ module Std.Collections.Seq {
   }
 
   /* inv([], b) ==> inv(xs, FoldRight(f, xs, b)) */
-  lemma LemmaInvFoldRight<A,B>(inv: (seq<A>, B) -> bool,
+  lemma LemmaInvFoldRight<A(!new), B(!new)>(inv: (seq<A>, B) -> bool,
                                             stp: (A, B, B) -> bool,
                                             f: (A, B) -> B,
                                             b: B,
@@ -948,9 +948,9 @@ module Std.Collections.Seq {
   }
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
-  lemma SortedUnique<T>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires SortedBy(R, xs)
     requires SortedBy(R, ys)
+  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires TotalOrdering(R)
     requires multiset(xs) == multiset(ys)
     ensures xs == ys
