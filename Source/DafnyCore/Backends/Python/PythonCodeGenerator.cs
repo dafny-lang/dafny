@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
-using ExtensionMethods;
+using DafnyCore.Backends.Python;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
