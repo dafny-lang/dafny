@@ -397,7 +397,7 @@ public class LoopInvariant : ProofObligationDescriptionCustomMessages {
   public override string DefaultSuccessDescription =>
 "loop invariant always holds";
 
-  public override string DefaultFailureDescription => 
+  public override string DefaultFailureDescription =>
     "loop invariant violation";
 
   public override string ShortDescription => "loop invariant";
