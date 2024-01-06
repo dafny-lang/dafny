@@ -4018,10 +4018,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Expression arg = e.E;
-      Type fromType = e.E.Type;
-      Type toType = e.ToType;
+    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
@@ -4032,60 +4029,60 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(fromNative.LowerBound >= 0
               ? $"{DafnyHelpersClass}.unsignedToBigInteger"
               : "java.math.BigInteger.valueOf");
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             wr.Write(", java.math.BigInteger.ONE)");
           } else if (fromType.IsCharType) {
-            wr.Append(Expr(arg, inLetExprBody, wStmts));
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
             wr.Write(", 1)");
           } else {
-            wr.Append(Expr(arg, inLetExprBody, wStmts));
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
             wr.Write(", java.math.BigInteger.ONE)");
           }
         } else if (toType.IsCharType) {
           // (int or bv or char) -> char
           // Painfully, Java sign-extends bytes when casting to chars ...
           if (fromType.IsCharType) {
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
           } else {
             var fromNative = AsNativeType(fromType);
             wr.Write($"({CharTypeName(false)})");
             if (fromNative != null && fromNative.Sel == NativeType.Selection.Byte) {
               wr.Write("java.lang.Byte.toUnsignedInt");
-              TrParenExpr(arg, wr, inLetExprBody, wStmts);
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             } else {
-              TrExprAsInt(arg, wr, inLetExprBody, wStmts);
+              TrExprAsInt(fromExpr, wr, inLetExprBody, wStmts);
             }
           }
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
-          var fromNative = AsNativeType(e.E.Type);
-          var toNative = AsNativeType(e.ToType);
+          var fromNative = AsNativeType(fromType);
+          var toNative = AsNativeType(toType);
           if (fromNative == null && toNative == null) {
             if (fromType.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("java.math.BigInteger.valueOf");
-              TrParenExpr(arg, wr, inLetExprBody, wStmts);
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-              wr.Append(Expr(arg, inLetExprBody, wStmts));
+              wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
             wr.Write(fromNative.LowerBound >= 0
               ? $"{DafnyHelpersClass}.unsignedToBigInteger"
               : "java.math.BigInteger.valueOf");
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           } else if (fromNative != null && NativeTypeSize(toNative) == NativeTypeSize(fromNative)) {
             // native (int or bv) -> native (int or bv)
             // Cast between signed and unsigned, which have the same Java type
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           } else {
             GetNativeInfo(toNative.Sel, out var toNativeName, out var toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
-            var literal = PartiallyEvaluate(arg);
-            UnaryOpExpr u = arg.Resolved as UnaryOpExpr;
-            MemberSelectExpr m = arg.Resolved as MemberSelectExpr;
+            var literal = PartiallyEvaluate(fromExpr);
+            UnaryOpExpr u = fromExpr.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = fromExpr.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
               EmitNativeIntegerLiteral((BigInteger)literal, toNative, wr);
@@ -4112,20 +4109,20 @@ namespace Microsoft.Dafny.Compilers {
               // no optimization applies; use the standard translation
               if (fromNative != null && fromNative.LowerBound >= 0 && NativeTypeSize(fromNative) < NativeTypeSize(toNative)) {
                 // Widening an unsigned value; careful!!
-                wr.Write($"{CastIfSmallNativeType(e.ToType)}{GetBoxedNativeTypeName(fromNative)}");
+                wr.Write($"{CastIfSmallNativeType(toType)}{GetBoxedNativeTypeName(fromNative)}");
                 if (NativeTypeSize(toNative) == 64) {
                   wr.Write(".toUnsignedLong");
                 } else {
                   wr.Write(".toUnsignedInt");
                 }
-                TrParenExpr(arg, wr, inLetExprBody, wStmts);
+                TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
               } else {
                 if (fromNative == null && !fromType.IsCharType) {
-                  TrParenExpr(arg, wr, inLetExprBody, wStmts);
+                  TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
                   wr.Write($".{toNativeName}Value()");
                 } else {
                   wr.Write($"(({toNativeName}) ");
-                  TrParenExpr(arg, wr, inLetExprBody, wStmts);
+                  TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
                   wr.Write(")");
                 }
               }
@@ -4137,19 +4134,19 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(toType) == null);
-          wr.Append(Expr(arg, inLetExprBody, wStmts));
+          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
         } else if (toType.IsCharType) {
           // real -> char
           // Painfully, Java sign-extends bytes when casting to chars ...
           wr.Write($"({CharTypeName(false)})");
-          TrParenExpr(arg, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           wr.Write(".ToBigInteger().intValue()");
         } else if (toType.IsBigOrdinalType) {
-          TrParenExpr(arg, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           wr.Write(".ToBigInteger()");
         } else {
           // real -> (int or bv)
-          TrParenExpr(arg, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           wr.Write(".ToBigInteger()");
           if (AsNativeType(toType) != null) {
             wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
@@ -4159,35 +4156,35 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsCharType) {
           // ordinal -> int, char
           if (AsNativeType(toType) != null) {
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
           } else if (toType.IsCharType) {
             wr.Write($"({CharTypeName(false)})");
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             wr.Write(".intValue()");
           } else {
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // ordinal -> real
           wr.Write($"new {DafnyBigRationalClass}(");
-          wr.Append(Expr(arg, inLetExprBody, wStmts));
+          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
           wr.Write(", java.math.BigInteger.ONE)");
         } else if (toType.IsBitVectorType) {
           // ordinal -> bv
           if (AsNativeType(toType) != null) {
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
           } else {
-            TrParenExpr(arg, wr, inLetExprBody, wStmts);
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           }
         } else if (toType.IsBigOrdinalType) {
-          TrParenExpr(arg, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
         } else {
           Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
         }
-      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
-        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+      } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
+        wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
       }

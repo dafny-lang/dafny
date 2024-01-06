@@ -2282,46 +2282,46 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0} == 0", varName);
     }
 
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
-          throw new UnsupportedFeatureException(e.tok, Feature.RealNumbers);
-        } else if (e.ToType.IsCharType) {
+    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+          throw new UnsupportedFeatureException(fromExpr.tok, Feature.RealNumbers);
+        } else if (toType.IsCharType) {
           wr.Write("(char)");
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
-          var fromNative = AsNativeType(e.E.Type);
-          var toNative = AsNativeType(e.ToType);
+          var fromNative = AsNativeType(fromType);
+          var toNative = AsNativeType(toType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
             wr.Write(GetNativeTypeName(toNative));
-            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
-          } else if (e.E.Type.IsCharType) {
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          } else if (fromType.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
-              throw new UnsupportedFeatureException(e.tok, Feature.UnboundedIntegers);
+              throw new UnsupportedFeatureException(fromExpr.tok, Feature.UnboundedIntegers);
             } else {
               // char -> native
               wr.Write($"({GetNativeTypeName(toNative)})");
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
             }
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-            wr.Append(Expr(e.E, inLetExprBody, wStmts));
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
           } else if (fromNative != null) {
             Contract.Assert(toNative == null); // follows from other checks
 
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
-            wr.Append(Expr(e.E, inLetExprBody, wStmts));
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
             wr.Write(')');
           } else {
             // any (int or bv) -> native (int or bv)
             // Consider some optimizations
-            var literal = PartiallyEvaluate(e.E);
-            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
-            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            var literal = PartiallyEvaluate(fromExpr);
+            UnaryOpExpr u = fromExpr.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = fromExpr.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
               wr.Write("{0}({1})", GetNativeTypeName(toNative), literal);
@@ -2336,34 +2336,34 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(".size())");
             } else {
               // no optimization applies; use the standard translation
-              TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
               wr.Write(".{0}()", Capitalize(GetNativeTypeName(toNative)));
             }
 
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-        Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        Contract.Assert(AsNativeType(fromType) == null);
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
-          Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Append(Expr(e.E, inLetExprBody, wStmts));
+          Contract.Assert(AsNativeType(toType) == null);
+          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
         } else {
           // real -> (int or bv)
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           wr.Write(".Int()");
-          if (AsNativeType(e.ToType) is NativeType nt) {
+          if (AsNativeType(toType) is NativeType nt) {
             wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
-      } else if (e.E.Type.IsBigOrdinalType) {
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuasion.Int));
+      } else if (fromType.IsBigOrdinalType) {
+        Contract.Assert(toType.IsNumericBased(Type.NumericPersuasion.Int));
         // identity will do
-        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+        wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
         // identity will do
-        Contract.Assert(e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null);
-        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+        Contract.Assert(fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null);
+        wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       }
     }
 

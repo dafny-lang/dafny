@@ -1653,28 +1653,30 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{varName} == 0");
     }
 
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var (pre, post) = ("", "");
-      if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsBigOrdinalType) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
-        } else if (e.ToType.IsCharType) {
+        } else if (toType.IsCharType) {
           if (UnicodeCharEnabled) {
             (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(", "))");
           } else {
             (pre, post) = ("chr(", ")");
           }
         }
-      } else if (e.E.Type.IsCharType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
+      } else if (fromType.IsCharType) {
+        if (toType.IsCharType) {
+          // nothing to do
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsBitVectorType || toType.IsBigOrdinalType) {
           (pre, post) = ("ord(", ")");
-        } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(ord(", "), 1)");
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsBitVectorType || toType.IsBigOrdinalType) {
           (pre, post) = ("int(", ")");
-        } else if (e.ToType.IsCharType) {
+        } else if (toType.IsCharType) {
           if (UnicodeCharEnabled) {
             (pre, post) = ($"{DafnyRuntimeModule}.CodePoint(chr(floor(", ")))");
           } else {
@@ -1683,7 +1685,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       wr.Write(pre);
-      wr.Append(Expr(e.E, inLetExprBody, wStmts));
+      wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       wr.Write(post);
     }
 

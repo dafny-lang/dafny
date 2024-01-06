@@ -2117,14 +2117,14 @@ namespace Microsoft.Dafny.Compilers {
       throwGeneralUnsupported();
     }
 
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
-        if (e.ToType.Equals(e.E.Type)) {
-          EmitExpr(e.E, inLetExprBody, builder, wStmts);
+        if (toType.Equals(fromType)) {
+          EmitExpr(fromExpr, inLetExprBody, builder, wStmts);
         } else {
-          EmitExpr(e.E, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
-            GenType(e.E.Type),
-            GenType(e.ToType)
+          EmitExpr(fromExpr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
+            GenType(fromType),
+            GenType(toType)
           )), wStmts);
         }
       } else {

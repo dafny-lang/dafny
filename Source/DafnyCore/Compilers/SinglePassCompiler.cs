@@ -1388,7 +1388,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected abstract void EmitIsZero(string varName, ConcreteSyntaxTree wr);
-    protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+    protected abstract void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
     /// <summary>
     /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
     /// reference types or subset types thereof.
@@ -5356,13 +5356,15 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || e.ToType.IsRefType == e.E.Type.IsRefType);
-        if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
+        var fromType = TrimNewtypes(e.E.Type);
+        var toType = TrimNewtypes(e.ToType);
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || toType.IsRefType == fromType.IsRefType);
+        if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           EmitExpr(e.E, inLetExprBody, w, wStmts);
         } else {
-          EmitConversionExpr(e, inLetExprBody, wr, wStmts);
+          EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
         }
 
       } else if (expr is TypeTestExpr) {
