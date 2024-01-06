@@ -167,3 +167,63 @@ module BaseTypesThatAreSubsetTypes {
     print w + x + y + a as int + b as int + m as X + n as X, "\n"; // 714
   }
 }
+
+module Char {
+  newtype MyChar = char
+  newtype UpperCase = ch | 'A' <= ch <= 'Z' witness 'D'
+
+  method Test() {
+    var c, u, r := Comparisons();
+    print c, " ", u, " ", r, "\n"; // 'e' 'E' true
+    MyString([u, u, u]);
+    MyString("hello");
+    Mix();
+  }
+  
+  method Comparisons() returns (c: MyChar, u: UpperCase, r: bool) {
+    c := 'e';
+    u := 'E';
+
+    expect c == c;
+    expect !(u != u);
+
+    r := c < c;
+    expect !r;
+    r := c <= c;
+    expect r;
+    r := c >= c;
+    expect r;
+    r := c > c;
+    expect !r;
+
+    r := u <= u <= u;
+    expect r;
+
+    if c == 'f' && u == 'D' {
+      expect false;
+    }
+  }
+
+  method MyString(s: seq<UpperCase>) {
+    if s != [] {
+      var ch := s[|s| / 2];
+      var charDiff := ch as char - 'A' + 'B';
+      expect ch == 'Z' || (charDiff as UpperCase > ch);
+      expect charDiff as int == ch as char as int + 1;
+      print ch, " ", charDiff, "\n";
+    }
+  }
+
+  newtype MyBool = bool
+  newtype MyInt = int
+
+  method Mix() {
+    var c: MyChar := 'A';
+    var u: UpperCase := 'B';
+    var one: MyInt := 1;
+
+    var b: MyBool := (u as MyChar - c) as char == one as int as char;
+    // Note, in the following line, `[c]` prints as "['A']", not just "A", because the type is not seq<char> but seq<MyChar>
+    print [c], " ", u, " ", one, " ", b, "\n"; // ['A'] 'B' 1 true
+  }
+}

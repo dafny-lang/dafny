@@ -1374,13 +1374,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, resultType,
+          e1, e0, tok, TrimNewtypes(resultType),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, resultType,
+          e0, e1, tok, TrimNewtypes(resultType),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -5387,7 +5387,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(negated ? " != " : " == ");
           wr.Write(sign.ToString());
         } else {
-          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
+          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, TrimNewtypes(expr.Type),
             out var opString,
             out var preOpString,
             out var postOpString,
