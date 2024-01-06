@@ -970,7 +970,7 @@ module Std.Collections.Seq {
   }
 
   /* Converts a set to a sequence that is ordered w.r.t. a given total order (ghost). */
-  ghost function SetToSortedSeqSpec<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
+  ghost function SetToSortedSeqSpec<T(!new)>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(R, xs)
@@ -979,7 +979,7 @@ module Std.Collections.Seq {
   }
 
   /* Converts a set to a sequence that is ordered w.r.t. a given total order (compiled). */
-  method SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
+  method SetToSortedSeq<T(!new)>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(R, xs)
@@ -995,7 +995,7 @@ module Std.Collections.Seq {
    ***************************** */
 
   //Splits a sequence in two, sorts the two subsequences (recursively), and merges the two sorted sequences using `MergeSortedWith`
-  function MergeSortBy<T>(lessThanOrEq: (T, T) -> bool, a: seq<T>): (result :seq<T>)
+  function MergeSortBy<T(!new)>(lessThanOrEq: (T, T) -> bool, a: seq<T>): (result :seq<T>)
     requires TotalOrdering(lessThanOrEq)
     ensures multiset(a) == multiset(result)
     ensures SortedBy(lessThanOrEq, result)
@@ -1015,7 +1015,7 @@ module Std.Collections.Seq {
   }
 
   // Helper function for MergeSortBy
-  function {:tailrecursion} MergeSortedWith<T>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
+  function {:tailrecursion} MergeSortedWith<T(!new)>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
     requires SortedBy(lessThanOrEq, left)
     requires SortedBy(lessThanOrEq, right)
     requires TotalOrdering(lessThanOrEq)
@@ -1039,7 +1039,7 @@ module Std.Collections.Seq {
       [right[0]] + MergeSortedWith(left, right[1..], lessThanOrEq)
   }
 
-  lemma LemmaNewFirstElementStillSortedBy<T>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
+  lemma LemmaNewFirstElementStillSortedBy<T(!new)>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
     requires SortedBy(lessOrEqual, s)
     requires |s| == 0 || lessOrEqual(newFirst, s[0])
     requires TotalOrdering(lessOrEqual)
