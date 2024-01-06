@@ -2129,11 +2129,13 @@ namespace Microsoft.Dafny {
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
       List<ComprehensionExpr.BoundedPool> bounds;
+      bool constraintConsistsSolelyOfRangeConstraints;
       if (ddVar == null) {
         // There are no bounds at all
         bounds = new List<ComprehensionExpr.BoundedPool>();
+        constraintConsistsSolelyOfRangeConstraints = true;
       } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
       }
 
       // Find which among the allowable native types can hold "dd". Give an
@@ -2183,6 +2185,13 @@ namespace Microsoft.Dafny {
       foreach (var nativeT in bigEnoughNativeTypes) {
         if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
+          if (constraintConsistsSolelyOfRangeConstraints) {
+            dd.NativeTypeRangeImpliesAllConstraints = true;
+          }
+          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
+              lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound) {
+            dd.TargetTypeCoversAllBitPatterns = true;
+          }
           break;
         }
       }
@@ -2191,8 +2200,13 @@ namespace Microsoft.Dafny {
         // one particular native type, in which case that must have been the one picked.
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+          if (dd.TargetTypeCoversAllBitPatterns) {
+            reporter.Info(MessageSource.Resolver, dd.tok,
+              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
+          }
         } else {
           var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
+          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
           reporter.Info(MessageSource.Resolver, dd.tok,
             $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
