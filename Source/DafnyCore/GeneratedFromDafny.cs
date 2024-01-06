@@ -6937,6 +6937,9 @@ namespace DCOMP {
             _369_isOwned = _out128;
             _370_argErased = _out129;
             _371_argIdents = _out130;
+            if (_370_argErased) {
+              _368_argExpr = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyUnerasable::<_>::unerase_owned("), _368_argExpr), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+            }
             if (_369_isOwned) {
               _368_argExpr = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), _368_argExpr);
             }
@@ -7947,7 +7950,7 @@ namespace DCOMP {
                     goto after__ASSIGN_SUCH_THAT_0;
                   }
                 }
-                throw new System.Exception("assign-such-that search produced no value (line 1233)");
+                throw new System.Exception("assign-such-that search produced no value (line 1236)");
               after__ASSIGN_SUCH_THAT_0:;
                 _647_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_647_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), DCOMP.__default.escapeIdent(_648_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), DCOMP.__default.escapeIdent(_648_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                 _646_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_646_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_648_next));
@@ -17360,7 +17363,7 @@ namespace DCOMP {
                 goto after__ASSIGN_SUCH_THAT_1;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 1930)");
+            throw new System.Exception("assign-such-that search produced no value (line 1933)");
           after__ASSIGN_SUCH_THAT_1:;
             if ((!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_2911_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) {

@@ -933,6 +933,9 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             var argExpr, isOwned, argErased, argIdents := GenExpr(args[i], selfIdent, params, false);
+            if argErased {
+              argExpr := "::dafny_runtime::DafnyUnerasable::<_>::unerase_owned(" + argExpr + ")";
+            }
             if isOwned {
               argExpr := "&" + argExpr;
             }
