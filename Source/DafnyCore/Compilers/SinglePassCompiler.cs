@@ -5134,8 +5134,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
-      var wr = result;
-      EmitExpr(expr, inLetExprBody, wr, wStmts);
+      EmitExpr(expr, inLetExprBody, result, wStmts);
       return result;
     }
 
