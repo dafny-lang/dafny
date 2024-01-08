@@ -17,12 +17,15 @@ module {:extern "DCOMP"} DCOMP {
   }
 
   function replaceDots(i: string): string {
-    if |i| == 0 then
-      ""
-    else if i[0] == '.' then
-      "_" + replaceDots(i[1..])
-    else
-      [i[0]] + replaceDots(i[1..])
+    if |i| == 0 then (
+                       ""
+                     ) else (
+                              if i[0] == '.' then (
+                                                    "_" + replaceDots(i[1..])
+                                                  ) else (
+                                                           [i[0]] + replaceDots(i[1..])
+                                                         )
+                            )
   }
 
   function escapeIdent(i: string): string {

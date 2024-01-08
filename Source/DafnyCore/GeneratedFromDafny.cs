@@ -5471,16 +5471,18 @@ namespace DCOMP {
     TAIL_CALL_START:;
       if ((new BigInteger((i).Count)).Sign == 0) {
         return Dafny.Sequence<Dafny.Rune>.Concat(__accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
-      } else if (((i).Select(BigInteger.Zero)) == (new Dafny.Rune('.'))) {
-        __accumulator = Dafny.Sequence<Dafny.Rune>.Concat(__accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"));
-        Dafny.ISequence<Dafny.Rune> _in0 = (i).Drop(BigInteger.One);
-        i = _in0;
-        goto TAIL_CALL_START;
       } else {
-        __accumulator = Dafny.Sequence<Dafny.Rune>.Concat(__accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((i).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in1 = (i).Drop(BigInteger.One);
-        i = _in1;
-        goto TAIL_CALL_START;
+        if (((i).Select(BigInteger.Zero)) == (new Dafny.Rune('.'))) {
+          __accumulator = Dafny.Sequence<Dafny.Rune>.Concat(__accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"));
+          Dafny.ISequence<Dafny.Rune> _in0 = (i).Drop(BigInteger.One);
+          i = _in0;
+          goto TAIL_CALL_START;
+        } else {
+          __accumulator = Dafny.Sequence<Dafny.Rune>.Concat(__accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((i).Select(BigInteger.Zero)));
+          Dafny.ISequence<Dafny.Rune> _in1 = (i).Drop(BigInteger.One);
+          i = _in1;
+          goto TAIL_CALL_START;
+        }
       }
     }
     public static Dafny.ISequence<Dafny.Rune> escapeIdent(Dafny.ISequence<Dafny.Rune> i) {
@@ -7976,7 +7978,7 @@ namespace DCOMP {
                     goto after__ASSIGN_SUCH_THAT_0;
                   }
                 }
-                throw new System.Exception("assign-such-that search produced no value (line 1239)");
+                throw new System.Exception("assign-such-that search produced no value (line 1242)");
               after__ASSIGN_SUCH_THAT_0:;
                 _648_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_648_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), DCOMP.__default.escapeIdent(_649_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), DCOMP.__default.escapeIdent(_649_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                 _647_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_647_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_649_next));
@@ -17383,7 +17385,7 @@ namespace DCOMP {
                 goto after__ASSIGN_SUCH_THAT_1;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 1930)");
+            throw new System.Exception("assign-such-that search produced no value (line 1933)");
           after__ASSIGN_SUCH_THAT_1:;
             if ((!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_2912_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, DAST.Optional<Dafny.ISequence<Dafny.Rune>>.create_None())) {

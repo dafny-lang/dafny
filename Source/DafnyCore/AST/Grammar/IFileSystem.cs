@@ -48,10 +48,7 @@ public class OnDiskFileSystem : IFileSystem {
   }
 
   public TextReader ReadFile(Uri uri) {
-    var reader = new StreamReader(uri.LocalPath);
-    var str = reader.ReadToEnd();
-    reader.Close();
-    return new StringReader(str);
+    return new StreamReader(uri.LocalPath);
   }
 
   public bool Exists(Uri path) {
