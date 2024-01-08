@@ -190,6 +190,27 @@ public abstract class Type : TokenNode {
     ExpandSynonymsAndSubsetTypes
   }
 
+  public NativeType AsNativeType() {
+    if (AsNewtype != null) {
+      return AsNewtype.NativeType;
+    } else if (IsBitVectorType) {
+      return AsBitVectorType.NativeType;
+    }
+    return null;
+  }
+
+  /// <summary>
+  /// Trim away newtypes to get to an ancestor type that either is not a newtype or is a native type.
+  /// </summary>
+  public Type TrimNewtypes() {
+    Type typ = this;
+    while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
+      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
+      typ = newtypeDecl.BaseType.Subst(subst);
+    }
+    return typ.NormalizeExpand();
+  }
+
   /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
   ///

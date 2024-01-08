@@ -1374,13 +1374,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, TrimNewtypes(resultType),
+          e1, e0, tok, resultType.TrimNewtypes(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, TrimNewtypes(resultType),
+          e0, e1, tok, resultType.TrimNewtypes(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -3066,25 +3066,7 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Type ---------------------------------------------------------------------------------
 
     protected NativeType AsNativeType(Type typ) {
-      Contract.Requires(typ != null);
-      if (typ.AsNewtype != null) {
-        return typ.AsNewtype.NativeType;
-      } else if (typ.IsBitVectorType) {
-        return typ.AsBitVectorType.NativeType;
-      }
-      return null;
-    }
-
-    /// <summary>
-    /// Trim away newtypes to get to an ancestor type that either is not a newtype or is a native type.
-    /// </summary>
-    protected Type TrimNewtypes(Type typ) {
-      Contract.Requires(typ != null);
-      while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
-        typ = newtypeDecl.BaseType.Subst(subst);
-      }
-      return typ.NormalizeExpand();
+      return typ.AsNativeType();
     }
 
     protected bool NeedsEuclideanDivision(Type typ) {
@@ -5355,8 +5337,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        var fromType = TrimNewtypes(e.E.Type);
-        var toType = TrimNewtypes(e.ToType);
+        var fromType = e.E.Type.TrimNewtypes();
+        var toType = e.ToType.TrimNewtypes();
         Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || toType.IsRefType == fromType.IsRefType);
         if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
@@ -5388,7 +5370,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(negated ? " != " : " == ");
           wr.Write(sign.ToString());
         } else {
-          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, TrimNewtypes(expr.Type),
+          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type.TrimNewtypes(),
             out var opString,
             out var preOpString,
             out var postOpString,
