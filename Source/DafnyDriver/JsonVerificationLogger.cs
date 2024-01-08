@@ -11,8 +11,8 @@ namespace Microsoft.Dafny;
 
 public class JsonVerificationLogger {
   private TextWriter tw;
-  private TextWriter outWriter;
-  private ProofDependencyManager depManager;
+  private readonly TextWriter outWriter;
+  private readonly ProofDependencyManager depManager;
 
   public JsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
     this.depManager = depManager;
