@@ -5,12 +5,12 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class TextLogger {
+public class TextVerificationLogger {
   private TextWriter tw;
   private TextWriter outWriter;
   private ProofDependencyManager depManager;
 
-  public TextLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+  public TextVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
     this.depManager = depManager;
     this.outWriter = outWriter;
   }

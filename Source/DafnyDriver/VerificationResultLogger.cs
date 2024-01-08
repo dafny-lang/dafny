@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger(depManager, options.OutputWriter);
+          var textLogger = new TextVerificationLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
         } else {
