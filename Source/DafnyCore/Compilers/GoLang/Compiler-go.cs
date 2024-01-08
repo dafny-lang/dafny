@@ -1381,7 +1381,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      var xType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      var xType = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, type);
       if (xType is BoolType) {
         return "_dafny.BoolType";
       } else if (xType is CharType) {

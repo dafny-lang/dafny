@@ -1021,8 +1021,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         Contract.Assert(targetTypeName == null);
         var enclosingTypeWithItsOwnTypeArguments = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
-        var targetType = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments, true);
-        var targetTypeIgnoringConstraints = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments, false);
+        var targetType = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, enclosingTypeWithItsOwnTypeArguments);
+        var targetTypeIgnoringConstraints = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments).TrimNewtypes();
         targetTypeName = BoxedTypeName(targetTypeIgnoringConstraints, wr, enclosingTypeDecl.tok);
         var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
         switch (AsJavaNativeType(targetType)) {
@@ -2289,7 +2289,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree EmitToString(ConcreteSyntaxTree wr, Type type) {
       Contract.Requires(!type.IsArrayType);
       ConcreteSyntaxTree argumentWriter;
-      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      type = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, type);
       if (AsNativeType(type) != null && AsNativeType(type).LowerBound >= 0) {
         var nativeName = GetNativeTypeName(AsNativeType(type));
         switch (AsNativeType(type).Sel) {
@@ -2493,7 +2493,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      type = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, type);
       if (type is BoolType) {
         return $"{DafnyTypeDescriptor}.BOOLEAN";
       } else if (type is CharType) {
@@ -3834,8 +3834,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
-      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
-      to = to == null ? null : DatatypeWrapperEraser.SimplifyType(Options, to);
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, from);
+      to = to == null ? null : DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, to);
 
       if (to == NativeObjectType) {
         return false;
@@ -3911,8 +3911,8 @@ namespace Microsoft.Dafny.Compilers {
         return ToFatPointer(from, wr);
       }
 
-      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
-      to = to == null ? null : DatatypeWrapperEraser.SimplifyType(Options, to);
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, from);
+      to = to == null ? null : DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, to);
 
       if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int

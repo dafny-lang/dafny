@@ -26,14 +26,43 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
+    public static Type SimplifyTypeAndTrimSubsetTypes(DafnyOptions options, Type ty) {
+      return SimplifyTypeWorker(options, ty, SimplifyTypeExpandMode.ExpandSynonymsOnly);
+    }
+
+    public static Type SimplifyType(DafnyOptions options, Type ty) {
+      return SimplifyTypeWorker(options, ty, SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypes);
+    }
+
+    public static Type SimplifyTypeAndTrimNewtypes(DafnyOptions options, Type ty) {
+      return SimplifyTypeWorker(options, ty, SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes);
+    }
+
+    private enum SimplifyTypeExpandMode {
+      ExpandSynonymsOnly,
+      ExpandSynonymsAndSubsetTypes,
+      ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes
+    }
+
     /// <summary>
     /// Remove any erasable type wrappers and simplify ghost tuple types.
     /// </summary>
-    public static Type SimplifyType(DafnyOptions options, Type ty, bool keepConstraints = false) {
+    private static Type SimplifyTypeWorker(DafnyOptions options, Type ty, SimplifyTypeExpandMode expandMode) {
       Contract.Requires(ty != null);
       Contract.Requires(ty is not TypeProxy);
 
-      ty = ty.NormalizeExpand(keepConstraints);
+      Type ExpandType(Type typ) {
+        switch (expandMode) {
+          case SimplifyTypeExpandMode.ExpandSynonymsOnly: return typ.NormalizeExpandKeepConstraints();
+          case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypes: return typ.NormalizeExpand();
+          case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes: return typ.TrimNewtypes();
+          default:
+            Contract.Assert(false); // unexpected case
+            throw new cce.UnreachableException();
+        }
+      }
+
+      ty = ExpandType(ty);
       Contract.Assert(ty is NonProxyType);
 
       if (ty is UserDefinedType udt) {
@@ -54,15 +83,15 @@ namespace Microsoft.Dafny.Compilers {
 
         } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(options, datatypeDecl, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
-          var stype = innerType.Subst(typeSubst).NormalizeExpand(keepConstraints);
-          return SimplifyType(options, stype, keepConstraints);
+          var stype = ExpandType(innerType.Subst(typeSubst));
+          return SimplifyTypeWorker(options, stype, expandMode);
         }
       }
 
       // Simplify the type arguments of "ty"
       if (ty.TypeArgs.Count != 0) {
-        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(options, typeArg, keepConstraints));
-        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand(keepConstraints) != simplifiedArguments[i])) {
+        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyTypeWorker(options, typeArg, expandMode));
+        if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ExpandType(ty.TypeArgs[i]) != simplifiedArguments[i])) {
           ty.ReplaceTypeArguments(simplifiedArguments);
         }
       }
