@@ -15,15 +15,16 @@ module.exports = async ({github, context, core, workflow_id, sha, ...config}) =>
   // run for this SHA we see.
   const runFilterDesc = sha ? `${workflow_id} on ${sha}` : workflow_id
   for (const run of result.data.workflow_runs) {
-    if ((!sha || run.head_sha === sha) && run.status !== "in_progress") {
-      if (run.conclusion !== "success") {
-        core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}`)
-      } else {
+    if ((!sha || run.head_sha === sha)) {
+      if (run.conclusion === "success") {
         // The SHA is fully tested, exit with success
         console.log(`Last run of ${runFilterDesc} succeeded: ${run.html_url}`)
+        return
+      } else if (run.status === "failure" || run.status === "timed_out") {
+        core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}`)
+        return
       }
-      return
     }
   }
-  core.setFailed(`No runs of ${runFilterDesc} found!`)
+  core.setFailed(`No completed runs of ${runFilterDesc} found!`)
 }

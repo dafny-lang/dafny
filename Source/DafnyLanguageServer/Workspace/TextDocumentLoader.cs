@@ -1,16 +1,13 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -51,65 +48,45 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new TextDocumentLoader(logger, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector);
     }
 
-    public IdeState CreateUnloaded(Compilation compilation) {
-      return CreateDocumentWithEmptySymbolTable(compilation, ImmutableDictionary<Uri, IReadOnlyList<Diagnostic>>.Empty);
-    }
-
-    public async Task<CompilationAfterParsing> ParseAsync(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+    public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ParseInternal(options, compilation, migratedVerificationTrees, cancellationToken), cancellationToken
+        async () => parser.Parse(compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
     }
 
-    private CompilationAfterParsing ParseInternal(DafnyOptions options, Compilation compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
-      CancellationToken cancellationToken) {
-      var project = compilation.Project;
-      var errorReporter = new DiagnosticErrorReporter(options, project.Uri);
-      var program = parser.Parse(compilation, errorReporter, cancellationToken);
-      var compilationAfterParsing = new CompilationAfterParsing(compilation, program, errorReporter.AllDiagnosticsCopy,
-        compilation.RootUris.ToDictionary(uri => uri,
-          uri => migratedVerificationTrees.GetValueOrDefault(uri) ?? new DocumentVerificationTree(program, uri)));
-
-      return compilationAfterParsing;
-    }
-
-    public async Task<CompilationAfterResolution> ResolveAsync(DafnyOptions options,
-      CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees,
+    public async Task<ResolutionResult> ResolveAsync(CompilationInput input,
+      Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, migratedVerificationTrees, cancellationToken), cancellationToken);
+        async () => ResolveInternal(input, program, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
     }
 
-    private CompilationAfterResolution ResolveInternal(CompilationAfterParsing compilation,
-      IReadOnlyDictionary<Uri, DocumentVerificationTree> migratedVerificationTrees, CancellationToken cancellationToken) {
+    private ResolutionResult ResolveInternal(CompilationInput input, Program program, CancellationToken cancellationToken) {
 
-      var program = compilation.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var errorReporter = (ObservableErrorReporter)program.Reporter;
       if (errorReporter.HasErrors) {
         throw new TaskCanceledException();
       }
 
-      var project = compilation.Project;
-
-      var compilationUnit = symbolResolver.ResolveSymbols(project, program, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(input.Project, program, cancellationToken);
       var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
-      var newSymbolTable = errorReporter.HasErrors
-        ? null
-        : symbolTableFactory.CreateFrom(program, compilation, cancellationToken);
+      SymbolTable? newSymbolTable = null;
+      try {
+        newSymbolTable = symbolTableFactory.CreateFrom(program, cancellationToken);
+      } catch (Exception e) {
+        logger.LogError(e, "failed to create symbol table");
+      }
 
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken);
 
-      List<ICanVerify> verifiables;
+      List<ICanVerify>? verifiables;
       if (errorReporter.HasErrorsUntilResolver) {
-        verifiables = new();
+        verifiables = null;
       } else {
         var symbols = SymbolExtensions.GetSymbolDescendants(program.DefaultModule);
         verifiables = symbols.OfType<ICanVerify>().Where(v => !AutoGeneratedToken.Is(v.RangeToken) &&
@@ -118,32 +95,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                                                               v.ShouldVerify).ToList();
       }
 
-      return new CompilationAfterResolution(compilation,
-        errorReporter.AllDiagnosticsCopy,
+      return new ResolutionResult(
+        program,
         newSymbolTable,
         legacySymbolTable,
         ghostDiagnostics,
-        verifiables,
-        new(),
-        new()
-      );
-    }
-
-    private IdeState CreateDocumentWithEmptySymbolTable(Compilation compilation,
-      IReadOnlyDictionary<Uri, IReadOnlyList<Diagnostic>> resolutionDiagnostics) {
-      var dafnyOptions = DafnyOptions.Default;
-      var program = new EmptyNode();
-      return new IdeState(
-        compilation.Version,
-        compilation,
-        program,
-        resolutionDiagnostics,
-        SymbolTable.Empty(),
-        LegacySignatureAndCompletionTable.Empty(dafnyOptions, compilation.Project),
-        new(),
-        Array.Empty<Counterexample>(),
-        ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
-      ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
+        verifiables
       );
     }
   }

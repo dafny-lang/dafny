@@ -120,7 +120,7 @@ public static class BoogieOptionBag {
         o.TheProverFactory = ProverFactory.Load(o.ProverDllName);
       }
     });
-    DafnyOptions.RegisterLegacyBinding(SolverResourceLimit, (o, v) => o.ResourceLimit = v);
+    DafnyOptions.RegisterLegacyBinding(SolverResourceLimit, (o, v) => o.ResourceLimit = Boogie.Util.BoundedMultiply(v, 1000));
     DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
     DafnyOptions.RegisterLegacyBinding(SolverOption, (o, v) => {
       if (v is not null) {
@@ -135,8 +135,7 @@ public static class BoogieOptionBag {
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck> {
         { BoogieArguments, DooFile.CheckOptionMatches },
-        { BoogieFilter, DooFile.CheckOptionMatches },
-        { NoVerify, DooFile.CheckOptionMatches },
+        { NoVerify, DooFile.CheckOptionLibraryImpliesLocal },
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -149,7 +148,8 @@ public static class BoogieOptionBag {
       SolverOptionHelp,
       SolverPath,
       SolverPlugin,
-      SolverResourceLimit
+      SolverResourceLimit,
+      BoogieFilter
     );
   }
 

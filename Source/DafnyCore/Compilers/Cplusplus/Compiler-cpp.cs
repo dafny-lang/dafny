@@ -55,7 +55,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RunAllTests,
       Feature.MethodSynthesis,
       Feature.UnicodeChars,
-      Feature.ConvertingValuesToStrings
+      Feature.ConvertingValuesToStrings,
+      Feature.BuiltinsInRuntime,
+      Feature.RuntimeCoverageReport
     };
 
     private List<DatatypeDecl> datatypeDecls = new();
@@ -85,8 +87,9 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    protected override string ModuleSeparator => "::";
-    protected override string ClassAccessor => "->";
+    public override string ModuleSeparator => "::";
+    protected override string StaticClassAccessor => "::";
+    protected override string InstanceClassAccessor => "->";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       // This seems to be a good place to check for unsupported options
@@ -117,10 +120,8 @@ namespace Microsoft.Dafny.Compilers {
       this.classDeclsWr = headerFileWr.Fork();
       this.hashWr = headerFileWr.Fork();
 
-      var rt = wr.NewFile("DafnyRuntime.h");
-
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+        EmitRuntimeSource("DafnyRuntimeCpp", wr);
       }
 
     }
@@ -158,7 +159,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"int main(DafnySequence<DafnySequence<char>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
@@ -1326,8 +1328,11 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       start = start ?? "0";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewNamedBlock("for (auto {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
@@ -1356,7 +1361,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -1375,7 +1380,8 @@ namespace Microsoft.Dafny.Compilers {
         typeTest = "true";
       }
 
-      return typeTest == "true" ? null : typeTest;
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
@@ -1812,10 +1818,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write(".at({0})", index);
+        wr.Write(".at(");
+        index(wr);
+        wr.Write(")");
       }
       return w;
     }
@@ -1833,10 +1841,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrParenExpr(expr, wr, inLetExprBody, wStmts);
-      if (AsNativeType(expr.Type) == null) {
-        wr.Write(".toNumber()");
-      }
+      EmitExpr(expr, inLetExprBody, wr, wStmts);
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
@@ -2351,10 +2356,13 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
-      } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
+      } else if (e.E.Type.IsBigOrdinalType) {
         Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuasion.Int));
         // identity will do
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+      } else {
+        // identity will do
+        Contract.Assert(e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null);
         wr.Append(Expr(e.E, inLetExprBody, wStmts));
       }
     }

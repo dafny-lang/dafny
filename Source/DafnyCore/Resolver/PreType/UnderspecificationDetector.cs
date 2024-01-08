@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
       } else if (member is Method method) {
         CheckParameterDefaultValues(method.Ins, context);
         method.Req.ForEach(mfe => CheckAttributedExpression(mfe, context));
-        method.Reads.ForEach(mfe => CheckExpression(mfe.E, context));
+        CheckSpecFrameExpression(method.Reads, context);
         CheckSpecFrameExpression(method.Mod, context);
         method.Ens.ForEach(mfe => CheckAttributedExpression(mfe, context));
         CheckSpecExpression(method.Decreases, context);
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
         CheckParameterDefaultValues(function.Formals, context);
         function.Req.ForEach(e => CheckExpression(e.E, context));
         function.Ens.ForEach(e => CheckExpression(e.E, context));
-        function.Reads.ForEach(fe => CheckExpression(fe.E, context));
+        CheckSpecFrameExpression(function.Reads, context);
         CheckSpecExpression(function.Decreases, context);
         if (function.Body != null) {
           CheckExpression(function.Body, context);
@@ -285,7 +285,7 @@ namespace Microsoft.Dafny {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ModuleResolver.MaxBV(width) < absN) {
+          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ConstantFolder.MaxBv(width) < absN) {
             cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -356,14 +356,6 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierExpr) {
         // by specializing for IdentifierExpr, error messages will be clearer
         CheckPreTypeIsDetermined(expr.tok, expr.PreType, "variable");
-
-      } else if (expr is ConversionExpr) {
-        var e = (ConversionExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "cast target");
-
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "type test target");
 
       } else if (CheckPreTypeIsDetermined(expr.tok, expr.PreType, "expression")) {
         if (expr is UnaryOpExpr uop) {

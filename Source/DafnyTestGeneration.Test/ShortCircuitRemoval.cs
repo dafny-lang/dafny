@@ -13,7 +13,7 @@ using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace DafnyTestGeneration.Test; 
+namespace DafnyTestGeneration.Test;
 
 public class ShortCircuitRemoval : Setup {
 

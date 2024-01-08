@@ -204,7 +204,7 @@ module N refines M { datatype D = ... Y | Z }
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:1 to engage** {#p_general_traits_beta}
+## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_beta}
 
 ```dafny
 trait Trait { }

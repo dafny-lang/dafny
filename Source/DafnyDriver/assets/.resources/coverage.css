@@ -49,6 +49,11 @@ table.coverage thead td {
     border-bottom:#b0b0b0 1px solid;
 }
 
+table.coverage thead td.name {
+    text-align:left;
+    padding-left:2px;
+}
+
 table.coverage thead td.ctr2 {
     text-align:right;
     padding-left:2px;
@@ -62,6 +67,12 @@ table.coverage tbody td {
 
 table.coverage tbody tr:hover {
     background: #f0f0d0 !important;
+}
+
+table.coverage tbody td.name {
+    text-align:left;
+    padding-right:14px;
+    padding-left:2px;
 }
 
 table.coverage tbody td.ctr2 {

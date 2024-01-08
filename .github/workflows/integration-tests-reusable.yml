@@ -9,6 +9,9 @@ on:
       num_shards:
         required: true
         type: number
+      ref:
+        required: true
+        type: string
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
@@ -61,7 +64,7 @@ jobs:
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.dotnet-version }}
     - name: C++ for ubuntu 20.04
@@ -73,31 +76,32 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version == 'oldest'
-      uses: actions/setup-java@v3
+      if: matrix.target-language-version != 'newest'
+      uses: actions/setup-java@v4
       with:
         java-version: 8
         distribution: corretto
     - name: Set up newest supported JDK
       if: matrix.target-language-version == 'newest'
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: 18
         distribution: corretto
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with: 
         python-version: '3.11'
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
+        ref: ${{ inputs.ref }}
         submodules: true # Until the libraries work again
     - name: Install Java runtime locally (non-Windows)
       if: runner.os != 'Windows'
@@ -155,7 +159,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
-        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests
+        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests
     - uses: actions/upload-artifact@v3
       if: always()
       with:

@@ -66,6 +66,9 @@ namespace DafnyTestGeneration {
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
       var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      if (report != null) {
+        report.RegisterFiles(program); // do this here prior to modifying the program
+      }
       var cache = new Modifications(program.Options);
       await foreach (var line in GetDeadCodeStatistics(program, cache)) {
         yield return line;
@@ -115,18 +118,23 @@ namespace DafnyTestGeneration {
       if (coverageReport == null) {
         return;
       }
-      coverageReport.RegisterFiles(program);
+
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
       HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
-        foreach (var state in modification.CapturedStates) {
+        foreach (var preciseState in modification.CapturedStates) {
           if (modification.CounterexampleStatus == ProgramModification.Status.Success) {
+            var index = preciseState.LastIndexOf('#');
+            var state = index == -1 ? preciseState : preciseState[..index];
             coveredStates.Add(state);
           }
         }
       }
+      Dictionary<Uri, Dictionary<int, CoverageLabel>> lineCoverageLabels = new();
       foreach (var modification in cache.Values) {
-        foreach (var state in modification.CapturedStates) {
+        foreach (var preciseState in modification.CapturedStates) {
+          var index = preciseState.LastIndexOf('#');
+          var state = index == -1 ? preciseState : preciseState[..index];
           var match = lineRegex.Match(state);
           if (!match.Success) {
             continue;
@@ -134,7 +142,6 @@ namespace DafnyTestGeneration {
           if (!int.TryParse(match.Groups[2].Value, out var lineNumber) || lineNumber == 0) {
             continue;
           }
-          lineNumber -= 1; // to zero-based
           Uri uri;
           try {
             uri = new Uri(
@@ -144,12 +151,23 @@ namespace DafnyTestGeneration {
           } catch (ArgumentException) {
             continue;
           }
-          var rangeToken = new RangeToken(new Token(lineNumber, 0), new Token(lineNumber + 1, 0));
+          if (!lineCoverageLabels.ContainsKey(uri)) {
+            lineCoverageLabels[uri] = new Dictionary<int, CoverageLabel>();
+          }
+          var newLabel = coveredStates.Contains(state)
+            ? CoverageLabel.FullyCovered
+            : CoverageLabel.NotCovered;
+          var oldLabel = lineCoverageLabels[uri].GetValueOrDefault(lineNumber, CoverageLabel.None);
+          lineCoverageLabels[uri][lineNumber] = CoverageLabelExtension.Combine(newLabel, oldLabel);
+        }
+      }
+
+      foreach (var uri in lineCoverageLabels.Keys) {
+        foreach (var lineNumber in lineCoverageLabels[uri].Keys) {
+          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
           rangeToken.Uri = uri;
           coverageReport.LabelCode(rangeToken,
-            coveredStates.Contains(state)
-              ? CoverageLabel.FullyCovered
-              : CoverageLabel.NotCovered);
+            lineCoverageLabels[uri][lineNumber]);
         }
       }
     }
@@ -186,7 +204,6 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(TextReader source, Uri uri, DafnyOptions options, CoverageReport report = null) {
       options.PrintMode = PrintModes.Everything;
-      TestMethod.ClearTypesToSynthesize();
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
       if (!firstPass.IsOk(code, uri)) {
@@ -210,6 +227,9 @@ namespace DafnyTestGeneration {
       var cache = new Modifications(options);
       var methodsGenerated = 0;
       DafnyInfo dafnyInfo = null;
+      if (report != null) {
+        report.RegisterFiles(program);
+      }
       await foreach (var method in GetTestMethodsForProgram(program, cache)) {
         if (methodsGenerated == 0) {
           dafnyInfo = new DafnyInfo(program);
@@ -225,7 +245,7 @@ namespace DafnyTestGeneration {
         methodsGenerated++;
       }
 
-      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
+      yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
       yield return "}";
 
       PopulateCoverageReport(report, program, cache);

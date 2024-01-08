@@ -25,7 +25,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         .WithHandler<DafnyCounterExampleHandler>()
         .WithHandler<DafnyCodeActionHandler>()
         .WithHandler<DafnyFormattingHandler>()
-        .WithHandler<VerificationHandler>();
+        .WithHandler<VerificationHandler>()
+        .WithHandler<DafnyWorkspaceSymbolHandler>();
     }
   }
 }

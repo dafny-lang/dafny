@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using DafnyCore.Verifier;
+using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class CoverageReporter {
 
@@ -22,7 +24,7 @@ public class CoverageReporter {
   private static readonly Regex TableFooterRegex = new(@"\{\{TABLE_FOOTER\}\}");
   private static readonly Regex TableBodyRegex = new(@"\{\{TABLE_BODY\}\}");
   private static readonly Regex IndexFileNameRegex = new(@"index(.*)\.html");
-  private static readonly Regex SpanRegexInverse = new("class=\"([a-z]+)\" id=\"line([0-9]+)col([0-9]+)-line([0-9]+)col([0-9]+)\"");
+  private static readonly Regex PosRegexInverse = new("class=\"([a-z]+)\" id=\"([0-9]+):([0-9]+)\"");
   private const string CoverageReportTemplatePath = "coverage_report_template.html";
   private const string CoverageReportIndexTemplatePath = "coverage_report_index_template.html";
   private const string CoverageReportSupportingFilesPath = ".resources";
@@ -39,9 +41,31 @@ public class CoverageReporter {
     this.options = options;
   }
 
+
+  public void SerializeVerificationCoverageReport(ProofDependencyManager depManager, Program dafnyProgram, IEnumerable<TrackedNodeComponent> usedComponents, string coverageReportDir) {
+    var usedDependencies =
+      usedComponents.Select(depManager.GetFullIdDependency).ToHashSet();
+    var allDependencies =
+      depManager
+        .GetAllPotentialDependencies()
+        .OrderBy(dep => dep.Range.StartToken);
+    var coverageReport = new CoverageReport("Verification coverage", "Proof Dependencies", "_verification", dafnyProgram);
+    foreach (var dep in allDependencies) {
+      if (dep is FunctionDefinitionDependency) {
+        continue;
+      }
+      coverageReport.LabelCode(dep.Range,
+        usedDependencies.Contains(dep)
+          ? CoverageLabel.FullyCovered
+          : CoverageLabel.NotCovered);
+    }
+
+    SerializeCoverageReports(coverageReport, coverageReportDir);
+  }
+
   public void Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
-    // assume only one report in directory for now
     List<CoverageReport> reports = new();
+    var mergedReport = new CoverageReport("Combined Coverage Report", "Locations", "_combined", null);
     foreach (var reportDir in coverageReportsToMerge) {
       if (!Directory.Exists(reportDir)) {
         reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
@@ -52,8 +76,7 @@ public class CoverageReporter {
         var indexFileName = Path.GetFileName(pathToIndexFile);
         var indexFileMatch = IndexFileNameRegex.Match(indexFileName);
         if (!indexFileMatch.Success) {
-          reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
-            $"Directory {reportDir} contains file {indexFileName} which is not part of a coverage report");
+          continue;
         }
         var suffix = indexFileMatch.Groups[1].Value;
         var index = new StreamReader(pathToIndexFile).ReadToEnd();
@@ -62,6 +85,19 @@ public class CoverageReporter {
         reports.Add(ParseCoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));
       }
     }
+
+    var onlyLabel = options.Get(CoverageReportCommand.OnlyLabelOption);
+    foreach (var report in reports) {
+      foreach (var fileName in report.AllFiles()) {
+        foreach (var span in report.CoverageSpansForFile(fileName)) {
+          mergedReport.RegisterFile(span.Span.Uri);
+          if ((onlyLabel ?? span.Label) == span.Label) {
+            mergedReport.LabelCode(span.Span, span.Label);
+          }
+        }
+      }
+    }
+    reports.Add(mergedReport);
     SerializeCoverageReports(reports, coverageReportOutDir);
   }
 
@@ -79,22 +115,31 @@ public class CoverageReporter {
       if (!uriMatch.Success) {
         continue;
       }
+
       var uri = new Uri(uriMatch.Groups[1].Value);
+      var lastEndToken = new Token(1, 1);
+      lastEndToken.Uri = uri;
+      var lastLabel = CoverageLabel.NotApplicable;
       report.RegisterFile(uri);
-      foreach (var span in SpanRegexInverse.Matches(source).Where(match => match.Success)) {
-        if (int.TryParse(span.Groups[2].Value, out var startLine) &&
-            int.TryParse(span.Groups[3].Value, out var startCol) &&
-            int.TryParse(span.Groups[4].Value, out var endLine) &&
-            int.TryParse(span.Groups[5].Value, out var endCol)) {
-          var startToken = new Token(startLine, startCol);
-          startToken.Uri = uri;
-          var endToken = new Token(endLine, endCol);
-          startToken.Uri = uri;
-          var rangeToken = new RangeToken(startToken, endToken);
+      foreach (var span in PosRegexInverse.Matches(source).Where(match => match.Success)) {
+        if (int.TryParse(span.Groups[2].Value, out var line) &&
+            int.TryParse(span.Groups[3].Value, out var col)) {
+          var nextToken = new Token(line, col);
+          nextToken.Uri = uri;
+          var precedingToken = new Token(line, col - 1);
+          precedingToken.Uri = uri;
+          var rangeToken = new RangeToken(lastEndToken, precedingToken);
           rangeToken.Uri = uri;
-          report.LabelCode(rangeToken, FromHtmlClass(span.Groups[1].Value));
+          report.LabelCode(rangeToken, lastLabel);
+          lastLabel = FromHtmlClass(span.Groups[1].Value);
+          lastEndToken = nextToken;
         }
       }
+
+      var lastToken = new Token(source.Count(c => c == '\n') + 2, 0);
+      lastToken.Uri = uri;
+      var lastRangeToken = new RangeToken(lastEndToken, lastToken);
+      report.LabelCode(lastRangeToken, lastLabel);
     }
     return report;
   }
@@ -109,29 +154,36 @@ public class CoverageReporter {
   /// will have links to each other to make comparison easier
   /// </summary>
   private void SerializeCoverageReports(List<CoverageReport> reports, string reportsDirectory) {
-    var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
-    var sessionDirectory = Path.Combine(reportsDirectory, sessionName);
+    var sessionDirectory = reportsDirectory;
+    if (!options.Get(CommonOptionBag.NoTimeStampForCoverageReport)) {
+      var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
+      sessionDirectory = Path.Combine(reportsDirectory, sessionName);
+    }
     Directory.CreateDirectory(sessionDirectory);
-    HashSet<string> allFiles = new();
-    reports.ForEach(report => allFiles.UnionWith(report.AllFiles()));
-    if (allFiles.Count == 0) {
+    HashSet<Uri> allUris = new();
+    reports.ForEach(report => allUris.UnionWith(report.AllFiles()));
+    if (allUris.Count == 0) {
       reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
         "No coverage data found in the reports.");
       return;
     }
     CopyStyleFiles(sessionDirectory);
+    // TODO: Handle arbitrary Uris better
+    var allFiles = allUris.Select(uri => uri.ToString());
     var prefixLength = new string(
       allFiles.First()[..allFiles.Min(s => Path.GetDirectoryName(s)?.Length ?? 0)]
         .TakeWhile((c, i) => allFiles.All(s => s[i] == c)).ToArray()).Length;
-    Dictionary<string, string> sourceFileToCoverageReport = new Dictionary<string, string>();
-    foreach (var fileName in allFiles) {
-      var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..] ?? "");
+    var sourceFileToCoverageReport = new Dictionary<Uri, string>();
+    foreach (var uri in allUris) {
+      // TODO: Handle arbitrary Uris better
+      var fileName = uri.ToString();
+      var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..].TrimStart('/') ?? "");
       var pathToRoot = Path.GetRelativePath(directoryForFile, sessionDirectory);
       Directory.CreateDirectory(directoryForFile);
       for (int i = 0; i < reports.Count; i++) {
         var linksToOtherReports = GetHtmlLinksToOtherReports(reports[i], Path.GetFileName(fileName), reports);
-        var reportForFile = HtmlReportForFile(reports[i], fileName, pathToRoot, linksToOtherReports);
-        sourceFileToCoverageReport[fileName] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
+        var reportForFile = HtmlReportForFile(reports[i], uri, pathToRoot, linksToOtherReports);
+        sourceFileToCoverageReport[uri] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
         File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueSuffix}.html", reportForFile);
       }
     }
@@ -144,7 +196,10 @@ public class CoverageReporter {
 
   private string MakeIndexFileTableRow(List<object> row) {
     var result = new StringBuilder("<tr>\n");
-    foreach (var cell in row) {
+    foreach (var cell in row.Take(2)) {
+      result.Append($"\t<td class=\"name\">{cell}</td>\n");
+    }
+    foreach (var cell in row.Skip(2)) {
       result.Append($"\t<td class=\"ctr2\">{cell}</td>\n");
     }
     result.Append("</tr>\n");
@@ -154,7 +209,7 @@ public class CoverageReporter {
   /// <summary>
   /// Creates an index file with program-wide statistics for a particular report
   /// </summary>
-  private void CreateIndexFile(CoverageReport report, Dictionary<string, string> sourceFileToCoverageReportFile, string baseDirectory, string linksToOtherReports) {
+  private void CreateIndexFile(CoverageReport report, Dictionary<Uri, string> sourceFileToCoverageReportFile, string baseDirectory, string linksToOtherReports) {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream(CoverageReportIndexTemplatePath);
     if (templateStream is null) {
@@ -163,23 +218,48 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File" };
-    header.AddRange(coverageLabels.Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
+    List<object> header = new() { "File", "Module" };
+    header.AddRange(coverageLabels
+      .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+      .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
 
     List<List<object>> body = new();
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+
       body.Add(new() {
         $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-        $"class = \"el_package\">{relativePath}</a>"
+        $"class = \"el_package\">{relativePath}</a>",
+        "All modules"
       });
-      body.Last().AddRange(coverageLabels.Select(label =>
-        report.CoverageSpansForFile(sourceFile).Count(span => span.Label == label)).OfType<object>());
+
+      body.Last().AddRange(coverageLabels
+        .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+        .Select(label => report.CoverageSpansForFile(sourceFile)
+                               .Count(span => span.Label == label)).OfType<object>());
+
+      foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
+        body.Add(new() {
+          "",
+          module.FullName
+        });
+
+        var moduleRange = module.RangeToken.ToDafnyRange();
+        body.Last().AddRange(coverageLabels
+          .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+          .Select(label => report.CoverageSpansForFile(sourceFile)
+                                 // span.Span.Intersects(module.RangeToken) would be cleaner,
+                                 // but unfortunately coverage span tokens don't currently always
+                                 // have Token.pos set correctly. :(
+                                 .Where(span => moduleRange.Contains(span.Span.ToDafnyRange().Start))
+                                 .Count(span => span.Label == label)).OfType<object>());
+      }
     }
 
-    List<object> footer = new() { "Total" };
-    footer.AddRange(coverageLabels.Select(label =>
-      report.AllFiles().Select(sourceFile =>
+    List<object> footer = new() { "Total", "" };
+    footer.AddRange(coverageLabels
+      .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+      .Select(label => report.AllFiles().Select(sourceFile =>
         report.CoverageSpansForFile(sourceFile).Count(span => span.Label == label)).Sum()).OfType<object>());
 
     var templateText = new StreamReader(templateStream).ReadToEnd();
@@ -187,8 +267,8 @@ public class CoverageReporter {
     templateText = FileNameRegex.Replace(templateText, report.Name);
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"),
-      TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow))));
+    templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
+    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"), templateText);
   }
 
   /// <summary>
@@ -236,19 +316,52 @@ public class CoverageReporter {
     }
   }
 
-  private string HtmlReportForFile(CoverageReport report, string pathToSourceFile, string baseDirectory, string linksToOtherReports) {
-    var source = new StreamReader(pathToSourceFile).ReadToEnd();
-    var lines = source.Split("\n");
-    IToken lastToken = new Token(0, 0);
-    var labeledCodeBuilder = new StringBuilder(source.Length);
-    foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
-      AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, span.Span.StartToken);
-      labeledCodeBuilder.Append(OpenHtmlTag(span));
-      AppendCodeBetweenTokens(labeledCodeBuilder, lines, span.Span.StartToken, span.Span.EndToken);
-      labeledCodeBuilder.Append(CloseHtmlTag(span));
-      lastToken = span.Span.EndToken;
+  private string HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
+    var dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
+    var source = dafnyFile.GetContent().ReadToEnd();
+    var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+    var characterLabels = new CoverageLabel[lines.Length][];
+    for (int i = 0; i < lines.Length; i++) {
+      characterLabels[i] = new CoverageLabel[lines[i].Length];
+      Array.Fill(characterLabels[i], CoverageLabel.None);
     }
-    AppendCodeBetweenTokens(labeledCodeBuilder, lines, lastToken, null);
+    var labeledCodeBuilder = new StringBuilder(source.Length);
+    foreach (var span in report.CoverageSpansForFile(uri)) {
+      var line = span.Span.StartToken.line - 1;
+      var column = span.Span.StartToken.col - 1;
+      while (true) {
+        if (characterLabels[line].Length <= column) {
+          do { line++; }
+          while (line < characterLabels.Length && characterLabels[line].Length == 0);
+          column = 0;
+          if (characterLabels.Length == line) {
+            break;
+          }
+        }
+        if (line > span.Span.EndToken.line - 1 || (line == span.Span.EndToken.line - 1 && column > span.Span.EndToken.col - 1)) {
+          break;
+        }
+        characterLabels[line][column] = CoverageLabelExtension.Combine(characterLabels[line][column], span.Label);
+        column++;
+      }
+    }
+
+    var lastLabel = CoverageLabel.NotApplicable;
+    labeledCodeBuilder.Append(OpenHtmlTag(1, 1, CoverageLabel.NotApplicable));
+    for (var line = 0; line < lines.Length; line++) {
+      for (var col = 0; col < lines[line].Length; col++) {
+        var thisLabel = characterLabels[line][col] == CoverageLabel.None ? CoverageLabel.NotApplicable : characterLabels[line][col];
+        if (thisLabel != lastLabel) {
+          labeledCodeBuilder.Append(CloseHtmlTag());
+          labeledCodeBuilder.Append(OpenHtmlTag(line + 1, col + 1, thisLabel));
+        }
+        labeledCodeBuilder.Append(lines[line][col]);
+        lastLabel = thisLabel;
+      }
+      labeledCodeBuilder.Append(Environment.NewLine);
+    }
+    labeledCodeBuilder.Append(CloseHtmlTag());
+
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream(CoverageReportTemplatePath);
     var labeledCode = labeledCodeBuilder.ToString();
@@ -261,24 +374,9 @@ public class CoverageReporter {
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
-    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(pathToSourceFile)}, {report.Name}");
-    templateText = UriRegex.Replace(templateText, pathToSourceFile);
+    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(uri.LocalPath)}, {report.Name}");
+    templateText = UriRegex.Replace(templateText, uri.ToString());
     return LabeledCodeRegex.Replace(templateText, labeledCode);
-  }
-
-  /// <summary>
-  /// Append code from <param name="lines"></param> that lies between <param name="start"></param> and
-  /// <param name="end"></param> tokens to the <param name="stringBuilder"></param>
-  /// </summary>
-  private static void AppendCodeBetweenTokens(StringBuilder stringBuilder, string[] lines, IToken start, IToken end) {
-    var currToken = new Token(start.line, start.col);
-    while (currToken.line < lines.Length && (end == null || currToken.line < end.line)) {
-      stringBuilder.Append(lines[currToken.line][currToken.col..] + "\n");
-      currToken.line += 1;
-    }
-    if (end != null && currToken.line < lines.Length) {
-      stringBuilder.Append(lines[currToken.line][currToken.col..end.col]);
-    }
   }
 
   /// <summary>
@@ -290,6 +388,8 @@ public class CoverageReporter {
       CoverageLabel.FullyCovered => "fc",
       CoverageLabel.NotCovered => "nc",
       CoverageLabel.PartiallyCovered => "pc",
+      CoverageLabel.None => "none",
+      CoverageLabel.NotApplicable => "na",
       _ => ""
     };
   }
@@ -304,13 +404,13 @@ public class CoverageReporter {
     return CoverageLabel.NotCovered; // this is a fallback in case the HTML has invalid classes
   }
 
-  private string OpenHtmlTag(CoverageSpan span) {
-    var id = $"id=\"line{span.Span.StartToken.line}col{span.Span.StartToken.col}-line{span.Span.EndToken.line}col{span.Span.EndToken.col}\"";
-    var classLabel = ToHtmlClass(span.Label);
+  private string OpenHtmlTag(int line, int col, CoverageLabel label) {
+    var id = $"id=\"{line}:{col}\"";
+    var classLabel = ToHtmlClass(label);
     return $"<span class=\"{classLabel}\" {id}>";
   }
 
-  private string CloseHtmlTag(CoverageSpan span) {
+  private string CloseHtmlTag() {
     return "</span>";
   }
 }

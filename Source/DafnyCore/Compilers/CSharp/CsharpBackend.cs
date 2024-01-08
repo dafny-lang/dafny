@@ -4,8 +4,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Loader;
-using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CsharpCompiler(Options, Reporter);
   }
@@ -60,6 +59,7 @@ public class CsharpBackend : ExecutableBackend {
       "System.Runtime.Numerics",
       "System.Collections",
       "System.Collections.Immutable",
+      "System.Collections.Concurrent",
       "System.Console"
     };
     compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)));
@@ -87,11 +87,12 @@ public class CsharpBackend : ExecutableBackend {
     }
 
     var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-    compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
+    compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, null, "source"));
     foreach (var sourceFile in otherSourceFiles) {
-      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
+      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), null, sourceFile));
     }
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+    Directory.CreateDirectory(outputDir);
     var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
     var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
     var emitResult = compilation.Emit(outputPath);
@@ -156,6 +157,10 @@ public class CsharpBackend : ExecutableBackend {
     }
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter, errorWriter) == 0;
+  }
+
+  public override void PopulateCoverageReport(CoverageReport coverageReport) {
+    compiler.Coverage.PopulateCoverageReport(coverageReport);
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {

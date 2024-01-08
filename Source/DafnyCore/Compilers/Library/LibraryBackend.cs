@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using DafnyCore;
 
-namespace Microsoft.Dafny.Compilers; 
+namespace Microsoft.Dafny.Compilers;
 
 public class LibraryBackend : ExecutableBackend {
   public LibraryBackend(DafnyOptions options) : base(options) {
@@ -28,8 +28,30 @@ public class LibraryBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-    Feature.LegacyCLI
+    Feature.LegacyCLI,
+    Feature.RuntimeCoverageReport
   };
+
+  // Necessary since Compiler is null
+  public override string ModuleSeparator => ".";
+
+  /// <summary>
+  /// Serializing the state of the Program passed to this backend,
+  /// after resolution, can be problematic.
+  /// If nothing else, very early on in the resolution process
+  /// we create explicit module definitions for implicit ones appearing
+  /// in qualified names such as `module A.B.C { ... }`,
+  /// and this means that multiple .doo files would then not be able to
+  /// share these prefixes without hitting duplicate name errors.
+  ///
+  /// Instead we serialize the state of the program immediately after parsing.
+  /// See also ProgramParser.ParseFiles().
+  /// 
+  /// This could be captured somewhere else, such as on the Program itself,
+  /// if having this state here hampers reuse in the future,
+  /// especially parallel processing.
+  /// </summary>
+  internal DooFile DooFile { get; set; }
 
   protected override SinglePassCompiler CreateCompiler() {
     return null;
@@ -55,8 +77,10 @@ public class LibraryBackend : ExecutableBackend {
       Reporter.Error(MessageSource.Compiler, assumption.tok, message, message);
     }
 
-    var dooFile = new DooFile(dafnyProgram);
-    dooFile.Write(output);
+    // var dooFile = new DooFile(dafnyProgram);
+    // dooFile.Write(output);
+    DooFile.Write(output);
+    DooFile = null;
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
