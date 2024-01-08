@@ -59,6 +59,12 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
+        } else if (loggerName == "json") {
+          // This logger doesn't implement the ITestLogger interface because
+          // it uses information that's tricky to encode in a TestResult.
+          var jsonLogger = new JsonVerificationLogger(depManager, options.OutputWriter);
+          jsonLogger.Initialize(parameters);
+          jsonLogger.LogResults(verificationResults);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.

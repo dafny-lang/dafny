@@ -47,11 +47,7 @@ public class TextLogger {
         if (vcResult.CoveredElements.Any() && vcResult.Outcome == ProverInterface.Outcome.Valid) {
           tw.WriteLine("");
           tw.WriteLine("    Proof dependencies:");
-          var fullDependencies =
-            vcResult
-            .CoveredElements
-            .Select(depManager.GetFullIdDependency)
-            .OrderBy(dep => (dep.RangeString(), dep.Description));
+          var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
           foreach (var dep in fullDependencies) {
             tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
           }
