@@ -81,28 +81,16 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       return base.Traverse(expr, field, parent);
     }
 
-    string what = e.WhatKind;
-
-    if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
+    if (e is QuantifierExpr or SetComprehension or MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.AsSubsetType is {
-          Constraint: var constraint,
-          ConstraintIsCompilable: false and var constraintIsCompilable
-        } and var subsetTypeDecl
-           ) {
-          if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
-            // Builtin types were never resolved.
-            constraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(reporter.Options, null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
-            subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
-          }
+        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
+          if (!declWithConstraint.ConstraintIsCompilable) {
 
-          if (!constraintIsCompilable) {
             IToken finalToken = boundVar.tok;
-            if (constraint.tok.line != 0) {
+            if (declWithConstraint.Constraint != null && declWithConstraint.Constraint.tok.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
-              ExpressionTester.CheckIsCompilable(null, errorCollector, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
               if (errorCollector.Collected) {
                 finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
                   "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
@@ -110,7 +98,8 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
               }
             }
             this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
+              $"{boundVar.Type} is a {declWithConstraint.WhatKind} and its constraint is not compilable, " +
+              $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
           }
         }
       }

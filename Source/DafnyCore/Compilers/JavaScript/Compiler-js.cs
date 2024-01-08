@@ -2432,6 +2432,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsCharType) {
           wr.Write(").toNumber())");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }
