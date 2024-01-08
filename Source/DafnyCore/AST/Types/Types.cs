@@ -202,9 +202,7 @@ public abstract class Type : TokenNode {
 
     Type type = this;
     while (true) {
-
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
+      if (type is TypeProxy { T: not null } pt) {
         type = pt.T;
         continue;
       }
