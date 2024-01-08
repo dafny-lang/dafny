@@ -1039,9 +1039,9 @@ namespace Microsoft.Dafny.Compilers {
             typeDescriptorExpr = $"{DafnyTypeDescriptor}.longWithDefault({w ?? "0L"})";
             break;
           case null:
-            if (targetType.IsBoolType) {
+            if (targetTypeIgnoringConstraints.IsBoolType) {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
-            } else if (targetType.IsCharType) {
+            } else if (targetTypeIgnoringConstraints.IsCharType) {
               if (UnicodeCharEnabled) {
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.unicodeCharWithDefault((int){w ?? CharType.DefaultValueAsString})";
               } else {

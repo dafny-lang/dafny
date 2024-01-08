@@ -5,6 +5,8 @@ method Main() {
   SimpleBoolAndint.Test();
   TrivialConstraint.Test();
   BaseTypesThatAreSubsetTypes.Test();
+  TypeDescriptors.Test();
+  PrintChars.Test();
 }
 
 module Numerics {
@@ -178,6 +180,7 @@ module Char {
     MyString([u, u, u]);
     MyString("hello");
     Mix();
+    GoodOl'Char('B');
   }
   
   method Comparisons() returns (c: MyChar, u: UpperCase, r: bool) {
@@ -225,5 +228,66 @@ module Char {
     var b: MyBool := (u as MyChar - c) as char == one as int as char;
     // Note, in the following line, `[c]` prints as "['A']", not just "A", because the type is not seq<char> but seq<MyChar>
     print [c], " ", u, " ", one, " ", b, "\n"; // ['A'] 'B' 1 true
+  }
+  
+  method GoodOl'Char(ch: char)
+    requires 'A' <= ch < 'Z'
+  {
+    print ch, " "; // 'B'
+
+    var c0 := ch as char;
+    var c1 := c0 - 'A';
+    var charDiff := c1 + 'B';
+    print charDiff, " "; // 'C'
+
+    var uc := charDiff as char;
+    print uc, " "; // 'C'
+
+    print uc > ch, "\n"; // true
+  }
+}
+
+module TypeDescriptors {
+  newtype UpperCase = ch | 'A' <= ch <= 'Z' witness 'F'
+  newtype MyInt = x: int | true witness 365
+  newtype Word = x: int | -3 <= x < 0x8000_0000 witness 400
+  type SubChar = ch | 'a' <= ch <= 'z' witness 'g'
+
+  method Test() {
+    var d0, y0 := P<char>('a', 'a', 'A', 3, 4, 5, 'b');
+    var d1, y1 := P<UpperCase>('A', 'a', 'A', 3, 4, 5, 'b');
+    var d2, y2 := P<int>(3, 'a', 'A', 3, 4, 5, 'b');
+    var d3, y3 := P<MyInt>(4, 'a', 'A', 3, 4, 5, 'b');
+    var d4, y4 := P<Word>(5, 'a', 'A', 3, 4, 5, 'b');
+    var d5, y5 := P<SubChar>('b', 'a', 'A', 3, 4, 5, 'b');
+
+    print "(";
+    print d0, " ", y0, ") (";
+    print d1, " ", y1, ") (";
+    print d2, " ", y2, ") (";
+    print d3, " ", y3, ") (";
+    print d4, " ", y4, ") (";
+    print d5, " ", y5, ")\n";
+  }
+
+  method P<X(0)>(x: X, ch: char, uc: UpperCase, i: int, m: MyInt, w: Word, s: SubChar) returns (d: X, y: X) {
+    print ch, " ", uc, " ", i, " ", m, " ", w, " ", s, " -- ", x, "\n";
+    d, y := *, x;
+  }
+}
+
+module PrintChars {
+  newtype MyChar = char
+
+  method Test() {
+    var ch: char := 'c';
+    var my: MyChar := 'm';
+
+    print ch, " ", my, "\n"; // 'c' 'm'
+    Print(ch, my);
+  }
+
+  method Print<X, Y>(x: X, y: Y) {
+    print x, " ", y, "\n"; // 'c' 'm'
   }
 }
