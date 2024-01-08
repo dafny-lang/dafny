@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
@@ -222,39 +221,50 @@ public class ExpectContracts : IRewriter {
   }
 
   /// <summary>
-  /// Add wrappers for certain top-level declarations in the given module.
-  /// This runs after the first pass of resolution so that it has access to
-  /// ghostness information, attributes and call targets.
+  /// Adds wrappers for certain top-level declarations in the given
+  /// program and redirects callers to call those wrappers instead of
+  /// the original members.
+  ///
+  /// This runs after resolution so that it has access to ghostness
+  /// information, attributes and call targets and after verification
+  /// because that makes the interaction with the refinement transformer
+  /// more straightforward.
   /// </summary>
-  /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
-  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-    // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-    List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+  /// <param name="program">The program to generate wrappers for and in.</param>
+  public override void PostVerification(Program program) {
+    // Create wrappers
+    foreach (var moduleDefinition in program.Modules()) {
 
-    moduleDefinition.CallRedirector = new(Reporter);
+      // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
-    // Find module members to wrap.
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (ShouldGenerateWrapper(decl)) {
-          membersToWrap.Add((topLevelDecl, decl));
+      moduleDefinition.CallRedirector = new(Reporter);
+
+      // Find module members to wrap.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (ShouldGenerateWrapper(decl)) {
+            membersToWrap.Add((topLevelDecl, decl));
+          }
         }
       }
-    }
 
-    // Generate a wrapper for each of the members identified above.
-    foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(moduleDefinition, topLevelDecl, decl);
-    }
-    moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
-  }
+      // Generate a wrapper for each of the members identified above. This
+      // need to happen after all declarations to wrap have been identified
+      // because it adds new declarations and would invalidate the iterator
+      // used during identification.
+      foreach (var (topLevelDecl, decl) in membersToWrap) {
+        GenerateWrapper(moduleDefinition, topLevelDecl, decl);
+      }
+      moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
 
-  public override void PostVerification(Program program) {
-    foreach (var module in program.CompileModules) {
-      foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      // Put redirections in place. Any wrappers to call will be in either
+      // this module or to a previously-processed module, so they'll already
+      // exist.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
           if (decl is ICallable callable) {
-            module.CallRedirector?.Visit(callable, decl);
+            moduleDefinition.CallRedirector?.Visit(callable, decl);
           }
         }
       }
@@ -264,7 +274,7 @@ public class ExpectContracts : IRewriter {
       return;
     }
 
-    foreach (var module in program.CompileModules) {
+    foreach (var module in program.Modules()) {
       if (module.CallRedirector == null) {
         continue;
       }
