@@ -244,4 +244,4 @@ To separately compile and run your program for Python:
 ### Rust
 
 To setup Dafny to compile to Rust:
-* Install Rust from stup https://rustup.rs/
+* Install Rust from https://rustup.rs/
