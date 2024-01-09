@@ -1,10 +1,13 @@
-method.dfy(5,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(5,35): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(6,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(6,35): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(10,2): Warning: note, this loop has no body
 
-Dafny program verifier finished with 0 verified, 0 errors
-method.dfy(5,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(5,35): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+Dafny program verifier finished with 1 verified, 0 errors
+method.dfy(6,21): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(6,35): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(10,2): Warning: note, this loop has no body
 
-Dafny program verifier finished with 0 verified, 0 errors
-method.dfy(5,7): Error: Method _module._default.Foo has no body so it cannot be executed
-method.dfy(6,16): Error: Method _module._default.Bar has no body so it cannot be executed
+Dafny program verifier finished with 1 verified, 0 errors
+method.dfy(6,7): Error: Method _module._default.Foo has no body so it cannot be executed
+method.dfy(7,16): Error: Method _module._default.Bar has no body so it cannot be executed
+method.dfy(10,2): Error: a loop without a body cannot be compiled
