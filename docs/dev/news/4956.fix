@@ -1,0 +1,2 @@
+Fix parser: a `type` declaration with a constraint must name the value of the base type.
+Fix crash in verifier when a subset type has no explicit `witness` clause and has a non-reference trait as its base type.
