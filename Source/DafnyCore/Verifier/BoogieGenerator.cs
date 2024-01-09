@@ -10,28 +10,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
-using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
-using Core;
 using DafnyCore.Verifier;
-using Microsoft.BaseTypes;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Triggers;
-using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private DafnyOptions options;
+    public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     private bool filterOnlyMembers;
 
@@ -80,7 +73,6 @@ namespace Microsoft.Dafny {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
-      triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
@@ -733,6 +725,7 @@ namespace Microsoft.Dafny {
 
       program = p;
       this.forModule = forModule;
+      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options, forModule);
       Type.EnableScopes();
 
       EstablishModuleScope(p.SystemModuleManager.SystemModule, forModule);
@@ -862,7 +855,7 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+    public static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
       if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
@@ -1424,12 +1417,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Implementation AddImplementationWithVerboseName(IToken tok, Procedure proc, List<Variable> inParams,
+    private Implementation AddImplementationWithAttributes(IToken tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
-      AddVerboseName(impl, proc.VerboseName);
+      AddVerboseNameAttribute(impl, proc.VerboseName);
+      if (options.IsUsingZ3()) {
+        if (DisableNonLinearArithmetic) {
+          AddSmtOptionAttribute(impl, "smt.arith.nl", "false");
+        }
+
+        AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
+      }
       sink.AddTopLevelDeclaration(impl);
       return impl;
     }
@@ -2353,7 +2353,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
-      AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseNameAttribute(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -2377,7 +2377,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
         var implBody = builder.Collect(ctor.tok);
-        AddImplementationWithVerboseName(GetToken(ctor), proc, implInParams,
+        AddImplementationWithAttributes(GetToken(ctor), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 
@@ -2912,13 +2912,17 @@ namespace Microsoft.Dafny {
       return $"{fullName} ({kindDescription[kind]})";
     }
 
-    private static void AddVerboseName(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
+    private static void AddVerboseNameAttribute(Bpl.NamedDeclaration boogieDecl, string dafnyName, MethodTranslationKind kind) {
       var verboseName = MethodVerboseName(dafnyName, kind);
-      AddVerboseName(boogieDecl, verboseName);
+      AddVerboseNameAttribute(boogieDecl, verboseName);
     }
 
-    private static void AddVerboseName(Bpl.NamedDeclaration targetDecl, string verboseName) {
+    private static void AddVerboseNameAttribute(Bpl.NamedDeclaration targetDecl, string verboseName) {
       targetDecl.AddAttribute("verboseName", new object[] { verboseName });
+    }
+
+    private static void AddSmtOptionAttribute(Bpl.NamedDeclaration targetDecl, string name, string value) {
+      targetDecl.Attributes = new QKeyValue(targetDecl.tok, "smt_option", new List<object>() { name, value }, targetDecl.Attributes);
     }
 
     private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
@@ -3419,7 +3423,6 @@ namespace Microsoft.Dafny {
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, desc));
       } else {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
@@ -3437,7 +3440,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
@@ -3462,7 +3465,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
-      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(dafnyCondition));
+      proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 
@@ -3994,8 +3997,7 @@ namespace Microsoft.Dafny {
           "it may have read effects");
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
-          {
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
           false, null);
@@ -4443,6 +4445,48 @@ namespace Microsoft.Dafny {
     internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
+    private bool DisableNonLinearArithmetic => DetermineDisableNonLinearArithmetic(forModule, options);
+    private int ArithmeticSolver {
+      get {
+        var arithmeticSolver = Attributes.Find(forModule.Attributes, "z3ArithmeticSolver");
+
+        // The value 2 tends to lead to the best all-around arithmetic
+        // performance, though some programs can be verified more quickly
+        // (or verified at all) using a different solver.
+        // https://microsoft.github.io/z3guide/programming/Parameters/
+        var defaultSolver = 2;
+        if (arithmeticSolver == null) {
+          return defaultSolver;
+        }
+
+        var arg = arithmeticSolver.Args.Count > 0 ? arithmeticSolver.Args[0] : null;
+        if (arg == null) {
+          return defaultSolver;
+        }
+
+        Expression.IsIntLiteral(arg, out var value);
+        try {
+          return (int)value;
+        } catch (OverflowException) {
+          return defaultSolver;
+        }
+      }
+    }
+
+    public static bool DetermineDisableNonLinearArithmetic(ModuleDefinition module, DafnyOptions dafnyOptions) {
+      var nlaAttribute = Attributes.Find(module.Attributes, "disableNonlinearArithmetic");
+      if (nlaAttribute != null) {
+        var value = true;
+        var arg = nlaAttribute.Args.Count > 0 ? nlaAttribute.Args[0] : null;
+        if (arg != null) {
+          Expression.IsBoolLiteral(arg, out value);
+        }
+
+        return value;
+      }
+
+      return dafnyOptions.DisableNLarith;
+    }
 
     internal class IsAllocContext {
       private DafnyOptions options;

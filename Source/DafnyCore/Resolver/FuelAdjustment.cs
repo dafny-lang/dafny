@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public static class FuelAdjustment {
 

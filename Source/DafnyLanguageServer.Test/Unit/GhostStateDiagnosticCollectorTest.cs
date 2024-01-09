@@ -50,7 +50,7 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
-    public DummyModuleDecl() : base(
+    public DummyModuleDecl(DafnyOptions options) : base(options,
       new DefaultModuleDefinition(), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
@@ -63,7 +63,7 @@ public class GhostStateDiagnosticCollectorTest {
     // Builtins is null to trigger an error.
     var options = DafnyOptions.DefaultImmutableOptions;
     var rootUri = new Uri(Directory.GetCurrentDirectory());
-    var dummyModuleDecl = new DummyModuleDecl();
+    var dummyModuleDecl = new DummyModuleDecl(options);
     var reporter = new CollectingErrorReporter(options);
     var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
       Sets.Empty<Uri>());

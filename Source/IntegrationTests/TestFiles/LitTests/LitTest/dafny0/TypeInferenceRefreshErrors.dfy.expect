@@ -6,8 +6,8 @@ TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must den
 TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression assignable to it (got 'D')
 TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression assignable to it (got 'C')
 TypeInferenceRefreshErrors.dfy(49,8): Error: the type ('E?<?0>') of this variable is underspecified
-TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E<?2>') of this cast target is underspecified
-TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E<set<?6>>') of this cast target is underspecified
+TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E<?2>') of this expression is underspecified
+TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E<set<?6>>') of this expression is underspecified
 TypeInferenceRefreshErrors.dfy(64,8): Error: the type ('map<?8, ?9>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(65,8): Error: the type ('map<?10, ?11>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(66,8): Error: the type ('map<?18, ?19>') of this local variable is underspecified

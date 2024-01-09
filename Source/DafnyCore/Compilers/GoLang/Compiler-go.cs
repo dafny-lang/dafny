@@ -27,7 +27,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.AllUnderscoreExternalModuleNames
+      Feature.AllUnderscoreExternalModuleNames,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
@@ -68,6 +69,9 @@ namespace Microsoft.Dafny.Compilers {
 
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_go", wr);
       }
     }
 
@@ -3573,6 +3577,8 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for go: {e.E.Type} -> {e.ToType}");
       }
@@ -3633,7 +3639,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (toOrig != null) {
+        to = toOrig;
+      }
+
       if (to == null) {
         return wr;
       }

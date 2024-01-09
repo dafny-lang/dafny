@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         CancellationToken
       );
       if (result == null && !allowNull) {
-        var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+        var diagnostics = await GetLastDiagnostics(documentItem);
         await output.WriteLineAsync($"diagnostics: {diagnostics.Stringify()}");
         Assert.NotNull(result);
       }

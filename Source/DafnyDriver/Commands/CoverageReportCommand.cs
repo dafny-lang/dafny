@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 static class CoverageReportCommand {
 
@@ -43,7 +43,7 @@ static class CoverageReportCommand {
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       var coverageReporter = new CoverageReporter(options);
       coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
         options.Get(OutDirArgument));

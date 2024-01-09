@@ -29,7 +29,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.TuplesWiderThan20,
       Feature.ArraysWithMoreThan16Dims,
-      Feature.ArrowsWithMoreThan16Arguments
+      Feature.ArrowsWithMoreThan16Arguments,
+      Feature.RuntimeCoverageReport,
     };
 
     const string DafnySetClass = "dafny.DafnySet";
@@ -301,6 +302,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeJava", wr);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_java", wr);
       }
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
@@ -1323,9 +1327,11 @@ namespace Microsoft.Dafny.Compilers {
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
         wr.Write($"new {DafnyTupleClass(2)}(");
-        wr.Append(Expr(p.A, inLetExprBody, wStmts));
+        var coercedW = EmitCoercionIfNecessary(from: p.A.Type, to: NativeObjectType, tok: p.A.tok, wr: wr);
+        coercedW.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");
-        wr.Append(Expr(p.B, inLetExprBody, wStmts));
+        coercedW = EmitCoercionIfNecessary(from: p.B.Type, to: NativeObjectType, tok: p.B.tok, wr: wr);
+        coercedW.Append(Expr(p.B, inLetExprBody, wStmts));
         wr.Write(")");
         sep = ", ";
       }
@@ -1692,7 +1698,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (source.Type.AsMapType != null) {
         wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsMapType.Range, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
-        TrParenExpr(".get", index, wr, inLetExprBody, wStmts);
+        wr.Write(".get(");
+        var coercedWr = EmitCoercionIfNecessary(from: source.Type.AsMapType.Domain, to: NativeObjectType, tok: source.tok, wr: wr);
+        EmitExpr(index, inLetExprBody, coercedWr, wStmts);
+        wr.Write(")");
       } else {
         wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.Arg, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
@@ -3891,7 +3900,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (toOrig != null) {
+        to = toOrig;
+      }
+
       if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
         return FromFatPointer(to, wr);
       }
@@ -4174,6 +4187,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
       }

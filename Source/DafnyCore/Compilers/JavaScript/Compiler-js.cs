@@ -26,7 +26,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.SeparateCompilation
+      Feature.SeparateCompilation,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
@@ -45,6 +46,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeJs", wr, false);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_js", wr, false);
       }
     }
 
@@ -2429,6 +2433,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsCharType) {
           wr.Write(").toNumber())");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }
