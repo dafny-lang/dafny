@@ -41,7 +41,7 @@ public static class ErrorReporterExtensions {
     return $"Could not prove: {related}";
   }
 
-  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string? message) {
     var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
     if (dafnyToken is RangeToken rangeToken) {
