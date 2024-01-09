@@ -163,9 +163,6 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
-  public static readonly Option<FileInfo> SolverPath = new("--solver-path",
-      "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.");
-
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => true,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
     IsHidden = true
@@ -508,6 +505,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal }
       }
     );
     DooFile.RegisterNoChecksNeeded(
