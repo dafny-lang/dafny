@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -41,8 +43,8 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD105
     }
 
-    public static string Comma(this IEnumerable<string> l) {
-      return Comma(l, s => s);
+    public static string Comma<T>(this IEnumerable<T> l) {
+      return Comma(l, s => s.ToString());
     }
 
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
@@ -630,6 +632,10 @@ namespace Microsoft.Dafny {
         program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
+
+    public static IEnumerable<string> Lines(TextReader reader) {
+      return new LinesEnumerable(reader);
+    }
   }
 
   public class DependencyMap {
@@ -970,6 +976,47 @@ namespace Microsoft.Dafny {
 
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
              OnExit(expr, field, parent);
+    }
+  }
+
+  class LinesEnumerable : IEnumerable<string> {
+    private readonly TextReader Reader;
+
+    public LinesEnumerable(TextReader reader) {
+      Reader = reader;
+    }
+
+    public IEnumerator<string> GetEnumerator() {
+      return new LinesEnumerator(Reader);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
+
+  class LinesEnumerator : IEnumerator<string> {
+
+    private readonly TextReader Reader;
+
+    public LinesEnumerator(TextReader reader) {
+      Reader = reader;
+    }
+
+    public bool MoveNext() {
+      Current = Reader.ReadLine();
+      return Current != null;
+    }
+
+    public void Reset() {
+      throw new NotImplementedException();
+    }
+
+    public string Current { get; internal set; }
+
+    object IEnumerator.Current => Current;
+
+    public void Dispose() {
     }
   }
 }

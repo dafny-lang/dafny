@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" --expect-exit-code=2 --refresh-exit-code=0 -- --relax-definite-assignment
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
 const X := 1
 

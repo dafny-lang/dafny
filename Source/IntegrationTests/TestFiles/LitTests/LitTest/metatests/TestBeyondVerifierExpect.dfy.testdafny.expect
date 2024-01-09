@@ -7,6 +7,13 @@ Diff (changing expected into actual):
 +hello
  
 
+Executing on C# (with --include-runtime:false)...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
 Executing on JavaScript...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
@@ -37,4 +44,10 @@ Diff (changing expected into actual):
 
 Executing on C++...
 Executing on Rust...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-good bye
++hello
+ 
+
 Executing on ResolvedDesugaredExecutableDafny...

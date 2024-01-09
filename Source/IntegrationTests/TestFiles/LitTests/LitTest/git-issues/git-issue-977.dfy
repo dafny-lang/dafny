@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<V> = Some(value: V) | None

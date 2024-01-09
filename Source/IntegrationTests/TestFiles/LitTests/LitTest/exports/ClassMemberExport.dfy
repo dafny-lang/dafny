@@ -1,5 +1,5 @@
-// RUN: %dafny /env:0 /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 module A {
    export Spec reveals AClass provides T, AClass.f, AClass.Init

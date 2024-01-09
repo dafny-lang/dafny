@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:- /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print:-
+
 
 module Issue1219 {
   datatype CheckRussell = ISet(s: iset<CheckRussell>)  // error: recursive mentions must be used in a strict (and covariant) context

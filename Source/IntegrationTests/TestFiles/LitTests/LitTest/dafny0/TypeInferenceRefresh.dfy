@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = BlueX | WhiteX | PastelX
@@ -962,6 +962,54 @@ module StaticReceivers {
   }
 }
 
+module UnaryMinus {
+  // This modules contains some regression tests to make sure that -nat is an int, not a nat.
+  // This remains a problem in the old resolver, and was once a problem (for different reasons)
+  // in the new resolver.
+
+  predicate Simple(n: nat, d: nat) {
+    var x := -d; // type of x should be inferred to be int, not nat
+    n == x
+  }
+
+  function Abs(n: int): nat {
+    if n < 0 then -n else n
+  }
+
+  predicate IsNat(n: int)
+    ensures IsNat(n) <==> 0 <= n
+  {
+    AtMost(n, 0)
+  }
+
+  predicate AtMost(n: int, d: nat)
+    requires d <= Abs(n)
+    ensures AtMost(n, d) <==> d <= n
+    decreases Abs(n) - d
+  {
+    n == d || (n + d != 0 && AtMost(n, d + 1))
+  }
+
+  predicate AtMost'(n: int, d: nat)
+    requires d <= Abs(n)
+    ensures AtMost'(n, d) <==> d <= n
+    decreases Abs(n) - d
+  {
+    if n == d then
+      true
+    else if n == -d then // the -d here should not pose any problems
+      false
+    else
+      AtMost'(n, d + 1)
+  }
+
+  lemma Same(n: int, d: nat)
+    requires d <= Abs(n)
+    ensures AtMost(n, d) == AtMost'(n, d)
+  {
+  }
+}
+
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
@@ -1000,53 +1048,4 @@ datatype Tree =
 // Dafny rejects the call to MaxF, claiming that forall t | t in ts :: default <= f(t) might not hold.  But default is 0 and f(t)
 // has type nat, so it should hold — and in fact just uncommenting the definition of fn above solves the issue… even if fn isn’t used.
  
-
-// ------------------
-// From Clement:
-
-method copy<T>(a: array<T>) returns (a': array<T>) {
-  a' := new T[a.Length](k requires k < a.Length reads a => a[k]);
-}
-
-// The lambda in a new T is supposed to take a nat, but Dafny infers k to be an int and rejects a[k]
-
-// ------------------
-// In this program, one has to write "n + d != 0" instead of "n != -d", because of a previously known problem with type inference
-
-predicate method ge0'(n: int)
-  ensures ge0'(n) <==> 0 <= n
-{
-  downup_search'(n, 0)
-}
-
-function method Abs(n: int): nat {
-  if n < 0 then -n else n
-}
-
-predicate method downup_search'(n: int, d: nat)
-  requires d <= Abs(n)
-  ensures downup_search'(n, d) <==> d <= n
-  decreases Abs(n) - d
-{
-  n == d || (n + d != 0 && downup_search'(n, d + 1))
-  /*
-  if n - d == 0 then
-    true
-  else if n + d == 0 then
-    false
-  else
-    downup_search'(n, d + 1)
-  */
-}
-
-// ------------------------
-// From https://github.com/dafny-lang/dafny/issues/1292:
-
-datatype List <T> = None | Cons (hd: T, tl: List<T>)
-
-method m (x: List<int>)  {
-  match x
-    case None => {assert 4 > 3;}
-    case Cons(None, t) => {assert 4 > 3;}
-}
 ****************************************************************************************/

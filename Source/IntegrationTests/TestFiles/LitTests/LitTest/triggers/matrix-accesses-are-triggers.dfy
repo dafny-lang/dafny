@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file checks that multi-dimensional array accesses yield trigger candidates

@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // The RoundDown and RoundUp methods in this file are the ones in the Boogie
 // implementation Source/AbsInt/IntervalDomain.cs.

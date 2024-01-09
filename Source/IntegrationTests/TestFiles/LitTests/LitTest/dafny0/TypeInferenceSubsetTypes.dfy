@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Cell {

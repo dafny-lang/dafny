@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Misc {
@@ -846,23 +846,23 @@ module ObjectType {
     o := co;  // error
   }
 }
-
 // ------------------ modify statment ---------------------------
-
 module MiscModify {
   class ModifyStatementClass {
     var x: int
     ghost var g: int
-    method M()
-    {
+    method M() {
       modify x;  // error: type error
     }
+} }
+module MiscModifiesGhost {
+  class ModifyStatementClass {
+    var x: int
+    ghost var g: int
     ghost method G0()
       modifies `g
       modifies `x  // error: non-ghost field mentioned in ghost context
-  }
-}
-
+} }
 module ModifyStatementClass_More {
   class C {
     var x: int

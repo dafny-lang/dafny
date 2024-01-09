@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 // Rustan Leino, June 2012.
 // This file verifies an algorithm, due to Boyer and Moore, that finds the majority choice

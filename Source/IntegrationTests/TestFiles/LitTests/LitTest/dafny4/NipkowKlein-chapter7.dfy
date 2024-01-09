@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %verify --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file is a Dafny encoding of chapter 7 from "Concrete Semantics: With Isabelle/HOL" by

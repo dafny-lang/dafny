@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {

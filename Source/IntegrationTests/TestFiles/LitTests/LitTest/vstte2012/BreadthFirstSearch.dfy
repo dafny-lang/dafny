@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /deprecation:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+
 
 class BreadthFirstSearch<Vertex(==)>
 {
@@ -26,7 +26,10 @@ class BreadthFirstSearch<Vertex(==)>
   // this method returns, as a ghost out-parameter, that existential
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
-  method {:rlimit 8000} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
+  method
+    {:rlimit 8000}
+    {:vcs_split_on_every_assert}
+  BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
     requires source in AllVertices && dest in AllVertices;

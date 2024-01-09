@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny /compile:0 /showSnippets:1 "%s" > "%t".raw
+// RUN: %exits-with 4 %baredafny verify --use-basename-for-filename --show-snippets "%s" > "%t".raw
 // RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 

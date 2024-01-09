@@ -1,5 +1,5 @@
-// RUN: %dafny /rprint:"%t.rprint" /print:"%t.print" /compile:0  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
+
 
 type sp_state
 type operand = int

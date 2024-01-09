@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
     /// Expecting that "preType" is a type that does not involve traits, return that type, if possible.
     /// </summary>
     [CanBeNull]
-    public DPreType FindDefinedPreType(PreType preType) {
+    public DPreType FindDefinedPreType(PreType preType, bool applyAdvice) {
       Contract.Requires(preType != null);
 
       PartiallySolveTypeConstraints();
@@ -89,10 +89,13 @@ namespace Microsoft.Dafny {
         foreach (var super in AllSuperBounds(proxy, new HashSet<PreTypeProxy>())) {
           return super;
         }
-        return null;
+
+        if (applyAdvice) {
+          TryApplyDefaultAdviceFor(proxy);
+        }
       }
 
-      return preType as DPreType;
+      return preType.Normalize() as DPreType;
     }
 
     /// <summary>
@@ -456,6 +459,15 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
+    bool TryApplyDefaultAdviceFor(PreTypeProxy proxy) {
+      foreach (var advice in defaultAdvice) {
+        if (advice.ApplyFor(proxy, PreTypeResolver)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
@@ -508,6 +520,8 @@ namespace Microsoft.Dafny {
       Sizeable,
       Freshable,
       IsCoDatatype,
+      IsNewtypeBaseTypeLegacy,
+      IsNewtypeBaseTypeGeneral,
     };
 
     private bool ConfirmConstraint(CommonConfirmationBag check, PreType preType, DPreType auxPreType) {
@@ -617,6 +631,10 @@ namespace Microsoft.Dafny {
           }
         case CommonConfirmationBag.IsCoDatatype:
           return ancestorDecl is CoDatatypeDecl;
+        case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
+          return pt.Decl is NewtypeDecl || pt.Decl.Name == "int" || pt.Decl.Name == "real";
+        case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
+          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != "ORDINAL");
 
         default:
           Contract.Assert(false); // unexpected case

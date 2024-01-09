@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
+// RUN: %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma Tests<T>(t: T, uu: seq<T>) returns (z: bool)

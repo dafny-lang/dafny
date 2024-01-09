@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Handlers;
@@ -15,6 +16,23 @@ namespace Microsoft.Dafny.LanguageServer.Formatting;
 public class FormattingTest : ClientBasedLanguageServerTest {
   public override async Task InitializeAsync() {
     await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+  }
+
+  [Fact]
+  public async Task GitIssue4827() {
+    var source = @"
+include ""empty.dfy""
+
+module Main {
+  }
+";
+    var target = @"
+include ""empty.dfy""
+
+module Main {
+}
+";
+    await FormattingWorksFor(source, target, Path.Combine(Directory.GetCurrentDirectory(), "Formatting/TestFiles/FormattingWorksFor.dfy"));
   }
 
   [Fact]
@@ -142,16 +160,14 @@ module A {
     }
   }
 
-  private async Task FormattingWorksFor(string source, string target = null) {
+  private async Task FormattingWorksFor(string source, string target = null, string filePath = "FormattingWorksFor.dfy") {
     if (target == null) {
       target = source;
     }
-    var documentItem = CreateTestDocument(source, "FormattingWorksFor.dfy");
+    var documentItem = CreateTestDocument(source, filePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    CompilationAfterParsing compilation = await Projects.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
-    Assert.NotNull(compilation);
 
     if (edits.Count == 0) {
       Assert.Equal(target, source);

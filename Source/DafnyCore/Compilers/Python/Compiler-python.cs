@@ -34,7 +34,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.RuntimeCoverageReport
     };
 
     public override string ModuleSeparator => "_";
@@ -56,10 +57,17 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
+    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+      , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
+      , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
+      , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
+        EmitRuntimeSource("DafnyRuntimePython", wr);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_py", wr);
       }
 
       Imports.Add(DafnyRuntimeModule);
@@ -87,15 +95,17 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
-        string libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName) {
+      moduleName = IdProtect(moduleName);
       Imports.Add(moduleName);
     }
 
@@ -116,53 +126,15 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      switch (name) {
-        case "False":
-        case "None":
-        case "True":
-        case "and":
-        case "as":
-        case "assert":
-        case "async":
-        case "await":
-        case "break":
-        case "class":
-        case "continue":
-        case "def":
-        case "del":
-        case "enum":
-        case "elif":
-        case "else":
-        case "except":
-        case "finally":
-        case "for":
-        case "from":
-        case "global":
-        case "if":
-        case "import":
-        case "in":
-        case "is":
-        case "lambda":
-        case "nonlocal":
-        case "not":
-        case "or":
-        case "pass":
-        case "raise":
-        case "return":
-        case "try":
-        case "while":
-        case "with":
-        case "yield":
-          name = $"{name}_";
-          break;
-        default:
-          while (name.StartsWith("_")) {
-            name = $"{name[1..]}_";
-          }
-          if (name.Length > 0 && char.IsDigit(name[0])) {
-            name = $"d_{name}";
-          }
-          break;
+      if (Keywords.Contains(name)) {
+        name = $"{name}_";
+      } else {
+        while (name.StartsWith("_")) {
+          name = $"{name[1..]}_";
+        }
+        if (name.Length > 0 && char.IsDigit(name[0])) {
+          name = $"d_{name}";
+        }
       }
       return name;
     }
@@ -256,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var DtT = dt.GetCompileName(Options);
+      var DtT = IdProtect(dt.GetCompileName(Options));
 
       var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
         ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.tok))})"
@@ -596,14 +568,15 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return DatatypeWrapperEraser.SimplifyType(Options, type, true) switch {
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      return simplifiedType switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
         CharType => UnicodeCharEnabled ? $"{DafnyDefaults}.codepoint" : $"{DafnyDefaults}.char",
         IntType or BitvectorType => $"{DafnyDefaults}.int",
         RealType => $"{DafnyDefaults}.real",
-        SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
+        SeqType or SetType or MultiSetType or MapType => TypeHelperName(simplifiedType.NormalizeExpandKeepConstraints()),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
@@ -613,10 +586,6 @@ namespace Microsoft.Dafny.Compilers {
         },
         _ => throw new cce.UnreachableException()
       };
-
-      string CollectionTypeDescriptor() {
-        return TypeHelperName(type.NormalizeExpandKeepConstraints());
-      }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         if ((thisContext != null && typeParameter.Parent is TopLevelDeclWithMembers and not TraitDecl) || typeParameter.Parent is IteratorDecl) {

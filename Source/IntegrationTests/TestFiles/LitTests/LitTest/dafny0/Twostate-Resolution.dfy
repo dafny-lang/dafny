@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /env:0 /print:"%t.print" /dprint:- "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print:-
+
 
 module M0 {
   class A {
@@ -7,8 +7,8 @@ module M0 {
     var g: A
   }
 
+
   twostate lemma L8(a: A, new b: A)
-    requires a != null
     requires unchanged(a.g)
     modifies a.g  // error: lemmas are not allowed to have modifies clauses
     decreases old(a.f)
@@ -124,15 +124,15 @@ module G {
     ensures P()  // error: cannot use a two-state function here
     decreases P()  // error: cannot use a two-state function here
     decreases old(c.f)  // error: cannot use 'old' here
+
   method Me(c: C) returns (b: bool)
-    requires c != null
     requires P()  // error: cannot use a two-state function here
     modifies if P() then {null} else {}  // error: cannot use a two-state function here
     ensures P()
     decreases P()  // error: cannot use a two-state function here
     decreases old(c.f)  // error: cannot use 'old' here
+
   iterator Iter(c: C)
-    requires c != null
     requires P()  // error: cannot use a two-state function here
     yield requires P()  // error: cannot use a two-state function here
     reads if P() then {null} else {}  // error: cannot use a two-state function here
@@ -141,14 +141,14 @@ module G {
     yield ensures P()
     decreases P()  // error: cannot use a two-state function here
     decreases old(c.f)  // error: cannot use 'old' here
+
   twostate function TF(c: C): int
-    requires c != null
     requires P()
     reads if P() then {null} else {}  // error: cannot use a two-state function here
     ensures P()
     decreases P(), old(c.f), c.f
+
   twostate lemma TL(c: C)
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f
@@ -166,8 +166,8 @@ module H {
     ghost var q: () -> bool := YY.Sp;  // error: cannot use a two-state function in this context
     if P() then 5 else 7  // error: cannot use a two-state function here
   }
+
   method Me(c: C) returns (b: bool)
-    requires c != null
     ensures P()
   {
     assert P();
@@ -176,8 +176,8 @@ module H {
   }
   class D {
     ghost function G(): int
+
     static method Sm(c: C) returns (ghost b: bool)
-      requires c != null
       ensures P()
     {
       ghost var u := G();  // error: G requires receiver, which is not available here in static method
@@ -188,14 +188,14 @@ module H {
       ghost var q: () -> bool := YY.Sp;
     }
   }
+
   iterator Iter(c: C)
-    requires c != null
     ensures P()
     yield ensures P()
   {
   }
+
   twostate function TF(c: C): int
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f
@@ -204,8 +204,8 @@ module H {
       var p: () -> bool := P;
       if p() then 7 else 9
   }
+
   twostate lemma TL(c: C)
-    requires c != null
     requires P()
     ensures P()
     decreases P(), old(c.f), c.f

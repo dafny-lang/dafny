@@ -161,8 +161,14 @@ public enum Feature {
   [FeatureDescription("Subtype constraints in quantifiers", "sec-quantifier-expression")]
   SubtypeConstraintsInQuantifiers,
 
-  [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
+  [FeatureDescription("Tuples with more than 20 arguments", "#sec-compilation-built-ins")]
   TuplesWiderThan20,
+
+  [FeatureDescription("Arrays with more than 16 dimensions", "#sec-compilation-built-ins")]
+  ArraysWithMoreThan16Dims,
+
+  [FeatureDescription("Arrow types with more than 16 arguments", "#sec-compilation-built-ins")]
+  ArrowsWithMoreThan16Arguments,
 
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
@@ -175,7 +181,13 @@ public enum Feature {
   LegacyCLI,
 
   [FeatureDescription("Separate compilation", "sec-compilation")]
-  SeparateCompilation
+  SeparateCompilation,
+
+  [FeatureDescription("All built-in types in runtime library", "sec-compilation-built-ins")]
+  BuiltinsInRuntime,
+
+  [FeatureDescription("Execution coverage report", "sec-dafny-test")]
+  RuntimeCoverageReport
 }
 
 public class UnsupportedFeatureException : Exception {

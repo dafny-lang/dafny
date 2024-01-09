@@ -1,7 +1,7 @@
 
 // Old way:
 
-// RUN: %exits-with 0 %dafny /compile:0 "%s" > "%t"
+// RUN: %exits-with 0 %verify "%s" > "%t"
 // RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %exits-with 0 %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
@@ -12,7 +12,7 @@
 
 // New way:
 
-// RUN: %testDafnyForEachCompiler "%s" --refresh-exit-code=0
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 iterator EmptyIterator() yields (r: bool) 
   ensures false

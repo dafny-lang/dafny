@@ -303,7 +303,7 @@ namespace Microsoft.Dafny {
       // Note, in the following loop, it's important to go backwards, because DiscoverAllBounds_Aux_SingleVar assumes "knownBounds" has been
       // filled in for higher-indexed variables.
       for (var j = bvars.Count; 0 <= --j;) {
-        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
+        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds, out _);
         knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds);
 #if DEBUG_PRINT
         if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
@@ -321,9 +321,11 @@ namespace Microsoft.Dafny {
       return knownBounds;
     }
 
-    public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
+    public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
+      out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, new List<ComprehensionExpr.BoundedPool>() { null });
+      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true,
+        new List<ComprehensionExpr.BoundedPool>() { null }, out constraintConsistsSolelyOfRangeConstraints);
     }
 
     /// <summary>
@@ -331,7 +333,7 @@ namespace Microsoft.Dafny {
     /// that is not bounded.
     /// </summary>
     private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_SingleVar<VT>(List<VT> bvars, int j, Expression expr,
-      bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds) where VT : IVariable {
+      bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds, out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(0 <= j && j < bvars.Count);
       Contract.Requires(expr != null);
@@ -354,7 +356,14 @@ namespace Microsoft.Dafny {
       }
 
       // Go through the conjuncts of the range expression to look for bounds.
+      // Only very specific conjuncts qualify for "constraintConsistsSolelyOfRangeConstraints". To make the bookkeeping
+      // of these simple, we count the total number of conjuncts and the number of qualifying conjuncts. Then, after the
+      // loop, we can compare these.
+      var totalNumberOfConjuncts = 0;
+      var conjunctsQualifyingAsRangeConstraints = 0;
       foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
+        totalNumberOfConjuncts++;
+
         if (conjunct is IdentifierExpr) {
           var ide = (IdentifierExpr)conjunct;
           if (ide.Var == (IVariable)bv) {
@@ -426,6 +435,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.SeqEq:
           case BinaryExpr.ResolvedOpcode.MultiSetEq:
           case BinaryExpr.ResolvedOpcode.MapEq:
+            conjunctsQualifyingAsRangeConstraints++;
             var otherOperand = whereIsBv == 0 ? e1 : e0;
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(otherOperand));
             break;
@@ -435,6 +445,7 @@ namespace Microsoft.Dafny {
             throw new cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
           case BinaryExpr.ResolvedOpcode.Lt:
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+              conjunctsQualifyingAsRangeConstraints++;
               if (whereIsBv == 0) {
                 // bv < E
                 bounds.Add(new ComprehensionExpr.IntBoundedPool(null, e1));
@@ -445,6 +456,7 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.Le:
+            conjunctsQualifyingAsRangeConstraints++;
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               if (whereIsBv == 0) {
                 // bv <= E
@@ -469,6 +481,7 @@ namespace Microsoft.Dafny {
             break;
         }
       }
+      constraintConsistsSolelyOfRangeConstraints = conjunctsQualifyingAsRangeConstraints == totalNumberOfConjuncts;
       return bounds;
     }
 
