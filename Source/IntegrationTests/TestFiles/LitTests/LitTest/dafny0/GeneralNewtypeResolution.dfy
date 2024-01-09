@@ -240,3 +240,101 @@ module Char {
     x := u as int; // error: cannot go directly from char-newtype to int
   }
 }
+
+module BitvectorOperators {
+  newtype BV = b: bv17 | b != 123
+  newtype Word = bv32
+  newtype Big = b: bv1024 | true
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method Comparisons(x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32) returns (r: bool, s: BV) {
+    r := x == x;
+    r := y == y;
+    r := z == z;
+
+    r := x == 5;
+    r := x == y; // error: type mismatch
+    r := x == a; // error: type mismatch
+    r := x == b; // error: type mismatch
+    r := x == i; // error: type mismatch
+    r := x == j; // error: type mismatch
+
+    // + - * / %
+    s := x + x - x * (x + x / x - x % x);
+    s := 12 + x - x * (x + 19 / 17 - x % 3);
+    s := 12 + 13 - 14 * (15 + 16 / 17 - 18 % 19);
+    s := x + y; // error: type mismatch
+    s := x - z; // error: type mismatch
+    s := x * a; // error: type mismatch
+    s := x / b; // error: type mismatch
+    s := x % c; // error: type mismatch
+
+    // & | ^
+    s := (x & x) | (x ^ x ^ x);
+    s := (12 & 13) | (14 ^ 15 ^ 16);
+    s := a & x; // error: type mismatch
+    s := b | x; // error: type mismatch
+    s := z ^ x; // error: type mismatch
+
+    // << >>
+    s := x << x << 3 << y << i << j;
+    s := x >> x >> 3 >> y >> i >> j;
+    s := b << x << 3; // error: RHS type not assignable to LHS
+    s := b >> x >> 3; // error: RHS type not assignable to LHS
+
+    //  .RotateLeft .RotateRight
+    s := x.RotateLeft(3).RotateRight(j); // error: argument type expected to be nat
+    s := x.RotateRight(j); // error: argument type expected to be nat
+    s := x.RotateLeft(3 as int).RotateRight(j as nat);
+    s := b.RotateLeft(x as nat).RotateRight(i as int); // error: RHS type not assignable to LHS type
+
+    // < <= >= >
+    r := (x <= x && x < x) || x >= x || x > x;
+    r := x < a; // error: type mismatch
+    r := x <= b; // error: type mismatch
+    r := x >= c; // error: type mismatch
+    r := x > z; // error: type mismatch
+  }
+
+  method Conversions() returns (x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32, r: bool) {
+    x := 10;
+    x := x;
+    x := y; // error: type mismatch
+    x := z; // error: type mismatch
+    x := a; // error: type mismatch
+    x := b; // error: type mismatch
+    x := c; // error: type mismatch
+    x := i; // error: type mismatch
+    x := j; // error: type mismatch
+  
+    x := 10 as BV; // (the "10" gets type "int" by way of advice)
+    x := x as BV;
+    x := y as BV;
+    x := z as BV;
+    x := a as BV;
+    x := b as BV;
+    x := c as BV;
+    x := i as BV;
+    x := j as BV;
+
+    r := 10 is BV; // (the "10" gets type "int" by way of advice)
+    r := x is BV;
+    r := y is BV;
+    r := z is BV;
+    r := a is BV;
+    r := b is BV;
+    r := c is BV;
+    r := i is BV;
+    r := j is BV;
+
+    r := 10 is bv17; // (the "10" gets type "int" by way of advice)
+    r := x is bv17;
+    r := y is bv17;
+    r := z is bv17;
+    r := a is bv17;
+    r := b is bv17;
+    r := c is bv17;
+    r := i is bv17;
+    r := j is bv17;
+  }
+}

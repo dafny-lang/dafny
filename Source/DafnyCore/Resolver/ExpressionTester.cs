@@ -354,9 +354,12 @@ public class ExpressionTester {
       return true;
     }
 
-    // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
-    // are allowed only in ghost contexts.
-    var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
+    // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases are allowed only in ghost contexts.
+    var udtTo = tte.ToType.NormalizeExpandKeepConstraints() as UserDefinedType;
+    if (udtTo == null) {
+      Contract.Assert(tte.ToType.IsCharType || tte.ToType.IsBitVectorType || tte.ToType.IsBigOrdinalType);
+      return true;
+    }
     if (udtTo.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
       return false;
     }
@@ -370,7 +373,7 @@ public class ExpressionTester {
     // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
     // then the mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique, which means we can check if an
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
-    var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
+    var B = udtTo.ResolvedClass; // important that this includes any constraints of tte.ToType, so no type parameters are lost
     var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
     var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
     if (fromType.TypeArgs.Count != 0) {
