@@ -823,7 +823,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
      var typeArgs = new List<TypeParameter>();
      td = null;
-     Type ty = null;
+     Type ty;
      Expression constraint;
      Expression witness = null;
      var kind = "abstract type";
@@ -839,7 +839,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   [ "="
     ( IF(IsIdentColonOrBar())
       LocalVarName<out bvId>
-      [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+      ":" Type<out ty>
       "|"
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
