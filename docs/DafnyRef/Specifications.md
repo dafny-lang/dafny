@@ -142,7 +142,7 @@ recursive) call to a function or method, Dafny checks that the effective
  integer `78` is strictly smaller than `102`, the set `{2,5}` is strictly
  smaller than (because it is a proper subset of) the set `{2,3,5}`, and for `s` of type `seq<Color>` where
  `Color` is some inductive datatype, the color `s[0]` is strictly less than
- `s` (provided `s` is nonempty).
+ `s` (provided `s` is nonempty). See [this section](#sec-well-founded-orders) for more information about the well-founded orders of various types.
 
 What does "effective decreases clause" mean? Dafny always appends a
 "top" element to the lexicographic tuple given by the user. This top
