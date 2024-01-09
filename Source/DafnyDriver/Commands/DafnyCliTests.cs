@@ -60,7 +60,7 @@ public static class DafnyCliTests {
 
     // Set a default time limit, to catch cases where verification time runs off the rails
     "--verification-time-limit=300",
-    
+
     "--allow-axioms",
 
     // test results do not include source code snippets

@@ -3171,7 +3171,7 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
-      
+
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;

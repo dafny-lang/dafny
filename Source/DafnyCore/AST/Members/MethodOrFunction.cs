@@ -20,8 +20,7 @@ public abstract class MethodOrFunction : MemberDecl {
     Ens = ens;
   }
 
-  protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original)
-  {
+  protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
     this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);

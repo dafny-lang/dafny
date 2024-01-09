@@ -46,8 +46,8 @@ true - In the compiled target code, transform any non-extern
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart());
 
-public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.");
+  public static readonly Option<bool> Verbose = new("--verbose",
+      "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
     "Warn about the use of deprecated features (default true).") {

@@ -119,19 +119,10 @@ dafnydir=$dir/../Scripts
 dafny="$dafnydir/dafny"
 outdir="$dir/../Test/docexamples"
 
-<<<<<<< HEAD
-defaultCommand=
-defaultExit=
-defaultLang=
-useHeadings=0
-defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false --allow-axioms:true"
-legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
-=======
 coverage=0
 permOptions="--show-snippets:false "
-defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
+defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false --allow-axioms:true"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
->>>>>>> origin/master
 
 while getopts 'c' opt; do
   case "$opt" in
