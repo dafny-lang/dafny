@@ -1,0 +1,20 @@
+github-issue-4144.dfy(9,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy(10,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy(11,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy(13,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy(14,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy(15,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](9,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](9,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](10,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](10,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](11,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](11,31): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](13,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](13,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](14,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](14,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](15,23): Warning: /!\ No terms found to trigger on.
+github-issue-4144.dfy[Q](15,23): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 2 verified, 0 errors

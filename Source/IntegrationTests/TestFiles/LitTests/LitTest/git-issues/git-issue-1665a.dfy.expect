@@ -1,0 +1,7 @@
+git-issue-1665a.dfy(14,9): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1665a.dfy(20,9): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1665a.dfy(25,9): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1665a.dfy(41,9): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1665a.dfy(46,9): Error: value does not satisfy the subset constraints of 'nat'
+
+Dafny program verifier finished with 0 verified, 5 errors

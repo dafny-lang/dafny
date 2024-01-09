@@ -34,9 +34,29 @@ For help on a specific verb (e.g. `for-each-compiler`):
 dotnet run --project Source/TestDafny/TestDafny.csproj -- for-each-compiler --help
 ```
 
-## Known limitations
+## Known backend-specific inconsistencies/bugs
 
-This tool does not yet have a way to account for non-deterministic output. In particular, it is common for existing test cases
-to print `set<T>` values, and the order that elements are printed in is not consistent across runtimes (nor do the language semantics
-even guarantee that a given backend will pick a consistent ordering). I intend to add something similar to `OutputCheck` directives
-to `*.expect` files to address this in the future.
+This tool has a couple of mechanisms for testing uniformly across backends
+even when one or more backends behaves differently or produces errors.
+They can be used by providing additional files to specify the expected behavior
+for individual backends:
+
+1. `<test file>.<target ID>.expect`
+
+   These files provide the expected output for the identified backend,
+   when it is different from the common expected output in `<TestName.dfy>.expect`.
+   For example, `Test/comp/Arrays.dfy.go.expect` provides the expected output for the Go backend,
+   which is different because the Go backend uses different heuristics for printing strings
+   when `--unicode-char` is `false`.
+
+2. `<test file>.<target ID>.check`
+
+   Similarly, these files provide the [OutputCheck](https://github.com/stp/OutputCheck) patterns to look for
+   when a backend is known to fail on a particular input program.
+   `TestDafny` only looks for these files when `dafny` produces a non-zero exit code.
+   For example (from `Bug116.dfy.js.check` at the time of writing this):
+
+   ```
+   // https://github.com/dafny-lang/dafny/issues/4161
+   // CHECK: SyntaxError: Unexpected reserved word
+   ```

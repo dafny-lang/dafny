@@ -1,0 +1,17 @@
+ShowSnippets.dfy(13,9): Error: assertion might not hold
+   |
+13 |   assert false;
+   |          ^^^^^
+
+ShowSnippets.dfy(17,2): Error: a precondition for this call could not be proved
+   |
+17 |   Never();
+   |   ^^^^^^^^
+
+ShowSnippets.dfy(10,32): Related location: this is the precondition that could not be proved
+   |
+10 | method Never() requires true && false {}
+   |                                 ^^^^^
+
+
+Dafny program verifier finished with 0 verified, 2 errors

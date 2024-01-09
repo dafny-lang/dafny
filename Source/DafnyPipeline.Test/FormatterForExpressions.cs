@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using JetBrains.Annotations;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -310,7 +312,7 @@ method AlignMapComplex(a: int) returns (r: map<string, string>) {
   [Fact]
   public void FormatterWorksForSeqSetMapDisplay() {
     FormatterWorksFor(@"
-function method AlignSeq(): seq<seq<int>> {
+function AlignSeq(): seq<seq<int>> {
   [ [ 1, 2, 3 ],
     [ 4,
       5
@@ -318,7 +320,7 @@ function method AlignSeq(): seq<seq<int>> {
   , [ 7, 8, 9 ] ]
 }
 
-function method AlignMap(): map<int, int> {
+function AlignMap(): map<int, int> {
   map[ 1 := 2,
        2 := 3
      , 4 := 5
@@ -328,7 +330,7 @@ function method AlignMap(): map<int, int> {
        := 9 ]
 }
 
-function method AlignSet(): set<int> {
+function AlignSet(): set<int> {
   { 1,
     2
   , 3} + {
@@ -377,4 +379,6 @@ predicate Valid()
     FormatterWorksFor(testCase, testCase);
   }
 
+  public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output) {
+  }
 }

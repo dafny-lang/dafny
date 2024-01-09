@@ -1,0 +1,87 @@
+#! /usr/bin/env bash
+
+## This script checks consistency in ErrorId use between different uses in Dafny source code.
+## It is meant to be called from 'check-errors', which has a top-level description of the intent of these two scrips.
+
+verbose=0
+if [ "$1" == "-v" ]; then
+  verbose=1
+  shift
+fi
+## Extract the CLI arguments
+mdfiles="$1"
+errfiles="$2"
+srcfiles="$3"
+
+## To avoid false alarms because of repeated ErrorIds, use sort -u to remove duplicates
+## But one can use just 'sort' to check for duplicate use, or even just 'cat' to make sure every file has the 
+## ids in the same order (convenient for code review, but difficult to maintain)
+## Put the desired definition last.
+##
+SORT="cat -"
+SORT="sort"
+SORT="sort -u"
+
+## Remove, create empty tmp files
+rm -rf tmp-ids-md tmp-ids-cs tmp-ids-enum tmp-ids-add
+
+## Collect the ids used in the source code files
+rm tmp-ids
+touch tmp-ids 
+for f in $srcfiles ; do
+ ## Use this next line to see if there are uses of error messages that do not use ErrorIds
+ #grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
+ grep -E 'ErrorId[.]' "$f" | sed -e 's/^.*ErrorId[.]//' -e 's/[, ].*$//' >> tmp-ids
+done
+cat tmp-ids | $SORT > tmp-ids-cs
+
+## Collect the ids from the .md files
+rm tmp-ids
+touch tmp-ids 
+for f in $mdfiles ; do
+  grep -E '^[#][#]' "$f"  | sed -e 's/^.*{#//' -e 's/}//' | sort -u >> tmp-ids
+done
+echo 'ANY HEADING LINES WITHOUT AN ERRORID in THE MD FILE?'
+for f in $mdfiles ; do
+  grep -E '^[#][#]' "$f"  | grep -v -E '[*][*](Error|Warning)'
+done
+cat tmp-ids | $SORT > tmp-ids-md
+
+## Collect the ids from the enum
+rm tmp-ids
+touch tmp-ids 
+for f in $errfiles ; do
+  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,].*$//' | grep -v ' ' | sort -u  >> tmp-ids
+done
+cat tmp-ids | $SORT > tmp-ids-enum
+
+## Collect the ids from the uses of Add
+rm tmp-ids
+touch tmp-ids 
+for f in $errfiles ; do
+  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,].*$//' | sort -u  >> tmp-ids
+done
+cat tmp-ids | $SORT > tmp-ids-add
+
+## Diffs
+echo "COMPARING ENUMS TO THE SOURCE CODE -- any difference usually means unneeded enums"
+diff tmp-ids-enum tmp-ids-cs
+echo 'COMPARING ENUMS TO MD FILE -- any difference is either unneeded or missing documentation (or unneeded enum)'
+if [ -s tmp-ids-enum ]; then
+  diff tmp-ids-enum tmp-ids-md
+else
+  echo "   NO ENUMS IMPLEMENTED"
+fi
+echo "COMPARING ENUMS TO ADD LIST -- any difference is ErrorIds that do not have in-app explanations or quick fixes"
+if [ -s tmp-ids-add ]; then
+  diff tmp-ids-enum tmp-ids-add
+else
+  echo "   NO ADD IMPLEMENTATIONS"
+fi
+
+## List all the TODOs in the given files
+if [ "$verbose" == "1" ]; then
+echo
+echo TODOs
+grep TODO $mdfiles $srcfiles $errfiles
+fi

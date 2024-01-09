@@ -29,7 +29,7 @@ namespace PluginsAdvancedTest {
     public override void PostResolve(Program program) {
       foreach (var moduleDefinition in program.Modules()) {
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-          if (topLevelDecl is ClassDecl cd) {
+          if (topLevelDecl is TopLevelDeclWithMembers cd) {
             foreach (var member in cd.Members) {
               if (member is Method methodExtern) {
                 if (Attributes.Contains(member.Attributes, "extern")) {

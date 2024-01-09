@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 class TailRecursion {
 
@@ -120,7 +120,7 @@ class TailRecursion {
         var status = ConfirmTailCall(s.Tok, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
-          fce.Args.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+          fce.Args.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
         } else {
           DisallowRecursiveCallsInExpressions(s.Lhs, enclosingMethod, reportErrors);
           DisallowRecursiveCallsInExpressions(eRhs.Expr, enclosingMethod, reportErrors);
@@ -284,7 +284,7 @@ class TailRecursion {
     Contract.Requires(enclosingMethod != null);
 
     if (enclosingMethod.IsByMethod && reportErrors) {
-      stmt.SubExpressions.Iter(e => DisallowRecursiveCallsInExpressions(e, enclosingMethod));
+      stmt.SubExpressions.ForEach(e => DisallowRecursiveCallsInExpressions(e, enclosingMethod));
     }
   }
 
@@ -303,7 +303,7 @@ class TailRecursion {
     if (expr is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
       reporter.Error(MessageSource.Resolver, expr.tok, "a recursive call in this context is not recognized as a tail call");
     }
-    expr.SubExpressions.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+    expr.SubExpressions.ForEach(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
   }
 
   TailRecursionStatus ConfirmTailCall(IToken tok, Method method, List<Type> typeApplication_JustMember, List<Expression> lhss, bool reportErrors) {
@@ -362,7 +362,7 @@ class TailRecursion {
     if (hasTailRecursionPreference && !tail) {
       // the user specifically requested no tail recursion, so do nothing else
     } else if (hasTailRecursionPreference && tail && f.IsGhost) {
-      reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for function that will be compiled, not for ghost functions");
+      reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for functions that will be compiled, not for ghost functions");
     } else {
       var module = f.EnclosingClass.EnclosingModuleDefinition;
       var sccSize = module.CallGraph.GetSCCSize(f);

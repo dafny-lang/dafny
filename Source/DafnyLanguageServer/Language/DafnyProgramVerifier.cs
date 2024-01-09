@@ -19,53 +19,60 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
-    private readonly VerificationResultCache cache = new();
-    private readonly ExecutionEngine engine;
+  public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly ILogger<DafnyProgramVerifier> logger;
+    private readonly SemaphoreSlim mutex = new(1);
 
-    public DafnyProgramVerifier(
-      ILogger<DafnyProgramVerifier> logger,
-      DafnyOptions options
-      ) {
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      options.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, true);
-
-      options.Printer = BatchObserver;
-      engine = new ExecutionEngine(options, cache);
+    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+      this.logger = logger;
     }
 
-    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-    static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
-    public AssertionBatchCompletedObserver BatchObserver { get; }
-
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine boogieEngine,
+      ResolutionResult resolution,
+      ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
-      var program = document.Program;
-      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var engine = boogieEngine;
 
-      cancellationToken.ThrowIfCancellationRequested();
+      if (!BoogieGenerator.ShouldVerifyModule(resolution.ResolvedProgram, moduleDefinition)) {
+        throw new Exception("tried to get verification tasks for a module that is not verified");
+      }
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
-        InsertChecksums = true,
-        ReportRanges = true
-      }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
+      await mutex.WaitAsync(cancellationToken);
+      try {
 
-      cancellationToken.ThrowIfCancellationRequested();
+        var program = resolution.ResolvedProgram;
+        var errorReporter = (ObservableErrorReporter)program.Reporter;
 
-      return translated.SelectMany(t => {
-        var (_, boogieProgram) = t;
-        var results = engine.GetImplementationTasks(boogieProgram);
-        return results;
-      }).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
+          Type.ResetScopes();
+          var translatorFlags = new BoogieGenerator.TranslatorFlags(errorReporter.Options) {
+            InsertChecksums = 0 < engine.Options.VerifySnapshots,
+            ReportRanges = true
+          };
+          var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
+          return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);
+        }, cancellationToken);
+        var suffix = moduleDefinition.SanitizedName;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (engine.Options.PrintFile != null) {
+          var moduleCount = BoogieGenerator.VerifiableModules(program).Count();
+          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+        }
+
+        return engine.GetImplementationTasks(boogieProgram);
+      }
+      finally {
+        mutex.Release();
+      }
     }
-
-    public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
 
     public void Dispose() {
-      engine.Dispose();
+      mutex.Dispose();
     }
   }
 }

@@ -1,0 +1,111 @@
+NonReferenceTraits.dfy(52,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(56,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(60,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(63,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(89,24): Error: Raised while checking export set BadLibrary: a class can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(92,27): Error: Raised while checking export set BadLibrary: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Error: This export set is not consistent: BadLibrary
+NonReferenceTraits.dfy(119,28): Error: a class can only extend traits (found 'G.Trait')
+NonReferenceTraits.dfy(120,28): Error: a trait can only extend traits (found 'G.Trait')
+NonReferenceTraits.dfy(132,8): Error: a module that already contains a top-level declaration 'AA?' is not allowed to declare a reference type (trait) 'AA'
+NonReferenceTraits.dfy(132,8): Error: type of 'null' is a reference type, but it is used as AA?
+NonReferenceTraits.dfy(149,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(154,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(156,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(167,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(172,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(174,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(185,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(190,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(192,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(202,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(207,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(209,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(279,8): Error: class 'ClassWithParentWithoutConstructor' with fields without known initializers, like 'g' of type 'Nonempty', must declare a constructor
+NonReferenceTraits.dfy(295,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(300,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(302,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(313,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(318,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(320,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(331,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(336,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(338,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(348,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(353,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(355,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(365,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(370,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(372,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(382,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(387,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(389,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(399,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(404,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(406,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(433,11): Error: arguments must have comparable types (got ObjectA and ObjectC)
+NonReferenceTraits.dfy(437,11): Error: arguments must have comparable types (got ObjectB and ObjectC)
+47 resolution/type errors detected in NonReferenceTraits.dfy
+NonReferenceTraits.dfy(28,14): Error: module 'M' does not declare a type 'MX?'
+NonReferenceTraits.dfy(32,11): Error: Type or type parameter is not declared in this scope: Z? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules) (if you intended to refer to a possibly null 'Z', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(33,11): Error: Type or type parameter is not declared in this scope: Q? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules) (if you intended to refer to a possibly null 'Q', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(39,11): Error: Type or type parameter is not declared in this scope: E? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules) (if you intended to refer to a possibly null 'E', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(52,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(56,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(60,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(63,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+NonReferenceTraits.dfy(69,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const' or declaring the trait with 'extends object')
+NonReferenceTraits.dfy(89,24): Error: Raised while checking export set BadLibrary: a class can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(92,27): Error: Raised while checking export set BadLibrary: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Error: This export set is not consistent: BadLibrary
+NonReferenceTraits.dfy(119,28): Error: a class can only extend traits (found 'G.Trait')
+NonReferenceTraits.dfy(120,28): Error: a trait can only extend traits (found 'G.Trait')
+NonReferenceTraits.dfy(127,14): Error: Type or type parameter is not declared in this scope: Trait? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules) (if you intended to refer to a possibly null 'Trait', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(149,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(154,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(156,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(167,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(172,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(174,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(185,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(190,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(192,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(202,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(207,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(209,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(219,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
+NonReferenceTraits.dfy(224,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
+NonReferenceTraits.dfy(226,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
+NonReferenceTraits.dfy(279,8): Error: class 'ClassWithParentWithoutConstructor' with fields without known initializers, like 'g' of type 'Nonempty', must declare a constructor
+NonReferenceTraits.dfy(295,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(300,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(302,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(313,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(318,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(320,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(331,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(336,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(338,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(348,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(353,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(355,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(365,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(370,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(372,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(382,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(387,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(389,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(399,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(404,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
+NonReferenceTraits.dfy(406,23): Error: static ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(433,11): Error: arguments must have comparable types (got ObjectA and ObjectC)
+NonReferenceTraits.dfy(437,11): Error: arguments must have comparable types (got ObjectB and ObjectC)
+NonReferenceTraits.dfy(447,11): Error: arguments must have comparable types (got object and TraitA)
+NonReferenceTraits.dfy(448,11): Error: arguments must have comparable types (got object and TraitB)
+NonReferenceTraits.dfy(449,11): Error: arguments must have comparable types (got TraitA and object)
+NonReferenceTraits.dfy(450,11): Error: arguments must have comparable types (got TraitB and object)
+NonReferenceTraits.dfy(460,11): Error: arguments must have comparable types (got TraitA and TraitB)
+NonReferenceTraits.dfy(470,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
+NonReferenceTraits.dfy(471,9): Error: == can only be applied to expressions of types that support equality (got TraitB)
+NonReferenceTraits.dfy(472,14): Error: set argument type must support equality (got TraitA)
+62 resolution/type errors detected in NonReferenceTraits.dfy

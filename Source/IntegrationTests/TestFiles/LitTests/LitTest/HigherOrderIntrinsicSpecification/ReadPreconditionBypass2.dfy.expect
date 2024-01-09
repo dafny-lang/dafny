@@ -1,0 +1,3 @@
+ReadPreconditionBypass2.dfy(25,16): Error: function precondition could not be proved
+
+Dafny program verifier finished with 1 verified, 1 error

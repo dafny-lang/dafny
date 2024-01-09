@@ -1427,7 +1427,7 @@ How does one declare a type to have a "default" initial value, say a type tagged
 
 There is no general way to do this. Subset types and newtypes have [witness](../DafnyRef/DafnyRef/#sec-witness-clauses) clauses and types that are [auto-initializable](../DafnyRef/DafnyRef#sec-auto-init)
 have a default, but those rules do not apply to anonymous extern types.
-Particularly for opaque types, there is not even a way to infer such a value.
+Particularly for abstract types, there is not even a way to infer such a value.
 
 You can manually initialize like this:
 ```dafny
@@ -1980,6 +1980,114 @@ function Firsts2(cs: seq<C>): seq<int>
 }
 ```
 
+# I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+
+
+## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+
+I have this lemma
+```dafny
+    lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
+      requires forall a : X, b : X :: a != b ==> f(a) != f(b)
+      ensures |m| == |map k <- m.Keys :: f(k) := m[k]|
+```
+and later on this code
+```dafny
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+```
+
+The final assert fails, even though it exactly matches the ensures of the lemma.
+What am I missing? 
+
+If the lemma is an axiom, one can try to assume the post condition right before the assertion. 
+But that failed in this case
+
+```dafny
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assume |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+```
+
+Which makes no sense.
+I even put the function into a variable, and this still fails
+```dafny
+assume |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
+```
+
+## Answer:
+
+The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
+
+To prove that the `|map …|` expression in the specification has the same value as the `|map …|` expression in the code, 
+the verifier would either have to compute the cardinality of each map (which it can’t do, because `m.Keys` is symbolic and could stand for any size set) 
+or reason that the one `map …` is the very same map as the other `map …` (in which case it would follow that the cardinality of the two maps are also the same).
+The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
+The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
+Dafny never tries to prove extensionality, but it’s happy to do it if you ask it to. 
+For example, if `G` is a function that you know nothing about and you ask to prove
+```dafny
+assert G(s + {x}) == G({x} + s + {x});
+```
+then Dafny will complain. You have to first establish that the arguments to these two invocations of `G` are the same, which you can do with an assert:
+```dafny
+assert s + {x} == {x} + s + {x};
+assert G(s + {x}) == G({x} + s + {x});
+```
+
+Here, Dafny will prove the first assertion (which it actually does by proving that the sets are elementwise equal) and will then use the first assertion to prove the second.
+Going back to your example, Dafny needs to know that the two `map`s are equal. To help it along, perhaps you could mention the two in an assertion, like
+
+`assert map … == map …;`
+
+But you can’t do that here, because the two map expressions are in different scopes and use different variables.
+To establish that the two maps are equal, we thus need to do something else. 
+If the two of them looked the same, then Dafny would know that the are the same. 
+But the form is slightly different, because you are (probably without thinking about it) instantiating a lambda expression. 
+To make them the same, you could rewrite the code to:
+```dafny
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |map k <- schema.Keys | true :: F(k) := schema[k]|;
+```
+
+Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `schema` instead of `m` and with `F` instead of `f`. 
+When two map comprehensions (or set comprehensions, or lambda expressions) are syntactically the same like this, then Dafny knows to treat them the same.
+Almost. 
+Alas, there’s something about this example that makes what I said not quite true (and I didn’t dive into those details just now). 
+There is a workaround, and this workaround is often useful in places like this, so I’ll mention it here. 
+The workaround is to give the comprehension a name. Then, if you use the same name in both the caller and callee, 
+Dafny will know that they are the same way of constructing the map. 
+The following code shows how to do it: 
+```dafny
+lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
+  requires forall a: X, b: X :: a != b ==> f(a) != f(b)
+  ensures |m| == |MyMap(f, m)|
+
+ghost function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
+  requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
+{
+  map k <- m.Keys :: f(k) := m[k]
+}
+
+method Use<X,Y,Z>(schema: map<X,Y>, tableName: TableName)
+  requires forall a : X, b : X :: a != b ==> Canonicalize(tableName, a) != Canonicalize(tableName, b)
+{
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |MyMap(F, schema)|;
+}
+
+
+type TableName
+
+function SimpleCanon<K>(t: TableName, k: K): int
+
+```
+
+It manually introduces a function `MyMap`, and by using it in both caller and callee, the code verifies.
+
 # Why can't I write 'forall t: Test :: t.i == 1' for an object t?
 
 
@@ -2053,7 +2161,7 @@ How do I model extern methods that return objects?
 ## Answer:
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
-It's better to have a predicate that takes the input of a function, an object, and relates the two with each other.
+It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.
 
 For example:
 
@@ -2087,7 +2195,6 @@ trait {:extern} {:compile false} Importer {
   predicate IsImported(i: int, r: Test) {
     r.i == i
   }
-  
   method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
     ensures IsImported(i, r)
 
@@ -2098,6 +2205,194 @@ trait {:extern} {:compile false} Importer {
   }
 }
 ```
+
+# How do I tell Dafny that a class field may be updated?
+
+
+## Question
+
+I get a "call might violate context's modifies clause" in the following context.
+I have a field in a class that is is an array whose elements are being modified by a call, but the field does not exist when the enclosing method
+is called. So how do I tell Dafny that it can be modified?
+
+Here is an example situation:
+```dafny
+class WrapArray {
+  var intarray: array<int>; 
+  constructor (i:int) 
+    requires i > 0
+  {
+    this.intarray := new int[i];
+  }
+  method init(i: int)
+    modifies intarray
+  {
+    var index: int := 0;
+    while (index < intarray.Length){
+      intarray[index] := i;
+      index := index+1;
+    }
+  }
+}
+
+method Main()
+{
+  var sh:= new WrapArray(5);
+  sh.init(4);
+}
+```
+
+## Answer
+
+When dafny is asked to verify this, it complains about the call `sh.init` that it modifies objects that
+Main does not allow. Indeed `sh.init` does modify the elements of `sh.intarray` and says so in its `modifies` clause,
+but that array does not even exist, nor is `sh` in scope, in the pre-state of `Main`. 
+So where should it be indicated that `sh.intarray` may be modified?
+
+The key is in the fact that neither `sh` nor `sh.intarray` is allocated in `Main`'s pre-state. `Main` should be allowed 
+to modify objects that are allocated after the pre-state. Indeed `Main` knows that `sh` is newly allocated, so its fields
+may be changed. That is, we are allowed to assign to `sh.intarray`. But here we want to change the state of `sh.intarray`,
+not `sh`. The array is newly allocated, but `Main` does not know this.
+After all, it is possible that the constructor initialized `sh.intarray` with some existing array and changing that array's elements
+would change the state of some other object. We need to tell `Main` that the constructor of `WrapArray` allocates a new 
+array of ints. The syntax to do that is to add a postcondition to the constructor that says `fresh(intarray)`.
+
+Writing the constructor like this
+
+```dafny
+  constructor (i:int)
+    requires i>0
+    ensures fresh(intarray)
+  {
+      this.intarray := new int[i];
+  }
+  
+```
+
+solves the problem.
+
+# "Why does Dafny not know this obvious property of maps?"
+
+
+** Question: Why does Dafny not know this obvious property of maps?
+
+I have this simple program:
+
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert v in mm.Values;
+  }
+```
+
+The value `v` has just been inserted into the map. Why can't Dafny prove that `v` is now an element of the map?
+
+** Answer
+
+Dafny does not include all possible properties of types in its default set of axioms. The principal reason for this
+is that including all axioms can give Dafny too much information, such that finding proofs becomes more time-consuming
+for all (or most) problems. The trade-off is that the user has to give hints more often.
+
+In this particular example, in order for Dafny to prove that `v` is in `mm.Values`, it needs to prove that
+`exists k': K :: k' in mm.Keys && mm[k'] == v`. This is a difficult assertion to prove; the use of the axiom is not triggered
+unless there is some term of the form `_ in mm.Keys` present in the assertions. So the proof is made much easier if we
+first assert that `k in mm.Keys`; then Dafny sees immediately that `k` is the `k'` needed in the exists expression.
+So
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert k in mm.Keys;
+    assert v in mm.Values;
+  }
+```
+proves just fine.
+
+# I can't prove the equivalence between the method part of a `function by method`` and the function itself
+
+
+## Question
+
+I can't prove the equivalence between the method part of a function by method and the function itself.
+It seems that my invariants can't be maintained by the loop, and I don't know how to prove them.
+
+## Answer
+
+Consider the simple problem of computing the sum of a sequence of integers.
+You might be tempted to immediately write the following equivalence,
+with your best guess of an invariant
+and a hint at the end to help Dafny realize that the result is correct.
+However you cannot prove the invariant you just wrote.
+
+```
+{% include_relative FAQFunctionByMethodProof1.dfy %}
+```
+
+Let's unroll the computation of the function on a sequence of 3 elements.
+The function will compute:
+
+`s[0] + (s[1] + (s[2] + 0))`
+
+But the loop will compute
+
+`((0 + s[0]) + s[1]) + s[2]`
+
+In the function, we add the first element (`s[0]`) to the result of computing the sum of the remaining elements (`s[1] + (s[2] + 0))`).
+In the by method, we add the last element (`s[2]`) to the accumulator, which contains the sum of the initial terms (`(0 + s[0]) + s[1]`).
+If it was not the case that the addition was associative and 0 was a neutral element, there would be no immediate way to prove that the two computations are equivalent.
+
+There are essentially three solutions around that:
+
+* Improve the invariant, knowing `+` is associative
+* Change the order of computation of the function so that it matches the by method
+* Change the order of computation of the by method so that it matches the function
+
+There are more intrusive solutions, such as making the function tail-recursive by changing the function's signature to include an accumulator or a sequence of callbacks to perform a the end, but we will explore only the one that don't change the signature of `Sum()`.
+
+## Improved invariant
+
+You can change the invariant to be `invariant result + Sum(s[i..]) == Sum(s)`, as below:
+
+```
+{% include_relative FAQFunctionByMethodProof2.dfy %}
+```
+
+This works because, with `result'` being the result at the end of the loop and `+` being associative,
+the lemma `IntermediateProperty()` shows the underlying reasoning that helps prove that the invariant
+is indeed invariant. Dafny can prove it automatically, so the lemma is not needed in the loop body.
+One nice thing is that we can get rid of the final hint.
+
+What if you had an operation more complex that "+", that is not associative?
+This is when you need to ensure the loop and the function are computing in the same order.
+Let's explore how to do so by changing either the function, or the by-method body.
+
+## Make the function compute what the by-method does
+The by-method loop's first addition is 0 plus the first element (`s[0]`) of the sequence. For this to
+be the first addition performed by the function, it has to be at the bottommost level of the call.
+Indeed, each addition is performed after the recursive call finishes. This means that
+the function needs to sum the `n-1` elements first and add the remaining last one.
+
+Since it's exactly what the method computes, it satisfies our initial invariant.
+
+```
+{% include_relative FAQFunctionByMethodProof3.dfy %}
+```
+
+Not only does this approach require more proof hints, but it might also break the proofs that dependend on the shape of the function, while all we wanted in the first place was to give a more efficient implementation to the function.
+Therefore, it's reasonable to expect we will prefer to change the implementation of the by-method body to reflect the function, not the opposite, as follows:
+
+## Make the by-method body compute what the function computes
+
+To compute iteratively what the function computes recursively, you have to find what is the first
+addition that will be computed by the method. As mentioned previously, the first addition is the one performed at the bottommost level of recursion: the first addition is `s[|s|-1] + 0`,
+so the loop has to actually be in reverse, like this:
+
+```
+{% include_relative FAQFunctionByMethodProof4.dfy %}
+```
+
+Note that this approach results in the smallest invariant that actually closely matches the function itself.
+Also, instead of adding to the right of `result`, adding to the left ensures the same order is kept,
+in case the operation was not commutative (so that it would work for sequence append operation).
 # Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?
 
 
@@ -2646,7 +2941,7 @@ Until then, the best you can do is to try to change the verification condition s
 
 
 This warning can occur if a file being compiled by Dafny is completely empty.
-Previous other occurences of this warning were bugs.
+Previous other occurrences of this warning were bugs.
 
 
 # "Duplicate name of import: ..."

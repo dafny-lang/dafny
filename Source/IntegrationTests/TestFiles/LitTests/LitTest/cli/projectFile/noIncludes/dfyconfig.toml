@@ -1,0 +1,2 @@
+[options]
+warn-shadowing = true

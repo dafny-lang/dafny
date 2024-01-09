@@ -1,17 +1,24 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
   private readonly SinglePassCompiler compiler;
-  private List<(IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
+  private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
+  private string talliesFilePath;
 
   public CoverageInstrumenter(SinglePassCompiler compiler) {
     this.compiler = compiler;
-    if (DafnyOptions.O?.CoverageLegendFile != null) {
+    if (compiler.Options?.CoverageLegendFile != null
+        || compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
       legend = new List<(IToken, string)>();
+    }
+
+    if (compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+      talliesFilePath = Path.GetTempFileName();
     }
   }
 
@@ -55,7 +62,11 @@ public class CoverageInstrumenter {
   public void EmitSetup(ConcreteSyntaxTree wr) {
     Contract.Requires(wr != null);
     if (legend != null) {
-      wr.Write("DafnyProfiling.CodeCoverage.Setup({0})", legend.Count);
+      wr.Write("DafnyProfiling.CodeCoverage.Setup({0}", legend.Count);
+      if (talliesFilePath != null) {
+        wr.Write($", @\"{talliesFilePath}\"");
+      }
+      wr.Write(")");
       compiler.EndStmt(wr);
     }
   }
@@ -69,17 +80,33 @@ public class CoverageInstrumenter {
   }
 
   public void WriteLegendFile() {
-    if (legend != null) {
-      var filename = DafnyOptions.O.CoverageLegendFile;
+    if (compiler.Options?.CoverageLegendFile != null) {
+      var filename = compiler.Options.CoverageLegendFile;
       Contract.Assert(filename != null);
-      TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
+      TextWriter wr = filename == "-" ? compiler.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
       {
         for (var i = 0; i < legend.Count; i++) {
           var e = legend[i];
-          wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.Filename, e.Item1.line, e.Item1.col, e.Item2);
+          wr.WriteLine($"{i}: {e.Item1.TokenToString(compiler.Options)}: {e.Item2}");
         }
       }
       legend = null;
     }
   }
+
+  public void PopulateCoverageReport(CoverageReport coverageReport) {
+    var coverageReportDir = compiler.Options?.Get(CommonOptionBag.ExecutionCoverageReport);
+    if (coverageReportDir != null) {
+      var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
+      foreach (var ((token, _), tally) in legend.Zip(tallies)) {
+        var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
+        // For now we only identify branches at the line granularity,
+        // which matches what `dafny generate-tests ... --coverage-report` does as well.
+        var rangeToken = new RangeToken(new Token(token.line, 1), new Token(token.line + 1, 0));
+        rangeToken.Uri = token.Uri;
+        coverageReport.LabelCode(rangeToken, label);
+      }
+    }
+  }
+
 }

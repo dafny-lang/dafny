@@ -1,0 +1,26 @@
+
+Verifying CheckReads (well-formedness) ...
+  [3 proof obligations]  errors
+ArrowTypeOptimizations.dfy(10,2): Error: function precondition could not be proved
+ArrowTypeOptimizations.dfy(10,2): Error: insufficient reads clause to invoke function
+
+Verifying CheckPre (well-formedness) ...
+  [2 proof obligations]  error
+ArrowTypeOptimizations.dfy(16,2): Error: function precondition could not be proved
+
+Verifying CheckReadsTot (well-formedness) ...
+  [1 proof obligation]  verified
+
+Verifying CheckReadsParens (well-formedness) ...
+  [1 proof obligation]  verified
+
+Verifying CheckReadsLambdaGeneral (well-formedness) ...
+  [3 proof obligations]  verified
+
+Verifying CheckReadsLambdaPartial (well-formedness) ...
+  [2 proof obligations]  verified
+
+Verifying CheckReadsLambdaTotal (well-formedness) ...
+  [1 proof obligation]  verified
+
+Dafny program verifier finished with 5 verified, 3 errors

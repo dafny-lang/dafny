@@ -33,11 +33,11 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
-using static Microsoft.Dafny.ErrorDetail;
+using System.Threading;
 
 -->namespace
 
-public class Parser {
+public partial class Parser {
 -->constants
   const bool _T = true;
   const bool _x = false;
@@ -45,6 +45,7 @@ public class Parser {
 
   public Scanner scanner;
   public Errors  errors;
+  CancellationToken cancellationToken;
 
   public IToken t;    // last recognized token
   public IToken la;   // lookahead token
@@ -52,54 +53,50 @@ public class Parser {
 
 -->declarations
 
-  public Parser(Scanner scanner, Errors errors) {
+  public Parser(Scanner scanner, Errors errors, CancellationToken cancellationToken) {
     this.scanner = scanner;
     this.errors = errors;
-    Token tok = new Token();
-    tok.val = "";
-    this.la = tok;
-    this.t = new Token(); // just to satisfy its non-null constraint
+    this.cancellationToken = cancellationToken;
+    this.la = scanner.FirstToken;
+    this.t = scanner.FirstToken; // just to satisfy its non-null constraint
   }
 
   void SynErr (int n) {
-    if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
+    if (errDist >= minErrDist) {
+      errors.SynErr(la.Uri, la.line, la.col, n);
+    }
     errDist = 0;
   }
-
-  public void SemErr(string msg) {
-    Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(ErrorID.None, t, msg);
-    errDist = 0;
-  }
-
-  public void SemErr(IToken tok, string msg) {
+  
+  public void SemErr(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(ErrorID.None, tok, msg);
-  }
-
-  public void SemErr(ErrorID errorID, IToken tok, string msg) {
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    errors.SemErr(errorID, tok, msg);
+    errors.SemErr(errorId, tok, msg);
   }
 
   void Get() {
+    cancellationToken.ThrowIfCancellationRequested();
     for (; ; ) {
       var tmp = la;
       la = scanner.Scan();
-      la = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
       tmp.Next = la;
       la.Prev = tmp;
       t = tmp;
-      if (la.kind <= maxT) { ++errDist; break; }
+      if (la.kind <= maxT) { 
+        ++errDist; 
+        break;
+      }
 -->pragmas
       la = t;
     }
   }
 
   void Expect (int n) {
-    if (la.kind==n) Get(); else { SynErr(n); }
+    if (la.kind==n) {
+      Get(); 
+    } else { 
+      SynErr(n); 
+    }
   }
 
   bool StartOf (int s) {
@@ -110,7 +107,9 @@ public class Parser {
     if (la.kind == n) Get();
     else {
       SynErr(n);
-      while (!StartOf(follow)) Get();
+      while (!StartOf(follow)) {
+        Get();
+      }
     }
   }
 
@@ -133,8 +132,7 @@ public class Parser {
 -->productions
 
   public void Parse() {
-    la = new Token();
-    la.val = "";
+    la = scanner.FirstToken;
     Get();
 -->parseRoot
   }
@@ -146,7 +144,7 @@ public class Parser {
 
 
 public class Errors {
-  readonly ErrorReporter Reporting;
+  public readonly ErrorReporter Reporting;
   public int ErrorCount;
 
   public Errors(ErrorReporter Reporting) {
@@ -154,14 +152,14 @@ public class Errors {
     this.Reporting = Reporting;
   }
 
-  public void SynErr(string filename, int line, int col, int n) {
-    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  public void SynErr(Uri uri, int line, int col, int n) {
+    SynErr(uri, line, col, GetSyntaxErrorString(n));
   }
 
-  public void SynErr(string filename, int line, int col, string msg) {
+  public void SynErr(Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorID.None, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, ErrorId.p_generic_syntax_error, uri, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -173,90 +171,38 @@ public class Errors {
     return s;
   }
 
-  public void SemErr(IToken tok, string msg) {  // semantic errors
+  public void SemErr(string errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorID.None, tok, msg);
+    Reporting.Error(MessageSource.Parser, errorId, tok, msg);
   }
-
-  public void SemErr(ErrorID errorID, IToken tok, string msg) {  // semantic errors
+  
+  public void SemErr(Enum errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, errorID, tok, msg);
+    Reporting.Error(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void SemErr(ErrorID errorID, string filename, int line, int col, string msg) {
+  public void SemErr(ErrorId errorId, Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, errorID, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorId, uri, line, col, msg);
   }
 
-  public void Deprecated(ErrorID errorID, IToken tok, string msg) {
+  public void Deprecated(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, errorID, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void Deprecated(IToken tok, string msg) {
+  public void Warning(ErrorId errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, ErrorID.None, tok, msg);
+    Reporting.Warning(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void DeprecatedStyle(ErrorID errorID, IToken tok, string msg) {
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    Reporting.DeprecatedStyle(MessageSource.Parser, errorID, tok, msg);
-  }
-
-  public void Warning(IToken tok, string msg) {
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, ErrorID.None, tok, msg);
-  }
-
-  // Code action range has given column and length
-  public static CodeActionRange CodeAction(IToken sourceTok, int column, int len) {
-    return new CodeActionRange(sourceTok, column, len);
-  }
-
-  // Code action range is from start of given token and with given new length
-  public static CodeActionRange CodeAction(IToken sourceTok, int len) {
-    return CodeAction(sourceTok, sourceTok.col, len);
-  }
-
-  // Code action range is up to, not including, the next token
-  public static CodeActionRange CodeAction(IToken sourceTok, IToken next) {
-    return CodeAction(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
-  }
-
-  // Code action range is up to, not including, the next token
-  public static CodeActionRange CodeAction(IToken display, IToken sourceTok, IToken next) {
-    return CodeAction(display, sourceTok.col, next.pos - sourceTok.pos);
-  }
-
-  // Code action range is same as the given token
-  public static CodeActionRange CodeAction(IToken sourceTok, bool IncludeTrailingSpace = false) {
-    if (!IncludeTrailingSpace){
-      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length);
-    } else {
-      string trivia = sourceTok.TrailingTrivia;
-      // Don't want to remove newlines or comments -- just spaces and tabs
-      int i = 0;
-      while (i < trivia.Length && (trivia[i] == ' ' || trivia[i] == '\t')) {
-        i++;
-      }
-      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length + i);
-    }
-  }
-
-  public static CodeActionRange FindCodeActionRange(IToken toptok) {
-    var tok = toptok;
-    if (tok is CodeActionRange) return (CodeActionRange)tok;
-    return CodeAction(toptok);
-  }
 } // Errors
 
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie.Clustering;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -16,16 +16,18 @@ namespace Microsoft.Dafny {
     protected readonly Dictionary<IVariable, Expression> substMap;
     protected readonly Dictionary<TypeParameter, Type> typeMap;
     protected readonly Label oldHeapLabel;
+    [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
     public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null) {
+    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null, SystemModuleManager systemModuleManager = null) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);
       this.receiverReplacement = receiverReplacement;
       this.substMap = substMap;
       this.typeMap = typeMap;
       this.oldHeapLabel = oldHeapLabel;
+      this.SystemModuleManager = systemModuleManager;
     }
     public virtual Expression Substitute(Expression expr) {
       Contract.Requires(expr != null);
@@ -46,11 +48,11 @@ namespace Microsoft.Dafny {
         } else {
           // nothing to substitute
         }
-      } else if (expr is Translator.BoogieWrapper) {
-        var e = (Translator.BoogieWrapper)expr;
+      } else if (expr is BoogieGenerator.BoogieWrapper) {
+        var e = (BoogieGenerator.BoogieWrapper)expr;
         var ty = e.Type.Subst(typeMap);
         if (ty != e.Type) {
-          return new Translator.BoogieWrapper(e.Expr, ty);
+          return new BoogieGenerator.BoogieWrapper(e.Expr, ty);
         }
       } else if (expr is WildcardExpr) {
         // nothing to substitute
@@ -66,8 +68,7 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
-        Expression substExpr;
-        if (substMap.TryGetValue(e.Var, out substExpr)) {
+        if (substMap.TryGetValue(e.Var, out var substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;
           Expression substExprFinal;
           if (substIdExpr != null) {
@@ -164,14 +165,20 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel);
-          newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
-          newFce.CoCall = e.CoCall;  // also copy the co-call status
-          newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
-          newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
-          newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
-          newFce.IsByMethodCall = e.IsByMethodCall;
-          newExpr = newFce;
+          var newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel) {
+            Function = e.Function, // resolve on the fly (and set newFce.Type below, at end)
+            CoCall = e.CoCall, // also copy the co-call status
+            CoCallHint = e.CoCallHint, // and any co-call hint
+            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplication_JustFunction = newTypeApplicationJustFunction,
+            IsByMethodCall = e.IsByMethodCall
+          };
+          if (SystemModuleManager == null) {
+            newExpr = newFce;
+          } else {
+            newFce.Type = expr.Type.Subst(typeMap);
+            newExpr = Expression.WrapResolvedCall(newFce, SystemModuleManager);
+          }
         }
 
       } else if (expr is ApplyExpr) {
@@ -307,7 +314,7 @@ namespace Microsoft.Dafny {
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
                   return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
-                    idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);
@@ -395,8 +402,8 @@ namespace Microsoft.Dafny {
           Type = resolvedExpression.Type
         };
 
-      } else if (expr is Translator.BoogieFunctionCall) {
-        var e = (Translator.BoogieFunctionCall)expr;
+      } else if (expr is BoogieGenerator.BoogieFunctionCall) {
+        var e = (BoogieGenerator.BoogieFunctionCall)expr;
         bool anythingChanged = false;
         var newTyArgs = new List<Type>();
         foreach (var arg in e.TyArgs) {
@@ -415,7 +422,7 @@ namespace Microsoft.Dafny {
           newArgs.Add(newArg);
         }
         if (anythingChanged) {
-          newExpr = new Translator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
+          newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
 
       } else {
@@ -464,17 +471,23 @@ namespace Microsoft.Dafny {
 
         return null;
       } else {
+        var newLHSs = CreateCasePatternSubstitutions(letExpr.LHSs, true);
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+        // undo any changes to substMap
+        foreach (var bv in letExpr.BoundVars) {
+          substMap.Remove(bv);
+        }
+
+        if (newLHSs == letExpr.LHSs && rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
           return null;
         }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new BoogieGenerator.SubstLetExpr(letExpr.tok, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
@@ -563,9 +576,7 @@ namespace Microsoft.Dafny {
           var newBv = new BoundVar(bv.tok, bv.Name, tt);
           newBoundVars.Add(newBv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
         }
       }
@@ -591,9 +602,7 @@ namespace Microsoft.Dafny {
           newVar.type = tt;  // resolve here
           newVars.Add(newVar);
           // update substMap to reflect the new LocalVariable substitutions
-          var ie = new IdentifierExpr(newVar.Tok, newVar.Name);
-          ie.Var = newVar;  // resolve here
-          ie.Type = newVar.Type;  // resolve here
+          var ie = new IdentifierExpr(newVar.Tok, newVar.Name) { Var = newVar, Type = newVar.Type };
           substMap.Add(v, ie);
         }
       }
@@ -628,9 +637,7 @@ namespace Microsoft.Dafny {
         if (forceSubstitutionOfBoundVars || tt != bv.Type) {
           var newBv = cloneVt(pat, tt, bv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
+          var ie = new IdentifierExpr(newBv.Tok, newBv.Name) { Var = newBv, Type = newBv.Type };
           substMap.Add(bv, ie);
           var newPat = new CasePattern<VT>(pat.tok, newBv);
           newPat.AssembleExpr(null);
@@ -764,8 +771,7 @@ namespace Microsoft.Dafny {
           rr = new BreakStmt(s.RangeToken, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
-        List<BreakStmt> breaks;
-        if (!BreaksToBeResolved.TryGetValue(s, out breaks)) {
+        if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
           breaks = new List<BreakStmt>();
           BreaksToBeResolved.Add(s, breaks);
         }
@@ -809,8 +815,8 @@ namespace Microsoft.Dafny {
         rr.Kind = s.Kind;
         rr.CanConvert = s.CanConvert;
         rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
-        if (s.ForallExpressions != null) {
-          rr.ForallExpressions = s.ForallExpressions.ConvertAll(Substitute);
+        if (s.EffectiveEnsuresClauses != null) {
+          rr.EffectiveEnsuresClauses = s.EffectiveEnsuresClauses.ConvertAll(Substitute);
         }
         r = rr;
       } else if (stmt is CalcStmt) {
@@ -871,8 +877,7 @@ namespace Microsoft.Dafny {
       r.Attributes = SubstAttributes(stmt.Attributes);
       r.IsGhost = stmt.IsGhost;
       if (stmt.Labels != null || stmt is WhileStmt) {
-        List<BreakStmt> breaks;
-        if (BreaksToBeResolved.TryGetValue(stmt, out breaks)) {
+        if (BreaksToBeResolved.TryGetValue(stmt, out var breaks)) {
           foreach (var b in breaks) {
             b.TargetStmt = r;
           }
@@ -930,7 +935,7 @@ namespace Microsoft.Dafny {
       return new Specification<Expression>(ee, SubstAttributes(spec.Attributes));
     }
 
-    protected Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
+    public Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
       var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(SubstFrameExpr);
       return new Specification<FrameExpression>(ee, SubstAttributes(frame.Attributes));
     }
@@ -1057,7 +1062,7 @@ namespace Microsoft.Dafny {
         } else if (expr is LambdaExpr) {
           var l = (LambdaExpr)expr;
           newExpr = new LambdaExpr(e.BodyStartTok, e.RangeToken, newBoundVars, newRange,
-            l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+            SubstSpecFrameExpr(l.Reads), newTerm);
         } else {
           Contract.Assert(false); // unexpected ComprehensionExpr
         }

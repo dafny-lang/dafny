@@ -11,18 +11,21 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Newtonsoft.Json.Linq;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
+  private readonly DafnyOptions options;
   private readonly ILogger<DafnyCodeActionHandler> logger;
-  private readonly IDocumentDatabase documents;
+  private readonly IProjectDatabase projects;
 
-  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IProjectDatabase projects) {
+    this.options = options;
     this.logger = logger;
-    this.documents = documents;
+    this.projects = projects;
   }
 
   public record DafnyCodeActionWithId(DafnyCodeAction DafnyCodeAction, int Id);
@@ -42,10 +45,11 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   /// <summary>
   /// Returns the fixes along with a unique identifier
   /// </summary>
-  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, DocumentAfterParsing document, CodeActionParams request) {
+  private IEnumerable<DafnyCodeActionWithId> GetFixesWithIds(IEnumerable<DafnyCodeActionProvider> fixers, IdeState state, CodeActionParams request) {
     var id = 0;
+    var uri = request.TextDocument.Uri.ToUri();
     return fixers.SelectMany(fixer => {
-      var fixerInput = new DafnyCodeActionInput(document);
+      var fixerInput = new DafnyCodeActionInput(state, uri);
       var quickFixes = fixer.GetDafnyCodeActions(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
         new DafnyCodeActionWithId(quickFix, id++));
@@ -53,23 +57,26 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     });
   }
 
-  private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActiones = new();
+  private readonly ConcurrentDictionary<string, IReadOnlyList<DafnyCodeActionWithId>> documentUriToDafnyCodeActions = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
-    var document = await documents.GetLastDocumentAsync(request.TextDocument);
-    if (document == null) {
+    var projectManager = await projects.GetProjectManager(request.TextDocument);
+    if (projectManager == null) {
       logger.LogWarning("dafny code actions requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();
     }
-    var quickFixers = GetDafnyCodeActionProviders();
-    var fixesWithId = GetFixesWithIds(quickFixers, document, request).ToArray();
 
-    var documentUri = document.Uri.ToString();
-    documentUriToDafnyCodeActiones.AddOrUpdate(documentUri, _ => fixesWithId, (_, _) => fixesWithId);
+    var uri = request.TextDocument.Uri.ToUri();
+
+    var ideState = await projectManager.GetStateAfterResolutionAsync();
+    var quickFixers = GetDafnyCodeActionProviders();
+    var fixesWithId = GetFixesWithIds(quickFixers, ideState, request).ToArray();
+
+    documentUriToDafnyCodeActions.AddOrUpdate(uri.ToString(), _ => fixesWithId, (_, _) => fixesWithId);
     var codeActions = fixesWithId.Select(fixWithId => {
       CommandOrCodeAction t = new CodeAction {
         Title = fixWithId.DafnyCodeAction.Title,
-        Data = new JArray(documentUri, fixWithId.Id),
+        Data = new JArray(uri, fixWithId.Id),
         Diagnostics = fixWithId.DafnyCodeAction.Diagnostics,
         Kind = CodeActionKind.QuickFix
       };
@@ -83,9 +90,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
     , new ErrorMessageDafnyCodeActionProvider()
+    , new ImplicitFailingAssertionCodeActionProvider(options)
     }
     .Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin =>
+      options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
   }
@@ -97,7 +105,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     }
 
     string? documentUri = command[0]?.Value<string>();
-    if (documentUri == null || !documentUriToDafnyCodeActiones.TryGetValue(documentUri, out var quickFixes)) {
+    if (documentUri == null || !documentUriToDafnyCodeActions.TryGetValue(documentUri, out var quickFixes)) {
       return Task.FromResult(request);
     }
 
@@ -130,7 +138,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     foreach (var (range, toReplace) in quickFixEdits) {
       edits.Add(new TextEdit() {
         NewText = toReplace,
-        Range = range
+        Range = range.ToLspRange()
       });
     }
     return edits;
@@ -138,29 +146,18 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 }
 
 public class DafnyCodeActionInput : IDafnyCodeActionInput {
-  public DafnyCodeActionInput(DocumentAfterParsing document) {
-    Document = document;
+  private readonly Uri uri;
+
+  public DafnyCodeActionInput(IdeState state, Uri uri) {
+    this.uri = uri;
+    IdeState = state;
   }
 
-  public string Uri => Document.Uri.ToString();
-  public int Version => Document.Version;
-  public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program Program => Document.Program;
-  public DocumentAfterParsing Document { get; }
+  public DocumentUri Uri => uri;
 
-  public Diagnostic[] Diagnostics {
-    get {
-      var result = Document.Diagnostics.ToArray();
-      return result;
-    }
-  }
+  public Node Program => IdeState.Program;
+  public IdeState IdeState { get; }
 
-  public string Extract(Range range) {
-    var buffer = Document.TextDocumentItem;
-    try {
-      return buffer.Extract(range);
-    } catch (ArgumentException) {
-      return "";
-    }
-  }
+  public IEnumerable<Diagnostic> Diagnostics => IdeState.GetDiagnosticsForUri(uri);
+  public VerificationTree? VerificationTree => IdeState.VerificationTrees.GetValueOrDefault(uri);
 }

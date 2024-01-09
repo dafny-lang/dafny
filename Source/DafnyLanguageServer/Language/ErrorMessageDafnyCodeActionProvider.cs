@@ -1,43 +1,38 @@
-using System;
-using System.IO;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
-using Microsoft.Dafny.LanguageServer.Plugins;
-using Newtonsoft.Json.Linq;
-using Microsoft.Dafny.LanguageServer.Handlers;
-using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.LanguageServer;
 public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
-  private Range InterpretDataAsRangeOrDefault(JToken? data, Range def) {
-    if (data is null) {
-      return def;
-    }
-    try {
-      String s = data.ToString();
-      var nums = s.Split(" ");
-      var line = Int32.Parse(nums[0]);
-      var column = Int32.Parse(nums[1]);
-      var length = Int32.Parse(nums[2]);
-      return new Range(line, column, line, column + length);
-    } catch (Exception) {
-      // Just return the default
-    }
-    return def;
-  }
 
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
-    ErrorID errorID = ErrorID.None;
-    bool ok = Enum.TryParse<ErrorID>(diagnostic.Code, out errorID);
-    var actionSigs = DafnyCodeActions.GetAction(errorID);
-    var actions = new List<DafnyCodeAction> { };
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    Diagnostic diagnostic, Range selection) {
+    if (diagnostic.Code is not { IsString: true }) {
+      return Enumerable.Empty<DafnyCodeAction>();
+    }
+    var actionSigs = ErrorRegistry.GetAction(diagnostic.Code.Value.String);
+    var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
-      Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
+      var range = FindTokenRangeFromLspRange(input, diagnostic.Range);
       foreach (var sig in actionSigs) {
-        actions.AddRange(sig(input, diagnostic, range));
+        var dafnyActions = sig(range);
+        actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic }, dafnyAction.Edits)));
       }
     }
     return actions;
+  }
+
+  public static RangeToken FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
+    var start = range.Start;
+    var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
+    var startToken = startNode.CoveredTokens.First(t => t.line - 1 == start.Line && t.col - 1 == start.Character);
+    var end = range.End;
+    var endNode = input.Program.FindNode<Node>(input.Uri.ToUri(), end.ToDafnyPosition());
+    var endToken = endNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == end.Line && t.col - 1 + t.val.Length == end.Character);
+    return new RangeToken(startToken, endToken);
   }
 }

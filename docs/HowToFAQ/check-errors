@@ -1,0 +1,109 @@
+#! /usr/bin/env bash
+
+# ErrorIds are used in Dafny to connect programmatic calls to emit an error message to the code that provides error information and
+# quick fixes in-app and to the markdown documentation that gives more explanation of the error than is possible in an error message.
+# This script (along with 'check-errors-a') detects inconsistenciees among the various uses of ErrorIds.
+#
+# The design of errorids uses a C# Enum to define the programmatic ids, so that misspellings are caught by the compiler.
+# Second, rather than have one huge file of all the enum constants, they are broken up into categories.  Each category has a different
+# prefix (e.g. p_, ref_, ...) and consists of a different set of files. Even though this makes a different enum type for each category,
+# all the errorids can be handled uniformly as subtypes of 'Enum'.
+# But third, we do not want the, sometimes extensive, error explanation text to have to be placed in the middle of the control flow at every
+# call to emit an error message. So the files contaiing the enums of a given category are placed in *Errors.cs files near their respective code.
+# A Errors-*.md file is part of the documentation error catalog (at https://dafny.org/dafny/HowToFAQ/Errors). It contains a section for each error
+# message: the message (as a heading), Dafny code that elicits the message, and explanatory text.
+# To avoid repeating the error explanations both in code and in md files, the md file is generated from the code and a template file.
+#
+# To take the Parser errors as an example
+#   - Errors related to parsing are contained in Dafny.atg, Parser.frame, Scanner.frame and ProgramParser.cs
+#   - The file ParserErrors.cs contains the definition of an enum with errorids for the 100 or so possible parsing error messages. 
+#     This file can be located near the parsing code,
+#   - Each ParseErrors.ErrorId has a prefix p_, but otherwise is a cryptic English NL statement of the problem.
+#   - ParseErrors.cs also contains 'Add' methods that define the explanatory text and any quick fix.
+#   - Errors-Parser.template is a file that shows the documented error messages and code snippets. The script 'make-error-catalog' does a rudimentary
+#     scan of ParseErrors.cs to extract the error explanations and fill them in the template to create Errors-Parser.md.
+#     This (generated) file is committed to GH so that it is served to the user as GH markdown pages.
+#
+# With ErrorIds used in multiple locations, one needs a means to check that they are consistent. This script does that.
+# For each error category X
+#   - The master list of ErrorIds is the enum definition in XErrors.cs (the ENUM-list)
+#   - The Add methods in XErrors.cs use those enums (the ADD-list)
+#     - The compiler ensures that ADD-list is a subset of ENUM-list
+#     - But anything missing in ADD-list indicates missing documentation (and possible quick fix) in the code
+#   - The error ids used in the source code are extracted by simple scanning into CS-list
+#     - Again, the compiler ensures that CS-list is a subset of ENUM-list
+#     - Any error id in ENUM-list not in CS-list is an unnecssary ErrorId, perhaps come about by refactoring and eliminating code
+#       or renaming error ids or because of an inadequacy in the script).
+#     - In transition, some error messages will use an ErrorId of 'none'. These will not have any documentation and should be
+#       eliminated over time.
+#   - In the markdown file (Errors-X.template and the generated Errors-X.md), each heading contains, as an HTML link, the error id 
+#     (in text). These are collected into the MD-list.
+#      - any ids in ENUM-list and not in MD-list are undocumented errors and should be eliminated over time
+#      - any ids in MD-list and not in ENUM-list correspond to non-existent/obsolete errors and should be removed from *.template.
+#      - the code snippets in the .md file need to actually produce the advertised error with the correct ErrorId.
+#        The check-examples script does this. It is run as part of CI.
+#
+# Not yet completed matters:
+#   - Not all error messages have ErrorIds
+#   - Consequently the signatures in Reporting.cs use a mix of string and Enums
+#   - Not all errors have explanations or quick fixes or code snipppets.
+#   - Not all categories are broken into a .template and .md file, corresponding to cases where there are as yet no or few items
+#     in the ADD-list.
+# 
+# Items to note
+#   - The scripts to extract ids depend on uniform coding style:
+#       - each use of an id is prefaced by 'ErrorId.' with one ErrorId per line
+#       - the enum file has one id per line
+#       - the Add methods are named 'Add' and have a consistent layout
+#   - There is no check that the prefixes of the enum constants are used consistently
+
+# Go to the folder containing this script (expected to be docs/HowToFAQ)
+d=$(dirname ${BASH_SOURCE[0]})
+cd $d
+
+keepTmp=0
+if [ "$1" == "-k" ]; then 
+  keepTmp=1
+fi
+
+# Relative path to source code, for convenience
+D=../../Source/DafnyCore
+
+# Each error category is checked in turn.
+# The arguments to check-errors-a are (1) the md file, (2) the corresponding XErrors file, 
+# (3) a quoted list of the soursce code files that produce the errors.
+
+echo ">>>> PARSER"
+
+./check-errors-a Errors-Parser.md $D/AST/Grammar/ParseErrors.cs "$D/Dafny.atg $D/CoCo/Parser.frame $D/CoCo/Scanner.frame $D/AST/Grammar/ProgramParser.cs"
+
+echo ">>>> GENERIC"
+
+./check-errors-a Errors-Generic.md $D/Generic/GenericErrors.cs "$D/Generic/Util.cs $D/DafnyOptions.cs" 
+
+echo ">>>> COMPILER"
+
+csfiles="$D/Compilers/*.cs $D/Compilers/*/*.cs"
+./check-errors-a Errors-Compiler.md $D/Compilers/CompilerErrors.cs "$csfiles"
+
+echo ">>>> REFINEMENT"
+
+csfiles="$D/Rewriters/RefinementTransformer.cs"
+./check-errors-a Errors-Refinement.md $D/Rewriters/RefinementErrors.cs "$csfiles"
+
+echo ">>>> REWRITER"
+
+## Omit jsut RefinementTransformer.cs as it is large enough to be handled on its own, just above
+csfiles="$D/Rewriters/[A-Q]*.cs $D/Rewriters/[S-Z]*.cs $D/Rewriters/Run*.cs"
+./check-errors-a Errors-Rewriter.md $D/Rewriters/RewriterErrors.cs "$csfiles"
+
+echo ">>>> RESOLUTION"
+
+csfiles="../../Source/DafnyCore/Resolver/ExpressionTester.cs ../../Source/DafnyCore/Resolver/TypeInferenceChecker.cs ../../Source/DafnyCore/Resolver/GhostInterestVisitor.cs"
+./check-errors-a Errors-Resolution.md ../../Source/DafnyCore/Resolver/ResolutionErrors.cs "$csfiles"
+
+if [ "$keepTmp" == "0" ]; then
+  rm -f tmp-ids*
+fi
+exit 0
+

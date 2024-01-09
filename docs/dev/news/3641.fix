@@ -1,3 +1,0 @@
-fix: --enforce-determinism now forbids constructor-less classes
-fix: With non-relaxed definite assignment, allow auto-init fields to be uninitialized
-feat: Expose non-relaxed definite assignment (/definiteAssignment:4) in legacy CLI

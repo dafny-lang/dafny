@@ -5,31 +5,29 @@
 1. Ensure that you are in a repository that:
    * is clean and up-to-date with no uncommitted changes,
    * was cloned with SSH so that you can push to it, and
-   * has the `master` branch checked out.
+   * has the intended branch checked out (usually `master`,
+     but may be another mainline branch such as `main-3.x`).
 
 1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
    The `major`.`minor`.`patch` numbers may already have been
    incremented since the last release, so they do not necessarily need
    to be updated. However, you may want to increment them further
    depending the types of changes that are in the release.
-1. Run `Scripts/prepare_release.py $VER prepare` from the root of the
-   repository. The script will check that the repository is in a good
+
+1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>`
+   (`--source-branch` is optional and defaults to 'master')
+   from the root of the repository. The script will check that the repository is in a good
    state, create and check out a new release branch, update
    `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
    and push it.
 
-1. Kick off the deep test suite by navigating to
-   <https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml>,
-   clicking the "Run workflow" dropdown, selecting the newly created branch, and
-   clicking the "Run workflow" button. The automation for releasing below will
-   check for a run of this workflow on the exact commit to release.  (TODO:
-   Run this automatically as part of the prepare-release script.)
-
-1. Once the the tests complete, run `Scripts/prepare_release.py $VER
+1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
-   current commit and push it. (TODO: Merge with the two steps above.) A
+   current commit and push it. A
    GitHub action will automatically run in reaction to the tag being
-   pushed, which will build the artifacts and reference manual and then
+   pushed, which will run the deep integration test suite,
+   build the artifacts and reference manual,
+   publish artifacts to nuget.org, and then
    create a draft GitHub release. You can find and watch the progress of
    this workflow at <https://github.com/dafny-lang/dafny/actions>.
 
@@ -43,7 +41,7 @@
    on multiple platforms. Again you can watch for this workflow at
    <https://github.com/dafny-lang/dafny/actions>.
 
-1. Create a pull request to merge the newly created branch into `master` (the
+1. Create a pull request to merge the newly created branch into the source branch (the
    script will give you a link to do so).  Get it approved and merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
@@ -57,10 +55,20 @@
       and dafny-lang/dafny-lang.github.io.
       Approve and merge these PRs.
 
+1. Add the new version to the list of versions to be checked in the library repo,
+   namely the list in the file libraries/.github/workflows/tests.yml.
+
 1. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
     and other members of the community may update the formula
     in the meantime anyway.
+
+1. Once the Homebrew formula is merged, test that it works correctly by
+   going to <https://github.com/dafny-lang/dafny/actions> and manually
+   running the "Test Brew release on Mac" workflow. It doesn't matter
+   what branch you run it on because it won't actually check out the
+   code. It will just install Dafny from Homebrew and run it on some
+   examples.
 
 If something goes wrong with the `prepare` step:
 

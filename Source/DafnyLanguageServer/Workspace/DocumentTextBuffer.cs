@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Mime;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -37,4 +38,5 @@ public class DocumentTextBuffer {
   public int? Version => TextDocumentItem.Version;
 
   public int NumberOfLines => Buffer.Lines.Count;
+  public TextReader Content => new StringReader(Text);
 }

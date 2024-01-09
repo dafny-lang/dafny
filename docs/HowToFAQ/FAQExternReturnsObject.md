@@ -10,7 +10,7 @@ How do I model extern methods that return objects?
 ## Answer:
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
-It's better to have a predicate that takes the input of a function, an object, and relates the two together.
+It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.
 
 For example:
 
@@ -33,8 +33,8 @@ trait {:extern} {:compile false} Importer {
 }
 ```
 
-In this case, it's better to write a predicate, and use existential quantifiers along with the :| operator, 
-and there no need to prove uniqueness because we are in ghost code!
+In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
+and there is no need to prove uniqueness because we are in ghost code!
 
 ```dafny
 trait {:extern} {:compile false} Test {

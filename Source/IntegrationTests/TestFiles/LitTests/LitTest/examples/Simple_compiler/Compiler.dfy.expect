@@ -1,0 +1,32 @@
+# Step 1: Parse
+cAST =
+  SimpleCompiler.CSharpAST.Prog
+
+# Step 2: Compile (using Dafny)
+translated = 
+  DafnyAST.Stmt.Seq(DafnyAST.Stmt.Assign(x, DafnyAST.Expr.Const(3)), DafnyAST.Stmt.Seq(DafnyAST.Stmt.Print(DafnyAST.Expr.Var(x)), DafnyAST.Stmt.Seq(DafnyAST.Stmt.Assign(y, DafnyAST.Expr.Op(DafnyAST.BinOp.Add, DafnyAST.Expr.Var(x), DafnyAST.Expr.Const(0))), DafnyAST.Stmt.Seq(DafnyAST.Stmt.Print(DafnyAST.Expr.Op(DafnyAST.BinOp.Add, DafnyAST.Expr.Var(y), DafnyAST.Expr.Const(1))), DafnyAST.Stmt.Skip))))
+interp(translated) = 
+  [3, 4]
+
+optimized = 
+  DafnyAST.Stmt.Seq(DafnyAST.Stmt.Assign(x, DafnyAST.Expr.Const(3)), DafnyAST.Stmt.Seq(DafnyAST.Stmt.Print(DafnyAST.Expr.Var(x)), DafnyAST.Stmt.Seq(DafnyAST.Stmt.Assign(y, DafnyAST.Expr.Var(x)), DafnyAST.Stmt.Print(DafnyAST.Expr.Op(DafnyAST.BinOp.Add, DafnyAST.Expr.Var(y), DafnyAST.Expr.Const(1))))))
+interp(optimized) = 
+  [3, 4]
+
+compiled = 
+  LinkedList.List.Cons(StackMachine.Instr.PopPrint, LinkedList.List.Cons(StackMachine.Instr.PopAdd, LinkedList.List.Cons(StackMachine.Instr.PushConst(1), LinkedList.List.Cons(StackMachine.Instr.PushVar(y), LinkedList.List.Cons(StackMachine.Instr.PopVar(y), LinkedList.List.Cons(StackMachine.Instr.PushVar(x), LinkedList.List.Cons(StackMachine.Instr.PopPrint, LinkedList.List.Cons(StackMachine.Instr.PushVar(x), LinkedList.List.Cons(StackMachine.Instr.PopVar(x), LinkedList.List.Cons(StackMachine.Instr.PushConst(3), LinkedList.List.Nil))))))))))
+interp(compiled) = 
+  [3, 4]
+
+
+# Step 3: Print (using C#)
+  PopPrint
+  PopAdd
+  PushConst(1)
+  PushVar(y)
+  PopVar(y)
+  PushVar(x)
+  PopPrint
+  PushVar(x)
+  PopVar(x)
+  PushConst(3)

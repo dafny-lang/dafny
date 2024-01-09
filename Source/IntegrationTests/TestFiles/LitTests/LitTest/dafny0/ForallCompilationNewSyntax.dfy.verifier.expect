@@ -1,0 +1,4 @@
+ForallCompilationNewSyntax.dfy(25,4): Warning: /!\ No terms found to trigger on.
+ForallCompilationNewSyntax.dfy(34,4): Warning: /!\ No terms found to trigger on.
+ForallCompilationNewSyntax.dfy(43,4): Warning: /!\ No terms found to trigger on.
+ForallCompilationNewSyntax.dfy(63,4): Warning: /!\ No trigger covering all quantified variables found.

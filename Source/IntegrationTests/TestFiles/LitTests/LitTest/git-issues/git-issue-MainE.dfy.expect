@@ -1,0 +1,46 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(21,9): Error: The method 'A.Test' is not permitted as a main method (the method's non-ghost argument type should be an seq<string>, got int).
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(24,9): Error: The method 'B.Test' is not permitted as a main method (the method has type parameters).
+
+Dafny program verifier did not attempt verification
+OK-C
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(31,9): Error: The method 'D.Test' is not permitted as a main method (the method is not static and the enclosing class has constructors).
+
+Dafny program verifier did not attempt verification
+OK-E
+
+Dafny program verifier did not attempt verification
+OK-G
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(41,9): Error: The method 'H.Test' is not permitted as a main method (the method has non-ghost out parameters).
+
+Dafny program verifier did not attempt verification
+OK-I
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(47,9): Error: The method 'J.Test' is not permitted as a main method (the method has requires clauses).
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(50,9): Error: The method 'K.Test' is not permitted as a main method (the method has modifies clauses).
+
+Dafny program verifier did not attempt verification
+Main
+
+Dafny program verifier did not attempt verification
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(61,9): Error: The method 'Tr.Instance' is not permitted as a main method (the method is not static and the enclosing type does not support auto-initialization).
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(80,16): Error: The method 'Opaque.Static' is not permitted as a main method (the enclosing type is an abstract type).
+
+Dafny program verifier did not attempt verification
+git-issue-MainE.dfy(81,9): Error: The method 'Opaque.Instance' is not permitted as a main method (the enclosing type is an abstract type).

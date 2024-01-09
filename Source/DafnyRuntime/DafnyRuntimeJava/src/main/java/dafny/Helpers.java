@@ -248,14 +248,32 @@ public class Helpers {
         return (int)x;
     }
 
-    private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
+    private final static BigInteger BYTE_LIMIT =   new BigInteger("256");                   // 0x1_00
+    private final static BigInteger USHORT_LIMIT = new BigInteger("65536");                 // 0x1_0000
+    private final static BigInteger UINT_LIMIT =   new BigInteger("4294967296");            // 0x1_0000_0000
+    private final static BigInteger ULONG_LIMIT =  new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
 
-    public static BigInteger unsignedLongToBigInteger(long l) {
-        if (0 <= l) {
-            return BigInteger.valueOf(l);
-        } else {
-            return BigInteger.valueOf(l).add(ULONG_LIMIT);
+    private static BigInteger unsignedToBigInteger_h(BigInteger i, BigInteger LIMIT) {
+        if (i.signum() == -1) {
+            i = i.add(LIMIT);
         }
+        return i;
+    }
+
+    public static BigInteger unsignedToBigInteger(byte b){
+        return unsignedToBigInteger_h(BigInteger.valueOf(b), BYTE_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(short s){
+        return unsignedToBigInteger_h(BigInteger.valueOf(s), USHORT_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(int i){
+        return unsignedToBigInteger_h(BigInteger.valueOf(i), UINT_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(long l){
+        return unsignedToBigInteger_h(BigInteger.valueOf(l), ULONG_LIMIT);
     }
 
     public static byte divideUnsignedByte(byte a, byte b) {
@@ -272,6 +290,54 @@ public class Helpers {
 
     public static short remainderUnsignedShort(short a, short b) {
         return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+    
+    // Explanation (G = original, g = opposite)
+    // a = 1XXX,YYYY
+    // (int)a = 1111,1111,...,1111,1XXX,YYYY (power of two's complement)
+    // (int)a & 0xFF = 0000,0000,...,0000,1XXX,YYYY
+    // Now right-shift works nicely
+    public static int bv8ShiftRight(byte a, byte amount) {
+        if(a < 0)  {
+          return (((int)a) & 0xFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static int bv16ShiftRight(short a, byte amount) {
+        if(a < 0)  {
+          return (((int)a) & 0xFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static int bv32ShiftRight(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        if(a < 0)  {
+          return (((int)a) & 0xFFFFFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static long bv64ShiftRight(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a >>> amount;
+    }
+    public static int bv32ShiftLeft(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        return a << amount;
+    }
+    public static long bv64ShiftLeft(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a << amount;
     }
 
     public static void withHaltHandling(Runnable runnable) {

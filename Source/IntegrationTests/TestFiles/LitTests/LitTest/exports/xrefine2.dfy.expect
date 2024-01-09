@@ -1,0 +1,4 @@
+HI.foo(h1) => true
+HI.foo(h2) => true
+PI.orange(1) => 2
+PI.apple(2) => 3

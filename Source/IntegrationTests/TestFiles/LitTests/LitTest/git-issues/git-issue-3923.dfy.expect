@@ -1,0 +1,4 @@
+git-issue-3923.dfy(44,13): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-3923.dfy(53,13): Error: value does not satisfy the subset constraints of 'nat'
+
+Dafny program verifier finished with 8 verified, 2 errors

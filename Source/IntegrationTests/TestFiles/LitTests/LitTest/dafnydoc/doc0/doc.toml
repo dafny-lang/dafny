@@ -1,0 +1,5 @@
+includes = [ "*.dfy" ]
+
+[options]
+program-name = "Test Doc"
+output = "./documentation"

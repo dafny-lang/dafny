@@ -1,0 +1,60 @@
+NewtypesResolution.dfy(5,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyNewType -> MyIntegerType_WellSupposedly -> MySynonym
+NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
+NewtypesResolution.dfy(51,13): Error: arguments to <= must have a common supertype (got posReal and int32)
+NewtypesResolution.dfy(50,13): Error: arguments must have comparable types (got posReal and int32)
+NewtypesResolution.dfy(44,9): Error: arguments must have comparable types (got int32 and int)
+NewtypesResolution.dfy(52,13): Error: arguments to < must have a common supertype (got int32 and int)
+NewtypesResolution.dfy(53,13): Error: arguments to > must have a common supertype (got posReal and real)
+NewtypesResolution.dfy(38,9): Error: arguments must have comparable types (got posReal and real)
+NewtypesResolution.dfy(57,13): Error: arguments to % must be integer-numeric or bitvector types (got posReal)
+NewtypesResolution.dfy(57,25): Error: arguments to % must be integer-numeric or bitvector types (got posReal)
+NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (instead got SmallInt)
+NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
+NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
+NewtypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
+NewtypesResolution.dfy(105,10): Error: recursive constraint dependency involving a newtype: Cycle -> BadLemma -> Cycle
+NewtypesResolution.dfy(114,10): Error: recursive constraint dependency involving a newtype: SelfCycle -> SelfCycle
+NewtypesResolution.dfy(120,21): Error: name of type (N9) is used as a variable
+NewtypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(140,6): Error: RHS (of type AnotherInt) not assignable to LHS (of type Int)
+NewtypesResolution.dfy(156,9): Error: name of type (B) is used as a variable
+NewtypesResolution.dfy(157,11): Error: name of type (Syn) is used as a variable
+NewtypesResolution.dfy(162,8): Error: member 'U' does not exist in type synonym 'Y'
+NewtypesResolution.dfy(162,9): Error: expected method call, found expression
+NewtypesResolution.dfy(188,56): Error: incorrect argument type at index 0 for datatype constructor parameter (expected int, found bool)
+NewtypesResolution.dfy(221,13): Error: arguments to < must have a common supertype (got Even and nat)
+NewtypesResolution.dfy(223,13): Error: arguments to < must have a common supertype (got Even and int)
+NewtypesResolution.dfy(227,13): Error: arguments to < must have a common supertype (got Even and int)
+NewtypesResolution.dfy(229,13): Error: arguments to < must have a common supertype (got Even and int)
+NewtypesResolution.dfy(230,13): Error: arguments to < must have a common supertype (got Even and int)
+NewtypesResolution.dfy(219,26): Error: new must use an integer-based expression for the array size (got real for index 2)
+NewtypesResolution.dfy(238,13): Error: arguments to < must have a common supertype (got Even and int)
+NewtypesResolution.dfy(240,13): Error: arguments to <= must have a common supertype (got Even and int)
+NewtypesResolution.dfy(249,17): Error: multiset update requires integer-based numeric value (got real)
+NewtypesResolution.dfy(256,28): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+NewtypesResolution.dfy(259,24): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+NewtypesResolution.dfy(262,6): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> BB -> CC -> DD -> EE -> AA
+NewtypesResolution.dfy(284,10): Error: newtypes must be based on some numeric type (got ORDINAL)
+NewtypesResolution.dfy(285,10): Error: newtypes must be based on some numeric type (got ORDINAL)
+NewtypesResolution.dfy(289,7): Error: recursive constraint dependency involving a subset type: X -> P -> M -> X
+NewtypesResolution.dfy(304,7): Error: recursive constraint dependency involving a subset type: Y -> P -> M -> X -> Y
+NewtypesResolution.dfy(317,10): Error: recursive constraint dependency involving a newtype: X -> P -> M -> X
+NewtypesResolution.dfy(332,10): Error: recursive constraint dependency involving a newtype: Y -> P -> M -> X -> Y
+NewtypesResolution.dfy(350,7): Error: recursive constraint dependency involving a subset type: G3 -> G5 -> G6 -> G0 -> G1 -> G2 -> G3
+NewtypesResolution.dfy(360,10): Error: recursive constraint dependency involving a newtype: G4 -> P -> G5 -> G6 -> G0 -> G1 -> G2 -> G3 -> G4
+NewtypesResolution.dfy(371,33): Error: a forall expression involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'r' (of type 'G5') may contain references (see documentation for 'older' parameters)
+NewtypesResolution.dfy(381,7): Error: recursive constraint dependency involving a subset type: Y -> M -> X -> Y
+NewtypesResolution.dfy(488,14): Error: const definition contains a cycle: c0 -> R0 -> c0
+NewtypesResolution.dfy(495,8): Error: const definition contains a cycle: c1 -> R1 -> R1 -> c1
+NewtypesResolution.dfy(502,8): Error: const definition contains a cycle: c2 -> R2 -> c2
+NewtypesResolution.dfy(400,10): Error: recursive constraint dependency involving a newtype: NT0 -> P0 -> NT0
+NewtypesResolution.dfy(414,7): Error: recursive constraint dependency involving a subset type: ST0 -> Q0 -> ST0
+NewtypesResolution.dfy(430,10): Error: recursive constraint dependency involving a newtype: NW0 -> NWitness0 -> NW0
+NewtypesResolution.dfy(444,10): Error: recursive constraint dependency involving a newtype: NW2 -> NWitness2 -> NWitness2 -> NW2
+NewtypesResolution.dfy(451,10): Error: recursive constraint dependency involving a newtype: NW3 -> NWitness3 -> NW3
+NewtypesResolution.dfy(458,7): Error: recursive constraint dependency involving a subset type: SW0 -> SWitness0 -> SW0
+NewtypesResolution.dfy(472,7): Error: recursive constraint dependency involving a subset type: SW2 -> SWitness2 -> SWitness2 -> SW2
+NewtypesResolution.dfy(479,7): Error: recursive constraint dependency involving a subset type: SW3 -> SWitness3 -> SW3
+59 resolution/type errors detected in NewtypesResolution.dfy

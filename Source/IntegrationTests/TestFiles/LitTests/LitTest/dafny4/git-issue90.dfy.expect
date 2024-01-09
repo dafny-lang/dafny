@@ -1,0 +1,2 @@
+git-issue90.dfy(4,6): Error: type for constant 'x' is 'MyInt', but its initialization value type is 'int'
+1 resolution/type errors detected in git-issue90.dfy

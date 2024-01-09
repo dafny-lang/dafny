@@ -63,17 +63,13 @@ The details of using (and contributing to) the dafny tool are described in the U
 The most recent major version of the Dafny language is Dafny 4.0, released in February 2023.
 It has some backwards incompatibilities with Dafny 3, as decribed in the [migration guide](https://github.com/dafny-lang/ide-vscode/wiki/Quick-migration-guide-from-Dafny-3.X-to-Dafny-4.0).
 
-Some of the highlights of Dafny 4.0 are
-* support for full unicode
-TODO
-
 The user documentation has been expanded with more examples, a FAQ, and an error explanation catalog.
 There is even a new book, [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/) by Dafny designer Rustan Leino.
 
 The IDE now has a framework for showing error explanation information and corresponding quick fixes are
 being added, with refactoring operations on the horizon.
-MORE TODO
 
+More details of 4.0 functionality are described in the release notes.
 ## 1.2. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
 

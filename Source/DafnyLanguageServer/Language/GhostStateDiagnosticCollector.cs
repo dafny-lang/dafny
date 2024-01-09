@@ -4,6 +4,8 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.CommandLine;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -19,6 +21,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// diagnostics may overlap with each other, creating a large list of hover texts.
   /// </remarks>
   public class GhostStateDiagnosticCollector : IGhostStateDiagnosticCollector {
+
+    public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
+      @"
+(experimental, API will change)
+Send notifications that indicate which lines are ghost.".TrimStart());
+
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly DafnyOptions options;
@@ -28,29 +36,33 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.logger = logger;
     }
 
-    public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
-      if (!options.Get(ServerCommand.GhostIndicators)) {
-        return Enumerable.Empty<Diagnostic>();
+    public IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
+      LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken) {
+      if (!options.Get(GhostIndicators)) {
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
+      }
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        var visitor = new GhostStateSyntaxTreeVisitor(cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
-        return visitor.GhostDiagnostics;
+        return visitor.GhostDiagnostics.ToDictionary(
+          kv => kv.Key,
+          kv => (IReadOnlyList<Range>)kv.Value);
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while getting ghost state diagnostics of {Name}", signatureAndCompletionTable.CompilationUnit.Name);
-        return new Diagnostic[] { };
+        return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly Dafny.Program program;
       private readonly CancellationToken cancellationToken;
 
-      public List<Diagnostic> GhostDiagnostics { get; } = new();
+      public Dictionary<Uri, List<Range>> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(Dafny.Program program, CancellationToken cancellationToken) {
-        this.program = program;
+      public GhostStateSyntaxTreeVisitor(CancellationToken cancellationToken) {
         this.cancellationToken = cancellationToken;
       }
 
@@ -59,20 +71,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          GhostDiagnostics.Add(CreateGhostDiagnostic(GetRange(statement)));
+          var list = GhostDiagnostics.GetOrCreate(statement.Tok.Uri, () => new List<Range>());
+          list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
         }
       }
 
       private bool IsGhostStatementToMark(Statement statement) {
-        return statement.IsGhost
-          && IsPartOfEntryDocumentAndNoMetadata(statement.Tok);
-      }
-
-
-      private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
-        return token.line > 0 && program.IsPartOfEntryDocument(token);
+        return statement.IsGhost && statement.Tok.line > 0;
       }
 
       private static Range GetRange(Statement statement) {

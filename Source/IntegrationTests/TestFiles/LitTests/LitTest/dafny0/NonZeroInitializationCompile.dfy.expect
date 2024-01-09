@@ -1,0 +1,21 @@
+These are the arbitrary values chosen by the compiler: 6, 12
+short, short': 0, -35
+nes: {57}
+f0, f1: (0, false), (29, true)
+dt: Dt.Atom(-35)
+cl { u: 12, x: 0, r: 3.14, nes: {57} }
+cl' { u: 12, x: 0, ': 3.14, nes: {20, 57} }
+
+x: real :: 0.0 versus 0.0
+ch: char :: 'D' versus 'D'
+s: set :: {} versus {}
+d: Xt :: AdvancedZeroInitialization.Xt.MakeXt(0, []) versus AdvancedZeroInitialization.Xt.MakeXt(0, [])
+y: Yt<seq> :: AdvancedZeroInitialization.Yt.MakeYt(0, []) versus AdvancedZeroInitialization.Yt.MakeYt(0, [])
+z: Yt<Even> :: AdvancedZeroInitialization.Yt.MakeYt(0, 0) versus AdvancedZeroInitialization.Yt.MakeYt(0, 0)
+
+x: real :: 0.0 versus 0.0
+ch: char :: 'D' versus 'D'
+s: set :: {} versus {}
+d: Xt :: AdvancedZeroInitialization.Xt.MakeXt(0, []) versus AdvancedZeroInitialization.Xt.MakeXt(0, [])
+y: Yt<seq> :: AdvancedZeroInitialization.Yt.MakeYt(0, []) versus AdvancedZeroInitialization.Yt.MakeYt(0, [])
+z: Yt<Even> :: AdvancedZeroInitialization.Yt.MakeYt(0, 0) versus AdvancedZeroInitialization.Yt.MakeYt(0, 0)

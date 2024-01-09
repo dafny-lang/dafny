@@ -13,7 +13,8 @@ namespace Microsoft.Dafny.Compilers;
 public class JavaScriptBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
-  public override string TargetLanguage => "JavaScript";
+  public override string TargetName => "JavaScript";
+  public override bool IsStable => true;
   public override string TargetExtension => "js";
 
   public override bool SupportsInMemoryCompilation => true;
@@ -23,7 +24,7 @@ public class JavaScriptBackend : ExecutableBackend {
     new HashSet<string>(new List<string> { "number" });
 
   protected override SinglePassCompiler CreateCompiler() {
-    return new JavaScriptCompiler(Reporter);
+    return new JavaScriptCompiler(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -41,8 +42,9 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
     return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
   }
@@ -64,20 +66,22 @@ public class JavaScriptBackend : ExecutableBackend {
         WriteFromFile(filename, nodeProcess.StandardInput);
       }
       nodeProcess.StandardInput.Write(targetProgramText);
-      if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+      if (callToMain != null && Options.RunAfterCompile) {
         nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
+        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
         nodeProcess.StandardInput.Write(callToMain);
       }
       nodeProcess.StandardInput.Flush();
       nodeProcess.StandardInput.Close();
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       var errorProcessing = Task.Run(() => {
-        PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
       });
-      PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
+      PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
       nodeProcess.WaitForExit();
+#pragma warning disable VSTHRD002
       errorProcessing.Wait();
+#pragma warning restore VSTHRD002
       return nodeProcess.ExitCode == 0;
     } catch (System.ComponentModel.Win32Exception e) {
       outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
@@ -85,12 +89,6 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
-  // We read character by character because we did not find a way to ensure
-  // final newlines are kept when reading line by line
-  private static void PassthroughBuffer(TextReader input, TextWriter output) {
-    int current;
-    while ((current = input.Read()) != -1) {
-      output.Write((char)current);
-    }
+  public JavaScriptBackend(DafnyOptions options) : base(options) {
   }
 }

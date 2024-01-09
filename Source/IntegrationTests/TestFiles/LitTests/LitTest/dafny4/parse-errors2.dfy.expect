@@ -1,0 +1,5 @@
+parse-errors2.dfy(6,13): Error: invalid relational operator (perhaps you intended "!!" with no intervening whitespace?)
+parse-errors2.dfy(7,13): Error: invalid relational operator
+parse-errors2.dfy(11,23): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+parse-errors2.dfy(12,16): Error: this operator cannot continue this chain
+4 parse errors detected in parse-errors2.dfy

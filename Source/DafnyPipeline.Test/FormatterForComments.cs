@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using JetBrains.Annotations;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -128,7 +130,7 @@ method LRead() {
     => true;
 }
 
-function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
+function Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
 {
   x reads g.reads(x)
     reads if g.requires(x) then f.reads(g(x)) else {}
@@ -138,21 +140,21 @@ function method Compose<A,B,C>(f: B ~> C, g:A ~> B): A ~> C
   => f(g(x))
 }
 
-function method Twice<A>(f : A ~> A): A ~> A
+function Twice<A>(f : A ~> A): A ~> A
 {
   x requires f.requires(x) && f.requires(f(x))
     reads f.reads(x), if f.requires(x) then f.reads(f(x)) else {}
   => f(f(x))
 }
 
-function method Apply'<A,B>(f: A ~> B) : A ~> B
+function Apply'<A,B>(f: A ~> B) : A ~> B
 {
   x reads f.reads(x)
     requires f.requires(x)
   => f(x)
 }
 
-function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
+function TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
   requires PreZ(f, TreeData(t0))
   reads PreZ.reads(f, TreeData(t0))
   decreases t0
@@ -269,4 +271,6 @@ const x: int
 ");
   }
 
+  public FormatterForComments([NotNull] ITestOutputHelper output) : base(output) {
+  }
 }

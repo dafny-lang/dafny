@@ -1,0 +1,3 @@
+struct.S byte.arguments
+enum.goto.switch enum.goto.switch
+20 + 20 == 40

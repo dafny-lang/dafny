@@ -1,0 +1,5 @@
+# RUN: %server "%s" /deprecation:0 > "%t"
+# RUN: %diff "%s.expect" "%t"
+symbols
+eyJhcmdzIjpbXSwiZmlsZW5hbWUiOiJiYW5rLmRmeSIsInNvdXJjZSI6ImNsYXNzIEJhbmtBY2NvdW50VW5zYWZlIHtcclxuXHR2YXIgYmFsYW5jZTogaW50O1xyXG5cdFxyXG4gIGNvbnN0cnVjdG9yKCkgbW9kaWZpZXMgdGhpcyB7XHJcbiAgICBiYWxhbmNlIDo9IDExO1xyXG4gIH1cclxuXHJcblx0bWV0aG9kIHdpdGhkcmF3KGFtb3VudDogaW50KSBcclxuICAgIHJlcXVpcmVzIGFtb3VudCA8IGJhbGFuY2U7IFxyXG4gICAgZW5zdXJlcyBiYWxhbmNlID49IDBcclxuICBtb2RpZmllcyB0aGlzIHtcclxuXHRcdGJhbGFuY2UgOj0gYmFsYW5jZSAtIGFtb3VudDtcclxuXHR9XHJcbn1cclxuIiwic291cmNlSXNGaWxlIjpmYWxzZX0=
+[[DAFNY-CLIENT: EOM]]

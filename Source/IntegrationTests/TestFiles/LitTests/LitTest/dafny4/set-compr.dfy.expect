@@ -1,0 +1,20 @@
+set-compr.dfy(6,13): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(12,20): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(11,21): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(13,14): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(20,19): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(21,9): Warning: /!\ No terms found to trigger on.
+set-compr.dfy(28,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+set-compr.dfy(39,34): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(41,26): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(40,33): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(42,30): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(44,28): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(51,34): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(53,26): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(52,33): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(54,30): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(56,28): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(74,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+set-compr.dfy(88,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+13 resolution/type errors detected in set-compr.dfy

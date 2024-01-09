@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     public override string ToString() {
-      return Printer.ExprToString(Expr);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Expr);
       // NOTE: Using OriginalExpr here could cause some confusion:
       // for example, {a !in b} is a binary expression, yielding
       // trigger {a in b}. Saying the trigger is a !in b would be
@@ -45,11 +45,6 @@ namespace Microsoft.Dafny.Triggers {
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
-
-    internal bool IsTranslatedToFunctionCall() {
-      return (TriggersCollector.TranslateToFunctionCall(this.Expr)) ? true : false;
-    }
-
   }
 
   class TriggerCandidate {
@@ -74,11 +69,11 @@ namespace Microsoft.Dafny.Triggers {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
     }
 
-    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier) {
+    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier, DafnyOptions options) {
       Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
       var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
-      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars, options));
     }
 
     internal List<TriggerMatch> MatchingSubterms(ComprehensionExpr quantifier) {
@@ -163,9 +158,13 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal class TriggersCollector {
+    public ModuleDefinition ForModule { get; }
+    private DafnyOptions options;
     TriggerAnnotationsCache cache;
 
-    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
+    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext, DafnyOptions options, ModuleDefinition forModule) {
+      this.options = options;
+      this.ForModule = forModule;
       this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
@@ -191,8 +190,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private TriggerAnnotation Annotate(Expression expr) {
-      TriggerAnnotation cached;
-      if (cache.annotations.TryGetValue(expr, out cached)) {
+      if (cache.annotations.TryGetValue(expr, out var cached)) {
         return cached;
       }
 
@@ -202,12 +200,12 @@ namespace Microsoft.Dafny.Triggers {
         var le = (LetExpr)expr;
         if (le.LHSs.All(p => p.Var != null) && le.Exact) {
           // Inline the let expression before doing trigger selection.
-          annotation = Annotate(Translator.InlineLet(le));
+          annotation = Annotate(BoogieGenerator.InlineLet(le));
         }
       }
 
       if (annotation == null) {
-        expr.SubExpressions.Iter(e => Annotate(e));
+        expr.SubExpressions.ForEach(e => Annotate(e));
 
         if (IsPotentialTriggerCandidate(expr)) {
           annotation = AnnotatePotentialCandidate(expr);
@@ -237,12 +235,12 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
+      TriggerUtils.DebugTriggers(options, "{0} ({1})\n{2}", Printer.ExprToString(options, expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
     }
 
-    public static bool IsPotentialTriggerCandidate(Expression expr) {
+    public bool IsPotentialTriggerCandidate(Expression expr) {
       if (expr is FunctionCallExpr ||
           expr is SeqSelectExpr ||
           expr is MultiSelectExpr ||
@@ -256,7 +254,7 @@ namespace Microsoft.Dafny.Triggers {
         return true;
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !Translator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
+        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !BoogieGenerator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
           return true;
         } else if (CandidateCollectionOperation(e)) {
           return true;
@@ -279,12 +277,13 @@ namespace Microsoft.Dafny.Triggers {
 
     // math operations can be turned into a Boogie-level function as in the
     // case with /noNLarith.
-    public static bool TranslateToFunctionCall(Expression expr) {
+    public bool TranslateToFunctionCall(Expression expr) {
       if (!(expr is BinaryExpr)) {
         return false;
       }
       BinaryExpr e = (BinaryExpr)expr;
       bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
+      var disableNonLinearArithmetic = BoogieGenerator.DetermineDisableNonLinearArithmetic(ForModule, options);
       switch (e.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.Le:
@@ -292,7 +291,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && disableNonLinearArithmetic) {
             return true;
           }
           break;
@@ -300,7 +299,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
           if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType) {
-            if (DafnyOptions.O.DisableNLarith || (DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3)) {
+            if (disableNonLinearArithmetic || (options.ArithMode != 0 && options.ArithMode != 3)) {
               return true;
             }
           }
@@ -362,8 +361,7 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      HashSet<OldExpr> oldExprSet;
-      if (cache.exprsInOldContext.TryGetValue(expr, out oldExprSet)) {
+      if (cache.exprsInOldContext.TryGetValue(expr, out var oldExprSet)) {
         // oldExpr has been set to the value found
       } else {
         oldExprSet = null;

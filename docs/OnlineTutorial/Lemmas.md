@@ -29,7 +29,7 @@ for zero in an array. What makes this problem interesting is that the array we a
 searching in has two special properties: all elements are non-negative, and each successive
 element decreases by at most one from the previous element. In code:
 
-<!-- %check-verify Lemmas.1.expect -->
+<!-- %check-verify Lemmas.1.expect %options -->
 ```dafny
 method FindZero(a: array<int>) returns (index: int)
   requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]

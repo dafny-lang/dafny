@@ -1,13 +1,19 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #nullable disable
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using DafnyServer.CounterexampleGeneration;
+using System.Text.RegularExpressions;
+using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Errors = Microsoft.Dafny.Errors;
-using Function = Microsoft.Dafny.Function;
-using Parser = Microsoft.Dafny.Parser;
+using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
+using Declaration = Microsoft.Boogie.Declaration;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
@@ -17,13 +23,36 @@ namespace DafnyTestGeneration {
   public static class Utils {
 
     /// <summary>
+    /// Call Translator with larger stack to prevent stack overflow
+    /// </summary>
+    public static List<Microsoft.Boogie.Program> Translate(Program program) {
+      var ret = new List<Microsoft.Boogie.Program> { };
+      var thread = new System.Threading.Thread(
+        () => {
+          var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
+          program.Reporter.Options.PrintInstrumented = true;
+          ret = BoogieGenerator
+            .Translate(program, program.Reporter)
+            .ToList().ConvertAll(tuple => tuple.Item2);
+          program.Reporter.Options.PrintInstrumented = oldPrintInstrumented;
+        },
+        0x10000000); // 256MB stack size to prevent stack overflow
+      thread.Start();
+      thread.Join();
+      return ret;
+    }
+
+    /// <summary>
     /// Take a resolved type and change all names to fully-qualified.
     /// </summary>
     public static Type UseFullName(Type type) {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName ?? typ.Name,
+          DafnyModelTypeUtils.ConvertTupleName(
+            typ?.ResolvedClass?.FullName == null ?
+            typ.Name :
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : "")),
           typ.TypeArgs));
     }
 
@@ -47,41 +76,33 @@ namespace DafnyTestGeneration {
       replacements["_System.object"] =
         new UserDefinedType(new Token(), "object", new List<Type>());
       return DafnyModelTypeUtils.ReplaceType(type, _ => true,
-        typ => replacements.ContainsKey(typ.Name) ?
-          replacements[typ.Name] :
+        typ => replacements.TryGetValue(typ.Name, out var replacement) ?
+          replacement :
           new UserDefinedType(typ.tok, typ.Name, typ.TypeArgs));
     }
 
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(string source, string fileName = "") {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      var builtIns = new BuiltIns();
-      var reporter = new ConsoleErrorReporter();
-      var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
-        new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
-        new HashSet<string>(), new Errors(reporter)) == null;
-      Program/*?*/ program = null;
-      if (success) {
-        program = new Program(fileName, module, builtIns, reporter, DafnyOptions.Create());
+    public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
+      uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
+
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var program = new ProgramParser().ParseFiles(uri.LocalPath,
+        new[] { DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken) }, reporter, CancellationToken.None);
+
+      if (!resolve) {
+        return program;
       }
-      if (program == null) {
-        return null;
-      }
-      // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter()).PreResolve(program);
-      program.Reporter = new ErrorReporterSink();
-      new Resolver(program).ResolveProgram(program);
+      new ProgramResolver(program).Resolve(CancellationToken.None);
       return program;
     }
 
     /// <summary>
     /// Deep clone a Boogie program.
     /// </summary>
-    public static Microsoft.Boogie.Program
-      DeepCloneProgram(Microsoft.Boogie.Program program) {
-      var textRepresentation = GetStringRepresentation(program);
+    public static Microsoft.Boogie.Program DeepCloneProgram(DafnyOptions options, Microsoft.Boogie.Program program) {
+      var textRepresentation = GetStringRepresentation(options, program);
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       return copy;
     }
@@ -89,77 +110,91 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Deep clone and re-resolve a Boogie program.
     /// </summary>
-    public static Microsoft.Boogie.Program
-      DeepCloneProgramAndReresolve(Microsoft.Boogie.Program program, DafnyOptions options) {
-      program = DeepCloneProgram(program);
+    public static Microsoft.Boogie.Program DeepCloneResolvedProgram(Microsoft.Boogie.Program program, DafnyOptions options) {
+      program = DeepCloneProgram(options, program);
       program.Resolve(options);
       program.Typecheck(options);
       return program;
     }
 
-    public static string GetStringRepresentation(Microsoft.Boogie.Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
+    public static string GetStringRepresentation(DafnyOptions options, Microsoft.Boogie.Program program) {
+      var oldPrintInstrumented = options.PrintInstrumented;
+      var oldPrintFile = options.PrintFile;
+      options.PrintInstrumented = true;
+      options.PrintFile = "-";
       var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
+      program.Emit(new TokenTextWriter(output, options));
+      options.PrintInstrumented = oldPrintInstrumented;
+      options.PrintFile = oldPrintFile;
       return output.ToString();
     }
 
     /// <summary>
-    /// Turns each function-method into a function-by-method.
-    /// Copies body of the function into the body of the corresponding method.
+    /// Extract string mapping this basic block to a location in Dafny code.
     /// </summary>
-    private class AddByMethodRewriter : IRewriter {
+    public static string GetBlockId(Block block, DafnyOptions options) {
+      return AllBlockIds(block, options).FirstOrDefault((string)null);
+    }
 
-      protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
+    /// <summary>
+    /// Extract string mapping this basic block to locations in Dafny code.
+    /// </summary>
+    [ItemCanBeNull]
+    public static List<string> AllBlockIds(Block block, DafnyOptions options) {
+      string uniqueId = options.TestGenOptions.Mode != TestGenerationOptions.Modes.Block ? "#" + block.UniqueId : "";
+      var state = block.cmds.OfType<AssumeCmd>()
+        .Where(
+          cmd => cmd.Attributes != null &&
+                 cmd.Attributes.Key == "captureState" &&
+                 cmd.Attributes.Params != null &&
+                 cmd.Attributes.Params.Count() == 1)
+        .Select(
+          cmd => cmd.Attributes.Params[0].ToString())
+        .Select(cmd => Regex.Replace(cmd, @"\s+", "") + uniqueId);
+      return state.ToList();
+    }
 
-      internal void PreResolve(Program program) {
-        AddByMethod(program.DefaultModule);
+    public static IList<object> GetAttributeValue(Implementation implementation, string attribute) {
+      var attributes = implementation.Attributes;
+      while (attributes != null) {
+        if (attributes.Key == attribute) {
+          return attributes.Params;
+        }
+        attributes = attributes.Next;
       }
+      return new List<object>();
+    }
 
-      private static void AddByMethod(TopLevelDecl d) {
-        if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
-        } else if (d is TopLevelDeclWithMembers withMembers) {
-          withMembers.Members.OfType<Function>().Iter(AddByMethod);
+    public static bool DeclarationHasAttribute(Declaration declaration, string attribute) {
+      var attributes = declaration.Attributes;
+      while (attributes != null) {
+        if (attributes.Key == attribute) {
+          return true;
+        }
+        attributes = attributes.Next;
+      }
+      return false;
+    }
+
+    public static bool ProgramHasAttribute(Program program, string attribute) {
+      return AllMemberDeclarationsWithAttribute(program.DefaultModule, attribute).Count() != 0;
+    }
+
+    public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
+      HashSet<MemberDecl> allInlinedDeclarations = new();
+      if (decl is LiteralModuleDecl moduleDecl) {
+        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
+          allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
         }
       }
-
-      private static Attributes RemoveOpaqueAttr(Attributes attributes, Cloner cloner) {
-        if (attributes == null) {
-          return null;
+      if (decl is TopLevelDeclWithMembers withMembers) {
+        foreach (var memberDecl in withMembers.Members) {
+          if (memberDecl.HasUserAttribute(attribute, out var _)) {
+            allInlinedDeclarations.Add(memberDecl);
+          }
         }
-        if (attributes.Name == "opaque") {
-          RemoveOpaqueAttr(attributes.Prev, cloner);
-        }
-        if (attributes is UserSuppliedAttributes) {
-          var usa = (UserSuppliedAttributes)attributes;
-          return new UserSuppliedAttributes(
-            cloner.Tok(usa.tok),
-            cloner.Tok(usa.OpenBrace),
-            cloner.Tok(usa.CloseBrace),
-            attributes.Args.ConvertAll(cloner.CloneExpr),
-            RemoveOpaqueAttr(attributes.Prev, cloner));
-        }
-        return new Attributes(attributes.Name,
-          attributes.Args.ConvertAll(cloner.CloneExpr),
-          RemoveOpaqueAttr(attributes.Prev, cloner));
       }
-
-      private static void AddByMethod(Function func) {
-        func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
-        if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
-          return;
-        }
-        var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
-          new List<Statement> { returnStatement });
-      }
+      return allInlinedDeclarations;
     }
   }
 }

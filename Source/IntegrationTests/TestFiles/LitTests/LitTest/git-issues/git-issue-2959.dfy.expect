@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+git-issue-2959.dfy(5,2): Error: nondeterministic if statement forbidden by the --enforce-determinism option
+git-issue-2959.dfy(13,7): Error: nondeterministic assignment forbidden by the --enforce-determinism option
