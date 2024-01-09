@@ -1,9 +1,9 @@
 function.dfy(5,28): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-function.dfy(5,43): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+function.dfy(5,42): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
 Dafny program verifier finished with 4 verified, 0 errors
 function.dfy(5,28): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-function.dfy(5,43): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+function.dfy(5,42): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
 Dafny program verifier finished with 4 verified, 0 errors
 function.dfy(5,9): Error: Function _module._default.Foo has no body so it cannot be executed

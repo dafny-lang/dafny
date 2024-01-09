@@ -1,6 +1,6 @@
-// RUN: %baredafny verify --allow-axioms:false --use-basename-for-filename "%s" > "%t"
-// RUN: ! %baredafny run --allow-axioms:false --use-basename-for-filename "%s" >> "%t"
+// RUN: %verify --allow-axioms:false "%s" > "%t"
+// RUN: ! %run --allow-axioms:false "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method Foo() ensures false; ensures false;
-method {:axiom} Bar() ensures false;
+method Foo() ensures false ensures false
+method {:axiom} Bar() ensures false
