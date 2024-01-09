@@ -27,8 +27,6 @@ namespace IntegrationTests {
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-    private static readonly string[] DefaultBoogieArguments;
-
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
@@ -65,10 +63,10 @@ namespace IntegrationTests {
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
 
-      DefaultBoogieArguments =
+      var defaultBoogieArguments =
         File.ReadAllLines(RepositoryRoot + "Source/boogie-args.cfg")
           .Select(arg => "-" + arg)
-          .Append("/proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}")
+          .Append("-proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}")
           .ToArray();
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
@@ -114,7 +112,7 @@ namespace IntegrationTests {
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
-              args.Concat(DefaultBoogieArguments),
+              args.Concat(defaultBoogieArguments),
               config.PassthroughEnvironmentVariables)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
@@ -168,7 +166,7 @@ namespace IntegrationTests {
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
           new DotnetToolCommand("boogie",
-            args.Concat(DefaultBoogieArguments),
+            args.Concat(defaultBoogieArguments),
             config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}");
       }
