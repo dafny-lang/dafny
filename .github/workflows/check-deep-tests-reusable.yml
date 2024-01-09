@@ -1,6 +1,7 @@
 name: Check Deep Tests (Reusable Workflow)
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 jobs:
