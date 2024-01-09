@@ -78,7 +78,16 @@ GeneralNewtypeResolution.dfy(305,6): Error: RHS (of type bv32) not assignable to
 GeneralNewtypeResolution.dfy(306,6): Error: RHS (of type bv1024) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(307,6): Error: RHS (of type int) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable to LHS (of type BV)
-80 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(343,10): Error: a newtype must be based on some numeric type (got bv17)
+GeneralNewtypeResolution.dfy(344,10): Error: a newtype must be based on some numeric type (got bv32)
+GeneralNewtypeResolution.dfy(345,10): Error: a newtype must be based on some numeric type (got bv1024)
+GeneralNewtypeResolution.dfy(395,10): Error: a newtype must be based on some numeric type (got bv17)
+GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
+GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
+GeneralNewtypeResolution.dfy(408,10): Error: a newtype must be based on some numeric type (got bv17)
+GeneralNewtypeResolution.dfy(409,10): Error: a newtype must be based on some numeric type (got bv32)
+GeneralNewtypeResolution.dfy(411,10): Error: a newtype must be based on some numeric type (got bv109)
+89 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Trait)
@@ -149,4 +158,10 @@ GeneralNewtypeResolution.dfy(305,6): Error: RHS (of type bv32) not assignable to
 GeneralNewtypeResolution.dfy(306,6): Error: RHS (of type bv1024) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(307,6): Error: RHS (of type int) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable to LHS (of type BV)
-70 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(377,12): Error: an expression of type 'int' is not run-time checkable to be a 'BV'
+GeneralNewtypeResolution.dfy(378,12): Error: an expression of type 'int' is not run-time checkable to be a 'Word'
+GeneralNewtypeResolution.dfy(379,11): Error: an expression of type 'BV' is not run-time checkable to be a 'Word'
+GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
+GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
+GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword) GeneralNewtypeResolution.dfy(411,33)
+76 resolution/type errors detected in GeneralNewtypeResolution.dfy

@@ -338,3 +338,87 @@ module BitvectorOperators {
     r := j is bv17;
   }
 }
+
+module BitvectorForRuntimeChecks0 {
+  newtype BV = b: bv17 | b != 123
+  newtype Word = bv32
+  newtype Big = b: bv1024 | true
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method Comparisons(x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32) returns (r: bool, s: BV) {
+    r := x == x;
+    r := y == y;
+    r := z == z;
+
+    r := x == 5;
+
+    // + - * / %
+    s := x + x - x * (x + x / x - x % x);
+    s := 12 + x - x * (x + 19 / 17 - x % 3);
+    s := 12 + 13 - 14 * (15 + 16 / 17 - 18 % 19);
+
+    // & | ^
+    s := (x & x) | (x ^ x ^ x);
+    s := (12 & 13) | (14 ^ 15 ^ 16);
+
+    // << >>
+    s := x << x << 3 << y << i << j;
+    s := x >> x >> 3 >> y >> i >> j;
+
+    //  .RotateLeft .RotateRight
+    s := x.RotateLeft(3) as BV;
+    s := x.RotateRight(j as nat) as BV;
+
+    // < <= >= >
+    r := (x <= x && x < x) || x >= x || x > x;
+  }
+
+  method Conversions() returns (x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32, r: bool) {
+    r := 10 is BV; // error: BV is a newtype (this will be allowed in the future, but isn't yet)
+    r := 10 is Word; // error: Word is a newtype (this will be allowed in the future, but isn't yet)
+    r := x is Word; // error: Word is a newtype (this will be allowed in the future, but isn't yet)
+    r := y is Word;
+
+    r := 10 is bv17;
+    r := x is bv17;
+    r := y is bv17;
+    r := z is bv17;
+    r := a is bv17;
+    r := b is bv17;
+    r := c is bv17;
+    r := i is bv17;
+    r := j is bv17;
+  }
+}
+
+module BitvectorForRuntimeChecks1 {
+  newtype BV = b: bv17 | b != 123
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method RotateL(x: BV, j: int32) returns (s: BV) {
+    s := x.RotateLeft(3); // error: RotateLeft/RotateRight always return the plain bv type (here, bv17)
+  }
+
+  method RotateR(x: BV, j: int32) returns (s: BV) {
+    s := x.RotateRight(j as nat); // error: RotateLeft/RotateRight always return the plain bv type (here, bv17)
+  }
+}
+
+module BitvectorForRuntimeChecks2 {
+  newtype BV = b: bv17 | b != 123
+  newtype Word = bv32
+
+  newtype GhostBits = b: bv109 | GhostPredicate(b)
+
+  ghost predicate GhostPredicate(x: bv109) {
+    true
+  }
+
+  method Comprehensions(aa: set<bv7>, bb: set<BV>, cc: set<Word>, dd: set<GhostBits>) {
+    var se0, se1, se2, se3;
+    se0 := set x | x in aa;
+    se1 := set x | x in bb;
+    se2 := set x | x in cc;
+    se3 := set x | x in dd; // error: GhostBits is not compilable
+  }
+}

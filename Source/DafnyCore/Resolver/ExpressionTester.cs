@@ -354,13 +354,14 @@ public class ExpressionTester {
       return true;
     }
 
-    // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases are allowed only in ghost contexts.
     var udtTo = tte.ToType.NormalizeExpandKeepConstraints() as UserDefinedType;
     if (udtTo == null) {
       Contract.Assert(tte.ToType.IsCharType || tte.ToType.IsBitVectorType || tte.ToType.IsBigOrdinalType);
       return true;
     }
-    if (udtTo.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
+    if (udtTo.ResolvedClass is ((SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) and var declWithConstraint) {
+      // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases are allowed only in ghost contexts.
+      // return declWithConstraint.ConstraintIsCompilable;
       return false;
     }
 
