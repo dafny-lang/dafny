@@ -541,36 +541,36 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool IsConversionCompatible(DPreType aOrig, DPreType bOrig) {
-      var a = AncestorPreType(aOrig);
-      var b = AncestorPreType(bOrig);
+    bool IsConversionCompatible(DPreType a, DPreType b) {
+      var aAncestor = AncestorPreType(a);
+      var bAncestor = AncestorPreType(b);
 
-      if (PreType.Same(a, b)) {
+      if (PreType.Same(aAncestor, bAncestor)) {
         return true;
       }
+      var aFamily = aAncestor.Decl.Name;
+      var bFamily = bAncestor.Decl.Name;
+      var bName = b.Decl.Name;
 
-      if (IsBitvectorName(a.Decl.Name, out _) && IsBitvectorName(b.Decl.Name, out _)) {
+      if (IsBitvectorName(aFamily) && (bFamily == "int" || IsBitvectorName(bFamily))) {
         return true;
       }
-      if (a.Decl.Name == "int" && (bOrig.Decl.Name == "char" || IsBitvectorName(b.Decl.Name))) {
-        return true;
-      }
-      if (aOrig.Decl.Name == "int" && bOrig.Decl.Name is "real" or "ORDINAL") {
+      if (aFamily == "int" && bName is "char" or "real" or "ORDINAL") {
         return true;
       }
 
       var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
       if (legacy) {
-        if (a.Decl.Name == "int" && bOrig.Decl.Name == "ORDINAL") {
+        if (aFamily == "int" && bName == "ORDINAL") {
           return true;
         }
-        if (a.Decl.Name == "real" && (b.Decl.Name is "int" or "char" or "ORDINAL" || IsBitvectorName(b.Decl.Name))) {
+        if (aFamily == "real" && (bFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(bFamily))) {
           return true;
         }
-        if (a.Decl.Name == "char" && (b.Decl.Name is "int" or "ORDINAL" || IsBitvectorName(b.Decl.Name))) {
+        if (aFamily == "char" && (bFamily is "int" or "ORDINAL" || IsBitvectorName(bFamily))) {
           return true;
         }
-        if (IsBitvectorName(a.Decl.Name) && (b.Decl.Name is "int" or "real" or "char" or "ORDINAL")) {
+        if (IsBitvectorName(aFamily) && (bFamily is "int" or "real" or "char" or "ORDINAL")) {
           return true;
         }
       }
