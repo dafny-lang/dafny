@@ -690,7 +690,7 @@ namespace Microsoft.Dafny {
       if (dafnyProgram.Reporter.FailCompilation) {
         return false;
       }
-      
+
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (options.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||

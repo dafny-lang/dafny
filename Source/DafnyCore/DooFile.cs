@@ -257,8 +257,7 @@ public class DooFile {
     return false;
   }
 
-  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue)
-  {
+  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue) {
     return $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
 
