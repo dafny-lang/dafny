@@ -452,7 +452,7 @@ public class Compilation : IDisposable {
       firstToken = firstToken.Prev;
     }
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-      IndentationFormatter.ForProgram(program));
+      IndentationFormatter.ForProgram(program, firstToken.Uri));
 
     var lastToken = firstToken;
     while (lastToken.Next != null) {

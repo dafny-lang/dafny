@@ -1047,7 +1047,8 @@ namespace Microsoft.Dafny {
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
-        if (!resolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
+        var members = resolver.GetClassMembers(receiverDeclWithMembers);
+        if (members == null || !members.TryGetValue(memberName, out var member)) {
           if (!reportErrorOnMissingMember) {
             // don't report any error
           } else if (memberName == "_ctor") {
