@@ -85,7 +85,10 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<ProofDependency> GetOrderedFullDependencies(IEnumerable<TrackedNodeComponent> components) {
-      return components.Select(GetFullIdDependency).OrderBy(dep => (dep.RangeString(), dep.Description));
+      return components
+        .Select(GetFullIdDependency)
+        .OrderBy(dep => dep.Range)
+        .ThenBy(dep => dep.Description);
     }
   }
 }
