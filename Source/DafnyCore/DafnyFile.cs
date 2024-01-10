@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -117,7 +115,7 @@ public class DafnyFile {
 
         try {
           dooFile = DooFile.Read(filePath);
-        } catch (InvalidDataException e) {
+        } catch (InvalidDataException) {
           reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
           return null;
         } catch (ArgumentException e) {
