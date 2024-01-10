@@ -253,8 +253,13 @@ public class DooFile {
     if (OptionValuesImplied(option, localValue, libraryValue)) {
       return true;
     }
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin, LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue));
     return false;
+  }
+
+  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue)
+  {
+    return $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
 
   private static bool OptionValuesEqual(Option option, object first, object second) {
@@ -269,7 +274,7 @@ public class DooFile {
     return false;
   }
 
-  private static bool OptionValuesImplied(Option option, object first, object second) {
+  public static bool OptionValuesImplied(Option option, object first, object second) {
     var lhs = (bool)first;
     var rhs = (bool)second;
     return !lhs || rhs;

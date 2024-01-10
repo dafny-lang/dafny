@@ -14,7 +14,6 @@ static class TranslateCommand {
   public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
-      CommonOptionBag.PassOnWarnings,
       IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
       RunAllTestsMainMethod.IncludeTestRunner

@@ -29,6 +29,5 @@ public static class VerifyCommand {
         BoogieOptionBag.BoogieFilter,
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
-      Concat(new[] { CommonOptionBag.FailOnWarnings }).
       Concat(DafnyCommands.ResolverOptions);
 }

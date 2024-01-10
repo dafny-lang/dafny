@@ -24,7 +24,6 @@ static class DeadCodeCommand {
       BoogieOptionBag.SolverPath,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
-      CommonOptionBag.FailOnWarnings,
     }.Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
 
