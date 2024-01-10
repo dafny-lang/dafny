@@ -1959,6 +1959,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
               litExpr.Immutable);
           }
+
+          // Do this after the above multiplication because :resource_limit should not be multiplied.
+          if (name == "resource_limit") {
+            name = "rlimit";
+          }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
         return kv;
