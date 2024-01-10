@@ -163,7 +163,7 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
-  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => true,
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
     IsHidden = true
   };
@@ -505,7 +505,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal }
+        { AllowAxioms, DooFile.CheckOptionLocalImpliesLibrary }
       }
     );
     DooFile.RegisterNoChecksNeeded(

@@ -230,7 +230,9 @@ public class DooFile {
       return true;
     }
 
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin,
+      $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, " +
+      $"but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -271,9 +273,7 @@ public class DooFile {
 
   private static bool OptionValuesImplied(Option option, object first, object second) {
     try {
-      var lhs = (bool)first;
-      var rhs = (bool)second;
-      return !lhs || rhs;
+      return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
       return false;
     }
@@ -285,6 +285,9 @@ public class DooFile {
       return $"[{string.Join(',', values)}]";
     }
 
+    if (value == null) {
+      return "with a version of Dafny that does not have this option";
+    }
     return value.ToString();
   }
 
