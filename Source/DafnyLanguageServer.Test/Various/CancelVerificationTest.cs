@@ -80,7 +80,7 @@ function {:unroll 100} Ack(m: nat, n: nat): nat
     Ack(m - 1, Ack(m, n - 1))
 }
 
-method {:timeLimit 10} test() {
+method {:rlimit 100} test() {
   assert Ack(5, 5) == 0;
 }".TrimStart();
 
