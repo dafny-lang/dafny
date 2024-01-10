@@ -4,12 +4,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -29,15 +26,15 @@ public class SymbolTable {
           ((IDeclarationOrUsage)r, declaration));
       }).ToList();
 
-    var relevantDafnySymbolKinds = new HashSet<DafnySymbolKind> {
-      DafnySymbolKind.Function,
-      DafnySymbolKind.Class,
-      DafnySymbolKind.Enum,
-      DafnySymbolKind.Method,
-      DafnySymbolKind.EnumMember,
-      DafnySymbolKind.Struct,
-      DafnySymbolKind.Interface,
-      DafnySymbolKind.Namespace,
+    var relevantDafnySymbolKinds = new HashSet<SymbolKind> {
+      SymbolKind.Function,
+      SymbolKind.Class,
+      SymbolKind.Enum,
+      SymbolKind.Method,
+      SymbolKind.EnumMember,
+      SymbolKind.Struct,
+      SymbolKind.Interface,
+      SymbolKind.Namespace,
     };
     // Since these definitions are checked for whether they
     // contain substrings when answering workspace/resolve queries,

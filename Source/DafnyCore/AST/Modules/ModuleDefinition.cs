@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -1027,7 +1028,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public SymbolKind Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }
