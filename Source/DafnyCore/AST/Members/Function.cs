@@ -463,7 +463,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         // method should have been filled in by now,
         // unless there was a function by method and a method of the same name
         // but then this error must have been reported.
-        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
     }
 

@@ -214,11 +214,11 @@ true - Print debug information for the new type system.".TrimStart()) {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
   
-  public static readonly Option<bool> ContinueOnWarnings = new("--continue-on-warnings", 
-    "Continue compilation when warnings occur.");
+  public static readonly Option<bool> PassOnWarnings = new("--pass-on-warnings", 
+    "Pass compilation when warnings but no errors occur.");
   
-  public static readonly Option<bool> StopOnWarnings = new("--stop-on-warnings",
-    "Stop compilation when warnings occur.");
+  public static readonly Option<bool> FailOnWarnings = new("--fail-on-warnings",
+    "Fail compilation when warnings occur.");
   
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
@@ -443,7 +443,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(StopOnWarnings, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(PassOnWarnings, (options, value) => { options.FailOnWarnings = !value; });
+    DafnyOptions.RegisterLegacyBinding(FailOnWarnings, (options, value) => { options.FailOnWarnings = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -541,7 +542,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      StopOnWarnings,
+      FailOnWarnings,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,

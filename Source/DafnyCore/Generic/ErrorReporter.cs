@@ -12,8 +12,10 @@ public abstract class ErrorReporter {
 
   public bool ErrorsOnly { get; set; }
 
-  public bool HasErrors => ErrorCount > 0;
+  public bool FailCompilation => HasErrors || (WarningCount > 0 && Options.FailOnWarnings);
   public int ErrorCount => Count(ErrorLevel.Error);
+  public bool HasErrors => ErrorCount > 0;
+  public int WarningCount => Count(ErrorLevel.Error);
   public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
@@ -128,7 +130,7 @@ public abstract class ErrorReporter {
   public void Warning(MessageSource source, Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    if (Options.WarningsAsErrors) {
+    if (Options.FailOnWarnings) {
       Error(source, errorId.ToString(), tok, msg);
     } else {
       Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);

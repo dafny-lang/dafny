@@ -69,6 +69,13 @@ namespace Microsoft.Dafny {
       if (errorCount != 0) {
         return $"{errorCount} parse errors detected in {program.Name}";
       }
+
+      if (options.FailOnWarnings) {
+        var warningCount = program.Reporter.WarningCount;
+        if (warningCount != 0) {
+          return $"{warningCount} parse warnings detected in {program.Name}";
+        }
+      }
       return null;
     }
 
@@ -87,9 +94,15 @@ namespace Microsoft.Dafny {
       LargeStackFactory.StartNew(() => programResolver.Resolve(CancellationToken.None)).Wait();
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (program.Reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error),
-          program.Name);
+      var errorCount = program.Reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error);
+      if (errorCount != 0) {
+        return $"{errorCount} resolution/type errors detected in {program.Name}";
+      }
+      if (program.Options.FailOnWarnings) {
+        var warningCount = program.Reporter.CountExceptVerifierAndCompiler(ErrorLevel.Warning);
+        if (warningCount != 0) {
+          return $"{warningCount} resolution/type warnings detected in {program.Name}";
+        }
       }
 
       return null; // success

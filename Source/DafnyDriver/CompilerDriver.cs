@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
-            if (consoleErrorReporter.HasErrors) {
+            if (consoleErrorReporter.FailCompilation) {
               return ExitValue.PREPROCESSING_ERROR;
             }
           } else {
@@ -409,7 +409,7 @@ namespace Microsoft.Dafny {
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t =>
-        Dafny.DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
+        DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
@@ -665,7 +665,6 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
-        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
@@ -696,7 +695,7 @@ namespace Microsoft.Dafny {
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      if (targetProgramHasErrors) {
+      if (dafnyProgram.Reporter.FailCompilation) {
         return false;
       }
       // If we got here, compilation succeeded

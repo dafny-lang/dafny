@@ -28,7 +28,7 @@ static class GenerateTestsCommand {
       CoverageReport,
       CommonOptionBag.NoTimeStampForCoverageReport,
       ForcePrune,
-      CommonOptionBag.StopOnWarnings,
+      CommonOptionBag.FailOnWarnings,
     }.Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
 
