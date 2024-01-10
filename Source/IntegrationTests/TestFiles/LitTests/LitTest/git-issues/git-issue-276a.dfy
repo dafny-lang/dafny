@@ -30,3 +30,48 @@ module Main {
   newtype c3 = x | 0 <= x < "abcde"[6] as int
 }
 
+module Regression {
+  newtype GoodUint32 = i: int | 0 <= i <
+    if "abcrimini"[2 + 1 - 1] == 'c' then
+      0x1_0000_0000 + 1 - 1
+    else
+      3
+
+  // Regression test: The following once crashed, because it had expected
+  // the SeqSelect index to really be a folded integer
+  newtype NotUint32 = i: int | 0 <= i <
+    if "abcrimini"[2 + 1 - 1 + k] == 'c' then
+      0x1_0000_0000 + 1 - 1
+    else
+      3
+
+  const k: int
+}
+
+module MoreTests {
+  const bv: bv19 := 203
+
+  newtype EmptyFitsIntoUint8 = i: int |
+    -0x8000_0000 <= i < if !true then 128 else -0x1_0000_0000 // empty range
+    witness *
+
+  newtype int8 = i: int |
+    -128 <= i < if !true then -200 else 128
+
+  newtype AnotherInt8 = i: int |
+    -128 <= i < if true ==> bv == 203 then 128 else -200
+
+  newtype Int16 = i: int |
+    -128 <= i < if true ==> bv == 204 then 128 else 1234
+}
+
+module NotJustInequalityConstraints {
+  newtype Just7 = x: int | 0 <= x < 256 && x == 7 witness 7 // 7..8
+  newtype Just8 = x: int | x == 8 && x == 8 witness 8 // 8..9
+  newtype Also8 = x: int | 8 == x && x < 10 && x < 100 && -2 <= x witness 8 // 8..9
+  newtype Small = x: int | x < 10 && x < 100 && -2 <= x witness 8 // -2..10
+  newtype Only8ButDoesNotDetectCompleteRange = x: int | x == 8 && true witness 8 // 8..9
+  newtype Empty = x: int | 8 == x == 7 && 0 <= x < 256 witness * // empty
+  newtype Byte = x: int | x in {2, 3, 5} witness 3
+  newtype ByteWithKnownRange = x: int | x in {2, 3, 5} && 2 <= x <= 5 witness 3 // 2..6
+}

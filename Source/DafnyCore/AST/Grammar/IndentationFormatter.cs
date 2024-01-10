@@ -23,12 +23,13 @@ public class IndentationFormatter : IIndentationFormatter {
   /// Creates an IndentationFormatter for the given program,
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
-  public static IndentationFormatter ForProgram(Program program, Uri uri, bool reduceBlockiness = true) {
-    var tokenNewIndentCollector = new TokenNewIndentCollector(program, uri) {
+  public static IndentationFormatter ForProgram(Program program, Uri fileToFormat, bool reduceBlockiness = true) {
+    var tokenNewIndentCollector = new TokenNewIndentCollector(program, fileToFormat) {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {
-      if (child.Tok.line != 0 && child.Tok.Uri != uri) {
+      var isPhysicalToken = child.Tok.line != 0;
+      if (isPhysicalToken && child.Tok.Uri != fileToFormat) {
         continue;
       }
       if (child is TopLevelDecl topLevelDecl) {

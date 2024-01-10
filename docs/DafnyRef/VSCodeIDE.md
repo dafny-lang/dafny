@@ -73,7 +73,7 @@ the position of the parse or resolution error.
 
 ## 14.3. The Dafny Server {#sec-old-dafny-server}
 
-Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
+Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer). While the latest Dafny releases still contain a working DafnyServer binary, this component has been feature frozen since 2022, and it may not support features that were added to Dafny after that time. We do not recommend using it.
 
 The Dafny Server has [integration tests](https://github.com/dafny-lang/dafny/tree/master/Test/server) that serve as the basis of the documentation.
 
@@ -155,6 +155,4 @@ btoa(JSON.stringify({
 ```
 
 Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
-
-The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) instead. It is supported in [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) only. The Language Server also provides features such as ghost highlighting or symbol hovering.
 

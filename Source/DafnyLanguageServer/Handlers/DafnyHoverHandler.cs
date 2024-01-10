@@ -140,6 +140,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             .Select(keyValuePair => keyValuePair.Value)
             .ToList();
 
+        // Put errors in the front. Put assertions with the highest resource count first
+        List<(string content, long resources)> errors = new();
+        List<(string content, long resources)> other = new();
+
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {
             continue;
@@ -150,17 +154,28 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           foreach (var assertionNode in assertions) {
             if (assertionNode.Range.Contains(position) ||
                 assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-              if (information != "") {
-                information += "\n\n";
-              }
 
-              information += GetAssertionInformation(state, position, assertionNode, assertionBatch,
-                assertionIndex, assertionBatchCount, node);
+              var whereToAdd = assertionNode.StatusVerification == GutterVerificationStatus.Error ?
+                errors : other;
+              var content = GetAssertionInformation(state, position, assertionNode, assertionBatch,
+                                            assertionIndex, assertionBatchCount, node);
+              var resources = assertionBatch.ResourceCount;
+              whereToAdd.Add((content, resources));
             }
 
             assertionIndex++;
           }
         }
+
+        var biggerResourceCountFirst =
+          Comparer<(string content, long resources)>.Create(
+          (left, right) =>
+            right.resources.CompareTo(left.resources)
+        );
+        errors.Sort(biggerResourceCountFirst);
+        other.Sort(biggerResourceCountFirst);
+        errors.AddRange(other);
+        information = string.Join("\n\n", errors.Select(info => info.content));
 
         if (information != "") {
           return information;

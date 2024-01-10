@@ -826,6 +826,7 @@ excludes = ["**/ignore.dfy"]
 [options]
 enforce-determinism = true
 warn-shadowing = true
+default-function-opacity = "Opaque"
 ```
 
 - At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
@@ -1656,7 +1657,7 @@ the set of allowed identifiers) vary between languages, Dafny allows
 additional forms for the `{:extern}` attribute.
 
 The form `{:extern <s1>}` instructs `dafny` to compile references to most
-declarations using the name `s1` instead of the Dafny name. For [opaque
+declarations using the name `s1` instead of the Dafny name. For [abstract
 types](#sec-abstract-types), however, `s1` is sometimes used as a hint as
 to how to declare that type when compiling. This hint is interpreted
 differently by each compiler.

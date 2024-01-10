@@ -14,12 +14,12 @@ public static class VerifyCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         options.TrackVerificationCoverage = true;
       }
       options.Compile = false;
-      return CompilerDriver.RunCompiler(options);
+      return CompilerDriver.Run(options);
     });
     return result;
   }
