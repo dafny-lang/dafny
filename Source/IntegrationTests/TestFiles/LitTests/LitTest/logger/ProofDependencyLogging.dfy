@@ -36,8 +36,8 @@
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencyLogging.dfy\(225,12\)-\(225,16\): requires clause
 // CHECK:       ProofDependencyLogging.dfy\(227,11\)-\(227,15\): ensures clause
-// CHECK:       ProofDependencyLogging.dfy\(229,12\)-\(229,12\): value always satisfies the subset constraints of 'nat'
 // CHECK:       ProofDependencyLogging.dfy\(229,3\)-\(229,15\): assignment \(or return\)
+// CHECK:       ProofDependencyLogging.dfy\(229,12\)-\(229,12\): value always satisfies the subset constraints of 'nat'
 //
 // CHECK: Results for M.ObviouslyUnnecessaryRequiresFunc \(well-formedness\)
 // CHECK:     Proof dependencies:
@@ -54,8 +54,8 @@
 // CHECK:       ProofDependencyLogging.dfy\(248,1\)-\(256,1\): function definition for ObviouslyUnconstrainedCodeFunc
 // CHECK:       ProofDependencyLogging.dfy\(249,12\)-\(249,16\): requires clause
 // CHECK:       ProofDependencyLogging.dfy\(250,11\)-\(250,17\): ensures clause
-// CHECK:       ProofDependencyLogging.dfy\(252,12\)-\(252,16\): let expression binding RHS well-formed
 // CHECK:       ProofDependencyLogging.dfy\(252,7\)-\(252,7\): let expression binding
+// CHECK:       ProofDependencyLogging.dfy\(252,12\)-\(252,16\): let expression binding RHS well-formed
 // CHECK:       ProofDependencyLogging.dfy\(254,3\)-\(254,3\): let expression result
 //
 // CHECK: Results for M.ObviouslyUnconstrainedCodeMethod \(correctness\)
@@ -110,8 +110,8 @@
 // CHECK:       ProofDependencyLogging.dfy\(336,1\)-\(342,1\): function definition for CallContradictoryFunctionFunc
 // CHECK:       ProofDependencyLogging.dfy\(337,12\)-\(337,16\): requires clause
 // CHECK:       ProofDependencyLogging.dfy\(338,11\)-\(338,15\): ensures clause
-// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,3\): function precondition satisfied
 // CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,39\): function call result
+// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,3\): function precondition satisfied
 //
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)
 // CHECK:     Proof dependencies:
