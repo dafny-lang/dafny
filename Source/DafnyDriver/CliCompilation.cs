@@ -196,6 +196,11 @@ public class CliCompilation {
             foreach (var vcResult in completed.Result.VCResults) {
               Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
             }
+
+            ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, resolution.ResolvedProgram!.Reporter,
+              resolution.ResolvedProgram.ProofDependencyManager,
+              new DafnyConsolePrinter.ImplementationLogEntry(task.Implementation.VerboseName, task.Implementation.tok),
+              DafnyConsolePrinter.DistillVerificationResult(completed.Result));
           }
         }
       }

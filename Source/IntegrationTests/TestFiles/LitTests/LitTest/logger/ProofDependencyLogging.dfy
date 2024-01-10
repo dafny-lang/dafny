@@ -110,7 +110,7 @@
 // CHECK:       ProofDependencyLogging.dfy\(336,1\)-\(342,1\): function definition for CallContradictoryFunctionFunc
 // CHECK:       ProofDependencyLogging.dfy\(337,12\)-\(337,16\): requires clause
 // CHECK:       ProofDependencyLogging.dfy\(338,11\)-\(338,15\): ensures clause
-// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,3\): function precondition satisfied
+// CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,35\): function precondition satisfied
 // CHECK:       ProofDependencyLogging.dfy\(341,3\)-\(341,39\): function call result
 //
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)

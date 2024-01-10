@@ -428,6 +428,24 @@ public record IdeState(
         $"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
     }
 
+    if (boogieUpdate.BoogieStatus is Completed completed) {
+      var errorReporter = new ObservableErrorReporter(options, uri);
+      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
+      errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
+
+      if (Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+          || Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)) {
+        ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options,
+          errorReporter,
+          boogieUpdate.ProofDependencyManager,
+          new DafnyConsolePrinter.ImplementationLogEntry(boogieUpdate.ImplementationTask.Implementation.VerboseName,
+            boogieUpdate.ImplementationTask.Implementation.tok),
+          DafnyConsolePrinter.DistillVerificationResult(completed.Result));
+      }
+
+      diagnostics = diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
+    }
+
     var view = new IdeImplementationView(range, status, diagnostics.ToList(),
       previousView.HitErrorLimit || hitErrorLimit);
     return previousState with {

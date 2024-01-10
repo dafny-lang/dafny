@@ -407,27 +407,9 @@ public class Compilation : IDisposable {
     var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
-    if (boogieStatus is Completed completed) {
-      ReportVacuityAndRedundantAssumptionsChecks(implementationTask.Implementation, completed.Result);
-    }
-
-    updates.OnNext(new BoogieUpdate(canVerify,
+    updates.OnNext(new BoogieUpdate(transformedProgram!.ProofDependencyManager, canVerify,
       implementationTask,
       boogieStatus));
-  }
-
-  private void ReportVacuityAndRedundantAssumptionsChecks(
-    Implementation implementation, VerificationResult verificationResult) {
-    if (!Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
-        && !Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)
-       ) {
-      return;
-    }
-
-    ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options, transformedProgram!.Reporter,
-      transformedProgram.ProofDependencyManager,
-      new DafnyConsolePrinter.ImplementationLogEntry(implementation.VerboseName, implementation.tok),
-      DafnyConsolePrinter.DistillVerificationResult(verificationResult));
   }
 
   public void CancelPendingUpdates() {
