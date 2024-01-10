@@ -79,11 +79,15 @@ public class DafnyConsolePrinter : ConsolePrinter {
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];
     }
-    return "<nonexistent line>";
+    return null;
   }
 
   public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
     string line = GetFileLine(tok.Uri, tok.line - 1);
+    if (line == null) {
+      return;
+    }
+
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
