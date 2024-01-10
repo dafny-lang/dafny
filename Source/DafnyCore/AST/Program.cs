@@ -32,7 +32,6 @@ public class Program : TokenNode {
   public DafnyOptions Options => Reporter.Options;
   public ErrorReporter Reporter { get; set; }
 
-  // TODO move to Compilation?
   public ProofDependencyManager ProofDependencyManager { get; set; } = new();
 
   public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,

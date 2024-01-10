@@ -89,9 +89,7 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD002
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-#pragma warning disable CS0618 // Type or member is obsolete
       if (program.Reporter.ErrorCountUntilResolver != 0) {
-#pragma warning restore CS0618 // Type or member is obsolete
         return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error),
           program.Name);
       }

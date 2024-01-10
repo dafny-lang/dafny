@@ -208,7 +208,6 @@ public class CliCompilation {
       LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
     } catch (TaskCanceledException) {
-      // TODO add output message that we are not verifying because...?
     }
   }
 }
