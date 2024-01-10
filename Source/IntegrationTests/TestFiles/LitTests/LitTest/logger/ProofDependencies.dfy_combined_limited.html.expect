@@ -452,19 +452,18 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
   assert false;
 }
 
-</span><span class="na" id="438:1">
-class C {
+</span><span class="na" id="438:1">class C {
   var x: int
 }
 
 function {:testEntry} GetX(c: C): int
   reads c
 {
-  </span><span class="nc" id="449:3">c.</span><span class="na" id="449:5">x
+  </span><span class="nc" id="445:3">c.</span><span class="na" id="445:5">x
 }
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="nc" id="453:10">t</span><span class="na" id="453:11">rue;
+  assume </span><span class="nc" id="449:10">t</span><span class="na" id="449:11">rue;
   assert 1 + x == x + 1;
 }
 

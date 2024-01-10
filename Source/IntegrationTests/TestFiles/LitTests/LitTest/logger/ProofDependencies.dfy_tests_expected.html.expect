@@ -452,15 +452,14 @@ method {:testEntry} CalcStatementWithSideConditions(x: int) {
   assert false;
 }
 
-</span><span class="na" id="438:1">
-class C {
+</span><span class="na" id="438:1">class C {
   var x: int
 }
 
-</span><span class="fc" id="446:1">function {:testEntry} GetX(c: C): int
-</span><span class="na" id="447:1">  reads c
+</span><span class="fc" id="442:1">function {:testEntry} GetX(c: C): int
+</span><span class="na" id="443:1">  reads c
 {
-</span><span class="fc" id="449:1">  c.x
+</span><span class="fc" id="445:1">  c.x
 }
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
@@ -468,7 +467,7 @@ method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
   assert 1 + x == x + 1;
 }
 
-</span><span class="na" id="457:1">}
+</span><span class="na" id="453:1">}
 
 </span></pre>
 <div class="footer">

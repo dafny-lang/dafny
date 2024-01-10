@@ -459,12 +459,12 @@ class C {
 function {:testEntry} GetX(c: C): int
   reads c
 {
-  </span><span class="pc" id="449:3">c.x
-</span><span class="na" id="450:1">}
+  </span><span class="pc" id="445:3">c.x
+</span><span class="na" id="446:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="pc" id="453:10">t</span><span class="na" id="453:11">rue;
-  assert 1 + x </span><span class="fc" id="454:16">=</span><span class="na" id="454:17">= x + 1;
+  assume </span><span class="pc" id="449:10">t</span><span class="na" id="449:11">rue;
+  assert 1 + x </span><span class="fc" id="450:16">=</span><span class="na" id="450:17">= x + 1;
 }
 
 }
