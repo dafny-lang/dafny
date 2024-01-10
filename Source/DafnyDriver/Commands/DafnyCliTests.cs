@@ -63,10 +63,10 @@ public static class DafnyCliTests {
 
     // Set a default resource limit, to catch cases where verification runs off the rails
     // This option is multiplied by 1000
-    "--resource-limit 500000",
+    "--resource-limit:500000",
 
     // Also include a time limit, because we do care about using too much time.
-    "--verification-time-limit 300",
+    "--verification-time-limit:300",
 
     // test results do not include source code snippets
     "--show-snippets:false"
