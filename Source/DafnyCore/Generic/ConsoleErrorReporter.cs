@@ -4,7 +4,6 @@ using System.IO;
 namespace Microsoft.Dafny;
 
 public class ConsoleErrorReporter : BatchErrorReporter {
-  private DafnyConsolePrinter printer;
   private ConsoleColor ColorForLevel(ErrorLevel level) {
     switch (level) {
       case ErrorLevel.Error:
@@ -45,7 +44,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
     if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
       var tw = new StringWriter();
-      printer.WriteSourceCodeSnippet(tok.ToRange(), tw);
+      DafnyConsolePrinter.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
       errorLine += tw.ToString();
     }
 
@@ -68,7 +67,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
       if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
         var tw = new StringWriter();
-        printer.WriteSourceCodeSnippet(innerToken.ToRange(), tw);
+        DafnyConsolePrinter.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
         errorLine += tw.ToString();
       }
     }
@@ -82,7 +81,6 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     return true;
   }
 
-  public ConsoleErrorReporter(DafnyOptions options, DafnyConsolePrinter printer) : base(options) {
-    this.printer = printer;
+  public ConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

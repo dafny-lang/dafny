@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
       if (options.UseStdin) {
         var uri = new Uri("stdin:///");
         options.CliRootSourceUris.Add(uri);
-        dafnyFiles.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer), OnDiskFileSystem.Instance, options, uri, Token.NoToken));
+        dafnyFiles.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken));
       } else if (options.CliRootSourceUris.Count == 0) {
         options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
         return ExitValue.PREPROCESSING_ERROR;
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
         var nameToShow = useRelative ? relative
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
-          var consoleErrorReporter = new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer);
+          var consoleErrorReporter = new ConsoleErrorReporter(options);
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
             if (consoleErrorReporter.HasErrors) {
@@ -214,7 +214,7 @@ namespace Microsoft.Dafny {
       // only because if they are added first, one might be used as the program name,
       // which is not handled well.
       if (options.Get(CommonOptionBag.UseStandardLibraries)) {
-        var reporter = new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer);
+        var reporter = new ConsoleErrorReporter(options);
         if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             var uri = new Uri(Path.GetFullPath(f));
-            snapshots.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer), OnDiskFileSystem.Instance, options, uri, Token.Cli));
+            snapshots.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli));
             options.CliRootSourceUris.Add(uri);
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, depManager, false, programId);

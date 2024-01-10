@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DafnyCore;
 using Microsoft.Boogie;
 using VC;
@@ -19,7 +20,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private readonly ConcurrentDictionary<Uri, List<string>> fsCache = new();
+  private readonly static ConditionalWeakTable<DafnyOptions, ConcurrentDictionary<Uri, List<string>>> fsCaches = new();
+
   private DafnyOptions options;
 
   public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
@@ -63,7 +65,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private string GetFileLine(Uri uri, int lineIndex) {
+  private static string GetFileLine(DafnyOptions options, Uri uri, int lineIndex) {
+    var fsCache = fsCaches.GetOrCreateValue(options)!;
     List<string> lines = fsCache.GetOrAdd(uri, key => {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
@@ -82,8 +85,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     return null;
   }
 
-  public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.Uri, tok.line - 1);
+  public static void WriteSourceCodeSnippet(DafnyOptions options, IToken tok, TextWriter tw) {
+    string line = GetFileLine(options, tok.Uri, tok.line - 1);
     if (line == null) {
       return;
     }
@@ -138,7 +141,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
     if (Options.Get(ShowSnippets)) {
       if (tok is IToken dafnyTok) {
-        WriteSourceCodeSnippet(dafnyTok, tw);
+        WriteSourceCodeSnippet(Options, dafnyTok, tw);
       } else {
         ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
       }

@@ -34,7 +34,7 @@ public class CoverageReporter {
 
   public CoverageReporter(DafnyOptions options) {
     reporter = options.DiagnosticsFormat switch {
-      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer),
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
       _ => throw new ArgumentOutOfRangeException()
     };
@@ -317,7 +317,7 @@ public class CoverageReporter {
   }
 
   private string HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
-    var dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer), OnDiskFileSystem.Instance, options, uri, Token.Cli);
+    var dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
     var source = dafnyFile.GetContent().ReadToEnd();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];

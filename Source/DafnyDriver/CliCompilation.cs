@@ -70,7 +70,7 @@ public class CliCompilation {
     Compilation = createCompilation(executionEngine, input);
 
     ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
-      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, (DafnyConsolePrinter)options.Printer),
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
       _ => throw new ArgumentOutOfRangeException()
     };
