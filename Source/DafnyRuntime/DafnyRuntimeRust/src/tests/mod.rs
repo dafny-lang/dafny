@@ -2,7 +2,7 @@
 // Test module
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, fmt::Formatter, borrow::Borrow, any::Any};
+    use std::{rc::{Rc, Weak}, fmt::Formatter, borrow::{Borrow, BorrowMut}, any::Any, cell::RefCell};
     use as_any::{AsAny, Downcast};
     use num::{BigInt, One, Zero};
     use once_cell::unsync::Lazy;
@@ -259,6 +259,59 @@ mod tests {
         assert_eq!(*stream.get(&Rc::new(BigInt::one())), BigInt::one());
     }
 
+    struct Wrapper {
+        w: Rc<WithConstInitializer>
+    }
+
+    trait _WithConstInitializer_consts<T> {
+        fn _itself(&self) -> Rc<Wrapper>;
+        fn _z(&self) -> i16;
+    }
+
+    struct WithConstInitializer {
+        x: i16,
+        z: RefCell<Option<i16>>,
+        itself: RefCell<Option<Weak<Wrapper>>>
+    }
+
+    impl WithConstInitializer {
+        fn _new(x: i16) -> Rc<WithConstInitializer> {
+            let result = Rc::new(WithConstInitializer {
+                x: x,
+                z: RefCell::new(None),
+                itself: RefCell::new(None),
+            });
+            result.z.replace(Some(if x <= 0 { x } else { x - 1}));
+            result
+        }
+    }
+    impl _WithConstInitializer_consts<WithConstInitializer> for Rc<WithConstInitializer> {
+        fn _itself(&self) -> Rc<Wrapper> {
+            // If itself points to nothing, we compute it
+            if self.itself.borrow().as_ref().is_none() ||
+              self.itself.borrow().as_ref().unwrap().upgrade().is_none()
+            {
+              let result = Rc::new(Wrapper{w: Rc::clone(self)});
+              self.itself.replace(Some(Rc::downgrade(&result)));
+              result
+            } else {
+              Rc::clone(&self.itself.borrow().as_ref().unwrap().upgrade().unwrap())
+            }          
+        }
+        fn _z(&self) -> i16 {
+            self.z.borrow().as_ref().unwrap().clone()
+        }
+    }
+
+    #[test]
+    fn test_const_this_in_datatype() {
+        let w: Rc<WithConstInitializer> = WithConstInitializer::_new(2);
+
+        assert_eq!(w.x, 2);
+        assert_eq!(w._z(), 1);
+        assert_eq!(w._itself().w.x, 2);
+    }
+
     #[test]
     fn test_sequence() {
         let values = Rc::new(vec![1, 2, 3]);
@@ -327,6 +380,32 @@ mod tests {
       let mut i; let mut j;
       i = y;
       j = z;
+    }
+
+    trait Func1<T> {
+        fn apply(&self, x: &Rc<BigInt>) -> bool;
+    }
+
+    struct Closure1 {  y: Rc<BigInt>}
+    impl Func1<Rc<BigInt>> for Closure1 {
+        fn apply(&self, x: &Rc<BigInt>) -> bool {
+            x.eq(&self.y)
+        }
+    }
+    #[test]
+    fn test_apply1() {
+      let y = Rc::new(BigInt::one());
+      let f: Rc<dyn Func1<Rc<BigInt>>> = Rc::new(Closure1{ y });
+      assert_eq!(f.apply(&Rc::new(BigInt::zero())), false);
+    }
+
+    #[test]
+    fn test_apply1Native() {
+        let y: Rc<BigInt> = Rc::new(BigInt::one());
+        let y_copy = Rc::clone(&y); // Create a cloned BigInt
+        let f = Rc::new(
+            move |x: &Rc<BigInt>|y_copy.eq(x));
+        assert_eq!(f.as_ref()(&Rc::new(BigInt::zero())), false);
     }
 }
 // Struct containing two reference-counted fields
