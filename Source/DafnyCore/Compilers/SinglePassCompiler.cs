@@ -3181,7 +3181,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (stmt is OneBodyLoopStmt) {
           var s = (OneBodyLoopStmt)stmt;
           if (s.Body == null) {
-            compiler.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be compiled", wr);
+            compiler.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be executed", wr);
           }
         }
       }

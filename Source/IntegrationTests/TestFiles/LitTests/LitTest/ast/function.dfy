@@ -10,8 +10,8 @@ function {:axiom} Axiom(): int ensures false
 ghost function {:axiom} GhostAxiom(): int ensures false
 function {:extern} Extern(): int ensures false
 ghost function {:extern} GhostExtern(): int ensures false
-function {:axiom} {:extern} Extern(): int ensures false
-ghost function {:axiom} {:extern} GhostExtern(): int ensures false
+function {:axiom} {:extern} AxiomExtern(): int ensures false
+ghost function {:axiom} {:extern} GhostAxiomExtern(): int ensures false
 
 function Fonk(): int ensures {:axiom} false
 
