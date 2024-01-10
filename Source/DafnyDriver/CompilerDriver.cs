@@ -324,11 +324,20 @@ namespace Microsoft.Dafny {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, Compilers.CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 
-        exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
+        var failBecauseOfWarnings = dafnyProgram.Reporter.WarningCount > 0 && options.FailOnWarnings;
+        if (failBecauseOfWarnings) {
+          exitValue = ExitValue.DAFNY_ERROR;
+        } else if (!verified) {
+          exitValue = ExitValue.VERIFICATION_ERROR;
+        } else if (!compiled) {
+          exitValue = ExitValue.COMPILE_ERROR;
+        } else {
+          exitValue = ExitValue.SUCCESS;
+        }
       }
 
       if (err == null && dafnyProgram != null && options.PrintStats) {
