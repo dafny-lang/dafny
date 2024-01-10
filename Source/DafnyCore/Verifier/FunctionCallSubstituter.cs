@@ -4,13 +4,13 @@ using System.Linq;
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
     public readonly TraitDecl Tr;
-    public readonly ClassLikeDecl Cl;
+    public readonly TopLevelDeclWithMembers Cl;
 
     // We replace all occurrences of the trait version of the function with the class version. This is only allowed if
     // the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
     // expressions that evaluate to one.
     public FunctionCallSubstituter(Dictionary<IVariable, Expression /*!*/> /*!*/ substMap, Dictionary<TypeParameter, Type> typeMap,
-      TraitDecl parentTrait, ClassLikeDecl cl)
+      TraitDecl parentTrait, TopLevelDeclWithMembers cl)
       : base(new ThisExpr(cl.tok) { Type = UserDefinedType.FromTopLevelDecl(cl.tok, cl) }, substMap, typeMap) {
       this.Tr = parentTrait;
       this.Cl = cl;
