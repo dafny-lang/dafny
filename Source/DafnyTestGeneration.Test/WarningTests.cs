@@ -220,7 +220,7 @@ module M {
   public async Task SmallTimeLimit(List<Action<DafnyOptions>> optionSettings) {
     var source = new StringReader(@"
 module M {
-method {:testEntry} {:timeLimit 100000} m () { }
+method {:testEntry} {:timeLimit 100} m () { }
 }
 ".TrimStart());
     var output = new StringBuilder();
