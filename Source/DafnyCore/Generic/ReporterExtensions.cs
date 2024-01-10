@@ -1,4 +1,4 @@
-using System;
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using VCGeneration;
@@ -46,7 +46,7 @@ public static class ErrorReporterExtensions {
     return $"Could not prove: {related}";
   }
 
-  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message, bool usingSnippets) {
+  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
     if (!usingSnippets && dafnyToken is RangeToken rangeToken) {
