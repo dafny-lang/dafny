@@ -213,13 +213,13 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  
-  public static readonly Option<bool> PassOnWarnings = new("--pass-on-warnings", 
+
+  public static readonly Option<bool> PassOnWarnings = new("--pass-on-warnings",
     "Pass compilation when warnings but no errors occur.");
-  
+
   public static readonly Option<bool> FailOnWarnings = new("--fail-on-warnings",
     "Fail compilation when warnings occur.");
-  
+
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
@@ -515,6 +515,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { PassOnWarnings, DooFile.CheckOptionLocalImpliesLibrary }
       }
     );
     DooFile.RegisterNoChecksNeeded(

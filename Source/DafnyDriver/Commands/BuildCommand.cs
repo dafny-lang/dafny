@@ -18,7 +18,7 @@ public static class BuildCommand {
       result.AddOption(option);
     }
     result.AddOption(CommonOptionBag.PassOnWarnings);
-    
+
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = true;
       options.RunAfterCompile = false;
