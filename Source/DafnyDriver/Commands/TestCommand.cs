@@ -25,6 +25,7 @@ static class TestCommand {
     new Option[] {
       CommonOptionBag.Output,
       MethodsToTest,
+      CommonOptionBag.StopOnWarnings,
     }.Concat(DafnyCommands.ExecutionOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

@@ -49,8 +49,8 @@ true - In the compiled target code, transform any non-extern
   public static readonly Option<bool> Verbose = new("--verbose",
     "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
-    "Warn about the use of deprecated features (default true).") {
+  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => false,
+    "Warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -213,8 +213,13 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
-    "Treat warnings as errors.");
+  
+  public static readonly Option<bool> ContinueOnWarnings = new("--continue-on-warnings", 
+    "Continue compilation when warnings occur.");
+  
+  public static readonly Option<bool> StopOnWarnings = new("--stop-on-warnings",
+    "Stop compilation when warnings occur.");
+  
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
@@ -438,7 +443,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(StopOnWarnings, (options, value) => { options.WarningsAsErrors = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -536,7 +541,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      WarningAsErrors,
+      StopOnWarnings,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,

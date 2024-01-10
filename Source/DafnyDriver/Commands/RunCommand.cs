@@ -43,6 +43,7 @@ public static class RunCommand {
       Inputs,
       MainOverride,
       CommonOptionBag.BuildFile,
+      CommonOptionBag.StopOnWarnings,
     }.Concat(DafnyCommands.ExecutionOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

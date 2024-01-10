@@ -10,6 +10,7 @@ static class ResolveCommand {
     foreach (var option in DafnyCommands.ConsoleOutputOptions.Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
+    result.AddOption(CommonOptionBag.StopOnWarnings);
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = false;
       options.Verify = false;

@@ -17,13 +17,8 @@ public abstract class ErrorReporter {
   public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-  public virtual bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-    if (Options.WarningsAsErrors && level == ErrorLevel.Warning) {
-      level = ErrorLevel.Error;
-    }
-
+  public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
     return MessageCore(source, level, errorId, tok, msg);
-
   }
 
   protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
@@ -151,6 +146,8 @@ public abstract class ErrorReporter {
     Contract.Requires(msg != null);
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, msg);
+    } else {
+      Info(source, tok, msg, errorId);
     }
   }
 

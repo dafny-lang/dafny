@@ -59,23 +59,22 @@ public static class DafnyCommands {
     CommonOptionBag.SystemModule
   }.Concat(VerificationOptions).ToList();
 
-  public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
     CommonOptionBag.SpillTranslation,
     CommonOptionBag.InternalIncludeRuntimeOptionForExecution,
     CommonOptionBag.ExecutionCoverageReport
   }.Concat(TranslationOptions).ToList();
 
-  public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
+  public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
-    CommonOptionBag.WarningAsErrors,
   });
 
-  public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
+  public static readonly IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     CommonOptionBag.StdIn,
     CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
