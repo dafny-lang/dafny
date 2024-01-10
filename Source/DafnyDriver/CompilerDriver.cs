@@ -596,7 +596,6 @@ namespace Microsoft.Dafny {
       if (moreText != null) {
         target.Write(moreText);
       }
-      target.Close();
     }
 
     private static void CheckFilenameIsLegal(string filename) {
