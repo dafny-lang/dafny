@@ -754,7 +754,7 @@ public partial class BoogieGenerator {
       yield return lit;
     }
 
-    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr);
+    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
     foreach (var bound in bounds) {
       if (bound is ComprehensionExpr.IntBoundedPool) {
         var bnd = (ComprehensionExpr.IntBoundedPool)bound;

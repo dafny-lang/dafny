@@ -1019,8 +1019,6 @@ namespace Microsoft.Dafny {
                     CheckOperand(e.E0);
                     CheckOperand(e.E1);
                   }
-
-
                 }
                 break;
               default:
