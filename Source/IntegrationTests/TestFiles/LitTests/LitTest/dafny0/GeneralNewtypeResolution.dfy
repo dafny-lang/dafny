@@ -422,3 +422,17 @@ module BitvectorForRuntimeChecks2 {
     se3 := set x | x in dd; // error: GhostBits is not compilable
   }
 }
+
+module BitvectorCharConversion {
+  type Char = ch: char | true
+
+  method Test() returns (c: char, d: Char, a: bv5) {
+    if
+    case true =>
+      d := c as Char;
+    case true =>
+      d := a as Char; // error -- this conversion is allowed only under /generalNewtypes:0
+    case true =>
+      d := (a as int) as Char;
+  }
+}

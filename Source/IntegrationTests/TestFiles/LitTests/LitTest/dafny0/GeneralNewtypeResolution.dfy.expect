@@ -164,4 +164,5 @@ GeneralNewtypeResolution.dfy(379,11): Error: an expression of type 'BV' is not r
 GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword) GeneralNewtypeResolution.dfy(411,33)
-76 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(434,13): Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got bv5)
+77 resolution/type errors detected in GeneralNewtypeResolution.dfy
