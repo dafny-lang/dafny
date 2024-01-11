@@ -75,7 +75,7 @@ namespace DafnyPipeline.Test {
 
         var reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
         EnsureEveryTokenIsOwned(uri, programNotIndented, dafnyProgram);
         if (expectedProgram != reprinted) {
@@ -100,7 +100,7 @@ namespace DafnyPipeline.Test {
         });
         var reprintedCloned = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
         EnsureEveryTokenIsOwned(uri, programNotIndented, dafnyProgram);
         if (expectedProgram != reprintedCloned) {
@@ -112,7 +112,7 @@ namespace DafnyPipeline.Test {
         DafnyMain.Resolve(dafnyProgram);
         reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
           options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
@@ -131,7 +131,7 @@ namespace DafnyPipeline.Test {
         firstToken = dafnyProgram.GetFirstTokenForUri(uri);
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : reprinted;
         if (reprinted != reprinted2) {
           Console.Write("Double formatting is not stable:\n");
