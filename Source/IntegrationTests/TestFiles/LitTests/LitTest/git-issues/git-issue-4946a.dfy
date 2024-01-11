@@ -6,11 +6,8 @@ trait ProgramTrait {
 
 type Program = ProgramTrait | true // error: 'ProgramTrait' is a bound variable here, and its type is undetermined
 
-newtype NewProgram = ProgramTrait | true // error: 'ProgramTrait' is a bound variable here, and its type is undetermined
-
 datatype Result =
   | Bounce(next: Program)
-  | NewBounce(newNext: NewProgram)
   | Done()
 
 datatype Trivial extends ProgramTrait =

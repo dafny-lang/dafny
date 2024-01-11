@@ -6,7 +6,7 @@ module A {
 }
 
 module B {
-  newtype int0 = x | true
+  newtype int0 = y | true
   const x: int0 := 0 // type for constant 'x' is 'int0', but its initialization value type is 'int'
 }
 
