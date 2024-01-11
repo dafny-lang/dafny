@@ -115,7 +115,7 @@ module Std.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
   }
 
   function
-    {:rlimit 1200}
+    {:resource_limit 1200000}
   DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 2
     ensures 0x10000 <= v <= 0x10FFFF
