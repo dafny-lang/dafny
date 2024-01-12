@@ -1186,34 +1186,36 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
     Contract.Requires(errorMsgPrefix != null);
 
+    var fromType = expr.Type;
+
     // Lazily create a local variable "o" to hold the value of the from-expression
     Bpl.IdentifierExpr o = null;
     void PutSourceIntoLocal() {
       if (o == null) {
-        var oType = expr.Type.IsCharType ? Type.Int : expr.Type;
+        var oType = fromType.IsCharType ? Type.Int : fromType;
         var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType)));
         locals.Add(oVar);
         o = new Bpl.IdentifierExpr(tok, oVar);
         var rhs = etran.TrExpr(expr);
-        if (expr.Type.IsCharType) {
+        if (fromType.IsCharType) {
           rhs = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, rhs);
         }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
       }
     }
 
-    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || expr.Type.IsRefType == toType.IsRefType);
+    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType == toType.IsRefType);
     if (toType.IsRefType) {
       PutSourceIntoLocal();
-      CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
+      CheckSubrange(tok, o, fromType, toType, builder, errorMsgPrefix);
       return;
-    } else if (expr.Type.IsTraitType) {
+    } else if (fromType.IsTraitType) {
       PutSourceIntoLocal();
-      CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
+      CheckSubrange(tok, o, fromType, toType, builder, errorMsgPrefix);
       return;
     }
 
-    if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
       // this operation is well-formed only if the real-based number represents an integer
       //   assert Real(Int(o)) == o;
       PutSourceIntoLocal();
@@ -1223,7 +1225,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, e, new PODesc.IsInteger(errorMsgPrefix)));
     }
 
-    if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
+    if (fromType.IsBigOrdinalType && !toType.IsBigOrdinalType) {
       PutSourceIntoLocal();
       Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionIsNatural(errorMsgPrefix)));
@@ -1246,13 +1248,13 @@ public partial class BoogieGenerator {
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
-      } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // Check "Int(expr) < (1 << toWdith)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
-      } else if (expr.Type.IsBigOrdinalType) {
+      } else if (fromType.IsBigOrdinalType) {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         boundsCheck = Bpl.Expr.Lt(oi, bound);
@@ -1261,31 +1263,30 @@ public partial class BoogieGenerator {
       if (boundsCheck != null) {
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, errorMsgPrefix)));
       }
-    }
 
-    if (toType.IsCharType) {
-      if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+    } else if (toType.IsCharType) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
         PutSourceIntoLocal();
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, o);
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, errorMsgPrefix)));
-      } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, errorMsgPrefix)));
-      } else if (expr.Type.IsBitVectorType) {
+      } else if (fromType.IsBitVectorType) {
         PutSourceIntoLocal();
-        var fromWidth = expr.Type.AsBitVectorType.Width;
+        var fromWidth = fromType.AsBitVectorType.Width;
         var toWidth = 16;
         if (toWidth < fromWidth) {
           // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
           PutSourceIntoLocal();
           var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
-          var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
+          var bound = BplBvLiteralExpr(tok, toBound, fromType.AsBitVectorType);
           var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
           builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("bit-vector value", toType, errorMsgPrefix)));
         }
-      } else if (expr.Type.IsBigOrdinalType) {
+      } else if (fromType.IsBigOrdinalType) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         int toWidth = 16;
@@ -1294,20 +1295,22 @@ public partial class BoogieGenerator {
         var boundsCheck = Bpl.Expr.Lt(oi, bound);
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("ORDINAL value", toType, errorMsgPrefix)));
       }
+
     } else if (toType.IsBigOrdinalType) {
-      if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
         PutSourceIntoLocal();
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
         var desc = new PODesc.ConversionPositive("integer", toType, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc));
       }
-      if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
         var desc = new PODesc.ConversionPositive("real", toType, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc));
       }
+
     } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
       // already checked that BigOrdinal or real inputs are integral
     } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -1318,10 +1321,10 @@ public partial class BoogieGenerator {
       PutSourceIntoLocal();
       Bpl.Expr be;
       if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
-        be = ConvertExpression(expr.tok, o, expr.Type, toType);
-      } else if (expr.Type.IsCharType) {
+        be = ConvertExpression(expr.tok, o, fromType, toType);
+      } else if (fromType.IsCharType) {
         be = ConvertExpression(expr.tok, o, Dafny.Type.Int, toType);
-      } else if (expr.Type.IsBigOrdinalType) {
+      } else if (fromType.IsBigOrdinalType) {
         be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
         be = ConvertExpression(expr.tok, be, Dafny.Type.Int, toType);
       } else {

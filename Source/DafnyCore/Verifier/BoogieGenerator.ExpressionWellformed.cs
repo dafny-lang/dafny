@@ -892,8 +892,7 @@ namespace Microsoft.Dafny {
         case UnaryExpr unaryExpr: {
             UnaryExpr e = unaryExpr;
             CheckWellformed(e.E, wfOptions, locals, builder, etran);
-            if (e is ConversionExpr) {
-              var ee = (ConversionExpr)e;
+            if (e is ConversionExpr ee) {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
 
@@ -1353,17 +1352,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
-                               BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType,
+      List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(expr.Function is SpecialFunction);
 
-      string name = expr.Function.Name;
       CheckWellformed(expr.Receiver, options, locals, builder, etran);
-      if (name == "RotateLeft" || name == "RotateRight") {
+      if (expr.Function.Name is "RotateLeft" or "RotateRight") {
         var w = expr.Type.AsBitVectorType.Width;
-        Expression arg = expr.Args[0];
         builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new PODesc.ShiftLowerBound(), options.AssertKv));
         builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new PODesc.ShiftUpperBound(w), options.AssertKv));
+        var arg = expr.Args[0];
       }
     }
 
