@@ -1,5 +1,6 @@
-<p></p>
-<link rel="stylesheet" href="assets/main.css">
+---
+title: Dafny Quick Reference
+---
 
 # Dafny Quick Reference
 
