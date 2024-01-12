@@ -691,6 +691,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
           nd.Var.PreType = nd.BasePreType;
         }
+        if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
+            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})");
+        } else {
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
+            "a newtype must be based on some numeric type (got {0})");
+        }
         ResolveConstraintAndWitness(nd, true);
 
         // fill in the members inherited from the ancestor built-in type (but be careful, since there may still be cycles among these declarations)

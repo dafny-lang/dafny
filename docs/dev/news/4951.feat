@@ -1,0 +1,1 @@
+Add a `json` format to those supported by `--log-format` and `/verificationLogger`, for producing thorough, machine readable logs of verification results.
