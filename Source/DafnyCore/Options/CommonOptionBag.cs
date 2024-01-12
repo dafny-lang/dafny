@@ -213,7 +213,7 @@ true - Print debug information for the new type system.".TrimStart()) {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
 
-  public static readonly Option<bool> PassOnWarnings = new("--pass-on-warnings",
+  public static readonly Option<bool> PassOnWarnings = new("--succeed-on-warnings",
     "Pass compilation when warnings but no errors occur.");
 
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
