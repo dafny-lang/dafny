@@ -15,6 +15,7 @@ public class PartialState {
   public string isGuard = null;
   public List<string> loopGuards = new();
   public Dictionary<PartialValue, List<string>> knownVariableNames = new();
+  private readonly List<PartialValue> initialPartialValues = new();
   internal readonly DafnyModel Model;
   internal readonly Model.CapturedState State;
   private const string InitialStateName = "<initial>";
@@ -28,6 +29,7 @@ public class PartialState {
   internal PartialState(DafnyModel model, Model.CapturedState state) {
     Model = model;
     State = state;
+    initialPartialValues = new List<PartialValue>();
     SetupBoundVars();
     SetupVars();
   }
@@ -47,7 +49,7 @@ public class PartialState {
     // The following is the queue for elements to be added to the set. The 2nd
     // element of a tuple is the depth of the variable w.r.t. the original set
     List<Tuple<PartialValue, int>> varsToAdd = new();
-    PartialValue.AllPartialValuesForState(this).ForEach(variable => varsToAdd.Add(new(variable, 0)));
+    initialPartialValues.ForEach(variable => varsToAdd.Add(new(variable, 0)));
     while (varsToAdd.Count != 0) {
       var (next, depth) = varsToAdd[0];
       varsToAdd.RemoveAt(0);
@@ -60,7 +62,7 @@ public class PartialState {
       expandedSet.Add(next);
       // fields of primitive types are skipped:
       foreach (var v in next.GetRelatedValues().
-          Where(variable => !expandedSet.Contains(variable) && !variable.IsPrimitive)) {
+          Where(variable => !expandedSet.Contains(variable))) {
         varsToAdd.Add(new(v, depth + 1));
       }
     }
@@ -76,7 +78,7 @@ public class PartialState {
     var variables = ExpandedVariableSet(-1).ToArray();
     var constraints = new List<Constraint>();
     foreach (var variable in variables) {
-      foreach (var constraint in variable.constraints) {
+      foreach (var constraint in variable.Constraints) {
         constraints.Add(constraint);
       }
     }
@@ -165,6 +167,7 @@ public class PartialState {
       }
 
       var value = PartialValue.Get(val, this);
+      initialPartialValues.Add(value);
       value.AddName(new IdentifierExpr(Token.NoToken, v.Split("#").First()));
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new List<string>();
@@ -191,6 +194,7 @@ public class PartialState {
       }
 
       var value = PartialValue.Get(f.GetConstant(), this);
+      initialPartialValues.Add(value);
       value.AddName(new IdentifierExpr(Token.NoToken, name));
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new();

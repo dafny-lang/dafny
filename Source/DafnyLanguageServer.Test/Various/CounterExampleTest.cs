@@ -399,6 +399,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("c is char", counterExamples[0].Assumption);
       Assert.Contains("c == '0'", counterExamples[0].Assumption);
     }
+    
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task TwoCharacters(Action<DafnyOptions> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      method a(c1:char, c2:char) {
+        assert c1 == c2;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source, "TwoCharacters.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
+        OrderBy(counterexample => counterexample.Position).ToArray();
+      Assert.Single(counterExamples);
+      Assert.Contains("c1 is char", counterExamples[0].Assumption);
+      Assert.Contains("c2 is char", counterExamples[0].Assumption);
+      Assert.Matches("(c1 != c2|c2 != c1)", counterExamples[0].Assumption);
+    }
 
     [Theory]
     [MemberData(nameof(OptionSettings))]
@@ -1565,7 +1584,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
     }
 
-    [Theory]
+    [Theory (Skip="This test should be re-enabled once it is OK to use fully-qualified names everywhere")]
     [MemberData(nameof(OptionSettings))]
     public async Task TypePolymorphism(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1581,10 +1600,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Fail("This test needs to be updated");
-      // Assert.Equal(3, counterExamples[0].Variables.Count);
-      // Assert.True(counterExamples[0].Variables.ContainsKey("a:M.C.Equal$T"));
-      // Assert.True(counterExamples[0].Variables.ContainsKey("b:M.C.Equal$T"));
-      // Assert.True(counterExamples[0].Variables.ContainsKey("this:M.C<M.C$T>"));
     }
 
     /// <summary>

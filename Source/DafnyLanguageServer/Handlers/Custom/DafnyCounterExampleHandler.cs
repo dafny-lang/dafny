@@ -106,8 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private CounterExampleItem GetCounterExample(PartialState state) {
-        HashSet<PartialValue> vars = state.ExpandedVariableSet(counterExampleDepth);
-        return new(
+       return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           state.AsAssumption().ToString()
         );

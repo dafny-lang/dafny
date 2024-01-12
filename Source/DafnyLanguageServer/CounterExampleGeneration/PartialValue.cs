@@ -12,11 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class PartialValue {
 
-  public static string ElementNamePrefix = "$";
+  public static readonly string ElementNamePrefix = "$";
   public readonly IdentifierExpr ElementIdentifier;
   public readonly Model.Element Element; // the element in the counterexample model associated with the value
-  public List<Constraint> constraints;
-  private List<PartialValue> relatedValues;
+  public readonly List<Constraint> Constraints;
+  private readonly List<PartialValue> relatedValues;
   private readonly PartialState state; // corresponding state in the counterexample model
   private readonly Type type;
   private bool haveExpanded;
@@ -31,7 +31,7 @@ public class PartialValue {
     }
 
     yield return definitions[this];
-    foreach (var constraint in constraints) {
+    foreach (var constraint in Constraints) {
       if (constraint.definesValue == this) {
         yield return constraint.AsExpression(definitions, false);
       }
@@ -45,19 +45,10 @@ public class PartialValue {
     return new PartialValue(element, state);
   }
 
-  internal static IEnumerable<PartialValue> AllPartialValuesForState(PartialState state) {
-    if (!allPartialValues.ContainsKey(state)) {
-      yield break;
-    }
-    foreach (var value in allPartialValues[state].Values) {
-      yield return value;
-    }
-  }
-
   private PartialValue(Model.Element element, PartialState state) {
     Element = element;
     this.state = state;
-    constraints = new();
+    Constraints = new();
     relatedValues = new();
     haveExpanded = false;
     if (!allPartialValues.ContainsKey(state)) {
@@ -113,7 +104,7 @@ public class PartialValue {
     }
     constrainingExpression.Type = Type.Bool;
     var constraint = new Constraint(constrainingExpression, referencedValues, new List<Constraint>());
-    constraints.Add(constraint);
+    Constraints.Add(constraint);
     AddRelatedValuesConnections(referencedValues);
     return constraint;
   }
@@ -124,27 +115,82 @@ public class PartialValue {
       referencedValues.Remove(this);
     }
     var constraint = new Constraint(constrainingExpression, referencedValues, antecedents, this);
-    constraints.Add(constraint);
+    Constraints.Add(constraint);
     AddRelatedValuesConnections(referencedValues);
   }
   
   internal void AddName(Expression constrainingExpression) {
     constrainingExpression.Type = type;
     var constraint = new Constraint(constrainingExpression, new List<PartialValue> {this}, new List<Constraint>(), this);
-    constraints.Add(constraint);
+    Constraints.Add(constraint);
   }
-
-  public bool IsPrimitive => false; // TODO
 
   public string ShortName => ""; // TODO
 
   public Type Type => type;
 
-  public string Value => ""; // TODO
+  public string PrimitiveLiteral {
+    get {
+      var literalValue = Constraints.FirstOrDefault(constraint =>
+        constraint.definesValue == this && constraint.rawExpression is LiteralExpr, null);
+      if (literalValue != null) {
+        return literalValue.ToString();
+      }
 
-  public Dictionary<string, List<PartialValue>> Children => new(); // TODO
+      return "";
+    }
+  }
 
-  public string CanonicalName() => ""; // TODO
+  public Dictionary<string, PartialValue> Fields() {
+    var fields = new Dictionary<string, PartialValue>();
+    foreach (var relatedValue in relatedValues) {
+      foreach (var definition in relatedValue.Constraints.Where(constraint => constraint.definesValue == relatedValue)) {
+        if (definition.rawExpression is MemberSelectExpr memberSelectExpr &&
+            memberSelectExpr.Obj.ToString() == ElementIdentifier.ToString()) {
+          fields[memberSelectExpr.MemberName] = relatedValue;
+          break;
+        }
+      }
+    }
+    return fields;
+  }
+  
+  public IEnumerable<PartialValue> UnnamedDestructors() {
+    foreach (var constraint in Constraints.Where(constraint => constraint.definesValue == this)) {
+      if (constraint.rawExpression is DatatypeValue datatypeValue) {
+        foreach (var argument in constraint.ReferencedValues) {
+          if (argument != this) {
+            yield return argument;
+          }
+        }
+      }
+    }
+    yield break;
+  }
+
+  public IEnumerable<PartialValue> SetElements() {
+    foreach (var constraint in Constraints) {
+      if (constraint.rawExpression is BinaryExpr binaryExpr && binaryExpr.Op is BinaryExpr.Opcode.In) {
+        foreach (var relatedValue in relatedValues) {
+          if (relatedValue.ElementIdentifier.ToString() == binaryExpr.E0.ToString()) {
+            yield return relatedValue;
+          }
+        }
+      }
+    }
+  }
+
+  public string DatatypeConstructorName {
+    get {
+      foreach (var constraint in Constraints) {
+        if (constraint.rawExpression is MemberSelectExpr memberSelectExpr &&
+            memberSelectExpr.MemberName.EndsWith("?")) {
+          return memberSelectExpr.MemberName[..^1];
+        }
+      }
+      return "";
+    }
+  }
 
   public Dictionary<PartialValue, PartialValue> Mappings = new(); // TODO
 
@@ -154,39 +200,27 @@ public class PartialValue {
     }
 
     LiteralExpr cardinality = null;
-    foreach (var constraint in constraints.OfType<BinaryExpr>()
-               .Where(binaryExpr => binaryExpr.Op == BinaryExpr.Opcode.Eq)) {
-      if (constraint.E0 is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
-          && constraint.E1 is LiteralExpr literalExpr
-          && unaryOpExpr.E is IdentifierExpr identifierExpr 
-          && identifierExpr.Name == ElementIdentifier.Name) {
-        cardinality = literalExpr;
-        break;
+    
+    foreach (var relatedValue in relatedValues) {
+      var relatedValueDescribesCardinality = false;
+      foreach (var definition in relatedValue.Values(definitions)) {
+        if (definition is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
+            && unaryOpExpr.E == definitions[this]) {
+          relatedValueDescribesCardinality = true;
+          break;
+        }
       }
+
+      if (!relatedValueDescribesCardinality) {
+        continue;
+      }
+
+      cardinality = relatedValue.Values(definitions).OfType<LiteralExpr>().First();
+      break;
     }
 
-    if (cardinality == null) {
-      foreach (var relatedValue in relatedValues) {
-        var relatedValueDescribesCardinality = false;
-        foreach (var definition in relatedValue.Values(definitions)) {
-          if (definition is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Cardinality } unaryOpExpr
-              && unaryOpExpr.E == definitions[this]) {
-            relatedValueDescribesCardinality = true;
-            break;
-          }
-        }
-
-        if (!relatedValueDescribesCardinality) {
-          continue;
-        }
-
-        cardinality = relatedValue.Values(definitions).OfType<LiteralExpr>().First();
-        break;
-      }
-    }
-
-    if (cardinality == null || cardinality.Value is not BigInteger bigInteger || 
-        !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
+      if (cardinality == null || cardinality.Value is not BigInteger bigInteger || 
+          !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
       return -1;
     }
     
@@ -195,7 +229,32 @@ public class PartialValue {
 
 
   public PartialValue this[int i] {
-    get { throw new System.NotImplementedException(); } // TODO
+    get {
+      PartialValue index = null;
+      foreach (var relatedValue in relatedValues) {
+        if (relatedValue.PrimitiveLiteral == i.ToString()) {
+          index = relatedValue;
+          break;
+        }
+      }
+
+      if (index == null) {
+        return null;
+      }
+
+      foreach (var relatedValue in relatedValues) {
+        foreach (var constraint in relatedValue.Constraints) {
+          if (constraint.definesValue == relatedValue
+              && constraint.rawExpression is SeqSelectExpr seqSelectExpr
+              && seqSelectExpr.Seq.ToString() == ElementIdentifier.ToString()
+              && seqSelectExpr.E0.ToString() == index.ElementIdentifier.ToString()) {
+            return relatedValue;
+          }
+        }
+      }
+      
+      return null;
+    } 
   }
 
   public override bool Equals(object obj) {
@@ -209,7 +268,7 @@ public class PartialValue {
   public override string ToString() {
     var printOptions = DafnyOptions.Default;
     var constraintsToPrint = new List<string>();
-    foreach (var constraint in constraints) {
+    foreach (var constraint in Constraints) {
       constraintsToPrint.Add(Printer.ExprToString(printOptions, constraint.rawExpression));
     }
     return string.Join(", ", constraintsToPrint);

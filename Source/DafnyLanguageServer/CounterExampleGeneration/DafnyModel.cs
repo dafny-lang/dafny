@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
   /// <summary>
   /// A wrapper around Boogie's Model class that allows extracting
   /// types and values of Elements representing Dafny variables. The three core
-  /// methods are: GetDafnyType, CanonicalName, and GetExpansion
+  /// methods are: GetDafnyType, DatatypeConstructorName, and GetExpansion
   /// </summary>
   public class DafnyModel {
     public readonly List<string> loopGuards;
@@ -32,14 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
       fMapDomain, fMapElements, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
-
-    // maps a numeric type (int, real, bv4, etc.) to the set of integer
-    // values of that type that appear in the model. 
-    private readonly Dictionary<Type, HashSet<int>> reservedNumerals = new();
-    // maps an element representing a primitive to its string representation
-    private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
-    // maps width to a unique object representing bitvector type of such width 
-    private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
     private readonly List<Model.Func> bitvectorFunctions = new();
 
     // the model will begin assigning characters starting from this utf value
@@ -47,6 +39,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     
     // This set is used by GetDafnyType to prevent infinite recursion
     private HashSet<Model.Element> exploredElements = new();
+
+    private Dictionary<Model.Element, LiteralExpr> concretizedValues = new();
 
     public DafnyModel(Model model, DafnyOptions options) {
       loopGuards = new List<string>(); 
@@ -91,8 +85,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
       fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
       InitDataTypes();
-      RegisterReservedInts();
-      RegisterReservedReals();
       RegisterReservedBitVectors();
       foreach (var s in model.States) {
         var sn = new PartialState(this, s);
@@ -104,6 +96,76 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
       }
     }
+    
+    public void AssignConcretePrimitiveValues() {
+      bool isTrueReserved = false;
+      foreach (var app in fU2Bool.Apps) {
+        isTrueReserved |= ((Model.Boolean)app.Result).Value;
+      }
+      foreach (var element in Model.Elements) {
+        var type = GetFormattedDafnyType(element);
+        if (type is BoolType && GetLiteralExpression(element, type) == null) {
+          if (isTrueReserved) {
+            concretizedValues[element] = new LiteralExpr(Token.NoToken, false);
+          } else {
+            concretizedValues[element] = new LiteralExpr(Token.NoToken, true);
+          }
+          continue;
+        }
+        if ((type is not IntType && type is not RealType && type is not CharType &&
+            type is not BitvectorType) || GetLiteralExpression(element, type) != null) {
+          continue;
+        }
+        ModelFuncWrapper otherValuesFunction = null;
+        switch (type) {
+          case BitvectorType bitvectorType: {
+            var funcName = "U_2_bv" + bitvectorType.Width;
+            if (Model.HasFunc(funcName)) {
+              otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+            }
+            break;
+          }
+          case CharType:
+            otherValuesFunction = fCharToInt;
+            break;
+          case RealType:
+            otherValuesFunction = fU2Real;
+            break;
+          case IntType: {
+            otherValuesFunction = fU2Int;
+            break;
+          }
+        }
+        var reservedValues = otherValuesFunction.Apps
+          .Select(app => GetLiteralExpression(app.Result, type))
+          .Where(literal => literal != null)
+          .Select(literal => literal.ToString()).ToHashSet();
+        reservedValues.UnionWith(concretizedValues.Values.Select(literal => literal.ToString()));
+        int numericalValue = -1;
+        LiteralExpr literal = null;
+        bool literalIsReserved = true;
+        while (literalIsReserved) {
+          numericalValue++;
+          switch (type) {
+            case BitvectorType:
+            case IntType: {
+              literal =  new LiteralExpr(Token.NoToken, BigInteger.Parse(numericalValue.ToString()));
+              break;
+            }
+            case CharType:
+              literal = new CharLiteralExpr(Token.NoToken, PrettyPrintChar(numericalValue));
+              break;
+            case RealType:
+             literal = new LiteralExpr(Token.NoToken, BigDec.FromString(numericalValue.ToString()));
+              break;
+          }
+          if (!reservedValues.Contains(literal.ToString())) {
+            literalIsReserved = false;
+          }
+        }
+        concretizedValues[element] = literal;
+      }
+    } 
 
     /// <summary>
     /// Extract and parse the first Dafny model recorded in the model view file.
@@ -168,27 +230,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
     }
 
-    /// <summary> Registered all int values specified by the model </summary>
-    private void RegisterReservedInts() {
-      reservedNumerals[Type.Int] = new();
-      foreach (var app in fU2Int.Apps) {
-        if (app.Result is Model.Integer integer && int.TryParse(integer.Numeral, out int value)) {
-          reservedNumerals[Type.Int].Add(value);
-        }
-      }
-    }
-
-    /// <summary> Registered all real values specified by the model </summary>
-    private void RegisterReservedReals() {
-      reservedNumerals[Type.Real] = new();
-      foreach (var app in fU2Real.Apps) {
-        var valueAsString = app.Result.ToString()?.Split(".")[0] ?? "";
-        if ((app.Result is Model.Real) && int.TryParse(valueAsString, out int value)) {
-          reservedNumerals[Type.Real].Add(value);
-        }
-      }
-    }
-
     /// <summary> Registered all bv values specified by the model </summary>
     private void RegisterReservedBitVectors() {
       var bvFuncName = new Regex("^U_2_bv[0-9]+$");
@@ -197,24 +238,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           continue;
         }
         bitvectorFunctions.Add(func);
-
-        int width = int.Parse(func.Name[6..]);
-        if (!bitvectorTypes.ContainsKey(width)) {
-          bitvectorTypes[width] = new BitvectorType(options, width);
-        }
-
-        var type = bitvectorTypes[width];
-
-        if (!reservedNumerals.ContainsKey(type)) {
-          reservedNumerals[type] = new();
-        }
-
-        foreach (var app in func.Apps) {
-          if (int.TryParse((app.Result as Model.BitVector).Numeral,
-                out var value)) {
-            reservedNumerals[type].Add(value);
-          }
-        }
       }
     }
 
@@ -307,6 +330,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     private Expression GetLiteralExpression(Model.Element element, Type type) {
       var result = GetLiteralExpressionHelper(element, type);
+      if (concretizedValues.ContainsKey(element) && result == null) {
+        result = concretizedValues[element];
+      }
       if (result != null && type != null) {
         result.Type = type;
       }
@@ -381,41 +407,22 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
       // If this partial value is a primitive but we don't know its exact representation,
       // we must assume that it is different from all other primitives of the same type
-      /*ModelFuncWrapper otherValuesFunction = null;
-      switch (value.Type) {
-        case BitvectorType bitvectorType: {
-          var funcName = "U_2_bv" + bitvectorType.Width;
-          if (Model.HasFunc(funcName)) {
-            otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+      ModelFuncWrapper otherValuesFunction = null;
+      if (value.Type is BitvectorType || value.Type is CharType || value.Type is RealType || value.Type is BoolType || value.Type is IntType) {
+        foreach (var element in Model.Elements.Where(element => element != value.Element)) {
+          var elementType = GetFormattedDafnyType(element);
+          if (elementType.ToString() == value.Type.ToString()) {
+            var partialValue = PartialValue.Get(element, state);
+            value.AddConstraint(new BinaryExpr(
+              Token.NoToken,
+              BinaryExpr.Opcode.Neq,
+              value.ElementIdentifier,
+              partialValue.ElementIdentifier), new List<PartialValue>() {partialValue});
+            yield return partialValue;
           }
-
-          break;
-        }
-        case CharType:
-          otherValuesFunction = fCharToInt;
-          break;
-        case RealType:
-          otherValuesFunction = fU2Real;
-          break;
-        case BoolType:
-          otherValuesFunction = fU2Bool;
-          break;
-        case IntType: {
-          otherValuesFunction = fU2Int;
-          break;
-        }
-      }
-
-      if (otherValuesFunction != null) {
-        foreach (var otherInteger in otherValuesFunction.Apps) {
-          value.AddConstraint(new BinaryExpr(
-            Token.NoToken,
-            BinaryExpr.Opcode.Neq,
-            value.ElementIdentifier,
-            GetLiteralExpression(otherInteger.Args[0])), new());
         }
         yield break;
-      }*/
+      }
 
       if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
         value.AddConstraint(
@@ -800,28 +807,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           }
           return new UserDefinedType(new Token(), tagName, typeArgs);
       }
-    }
-    
-    /// <summary>
-    /// Find a value of the given numericType that is different from
-    /// any other value of that type in the entire model.
-    /// Reserve that value for given element
-    /// </summary>
-    public string GetUnreservedNumericValue(Model.Element element, Type numericType) {
-      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
-        return reservedValue;
-      }
-      int i = 0;
-      while (reservedNumerals[numericType].Contains(i)) {
-        i++;
-      }
-      if (numericType == Type.Real) {
-        reservedValuesMap[element] = i + ".0";
-      } else {
-        reservedValuesMap[element] = i.ToString();
-      }
-      reservedNumerals[numericType].Add(i);
-      return reservedValuesMap[element];
     }
 
     /// <summary>

@@ -74,9 +74,9 @@ namespace DafnyServer {
           foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
               Name = variableNode.ShortName,
-              Value = variableNode.Value,
-              // CanonicalName is same as Value now but keeping this for legacy
-              CanonicalName = variableNode.Value
+              Value = variableNode.ToString(),
+              // DatatypeConstructorName is same as Value now but keeping this for legacy
+              CanonicalName = variableNode.ToString()
             });
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);

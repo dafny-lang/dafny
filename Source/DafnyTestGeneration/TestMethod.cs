@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
+using LiteralExpr = Microsoft.Dafny.LiteralExpr;
 using MapType = Microsoft.Dafny.MapType;
 using Token = Microsoft.Dafny.Token;
 using Type = Microsoft.Dafny.Type;
@@ -46,7 +47,6 @@ namespace DafnyTestGeneration {
     private List<string> getDefaultValueParams = new();
     // similar to above but for objects
     private readonly HashSet<string> getClassTypeInstanceParams = new();
-    private Dictionary<string, string> defaultValueForType = new();
     private readonly Modifications cache;
 
     private readonly Dictionary<PartialValue, Expression> constraintContext;
@@ -57,6 +57,7 @@ namespace DafnyTestGeneration {
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
       dafnyModel = DafnyModel.ExtractModel(dafnyInfo.Options, log);
+      dafnyModel.AssignConcretePrimitiveValues();
       MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
@@ -148,6 +149,13 @@ namespace DafnyTestGeneration {
     private List<string> ExtractInputs(PartialState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(-1);
+      var constraints = new List<Constraint>();
+      foreach (var variable in vars) {
+        foreach (var constraint in variable.Constraints) {
+          constraints.Add(constraint);
+        }
+      }
+      Constraint.FindDefinitions(constraintContext, constraints, false);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
       for (var i = 0; i < printOutput.Count; i++) {
         if (types[i] == "Ty") {
@@ -198,7 +206,7 @@ namespace DafnyTestGeneration {
 
     // Returns a new value of the defaultType type (set to int by default)
     private string GetADefaultTypeValue(PartialValue variable) {
-      return dafnyModel.GetUnreservedNumericValue(variable.Element, Type.Int);
+      return "0";
     }
 
     private string GetFunctionOfType(ArrowType type) {
@@ -268,7 +276,7 @@ namespace DafnyTestGeneration {
         case BoolType:
         case CharType:
         case BitvectorType:
-          return GetPrimitiveAsType(variable.Value, asType);
+          return GetPrimitiveAsType(variable.PrimitiveLiteral, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
           if (variable?.Cardinality(constraintContext) == -1) {
@@ -310,10 +318,7 @@ namespace DafnyTestGeneration {
           return AddValue(asType ?? variableType, $"[{string.Join(", ", elements)}]");
         case SetType:
           var asBasicSetType = GetBasicType(asType, type => type is SetType) as SetType;
-          if (!variable.Children.ContainsKey("true")) {
-            return AddValue(asType ?? variableType, "{}");
-          }
-          foreach (var element in variable.Children["true"]) {
+          foreach (var element in variable.SetElements()) {
             elements.Add(ExtractVariable(element, asBasicSetType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
           }
           return AddValue(asType ?? variableType, $"{{{string.Join(", ", elements)}}}");
@@ -328,8 +333,8 @@ namespace DafnyTestGeneration {
           return AddValue(asType ?? variableType, $"map[{string.Join(", ", mappingStrings)}]");
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_tuple#"):
           return AddValue(asType ?? variableType, "(" +
-            string.Join(",", variable.Children.Values
-              .Select(v => ExtractVariable(v.First(), null))) + ")");
+            string.Join(",", variable.UnnamedDestructors()
+              .Select(v => ExtractVariable(v, null))) + ")");
         case ArrowType arrowType:
           var asBasicArrowType = GetBasicType(asType, type => type is ArrowType) as ArrowType;
           return GetFunctionOfType(asBasicArrowType ?? arrowType);
@@ -342,7 +347,7 @@ namespace DafnyTestGeneration {
         case UserDefinedType arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType.Name):
           errorMessages.Add($"// Failed because arrays are not yet supported (type {arrType} element {variable.Element})");
           break;
-        case UserDefinedType _ when variable.CanonicalName() == "null":
+        case UserDefinedType _ when variable.PrimitiveLiteral != "":
           return "null";
         case UserDefinedType userDefinedType:
           var basicType = GetBasicType(asType ?? userDefinedType,
@@ -353,28 +358,28 @@ namespace DafnyTestGeneration {
             return GetClassTypeInstance(userDefinedType, asType, variable);
           }
 
-          if (variable.CanonicalName() == "") {
+          if (variable.DatatypeConstructorName == "") {
             getDefaultValueParams = new();
             return GetDefaultValue(userDefinedType, asType);
           }
-          var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.CanonicalName(), null);
+          var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.DatatypeConstructorName, null);
           if (ctor == null) {
-            errorMessages.Add($"// Failed: Cannot find constructor {variable.CanonicalName()} for datatype {basicType}");
+            errorMessages.Add($"// Failed: Cannot find constructor {variable.DatatypeConstructorName} for datatype {basicType}");
             return basicType.ToString();
           }
           List<string> fields = new();
           for (int i = 0; i < ctor.Destructors.Count; i++) {
             var fieldName = ctor.Destructors[i].Name;
-            if (!variable.Children.ContainsKey(fieldName)) {
+            if (!variable.Fields().ContainsKey(fieldName)) {
               fieldName = $"[{i}]";
             }
 
-            if (!variable.Children.ContainsKey(fieldName)) {
+            if (!variable.Fields().ContainsKey(fieldName)) {
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
-                                $"{variable.CanonicalName()} for datatype " +
+                                $"{variable.DatatypeConstructorName} for datatype " +
                                 $"{basicType}. Available destructors are: " +
-                                string.Join(",", variable.Children.Keys.ToList()));
+                                string.Join(",", variable.Fields().Keys.ToList()));
               return basicType.ToString();
             }
 
@@ -382,18 +387,18 @@ namespace DafnyTestGeneration {
               Utils.UseFullName(ctor.Destructors[i].Type),
               ctor.EnclosingDatatype.TypeArgs.ConvertAll(arg => arg.Name), basicType.TypeArgs);
             if (ctor.Destructors[i].Name.StartsWith("#")) {
-              fields.Add(ExtractVariable(variable.Children[fieldName].First(), destructorType));
+              fields.Add(ExtractVariable(variable.Fields()[fieldName], destructorType));
             } else {
               fields.Add(ctor.Destructors[i].Name + ":=" +
-                         ExtractVariable(variable.Children[fieldName].First(), destructorType));
+                         ExtractVariable(variable.Fields()[fieldName], destructorType));
             }
           }
 
           var value = basicType.ToString();
           if (fields.Count == 0) {
-            value += "." + variable.CanonicalName();
+            value += "." + variable.DatatypeConstructorName;
           } else {
-            value += "." + variable.CanonicalName() + "(" +
+            value += "." + variable.DatatypeConstructorName + "(" +
                      string.Join(",", fields) + ")";
           }
           return AddValue(asType ?? userDefinedType, value);
@@ -465,9 +470,8 @@ namespace DafnyTestGeneration {
       if (field.defValue != null) {
         return field.defValue;
       }
-      if (variable != null && variable.Children.ContainsKey(field.name) &&
-          variable.Children[field.name].Count == 1) {
-        return ExtractVariable(variable.Children[field.name].First(), field.type);
+      if (variable != null && variable.Fields().ContainsKey(field.name)) {
+        return ExtractVariable(variable.Fields()[field.name], field.type);
       }
 
       var previouslyCreated = ValueCreation.FirstOrDefault(obj =>
