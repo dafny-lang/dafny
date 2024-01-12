@@ -251,3 +251,48 @@ module Char {
     }
   }
 }
+
+module Chars {
+  newtype MyChar = ch: char | ch != 'b'
+  newtype Char = char
+
+  type Subset = ch: char | ch != 'b'
+
+  method Conversions() returns (s: Subset, x: MyChar, y: Char, a: char) {
+    if
+    case true =>
+      a := a as char;
+    case true =>
+      a := a as Subset; // error: may violate constraint
+    case true =>
+      x := a as MyChar; // error: may violate constraint
+    case true =>
+      y := a as Char;
+    case true =>
+      x := y as MyChar; // error: may violate constraint
+  }
+
+  type NotRSubset = ch: char | ch != 'r'
+  newtype NotRNewtype = ch: char | ch != 'r'
+
+  method TestCharSubset() returns (ch: char, nr: NotRSubset) {
+    if
+    case true =>
+      ch := nr as char;
+    case true =>
+      nr := ch as NotRSubset; // error: might be 'r'
+    case ch != 'r' =>
+      nr := ch as NotRSubset;
+  }
+  
+  method TestCharNewtype() returns (ch: char, nr: NotRNewtype) {
+    if
+    case true =>
+      ch := nr as char;
+    case true =>
+      nr := ch as NotRNewtype; // error: might be 'r'
+    case ch != 'r' =>
+      nr := ch as NotRNewtype;
+  }
+}
+

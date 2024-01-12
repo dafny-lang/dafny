@@ -20,5 +20,10 @@ GeneralNewtypeVerify.dfy(173,13): Error: result of operation might violate newty
 GeneralNewtypeVerify.dfy(179,13): Error: prefix-equality limit must be at least 0
 GeneralNewtypeVerify.dfy(196,11): Error: assertion might not hold
 GeneralNewtypeVerify.dfy(247,21): Error: result of operation might violate newtype constraint for 'UpperCase'
+GeneralNewtypeVerify.dfy(266,13): Error: result of operation might violate subset type constraint for 'Subset'
+GeneralNewtypeVerify.dfy(268,13): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(272,13): Error: result of operation might violate newtype constraint for 'MyChar'
+GeneralNewtypeVerify.dfy(283,15): Error: result of operation might violate subset type constraint for 'NotRSubset'
+GeneralNewtypeVerify.dfy(293,15): Error: result of operation might violate newtype constraint for 'NotRNewtype'
 
-Dafny program verifier finished with 16 verified, 22 errors
+Dafny program verifier finished with 20 verified, 27 errors
