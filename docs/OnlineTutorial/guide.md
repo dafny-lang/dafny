@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: "Getting Started with Dafny: A Guide"
+---
 
 # Getting Started with Dafny: A Guide
 
