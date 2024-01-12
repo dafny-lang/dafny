@@ -1357,6 +1357,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr.Function is SpecialFunction);
 
       CheckWellformed(expr.Receiver, options, locals, builder, etran);
+      foreach (var arg in expr.Args.Where(arg => arg is not DefaultValueExpression)) {
+        CheckWellformed(arg, options, locals, builder, etran);
+      }
       if (expr.Function.Name is "RotateLeft" or "RotateRight") {
         var w = expr.Type.AsBitVectorType.Width;
         var arg = expr.Args[0];
