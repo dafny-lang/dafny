@@ -5,12 +5,12 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class TextLogger {
+public class TextVerificationLogger {
   private TextWriter tw;
   private TextWriter outWriter;
   private ProofDependencyManager depManager;
 
-  public TextLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+  public TextVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
     this.depManager = depManager;
     this.outWriter = outWriter;
   }
@@ -47,11 +47,7 @@ public class TextLogger {
         if (vcResult.CoveredElements.Any() && vcResult.Outcome == ProverInterface.Outcome.Valid) {
           tw.WriteLine("");
           tw.WriteLine("    Proof dependencies:");
-          var fullDependencies =
-            vcResult
-            .CoveredElements
-            .Select(depManager.GetFullIdDependency)
-            .OrderBy(dep => (dep.RangeString(), dep.Description));
+          var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
           foreach (var dep in fullDependencies) {
             tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
           }
