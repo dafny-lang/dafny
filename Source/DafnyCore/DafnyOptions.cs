@@ -373,7 +373,7 @@ namespace Microsoft.Dafny {
 
       var parseSucceeded = uint.TryParse(value, out number);
       if (parseSucceeded) {
-        number = number * multiplier;
+        number = Boogie.Util.BoundedMultiply(number, multiplier);
       }
 
       return parseSucceeded;
