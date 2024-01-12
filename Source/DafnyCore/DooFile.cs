@@ -274,9 +274,11 @@ public class DooFile {
   }
 
   public static bool OptionValuesImplied(Option option, object first, object second) {
-    var lhs = (bool)first;
-    var rhs = (bool)second;
-    return !lhs || rhs;
+    try {
+      return !(bool)first || (bool)second;
+    } catch (NullReferenceException) {
+      return false;
+    }
   }
 
   private static string OptionValueToString(Option option, object value) {
