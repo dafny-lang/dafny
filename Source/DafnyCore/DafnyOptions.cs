@@ -358,6 +358,27 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
+    public static bool TryParseResourceCount(string value, out uint number) {
+      uint multiplier = 1;
+      if (value.EndsWith("G")) {
+        multiplier = 1_000_000_000;
+        value = value.TrimEnd('G');
+      } else if (value.EndsWith("M")) {
+        multiplier = 1_000_000;
+        value = value.TrimEnd('M');
+      } else if (value.EndsWith("K")) {
+        multiplier = 1_000;
+        value = value.TrimEnd('K');
+      }
+
+      var parseSucceeded = uint.TryParse(value, out number);
+      if (parseSucceeded) {
+        number = number * multiplier;
+      }
+
+      return parseSucceeded;
+    }
+
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>

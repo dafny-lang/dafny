@@ -27,7 +27,7 @@ class BreadthFirstSearch<Vertex(==)>
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
   method
-    {:resource_limit 8000000}
+    {:resource_limit "8M"}
     {:vcs_split_on_every_assert}
   BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)

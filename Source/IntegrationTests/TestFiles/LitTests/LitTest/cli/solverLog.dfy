@@ -1,4 +1,4 @@
-// RUN: %verify --solver-log="log.smt2" --resource-limit 10000 "%s" > "%t"
+// RUN: %verify --solver-log="log.smt2" --resource-limit 10K "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck --file-to-check "log.smt2" "%s"
 // CHECK: rlimit 10000

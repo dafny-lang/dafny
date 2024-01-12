@@ -1963,6 +1963,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           // Do this after the above multiplication because :resource_limit should not be multiplied.
           if (name == "resource_limit") {
             name = "rlimit";
+            if (parms[0] is Boogie.LiteralExpr litString && litString.isString) {
+              if (DafnyOptions.TryParseResourceCount(litString.asString, out var resourceLimit)) {
+                parms[0] = new Boogie.LiteralExpr(litString.tok, BigNum.FromUInt(resourceLimit), litString.Immutable);
+              } else {
+                BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.tok,
+                  $"failed to parse resource count: {parms[0]}");
+              }
+            }
           }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
