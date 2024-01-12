@@ -31,9 +31,10 @@ public abstract class MethodOrFunction : MemberDecl {
   protected abstract string TypeName { get; }
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
+  public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
 
   public virtual void Resolve(ModuleResolver resolver) {
-    if (Bodyless && !IsVirtual && !this.IsExtern(resolver.Options) && !this.IsExplicitAxiom()) {
+    if (Bodyless && !IsVirtual && !IsAbstract && !this.IsExtern(resolver.Options) && !this.IsExplicitAxiom()) {
       foreach (var ensures in Ens) {
         if (!ensures.IsExplicitAxiom() && !resolver.Options.Get(CommonOptionBag.AllowAxioms)) {
           resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, ensures.Tok,
