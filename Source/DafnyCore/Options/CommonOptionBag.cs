@@ -3,7 +3,6 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -49,8 +48,8 @@ true - In the compiled target code, transform any non-extern
   public static readonly Option<bool> Verbose = new("--verbose",
       "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
-    "Warn about the use of deprecated features (default true).") {
+  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => false,
+    "Warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -189,6 +188,13 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
     IsHidden = true
   };
 
+  public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
+    @"
+false - A newtype can only be based on numeric types or another newtype.
+true - (requires --type-system-refresh to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
     @"
 false - Don't print type-inference debug information.
@@ -211,8 +217,10 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
-    "Treat warnings as errors.");
+
+  public static readonly Option<bool> PassOnWarnings = new("--succeed-on-warnings",
+    "Pass compilation when warnings but no errors occur.");
+
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
@@ -349,6 +357,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+    DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
+0 (default) - A newtype can only be based on numeric types or another newtype.
+1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -434,7 +445,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(PassOnWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -505,7 +516,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLocalImpliesLibrary }
+        { AllowAxioms, DooFile.CheckOptionLocalImpliesLibrary },
+        { PassOnWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+            if (DooFile.OptionValuesImplied(option, localValue, libraryValue)) {
+              return true;
+            }
+            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
+            return false;
+          }
+        }
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -529,10 +549,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ManualLemmaInduction,
       TypeInferenceDebug,
       GeneralTraits,
+      GeneralNewtypes,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,

@@ -92,7 +92,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
       if (lhs.Resolved != null) {
         resolver.CheckIsLvalue(lhs.Resolved, resolutionContext);
       } else {
-        Contract.Assert(resolver.reporter.ErrorCount > 0);
+        Contract.Assert(resolver.reporter.HasErrors);
       }
       if (lhs.Resolved is IdentifierExpr ide) {
         if (lhsSimpleVariables.Contains(ide.Var)) {

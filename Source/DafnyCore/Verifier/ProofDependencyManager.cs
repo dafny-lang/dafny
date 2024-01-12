@@ -83,5 +83,12 @@ namespace Microsoft.Dafny {
         throw new ArgumentException($"Malformed dependency ID: {component.SolverLabel}");
       }
     }
+
+    public IEnumerable<ProofDependency> GetOrderedFullDependencies(IEnumerable<TrackedNodeComponent> components) {
+      return components
+        .Select(GetFullIdDependency)
+        .OrderBy(dep => dep.Range)
+        .ThenBy(dep => dep.Description);
+    }
   }
 }

@@ -305,7 +305,7 @@ namespace Microsoft.Dafny {
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public bool UseStdin = false;
-    public bool WarningsAsErrors = false;
+    public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
@@ -714,7 +714,7 @@ namespace Microsoft.Dafny {
           }
 
         case "warningsAsErrors":
-          WarningsAsErrors = true;
+          FailOnWarnings = true;
           return true;
 
         case "extractCounterexample":
@@ -723,7 +723,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text") || args[ps.i].StartsWith("json")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
             } else {
               InvalidArgumentError(name, ps);
