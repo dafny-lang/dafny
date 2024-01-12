@@ -330,7 +330,7 @@ namespace Microsoft.Dafny {
 
         var failBecauseOfWarnings = dafnyProgram.Reporter.WarningCount > 0 && options.FailOnWarnings;
         if (failBecauseOfWarnings) {
-          exitValue = ExitValue.DAFNY_ERROR;
+          exitValue = ExitValue.COMPILE_ERROR;
         } else if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {

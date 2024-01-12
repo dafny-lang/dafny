@@ -1,3 +1,7 @@
+Array.dfy(142,22): Warning: deprecated style: a semi-colon is not needed here
+Array.dfy(163,19): Warning: deprecated style: a semi-colon is not needed here
+Array.dfy(317,29): Warning: deprecated style: a semi-colon is not needed here
+Array.dfy(318,64): Warning: deprecated style: a semi-colon is not needed here
 Array.dfy(216,0): Error: a postcondition could not be proved on this return path
 Array.dfy(215,10): Related location: this is the postcondition that could not be proved
 Array.dfy(240,0): Error: a postcondition could not be proved on this return path
