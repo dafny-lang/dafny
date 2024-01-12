@@ -516,7 +516,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { PassOnWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(option, localValue, libraryValue)) {
               return true;
