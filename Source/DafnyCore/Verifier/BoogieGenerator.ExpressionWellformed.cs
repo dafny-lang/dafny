@@ -944,8 +944,8 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Div:
               case BinaryExpr.ResolvedOpcode.Mod: {
                   Bpl.Expr zero;
-                  if (e.E1.Type.IsBitVectorType) {
-                    zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
+                  if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
+                    zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, bitvectorType);
                   } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
@@ -958,12 +958,12 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.LeftShift:
               case BinaryExpr.ResolvedOpcode.RightShift: {
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                  var w = e.Type.AsBitVectorType.Width;
-                  if (e.E1.Type.IsBitVectorType) {
+                  var w = e.Type.NormalizeToAncestorType().AsBitVectorType.Width;
                   var upperDesc = new PODesc.ShiftUpperBound(w, true);
+                  if (e.E1.Type.NormalizeToAncestorType().AsBitVectorType is {} bitvectorType) {
                     // Known to be non-negative, so we don't need to check lower bound.
                     // Check upper bound, that is, check "E1 <= w"
-                    var e1Width = e.E1.Type.AsBitVectorType.Width;
+                    var e1Width = bitvectorType.Width;
                     if (w < (BigInteger.One << e1Width)) {
                       // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
                       var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);

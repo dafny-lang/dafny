@@ -1186,7 +1186,9 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
     Contract.Requires(errorMsgPrefix != null);
 
+    var toTypeFamily = toType.NormalizeToAncestorType();
     var fromType = expr.Type;
+    var fromTypeFamily = expr.Type.NormalizeToAncestorType();
 
     // Lazily create a local variable "o" to hold the value of the from-expression
     Bpl.IdentifierExpr o = null;
@@ -1231,19 +1233,19 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionIsNatural(errorMsgPrefix)));
     }
 
-    if (toType.IsBitVectorType) {
-      var toWidth = toType.AsBitVectorType.Width;
+    if (toTypeFamily.IsBitVectorType) {
+      var toWidth = toTypeFamily.AsBitVectorType.Width;
       var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
       Bpl.Expr boundsCheck = null;
-      if (expr.Type.IsBitVectorType) {
-        var fromWidth = expr.Type.AsBitVectorType.Width;
+      if (fromTypeFamily.IsBitVectorType) {
+        var fromWidth = fromTypeFamily.AsBitVectorType.Width;
         if (toWidth < fromWidth) {
           // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
           PutSourceIntoLocal();
-          var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
+          var bound = BplBvLiteralExpr(tok, toBound, fromTypeFamily.AsBitVectorType);
           boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
         }
-      } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int) || expr.Type.IsCharType) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromTypeFamily.IsCharType) {
         // Check "expr < (1 << toWdith)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
@@ -1320,7 +1322,7 @@ public partial class BoogieGenerator {
     if (toType.NormalizeExpandKeepConstraints().AsRedirectingType != null) {
       PutSourceIntoLocal();
       Bpl.Expr be;
-      if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
+      if (fromType.IsNumericBased() || fromTypeFamily.IsBitVectorType) {
         be = ConvertExpression(expr.tok, o, fromType, toType);
       } else if (fromType.IsCharType) {
         be = ConvertExpression(expr.tok, o, Dafny.Type.Int, toType);
@@ -1330,8 +1332,7 @@ public partial class BoogieGenerator {
       } else {
         be = o;
       }
-      var dafnyType = toType.NormalizeExpand();
-      CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
+      CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, toTypeFamily), toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
     }
   }
 

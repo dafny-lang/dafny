@@ -346,8 +346,8 @@ namespace Microsoft.Dafny {
                 return MaybeLit(seq, BoogieGenerator.TrType(new SeqType(Type.Char)));
               } else if (e.Value is BigInteger) {
                 var n = Microsoft.BaseTypes.BigNum.FromBigInt((BigInteger)e.Value);
-                if (e.Type is BitvectorType) {
-                  return MaybeLit(BoogieGenerator.BplBvLiteralExpr(GetToken(e), n, e.Type.AsBitVectorType));
+                if (e.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
+                  return MaybeLit(BoogieGenerator.BplBvLiteralExpr(GetToken(e), n, bitvectorType));
                 } else if (e.Type.IsBigOrdinalType) {
                   var fromNat = FunctionCall(GetToken(literalExpr), "ORD#FromNat", predef.BigOrdinalType, Boogie.Expr.Literal(n));
                   return MaybeLit(fromNat, predef.BigOrdinalType);

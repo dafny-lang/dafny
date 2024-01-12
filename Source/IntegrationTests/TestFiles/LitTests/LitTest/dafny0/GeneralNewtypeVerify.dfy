@@ -296,3 +296,126 @@ module Chars {
   }
 }
 
+module Bitvectors {
+  newtype BV = b: bv5 | b != 23
+  newtype Word = bv32
+  newtype Big = b: bv1024 | true
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  type Subset = b: bv5 | b != 23
+
+  method IntermediateExpressions() {
+    var fem: bv5 := 5;
+    var sju: Subset := 4 + 3;
+    var nio: BV := 1 + 8;
+
+    assert fem == 5 && sju == 7 && nio == 9;
+
+    assert 25 - 2 - 16 == 7;
+    sju := 25 - 2 - 16; // fine
+    assert 25 - 2 - 14 == 9;
+    nio := 25 - 2 - 14; // error: 25 - 2 violates the newtype constraint
+  }
+
+  method Operations(x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32) returns (r: bool, s: BV) {
+    // ==
+    r := x == x;
+    r := y == y;
+    r := z == z;
+
+    r := x == 5;
+
+    // + - * / %
+    s := x + x - x * (x / x - x % x); // error: division by zero (but, amazingly, no intermediate expression is 23)
+    s := 12 + x - x * (x + 19 / 17 - x % 3); // error (x2): two of the intermediate expressions might be 23
+    s := 12 + 13 - 14 * (15 + 16 / 17 - 18 % 19);
+
+    // & | ^
+    s := (x & x) | (x ^ x ^ x);
+    s := (12 & 13) | (14 ^ 15 ^ 16);
+
+    // < <= >= >
+    r := (x <= x && x < x) || x >= x || x > x;
+    assert r; // since x >= x
+  }
+
+  method Shift(x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32) returns (r: bool, s: BV) {
+    // << >>
+    s := x << y; // error: shift amount might be larger than 5
+    s := x >> b; // error: shift amount might be larger than 5
+    if i < 5 {
+      s := x << i; // error: shift amount might be negative
+    }
+  }
+  
+  method Rotate(x: BV, b: bv32, i: int, j: int32) returns (r: bool, s: BV, a: bv5) {
+    //  .RotateLeft .RotateRight
+    if i < 5 {
+      a := x.RotateLeft(i); // error: argument to RotateLeft might be negative
+    }
+    
+    a := x.RotateRight(b as int); // error: argument to RotateRight might be too big
+
+    if j < 5 {
+      a := x.RotateRight(j as nat); // error: cast to BV might fail
+    }
+
+    if 0 <= j < 5 {
+      s := x.RotateRight(j as nat) as BV; // error: cast to BV might fail
+    }
+  }
+
+  method TestsAndConversions() returns (x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32, r: bool) {
+    x := 10;
+    x := x;
+  
+    r := y is Word;
+
+    if * {
+      x := 10 as BV;
+      x := x as BV;
+      x := (if y < 20 then y else 2) as BV;
+      if a != 23 {
+        x := a as BV;
+      }
+
+      ghost var bx := b & 0xF;
+      assert bx < 16;
+      ghost var bz := bx * 2;
+      assert bz < 32;
+      assert bz % 2 == 0;
+      x := ((b & 0xF) * 2) as BV;
+
+      if 0 <= i <= j as int < 23 {
+        x := i as BV;
+        x := j as BV;
+      }
+
+    } else {
+      r := 10 is bv5;
+      r := x is bv5;
+      r := y is bv5;
+      r := z is bv5;
+      r := a is bv5;
+      r := b is bv5;
+      r := c is bv5;
+      r := i is bv5;
+      r := j is bv5;
+    }
+  }
+
+  newtype GhostBits = b: bv109 | GhostPredicate(b)
+
+  ghost predicate GhostPredicate(x: bv109) {
+    true
+  }
+
+  method Comprehensions(aa: set<bv7>, bb: set<BV>, cc: set<Word>, dd: set<GhostBits>) {
+    var se0, se1, se2;
+    ghost var se3;
+    se0 := set x | x in aa;
+    se1 := set x | x in bb;
+    se2 := set x | x in cc;
+    se3 := set x | x in dd;
+  }
+}
