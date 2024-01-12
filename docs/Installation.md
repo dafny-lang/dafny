@@ -55,7 +55,6 @@ and any user code in one project.
 
 - Dafny targeting Javascript produces Javascript source consistent with Node.js v 16.0.0
 
-
 ### Python
 
 - Dafny targeting Python produces targets Python 3.7 source.
@@ -66,6 +65,10 @@ with the user's choice of python tool (that compiles at least 3.7).
 ### Go
 
 - Dafny targeting Go produces Go source content consistent with Go 1.18.
+
+### Rust
+
+- Partial and growing support
 
 ### C++
 
@@ -238,4 +241,9 @@ To setup Dafny to compile to python3:
 
 To separately compile and run your program for Python:
 - `dafny build -t:py MyProgram.dfy`
-- `python3 MyProgram-py/MyProgram.py
+- `python3 MyProgram-py/MyProgram.py`
+
+### Rust
+
+To setup Dafny to compile to Rust:
+* Install Rust from https://rustup.rs/
