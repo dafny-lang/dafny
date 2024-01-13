@@ -436,3 +436,32 @@ module BitvectorCharConversion {
       d := (a as int) as Char;
   }
 }
+
+module NativeTypePreference {
+  newtype {:nativeType "int"} RR = x: real | 0.0 <= x <= 3.0 // error: not integer or bitvector type
+  newtype {:nativeType "int"} TT = x: (int, int) | x.0 == x.1 // error: not integer or bitvector type
+  newtype {:nativeType "uint"} BB0 = x: bv325 | 0 <= x < 300 // error (with hint): does not fit into bv325
+  newtype {:nativeType "uint"} BB1 = bv325 // error: does not fit into bv325
+
+  newtype {:nativeType "long"} C0 = x: int | 0 <= x < 280 witness 23
+  type C1 = x: C0 | x != 199 witness 24
+  newtype {:nativeType "short"} C2 = C1
+  newtype C3 = x: C2 | x % 2 == 0 witness 28
+  newtype {:nativeType "byte"} C4 = x: C3 | x < 100 witness 30
+
+  newtype {:nativeType "long"} ZZ0 = x: bv0 | true // error (with hint): cannot use native type that admits negative values
+  newtype {:nativeType "ulong"} ZZ1 = x: bv0 | true
+  newtype {:nativeType "number"} ZZ2 = x: bv0 | true // error: cannot use native type that admits negative values
+
+  newtype {:nativeType "short"} WW0 = bv7 // error (with hint): cannot use native type that admits negative values
+  newtype {:nativeType "ushort"} WW1 = bv7
+  newtype {:nativeType "number"} WW2 = x: bv7 | true // error: cannot use native type that admits negative values
+
+  newtype {:nativeType "ulong"} D0 = x: bv13 | 0 <= x < 280 witness 23
+  type D1 = x: D0 | x != 199 witness 24
+  newtype {:nativeType "ushort"} D2 = D1
+  newtype D3 = x: D2 | x % 2 == 0 witness 28
+  // A newtype based on a bitvector is always native-sized according to the bitvector width, regardless of any constraints. Hence,
+  // there is an error reported on the next line.
+  newtype {:nativeType "byte"} D4 = x: D3 | x < 100 witness 30 // error: "byte" cannot be determined to be big enough
+}

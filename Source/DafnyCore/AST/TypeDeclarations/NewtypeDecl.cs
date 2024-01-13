@@ -138,6 +138,17 @@ public class NativeType {
     this.Bitwidth = bitwidth;
     this.Sel = sel;
   }
+
+  public Selection? UnsignedCounterpart() {
+    switch (Sel) {
+      case Selection.SByte: return Selection.Byte;
+      case Selection.Short: return Selection.UShort;
+      case Selection.Int: return Selection.UInt;
+      case Selection.Long: return Selection.ULong;
+      default:
+        return null;
+    }
+  }
 }
 
 public interface RevealableTypeDecl {
