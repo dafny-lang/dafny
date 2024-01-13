@@ -1919,9 +1919,11 @@ public class BitvectorType : BasicType {
     }
   }
 
+  public string Name => "bv" + Width;
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    return "bv" + Width;
+    return Name;
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
