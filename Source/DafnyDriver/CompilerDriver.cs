@@ -329,12 +329,12 @@ namespace Microsoft.Dafny {
         }
 
         var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
-        if (failBecauseOfDiagnostics) {
-          exitValue = ExitValue.DAFNY_ERROR;
-        } else if (!verified) {
+        if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
+        } else if (failBecauseOfDiagnostics) {
+          exitValue = ExitValue.DAFNY_ERROR;
         } else {
           exitValue = ExitValue.SUCCESS;
         }
