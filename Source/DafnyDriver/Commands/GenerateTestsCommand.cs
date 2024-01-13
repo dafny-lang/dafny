@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Boogie;
+using Enumerable = System.Linq.Enumerable;
 
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
@@ -13,23 +15,26 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 static class GenerateTestsCommand {
-  public static IEnumerable<Option> Options =>
-    new Option[] {
-      LoopUnroll,
-      SequenceLengthLimit,
-      BoogieOptionBag.SolverLog,
-      BoogieOptionBag.SolverOption,
-      BoogieOptionBag.SolverOptionHelp,
-      BoogieOptionBag.SolverPath,
-      BoogieOptionBag.SolverPlugin,
-      BoogieOptionBag.SolverResourceLimit,
-      BoogieOptionBag.VerificationTimeLimit,
-      PrintBpl,
-      CoverageReport,
-      CommonOptionBag.NoTimeStampForCoverageReport,
-      ForcePrune,
-    }.Concat(DafnyCommands.ConsoleOutputOptions).
-      Concat(DafnyCommands.ResolverOptions);
+  public static IEnumerable<Option> Options {
+    get {
+      return new Option[] {
+        LoopUnroll,
+        SequenceLengthLimit,
+        BoogieOptionBag.SolverLog,
+        BoogieOptionBag.SolverOption,
+        BoogieOptionBag.SolverOptionHelp,
+        BoogieOptionBag.SolverPath,
+        BoogieOptionBag.SolverPlugin,
+        BoogieOptionBag.SolverResourceLimit,
+        BoogieOptionBag.VerificationTimeLimit,
+        PrintBpl,
+        CoverageReport,
+        CommonOptionBag.NoTimeStampForCoverageReport,
+        ForcePrune,
+      }.Concat(DafnyCommands.ConsoleOutputOptions.Except(new [] { CommonOptionBag.PassOnWarnings}).ToList()).
+        Concat(DafnyCommands.ResolverOptions);
+    }
+  }
 
   private enum Mode {
     Path,

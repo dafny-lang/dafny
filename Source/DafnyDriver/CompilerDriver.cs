@@ -328,9 +328,9 @@ namespace Microsoft.Dafny {
           compiled = false;
         }
 
-        var failBecauseOfWarnings = dafnyProgram.Reporter.WarningCount > 0 && options.FailOnWarnings;
-        if (failBecauseOfWarnings) {
-          exitValue = ExitValue.COMPILE_ERROR;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        if (failBecauseOfDiagnostics) {
+          exitValue = ExitValue.DAFNY_ERROR;
         } else if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
