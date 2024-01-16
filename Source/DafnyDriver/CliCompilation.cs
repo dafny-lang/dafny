@@ -122,8 +122,7 @@ public class CliCompilation {
 
   public async Task VerifyAllAndPrintSummary() {
     var statSum = new PipelineStatistics();
-    // Using Token here instead of FilePosition, because refinement causes duplicate FilePositions for different tokens,
-    // And then tests liker Predicates.dfy fail
+    
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
@@ -205,7 +204,7 @@ public class CliCompilation {
         }
       }
 
-      LegacyCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+      SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
     } catch (TaskCanceledException) {
     }

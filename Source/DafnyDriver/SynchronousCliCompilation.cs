@@ -35,23 +35,14 @@ namespace Microsoft.Dafny {
   /// 
   /// Will be replaced by CompilationManager
   /// </summary>
-  public class LegacyCliCompilation : IDisposable {
+  public class SynchronousCliCompilation : IDisposable {
     private readonly ExecutionEngine engine;
 
-    public LegacyCliCompilation(DafnyOptions dafnyOptions) {
+    public SynchronousCliCompilation(DafnyOptions dafnyOptions) {
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
     public static async Task<int> Run(DafnyOptions options) {
-
-      if (options.DafnyProject == null) {
-        var uri = options.CliRootSourceUris.FirstOrDefault() ?? new Uri(Directory.GetCurrentDirectory());
-        options.DafnyProject = new DafnyProject {
-          Includes = Array.Empty<string>(),
-          Uri = uri,
-          ImplicitFromCli = true
-        };
-      }
       options.RunningBoogieFromCommandLine = true;
 
       var backend = GetBackend(options);
@@ -71,7 +62,7 @@ namespace Microsoft.Dafny {
         return (int)ExitValue.PREPROCESSING_ERROR;
       }
 
-      using var driver = new LegacyCliCompilation(options);
+      using var driver = new SynchronousCliCompilation(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
 

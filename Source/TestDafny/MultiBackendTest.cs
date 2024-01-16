@@ -260,27 +260,16 @@ public class MultiBackendTest {
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
-      string? expectedOutput = null;
-      foreach (var expectFileSuffix in resolutionOption.ExpectFileSuffixes) {
-        var expectFileForVerifier = $"{options.TestFile}{expectFileSuffix}";
-        if (File.Exists(expectFileForVerifier)) {
-          if (DiffCommand.UpdateExpectFile) {
-            var path = Path.GetFullPath(expectFileForVerifier).Replace("bin/Debug/net6.0/", "");
-            File.WriteAllText(path, actualOutput);
-          }
-
-          expectedOutput = File.ReadAllText(expectFileForVerifier);
-          break;
-        }
-      }
-      if (expectedOutput == null) {
+      string? expectFile = resolutionOption.ExpectFileSuffixes.
+        Select(expectFileSuffix => $"{options.TestFile}{expectFileSuffix}").
+        FirstOrDefault(File.Exists);
+      if (expectFile == null) {
         output.WriteLine("Missing expect file: {0}", resolutionOption.ExpectFileSuffixes.Comma(suffix => $"{options.TestFile}{suffix}"));
         return 1;
       }
 
-
       // Compare the output
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput!, actualOutput);
+      var diffMessage = DiffCommand.Run(expectFile, actualOutput);
       if (diffMessage != null) {
         output.WriteLine(diffMessage);
         return 1;

@@ -60,7 +60,7 @@ public static class RunCommand {
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
 
-      return LegacyCliCompilation.Run(options);
+      return SynchronousCliCompilation.Run(options);
     });
     return result;
   }

@@ -24,7 +24,7 @@ public static class VerifyCommand {
       if (options.Get(CommonOptionBag.VerificationLogFormat).Any() || options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         // --log-format and --verification-coverage-report are not yet supported by CliCompilation
         options.Compile = false;
-        return await LegacyCliCompilation.Run(options);
+        return await SynchronousCliCompilation.Run(options);
       }
       var compilation = CliCompilation.Create(options);
       compilation.Start();
