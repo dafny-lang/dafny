@@ -25,7 +25,7 @@ method Main() {
   print "Window size 5:  min window-max is ", m, "\n";  // 3
 }
 
-method {:resource_limit "100M"} MinimumWindowMax(a: array<int>, W: int) returns (m: int, start: int)
+method {:resource_limit "100e6"} MinimumWindowMax(a: array<int>, W: int) returns (m: int, start: int)
   requires 1 <= W <= a.Length
   ensures 0 <= start <= a.Length - W
   ensures m == Max(a, start, W)
