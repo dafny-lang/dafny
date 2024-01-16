@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.IO;
 using System.Reflection;
@@ -358,25 +359,8 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
-    public static bool TryParseResourceCount(string value, out uint number) {
-      uint multiplier = 1;
-      if (value.EndsWith("G")) {
-        multiplier = 1_000_000_000;
-        value = value.TrimEnd('G');
-      } else if (value.EndsWith("M")) {
-        multiplier = 1_000_000;
-        value = value.TrimEnd('M');
-      } else if (value.EndsWith("K")) {
-        multiplier = 1_000;
-        value = value.TrimEnd('K');
-      }
-
-      var parseSucceeded = uint.TryParse(value, out number);
-      if (parseSucceeded) {
-        number = Boogie.Util.BoundedMultiply(number, multiplier);
-      }
-
-      return parseSucceeded;
+    public static bool TryParseResourceCount(string value, out uint result) {
+      return uint.TryParse(value, NumberStyles.AllowExponent, null, out result);
     }
 
     /// <summary>
