@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
@@ -10,9 +11,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly Subject<NewDiagnostic> updates = new();
     public IObservable<NewDiagnostic> Updates => updates;
 
-    private const MessageSource VerifierMessageSource = MessageSource.Verifier;
-    private const string RelatedLocationCategory = "Related location";
-    private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly Uri entryUri;
     private readonly Dictionary<ErrorLevel, int> counts = new();
@@ -30,81 +28,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryUri = entryUri;
     }
 
-    public void ReportBoogieError(ErrorInformation error, bool useRange = true) {
-      var relatedInformation = new List<DafnyRelatedInformation>();
-      foreach (var auxiliaryInformation in error.Aux) {
-        if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg));
-        } else {
-          // The execution trace is an additional auxiliary which identifies itself with
-          // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
-          // the execution trace message appears to not have any interesting information.
-          if (auxiliaryInformation.Tok.line > 0) {
-            Info(VerifierMessageSource, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
-          }
-        }
-      }
-
-      if (error.Tok is NestedToken { Inner: var innerToken }) {
-        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, "Related location"));
-      }
-
-      var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
-      var uri = GetUriOrDefault(dafnyToken);
-      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
-        VerifierMessageSource, ErrorLevel.Error, relatedInformation);
-      AddDiagnosticForFile(
-        dafnyDiagnostic,
-        VerifierMessageSource,
-        uri
-      );
-    }
-
-    public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
-
-    private static string FormatRelated(string related) {
-      return $"Could not prove: {related}";
-    }
-
-    private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
-      var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
-      var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-      if (dafnyToken is RangeToken rangeToken) {
-        if (message == PostConditionFailingMessage) {
-          var postcondition = rangeToken.PrintOriginal();
-          message = $"This postcondition might not hold: {postcondition}";
-        } else if (message == "Related location") {
-          message = FormatRelated(rangeToken.PrintOriginal());
-        }
-      }
-
-      yield return new DafnyRelatedInformation(token, message);
-      if (inner != null) {
-        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, RelatedLocationMessage)) {
-          yield return nestedInformation;
-        }
-      }
-    }
-
     protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
-      var tok = rootTok;
-      while (tok is NestedToken nestedToken) {
-        tok = nestedToken.Inner;
-        if (!(tok is RangeToken)) {
-          relatedInformation.AddRange(
-            CreateDiagnosticRelatedInformationFor(
-              tok, nestedToken.Message ?? "Related location")
-          );
-          break;
-        }
+
+      if (rootTok is NestedToken nestedToken) {
+        relatedInformation.AddRange(
+          ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
+            nestedToken.Inner, nestedToken.Message)
+        );
       }
 
       var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
-      AddDiagnosticForFile(dafnyDiagnostic, source, GetUriOrDefault(rootTok));
+      AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
       return true;
     }
 
@@ -128,11 +66,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, MessageSource messageSource, Uri uri) {
+    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, Uri uri) {
       rwLock.EnterWriteLock();
       try {
         counts[dafnyDiagnostic.Level] = counts.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
-        if (messageSource != MessageSource.Verifier && messageSource != MessageSource.Compiler) {
+        if (dafnyDiagnostic.Source != MessageSource.Verifier && dafnyDiagnostic.Source != MessageSource.Compiler) {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
