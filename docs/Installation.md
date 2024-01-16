@@ -239,7 +239,7 @@ To setup Dafny to compile to python3:
 
 To separately compile and run your program for Python:
 - `dafny build -t:py MyProgram.dfy`
-- `python3 MyProgram-py/MyProgram.py
+- `python3 MyProgram-py/MyProgram.py`
 
 ### Rust
 
