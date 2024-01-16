@@ -337,6 +337,13 @@ module Bitvectors {
     // < <= >= >
     r := (x <= x && x < x) || x >= x || x > x;
     assert r; // since x >= x
+
+    if !(x as bv5) != 23 && -(x as bv5) != 23 {
+      assert !!x == x && !!y == y && z == !!z && !z == !z;
+      assert --x == x && --y == y && z == --z && -z == -z;
+    }
+    assert !(5 as bv7) == 122 && !(5 as bv3) == 2 && !(5 as bv8) == 250;
+    assert -(5 as bv7) == 123 && -(5 as bv3) == 3 && -(5 as bv8) == 251;
   }
 
   method Shift(x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32) returns (r: bool, s: BV) {
@@ -363,6 +370,31 @@ module Bitvectors {
     if 0 <= j < 5 {
       s := x.RotateRight(j as nat) as BV; // error: cast to BV might fail
     }
+  }
+
+  method BvZero(b: bv0) returns (d: bv0) {
+    var c: bv0 := *;
+
+    d := b + c;
+    d := b - c;
+    d := b * c;
+    d := !b;
+    d := -b;
+    assert b == c && !(b != c) && b <= c && b >= c && !(b < c) && !(b > c);
+    d := b & c;
+    d := b | c;
+    d := b ^ c;
+    d := b << c;
+    d := b << 0;
+    d := b << 0 as int32;
+    d := b >> c;
+    d := b >> 0;
+    d := b >> 0 as int32;
+    d := b.RotateLeft(0);
+    d := b.RotateRight(0);
+    d := 0 as bv0;
+    var i := b as int;
+    d := 0 as int32 as bv0;
   }
 
   method TestsAndConversions() returns (x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32, r: bool) {

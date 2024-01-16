@@ -29,12 +29,12 @@ GeneralNewtypeVerify.dfy(317,14): Error: result of operation might violate newty
 GeneralNewtypeVerify.dfy(329,24): Error: possible division by zero
 GeneralNewtypeVerify.dfy(330,12): Error: result of operation might violate newtype constraint for 'BV'
 GeneralNewtypeVerify.dfy(330,25): Error: result of operation might violate newtype constraint for 'BV'
-GeneralNewtypeVerify.dfy(344,11): Error: shift amount must not exceed the width of the result (5)
-GeneralNewtypeVerify.dfy(345,11): Error: shift amount must not exceed the width of the result (5)
-GeneralNewtypeVerify.dfy(347,13): Error: shift amount must be non-negative
-GeneralNewtypeVerify.dfy(354,13): Error: rotate amount must be non-negative
-GeneralNewtypeVerify.dfy(357,11): Error: rotate amount must not exceed the width of the result (5)
-GeneralNewtypeVerify.dfy(360,27): Error: result of operation might violate subset type constraint for 'nat'
-GeneralNewtypeVerify.dfy(364,35): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(351,11): Error: shift amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(352,11): Error: shift amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(354,13): Error: shift amount must be non-negative
+GeneralNewtypeVerify.dfy(361,13): Error: rotate amount must be non-negative
+GeneralNewtypeVerify.dfy(364,11): Error: rotate amount must not exceed the width of the result (5)
+GeneralNewtypeVerify.dfy(367,27): Error: result of operation might violate subset type constraint for 'nat'
+GeneralNewtypeVerify.dfy(371,35): Error: result of operation might violate newtype constraint for 'BV'
 
-Dafny program verifier finished with 26 verified, 38 errors
+Dafny program verifier finished with 27 verified, 38 errors
