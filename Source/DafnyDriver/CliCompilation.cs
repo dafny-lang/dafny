@@ -123,7 +123,7 @@ public class CliCompilation {
   public async Task VerifyAllAndPrintSummary() {
     var statSum = new PipelineStatistics();
     
-    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
+    var canVerifyResults = new ConcurrentDictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
@@ -190,7 +190,13 @@ public class CliCompilation {
 
         foreach (var canVerify in orderedCanVerifies) {
           var results = canVerifyResults[canVerify];
-          await results.Finished.Task;
+          var delay = Task.Delay(20 * 60 * 1000);
+          await Task.WhenAny(delay, results.Finished.Task);
+          if (delay.IsCompleted) {
+            var message = "waiting for verification took more than 20 minutes, for test" + options.CliRootSourceUris;
+            await options.ErrorWriter.WriteLineAsync(message);
+            throw new Exception(message);
+          }
           foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
             foreach (var vcResult in completed.Result.VCResults) {
               Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
