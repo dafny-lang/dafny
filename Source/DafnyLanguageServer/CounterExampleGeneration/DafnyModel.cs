@@ -469,8 +469,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       switch (value.Type) {
         case SeqType: {
           var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
+          BigNum seqLength = BigNum.MINUS_ONE;
           if (lenghtTuple != null) {
             var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
+            BigNum.TryParse(GetLiteralExpression(lengthValue.Element, lengthValue.Type).ToString(), out seqLength);
             lengthValue.AddDefinition(
               new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value }, new());
             yield return lengthValue;
@@ -506,6 +508,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               var elementIdTry = GetLiteralExpression(funcTuple.Args[1], Type.Int);
               if (elementIdTry != null && elementIdTry.ToString().Contains("-")) {
                 continue;
+              }
+              if (BigNum.TryParse(elementIdTry.ToString(), out var elementIdTryBigNum)) {
+                if (!seqLength.Equals(BigNum.MINUS_ONE) && !(elementIdTryBigNum - seqLength).IsNegative) {
+                  continue; // element out of bounds for sequence
+                }
               }
               var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), elementId.ElementIdentifier), new() {value, elementId});
               var element = PartialValue.Get(Unbox(funcTuple.Result), state);
