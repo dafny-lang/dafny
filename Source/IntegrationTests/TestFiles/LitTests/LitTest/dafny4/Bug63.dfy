@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver "%s" -- --succeed-on-warnings
 
 
 method M()

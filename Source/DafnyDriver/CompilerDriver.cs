@@ -335,8 +335,6 @@ namespace Microsoft.Dafny {
           exitValue = ExitValue.COMPILE_ERROR;
         } else if (failBecauseOfDiagnostics) {
           exitValue = ExitValue.DAFNY_ERROR;
-        } else {
-          exitValue = ExitValue.SUCCESS;
         }
       }
 

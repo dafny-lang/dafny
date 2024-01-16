@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --quantifier-syntax:4 --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --quantifier-syntax:4 --relax-definite-assignment --succeed-on-warnings
 
 method Main() {
   var c := new MyClass;

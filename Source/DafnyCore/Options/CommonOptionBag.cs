@@ -213,8 +213,8 @@ true - Print debug information for the new type system.".TrimStart()) {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
 
-  public static readonly Option<bool> PassOnWarnings = new("--succeed-on-warnings",
-    "Pass compilation when warnings but no errors occur.");
+  public static readonly Option<bool> SucceedOnWarnings = new("--succeed-on-warnings",
+    "Succeed compilation when warnings but no errors occur.");
 
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
@@ -439,7 +439,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(PassOnWarnings, (options, value) => { options.FailOnWarnings = !value; });
+    DafnyOptions.RegisterLegacyBinding(SucceedOnWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -510,7 +510,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { PassOnWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+        { SucceedOnWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(option, localValue, libraryValue)) {
               return true;
             }
