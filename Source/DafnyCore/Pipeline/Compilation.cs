@@ -381,6 +381,7 @@ public class Compilation : IDisposable {
         }
       },
       e => {
+        updates.OnNext(new BoogieException(canVerify, task, e));
         if (e is not OperationCanceledException) {
           logger.LogError(e, $"Caught error in statusUpdates observable.");
         }

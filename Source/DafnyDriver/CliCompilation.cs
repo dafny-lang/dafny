@@ -137,6 +137,11 @@ public class CliCompilation {
         }
       }
 
+      if (ev is BoogieException boogieException) {
+        var canVerifyResult = canVerifyResults[boogieException.CanVerify];
+        canVerifyResult.Finished.SetException(boogieException.Exception);
+      }
+
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
           var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
@@ -190,16 +195,27 @@ public class CliCompilation {
 
         foreach (var canVerify in orderedCanVerifies) {
           var results = canVerifyResults[canVerify];
-          await results.Finished.Task;
-          foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
-            foreach (var vcResult in completed.Result.VCResults) {
-              Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
-            }
+          try {
+            await results.Finished.Task;
+            foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
+              foreach (var vcResult in completed.Result.VCResults) {
+                Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
+              }
 
-            ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options, resolution.ResolvedProgram!.Reporter,
-              resolution.ResolvedProgram.ProofDependencyManager,
-              new DafnyConsolePrinter.ImplementationLogEntry(task.Implementation.VerboseName, task.Implementation.tok),
-              DafnyConsolePrinter.DistillVerificationResult(completed.Result));
+              ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options,
+                resolution.ResolvedProgram!.Reporter,
+                resolution.ResolvedProgram.ProofDependencyManager,
+                new DafnyConsolePrinter.ImplementationLogEntry(task.Implementation.VerboseName,
+                  task.Implementation.tok),
+                DafnyConsolePrinter.DistillVerificationResult(completed.Result));
+            }
+          } catch (ProverException e) {
+            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+          } catch (Exception e) {
+            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
+              $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
           }
         }
       }
