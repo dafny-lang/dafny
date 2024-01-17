@@ -28,12 +28,12 @@ public class ProofDependencyWarnings {
       result
         .VCResults
         .SelectMany(vcResult => vcResult.CoveredElements.Select(depManager.GetFullIdDependency))
-        .OrderBy(dep => dep.Range.StartToken)
+        .OrderBy(dep => dep.Range)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range.StartToken)
+        .OrderBy(dep => dep.Range)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
