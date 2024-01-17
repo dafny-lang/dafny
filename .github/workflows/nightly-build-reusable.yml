@@ -48,7 +48,8 @@ jobs:
 
   publish-release:
     uses: ./.github/workflows/publish-release-reusable.yml
-    needs: [deep-integration-tests, determine-vars]
+    # needs: [deep-integration-tests, determine-vars]
+    needs: [determine-vars]
     with:
       name: ${{ needs.determine-vars.outputs.name }}
       ref: ${{ inputs.ref }}

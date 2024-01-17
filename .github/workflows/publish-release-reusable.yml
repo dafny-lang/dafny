@@ -91,12 +91,12 @@ jobs:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
 
-    - name: Upload package to NuGet
-      if: ${{ inputs.release_nuget }}
-      # Need --skip-duplicate for cases where we release a new Dafny
-      # version but the runtime hasn't changed and is still the old
-      # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+    # - name: Upload package to NuGet
+    #   if: ${{ inputs.release_nuget }}
+    #   # Need --skip-duplicate for cases where we release a new Dafny
+    #   # version but the runtime hasn't changed and is still the old
+    #   # version.
+    #   run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
@@ -116,11 +116,12 @@ jobs:
         unset HOMEBREW_NO_INSTALL_FROM_API
         brew untap Homebrew/core
         brew update-reset && brew update
-        brew install pandoc
         brew install --cask basictex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
+        wget -O pandoc.pkg https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-x86_64-macOS.pkg
+        sudo installer -pkg pandoc.pkg -target /
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
@@ -147,15 +148,15 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
 
-    - name: Create GitHub release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Dafny ${{ inputs.name }}
-        tag_name: ${{ inputs.tag_name }}
-        body: ${{ inputs.release_notes }}
-        draft: ${{ inputs.draft }}
-        prerelease: ${{ inputs.prerelease }}
-        files: |
-          dafny/Package/dafny-${{ inputs.name }}*
-          dafny/docs/DafnyRef/DafnyRef.pdf
-        fail_on_unmatched_files: true
+    # - name: Create GitHub release
+    #   uses: softprops/action-gh-release@v1
+    #   with:
+    #     name: Dafny ${{ inputs.name }}
+    #     tag_name: ${{ inputs.tag_name }}
+    #     body: ${{ inputs.release_notes }}
+    #     draft: ${{ inputs.draft }}
+    #     prerelease: ${{ inputs.prerelease }}
+    #     files: |
+    #       dafny/Package/dafny-${{ inputs.name }}*
+    #       dafny/docs/DafnyRef/DafnyRef.pdf
+    #     fail_on_unmatched_files: true
