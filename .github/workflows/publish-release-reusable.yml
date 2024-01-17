@@ -121,7 +121,7 @@ jobs:
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         wget -O pandoc.pkg https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-x86_64-macOS.pkg
-        installer -pkg pandoc.pkg -target /
+        sudo installer -pkg pandoc.pkg -target /
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
