@@ -51,7 +51,7 @@ public class Compilation : IDisposable {
     Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules = new();
 
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
-  private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, IImplementationTask>> implementationsPerVerifiable = new();
+  private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IImplementationTask>> implementationsPerVerifiable = new();
 
   private DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
@@ -324,26 +324,24 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
       var updated = false;
-      var implementationTasksByName = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
-        var tasksForVerifiable =
+      var tasks = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
+        var result =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IImplementationTask>(0);
 
         updated = true;
-        return tasksForVerifiable.ToDictionary(
-          t => GetImplementationName(t.Implementation),
-          t => t);
+        return result;
       });
       if (updated) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          implementationsPerVerifiable[canVerify].Values.ToList()));
+          implementationsPerVerifiable[canVerify].ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in implementationTasksByName.Values) {
+        foreach (var task in tasks) {
           VerifyTask(canVerify, task);
         }
       }
@@ -395,7 +393,7 @@ public class Compilation : IDisposable {
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = implementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName!.Values : Enumerable.Empty<IImplementationTask>();
+        ? implementationsPerName! : Enumerable.Empty<IImplementationTask>();
       foreach (var view in implementations) {
         view.Cancel();
       }
