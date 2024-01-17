@@ -122,7 +122,7 @@ public class CliCompilation {
 
   public async Task VerifyAllAndPrintSummary() {
     var statSum = new PipelineStatistics();
-    
+
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
 
