@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
-static class FormatCommand {
+public static class FormatCommand {
 
   public static IEnumerable<Option> Options => DafnyCommands.FormatOptions;
 
@@ -23,7 +23,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DoFormatting(options);
       return (int)exitValue;
@@ -33,7 +33,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
@@ -72,8 +72,9 @@ Use '--print' to output the content of the formatted files instead of overwritin
           OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
 
-      using var content = dafnyFile.GetContent();
+      var content = dafnyFile.GetContent();
       var originalText = await content.ReadToEndAsync();
+      content.Close(); // Manual closing because we want to overwrite
       dafnyFile.GetContent = () => new StringReader(originalText);
       // Might not be totally optimized but let's do that for now
       var err = DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
@@ -86,7 +87,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
         var result = originalText;
         if (firstToken != null) {
           result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram));
+            IndentationFormatter.ForProgram(dafnyProgram, file.Uri));
           if (result != originalText) {
             neededFormatting += 1;
             if (doCheck) {

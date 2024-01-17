@@ -1,0 +1,38 @@
+git-issue-697i.dfy(37,14): Error: PInt is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(16,23): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(38,14): Error: PNat is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(17,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(41,17): Error: PInt is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in forall expression.
+git-issue-697i.dfy(16,23): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(42,17): Error: PNat is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in forall expression.
+git-issue-697i.dfy(17,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(47,14): Error: MyPInt is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(20,28): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(48,14): Error: MyPNat is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(21,38): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(50,17): Error: MyPInt is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in forall expression.
+git-issue-697i.dfy(20,28): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(51,17): Error: MyPNat is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in forall expression.
+git-issue-697i.dfy(21,38): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(86,14): Error: Type0 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(87,14): Error: Type1 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(69,36): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(88,14): Error: Type2 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(89,14): Error: Type3 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(70,76): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(120,14): Error: Type0 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(121,14): Error: Type1 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(122,14): Error: Type2 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(123,14): Error: Type3 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(154,14): Error: Type0 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(155,14): Error: Type1 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(137,39): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(156,14): Error: Type2 is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(157,14): Error: Type3 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(138,79): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+git-issue-697i.dfy(188,14): Error: Type0 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(189,14): Error: Type1 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(190,14): Error: Type2 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(191,14): Error: Type3 is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+git-issue-697i.dfy(12,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'Tests'
+25 resolution/type errors detected in git-issue-697i.dfy
