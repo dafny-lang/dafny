@@ -2,8 +2,8 @@
 // Test module
 #[cfg(test)]
 mod tests {
-    use std::{rc::{Rc, Weak}, fmt::Formatter, borrow::{Borrow, BorrowMut}, any::Any, cell::RefCell};
-    use as_any::{AsAny, Downcast};
+    use std::{rc::{Rc, Weak}, fmt::Formatter, borrow::Borrow, cell::RefCell, mem::{transmute, MaybeUninit}};
+    use as_any::AsAny;
     use num::{BigInt, One, Zero};
     use once_cell::unsync::Lazy;
 
@@ -68,35 +68,61 @@ mod tests {
     }
     struct NoStruct {}
 
-    #[derive(PartialEq)]
-    struct MyStruct {
+    struct MyStructDatatype { // For a class
         first: Rc<String>,
         last: Rc<String>,
     }
-    impl DafnyPrint for MyStruct {
+    impl DafnyPrint for MyStructDatatype {
         fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-            write!(f, "MyStruct({}, {})", self.first, self.last)
+            write!(f, "MyStruct({}, {})",
+              self.first,
+              self.last)
         }
     }
+
+    //#[derive(PartialEq)]
+    struct MyStruct { // For a class
+        first: MaybeUninit<Rc<String>>,
+        last: MaybeUninit<Rc<String>>,
+    }
+    impl DafnyPrint for MyStruct {
+        fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+            write!(f, "MyStruct({}, {})",
+              unsafe{std::ptr::read(self.first.as_ptr())},
+              unsafe{std::ptr::read(self.last.as_ptr())})
+        }
+    }
+    
     impl MyStruct {
         fn constructor(first: &Rc<String>, last: &Rc<String>) -> *const MyStruct {
             let this =
               allocate(Box::new(MyStruct {
-                first: Rc::new("".to_string()),
-                last: Rc::new("".to_string())}));
-            unsafe {(*(this as *mut MyStruct)).first = Rc::clone(first)};
-            unsafe {(*(this as *mut MyStruct)).last = Rc::clone(last)};
+                first: MaybeUninit::uninit(),
+                last: MaybeUninit::uninit()}));
+            // Two ways to write uninitialized values
+            unsafe {(*(this  as *mut MyStruct)).first.as_mut_ptr().write(Rc::clone(first))};
+            unsafe {(*(this as *mut MyStruct)).last = transmute(Rc::clone(last))};
             this
         }
     }
     impl HasFirst for MyStruct {
         // Use unsafe and pointer casting if necessary
         fn _get_first(&self) -> Rc<String> {
-            self.first.clone()
+            unsafe { std::ptr::read(self.first.as_ptr()).clone() }
         }
         fn _set_first(&self, new_first: &Rc<String>) {
-            let this = self as *const MyStruct;
-            unsafe {(*(this as *mut MyStruct)).first = Rc::clone(new_first)};
+            unsafe {(*(self as *const MyStruct as *mut MyStruct)).first
+              = transmute(Rc::clone(new_first))};
+        }
+    }
+    impl MyStruct {
+        fn _set_first_mut(&mut self, new_first: &Rc<String>) {
+            unsafe {(*(self as *mut MyStruct)).first
+              = transmute(Rc::clone(new_first))};
+        }
+        fn _set_first_static(this: *const MyStruct, new_first: &Rc<String>) {
+            unsafe {transmute::<*const MyStruct, &mut MyStruct>(this)}
+              ._set_first_mut(new_first)
         }
     }
     #[test]
@@ -155,13 +181,13 @@ mod tests {
         }
 
         // Modify the field "first" to "Jane" in theobject (unsafe code is fine)
-        unsafe {(*(theobject as *mut MyStruct)).first = Rc::new("Jane".to_string())};
+        unsafe {(*(theobject as *mut MyStruct)).first = transmute(Rc::new("Jane".to_string()))};
         // Using std::ptr::write:
         //unsafe {std::ptr::write(&mut (*theobject).first, "Jane".to_string())};}h
 
         // If !reuse and theobject.first == possiblealias.first, panic (unreachable code)
-        if !reuse && unsafe{std::ptr::read(&(*theobject).first)}
-                  == unsafe{std::ptr::read(&(*possiblealias).first)} {
+        if !reuse && unsafe{std::ptr::read(&(*theobject).first.as_ptr())}
+                  == unsafe{std::ptr::read(&(*possiblealias).first.as_ptr())} {
             panic!("Unreachable code reached!");
         }
 
@@ -176,9 +202,9 @@ mod tests {
 
     #[test]
     fn test_tree() {
-        let tree: Tree<Rc<MyStruct>> = Tree::Node{
+        let tree: Tree<Rc<MyStructDatatype>> = Tree::Node{
             left: Rc::new(Tree::Leaf),
-            value: Rc::new(MyStruct{
+            value: Rc::new(MyStructDatatype{
                 first: Rc::new("Jane".to_string()),
                 last: Rc::new("Doe".to_string())}),
             right: Rc::new(Tree::Leaf)
@@ -195,15 +221,16 @@ mod tests {
         let tree: Tree<*const MyStruct> = Tree::Node{
             left: Rc::new(Tree::Leaf),
             value: allocate(Box::new(MyStruct{
-                first: Rc::new("Jane".to_string()),
-                last: Rc::new("Doe".to_string())})),
+                first: unsafe{transmute(Rc::new("Jane".to_string()))},
+                last: unsafe{transmute(Rc::new("Doe".to_string()))}
+            })),
             right: Rc::new(Tree::Leaf)};
         
         assert!(tree._isNode());
         assert!(!tree._isLeaf());
         // Use the unsafe read in the previous test
         let value = unsafe{std::ptr::read(&(*tree.value()).first)};
-        assert_eq!((*value).as_ref(), "Jane".to_string());
+        assert_eq!((*unsafe{value.assume_init()}).as_ref(), "Jane".to_string());
     }
 
     // Now let's encode a codatatype from Dafny
@@ -382,12 +409,12 @@ mod tests {
       j = z;
     }
 
-    trait Func1<T> {
-        fn apply(&self, x: &Rc<BigInt>) -> bool;
+    trait Func1<T1, O1> {
+        fn apply(&self, x: &T1) -> O1;
     }
 
     struct Closure1 {  y: Rc<BigInt>}
-    impl Func1<Rc<BigInt>> for Closure1 {
+    impl Func1<Rc<BigInt>, bool> for Closure1 {
         fn apply(&self, x: &Rc<BigInt>) -> bool {
             x.eq(&self.y)
         }
@@ -395,7 +422,7 @@ mod tests {
     #[test]
     fn test_apply1() {
       let y = Rc::new(BigInt::one());
-      let f: Rc<dyn Func1<Rc<BigInt>>> = Rc::new(Closure1{ y });
+      let f: Rc<dyn Func1<Rc<BigInt>, bool>> = Rc::new(Closure1{ y });
       assert_eq!(f.apply(&Rc::new(BigInt::zero())), false);
     }
 
@@ -403,9 +430,191 @@ mod tests {
     fn test_apply1Native() {
         let y: Rc<BigInt> = Rc::new(BigInt::one());
         let y_copy = Rc::clone(&y); // Create a cloned BigInt
-        let f = Rc::new(
+        let f: Rc<dyn Fn(&Rc<BigInt>) -> bool> = Rc::new(
             move |x: &Rc<BigInt>|y_copy.eq(x));
         assert_eq!(f.as_ref()(&Rc::new(BigInt::zero())), false);
+    }
+
+    // Covariance and contravariance for traits
+    trait Input {
+        fn get_value(&self) -> Rc<BigInt>;
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial>;
+        /*fn as_input(&self) -> Rc<dyn Input>;
+        fn as_input_allocated(&self) -> Rc<*const dyn Input>;*/
+    }
+    trait InputWithInitial: Input {
+        fn initial_value(&self) -> Rc<BigInt>;    
+    }
+    struct JustInput {
+        value: Rc<BigInt>
+    }
+    // Allocated version
+    impl Input for *const JustInput {
+        fn get_value(&self) -> Rc<BigInt> {
+            unsafe { Rc::clone(&(**self).value) }
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            None
+        }
+    }
+    // Datatype version
+    impl Input for Rc<JustInput> {
+        fn get_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.value)
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            None
+        }
+    }
+    impl Input for JustInput {
+        fn get_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.value)
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            None
+        }
+    }
+
+    struct JustInputWithInitial {
+        value: Rc<BigInt>,
+        initial: Rc<BigInt>
+    }
+    impl InputWithInitial for Rc<JustInputWithInitial> {
+        fn initial_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.initial)
+        }
+    }
+    impl InputWithInitial for *const JustInputWithInitial {
+        fn initial_value(&self) -> Rc<BigInt> {
+            unsafe { Rc::clone(&(**self).initial) }
+        }
+    }
+    impl InputWithInitial for JustInputWithInitial {
+        fn initial_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.initial)
+        }
+    }
+    impl Input for Rc<JustInputWithInitial> {
+        fn get_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.value)
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            Some(self as *const dyn InputWithInitial)
+        }
+    }
+    impl Input for *const JustInputWithInitial {
+        fn get_value(&self) -> Rc<BigInt> {
+            unsafe { Rc::clone(&(**self).value) }
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            Some(self)
+        }
+    }
+    impl Input for JustInputWithInitial {
+        fn get_value(&self) -> Rc<BigInt> {
+            Rc::clone(&self.value)
+        }
+        fn with_initial(&self) -> Option<*const dyn InputWithInitial> {
+            Some(self as *const dyn InputWithInitial)
+        }
+    }
+    
+    #[test]
+    fn test_allocated_native() {
+        let a: Rc<dyn Fn(*const dyn Input) -> *const dyn InputWithInitial> =
+          Rc::new(|x: *const dyn Input| {
+            // Just return a new value 
+            allocate(Box::new(JustInputWithInitial {
+                value: (unsafe{&*x}).get_value(),
+                initial: (unsafe{&*x}).get_value()
+            }))
+          });
+        let b: Rc<dyn Fn(*const dyn InputWithInitial) -> *const dyn Input> =
+          unsafe { transmute(Rc::clone(&a))};
+        // Let's try to pass a regular Input and a regular InputWithInitial to a
+        // Let's try to pass a regular InputWithInitial to b
+        let just_input = allocate(Box::new(JustInput { value: Rc::new(BigInt::zero())}));
+        let just_input_with_initial = allocate(Box::new(JustInputWithInitial {
+            value: Rc::new(BigInt::zero()),
+            initial: Rc::new(BigInt::one())
+        }));
+        let input: *const dyn Input = just_input;
+        let input_with_initial: *const dyn InputWithInitial = just_input_with_initial;
+        // The following will be fixed by Rust on February 8, 2024
+        // https://github.com/rust-lang/rust/pull/118133
+        //let input_with_initial_as_input: *const dyn Input = input_with_initial;
+        let result1: *const dyn Input = (*b)(input_with_initial);
+        //let result2: *const dyn InputWithInitial = (*a)(input_with_initial_as_input);
+        let result3: *const dyn InputWithInitial = (*a)(input);
+        assert_eq!(unsafe { &*result1 }.get_value(), (unsafe{&*input}).get_value());
+        //assert_eq!(unsafe { &*result2 }.get_value(), (unsafe{&*input}).get_value());
+        assert_eq!(unsafe { &*result3 }.get_value(), (unsafe{&*input}).get_value());
+    }
+
+    struct Closure2 { }
+    impl Func1<*const dyn Input, *const dyn InputWithInitial> for Closure2 {
+        fn apply(&self, x: &*const dyn Input) -> *const dyn InputWithInitial {
+            allocate(Box::new(JustInputWithInitial {
+                value: unsafe { (**x).get_value() },
+                initial: unsafe { (**x).get_value() }
+            }))
+        }
+    }
+
+    #[test]
+    fn test_allocated_interpreted() {
+        let a: Rc<dyn Func1<*const dyn Input, *const dyn InputWithInitial>> =
+          Rc::new(Closure2{});
+        let b: Rc<dyn Func1<*const dyn InputWithInitial, *const dyn Input>> =
+          unsafe { transmute(Rc::clone(&a))};
+        // Let's try to pass a regular Input and a regular InputWithInitial to a
+        // Let's try to pass a regular InputWithInitial to b
+        let just_input = allocate(Box::new(JustInput { value: Rc::new(BigInt::zero())}));
+        let just_input_with_initial = allocate(Box::new(JustInputWithInitial {
+            value: Rc::new(BigInt::zero()),
+            initial: Rc::new(BigInt::one())
+        }));
+        let input: *const dyn Input = just_input;
+        let input_with_initial: *const dyn InputWithInitial = just_input_with_initial;
+        // The following will be fixed by Rust on February 8, 2024
+        // https://github.com/rust-lang/rust/pull/118133
+        //let input_with_initial_as_input: *const dyn Input = input_with_initial;
+        let result1: *const dyn Input = (*b).apply(&input_with_initial);
+        //let result2: *const dyn InputWithInitial = (*a)(input_with_initial_as_input);
+        let result3: *const dyn InputWithInitial = (*a).apply(&input);
+        assert_eq!(unsafe { &*result1 }.get_value(), (unsafe{&*input}).get_value());
+        //assert_eq!(unsafe { &*result2 }.get_value(), (unsafe{&*input}).get_value());
+        assert_eq!(unsafe { &*result3 }.get_value(), (unsafe{&*input}).get_value());
+    }
+
+    #[test]
+    fn test_datatype_native() {
+        let a: Rc<dyn Fn(&Rc<dyn Input>) -> Rc<dyn InputWithInitial>> =
+          Rc::new(|x: &Rc<dyn Input>| {
+            // Just return a new value 
+            Rc::new(JustInputWithInitial {
+                value: x.get_value(),
+                initial: x.get_value()
+            })
+          });
+        let b: Rc<dyn Fn(&Rc<dyn InputWithInitial>) -> Rc<dyn Input>> =
+          unsafe { transmute(Rc::clone(&a))};
+        let just_input = Rc::new(JustInput { value: Rc::new(BigInt::zero())});
+        let just_input_with_initial = Rc::new(JustInputWithInitial {
+            value: Rc::new(BigInt::zero()),
+            initial: Rc::new(BigInt::one())
+        });
+        let input: Rc<dyn Input> = just_input;
+        let input_with_initial: Rc<dyn InputWithInitial> = just_input_with_initial;
+        // The following will be fixed by Rust on February 8, 2024
+        // https://github.com/rust-lang/rust/pull/118133
+        //let input_with_initial_as_input: Rc<dyn Input> = input_with_initial;
+        let result1: Rc<dyn Input> = (*b)(&input_with_initial);
+        //let result2: Rc<dyn InputWithInitial> = (*a)(input_with_initial_as_input);
+        let result3: Rc<dyn InputWithInitial> = (*a)(&input);
+        assert_eq!(result1.get_value(), input.get_value());
+        //assert_eq!(result2.get_value(), input.get_value());
+        assert_eq!(result3.get_value(), input.get_value());
     }
 }
 // Struct containing two reference-counted fields

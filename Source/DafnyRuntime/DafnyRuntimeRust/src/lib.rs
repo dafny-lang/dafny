@@ -2,10 +2,11 @@
 mod tests;
 use std::{fmt::{Display, Formatter},
           rc::Rc, ops::{Deref, Add},
+          hash::Hash,
           collections::{HashSet, HashMap},
           cell::RefCell, any::Any};
 use num::{Integer, Signed, One};
-use as_any::{AsAny};
+use as_any::AsAny;
 
 pub use once_cell::unsync::Lazy;
 
@@ -31,25 +32,36 @@ pub type SizeT = usize;
 
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
 
+
 #[allow(dead_code)]
 mod dafny_runtime_conversions {
     use num::BigInt;
 
     use crate::Sequence;
     use crate::Map;
+    use crate::Set;
     use std::cell::RefCell;
     use std::collections::HashMap;
-    use std::convert;
+    use std::collections::HashSet;
     use std::rc::Rc;
     use std::hash::Hash;
-    pub fn dafny_int_to_bigint(i: &Rc<BigInt>) -> BigInt {
+
+    
+    type DafnyInt = Rc<BigInt>;
+    type DafnySequence<T> = Rc<Sequence<T>>;
+    type DafnyMap<K, V> = Rc<Map<K, V>>;
+    type DafnySet<T> = Rc<Set<T>>;
+    
+    pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
         i.as_ref().clone()
     }
-    pub fn bigint_to_dafny_int(i: &BigInt) -> Rc<BigInt> {
+    pub fn bigint_to_dafny_int(i: &BigInt) -> DafnyInt {
         Rc::new(i.clone())
     }
 
-    pub fn dafny_sequence_to_vec<T, X>(s: &Sequence<T>, elem_converter: fn(&T) -> X) -> Vec<X>
+    pub fn dafny_sequence_to_vec<T, X>(
+        s: &DafnySequence<T>,
+        elem_converter: fn(&T) -> X) -> Vec<X>
       where T: Clone
     {
         let mut array: Vec<T> = Vec::with_capacity(s.cardinality());
@@ -58,7 +70,8 @@ mod dafny_runtime_conversions {
     }
 
     // Used for external conversions
-    pub fn vec_to_dafny_sequence<T, X>(array: &Vec<X>, elem_converter: fn(&X) -> T) -> Rc<Sequence<T>>
+    pub fn vec_to_dafny_sequence<T, X>(array: &Vec<X>, elem_converter: fn(&X) -> T)
+     -> DafnySequence<T>
       where T: Clone
     {
         let mut result: Vec<T> = Vec::with_capacity(array.len());
@@ -68,7 +81,7 @@ mod dafny_runtime_conversions {
         Sequence::<T>::new_array_sequence(&Rc::new(result))
     }
     
-    fn dafny_map_to_hashmap<K, V, K2, V2>(m: &Rc<Map<K, V>>, converter_k: fn(&K)->K2, converter_v: fn(&V)->V2) -> HashMap<K2, V2>
+    fn dafny_map_to_hashmap<K, V, K2, V2>(m: &DafnyMap<K, V>, converter_k: fn(&K)->K2, converter_v: fn(&V)->V2) -> HashMap<K2, V2>
       where
           K: Eq + Clone + Hash, V: Clone,
           K2: Eq + Hash, V2: Clone
@@ -77,7 +90,7 @@ mod dafny_runtime_conversions {
     }
 
     fn hashmap_to_dafny_map<K2, V2, K, V>(map: &HashMap<K2, V2>, converter_k: fn(&K2)->K, converter_v: fn(&V2)->V)
-        -> Rc<Map<K, V>>
+        -> DafnyMap<K, V>
       where
         K: Eq + Clone + Hash, V: Clone,
         K2: Eq + Hash, V2: Clone
@@ -98,11 +111,12 @@ mod dafny_runtime_conversions {
         use crate::Sequence;
         use std::rc::Rc;
 
-        use super::unicode_chars_false;
-        pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
+        type DafnyString = Rc<Sequence<char>>;
+
+        pub fn string_to_dafny_string(s: &str) -> DafnyString {
             Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
         }
-        pub fn dafny_string_to_string(s: &Rc<Sequence<char>>) -> String {
+        pub fn dafny_string_to_string(s: &DafnyString) -> String {
             let characters = s.to_array();
             characters.iter().collect::<String>()
         }
@@ -112,15 +126,37 @@ mod dafny_runtime_conversions {
     pub mod unicode_chars_false {
         use crate::Sequence;
         use std::rc::Rc;
-        pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<u16>> {
+
+        type DafnyString = Rc<Sequence<u16>>;
+
+        pub fn string_to_dafny_string(s: &str) -> DafnyString {
             Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
         }
-        pub fn dafny_string_to_string(s: &Rc<Sequence<u16>>) -> String {
+        pub fn dafny_string_to_string(s: &DafnyString) -> String {
             let characters = s.to_array();
             String::from_utf16_lossy(&characters)
         }
     }
     
+    pub fn set_to_dafny_set<T, U>(set: &HashSet<T>, converter: fn(&T) -> U)
+      -> DafnySet<U>
+        where T: Clone + Eq + Hash, U: Clone + Eq
+    {
+        let mut result: Vec<U> = Vec::new();
+        for s in set.iter() {
+            result.push(converter(s));
+        }
+        Set::set_from_array(&Rc::new(result))
+    }
+    pub fn dafny_set_to_set<T, U>(set: &DafnySet<T>, converter: fn(&T) -> U) -> HashSet<U>
+        where T: Clone + Eq, U: Clone + Eq + Hash
+    {
+        let mut result: HashSet<U> = HashSet::new();
+        for s in set.data.to_array().iter() {
+            result.insert(converter(s));
+        }
+        result
+    }
 }
 
 #[allow(dead_code)]
@@ -260,7 +296,45 @@ where T: Clone {
         let array = self.to_array();
         array[index].clone()
     }
-    
+}
+impl <T> Sequence<T> where T: Eq + Clone {
+    fn contains(&self, value: &T) -> bool {
+        self.to_array().contains(value)
+    }
+}
+impl <T, U> PartialEq<Sequence<U>> for Sequence<T>
+  where T: Clone + PartialEq<U>,
+        U: Clone
+  {
+    fn eq(&self, other: &Sequence<U>) -> bool {
+        // Iterate through both elements and verify that they are equal
+        let values = self.to_array();
+        let mut i: usize = 0;
+        for value in values.iter() {
+            if value != &other.select(i) {
+                return false;
+            }
+            i += 1;
+        }
+        true
+    }
+}
+
+impl <V> DafnyPrint for Sequence<V>
+  where V: DafnyPrint + Clone
+{
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+      f.write_str("[")?;
+      let mut first = true;
+      for value in self.to_array().iter() {
+          if !first {
+              f.write_str(", ")?;
+          }
+          first = false;
+          value.fmt_print(f, in_seq)?;
+      }
+      f.write_str("]")
+    }
 }
 
 // **************
@@ -335,12 +409,216 @@ impl <K, V> Map<K, V>
         })
     
     }
-    // TODO: Remaining methods + check names
+}
+
+impl <K, V> DafnyPrint for Map<K, V>
+  where K: DafnyPrint + Clone + Eq + Hash, V: DafnyPrint + Clone
+{
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        f.write_str("map[")?;
+      let mut first = true;
+      for (k, v) in self.data.to_array().iter() {
+          if !first {
+              f.write_str(", ")?;
+          }
+          first = false;
+          k.fmt_print(f, in_seq)?;
+          f.write_str(" := ")?;
+          v.fmt_print(f, in_seq)?;
+      }
+      f.write_str("}")
+    
+    }
+}
+// **************
+// Immutable sets
+// **************
+
+struct Set<V>
+  where V: Clone + Eq
+{
+    data: Rc<Sequence<V>>
+    // Should we add a cache for faster lookup? But it requires Hash trait.
+}
+
+#[allow(dead_code)]
+impl <V> Set<V> where V: Clone + Eq {
+    fn new_empty() -> Rc<Set<V>> {
+        Self::set_from_array(&Rc::new(Vec::new()))
+    }
+    fn set_from_sequence(data: &Rc<Sequence<V>>) -> Rc<Set<V>> {
+        Rc::new(Set {
+            data: Sequence::new_lazy_sequence(data)
+        })
+    }
+    fn set_from_array(array: &Rc<Vec<V>>) -> Rc<Set<V>> {
+        Rc::new(Set {
+            data: Sequence::new_array_sequence(array)
+        })
+    }
+}
+
+trait SetInterface<V>
+  where V: Clone + Eq + DafnyPrint
+{
+    fn cardinality(&self) -> SizeT;
+    fn cardinality_int(&self) -> Rc<BigInt>;
+    fn contains(&self, value: &V) -> bool;
+    fn union(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
+    fn intersection(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
+    fn difference(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
+    fn is_disjoint_from(&self, other: &Rc<Set<V>>) -> bool;
+    fn equals(&self, other: &Rc<Set<V>>) -> bool;
+    fn is_subset_of(&self, other: &Rc<Set<V>>) -> bool;
+    fn is_proper_subset_of(&self, other: &Rc<Set<V>>) -> bool;
+    fn elements(&self) -> Rc<Set<V>>;
+}
+
+impl <V> SetInterface<V> for Rc<Set<V>>
+  where V: Clone + Eq + DafnyPrint
+{
+    fn cardinality(&self) -> SizeT {
+        self.data.cardinality()
+    }
+    fn cardinality_int(&self) -> Rc<BigInt> {
+        Rc::new(BigInt::from(self.cardinality() as i64))
+    }
+    fn contains(&self, value: &V) -> bool {
+        self.data.contains(value)
+    }
+    fn union(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+        if self.cardinality() == 0 {
+            return Rc::clone(other);
+        }
+        if other.cardinality() == 0 {
+            return Rc::clone(self);
+        }
+        let mut result = Rc::clone(&self.data);
+        // iterate over the other, add only not contained elements
+        for value in other.data.to_array().iter() {
+            if !result.contains(value) {
+                result = Sequence::<V>::new_concat_sequence(&result,
+                     &Sequence::new_array_sequence(&Rc::new(vec![value.clone()])));
+            }
+        }
+        Set::set_from_sequence(&result)
+    }
+
+    fn intersection(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+        if self.cardinality() == 0 {
+            return Rc::clone(self);
+        }
+        if other.cardinality() == 0 {
+            return Rc::clone(other);
+        }
+        // Start with an empty vec with capacity the smallest of both sets
+        let mut result =
+            Vec::with_capacity(
+                std::cmp::min(self.cardinality(), other.cardinality()));
+          
+        // iterate over the other, take only elements in common
+        for value in other.data.to_array().iter() {
+            if self.contains(value) {
+                result.push(value.clone());
+            }
+        }
+        Set::set_from_array(&Rc::new(result))
+    }
+
+    fn difference(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+        if self.cardinality() == 0 {
+            return Rc::clone(self);
+        }
+        if other.cardinality() == 0 {
+            return Rc::clone(self);
+        }
+        // Start with a vec the size of the first one
+        let mut result =
+            Vec::with_capacity(self.cardinality());
+          
+        // iterate over the other, take only elements not in second
+        for value in other.data.to_array().iter() {
+            if !self.contains(value) {
+                result.push(value.clone());
+            }
+        }
+        Set::set_from_array(&Rc::new(result))
+    }
+
+    fn is_disjoint_from(&self, other: &Rc<Set<V>>) -> bool {
+        if self.cardinality() == 0 {
+            return true;
+        }
+        if other.cardinality() == 0 {
+            return true;
+        }
+        // iterate over the other, take only elements not in second
+        for value in other.data.to_array().iter() {
+            if self.contains(value) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn equals(&self, other: &Rc<Set<V>>) -> bool {
+        if self.cardinality() != other.cardinality() {
+            return false;
+        }
+        // iterate over the other, take only elements not in second
+        for value in other.data.to_array().iter() {
+            if !self.contains(value) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn is_subset_of(&self, other: &Rc<Set<V>>) -> bool {
+        if self.cardinality() == 0 {
+            return true;
+        }
+        if other.cardinality() == 0 {
+            return false;
+        }
+        // iterate over the other, take only elements not in second
+        for value in other.data.to_array().iter() {
+            if !self.contains(value) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn is_proper_subset_of(&self, other: &Rc<Set<V>>) -> bool {
+        self.is_subset_of(other) && self.cardinality() != other.cardinality()
+    }
+
+    fn elements(&self) -> Rc<Set<V>> {
+        Rc::clone(self)
+    }
+}
+
+impl <V> DafnyPrint for Rc<Set<V>>
+  where V: Clone + Eq + DafnyPrint
+{
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        f.write_str("{")?;
+        let mut first = true;
+        for value in self.data.to_array().iter() {
+            if !first {
+                f.write_str(", ")?;
+            }
+            first = false;
+            value.fmt_print(f, in_seq)?;
+        }
+        f.write_str("}")
+    }
 }
 
 // Generic function to allocate and return a raw pointer immediately
 #[inline]
-pub fn allocate<T>(value: Box<T>) -> *const T {
+pub fn allocate<T: ?Sized>(value: Box<T>) -> *const T {
     Box::into_raw(value)
 }
 
