@@ -8,7 +8,12 @@ public static class DafnyCliTests {
   // Environment variables that the CLI directly or indirectly (through target language tools) reads.
   // This is defined for the benefit of testing infrastructure to ensure that they are maintained
   // through separate processes.
-  public static readonly string[] ReferencedEnvironmentVariables = { "PATH", "HOME", "DOTNET_NOLOGO" };
+  public static readonly string[] ReferencedEnvironmentVariables = {
+    "PATH",
+    "HOME",
+    "DOTNET_NOLOGO",
+    "TEST_DAFNY=true"
+  };
 
   static DafnyCliTests() {
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {

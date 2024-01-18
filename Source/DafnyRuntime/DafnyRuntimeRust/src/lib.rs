@@ -35,23 +35,25 @@ pub type SizeT = usize;
 
 #[allow(dead_code)]
 mod dafny_runtime_conversions {
+    type DafnyInt = Rc<BigInt>;
+    type DafnySequence<T> = Rc<Sequence<T>>;
+    type DafnyMap<K, V> = Rc<Map<K, V>>;
+    type DafnySet<T> = Rc<Set<T>>;
+    type DafnyMultiset<T> = Rc<Multiset<T>>;
+    type DafnyBool = bool;
+    type DafnyString = String;
+
     use num::BigInt;
 
     use crate::Sequence;
     use crate::Map;
     use crate::Set;
-    use std::cell::RefCell;
+    use crate::Multiset;
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::rc::Rc;
     use std::hash::Hash;
 
-    
-    type DafnyInt = Rc<BigInt>;
-    type DafnySequence<T> = Rc<Sequence<T>>;
-    type DafnyMap<K, V> = Rc<Map<K, V>>;
-    type DafnySet<T> = Rc<Set<T>>;
-    
     pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
         i.as_ref().clone()
     }
@@ -149,6 +151,28 @@ mod dafny_runtime_conversions {
         }
         result
     }
+
+    pub fn dafny_multiset_to_owned_vec<T, U>(ms: &DafnyMultiset<T>, converter: fn(&T) -> U) -> Vec<U>
+        where T: Clone + Eq + Hash, U: Clone + Eq
+    {
+        let mut result: Vec<U> = Vec::new();
+        for s in ms.data.data.to_array().iter() {
+            // Push T as many times as its size
+            for _ in 0..s.1 {
+                result.push(converter(&s.0));
+            }
+        }
+        result
+    }
+
+    pub fn vec_to_dafny_multiset<T, U>(vec: &Vec<U>, converter: fn(&U) -> T) -> DafnyMultiset<T>
+        where T: Clone + Eq + Hash, U: Clone + Eq + Hash
+    {
+        Multiset::from_owned_array(
+            vec.into_iter().map(|u: &U| converter(u)).collect()
+        )
+    }
+
 }
 
 #[allow(dead_code)]
@@ -641,14 +665,20 @@ impl <V> Multiset<V>
   where V: Clone + Eq + Hash
 {
     fn new_empty() -> Rc<Multiset<V>> {
-        Self::multiset_from_map(&Map::new_empty())
+        Self::from_map(&Map::new_empty())
     }
-    fn multiset_from_map(data: &Rc<Map<V, usize>>) -> Rc<Multiset<V>>{
+    fn from_map(data: &Rc<Map<V, usize>>) -> Rc<Multiset<V>>{
         Rc::new(Multiset {
             data: data.clone()
         })
     }
-    fn multiset_from_seq(data: &Rc<Sequence<V>>) -> Rc<Multiset<V>> {
+    fn from_owned_array(data: Vec<V>) -> Rc<Multiset<V>> {
+        // Create an ArraySequence from the data
+        let seq = Sequence::<V>::new_array_sequence(&Rc::new(data));
+        // Create a Map from the ArraySequence
+        Self::from_seq(&seq)
+    }
+    fn from_seq(data: &Rc<Sequence<V>>) -> Rc<Multiset<V>> {
         let mut hashmap: HashMap<V, usize> = HashMap::new();
         for value in data.to_array().iter() {
             let count = hashmap.entry(value.clone()).or_insert(0);
@@ -657,11 +687,11 @@ impl <V> Multiset<V>
         let map = Map::<V, usize>::from_hashmap(
             &hashmap, |v| v.clone(), 
             |u| u.clone());
-        Self::multiset_from_map(&map)
+        Self::from_map(&map)
     }
-    fn multiset_from_set(set: &Rc<Set<V>>) -> Rc<Multiset<V>> {
+    fn from_set(set: &Rc<Set<V>>) -> Rc<Multiset<V>> {
         let seq = &set.data;
-        Self::multiset_from_seq(seq)
+        Self::from_seq(seq)
     }
 }
 

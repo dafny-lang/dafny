@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Dafny;
 using JetBrains.Annotations;
 using DAST;
@@ -43,6 +44,7 @@ namespace Microsoft.Dafny.Compilers {
   class DafnyCompiler : SinglePassCompiler {
     ProgramBuilder items;
     public object currentBuilder;
+    public bool testing;
 
     public void Start() {
       if (items != null) {
@@ -65,10 +67,12 @@ namespace Microsoft.Dafny.Compilers {
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
+
+      testing = Environment.GetEnvironmentVariable("TEST_DAFNY") == "true";
     }
 
     public void throwGeneralUnsupported(string why) {
-      if (this.currentBuilder is UnsupportedContainer container) {
+      if (!testing && currentBuilder is UnsupportedContainer container) {
         container.AddUnsupported(why);
       } else {
         // throw new InvalidOperationException(); // (useful for debugging)
@@ -77,7 +81,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public void ThrowSpecificUnsupported(IToken token, Feature feature) {
-      if (this.currentBuilder is UnsupportedContainer container) {
+      if (!testing && currentBuilder is UnsupportedContainer container) {
         container.AddUnsupported(feature.ToString());
       } else {
         // throw new InvalidOperationException(); // (useful for debugging)
@@ -2216,7 +2220,7 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NotInSeq => DAST.BinOp.create_NotIn(),
           BinaryExpr.ResolvedOpcode.SetDifference => DAST.BinOp.create_SetDifference(),
           BinaryExpr.ResolvedOpcode.Concat => DAST.BinOp.create_Concat(),
-          _ => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString(opString)),
+          _ => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("Unsupported: Operator " + op.ToString())),
         };
 
         opString = "";
