@@ -1133,8 +1133,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(UnicodeCharEnabled ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
-      } else if (AsNativeType(e.Type) is NativeType nt) {
-        EmitNativeIntegerLiteral((BigInteger)e.Value, nt, wr);
+      } else if (AsNativeType(e.Type) is {} nativeType) {
+        EmitNativeIntegerLiteral((BigInteger)e.Value, nativeType, wr);
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
           wr.Write("java.math.BigInteger.ZERO");
@@ -1742,11 +1742,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
       bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
+      string nativeName = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
       }
       var leftShift = nativeType == null ? ".shiftLeft" : "<<";
       var rightShift = nativeType == null ? ".shiftRight" : ">>>";
@@ -1770,11 +1770,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+    private void EmitShift(Expression e0, Expression e1, string op, bool truncate, [CanBeNull] NativeType nativeType, bool firstOp,
         ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      var bv = e0.Type.AsBitVectorType;
+      var bv = e0.Type.NormalizeToAncestorType().AsBitVectorType;
       if (truncate) {
-        wr = EmitBitvectorTruncation(bv, true, wr);
+        wr = EmitBitvectorTruncation(bv, nativeType, true, wr);
       }
       tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
@@ -1792,31 +1792,30 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+
       string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out _);
       }
       // --- Before
-      if (bvType.NativeType == null) {
+      if (nativeType == null) {
         wr.Write("((");
       } else {
-        wr.Write($"({nativeName}) {CastIfSmallNativeType(bvType)}((");
+        wr.Write($"({nativeName}) {CastIfSmallNativeType(nativeType)}((");
       }
       // --- Middle
       var middle = wr.Fork();
       // --- After
       // do the truncation, if needed
-      if (bvType.NativeType == null) {
+      if (nativeType == null) {
         wr.Write($").and((java.math.BigInteger.ONE.shiftLeft({bvType.Width})).subtract(java.math.BigInteger.ONE)))");
+      } else if (bvType.Width < nativeType.Bitwidth) {
+        // print in hex, because that looks nice
+        wr.Write($") & {CastIfSmallNativeType(nativeType)}0x{(1UL << bvType.Width) - 1:X}{literalSuffix})");
       } else {
-        if (bvType.NativeType.Bitwidth != bvType.Width) {
-          // print in hex, because that looks nice
-          wr.Write($") & {CastIfSmallNativeType(bvType)}0x{(1UL << bvType.Width) - 1:X}{literalSuffix})");
-        } else {
-          wr.Write("))");  // close the parentheses for the cast
-        }
+        wr.Write("))"); // close the parentheses for the cast
       }
       return middle;
     }
@@ -2774,7 +2773,7 @@ namespace Microsoft.Dafny.Compilers {
             callS = null;
             staticCallS = $"{DafnyHelpersClass}.bv{width2}ShiftLeft";
           } else {
-            preOpS = $"({nativeName}) {CastIfSmallNativeType(resultType)} (";
+            preOpS = $"({nativeName}) {CastIfSmallNativeType(resultType)}(";
             opS = o;
             postOpS = ")";
             callS = null;
@@ -4019,7 +4018,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
@@ -4170,7 +4169,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write($"new {DafnyBigRationalClass}(");
           wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
           wr.Write(", java.math.BigInteger.ONE)");
-        } else if (toType.IsBitVectorType) {
+        } else if (toType.NormalizeToAncestorType().IsBitVectorType) {
           // ordinal -> bv
           if (AsNativeType(toType) != null) {
             TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
@@ -4191,9 +4190,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      Contract.Requires(fromType.IsRefType);
-      Contract.Requires(toType.IsRefType);
-
       // from T to U:   t instanceof U && ...
       // from T to U?:  t instanceof U && ...                 // since t is known to be non-null, this is fine
       // from T? to U:  t instanceof U && ...                 // note, "instanceof" implies non-null, so no need for explicit null check
@@ -4202,16 +4198,13 @@ namespace Microsoft.Dafny.Compilers {
         wr = wr.Write($"{localName} == null || ").ForkInParens();
       }
 
-      if (toType.IsObjectQ) {
-        wr.Write("true");
-      } else {
-        var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
-        wr.Write($"{localName} instanceof {typeName}");
-        localName = $"(({typeName}){localName})";
-      }
+      // TODO: is it necessary to check for .IsObject in the next line, and why isn't this just like in C# anyway?
+      var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
+      wr.Write($"{localName} instanceof {typeName}");
+      localName = $"(({typeName}){localName})";
 
-      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
-      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
+      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }

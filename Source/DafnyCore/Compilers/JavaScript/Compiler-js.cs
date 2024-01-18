@@ -1445,40 +1445,29 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
-      }
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
 
-      if (bvType.NativeType == null) {
-        wr.Write("(");
-        var middle = wr.Fork();
-        wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
-        return middle;
-      } else if (bvType.NativeType.Bitwidth != bvType.Width) {
-        // no truncation needed
+      Contract.Assert(nativeType == null || bvType.Width == 0); // JavaScript only supports "number" as a native type, and it is used just for bv0
+
+      if (bvType.Width == 0) {
         return wr;
-      } else {
-        wr.Write("((");
-        var middle = wr.Fork();
-        // print in hex, because that looks nice
-        wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
-        return middle;
       }
+      wr.Write("(");
+      var middle = wr.Fork();
+      wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
+      return middle;
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
 
-      var bv = e0.Type.AsBitVectorType;
+      var bv = e0.Type.NormalizeToAncestorType().AsBitVectorType;
       if (bv.Width == 0) {
         tr(e0, wr, inLetExprBody, wStmts);
       } else {
@@ -1996,20 +1985,22 @@ namespace Microsoft.Dafny.Compilers {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
           break;
-        case ResolvedUnaryOp.BitwiseNot:
-          if (AsNativeType(expr.Type) != null) {
+        case ResolvedUnaryOp.BitwiseNot: {
+          var exprType = expr.Type.NormalizeToAncestorType();
+          if (AsNativeType(exprType) != null) {
             // JavaScript bitwise operators are weird (numeric operands are first converted into
             // signed 32-bit values), and it could be easy to forget how weird they are.
             // Therefore, as a protective measure, the following assert is here to catch against any future
             // change that would render this translation incorrect.
-            Contract.Assert(expr.Type.AsBitVectorType.Width == 0);
+            Contract.Assert(exprType.AsBitVectorType.Width == 0);
             wr.Write("0");
           } else {
             wr.Write("_dafny.BitwiseNot(");
             wr.Append(Expr(expr, inLetExprBody, wStmts));
-            wr.Write(", {0})", expr.Type.AsBitVectorType.Width);
+            wr.Write(", {0})", exprType.AsBitVectorType.Width);
           }
           break;
+        }
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr("new BigNumber(", expr, wr, inLetExprBody, wStmts);
           if (expr.Type.AsMultiSetType != null) {
@@ -2031,11 +2022,9 @@ namespace Microsoft.Dafny.Compilers {
     bool IsRepresentedAsBigNumber(Type t) {
       if (AsNativeType(t) != null) {
         return false;
-      } else if (t.AsBitVectorType is { } bvt) {
-        return bvt.NativeType == null;
       } else {
         return t.IsNumericBased(Type.NumericPersuasion.Int)
-          || t.IsBitVectorType
+          || t.NormalizeToAncestorType().IsBitVectorType
           || t.IsBigOrdinalType;
       }
     }
@@ -2104,7 +2093,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0.Type);
             if (IsDirectlyComparable(eqType)) {
               opString = "===";
             } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
@@ -2117,7 +2106,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0.Type);
             if (IsDirectlyComparable(eqType)) {
               opString = "!==";
             } else if (eqType.IsIntegerType) {
@@ -2328,7 +2317,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType || fromType.IsBigOrdinalType) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType || fromType.IsBigOrdinalType) {
         if (toType.Equals(fromType)) {
           TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -2444,9 +2433,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      Contract.Requires(fromType.IsRefType);
-      Contract.Requires(toType.IsRefType);
-
       if (fromType.IsRefType && !fromType.IsNonNullRefType && toType.IsRefType) {
         if (toType.IsNonNullRefType) {
           wr.Write($"{localName} != null && ");
@@ -2465,8 +2451,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
       }
 
-      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
-      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
+      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }

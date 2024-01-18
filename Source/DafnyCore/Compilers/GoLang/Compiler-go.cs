@@ -2300,26 +2300,28 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+
       string literalSuffix = null;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out _, out literalSuffix, out _);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out _, out literalSuffix, out _);
       }
 
-      if (bvType.NativeType == null) {
+      if (nativeType == null) {
         wr.Write('(');
         var middle = wr.Fork();
         wr.Write(").Modulo(_dafny.One.Lsh(_dafny.IntOf({0})))", bvType.Width);
         return middle;
-      } else if (bvType.NativeType.Bitwidth == bvType.Width) {
-        // no truncation needed
-        return wr;
-      } else {
+      } else if (bvType.Width < nativeType.Bitwidth) {
         wr.Write("((");
         var middle = wr.Fork();
         // print in hex, because that looks nice
         wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
         return middle;
+      } else {
+        // no truncation needed
+        return wr;
       }
     }
 
@@ -2331,7 +2333,7 @@ namespace Microsoft.Dafny.Compilers {
         GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
 
-      var bv = e0.Type.AsBitVectorType;
+      var bv = e0.Type.NormalizeToAncestorType().AsBitVectorType;
       if (bv.Width == 0) {
         tr(e0, wr, inLetExprBody, wStmts);
       } else {
@@ -3190,20 +3192,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsDirectlyComparable(Type t) {
-      Contract.Requires(t != null);
       t = t.TrimNewtypes();
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
-             t.NormalizeExpand() is UserDefinedType { ResolvedClass: ClassDecl };
+             t is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {
       t = t.TrimNewtypes();
-      return t.IsIntegerType || t.IsRealType || t.IsBigOrdinalType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
+      return t.IsIntegerType || t.IsRealType || t.IsBigOrdinalType ||
+             (t.AsBitVectorType is { NativeType: null }) ||
+             (t.AsNewtype is { NativeType: null });
     }
 
     private bool IsComparedByEquals(Type t) {
       t = t.TrimNewtypes();
-      return t.IsIndDatatype || t.NormalizeExpand() is CollectionType;
+      return t.IsIndDatatype || t is CollectionType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -3322,7 +3325,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          if (resultType.IsBitVectorType) {
+          if (resultType.NormalizeToAncestorType().IsBitVectorType) {
             truncateResult = true;
           }
           if (AsNativeType(resultType) != null) {
@@ -3355,7 +3358,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Add:
-          if (resultType.IsBitVectorType) {
+          if (resultType.NormalizeToAncestorType().IsBitVectorType) {
             truncateResult = true;
           }
           if (resultType.IsCharType || AsNativeType(resultType) != null) {
@@ -3365,7 +3368,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (resultType.IsBitVectorType) {
+          if (resultType.NormalizeToAncestorType().IsBitVectorType) {
             truncateResult = true;
           }
           if (AsNativeType(resultType) != null) {
@@ -3386,7 +3389,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
-          if (resultType.IsBitVectorType) {
+          if (resultType.NormalizeToAncestorType().IsBitVectorType) {
             truncateResult = true;
           }
           if (AsNativeType(resultType) != null) {
@@ -3480,7 +3483,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (toType.Equals(fromType)) {
         TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType || fromType.IsBigOrdinalType) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType || fromType.IsBigOrdinalType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
@@ -3591,9 +3594,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      Contract.Requires(fromType.IsRefType);
-      Contract.Requires(toType.IsRefType);
-
       if (fromType.IsRefType && !fromType.IsNonNullRefType) {
         if (toType.IsNonNullRefType) {
           wr.Write($"!_dafny.IsDafnyNull({localName}) && ");
@@ -3614,8 +3614,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, {TypeName(toType, wr, tok)}{{}})");
       }
 
-      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
-      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
+      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }

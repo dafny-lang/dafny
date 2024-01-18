@@ -365,7 +365,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
           } else {
-            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
+            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
             zero = new LiteralExpr(e.tok, 0);
           }
           zero.Type = expr.Type;

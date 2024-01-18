@@ -451,3 +451,26 @@ module Bitvectors {
     se3 := set x | x in dd;
   }
 }
+/*
+module RealConversions {
+  method TestRealIsInt0(r: real)
+    requires r.Floor as real == r
+  {
+    if
+    case true =>
+      var _ := r as int;
+    case true =>
+      assert r is int;
+  }
+
+  method TestRealIsInt1(r: real)
+    requires r is int
+  {
+    if
+    case true =>
+      var _ := r as int;
+    case true =>
+      assert r.Floor as real == r;
+  }
+}
+*/

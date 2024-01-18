@@ -758,7 +758,7 @@ namespace Microsoft.Dafny {
                 case UnaryOpExpr.ResolvedOpcode.Lit:
                   return MaybeLit(arg);
                 case UnaryOpExpr.ResolvedOpcode.BVNot:
-                  var bvWidth = opExpr.Type.AsBitVectorType.Width;
+                  var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
                   var bvType = BoogieGenerator.BplBvType(bvWidth);
                   Boogie.Expr r = FunctionCall(GetToken(opExpr), "not_bv" + bvWidth, bvType, arg);
                   if (BoogieGenerator.IsLit(arg)) {

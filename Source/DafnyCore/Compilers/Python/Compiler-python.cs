@@ -1068,7 +1068,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       var vec = wr.ForkInParens();
       wr.Write($" & ((1 << {bvType.Width}) - 1)");
       return vec;
@@ -1085,9 +1086,9 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitShift(Expression e0, Expression e1, string op, bool truncate, bool firstOp, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      var bv = e0.Type.AsBitVectorType;
+      var bv = e0.Type.NormalizeToAncestorType().AsBitVectorType;
       if (truncate) {
-        wr = EmitBitvectorTruncation(bv, true, wr);
+        wr = EmitBitvectorTruncation(bv, null, true, wr);
       }
       tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
@@ -1521,15 +1522,16 @@ namespace Microsoft.Dafny.Compilers {
           opString = ">>";
           break;
 
-        case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Concat:
+          opString = "+";
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType && !UnicodeCharEnabled) {
             staticCallString = $"{DafnyRuntimeModule}.plus_char";
           } else {
-            if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
-              truncateResult = true;
-            }
             opString = "+";
+            truncateResult = true;
           }
           break;
 
@@ -1540,10 +1542,8 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsCharType && !UnicodeCharEnabled) {
             staticCallString = $"{DafnyRuntimeModule}.minus_char";
           } else {
-            if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
-              truncateResult = true;
-            }
             opString = "-";
+            truncateResult = true;
           }
           break;
 
@@ -1553,7 +1553,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsNumericBased(Type.NumericPersuasion.Int) || resultType.IsBitVectorType) {
+          if (resultType.IsNumericBased(Type.NumericPersuasion.Int) || resultType.NormalizeToAncestorType().IsBitVectorType) {
             staticCallString = $"{DafnyRuntimeModule}.euclidian_division";
           } else {
             opString = "/";
@@ -1655,7 +1655,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var (pre, post) = ("", "");
-      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsBigOrdinalType) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsBigOrdinalType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(", ", 1)");
         } else if (toType.IsCharType) {
@@ -1668,13 +1668,13 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.IsCharType) {
         if (toType.IsCharType) {
           // nothing to do
-        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsBitVectorType || toType.IsBigOrdinalType) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.NormalizeToAncestorType().IsBitVectorType || toType.IsBigOrdinalType) {
           (pre, post) = ("ord(", ")");
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           (pre, post) = ($"{DafnyRuntimeModule}.BigRational(ord(", "), 1)");
         }
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsBitVectorType || toType.IsBigOrdinalType) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.NormalizeToAncestorType().IsBitVectorType || toType.IsBigOrdinalType) {
           (pre, post) = ("int(", ")");
         } else if (toType.IsCharType) {
           if (UnicodeCharEnabled) {
@@ -1700,8 +1700,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"isinstance({localName}, {TypeName(toType, wr, tok)})");
       }
 
-      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
-      if (udtTo.ResolvedClass is SubsetTypeDecl and not NonNullTypeDecl) {
+      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
+      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(Token.NoToken, Feature.SubsetTypeTests);
       }

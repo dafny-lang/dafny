@@ -775,7 +775,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
-    protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
 
     protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -5332,7 +5333,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
-          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, false, wr);
+          wr = EmitBitvectorTruncation(e.Type.NormalizeToAncestorType().AsBitVectorType, e.Type.AsNativeType(), true, wr);
         }
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
@@ -5382,8 +5383,8 @@ namespace Microsoft.Dafny.Compilers {
             out var coerceE1,
             wr);
 
-          if (truncateResult && e.Type.IsBitVectorType) {
-            wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
+          if (truncateResult && e.Type.NormalizeToAncestorType().AsBitVectorType is {} bitvectorType) {
+            wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
