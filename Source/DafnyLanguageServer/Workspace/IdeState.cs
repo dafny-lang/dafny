@@ -176,6 +176,8 @@ public record IdeState(
         return UpdateFinishedResolution(options, logger, finishedResolution);
       case InternalCompilationException internalCompilationException:
         return UpdateInternalCompilationException(internalCompilationException);
+      case BoogieException boogieException:
+        return UpdateBoogieException(boogieException);
       case NewDiagnostic newDiagnostic:
         return UpdateNewDiagnostic(newDiagnostic);
       case ScheduledVerification scheduledVerification:
@@ -396,6 +398,36 @@ public record IdeState(
     };
   }
 
+  private IdeState UpdateBoogieException(BoogieException boogieException) {
+    var previousState = this;
+
+    var name = Compilation.GetImplementationName(boogieException.Task.Implementation);
+    var uri = boogieException.CanVerify.Tok.Uri;
+    var range = boogieException.CanVerify.NameToken.GetLspRange();
+
+    var previousVerificationResult = previousState.VerificationResults[uri][range];
+    var previousImplementations = previousVerificationResult.Implementations;
+    var previousView = previousImplementations.GetValueOrDefault(name) ??
+                       new IdeImplementationView(range, PublishedVerificationStatus.Error, Array.Empty<Diagnostic>(), false);
+    var diagnostics = previousView.Diagnostics;
+
+    var internalErrorDiagnostic = new Diagnostic {
+      Message = boogieException.Exception.Message,
+      Severity = DiagnosticSeverity.Error,
+      Range = range
+    };
+    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic}).ToList();
+
+    var view = new IdeImplementationView(range, PublishedVerificationStatus.Error, diagnostics.ToList(), previousView.HitErrorLimit);
+    
+    return previousState with {
+      VerificationResults = previousState.VerificationResults.SetItem(uri,
+        previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
+          Implementations = previousVerificationResult.Implementations.SetItem(name, view)
+        }))
+    };
+  }
+  
   private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);

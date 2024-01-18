@@ -105,6 +105,7 @@ public static class BoogieOptionBag {
 
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (value != null) {
+        options.ProverOptions.RemoveAll(s => s.StartsWith("PROVER_PATH="));
         options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");
       }
     });
