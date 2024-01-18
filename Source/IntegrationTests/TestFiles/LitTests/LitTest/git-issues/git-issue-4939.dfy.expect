@@ -1,0 +1,4 @@
+git-issue-4939.dfy(144,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'T' can be constructed
+git-issue-4939.dfy(146,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Mutual' can be constructed
+git-issue-4939.dfy(147,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nutual' can be constructed
+3 resolution/type errors detected in git-issue-4939.dfy

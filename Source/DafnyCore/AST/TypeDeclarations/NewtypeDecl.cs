@@ -49,6 +49,39 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     this.NewSelfSynonym();
   }
 
+  /// <summary>
+  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
+  /// </summary>
+  public Type RhsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    var scope = Type.GetScope();
+    var rtd = BaseType.AsRevealableType;
+    if (rtd != null) {
+      Contract.Assume(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
+      if (!rtd.IsRevealedInScope(scope)) {
+        // type is actually hidden in this scope
+        return rtd.SelfSynonym(typeArgs);
+      }
+    }
+    return RhsWithArgumentIgnoringScope(typeArgs);
+  }
+  /// <summary>
+  /// Returns the declared .BaseType but with formal type arguments replaced by the given actuals.
+  /// </summary>
+  public Type RhsWithArgumentIgnoringScope(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    // Instantiate with the actual type arguments
+    if (typeArgs.Count == 0) {
+      // this optimization seems worthwhile
+      return BaseType;
+    } else {
+      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+      return BaseType.Subst(subst);
+    }
+  }
+
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 

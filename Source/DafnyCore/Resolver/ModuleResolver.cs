@@ -1273,6 +1273,13 @@ namespace Microsoft.Dafny {
       }
 
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
+      var inductiveDatatypesCheckedForEmptiness = new Dictionary<IndDatatypeDecl, bool>();
+      foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null)) {
+        if (IsObviouslyEmpty(dtd, inductiveDatatypesCheckedForEmptiness)) {
+          reporter.Error(MessageSource.Resolver, dtd,
+            $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
+        }
+      }
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
           // do the following check once per SCC, so call it on each SCC representative
@@ -2847,6 +2854,47 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Determine if "datatypeDecl" is involved in a cycle in such a way that it is obvious that the type has no instances.
+    /// Return the answer.
+    ///
+    /// "informationSoFar" is used as a cache of computed information. The method updates the cache for "datatypeDecl".
+    /// </summary>
+    bool IsObviouslyEmpty(IndDatatypeDecl datatypeDecl, IDictionary<IndDatatypeDecl, bool> informationSoFar) {
+      var datatype = UserDefinedType.FromTopLevelDecl(datatypeDecl.tok, datatypeDecl);
+      var isEmpty = AreThereAnyObviousSignsOfEmptiness(datatype, informationSoFar, new HashSet<IndDatatypeDecl>());
+      informationSoFar.Add(datatypeDecl, isEmpty);
+      return isEmpty;
+    }
+
+    private bool AreThereAnyObviousSignsOfEmptiness(Type type, IDictionary<IndDatatypeDecl, bool> informationSoFar, ISet<IndDatatypeDecl> beingVisited) {
+      type = type.NormalizeExpand(); // cut through type proxies, type synonyms, but being mindful of what's in scope
+      if (type is UserDefinedType { ResolvedClass: var cl} udt) {
+        Contract.Assert(cl != null);
+        if (cl is NewtypeDecl newtypeDecl) {
+          return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), informationSoFar, beingVisited);
+        }
+        if (cl is IndDatatypeDecl datatypeDecl) {
+          if (informationSoFar.TryGetValue(datatypeDecl, out var isObviouslyEmpty)) {
+            return isObviouslyEmpty;
+          }
+          if (beingVisited.Contains(datatypeDecl)) {
+            // This datatype may be empty, but it's definitely empty if we consider only the constructors that have been visited
+            // since AreThereAnyObviousSignsOfEmptiness was called from IsObviouslyEmpty.
+            return true;
+          }
+          beingVisited.Add(datatypeDecl);
+          var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
+          var isEmpty = datatypeDecl.Ctors.TrueForAll(ctor =>
+            ctor.Formals.Exists(formal => AreThereAnyObviousSignsOfEmptiness(formal.Type.Subst(typeMap), informationSoFar, beingVisited)));
+          beingVisited.Remove(datatypeDecl);
+          return isEmpty;
+        }
+      }
+
+      return false;
+    }
+
+    /// <summary>
     /// Check that the SCC of 'startingPoint' can be carved up into stratospheres in such a way that each
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
@@ -2886,12 +2934,6 @@ namespace Microsoft.Dafny {
         } else if (clearedThisRound != 0) {
           // some progress was made, so let's keep going
         } else {
-          // whatever is in scc-cleared now failed to pass the test
-          foreach (var dt in scc) {
-            if (dt.GroundingCtor == null) {
-              reporter.Error(MessageSource.Resolver, dt, "because of cyclic dependencies among constructor argument types, no instances of datatype '{0}' can be constructed", dt.Name);
-            }
-          }
           return;
         }
       }
