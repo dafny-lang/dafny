@@ -103,7 +103,7 @@ iterator M<T(0)>(l: List<T>, c: Cell) yields (x: T)
     var document = CreateAndOpenTestDocument(program, "ErrorLimitReached.dfy");
     await WaitUntilAllStatusAreCompleted(document);
   }
-  
+
   [Fact]
   public async Task ErrorLimitReached() {
     var source = @"

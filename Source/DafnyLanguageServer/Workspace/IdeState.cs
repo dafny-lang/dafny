@@ -416,10 +416,10 @@ public record IdeState(
       Severity = DiagnosticSeverity.Error,
       Range = range
     };
-    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic}).ToList();
+    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic }).ToList();
 
     var view = new IdeImplementationView(range, PublishedVerificationStatus.Error, diagnostics.ToList(), previousView.HitErrorLimit);
-    
+
     return previousState with {
       VerificationResults = previousState.VerificationResults.SetItem(uri,
         previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
@@ -427,7 +427,7 @@ public record IdeState(
         }))
     };
   }
-  
+
   private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);
