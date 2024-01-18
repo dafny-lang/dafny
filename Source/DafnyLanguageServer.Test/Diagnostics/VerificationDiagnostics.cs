@@ -24,10 +24,10 @@ method Foo() ensures false { }";
     var path = Path.GetRandomFileName();
     CreateAndOpenTestDocument(projectFile, Path.Combine(path, DafnyProject.FileName));
     var document = CreateAndOpenTestDocument(program, Path.Combine(path, "BadSolverPath.dfy"));
-    var s = await WaitUntilAllStatusAreCompleted(document);
     var diagnostics = await GetLastDiagnostics(document);
     Assert.Contains(diagnostics, d => d.Message.Contains("Cannot find specified prover"));
   }
+
   [Fact]
   public async Task Iterator() {
     var program = @"
