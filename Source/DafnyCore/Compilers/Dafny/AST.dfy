@@ -25,7 +25,10 @@ module {:extern "DAST"} DAST {
 
   datatype Primitive = Int | Real | String | Bool | Char
 
-  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype(Type)
+  datatype ResolvedType =
+    | Datatype(path: seq<Ident>)
+    | Trait(path: seq<Ident>)
+    | Newtype(Type)
 
   datatype Ident = Ident(id: string)
 

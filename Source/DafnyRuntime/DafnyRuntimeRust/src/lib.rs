@@ -95,15 +95,7 @@ mod dafny_runtime_conversions {
         K: Eq + Clone + Hash, V: Clone,
         K2: Eq + Hash, V2: Clone
     {
-        let mut result: Vec<(K, V)> = Vec::new();
-        for (k, v) in map.iter() {
-            result.push((converter_k(k), converter_v(v)));
-        }
-        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
-        Rc::new(Map {
-            data: s,
-            cache: RefCell::new(None)
-        })
+        Map::<K, V>::from_hashmap(map, converter_k, converter_v)
     }
 
     // --unicode-chars:true
@@ -407,7 +399,23 @@ impl <K, V> Map<K, V>
             data: combined_data,
             cache: RefCell::new(None)
         })
-    
+    }
+
+    fn from_hashmap<K2, V2>(map: &HashMap<K2, V2>, converter_k: fn(&K2)->K, converter_v: fn(&V2)->V)
+        -> Rc<Map<K, V>>
+      where
+        K: Eq + Clone + Hash, V: Clone,
+        K2: Eq + Hash, V2: Clone
+    {
+        let mut result: Vec<(K, V)> = Vec::new();
+        for (k, v) in map.iter() {
+            result.push((converter_k(k), converter_v(v)));
+        }
+        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
+        Rc::new(Map {
+            data: s,
+            cache: RefCell::new(None)
+        })
     }
 }
 
@@ -430,6 +438,7 @@ impl <K, V> DafnyPrint for Map<K, V>
     
     }
 }
+
 // **************
 // Immutable sets
 // **************
@@ -599,7 +608,7 @@ impl <V> SetInterface<V> for Rc<Set<V>>
     }
 }
 
-impl <V> DafnyPrint for Rc<Set<V>>
+impl <V> DafnyPrint for Set<V>
   where V: Clone + Eq + DafnyPrint
 {
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
@@ -615,6 +624,84 @@ impl <V> DafnyPrint for Rc<Set<V>>
         f.write_str("}")
     }
 }
+
+// *******************
+// Immutable multisets
+// *******************
+
+#[allow(dead_code)]
+struct Multiset<V>
+  where V: Clone + Eq + Hash
+{
+    data: Rc<Map<V, usize>>
+}
+
+#[allow(dead_code)]
+impl <V> Multiset<V>
+  where V: Clone + Eq + Hash
+{
+    fn new_empty() -> Rc<Multiset<V>> {
+        Self::multiset_from_map(&Map::new_empty())
+    }
+    fn multiset_from_map(data: &Rc<Map<V, usize>>) -> Rc<Multiset<V>>{
+        Rc::new(Multiset {
+            data: data.clone()
+        })
+    }
+    fn multiset_from_seq(data: &Rc<Sequence<V>>) -> Rc<Multiset<V>> {
+        let mut hashmap: HashMap<V, usize> = HashMap::new();
+        for value in data.to_array().iter() {
+            let count = hashmap.entry(value.clone()).or_insert(0);
+            *count += 1;
+        }
+        let map = Map::<V, usize>::from_hashmap(
+            &hashmap, |v| v.clone(), 
+            |u| u.clone());
+        Self::multiset_from_map(&map)
+    }
+    fn multiset_from_set(set: &Rc<Set<V>>) -> Rc<Multiset<V>> {
+        let seq = &set.data;
+        Self::multiset_from_seq(seq)
+    }
+}
+
+trait MultisetInterface<V>
+  where V: Clone + Eq + Hash
+{
+    fn cardinality(&self) -> SizeT;
+    fn cardinality_int(&self) -> Rc<BigInt>;
+    fn contains(&self, value: &V) -> bool;
+    fn update_count(&self, value: &V, new_count: &usize) -> Rc<Multiset<V>>;
+    fn union(&self, other: &Rc<Multiset<V>>) -> Rc<Multiset<V>>;
+    fn intersection(&self, other: &Rc<Multiset<V>>) -> Rc<Multiset<V>>;
+    fn difference(&self, other: &Rc<Multiset<V>>) -> Rc<Multiset<V>>;
+    fn is_disjoint_from(&self, other: &Rc<Multiset<V>>) -> bool;
+    fn equals(&self, other: &Rc<Multiset<V>>) -> bool;
+    fn is_subset_of(&self, other: &Rc<Multiset<V>>) -> bool;
+    fn is_proper_subset_of(&self, other: &Rc<Multiset<V>>) -> bool;
+}
+
+/*impl <V> MultisetInterface for Rc<Multiset<V>>
+  where V: Clone + Eq + Hash
+{
+    fn cardinality(&self) -> SizeT {
+        // The cardinality of a multiset is the sum of the counts of each element
+        let mut sum = 0;
+        for (_, count) in self.data.iter() {
+            sum += count;
+        }
+        sum
+    }
+    fn cardinality_int(&self) -> Rc<BigInt> {
+        Rc::new(BigInt::from(self.cardinality() as i64))
+    }
+    fn contains(&self, value: &V) -> bool {
+        self.data.contains_key(value)
+    }
+    // update_count returns the original multiset if the count is unchanged.
+    //fn update_count(&self, value: &V, new_count: &usize) -> Rc<Multiset<V>> {
+    //}
+}*/
 
 // Generic function to allocate and return a raw pointer immediately
 #[inline]
