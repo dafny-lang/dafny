@@ -1,0 +1,4 @@
+git-issue-4939b.dfy(16,12): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-4939b.dfy(18,12): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
+
+Dafny program verifier finished with 0 verified, 2 errors
