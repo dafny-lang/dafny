@@ -6,7 +6,7 @@ namespace Microsoft.Dafny {
   static class CaptureStateExtensions {
 
     public static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
-      if (builder.Options.ExpectingModel) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, statement));
       }
     }
@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
-      if (builder.Options.ExpectingModel) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, tok, isEndToken, additionalInfo));
       }
     }
