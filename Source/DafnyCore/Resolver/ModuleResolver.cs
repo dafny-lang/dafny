@@ -1273,9 +1273,8 @@ namespace Microsoft.Dafny {
       }
 
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
-      var inductiveDatatypesCheckedForEmptiness = new Dictionary<IndDatatypeDecl, bool>();
       foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null)) {
-        if (IsObviouslyEmpty(dtd, inductiveDatatypesCheckedForEmptiness)) {
+        if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
           reporter.Error(MessageSource.Resolver, dtd,
             $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
         }
@@ -2853,30 +2852,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Determine if "datatypeDecl" is involved in a cycle in such a way that it is obvious that the type has no instances.
-    /// Return the answer.
-    ///
-    /// "informationSoFar" is used as a cache of computed information. The method updates the cache for "datatypeDecl".
-    /// </summary>
-    bool IsObviouslyEmpty(IndDatatypeDecl datatypeDecl, IDictionary<IndDatatypeDecl, bool> informationSoFar) {
-      var datatype = UserDefinedType.FromTopLevelDecl(datatypeDecl.tok, datatypeDecl);
-      var isEmpty = AreThereAnyObviousSignsOfEmptiness(datatype, informationSoFar, new HashSet<IndDatatypeDecl>());
-      informationSoFar.Add(datatypeDecl, isEmpty);
-      return isEmpty;
-    }
-
-    private bool AreThereAnyObviousSignsOfEmptiness(Type type, IDictionary<IndDatatypeDecl, bool> informationSoFar, ISet<IndDatatypeDecl> beingVisited) {
+    private bool AreThereAnyObviousSignsOfEmptiness(Type type, ISet<IndDatatypeDecl> beingVisited) {
       type = type.NormalizeExpand(); // cut through type proxies, type synonyms, but being mindful of what's in scope
       if (type is UserDefinedType { ResolvedClass: var cl} udt) {
         Contract.Assert(cl != null);
         if (cl is NewtypeDecl newtypeDecl) {
-          return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), informationSoFar, beingVisited);
+          return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
         }
         if (cl is IndDatatypeDecl datatypeDecl) {
-          if (informationSoFar.TryGetValue(datatypeDecl, out var isObviouslyEmpty)) {
-            return isObviouslyEmpty;
-          }
           if (beingVisited.Contains(datatypeDecl)) {
             // This datatype may be empty, but it's definitely empty if we consider only the constructors that have been visited
             // since AreThereAnyObviousSignsOfEmptiness was called from IsObviouslyEmpty.
@@ -2885,7 +2868,7 @@ namespace Microsoft.Dafny {
           beingVisited.Add(datatypeDecl);
           var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
           var isEmpty = datatypeDecl.Ctors.TrueForAll(ctor =>
-            ctor.Formals.Exists(formal => AreThereAnyObviousSignsOfEmptiness(formal.Type.Subst(typeMap), informationSoFar, beingVisited)));
+            ctor.Formals.Exists(formal => AreThereAnyObviousSignsOfEmptiness(formal.Type.Subst(typeMap), beingVisited)));
           beingVisited.Remove(datatypeDecl);
           return isEmpty;
         }
