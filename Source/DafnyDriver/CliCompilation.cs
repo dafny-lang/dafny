@@ -222,7 +222,8 @@ public class CliCompilation {
 
       SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
 
-    } catch (TaskCanceledException) {
+    } catch (OperationCanceledException) {
+      // Failed to resolve the program due to a user error.
     }
   }
 }
