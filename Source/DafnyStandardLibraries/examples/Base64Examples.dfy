@@ -1,7 +1,7 @@
 module Base64Examples {
-  import opened DafnyStdLibs.Base64
-  import opened DafnyStdLibs.BoundedInts
-  import opened DafnyStdLibs.Wrappers
+  import opened Std.Base64
+  import opened Std.BoundedInts
+  import opened Std.Wrappers
 
   method CheckEncodeDecode(uints: seq<uint8>, bytes: seq<bv8>) {
     expect Decode(Encode(uints)) == Success(uints);

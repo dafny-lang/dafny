@@ -16,7 +16,7 @@ public class TriggerGeneratingRewriter : IRewriter {
       finder.Visit(decl, null);
     }
 
-    var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options);
+    var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options, definition);
     foreach (var quantifierCollection in finder.quantifierCollections) {
       quantifierCollection.ComputeTriggers(triggersCollector);
       quantifierCollection.CommitTriggers(Reporter.Options, systemModuleManager);

@@ -755,7 +755,7 @@ public partial class BoogieGenerator {
       yield return lit;
     }
 
-    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr);
+    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
     foreach (var bound in bounds) {
       if (bound is ComprehensionExpr.IntBoundedPool) {
         var bnd = (ComprehensionExpr.IntBoundedPool)bound;
@@ -1412,7 +1412,7 @@ public partial class BoogieGenerator {
     var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
       inParams, new List<Variable>(),
       false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-    AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
+    AddVerboseNameAttribute(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 
     // TODO: Can a checksum be inserted here?
@@ -1509,7 +1509,7 @@ public partial class BoogieGenerator {
       // emit the impl only when there are proof obligations.
       QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-      AddImplementationWithVerboseName(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
+      AddImplementationWithAttributes(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
     }
 
     // TODO: Should a checksum be inserted here?

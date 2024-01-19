@@ -2356,10 +2356,13 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
-      } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
+      } else if (e.E.Type.IsBigOrdinalType) {
         Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuasion.Int));
         // identity will do
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
+      } else {
+        // identity will do
+        Contract.Assert(e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null);
         wr.Append(Expr(e.E, inLetExprBody, wStmts));
       }
     }

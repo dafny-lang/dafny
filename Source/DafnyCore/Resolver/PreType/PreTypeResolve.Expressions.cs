@@ -40,7 +40,9 @@ namespace Microsoft.Dafny {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         ResolveExpression(e.E, resolutionContext);
-        e.PreType = e.E.PreType;
+        e.PreType = CreatePreTypeProxy("result of unary -");
+        AddSubtypeConstraint(e.PreType, e.E.PreType, e.E.tok,
+          $"type of argument to unary - ({{1}}) must agree with the result type ({{0}})");
         AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, e.E.PreType, e.E.tok, "type of unary - must be of a numeric or bitvector type (instead got {0})");
         // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.PreType has been determined
 
@@ -1045,7 +1047,8 @@ namespace Microsoft.Dafny {
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
         // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
-        if (!resolver.GetClassMembers(receiverDeclWithMembers).TryGetValue(memberName, out var member)) {
+        var members = resolver.GetClassMembers(receiverDeclWithMembers);
+        if (members == null || !members.TryGetValue(memberName, out var member)) {
           if (!reportErrorOnMissingMember) {
             // don't report any error
           } else if (memberName == "_ctor") {

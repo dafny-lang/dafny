@@ -357,7 +357,7 @@ public class ExpressionTester {
     // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
     // are allowed only in ghost contexts.
     var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
-    if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+    if (udtTo.ResolvedClass is SubsetTypeDecl and not NonNullTypeDecl) {
       return false;
     }
 
@@ -368,7 +368,7 @@ public class ExpressionTester {
     // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
     // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
     // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
-    // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
+    // then the mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique, which means we can check if an
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
     var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
     var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);

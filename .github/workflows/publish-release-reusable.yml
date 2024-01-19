@@ -35,7 +35,7 @@ env:
 jobs:
 
   publish-release:
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest   # Put back 'ubuntu-20.04' if macos-latest fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -51,7 +51,7 @@ jobs:
         git push origin ${{ inputs.tag_name }} -f
       working-directory: dafny
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 20.04
@@ -63,14 +63,14 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up JDK 18
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: 18
         distribution: corretto
     - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with: 
        python-version: '3.11'
     - name: Build Dafny
@@ -79,11 +79,11 @@ jobs:
         rm dafny/Binaries/*.nupkg
     - name: Create release NuGet package (for uploading)
       if: ${{ !inputs.prerelease }}
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Create prerelease NuGet package (for uploading)
       if: ${{ inputs.prerelease }}
       # NuGet will consider any package with a version-suffix as a prerelease
-      run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
+      run: dotnet pack --version-suffix ${{ inputs.name }} dafny/Source/Dafny.sln
 
     - name: Make NuGet package available as an artifact
       uses: actions/upload-artifact@v3

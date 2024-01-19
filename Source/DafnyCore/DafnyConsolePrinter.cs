@@ -69,7 +69,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
-        var reader = new DafnyFile(options, uri).GetContent();
+        var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken);
+        using var reader = file.GetContent();
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
         lines = new List<string>();
@@ -79,11 +80,15 @@ public class DafnyConsolePrinter : ConsolePrinter {
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];
     }
-    return "<nonexistent line>";
+    return null;
   }
 
   public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
     string line = GetFileLine(tok.Uri, tok.line - 1);
+    if (line == null) {
+      return;
+    }
+
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);

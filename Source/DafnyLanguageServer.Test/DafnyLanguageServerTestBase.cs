@@ -106,7 +106,8 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       var dafnyOptions = DafnyOptions.Create(output);
       dafnyOptions.Set(ProjectManager.UpdateThrottling, 0);
       modifyOptions?.Invoke(dafnyOptions);
-      Microsoft.Dafny.LanguageServer.LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
+      dafnyOptions.UsingNewCli = true;
+      LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);
       ApplyDefaultOptionValues(dafnyOptions);
       return options => {
         options.WithDafnyLanguageServer(() => { });
@@ -137,18 +138,25 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
+      DocumentUri uri;
       if (filePath == null) {
         var index = Interlocked.Increment(ref fileIndex);
         filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), $"testFile{index}.dfy");
       }
-      if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
-        filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+
+      if (filePath.StartsWith("untitled:")) {
+        uri = DocumentUri.Parse(filePath);
+      } else {
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(filePath))) {
+          filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName(), filePath);
+        }
+        filePath = Path.GetFullPath(filePath);
+        uri = DocumentUri.FromFileSystemPath(filePath);
       }
-      filePath = Path.GetFullPath(filePath);
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
+        Uri = uri,
         Version = version
       };
     }

@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --disable-nonlinear-arithmetic "%s" > "%t"
+// RUN: %verify --disable-nonlinear-arithmetic "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module One {

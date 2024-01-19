@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(12, 11, 12, 17) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
     }
 
@@ -718,7 +718,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal("Project", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);

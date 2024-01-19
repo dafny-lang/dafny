@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -9,9 +10,9 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -19,22 +20,19 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate Compilation CreateCompilation(
-  DafnyOptions options,
   ExecutionEngine boogieEngine,
   CompilationInput compilation);
 
 /// <summary>
-/// The compilation of a single document version.
-/// The document will be parsed, resolved, translated to Boogie and verified.
+/// The compilation of a single version of a program
+/// After calling Start, the document will be parsed and resolved.
 ///
-/// Compilation may be configured to pause after translation,
-/// requiring a call to Compilation.VerifySymbol for the document to be verified.
-///
-/// Compilation is agnostic to document updates, it does not handle the migration of old document state.
+/// To verify a symbol, VerifySymbol must be called.
 /// </summary>
 public class Compilation : IDisposable {
 
   private readonly ILogger logger;
+  private readonly IFileSystem fileSystem;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
 
@@ -53,8 +51,9 @@ public class Compilation : IDisposable {
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, Dictionary<string, IImplementationTask>> implementationsPerVerifiable = new();
 
-  private readonly DafnyOptions options;
+  private DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
+  public DafnyProject Project => Input.Project;
   private readonly ExecutionEngine boogieEngine;
 
   private readonly Subject<ICompilationEvent> updates = new();
@@ -62,26 +61,36 @@ public class Compilation : IDisposable {
 
   private Program? programAfterParsing;
   private Program? transformedProgram;
-  private IDisposable staticDiagnosticsSubscription = Disposable.Empty;
+  private readonly IDisposable staticDiagnosticsSubscription;
 
   public Task<Program> Program { get; }
   public Task<ResolutionResult> Resolution { get; }
 
+  public ErrorReporter Reporter => errorReporter;
+
+  public IReadOnlyList<DafnyFile>? RootFiles { get; set; }
+
   public Compilation(
     ILogger<Compilation> logger,
+    IFileSystem fileSystem,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
-    DafnyOptions options,
     ExecutionEngine boogieEngine,
     CompilationInput input
     ) {
-    this.options = options;
     Input = input;
     this.boogieEngine = boogieEngine;
 
     this.documentLoader = documentLoader;
     this.logger = logger;
+    this.fileSystem = fileSystem;
     this.verifier = verifier;
+
+    errorReporter = new ObservableErrorReporter(Options, Project.Uri);
+    errorReporter.Updates.Subscribe(updates);
+    staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
+      staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
+
     cancellationSource = new();
     cancellationSource.Token.Register(() => started.TrySetCanceled(cancellationSource.Token));
 
@@ -92,25 +101,76 @@ public class Compilation : IDisposable {
   }
 
   public void Start() {
+    Project.Errors.CopyDiagnostics(errorReporter);
+    RootFiles = DetermineRootFiles();
+    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
+  }
+
+  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
+    return staticDiagnostics.ToImmutableDictionary(k => k.Key,
+      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+  }
+
+  private IReadOnlyList<DafnyFile> DetermineRootFiles() {
+    var result = new List<DafnyFile>();
+
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
+      if (file != null) {
+        result.Add(file);
+      }
+    }
+
+    foreach (var uri in Options.CliRootSourceUris) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli);
+      if (file != null) {
+        result.Add(file);
+      }
+    }
+
+    if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        var targetName = Options.CompilerName ?? "notarget";
+        var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
+        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
+      }
+
+      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+    }
+
+    foreach (var library in Options.Get(CommonOptionBag.Libraries)) {
+      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library.FullName), Project.StartingToken);
+      if (file != null) {
+        file.IsPreverified = true;
+        file.IsPrecompiled = true;
+        result.Add(file);
+      }
+    }
+
+    var projectPath = Project.Uri.LocalPath;
+    if (projectPath.EndsWith(DafnyProject.FileName)) {
+      var projectDirectory = Path.GetDirectoryName(projectPath)!;
+      var filesMessage = string.Join("\n", result.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
+      if (filesMessage.Any()) {
+        errorReporter.Info(MessageSource.Parser, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
+      } else {
+        errorReporter.Warning(MessageSource.Parser, CompilerErrors.ErrorId.None, Project.StartingToken, "Project references no files");
+      }
+    }
+
+    return result;
   }
 
   private async Task<Program> ParseAsync() {
     try {
       await started.Task;
-      var uri = Input.Uri.ToUri();
-      var errorReporter = new ObservableErrorReporter(options, uri);
-      errorReporter.Updates.Subscribe(updates);
-      staticDiagnosticsSubscription = errorReporter.Updates.Subscribe(newDiagnostic =>
-        staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic));
-      transformedProgram = await documentLoader.ParseAsync(errorReporter, Input, cancellationSource.Token);
+      transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
 
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);
 
-      var diagnosticsCopy = staticDiagnostics.ToImmutableDictionary(k => k.Key,
-        kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
-      updates.OnNext(new FinishedParsing(programAfterParsing, diagnosticsCopy));
+      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopy()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
@@ -320,7 +380,7 @@ public class Compilation : IDisposable {
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(options);
+    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     if (boogieStatus is Completed completed) {
@@ -362,8 +422,13 @@ public class Compilation : IDisposable {
     if (firstToken == null) {
       return null;
     }
+
+    // Make sure that we capture the legacy include tokens
+    while (firstToken.Prev is { line: >= 1, Filepath: var filePath } && filePath == firstToken.Filepath) {
+      firstToken = firstToken.Prev;
+    }
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-      IndentationFormatter.ForProgram(program));
+      IndentationFormatter.ForProgram(program, firstToken.Uri));
 
     var lastToken = firstToken;
     while (lastToken.Next != null) {
@@ -377,6 +442,7 @@ public class Compilation : IDisposable {
   }
 
   private bool disposed;
+  private readonly ObservableErrorReporter errorReporter;
 
   public void Dispose() {
     if (disposed) {
