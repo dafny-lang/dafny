@@ -166,10 +166,13 @@ namespace Microsoft.Dafny.Triggers {
       return it1_has == it2_has && acc;
     }
 
-    internal static IEnumerable<T> Filter<T, U>(IEnumerable<T> elements, Func<T, U> Converter, Func<T, U, bool> predicate, Action<T, U> reject) {
-      var positive = new List<T>();
+    internal static IEnumerable<T> Filter<T, U>(
+      IEnumerable<T> elements, 
+      Func<T, U> converter, 
+      Func<T, U, bool> predicate, 
+      Action<T, U> reject) {
       foreach (var elem in elements) {
-        var conv = Converter(elem);
+        var conv = converter(elem);
         if (predicate(elem, conv)) {
           yield return elem;
         } else {
