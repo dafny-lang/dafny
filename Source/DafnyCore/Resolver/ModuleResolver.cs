@@ -1272,13 +1272,27 @@ namespace Microsoft.Dafny {
         FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
       }
 
-      // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
-      foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null)) {
-        if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
-          reporter.Error(MessageSource.Resolver, dtd,
-            $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
+      // An inductive datatype is allowed to be defined as an empty type. For example, in
+      //     predicate P(x: int) { false }
+      //     type Subset = x: int | P(x) witness *
+      //     datatype Record = Record(Subset)
+      // Record is an empty type, because Subset is, since P(x) is always false. But if P(x)
+      // was instead defined to be true for some x's, then Record would be nonempty. Determining whether or
+      // not Record is empty goes well beyond the syntactic checks of the type system.
+      //
+      // However, if a datatype is empty because of some "obvious" cycle among datatype definitions, then
+      // that is both detectable by syntactic checks and likely unintended by the programmer. Therefore,
+      // we search for such type declarations and give error messages if something is found.
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null)) {
+          if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
+            reporter.Error(MessageSource.Resolver, dtd,
+              $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
+          }
         }
       }
+
+      // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
           // do the following check once per SCC, so call it on each SCC representative
@@ -2853,10 +2867,14 @@ namespace Microsoft.Dafny {
     }
 
     private bool AreThereAnyObviousSignsOfEmptiness(Type type, ISet<IndDatatypeDecl> beingVisited) {
-      type = type.NormalizeExpand(); // cut through type proxies, type synonyms, but being mindful of what's in scope
+      type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
       if (type is UserDefinedType { ResolvedClass: var cl} udt) {
         Contract.Assert(cl != null);
-        if (cl is NewtypeDecl newtypeDecl) {
+        if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
+          return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);
+        } else if (cl is SubsetTypeDecl subsetTypeDecl) {
+          return AreThereAnyObviousSignsOfEmptiness(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
+        } else if (cl is NewtypeDecl newtypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
         }
         if (cl is IndDatatypeDecl datatypeDecl) {
