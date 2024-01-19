@@ -109,18 +109,16 @@ module FromIssue4 {
 
 module SimpleExample0 {
   trait GeneralTrait {
-    function F(): int { 5 }
   }
 
   datatype Wrapper = Wrapper(g: GeneralTrait) // this once gave the cyclic-dependency error
 }
 
 module SimpleExample1 {
-  trait GeneralTrait extends object {
-    function F(): int { 5 }
+  trait ReferenceTrait extends object {
   }
 
-  datatype Wrapper = Wrapper(g: GeneralTrait) // this was always fine
+  datatype Wrapper = Wrapper(g: ReferenceTrait) // this was always fine
 }
 
 module Standard {
