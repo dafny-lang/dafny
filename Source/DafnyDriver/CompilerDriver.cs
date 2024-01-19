@@ -356,7 +356,7 @@ namespace Microsoft.Dafny {
       var model = new DafnyModel(firstCounterexample.Model, options);
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
       foreach (var state in model.States.Where(state => state.StateContainsPosition())) {
-        options.OutputWriter.WriteLine($"at State {state.FullStateName}:");
+        options.OutputWriter.WriteLine(state.FullStateName + ":");
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
           options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +

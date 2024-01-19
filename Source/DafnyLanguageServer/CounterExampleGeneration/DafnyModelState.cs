@@ -56,8 +56,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <param name="maxDepth">The maximum depth up to which to expand the
     /// variable set.</param>
     /// <returns>Set of variables</returns>
-    public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
-      HashSet<DafnyModelVariable> expandedSet = new();
+    public List<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
+      List<DafnyModelVariable> expandedSet = new();
       // The following is the queue for elements to be added to the set. The 2nd
       // element of a tuple is the depth of the variable w.r.t. the original set
       List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
