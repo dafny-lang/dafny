@@ -91,12 +91,12 @@ jobs:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
 
-    # - name: Upload package to NuGet
-    #   if: ${{ inputs.release_nuget }}
-    #   # Need --skip-duplicate for cases where we release a new Dafny
-    #   # version but the runtime hasn't changed and is still the old
-    #   # version.
-    #   run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+    - name: Upload package to NuGet
+      if: ${{ inputs.release_nuget }}
+      # Need --skip-duplicate for cases where we release a new Dafny
+      # version but the runtime hasn't changed and is still the old
+      # version.
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
@@ -149,30 +149,30 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
 
-    # - name: Create GitHub release (release)
-    #   if: ${{ !inputs.prerelease }}
-    #   uses: softprops/action-gh-release@v1
-    #   with:
-    #     name: Dafny ${{ inputs.name }}
-    #     tag_name: ${{ inputs.tag_name }}
-    #     body: ${{ inputs.release_notes }}
-    #     draft: ${{ inputs.draft }}
-    #     prerelease: ${{ inputs.prerelease }}
-    #     files: |
-    #       dafny/Package/dafny-${{ inputs.name }}*
-    #       dafny/docs/DafnyRef/DafnyRef.pdf
-    #     fail_on_unmatched_files: true
+    - name: Create GitHub release (release)
+      if: ${{ !inputs.prerelease }}
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Dafny ${{ inputs.name }}
+        tag_name: ${{ inputs.tag_name }}
+        body: ${{ inputs.release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
+        files: |
+          dafny/Package/dafny-${{ inputs.name }}*
+          dafny/docs/DafnyRef/DafnyRef.pdf
+        fail_on_unmatched_files: true
 
-    # # This step is separate from the release one because the refman is omitted
-    # - name: Create GitHub release (prerelease)
-    #   if: ${{ inputs.prerelease }}
-    #   uses: softprops/action-gh-release@v1
-    #   with:
-    #     name: Dafny ${{ inputs.name }}
-    #     tag_name: ${{ inputs.tag_name }}
-    #     body: ${{ inputs.release_notes }}
-    #     draft: ${{ inputs.draft }}
-    #     prerelease: ${{ inputs.prerelease }}
-    #     files: |
-    #       dafny/Package/dafny-${{ inputs.name }}*
-    #     fail_on_unmatched_files: true
+    # This step is separate from the release one because the refman is omitted
+    - name: Create GitHub release (prerelease)
+      if: ${{ inputs.prerelease }}
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Dafny ${{ inputs.name }}
+        tag_name: ${{ inputs.tag_name }}
+        body: ${{ inputs.release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
+        files: |
+          dafny/Package/dafny-${{ inputs.name }}*
+        fail_on_unmatched_files: true
