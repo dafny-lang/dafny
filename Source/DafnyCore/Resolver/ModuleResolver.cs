@@ -2949,7 +2949,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt.GroundingCtor == null);  // the intention is that this method be called only when GroundingCtor hasn't already been set
       Contract.Ensures(!Contract.Result<bool>() || dt.GroundingCtor != null);
 
-      // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
+      // Stated differently, check that there is some constructor where no argument type goes to the same stratum.
       DatatypeCtor groundingCtor = null;
       ISet<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
