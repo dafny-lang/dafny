@@ -1242,7 +1242,7 @@ module {:extern "DCOMP"} DCOMP {
         retType := retType + ")";
       }
 
-      var visibility := if forTrait then R.PUB else R.PRIV;
+      var visibility := R.PUB;//if forTrait then R.PUB else R.PRIV;
       var fnName := escapeIdent(m.name);
 
       var typeParamsFiltered := [];
@@ -2287,7 +2287,7 @@ module {:extern "DCOMP"} DCOMP {
           var onString, onOwned, _, recIdents := GenExpr(on, selfIdent, params, false);
 
           if isStatic {
-            s := onString + "::" + field;
+            s := onString + "::" + escapeIdent(field);
           } else {
             s := "{\n";
             s := s + "let callTarget = (" + onString + (if onOwned then ")" else ").clone()") + ";\n";
@@ -2728,7 +2728,7 @@ module {:extern "DCOMP"} DCOMP {
         if i > 0 {
           s := s + "::";
         }
-        s := s + fullName[i];
+        s := s + escapeIdent(fullName[i]);
         i := i + 1;
       }
       s := s + "();\n}";

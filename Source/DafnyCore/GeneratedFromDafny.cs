@@ -10078,7 +10078,7 @@ namespace DCOMP {
         _1078_retType = Dafny.Sequence<Dafny.Rune>.Concat(_1078_retType, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
       }
       byte _1081_visibility;
-      _1081_visibility = ((forTrait) ? (RAST.__default.PUB) : (RAST.__default.PRIV));
+      _1081_visibility = RAST.__default.PUB;
       Dafny.ISequence<Dafny.Rune> _1082_fnName;
       _1082_fnName = DCOMP.__default.escapeIdent((m).dtor_name);
       Dafny.ISequence<DAST._IType> _1083_typeParamsFiltered;
@@ -20447,7 +20447,7 @@ namespace DCOMP {
           _3612___v82 = _out1628;
           _3613_recIdents = _out1629;
           if (_3606_isStatic) {
-            s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_3610_onString, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), _3608_field);
+            s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_3610_onString, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), DCOMP.__default.escapeIdent(_3608_field));
           } else {
             s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{\n");
             s = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let callTarget = (")), _3610_onString), ((_3611_onOwned) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").clone()")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";\n"));
@@ -21404,7 +21404,7 @@ namespace DCOMP {
         if ((_3881_i).Sign == 1) {
           s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::"));
         }
-        s = Dafny.Sequence<Dafny.Rune>.Concat(s, (fullName).Select(_3881_i));
+        s = Dafny.Sequence<Dafny.Rune>.Concat(s, DCOMP.__default.escapeIdent((fullName).Select(_3881_i)));
         _3881_i = (_3881_i) + (BigInteger.One);
       }
       s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("();\n}"));
