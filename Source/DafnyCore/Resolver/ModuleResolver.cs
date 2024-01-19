@@ -2872,7 +2872,7 @@ namespace Microsoft.Dafny {
 
     private bool AreThereAnyObviousSignsOfEmptiness(Type type, ISet<IndDatatypeDecl> beingVisited) {
       type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
-      if (type is UserDefinedType { ResolvedClass: var cl} udt) {
+      if (type is UserDefinedType { ResolvedClass: var cl } udt) {
         Contract.Assert(cl != null);
         if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
           return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);

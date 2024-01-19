@@ -9,10 +9,10 @@ public class IndDatatypeDecl : DatatypeDecl {
   [FilledInDuringResolution] public DatatypeCtor GroundingCtor; // set during resolution (possibly to null)
 
   public override DatatypeCtor GetGroundingCtor() {
-    return GroundingCtor ?? Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);;
+    return GroundingCtor ?? Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
 
-  private bool[] typeParametersUsedInConstructionByGroundingCtor = null;
+  private bool[] typeParametersUsedInConstructionByGroundingCtor;
 
   public bool[] TypeParametersUsedInConstructionByGroundingCtor {
     get {
