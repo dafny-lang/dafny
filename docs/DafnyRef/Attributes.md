@@ -393,11 +393,14 @@ Print effects are enforced only with `--track-print-effects`.
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 11.2.14. `{:rlimit}` {#sec-rlimit}
+### 11.2.14. `{:resource_limit}` and `{:rlimit}` {#sec-rlimit}
 
-`{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
-This is the per-method equivalent of the command-line flag `/rlimit:N`.
+`{:resource_limit N}` limits the verifier resource usage to verify the method or function to `N`.
+
+This is the per-method equivalent of the command-line flag `/rlimit:N` or `--resource-limit N`.
 If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+
+The attribute `{:rlimit N}` is also available, and limits the verifier resource usage to verify the method or function to `N * 1000`. This version is deprecated, however.
 
 To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
 
