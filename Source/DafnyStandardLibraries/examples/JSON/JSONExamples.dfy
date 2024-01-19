@@ -15,7 +15,7 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
    The high-level API works with fairly simple datatype values that contain 
    native Dafny strings. 
    */
-  method {:test} {:rlimit 100000} Test() {
+  method {:test} {:resource_limit 100000000} Test() {
 
     /**
      Use `API.Deserialize` to deserialize a byte string.
@@ -138,7 +138,7 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
    encoding: each node contains pointers to parts of a string, such that
    concatenating the fields of all nodes reconstructs the serialized value.
   */
-  method {:test} {:rlimit 100000} Test() {
+  method {:test} {:resource_limit 100000000} Test() {
 
     /** 
      The low-level API exposes the same functions and methods as the high-level
