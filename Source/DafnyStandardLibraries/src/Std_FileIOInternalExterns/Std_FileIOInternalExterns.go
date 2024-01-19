@@ -2,7 +2,7 @@ package Std_FileIOInternalExterns
 
 import (
 	_dafny "dafny"
-	ioutil "ioutil"
+	ioutil "io/ioutil"
 	filepath "path/filepath"
 )
 
