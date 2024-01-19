@@ -53,7 +53,7 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()));
+      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
     }
   }
 
@@ -190,7 +190,7 @@ public class DooFile {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
-    manifestWr.Write(manifestWriter.ToString());
+    manifestWr.Write(manifestWriter.ToString().Replace("\r\n", "\n"));
 
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);
