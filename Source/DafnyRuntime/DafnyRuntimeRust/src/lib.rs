@@ -39,7 +39,6 @@ mod dafny_runtime_conversions {
     use crate::Map;
     use std::cell::RefCell;
     use std::collections::HashMap;
-    use std::convert;
     use std::rc::Rc;
     use std::hash::Hash;
     pub fn dafny_int_to_bigint(i: &Rc<BigInt>) -> BigInt {
@@ -98,7 +97,6 @@ mod dafny_runtime_conversions {
         use crate::Sequence;
         use std::rc::Rc;
 
-        use super::unicode_chars_false;
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
             Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
         }
