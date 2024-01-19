@@ -2941,7 +2941,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that the datatype has some constructor all whose argument types can be constructed.
+    /// Check if the datatype has some constructor all whose argument types can be constructed.
     /// Returns 'true' and sets dt.GroundingCtor if that is the case.
     /// </summary>
     bool ComputeGroundingCtor(IndDatatypeDecl dt) {
