@@ -20,7 +20,7 @@ class C {
 
 datatype D = A
 
-datatype NeverendingList = Cons(int, NeverendingList)  // error: no grounding constructor
+
 
 datatype MutuallyRecursiveDataType<T> =
   FromANumber(int) |  // this is the base case
@@ -246,7 +246,36 @@ module OtherCycles1 {
 }
 
 module OtherCycles2 {
-  datatype CycleW = CycleW(CycW)
+  // the next line uses a general arrow
+  datatype CycleW = CycleW(int ~> CycW)
   type CycW = c: CycleW | true witness W()  // error: dependency cycle W -> CycW -> CycleW
   function W(): CycleW
+}
+
+module OtherCycles3 {
+  // the next line uses a partial arrow
+  datatype CycleW = CycleW(int -> CycW) // error: dependency cycle W -> CycW -> CycleW
+  type CycW = c: CycleW | true witness W()
+  function W(): CycleW
+}
+
+module OtherCycles4 {
+  // the next line uses a total arrow
+  datatype CycleW = CycleW(int -> CycW) // error: because of cycle among constructor argument types, 'CycleW' is empty
+  type CycW = c: CycleW | true witness W()
+  function W(): CycleW
+}
+
+module OtherCycles5 {
+  // the next line uses a subset type over a total arrow
+  type MyTotalArrow<X, Y> = f: X -> Y | true
+  datatype CycleW = CycleW(MyTotalArrow<int, CycW>) // error: because of cycle among constructor argument types, 'CycleW' is empty
+  type CycW = c: CycleW | true witness W()
+  function W(): CycleW
+}
+
+module NE {
+  datatype NeverendingList = Cons(int, NeverendingList)  // error: empty type
+  datatype Growing<X> = Make(Growing<array<X>>) // error: empty type
+  datatype MaybeGrowing<X> = Make(array<MaybeGrowing<X>>) // okay, since it does not violate the cycle rule
 }
