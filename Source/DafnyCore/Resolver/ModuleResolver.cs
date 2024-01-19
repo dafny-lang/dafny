@@ -1284,7 +1284,7 @@ namespace Microsoft.Dafny {
       // that is both detectable by syntactic checks and likely unintended by the programmer. Therefore,
       // we search for such type declarations and give error messages if something is found.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null)) {
+        foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null && dtd.Ctors.Count != 0)) {
           if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
             reporter.Error(MessageSource.Resolver, dtd,
               $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
