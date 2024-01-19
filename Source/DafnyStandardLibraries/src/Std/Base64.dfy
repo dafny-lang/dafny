@@ -98,7 +98,7 @@ module Std.Base64 {
     else (c - 65 as char) as index
   }
 
-  lemma {:rlimit 2000} {:vcs_split_on_every_assert} CharToIndexToChar(c: char)
+  lemma {:resource_limit 2000000} {:vcs_split_on_every_assert} CharToIndexToChar(c: char)
     requires IsBase64Char(c)
     ensures IndexToChar(CharToIndex(c)) == c
   {
@@ -1213,7 +1213,7 @@ module Std.Base64 {
     AboutDecodeValid(s, DecodeValid(s));
   }
 
-  lemma {:rlimit 12000} DecodeValidEncode1Padding(s: seq<char>)
+  lemma {:resource_limit 12000000} DecodeValidEncode1Padding(s: seq<char>)
     requires IsBase64String(s)
     requires |s| >= 4
     requires Is1Padding(s[(|s| - 4)..])
@@ -1449,7 +1449,7 @@ module Std.Base64 {
     seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
   }
 
-  lemma {:vcs_split_on_every_assert} {:rlimit 1000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
+  lemma {:vcs_split_on_every_assert} {:resource_limit 1000000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
     // TODO: reduce resource use
