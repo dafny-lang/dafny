@@ -1293,18 +1293,22 @@ namespace Microsoft.Dafny {
       }
 
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
-      foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
-        if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
-          // do the following check once per SCC, so call it on each SCC representative
-          SccStratosphereCheck(dtd, datatypeDependencies);
-          DetermineEqualitySupport(dtd, datatypeDependencies);
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) { // because SccStratosphereCheck depends on subset-type/newtype base types being successfully resolved
+        foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
+          if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
+            // do the following check once per SCC, so call it on each SCC representative
+            SccStratosphereCheck(dtd, datatypeDependencies);
+            DetermineEqualitySupport(dtd, datatypeDependencies);
+          }
         }
       }
 
       // Set the SccRepr field of codatatypes
-      foreach (var repr in codatatypeDependencies.TopologicallySortedComponents()) {
-        foreach (var codt in codatatypeDependencies.GetSCC(repr)) {
-          codt.SscRepr = repr;
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        foreach (var repr in codatatypeDependencies.TopologicallySortedComponents()) {
+          foreach (var codt in codatatypeDependencies.GetSCC(repr)) {
+            codt.SscRepr = repr;
+          }
         }
       }
 
