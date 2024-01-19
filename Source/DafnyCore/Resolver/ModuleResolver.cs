@@ -2923,7 +2923,7 @@ namespace Microsoft.Dafny {
           if (dt.GroundingCtor != null) {
             // previously cleared
           } else if (ComputeGroundingCtor(dt)) {
-            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to StratosphereCheck)
+            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to ComputeGroundingCtor)
             clearedThisRound++;
             totalCleared++;
           }
