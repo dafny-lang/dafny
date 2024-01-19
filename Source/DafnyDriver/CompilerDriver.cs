@@ -354,16 +354,15 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
-      var initialState = model.States.FirstOrDefault(state => state.IsInitialState);
-      if (initialState == null) {
-        return;
-      }
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      var vars = initialState.ExpandedVariableSet(-1);
-      foreach (var variable in vars) {
-        options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
-                                       $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                                       $"{variable.Value}");
+      foreach (var state in model.States.Where(state => state.StateContainsPosition())) {
+        options.OutputWriter.WriteLine($"at State {state.FullStateName}:");
+        var vars = state.ExpandedVariableSet(-1);
+        foreach (var variable in vars) {
+          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
+                                         $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+                                         $"{variable.Value}");
+        }
       }
     }
 

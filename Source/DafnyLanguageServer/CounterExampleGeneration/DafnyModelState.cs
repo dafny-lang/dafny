@@ -110,6 +110,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     public bool IsInitialState => FullStateName.Equals(InitialStateName);
 
+    public bool StateContainsPosition() {
+      return StatePositionRegex.Match(ShortenedStateName).Success;
+    }
+
     public int GetLineId() {
       var match = StatePositionRegex.Match(ShortenedStateName);
       if (!match.Success) {
