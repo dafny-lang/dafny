@@ -83,8 +83,9 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   public int binOpIndent = -1;
   public int binOpArgIndent = -1;
 
-  internal TokenNewIndentCollector(Program program) {
+  internal TokenNewIndentCollector(Program program, Uri fileToFormat) {
     this.program = program;
+    this.fileToFormat = fileToFormat;
     preResolve = true;
   }
 
@@ -222,6 +223,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   private static readonly Regex FollowedByNewlineRegex = new Regex("^[ \t]*([\r\n]|//)");
+  private readonly Uri fileToFormat;
 
   public static bool IsFollowedByNewline(IToken token) {
     return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);
@@ -231,7 +233,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // 'inline' is the hypothetical indentation of this token if it was on its own line
   // 'below' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   public void SetIndentations(IToken token, int above = -1, int inline = -1, int below = -1) {
-    if (token.FromIncludeDirective(program) || (token.line == 0 && token.col == 0)) {
+    if (token.Uri != fileToFormat || (token.line == 0 && token.col == 0)) {
       // Just ignore this token.
       return;
     }

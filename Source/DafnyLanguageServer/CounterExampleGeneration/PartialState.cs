@@ -208,6 +208,10 @@ public class PartialState {
   private string ShortenedStateName => ShortenName(State.Name, 20);
 
   public bool IsInitialState => FullStateName.Equals(InitialStateName);
+  
+  public bool StateContainsPosition() {
+    return StatePositionRegex.Match(ShortenedStateName).Success;
+  }
 
   public int GetLineId() {
     var match = StatePositionRegex.Match(ShortenedStateName);

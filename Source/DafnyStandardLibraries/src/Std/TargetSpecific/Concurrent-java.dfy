@@ -1,9 +1,8 @@
-module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines ConcurrentInterface {
+module {:extern} Std.JavaConcurrent replaces Concurrent {
 
-  class {:extern "MutableMap"} MutableMap<K(==), V(==)> ... {
+  class {:extern} MutableMap<K(==), V(==)> ... {
 
     constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
-      ensures this.inv == inv
 
     ghost predicate Valid()
     {
@@ -31,8 +30,6 @@ module {:extern "DafnyStdLibsExterns.Concurrent"} Std.Concurrent refines Concurr
   class {:extern "AtomicBox"} AtomicBox<T> ... {
 
     constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
-      requires inv(t)
-      ensures this.inv == inv
 
     ghost predicate Valid() { true }
 

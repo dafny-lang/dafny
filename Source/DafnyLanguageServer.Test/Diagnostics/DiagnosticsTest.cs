@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(12, 11, 12, 17) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
     }
 

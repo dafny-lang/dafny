@@ -133,7 +133,6 @@ public class Compilation : IDisposable {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        Options.CliRootSourceUris.Add(stdlibDooUri);
         result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
       }
 
@@ -429,7 +428,7 @@ public class Compilation : IDisposable {
       firstToken = firstToken.Prev;
     }
     var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-      IndentationFormatter.ForProgram(program));
+      IndentationFormatter.ForProgram(program, firstToken.Uri));
 
     var lastToken = firstToken;
     while (lastToken.Next != null) {

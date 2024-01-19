@@ -74,7 +74,7 @@ module Std.JSON.Spec {
       if i == 0 {
       } else {
         var isHexDigit := c => c in Strings.HexConversion.HEX_DIGITS;
-        assert Strings.HexConversion.OfNumberStr(s, '-');
+        assert Strings.HexConversion.IsNumberStr(s, '-');
         assert isHexDigit(s[i]);
       }
     }
