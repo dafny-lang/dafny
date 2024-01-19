@@ -135,7 +135,7 @@ public class Compilation : IDisposable {
     foreach (var uri in Options.CliRootSourceUris) {
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
       var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
-        $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy,.doo,.toml).");
+        $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
       } else {
