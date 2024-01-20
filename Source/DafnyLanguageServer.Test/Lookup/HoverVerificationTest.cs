@@ -488,7 +488,7 @@ Could not prove: `i <= 0`"
       var documentItem = await GetDocumentItem(@"
 ghost function f(i:nat, j:nat):int {if i == 0 then 0 else f(i - 1, i * j + 1) + f(i - 1, 2 * i * j)}
 
-lemma{:rlimit 10000} L()
+lemma{:resource_limit 10000000} L()
 {
   assert f(10, 5) == 0;
 } ", "testfileSlow.dfy", true);
