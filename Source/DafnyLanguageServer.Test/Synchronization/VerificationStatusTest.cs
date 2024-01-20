@@ -430,7 +430,7 @@ method Bar() { assert false; }";
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.True(successfulRun);
-    var range = new Range(0, 20, 0, 42);
+    var range = new Range(0, 31, 0, 53);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
 

@@ -127,7 +127,7 @@ function HasResolutionError(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Contains("Verification out of resource", diagnostics[0].Message);
-      Assert.Equal(new Range(0, 20, 0, 42), diagnostics[0].Range);
+      Assert.Equal(new Range(0, 31, 0, 53), diagnostics[0].Range);
     }
 
     [Fact]
