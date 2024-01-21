@@ -85,7 +85,7 @@ jobs:
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/AutoExtern.Test/coverlet.runsettings Source/AutoExtern.Test
     - name: Run DafnyRuntime Tests
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyRuntime.Tests/coverlet.runsettings Source/DafnyRuntime.Tests
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results-${{ matrix.os }}
