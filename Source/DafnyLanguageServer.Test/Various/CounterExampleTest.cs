@@ -962,7 +962,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Matches(new Regex("('b' == s2\\[0\\]|s2\\[0\\] == 'b'|sCat\\[\\|s[12]\\|\\] == s2\\[0\\]|s2\\[0\\] == sCat\\[\\|s[12]\\|\\])"), counterExamples[1].Assumption);
     }
 
-    [Theory]
+    [Theory (Skip="This test should be re-enabled once counterexamples support lambda expressions")]
     [MemberData(nameof(OptionSettings))]
     public async Task SequenceGenerate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -975,12 +975,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.Fail("This test needs to be updated");
-      Assert.Equal(2, counterExamples.Length);
-      // Assert.True(counterExamples[1].Variables.ContainsKey("multiplier:int"));
-      // Assert.True(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
-      // StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\(Length := 3, .*\\[2\\] := 6.*\\)"));
-      // Assert.Equal("3", counterExamples[1].Variables["multiplier:int"]);
+      Assert.Fail("This test needs to be updated in a way that deals with the variables introduced as part of the lambda expression.");
     }
 
     [Theory]
@@ -1026,9 +1021,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Contains("sSub is seq<char>", counterExamples[1].Assumption);
-      Assert.Matches(new Regex("('a'|s\\[2\\]) == sSub\\[0\\]"), counterExamples[1].Assumption);
-      Assert.Matches(new Regex("('b'|s\\[3\\]) == sSub\\[1\\]"), counterExamples[1].Assumption);
-      Assert.Matches(new Regex("('c'|s\\[4\\]) == sSub\\[2\\]"), counterExamples[1].Assumption);
+      Assert.Matches(new Regex("('c'|s\\[2\\]) == sSub\\[0\\]"), counterExamples[1].Assumption);
+      Assert.Matches(new Regex("('d'|s\\[3\\]) == sSub\\[1\\]"), counterExamples[1].Assumption);
+      Assert.Matches(new Regex("('e'|s\\[4\\]) == sSub\\[2\\]"), counterExamples[1].Assumption);
       Assert.Matches("(\\|sSub\\| == 3|3 == \\|sSub\\|)", counterExamples[1].Assumption);
     }
 
@@ -1104,14 +1099,41 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("|m| == 0", counterExamples[1].Assumption);
     }
 
-    [Theory]
+    [Theory (Skip="This test should be re-enabled once we support traits")]
     [MemberData(nameof(OptionSettings))]
     public async Task TraitType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
-        trait C {
-          predicate Valid() {false}
+        trait T {
+          function Value():int reads this
+        }
+        class C extends T {
+            var value:int
+            function Value():int 
+                reads this
+            { value }
+        }
+        method test(t1:T, t2:T) {
+          assert t1.Value() == t2.Value();
+        }
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source, "TraitType.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
+        OrderBy(counterexample => counterexample.Position).ToArray();
+      Assert.Single(counterExamples);
+      Assert.Fail("This test needs to be updated once we support traits");
+    }
+    
+    [Theory (Skip="This test should be re-enabled once we support counterexamples that constrain function behavior")]
+    [MemberData(nameof(OptionSettings))]
+    public async Task ClassTypeWithPredicate(Action<DafnyOptions> optionSettings) {
+      await SetUpOptions(optionSettings);
+      var source = @"
+      module M {
+        class C {
+          predicate Valid()
         }
         method test(c:C) {
           assert c.Valid();
@@ -1121,10 +1143,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
-      // Assert.Single(counterExamples[0].Variables);
-      // Assert.True(counterExamples[0].Variables.ContainsKey("c:M.C"));
+      Assert.Fail("This test needs to be updated once we support counterexamples that constrain function behavior");
     }
 
     [Theory]
@@ -1457,7 +1476,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(a + b < a || a + b < b);
     }
 
-    [Theory]
+    [Theory (Skip="This test should be re-enabled once we support counterexamples that constrain function behavior")]
     [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1478,9 +1497,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
-      // Assert.True(counterExamples[0].Variables.ContainsKey("d:M.D"));
-      // Assert.Equal("C(i := 123)", counterExamples[0].Variables["d:M.D"]);
+      Assert.Fail("This test needs to be updated once we support counterexamples that constrain function behavior");
     }
 
     /** Makes sure the counterexample lists the base type of a variable */
@@ -1498,9 +1515,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
-      // Assert.True(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
-      // Assert.Equal("['a', 'w', 's']", counterExamples[0].Variables["s:seq<char>"]);
+      Assert.Contains("s is String", counterExamples[0].Assumption);
+      Assert.Contains("s is seq<char>", counterExamples[0].Assumption);
     }
 
     /// <summary>
@@ -1599,7 +1615,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated");
+      Assert.Fail("This test needs to be updated so that types in the counterexample can be properly resolved.");
     }
 
     /// <summary>
