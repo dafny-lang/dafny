@@ -634,7 +634,7 @@ module {:extern "DCOMP"} DCOMP {
                              [R.RawImplMember("type Erased = " + escapeIdent(c.name) + erasedParams + ";")]
                            ));
       var u := R.ImplDecl(R.ImplFor(
-                            sConstrainedTypeParams,
+                            constrainedEraseParams,
                             R.RawType("::dafny_runtime::DafnyUnerasable<" + escapeIdent(c.name) + unerasedParams + ">"),
                             R.RawType(escapeIdent(c.name) + typeParams),
                             "", []

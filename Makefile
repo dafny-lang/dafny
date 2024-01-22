@@ -7,12 +7,16 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-dfyprod:
+dfyprodinit: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
+
+dfyprod: dfyprodinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
-dfydev:
+dfydevinit:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+
+dfydev: dfydevinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
