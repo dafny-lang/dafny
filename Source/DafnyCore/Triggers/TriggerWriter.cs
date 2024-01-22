@@ -9,11 +9,11 @@ class TriggerWriter {
   public ComprehensionExpr Comprehension { get; set; }
   public List<TriggerTerm> CandidateTerms { get; set; }
   public List<TriggerCandidate> Candidates { get; set; }
-  public List<TriggerCandidate> RejectedCandidates { get; }
+  private List<TriggerCandidate> RejectedCandidates { get; }
   private List<TriggerMatch> loopingMatches;
 
-  internal bool AllowsLoops => TriggerUtils.AllowsMatchingLoops(Comprehension);
-  internal bool CouldSuppressLoops { get; set; }
+  private bool AllowsLoops => TriggerUtils.AllowsMatchingLoops(Comprehension);
+  private bool CouldSuppressLoops { get; set; }
 
   internal TriggerWriter(ComprehensionExpr comprehension) {
     this.Comprehension = comprehension;

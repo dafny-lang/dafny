@@ -105,6 +105,7 @@ namespace Microsoft.Dafny.Triggers {
       // [∀ x {f(x), f(f(x))} ⋅ f(x) = f(f(x))] is not a loop). And we even
       // ignore terms that almost match a trigger term, modulo a single variable
       // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop).
+      
       // In addition, we ignore cases where the only differences between a trigger
       // and a trigger match are places where a variable is replaced with an
       // expression whose free variables do not intersect that of the quantifier
