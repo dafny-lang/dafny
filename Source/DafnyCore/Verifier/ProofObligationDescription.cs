@@ -331,7 +331,7 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
   }
 }
 
-public class AssertStatement : ProofObligationDescriptionCustomMessages {
+public class AssertStatementDescription : ProofObligationDescriptionCustomMessages {
   public override string DefaultSuccessDescription =>
     "assertion always holds";
 
@@ -341,14 +341,20 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "assert statement";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return predicate;
+    return AssertStatement.Expr;
   }
 
-  private Expression predicate;
+  public AssertStmt AssertStatement { get; }
 
-  public AssertStatement(Expression predicate, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  // We provide a way to mark an assertion as an intentional element of a
+  // proof by contradiction with the `{:contradiction}` attribute. Dafny
+  // skips warning about such assertions being proved due to contradictory
+  // assumptions.
+  public bool IsIntentionalContradiction => Attributes.Contains(AssertStatement.Attributes, "contradiction");
+
+  public AssertStatementDescription(AssertStmt assertStmt, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
-    this.predicate = predicate;
+    this.AssertStatement = assertStmt;
   }
 
   public override bool IsImplicit => false;

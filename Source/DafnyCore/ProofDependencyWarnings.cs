@@ -102,6 +102,10 @@ public class ProofDependencyWarnings {
           lit == false) {
         return false;
       }
+
+      if (poDep.ProofObligation is AssertStatementDescription { IsIntentionalContradiction: true }) {
+        return false;
+      }
     }
 
     // Ensures clauses are often proven vacuously during well-formedness checks.
