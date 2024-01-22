@@ -23,7 +23,7 @@ class TriggerWriter {
   internal void TrimInvalidTriggers() {
     Contract.Requires(CandidateTerms != null);
     Contract.Requires(Candidates != null);
-    Candidates = TriggerUtils.Filter(Candidates, tr => tr, (tr, _) => tr.MentionsAll(Comprehension.BoundVars), (tr, _) => { }).ToList();
+    Candidates = Candidates.Where(tr => tr.MentionsAll(Comprehension.BoundVars)).ToList();
   }
 
   public bool DetectAndFilterLoopingCandidates(ErrorReporter reporter) {
@@ -36,7 +36,7 @@ class TriggerWriter {
       if (loopingSubterms.Any()) {
         looping.Add(candidate);
         loopingMatches = loopingSubterms.ToList();
-        candidate.Annotation = "may loop with " + string.Join(", ", 
+        candidate.Annotation = "may loop with " + string.Join(", ",
           loopingSubterms.Select(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\""));
       } else {
         nonLoopingCandidates.Add(candidate);
@@ -55,7 +55,7 @@ class TriggerWriter {
 
   public bool RewriteMatchingLoop(ErrorReporter reporter, ModuleDefinition module) {
     if (TriggerUtils.NeedsAutoTriggers(Comprehension) && TriggerUtils.WantsMatchingLoopRewrite(Comprehension)) {
-      var triggersCollector = new TriggersCollector(new (), 
+      var triggersCollector = new TriggersCollector(new(),
         reporter.Options, module);
       // rewrite quantifier to avoid matching loops
       // before:
@@ -88,15 +88,15 @@ class TriggerWriter {
       } else {
         // make a copy of the expr
         if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, 
+          expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
             TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         } else {
-          expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term, 
+          expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
             TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         }
       }
       var qq = expr;
-      
+
       Comprehension = qq;
       Candidates.Clear();
       CandidateTerms.Clear();
@@ -112,8 +112,7 @@ class TriggerWriter {
   }
 
   // TODO Check whether this makes verification faster
-  public void FilterStrongCandidates()
-  {
+  public void FilterStrongCandidates() {
     var newCandidates = new List<TriggerCandidate>();
     foreach (var candidate in Candidates) {
       var weakerCandidates = Candidates.Where(candidate.IsStrongerThan).ToList();
@@ -134,50 +133,37 @@ class TriggerWriter {
 
     if (TriggerUtils.WantsAutoTriggers(Comprehension)) {
       // NOTE: split and autotriggers attributes are passed down to Boogie
-      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken, "Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.");
+      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
+        "The attribute {:autotriggers false} can deteriorate verification performance. " +
+        "You can silence this warning by explicitly adding no triggers, using {:trigger}.");
     }
 
-    if (TriggerUtils.NeedsAutoTriggers(Comprehension)) {
-      AddTriggerAttribute(systemModuleManager);
-        
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken, 
-        $"Selected triggers: {String.Join(", ", Candidates)}");
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-        $"Rejected triggers: {String.Join("\n", RejectedCandidates)}");
+    if (!TriggerUtils.NeedsAutoTriggers(Comprehension)) {
+      return;
+    }
 
-      if (!CandidateTerms.Any() || !Candidates.Any()) {
-        errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-          $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may heavily worsen verification performance. For more information, see the section on quantifier triggers in the reference manual.");
-      }
-      if (!CouldSuppressLoops && !AllowsLoops) {
-        errorLevel = warningLevel;
-        msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
-        FirstLetterCapitalOnNestedToken();
-      } 
-      //
-      //   errorLevel = warningLevel;
-      //   msg.Append(WARN).AppendLine(
-      //     "this quantifier may not be effectively used by the verifier; you may experience brittleness, possibly right away or possibly down the road; for more information, see 'ineffective quantifiers' in the reference manual [expert info: no trigger for bound variable 'x']");
-      //   FirstLetterCapitalOnNestedToken();
-      // } else if (!quantifier.Candidates.Any()) {
-      //   errorLevel = warningLevel;
-      //   msg.Append(WARN).AppendLine("No trigger covering all quantified variables found.");
-      //   FirstLetterCapitalOnNestedToken();
-      // } else else if (suppressWarnings) {
-      //   errorLevel = ErrorLevel.Warning;
-      //   msg.Append(indent).Append(WARN_TAG).AppendLine("There is no warning here to suppress.");
-      //   FirstLetterCapitalOnNestedToken();
-      // }
-      //
-      // if (msg.Length > 0 && !Attributes.Contains(quantifier.quantifier.Attributes, "auto_generated")) {
-      //   var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-      //   reporter.Message(MessageSource.Rewriter, errorLevel, null, reportingToken, msgStr);
-      // }
+    AddTriggerAttribute(systemModuleManager);
+
+    errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
+      $"Selected triggers: {String.Join(", ", Candidates)}");
+    errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
+      $"Rejected triggers: {String.Join("\n", RejectedCandidates)}");
+
+    if (!CandidateTerms.Any() || !Candidates.Any()) {
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
+        $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. " +
+        $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
+        $"For more information, see the section on quantifier triggers in the reference manual.");
+    }
+    if (!CouldSuppressLoops && !AllowsLoops) {
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
+        $"Triggers were added to this quantifier that may introduce matching loops, which may deteriorate verification performance. " +
+        $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
+        $"For more information, see the section on quantifier triggers in the reference manual.");
     }
   }
-  
-  private void AddTriggerAttribute(SystemModuleManager systemModuleManager)
-  {
+
+  private void AddTriggerAttribute(SystemModuleManager systemModuleManager) {
     foreach (var candidate in Candidates) {
       Comprehension.Attributes = new Attributes("trigger",
         candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),

@@ -166,21 +166,6 @@ namespace Microsoft.Dafny.Triggers {
       return it1_has == it2_has && acc;
     }
 
-    internal static IEnumerable<T> Filter<T, U>(
-      IEnumerable<T> elements, 
-      Func<T, U> converter, 
-      Func<T, U, bool> predicate, 
-      Action<T, U> reject) {
-      foreach (var elem in elements) {
-        var conv = converter(elem);
-        if (predicate(elem, conv)) {
-          yield return elem;
-        } else {
-          reject(elem, conv);
-        }
-      }
-    }
-
     internal static bool SameNullity<T>(T x1, T x2) where T : class {
       return (x1 == null) == (x2 == null);
     }
