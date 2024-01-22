@@ -19,3 +19,13 @@ module NoAutoInit {
     }
   }
 }
+
+module ProvablyEmpty {
+  datatype BadList<X> = Cons(head: X, tail: BadList<X>) // warning: no instances
+
+  lemma NeverGetHere<X>(xs: BadList<X>)
+    ensures false
+  {
+    NeverGetHere(xs.tail);
+  }
+}
