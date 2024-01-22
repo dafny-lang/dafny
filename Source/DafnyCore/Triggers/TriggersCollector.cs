@@ -235,7 +235,6 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      TriggerUtils.DebugTriggers(options, "{0} ({1})\n{2}", Printer.ExprToString(options, expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
     }

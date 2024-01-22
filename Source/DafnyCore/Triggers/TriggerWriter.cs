@@ -12,7 +12,14 @@ class TriggerWriter {
   private List<TriggerCandidate> RejectedCandidates { get; }
   private List<TriggerMatch> loopingMatches;
 
-  private bool AllowsLoops => TriggerUtils.AllowsMatchingLoops(Comprehension);
+  private bool AllowsLoops {
+    get {
+      Contract.Requires(!(Comprehension is QuantifierExpr) || ((QuantifierExpr)Comprehension).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
+      // This is different from nowarn: it won't remove loops at all, even if another trigger is available.
+      return Attributes.Contains(Comprehension.Attributes, "matchingloop");
+    }
+  }
+
   private bool CouldSuppressLoops { get; set; }
 
   internal TriggerWriter(ComprehensionExpr comprehension) {
@@ -54,7 +61,7 @@ class TriggerWriter {
   }
 
   public bool RewriteMatchingLoop(ErrorReporter reporter, ModuleDefinition module) {
-    if (TriggerUtils.NeedsAutoTriggers(Comprehension) && TriggerUtils.WantsMatchingLoopRewrite(Comprehension)) {
+    if (NeedsAutoTriggers() && WantsMatchingLoopRewrite()) {
       var triggersCollector = new TriggersCollector(new(),
         reporter.Options, module);
       // rewrite quantifier to avoid matching loops
@@ -131,14 +138,14 @@ class TriggerWriter {
     var reportingToken = Comprehension.Tok;
     var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
 
-    if (TriggerUtils.WantsAutoTriggers(Comprehension)) {
+    if (WantsAutoTriggers()) {
       // NOTE: split and autotriggers attributes are passed down to Boogie
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
         "The attribute {:autotriggers false} can deteriorate verification performance. " +
         "You can silence this warning by explicitly adding no triggers, using {:trigger}.");
     }
 
-    if (!TriggerUtils.NeedsAutoTriggers(Comprehension)) {
+    if (!NeedsAutoTriggers()) {
       return;
     }
 
@@ -169,5 +176,19 @@ class TriggerWriter {
         candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),
         Comprehension.Attributes);
     }
+  }
+
+  private bool WantsAutoTriggers() {
+    bool wantsAutoTriggers = true;
+    return !Attributes.ContainsBool(Comprehension.Attributes, "autotriggers", ref wantsAutoTriggers) || wantsAutoTriggers;
+  }
+
+  private bool NeedsAutoTriggers() {
+    return !Attributes.Contains(Comprehension.Attributes, "trigger") && WantsAutoTriggers();
+  }
+
+  bool WantsMatchingLoopRewrite() {
+    bool wantsMatchingLoopRewrite = true;
+    return (!Attributes.ContainsBool(Comprehension.Attributes, "matchinglooprewrite", ref wantsMatchingLoopRewrite) || wantsMatchingLoopRewrite) && WantsAutoTriggers();
   }
 }

@@ -1,9 +1,11 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using DafnyCore.Generic;
 
 namespace Microsoft.Dafny.Triggers {
 
@@ -35,7 +37,7 @@ namespace Microsoft.Dafny.Triggers {
       CombineSplitQuantifier();
     }
 
-    private bool SubsetGenerationPredicate(TriggerUtils.SetOfTerms terms, TriggerTerm additionalTerm) {
+    private bool SubsetGenerationPredicate(SetOfTerms terms, TriggerTerm additionalTerm) {
       return true; // FIXME Remove this
       //return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
     }
@@ -190,11 +192,12 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private bool HasSameTriggers(TriggerWriter one, TriggerWriter other) {
-      return TriggerUtils.SameLists(one.Candidates, other.Candidates, SameTriggerCandidate);
+      return one.Candidates.SequenceEqual(other.Candidates, new PredicateEqualityComparer<TriggerCandidate>(SameTriggerCandidate));
     }
 
     private static bool SameTriggerCandidate(TriggerCandidate arg1, TriggerCandidate arg2) {
-      return TriggerUtils.SameLists(arg1.Terms, arg2.Terms, TriggerTerm.Eq);
+      Func<TriggerTerm, TriggerTerm, bool> comparer = TriggerTerm.Eq;
+      return arg1.Terms.SequenceEqual(arg2.Terms, new PredicateEqualityComparer<TriggerTerm>(comparer));
     }
 
     private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
