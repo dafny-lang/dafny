@@ -48,10 +48,10 @@ function foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 ghost predicate InvR<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
 {
   forall x, xs, b, b' ::
-  inv(xs, b) && stp(x, b, b') ==> inv(Cons(x, xs), b')
+    inv(xs, b) && stp(x, b, b') ==> inv(Cons(x, xs), b')
 }
 
-lemma FoldR_Property<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
+lemma FoldR_Property<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
   requires InvR(inv, stp)
   requires forall a,b :: stp(a, b, f(a,b))
   requires inv(Nil, b)
@@ -74,7 +74,7 @@ lemma FoldR_Property<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,
     }
 }
 
-lemma FoldR_Property_ShortProof<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
+lemma FoldR_Property_ShortProof<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool, f: (A,B) -> B, b: B, xs: List<A>)
   requires InvR(inv, stp)
   requires forall a,b :: stp(a, b, f(a,b))
   requires inv(Nil, b)
@@ -153,14 +153,14 @@ function foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 ghost predicate InvL<A(!new),B(!new)>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
 {
   forall x, xs, b, b' ::
-  inv(b, Cons(x, xs)) && stp(b, x, b') ==> inv(b', xs)
+    inv(b, Cons(x, xs)) && stp(b, x, b') ==> inv(b', xs)
 }
 
 // This is the analogous lemma to FoldR_Property above.  But instead of proving
 //     inv(Nil, b) ==> inv(xs, foldr(f, b, xs))
 // this lemma proves
 //     inv(b, xs) ==> inv(foldl(f, b, xs), Nil)
-lemma FoldL_Property<A,B>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool, f: (B,A) -> B, b: B, xs: List<A>)
+lemma FoldL_Property<A(!new),B(!new)>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool, f: (B,A) -> B, b: B, xs: List<A>)
   requires InvL(inv, stp)
   requires forall b,a :: stp(b, a, f(b, a))
   requires inv(b, xs)
