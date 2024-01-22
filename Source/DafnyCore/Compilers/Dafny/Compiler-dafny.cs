@@ -214,7 +214,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in typeParameters) {
           var compileName = IdProtect(tp.GetCompileName(Options));
           if (!isTpSupported(tp, out var why)) {
-            compileName += $"({why})";
+            compileName += $"{why}";
             //throwGeneralUnsupported("Contravariance in type parameters");
           }
 
@@ -249,12 +249,12 @@ namespace Microsoft.Dafny.Compilers {
 
     private static bool isTpSupported(TypeParameter tp, [CanBeNull] out string why) {
       if (tp.Variance != TypeParameter.TPVariance.Non) {
-        why = $"Type variance {tp.Variance} not supported";
+        why = $"<b>Unsupported: Type variance {tp.Variance} not supported</b>";
         return false;
       }
 
       if (tp.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified) {
-        why = $"Type parameter Equality support {tp.Characteristics.EqualitySupport} not supported for type parameters";
+        why = $"<b>Unsupported: Type parameter Equality support {tp.Characteristics.EqualitySupport} not supported for type parameters</b>";
         return false;
       }
 
@@ -374,7 +374,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         var why = "Type name for " + xType + " (" + typ.GetType() + ")";
         throwGeneralUnsupported(why);
-        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString($"Unsupported: {why}"));
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: {why}</b>"));
       }
     }
 
@@ -921,7 +921,8 @@ namespace Microsoft.Dafny.Compilers {
         if (wr is BuilderSyntaxTree<ExprContainer> exprContainer) {
           exprContainer.Builder.AddExpr(expr);
         } else {
-          throw new InvalidOperationException();
+          compiler.throwGeneralUnsupported("EmitRead without ExprContainer builder");
+          //throw new InvalidOperationException();
         }
       }
 
@@ -1434,7 +1435,7 @@ namespace Microsoft.Dafny.Compilers {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else if (topLevel is TraitDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("Unsupported: Traits"))
+          DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("<b>Unsupported: Traits</b>"))
         );
         //ThrowSpecificUnsupported(Token.NoToken, Feature.Traits);
         // traits need a bit more work
@@ -2220,7 +2221,7 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NotInSeq => DAST.BinOp.create_NotIn(),
           BinaryExpr.ResolvedOpcode.SetDifference => DAST.BinOp.create_SetDifference(),
           BinaryExpr.ResolvedOpcode.Concat => DAST.BinOp.create_Concat(),
-          _ => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("Unsupported: Operator " + op.ToString())),
+          _ => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: Operator {op}</b>")),
         };
 
         opString = "";

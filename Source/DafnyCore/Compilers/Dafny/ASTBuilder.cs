@@ -1123,7 +1123,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static DAST.Expression UnsupportedToExpr(string why) {
       return (DAST.Expression)DAST.Expression.create_Ident(
-        Sequence<ISequence<Rune>>.UnicodeFromString("Unsupported: " + why)
+        Sequence<ISequence<Rune>>.UnicodeFromString($"<b>Unsupported: {why}</b>")
       );
     }
   }
