@@ -1,7 +1,3 @@
 [submodule "Test/libraries"]
 	path = Source/IntegrationTests/TestFiles/LitTests/LitTest/libraries
 	url = https://github.com/dafny-lang/libraries.git
-[submodule "bogie"]
-	path = boogie
-	url = https://github.com/Dargones/boogie.git
-	branch = CounterexampleModelFix
