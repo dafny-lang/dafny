@@ -20,5 +20,5 @@ module A {
 }
 
 module B {
-  datatype T = T(T, T) // error (masked by other errors in module A): cycle prevents instances
+  datatype T = T(T, T) // warnin: cycle prevents instances (module A has the same problem, but the warning is masked by other errors there)
 }

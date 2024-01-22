@@ -226,11 +226,11 @@ module ArrayTests {
 // ---------------------
 
 module OtherCycles0 {
-  datatype A = Ctor(A -> A)  // error: cannot be constructed
-  datatype B = Ctor(int -> B)  // error: cannot be constructed
+  datatype A = Ctor(A -> A)  // warning: empty datatype
+  datatype B = Ctor(int -> B)  // warning: empty datatype
 
-  datatype Cycle = Cycle(Cyc)  // error: cannot be constructed
-  type Cyc = c: Cycle | true
+  datatype Cycle = Cycle(Cyc)  // warning: empty datatype
+  type Cyc = c: Cycle | true // error: dependency: Cyc -> Cycle -> Cyc
 }
 
 module OtherCycles1 {
@@ -254,28 +254,28 @@ module OtherCycles2 {
 
 module OtherCycles3 {
   // the next line uses a partial arrow
-  datatype CycleW = CycleW(int -> CycW) // error: dependency cycle W -> CycW -> CycleW
-  type CycW = c: CycleW | true witness W()
+  datatype CycleW = CycleW(int -> CycW) // warning: no instance possible
+  type CycW = c: CycleW | true witness W() // error: dependency cycle W -> CycW -> CycleW
   function W(): CycleW
 }
 
 module OtherCycles4 {
   // the next line uses a total arrow
-  datatype CycleW = CycleW(int -> CycW) // error: because of cycle among constructor argument types, 'CycleW' is empty
-  type CycW = c: CycleW | true witness W()
+  datatype CycleW = CycleW(int -> CycW) // warning: because of cycle among constructor argument types, 'CycleW' is empty
+  type CycW = c: CycleW | true witness W() // error: dependency cycle: CycW -> W -> CycleW -> CycW
   function W(): CycleW
 }
 
 module OtherCycles5 {
   // the next line uses a subset type over a total arrow
   type MyTotalArrow<X, Y> = f: X -> Y | true
-  datatype CycleW = CycleW(MyTotalArrow<int, CycW>) // error: because of cycle among constructor argument types, 'CycleW' is empty
-  type CycW = c: CycleW | true witness W()
+  datatype CycleW = CycleW(MyTotalArrow<int, CycW>) // warning: because of cycle among constructor argument types, 'CycleW' is empty
+  type CycW = c: CycleW | true witness W() // error: dependency cycle: CycW -> W -> CycleW -> CycW
   function W(): CycleW
 }
 
 module NE {
-  datatype NeverendingList = Cons(int, NeverendingList)  // error: empty type
-  datatype Growing<X> = Make(Growing<array<X>>) // error: empty type
+  datatype NeverendingList = Cons(int, NeverendingList)  // warning: empty type
+  datatype Growing<X> = Make(Growing<array<X>>) // warning: empty type
   datatype MaybeGrowing<X> = Make(array<MaybeGrowing<X>>) // okay, since it does not violate the cycle rule
 }

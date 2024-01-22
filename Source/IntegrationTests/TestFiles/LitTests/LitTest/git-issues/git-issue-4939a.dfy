@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --type-system-refresh --general-traits=datatype "%s" > "%t"
+// RUN: %verify --type-system-refresh --general-traits=datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module FromIssue0 {
@@ -139,8 +139,8 @@ module Good1 {
 }
 
 module Bad {
-  datatype T = Make(T, T) // error: obviously empty
+  datatype T = Make(T, T) // warning: empty datatype
 
-  datatype Mutual = M0(Nutual) | M1(Mutual) // error: empty
-  datatype Nutual = N0(Mutual) // error: empty
+  datatype Mutual = M0(Nutual) | M1(Mutual) // warning: empty datatype
+  datatype Nutual = N0(Mutual) // warning: empty datatype
 }
