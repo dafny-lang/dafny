@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private CounterExampleItem GetCounterExample(DafnyModelState state) {
-        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
+        List<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
           vars.WithCancellation(cancellationToken).ToDictionary(

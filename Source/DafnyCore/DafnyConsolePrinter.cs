@@ -37,13 +37,14 @@ public class DafnyConsolePrinter : ConsolePrinter {
     ConditionGeneration.Outcome Outcome,
     TimeSpan RunTime,
     int ResourceCount,
-    List<VCResultLogEntry> VCResults);
+    List<VCResultLogEntry> VCResults,
+    List<Counterexample> Counterexamples);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
   public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
     return new VerificationResultLogEntry(
       verificationResult.Outcome, verificationResult.End - verificationResult.Start,
-      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
+      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
   }
 
   private static VCResultLogEntry DistillVCResult(VCResult r) {

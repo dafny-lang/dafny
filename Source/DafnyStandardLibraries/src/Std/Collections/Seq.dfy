@@ -186,7 +186,7 @@ module Std.Collections.Seq {
   /* Is true if there are no duplicate values in the sequence. */
   ghost predicate {:opaque} HasNoDuplicates<T>(xs: seq<T>)
   {
-    (forall i, j {:trigger xs[i], xs[j]}:: 0 <= i < |xs| && 0 <= j < |xs| && i != j ==> xs[i] != xs[j])
+    forall i, j :: 0 <= i < |xs| && 0 <= j < |xs| && i != j ==> xs[i] != xs[j]
   }
 
   /* If sequences xs and ys don't have duplicates and there are no
@@ -201,12 +201,9 @@ module Std.Collections.Seq {
     reveal HasNoDuplicates();
     var zs := xs + ys;
     if |zs| > 1 {
-      assert forall i {:trigger zs[i]} :: 0 <= i < |xs| ==>
-                                            zs[i] in multiset(xs);
-      assert forall j {:trigger zs[j]} :: |xs| <= j < |zs| ==>
-                                            zs[j] in multiset(ys);
-      assert forall i, j {:trigger zs[i], zs[j]} :: i != j && 0 <= i < |xs| && |xs| <= j < |zs| ==>
-                                                      zs[i] != zs[j];
+      assert forall i :: 0 <= i < |xs| ==> zs[i] in multiset(xs);
+      assert forall j :: |xs| <= j < |zs| ==> zs[j] in multiset(ys);
+      assert forall i, j :: 0 <= i < |xs| <= j < |zs| ==> zs[i] != zs[j];
     }
   }
 
@@ -271,7 +268,7 @@ module Std.Collections.Seq {
   function {:opaque} IndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
-    ensures forall j {:trigger xs[j]} :: 0 <= j < i ==> xs[j] != v
+    ensures forall j :: 0 <= j < i ==> xs[j] != v
   {
     if xs[0] == v then 0 else 1 + IndexOf(xs[1..], v)
   }
@@ -280,7 +277,7 @@ module Std.Collections.Seq {
      the index of its first occurrence. Otherwise the return is None. */
   function {:opaque} IndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
-                            forall j {:trigger xs[j]} :: 0 <= j < o.value ==> xs[j] != v
+                            forall j :: 0 <= j < o.value ==> xs[j] != v
             else v !in xs
   {
     IndexByOption(xs, x => x == v)
@@ -290,7 +287,7 @@ module Std.Collections.Seq {
     the index of the first such occurrence. Otherwise the return is None. */
   function {:opaque} IndexByOption<T(==)>(xs: seq<T>, p: T -> bool): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && p(xs[o.value]) &&
-                            forall j {:trigger xs[j]} :: 0 <= j < o.value ==> !p(xs[j])
+                            forall j :: 0 <= j < o.value ==> !p(xs[j])
             else forall x <- xs ::!p(x)
   {
     if |xs| == 0 then None()
@@ -306,7 +303,7 @@ module Std.Collections.Seq {
   function {:opaque} LastIndexOf<T(==)>(xs: seq<T>, v: T): (i: nat)
     requires v in xs
     ensures i < |xs| && xs[i] == v
-    ensures forall j {:trigger xs[j]} :: i < j < |xs| ==> xs[j] != v
+    ensures forall j :: i < j < |xs| ==> xs[j] != v
   {
     if xs[|xs|-1] == v then |xs| - 1 else LastIndexOf(xs[..|xs|-1], v)
   }
@@ -315,7 +312,7 @@ module Std.Collections.Seq {
      the index of its last occurrence. Otherwise the return is None. */
   function {:opaque} LastIndexOfOption<T(==)>(xs: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |xs| && xs[o.value] == v &&
-                            forall j {:trigger xs[j]} :: o.value < j < |xs| ==> xs[j] != v
+                            forall j :: o.value < j < |xs| ==> xs[j] != v
             else v !in xs
   {
     LastIndexByOption(xs, x => x == v)
@@ -383,7 +380,7 @@ module Std.Collections.Seq {
   /* Returns a constant sequence of a given length. */
   function {:opaque} Repeat<T>(v: T, length: nat): (xs: seq<T>)
     ensures |xs| == length
-    ensures forall i: nat {:trigger xs[i]} | i < |xs| :: xs[i] == v
+    ensures forall i: nat | i < |xs| :: xs[i] == v
   {
     if length == 0 then
       []
@@ -392,7 +389,7 @@ module Std.Collections.Seq {
   }
 
   /* Unzips a sequence that contains pairs into two separate sequences. */
-  function {:opaque} Unzip<A,B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
+  function {:opaque} Unzip<A, B>(xs: seq<(A, B)>): (seq<A>, seq<B>)
     ensures |Unzip(xs).0| == |Unzip(xs).1| == |xs|
     ensures forall i {:trigger Unzip(xs).0[i]} {:trigger Unzip(xs).1[i]}
               :: 0 <= i < |xs| ==> (Unzip(xs).0[i], Unzip(xs).1[i]) == xs[i]
@@ -404,10 +401,10 @@ module Std.Collections.Seq {
   }
 
   /* Zips two sequences of equal length into one sequence that consists of pairs. */
-  function {:opaque} Zip<A,B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
+  function {:opaque} Zip<A, B>(xs: seq<A>, ys: seq<B>): seq<(A, B)>
     requires |xs| == |ys|
     ensures |Zip(xs, ys)| == |xs|
-    ensures forall i {:trigger Zip(xs, ys)[i]}:: 0 <= i < |Zip(xs, ys)| ==> Zip(xs, ys)[i] == (xs[i], ys[i])
+    ensures forall i {:trigger Zip(xs, ys)[i]} :: 0 <= i < |Zip(xs, ys)| ==> Zip(xs, ys)[i] == (xs[i], ys[i])
     ensures Unzip(Zip(xs, ys)).0 == xs
     ensures Unzip(Zip(xs, ys)).1 == ys
   {
@@ -416,7 +413,7 @@ module Std.Collections.Seq {
   }
 
   /* Unzipping and zipping a sequence results in the original sequence */
-  lemma LemmaZipOfUnzip<A,B>(xs: seq<(A,B)>)
+  lemma LemmaZipOfUnzip<A, B>(xs: seq<(A, B)>)
     ensures Zip(Unzip(xs).0, Unzip(xs).1) == xs
   {
   }
@@ -440,7 +437,7 @@ module Std.Collections.Seq {
   /* Returns the maximum integer value in a non-empty sequence of integers. */
   function {:opaque} Max(xs: seq<int>): int
     requires 0 < |xs|
-    ensures forall k {:trigger k in xs} :: k in xs ==> Max(xs) >= k
+    ensures forall k :: k in xs ==> Max(xs) >= k
     ensures Max(xs) in xs
   {
     assert xs == [xs[0]] + xs[1..];
@@ -466,7 +463,7 @@ module Std.Collections.Seq {
   /* Returns the minimum integer value in a non-empty sequence of integers. */
   function {:opaque} Min(xs: seq<int>): int
     requires 0 < |xs|
-    ensures forall k {:trigger k in xs} :: k in xs ==> Min(xs) <= k
+    ensures forall k :: k in xs ==> Min(xs) <= k
     ensures Min(xs) in xs
   {
     assert xs == [xs[0]] + xs[1..];
@@ -479,7 +476,7 @@ module Std.Collections.Seq {
     requires 0 < |xs| && 0 < |ys|
     ensures Min(xs+ys) <= Min(xs)
     ensures Min(xs+ys) <= Min(ys)
-    ensures forall i {:trigger i in xs + ys} :: i in xs + ys ==> Min(xs + ys) <= i
+    ensures forall i :: i in xs + ys ==> Min(xs + ys) <= i
   {
     reveal Min();
     if |xs| == 1 {
@@ -614,7 +611,7 @@ module Std.Collections.Seq {
      to the length of xs multiplied by a number not smaller than the length of the
      longest sequence in xs. */
   lemma LemmaFlattenLengthLeMul<T>(xs: seq<seq<T>>, j: int)
-    requires forall i {:trigger xs[i]} | 0 <= i < |xs| :: |xs[i]| <= j
+    requires forall i | 0 <= i < |xs| :: |xs[i]| <= j
     ensures |FlattenReverse(xs)| <= |xs| * j
   {
     if |xs| == 0 {
@@ -717,11 +714,11 @@ module Std.Collections.Seq {
 
   /* Returns the sequence one obtains by applying a function to every element
      of a sequence. */
-  function {:opaque} Map<T,R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
-    requires forall i {:trigger xs[i]} :: 0 <= i < |xs| ==> f.requires(xs[i])
+  function {:opaque} Map<T, R>(f: (T ~> R), xs: seq<T>): (result: seq<R>)
+    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| == |xs|
-    ensures forall i {:trigger result[i]}:: 0 <= i < |xs| ==> result[i] == f(xs[i])
-    reads set i, o {:trigger o in f.reads(xs[i])} | 0 <= i < |xs| && o in f.reads(xs[i]):: o
+    ensures forall i {:trigger result[i]} :: 0 <= i < |xs| ==> result[i] == f(xs[i])
+    reads set i, o | 0 <= i < |xs| && o in f.reads(xs[i]) :: o
   {
     if |xs| == 0 then []
     else [f(xs[0])] + Map(f, xs[1..])
@@ -730,7 +727,7 @@ module Std.Collections.Seq {
   /* Applies a function to every element of a sequence, returning a Result value (which is a
      failure-compatible type). Returns either a failure, or, if successful at every element,
      the transformed sequence.  */
-  function {:opaque} MapWithResult<T, R, E>(f: (T ~> Result<R,E>), xs: seq<T>): (result: Result<seq<R>, E>)
+  function {:opaque} MapWithResult<T, R, E>(f: (T ~> Result<R, E>), xs: seq<T>): (result: Result<seq<R>, E>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures result.Success? ==>
               && |result.value| == |xs|
@@ -749,9 +746,9 @@ module Std.Collections.Seq {
   /* Applying a function to a sequence  is distributive over concatenation. That is, concatenating
      two sequences and then applying Map is the same as applying Map to each sequence separately,
      and then concatenating the two resulting sequences. */
-  lemma {:opaque} {:resource_limit 1000000000} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
-    requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
-    requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
+  lemma {:resource_limit 1000000000} LemmaMapDistributesOverConcat<T,R>(f: (T ~> R), xs: seq<T>, ys: seq<T>)
+    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+    requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
   {
     reveal Map();
@@ -774,7 +771,7 @@ module Std.Collections.Seq {
   function {:opaque} Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| <= |xs|
-    ensures forall i: nat {:trigger result[i]} :: i < |result| && f.requires(result[i]) ==> f(result[i])
+    ensures forall i: nat :: i < |result| && f.requires(result[i]) ==> f(result[i])
     reads set i, o | 0 <= i < |xs| && o in f.reads(xs[i]) :: o
   {
     if |xs| == 0 then []
@@ -784,7 +781,7 @@ module Std.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:opaque} {:vcs_split_on_every_assert}
+  lemma {:vcs_split_on_every_assert}
   LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
@@ -807,7 +804,7 @@ module Std.Collections.Seq {
 
   /* Folds a sequence xs from the left (the beginning), by repeatedly acting on the accumulator
      init via the function f. */
-  function {:opaque} FoldLeft<A,T>(f: (A, T) -> A, init: A, xs: seq<T>): A
+  function {:opaque} FoldLeft<A, T>(f: (A, T) -> A, init: A, xs: seq<T>): A
   {
     if |xs| == 0 then init
     else FoldLeft(f, f(init, xs[0]), xs[1..])
@@ -816,7 +813,7 @@ module Std.Collections.Seq {
   /* Folding to the left is distributive over concatenation. That is, concatenating two
      sequences and then folding them to the left, is the same as folding to the left the
      first sequence and using the result to fold to the left the second sequence. */
-  lemma {:opaque} LemmaFoldLeftDistributesOverConcat<A,T>(f: (A, T) -> A, init: A, xs: seq<T>, ys: seq<T>)
+  lemma LemmaFoldLeftDistributesOverConcat<A, T>(f: (A, T) -> A, init: A, xs: seq<T>, ys: seq<T>)
     ensures FoldLeft(f, init, xs + ys) == FoldLeft(f, FoldLeft(f, init, xs), ys)
   {
     reveal FoldLeft();
@@ -839,19 +836,19 @@ module Std.Collections.Seq {
 
   /* Is true, if inv is an invariant under stp, which is a relational
      version of the function f passed to fold. */
-  ghost predicate InvFoldLeft<A(!new),B(!new)>(inv: (B, seq<A>) -> bool,
-                                               stp: (B, A, B) -> bool)
+  ghost predicate InvFoldLeft<A(!new), B(!new)>(inv: (B, seq<A>) -> bool,
+                                                stp: (B, A, B) -> bool)
   {
     forall x: A, xs: seq<A>, b: B, b': B ::
       inv(b, [x] + xs) && stp(b, x, b') ==> inv(b', xs)
   }
 
   /* inv(b, xs) ==> inv(FoldLeft(f, b, xs), []). */
-  lemma LemmaInvFoldLeft<A,B>(inv: (B, seq<A>) -> bool,
-                              stp: (B, A, B) -> bool,
-                              f: (B, A) -> B,
-                              b: B,
-                              xs: seq<A>)
+  lemma LemmaInvFoldLeft<A(!new), B(!new)>(inv: (B, seq<A>) -> bool,
+                                           stp: (B, A, B) -> bool,
+                                           f: (B, A) -> B,
+                                           b: B,
+                                           xs: seq<A>)
     requires InvFoldLeft(inv, stp)
     requires forall b, a :: stp(b, a, f(b, a))
     requires inv(b, xs)
@@ -867,7 +864,7 @@ module Std.Collections.Seq {
 
   /* Folds a sequence xs from the right (the end), by acting on the accumulator init via the
      function f. */
-  function {:opaque} FoldRight<A,T>(f: (T, A) -> A, xs: seq<T>, init: A): A
+  function {:opaque} FoldRight<A, T>(f: (T, A) -> A, xs: seq<T>, init: A): A
   {
     if |xs| == 0 then init
     else f(xs[0], FoldRight(f, xs[1..], init))
@@ -876,7 +873,7 @@ module Std.Collections.Seq {
   /* Folding to the right is (contravariantly) distributive over concatenation. That is, concatenating
      two sequences and then folding them to the right, is the same as folding to the right
      the second sequence and using the result to fold to the right the first sequence. */
-  lemma {:opaque} LemmaFoldRightDistributesOverConcat<A,T>(f: (T, A) -> A, init: A, xs: seq<T>, ys: seq<T>)
+  lemma LemmaFoldRightDistributesOverConcat<A, T>(f: (T, A) -> A, init: A, xs: seq<T>, ys: seq<T>)
     ensures FoldRight(f, xs + ys, init) == FoldRight(f, xs, FoldRight(f, ys, init))
   {
     reveal FoldRight();
@@ -896,19 +893,19 @@ module Std.Collections.Seq {
 
   /* Is true, if inv is an invariant under stp, which is a relational version
      of the function f passed to fold. */
-  ghost predicate InvFoldRight<A(!new),B(!new)>(inv: (seq<A>, B) -> bool,
-                                                stp: (A, B, B) -> bool)
+  ghost predicate InvFoldRight<A(!new), B(!new)>(inv: (seq<A>, B) -> bool,
+                                                 stp: (A, B, B) -> bool)
   {
     forall x: A, xs: seq<A>, b: B, b': B ::
       inv(xs, b) && stp(x, b, b') ==> inv(([x] + xs), b')
   }
 
   /* inv([], b) ==> inv(xs, FoldRight(f, xs, b)) */
-  lemma LemmaInvFoldRight<A,B>(inv: (seq<A>, B) -> bool,
-                               stp: (A, B, B) -> bool,
-                               f: (A, B) -> B,
-                               b: B,
-                               xs: seq<A>)
+  lemma LemmaInvFoldRight<A(!new), B(!new)>(inv: (seq<A>, B) -> bool,
+                                            stp: (A, B, B) -> bool,
+                                            f: (A, B) -> B,
+                                            b: B,
+                                            xs: seq<A>)
     requires InvFoldRight(inv, stp)
     requires forall a, b :: stp(a, b, f(a, b))
     requires inv([], b)
@@ -951,7 +948,7 @@ module Std.Collections.Seq {
   }
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
-  lemma SortedUnique<T>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
+  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires SortedBy(R, xs)
     requires SortedBy(R, ys)
     requires TotalOrdering(R)
@@ -973,7 +970,7 @@ module Std.Collections.Seq {
   }
 
   /* Converts a set to a sequence that is ordered w.r.t. a given total order (ghost). */
-  ghost function SetToSortedSeqSpec<T>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
+  ghost function SetToSortedSeqSpec<T(!new)>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(R, xs)
@@ -982,7 +979,7 @@ module Std.Collections.Seq {
   }
 
   /* Converts a set to a sequence that is ordered w.r.t. a given total order (compiled). */
-  method SetToSortedSeq<T>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
+  method SetToSortedSeq<T(!new)>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
     requires TotalOrdering(R)
     ensures multiset(s) == multiset(xs)
     ensures SortedBy(R, xs)
@@ -998,7 +995,7 @@ module Std.Collections.Seq {
    ***************************** */
 
   //Splits a sequence in two, sorts the two subsequences (recursively), and merges the two sorted sequences using `MergeSortedWith`
-  function MergeSortBy<T>(lessThanOrEq: (T, T) -> bool, a: seq<T>): (result :seq<T>)
+  function MergeSortBy<T(!new)>(lessThanOrEq: (T, T) -> bool, a: seq<T>): (result :seq<T>)
     requires TotalOrdering(lessThanOrEq)
     ensures multiset(a) == multiset(result)
     ensures SortedBy(lessThanOrEq, result)
@@ -1018,7 +1015,7 @@ module Std.Collections.Seq {
   }
 
   // Helper function for MergeSortBy
-  function {:tailrecursion} MergeSortedWith<T>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
+  function {:tailrecursion} MergeSortedWith<T(!new)>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
     requires SortedBy(lessThanOrEq, left)
     requires SortedBy(lessThanOrEq, right)
     requires TotalOrdering(lessThanOrEq)
@@ -1042,7 +1039,7 @@ module Std.Collections.Seq {
       [right[0]] + MergeSortedWith(left, right[1..], lessThanOrEq)
   }
 
-  lemma LemmaNewFirstElementStillSortedBy<T>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
+  lemma LemmaNewFirstElementStillSortedBy<T(!new)>(newFirst: T, s: seq<T>, lessOrEqual: (T, T) -> bool)
     requires SortedBy(lessOrEqual, s)
     requires |s| == 0 || lessOrEqual(newFirst, s[0])
     requires TotalOrdering(lessOrEqual)
