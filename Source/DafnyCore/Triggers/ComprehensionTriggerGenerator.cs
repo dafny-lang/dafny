@@ -9,19 +9,24 @@ using DafnyCore.Generic;
 
 namespace Microsoft.Dafny.Triggers {
 
-  record QuantifierGroup(TriggerWriter Quantifier, List<ComprehensionExpr> Expressions);
+  record QuantifierGroup(SplitPartTriggerWriter Quantifier, List<ComprehensionExpr> Expressions);
 
-  // TODO rename. ComprehensionSplitsTriggerWriter ??? UnsplitsComprehensionTriggerWriter?
-  class ComprehensionContainerTriggerWriter {
+  /// <summary>
+  /// For a comprehension that has been split into parts, determine triggers for each part.
+  ///
+  /// See section 2.3 of "Trigger Selection Strategies to Stabilize Program Verifiers" to learn
+  /// why we introduce these splits, and what interaction there is between the generation of their triggers.
+  /// </summary>
+  class ComprehensionTriggerGenerator {
     private readonly ErrorReporter reporter;
     private readonly ComprehensionExpr comprehensionContainer;  //  the expression where the splits are originated from
-    private List<TriggerWriter> triggerWriters;
+    private List<SplitPartTriggerWriter> partWriters;
 
-    internal ComprehensionContainerTriggerWriter(ComprehensionExpr comprehensionContainer, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
+    internal ComprehensionTriggerGenerator(ComprehensionExpr comprehensionContainer, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
       Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
       this.comprehensionContainer = comprehensionContainer;
-      triggerWriters = quantifiers.Select(q => new TriggerWriter(q)).ToList();
+      partWriters = quantifiers.Select(q => new SplitPartTriggerWriter(q)).ToList();
     }
 
     internal void ComputeTriggers(TriggersCollector triggersCollector) {
@@ -37,7 +42,7 @@ namespace Microsoft.Dafny.Triggers {
       CombineSplitQuantifier();
     }
 
-    private bool SubsetGenerationPredicate(SetOfTerms terms, TriggerTerm additionalTerm) {
+    private bool SubsetGenerationPredicate(TriggerTermSet terms, TriggerTerm additionalTerm) {
       return true; // FIXME Remove this
       //return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
     }
@@ -47,11 +52,13 @@ namespace Microsoft.Dafny.Triggers {
     /// between all quantifiers. This method assumes that all quantifiers
     /// actually come from the same context, and were the result of a split that
     /// gave them all the same variables.
+    /// 
+    /// See section 2.1 of "Trigger Selection Strategies to Stabilize Program Verifiers" to learn
+    /// how we collect triggers
     /// </summary>
-    /// <param name="triggersCollector"></param>
     void CollectAndShareTriggers(TriggersCollector triggersCollector) {
       var pool = new List<TriggerTerm>();
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         var candidates = triggersCollector.CollectTriggers(triggerWriter.Comprehension).Deduplicate(TriggerTerm.Eq);
         var greatTerms = candidates.Where(term => !triggersCollector.TranslateToFunctionCall(term.Expr)).ToList();
         if (greatTerms.Any()) {
@@ -62,23 +69,25 @@ namespace Microsoft.Dafny.Triggers {
       }
       var distinctPool = pool.Deduplicate(TriggerTerm.Eq);
 
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         triggerWriter.CandidateTerms = distinctPool; // The list of candidate terms is immutable
-        triggerWriter.Candidates = TriggerUtils.AllNonEmptySubsets(distinctPool, SubsetGenerationPredicate, triggerWriter.Comprehension.BoundVars)
+        triggerWriter.Candidates = TriggerTermSet.ComputeNonEmptyTriggerCandidatesTerms(LinkedLists.FromList(distinctPool), triggerWriter.Comprehension.BoundVars)
           .Select(set => set.ToTriggerCandidate()).ToList();
       }
     }
 
     void CollectWithoutShareTriggers(TriggersCollector triggersCollector) {
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         var candidates = triggersCollector.CollectTriggers(triggerWriter.Comprehension).Deduplicate(TriggerTerm.Eq);
         triggerWriter.CandidateTerms = candidates; // The list of candidate terms is immutable
-        triggerWriter.Candidates = TriggerUtils.AllNonEmptySubsets(candidates, SubsetGenerationPredicate, triggerWriter.Comprehension.BoundVars).Select(set => set.ToTriggerCandidate()).ToList();
+        triggerWriter.Candidates = TriggerTermSet.ComputeNonEmptyTriggerCandidatesTerms(
+          LinkedLists.FromList(candidates), triggerWriter.Comprehension.BoundVars).
+          Select(set => set.ToTriggerCandidate()).ToList();
       }
     }
 
     private void TrimInvalidTriggers() {
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         triggerWriter.TrimInvalidTriggers();
       }
     }
@@ -117,7 +126,7 @@ namespace Microsoft.Dafny.Triggers {
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
       bool foundLoop = false;
-      foreach (var quantifier in triggerWriters) {
+      foreach (var quantifier in partWriters) {
         foundLoop |= quantifier.DetectAndFilterLoopingCandidates(reporter);
       }
       return foundLoop;
@@ -126,11 +135,11 @@ namespace Microsoft.Dafny.Triggers {
     private bool RewriteMatchingLoop(ModuleDefinition module) {
       if (comprehensionContainer is QuantifierExpr unSplitQuantifier) {
         bool rewritten = false;
-        foreach (var triggerWriter in triggerWriters) {
+        foreach (var triggerWriter in partWriters) {
           rewritten |= triggerWriter.RewriteMatchingLoop(reporter, module);
         }
         if (rewritten) {
-          unSplitQuantifier.SplitQuantifier = triggerWriters.Select(q => (Expression)q.Comprehension).ToList();
+          unSplitQuantifier.SplitQuantifier = partWriters.Select(q => (Expression)q.Comprehension).ToList();
           return true;
         }
       }
@@ -138,40 +147,40 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     void FilterWeakerTriggers() {
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         triggerWriter.FilterStrongCandidates();
       }
     }
 
     // group split quantifier by what triggers they got, and merged them back into one quantifier.
     private void CombineSplitQuantifier() {
-      if (triggerWriters.Count > 1) {
+      if (partWriters.Count > 1) {
         var groups = new List<QuantifierGroup>();
-        groups.Add(new QuantifierGroup(triggerWriters[0], new List<ComprehensionExpr> { triggerWriters[0].Comprehension }));
-        for (int i = 1; i < triggerWriters.Count; i++) {
+        groups.Add(new QuantifierGroup(partWriters[0], new List<ComprehensionExpr> { partWriters[0].Comprehension }));
+        for (int i = 1; i < partWriters.Count; i++) {
           bool found = false;
           for (int j = 0; j < groups.Count; j++) {
-            if (HasSameTriggers(triggerWriters[i], groups[j].Quantifier)) {
+            if (HasSameTriggers(partWriters[i], groups[j].Quantifier)) {
               // belong to the same group
-              groups[j].Expressions.Add(triggerWriters[i].Comprehension);
+              groups[j].Expressions.Add(partWriters[i].Comprehension);
               found = true;
               break;
             }
           }
           if (!found) {
             // start a new group
-            groups.Add(new QuantifierGroup(triggerWriters[i], new List<ComprehensionExpr> { triggerWriters[i].Comprehension }));
+            groups.Add(new QuantifierGroup(partWriters[i], new List<ComprehensionExpr> { partWriters[i].Comprehension }));
           }
         }
-        if (groups.Count == triggerWriters.Count) {
+        if (groups.Count == partWriters.Count) {
           // have the same number of splits, so no splits are combined.
           return;
         }
         // merge expressions in each group back to one quantifier.
-        List<TriggerWriter> list = new List<TriggerWriter>();
+        List<SplitPartTriggerWriter> list = new List<SplitPartTriggerWriter>();
         List<Expression> splits = new List<Expression>();
         foreach (var group in groups) {
-          TriggerWriter q = group.Quantifier;
+          SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
             IToken tok = forallExpr.tok is NestedToken nestedToken ? nestedToken.Outer : forallExpr.tok;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
@@ -185,13 +194,13 @@ namespace Microsoft.Dafny.Triggers {
           splits.Add(q.Comprehension);
         }
 
-        triggerWriters = list;
+        partWriters = list;
         Contract.Assert(this.comprehensionContainer is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
         ((QuantifierExpr)this.comprehensionContainer).SplitQuantifier = splits;
       }
     }
 
-    private bool HasSameTriggers(TriggerWriter one, TriggerWriter other) {
+    private bool HasSameTriggers(SplitPartTriggerWriter one, SplitPartTriggerWriter other) {
       return one.Candidates.SequenceEqual(other.Candidates, new PredicateEqualityComparer<TriggerCandidate>(SameTriggerCandidate));
     }
 
@@ -209,7 +218,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
-      foreach (var triggerWriter in triggerWriters) {
+      foreach (var triggerWriter in partWriters) {
         triggerWriter.CommitTrigger(reporter, systemModuleManager);
       }
     }

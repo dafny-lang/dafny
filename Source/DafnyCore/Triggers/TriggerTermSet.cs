@@ -1,31 +1,53 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny.Triggers;
 
-internal class SetOfTerms {
-  internal bool IsRedundant { get; private set; }
-  internal List<TriggerTerm> Terms { get; set; }
+/// <summary>
+/// To generate triggers, we collect sets of terms. Each set may become a trigger candidate.
+/// </summary>
+internal class TriggerTermSet {
+  public bool IsRedundant { get; private set; }
+  private List<TriggerTerm> Terms { get; set; }
 
   private ISet<BoundVar> variables;
   private Dictionary<BoundVar, TriggerTerm> termOwningAUniqueVar;
   private Dictionary<TriggerTerm, ISet<BoundVar>> uniqueVarsOwnedByATerm;
 
-  public int Count { get { return Terms.Count; } }
+  private int Count => Terms.Count;
 
-  private SetOfTerms() { }
+  private TriggerTermSet() { }
 
   internal TriggerCandidate ToTriggerCandidate() {
     return new TriggerCandidate(Terms);
   }
 
-  internal static SetOfTerms Empty() {
-    var newSet = new SetOfTerms();
-    newSet.IsRedundant = false;
-    newSet.Terms = new List<TriggerTerm>();
-    newSet.variables = new HashSet<BoundVar>();
-    newSet.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>();
-    newSet.uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>();
+  private static IEnumerable<TriggerTermSet> ComputeTriggerCandidatesTerms(SinglyLinkedList<TriggerTerm> source,
+    ISet<BoundVar> relevantVariables) {
+    return source switch {
+      Cons<TriggerTerm> triggerTerms => ComputeTriggerCandidatesTerms(triggerTerms.Tail, relevantVariables).SelectMany(
+        child => {
+          var newSet = child.CopyWithAdd(triggerTerms.Head, relevantVariables);
+          return !newSet.IsRedundant ? new[] { newSet, child } : new[] { child };
+        }),
+      Nil<TriggerTerm> => new[] { Empty() },
+      _ => throw new ArgumentOutOfRangeException(nameof(source))
+    };
+  }
+
+  internal static IEnumerable<TriggerTermSet> ComputeNonEmptyTriggerCandidatesTerms(SinglyLinkedList<TriggerTerm> source, IEnumerable<BoundVar> relevantVariables) {
+    return ComputeTriggerCandidatesTerms(source, new HashSet<BoundVar>(relevantVariables)).Where(subset => subset.Count > 0);
+  }
+
+  private static TriggerTermSet Empty() {
+    var newSet = new TriggerTermSet {
+      IsRedundant = false,
+      Terms = new List<TriggerTerm>(),
+      variables = new HashSet<BoundVar>(),
+      termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(),
+      uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>()
+    };
     return newSet;
   }
 
@@ -43,8 +65,8 @@ internal class SetOfTerms {
   /// indeed, a new term that does bring new variables in can make an existing
   /// term redundant (see redundancy-detection-does-its-job-properly.dfy).
   /// </summary>
-  internal SetOfTerms CopyWithAdd(TriggerTerm term, ISet<BoundVar> relevantVariables) {
-    var copy = new SetOfTerms();
+  private TriggerTermSet CopyWithAdd(TriggerTerm term, IEnumerable<BoundVar> relevantVariables) {
+    var copy = new TriggerTermSet();
     copy.Terms = new List<TriggerTerm>(Terms);
     copy.variables = new HashSet<BoundVar>(variables);
     copy.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(termOwningAUniqueVar);

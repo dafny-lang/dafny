@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.Triggers {
       expr1 = expr1.Resolved;
       expr2 = expr2.Resolved;
 
-      return ShallowEq_Top(expr1, expr2) && 
+      return ShallowEq_Top(expr1, expr2) &&
              expr1.SubExpressions.SequenceEqual(expr2.SubExpressions, new PredicateEqualityComparer<Expression>(ExpressionEq));
     }
 
@@ -138,7 +138,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal static IEnumerable<TriggerMatch> SubexpressionsMatchingTrigger(this ComprehensionExpr quantifier, Expression trigger) {
       return quantifier.AllSubExpressions(true, true, true)
-        .Select(e => TriggerUtils.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
+        .Select(e => TriggersCollector.PrepareExprForInclusionInTrigger(e).MatchAgainst(trigger, quantifier.BoundVars, e))
         .Where(e => e.HasValue).Select(e => e.Value);
     }
 

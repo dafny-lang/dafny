@@ -20,6 +20,6 @@ internal struct TriggerMatch {
   /// </summary>
   internal bool CouldCauseLoops(List<TriggerTerm> terms, ISet<BoundVar> boundVars, DafnyOptions options) {
     var expr = Expr;
-    return !terms.Any(term => ExprExtensions.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(term.Expr, expr, boundVars, options));
+    return !terms.Any(term => term.Expr.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(expr, boundVars, options));
   }
 }

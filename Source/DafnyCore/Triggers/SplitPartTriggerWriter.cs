@@ -5,7 +5,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny.Triggers;
 
-class TriggerWriter {
+/// <summary>
+/// Determines the triggers for a comprehension that resulted from splitting another one
+/// </summary>
+class SplitPartTriggerWriter {
   public ComprehensionExpr Comprehension { get; set; }
   public List<TriggerTerm> CandidateTerms { get; set; }
   public List<TriggerCandidate> Candidates { get; set; }
@@ -22,7 +25,7 @@ class TriggerWriter {
 
   private bool CouldSuppressLoops { get; set; }
 
-  internal TriggerWriter(ComprehensionExpr comprehension) {
+  internal SplitPartTriggerWriter(ComprehensionExpr comprehension) {
     this.Comprehension = comprehension;
     this.RejectedCandidates = new List<TriggerCandidate>();
   }
@@ -61,61 +64,62 @@ class TriggerWriter {
   }
 
   public bool RewriteMatchingLoop(ErrorReporter reporter, ModuleDefinition module) {
-    if (NeedsAutoTriggers() && WantsMatchingLoopRewrite()) {
-      var triggersCollector = new TriggersCollector(new(),
-        reporter.Options, module);
-      // rewrite quantifier to avoid matching loops
-      // before:
-      //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
-      // after:
-      //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
-      var substMap = new List<Tuple<Expression, IdentifierExpr>>();
-      foreach (var triggerMatch in loopingMatches) {
-        var e = triggerMatch.OriginalExpr;
-        if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
-          foreach (var sub in e.SubExpressions) {
-            if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
-              var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
-              if (entry == null) {
-                var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-                var ie = new IdentifierExpr(sub.tok, newBv.Name);
-                ie.Var = newBv;
-                ie.Type = newBv.Type;
-                substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
-              }
+    if (!NeedsAutoTriggers() || !WantsMatchingLoopRewrite()) {
+      return false;
+    }
+
+    var triggersCollector = new TriggersCollector(new(),
+      reporter.Options, module);
+    // rewrite quantifier to avoid matching loops
+    // before:
+    //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
+    // after:
+    //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
+    var substMap = new List<Tuple<Expression, IdentifierExpr>>();
+    foreach (var triggerMatch in loopingMatches) {
+      var e = triggerMatch.OriginalExpr;
+      if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
+        foreach (var sub in e.SubExpressions) {
+          if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
+            var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
+            if (entry == null) {
+              var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
+              var ie = new IdentifierExpr(sub.tok, newBv.Name);
+              ie.Var = newBv;
+              ie.Type = newBv.Type;
+              substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
             }
           }
         }
       }
-
-      var expr = (QuantifierExpr)Comprehension;
-      if (substMap.Count > 0) {
-        var s = new ExprSubstituter(substMap);
-        expr = s.Substitute(Comprehension) as QuantifierExpr;
-      } else {
-        // make a copy of the expr
-        if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
-            TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-        } else {
-          expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
-            TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-        }
-      }
-      var qq = expr;
-
-      Comprehension = qq;
-      Candidates.Clear();
-      CandidateTerms.Clear();
-      loopingMatches.Clear();
-      RejectedCandidates.Clear();
-      return true;
     }
+
+    var expr = (QuantifierExpr)Comprehension;
+    if (substMap.Count > 0) {
+      var s = new ExprSubstituter(substMap);
+      expr = s.Substitute(Comprehension) as QuantifierExpr;
+    } else {
+      // make a copy of the expr
+      if (expr is ForallExpr) {
+        expr = new ForallExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+          TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+      } else {
+        expr = new ExistsExpr(expr.tok, expr.RangeToken, expr.BoundVars, expr.Range, expr.Term,
+          TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+      }
+    }
+    var qq = expr;
+
+    Comprehension = qq;
+    Candidates.Clear();
+    CandidateTerms.Clear();
+    loopingMatches.Clear();
+    RejectedCandidates.Clear();
+    return true;
 
     // don't rewrite the quantifier if we are not auto generate triggers.
     // This is because rewriting introduces new boundvars and will cause
     // user provided triggers not mention all boundvars
-    return false;
   }
 
   // TODO Check whether this makes verification faster
