@@ -40,6 +40,8 @@ public class Compilation : IDisposable {
   private readonly TaskCompletionSource started = new();
   private readonly CancellationTokenSource cancellationSource;
 
+  public bool Started => started.Task.IsCompleted;
+
   private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
   public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
     staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
@@ -111,6 +113,10 @@ public class Compilation : IDisposable {
   }
 
   public void Start() {
+    if (Started) {
+      throw new InvalidOperationException("Compilation was already started");
+    }
+
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));

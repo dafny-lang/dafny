@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.Linq;
 using System.Numerics;
@@ -189,7 +188,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
-      var newState = await latestCompilationState.UpdateState(options, logger, projectDatabase, ev);
+      var newState = await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
       latestCompilationState = newState;
       return newState;
     }

@@ -26,11 +26,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       ResolutionResult resolutionResult,
       CancellationToken cancellationToken) {
 
-      var beforeLegacyServerResolution = DateTime.Now;
       var compilationUnit = resolutionResult.HasErrors
         ? new CompilationUnit(input.Project.Uri, resolutionResult.ResolvedProgram)
         : new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(input.Project.Uri, resolutionResult.ResolvedProgram);
-      // telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution); TODO
 
       var program = resolutionResult.ResolvedProgram;
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);

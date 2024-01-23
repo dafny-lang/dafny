@@ -19,16 +19,30 @@ namespace DafnyDriver.Commands;
 public class CliCompilation {
   private readonly DafnyOptions options;
 
-  private readonly CreateCompilation createCompilation;
-  public Compilation Compilation { get; private set; }
+  private Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
 
-  public CliCompilation(
+  private CliCompilation(
     CreateCompilation createCompilation,
     DafnyOptions options) {
     this.options = options;
-    this.createCompilation = createCompilation;
+
+    if (options.DafnyProject == null) {
+      var firstFile = options.CliRootSourceUris.FirstOrDefault();
+      var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
+      options.DafnyProject = new DafnyProject {
+        Includes = Array.Empty<string>(),
+        Uri = uri,
+        ImplicitFromCli = true
+      };
+    }
+
+    options.RunningBoogieFromCommandLine = true;
+
+    var input = new CompilationInput(options, 0, options.DafnyProject);
+    var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
+    Compilation = createCompilation(executionEngine, input);
   }
 
   public int ExitCode => (int)ExitValue;
@@ -53,21 +67,9 @@ public class CliCompilation {
   public Task<ResolutionResult> Resolution => Compilation.Resolution;
 
   public void Start() {
-    if (options.DafnyProject == null) {
-      var firstFile = options.CliRootSourceUris.FirstOrDefault();
-      var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject {
-        Includes = Array.Empty<string>(),
-        Uri = uri,
-        ImplicitFromCli = true
-      };
+    if (Compilation.Started) {
+      throw new InvalidOperationException("Compilation was already started");
     }
-
-    options.RunningBoogieFromCommandLine = true;
-
-    var input = new CompilationInput(options, 0, options.DafnyProject);
-    var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
-    Compilation = createCompilation(executionEngine, input);
 
     ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),

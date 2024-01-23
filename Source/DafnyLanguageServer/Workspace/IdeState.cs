@@ -162,7 +162,10 @@ public record IdeState(
     return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
   }
 
-  public async Task<IdeState> UpdateState(DafnyOptions options, ILogger logger, IProjectDatabase projectDatabase, ICompilationEvent e) {
+  public async Task<IdeState> UpdateState(DafnyOptions options,
+    ILogger logger,
+    TelemetryPublisherBase telemetryPublisher,
+    IProjectDatabase projectDatabase, ICompilationEvent e) {
     switch (e) {
       case DeterminedRootFiles determinedRootFiles:
         return await UpdateDeterminedRootFiles(options, logger, projectDatabase, determinedRootFiles);
@@ -173,7 +176,7 @@ public record IdeState(
       case FinishedParsing finishedParsing:
         return UpdateFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
-        return UpdateFinishedResolution(options, logger, finishedResolution);
+        return UpdateFinishedResolution(options, logger, telemetryPublisher, finishedResolution);
       case InternalCompilationException internalCompilationException:
         return UpdateInternalCompilationException(internalCompilationException);
       case BoogieException boogieException:
@@ -267,7 +270,10 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateFinishedResolution(DafnyOptions options, ILogger logger, FinishedResolution finishedResolution) {
+  private IdeState UpdateFinishedResolution(DafnyOptions options,
+    ILogger logger,
+    TelemetryPublisherBase telemetryPublisher,
+    FinishedResolution finishedResolution) {
     var previousState = this;
     var errors = finishedResolution.Diagnostics.Values.SelectMany(x => x).Where(d =>
       d.Severity == DiagnosticSeverity.Error && d.Source != MessageSource.Compiler.ToString()).ToList();
@@ -281,8 +287,10 @@ public record IdeState(
       logger.LogError(e, "failed to create symbol table");
     }
 
+    var beforeLegacyServerResolution = DateTime.Now;
     var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(Input,
       finishedResolution.Result, cancellationToken);
+    telemetryPublisher.PublishTime("LegacyServerResolution", options.DafnyProject.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
 
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
       GetGhostStateDiagnostics(legacySignatureAndCompletionTable, cancellationToken);
