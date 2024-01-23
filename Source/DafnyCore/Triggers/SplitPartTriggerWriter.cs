@@ -145,8 +145,9 @@ class SplitPartTriggerWriter {
     if (!WantsAutoTriggers()) {
       // NOTE: split and autotriggers attributes are passed down to Boogie
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        "The attribute {:autotriggers false} can deteriorate verification performance. " +
-        "You can silence this warning by explicitly adding no triggers, using {:trigger}.");
+        "The attribute {:autotriggers false} may cause brittle verification. " +
+        "You can silence this warning by explicitly adding no triggers, using {:trigger}. " +
+        "For more information, see the section comprehension triggers in the reference manual.");
     }
 
     if (!NeedsAutoTriggers()) {
@@ -169,9 +170,8 @@ class SplitPartTriggerWriter {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
         $"Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section on quantifier triggers in the reference manual.");
-    }
-    if (!CouldSuppressLoops && !AllowsLoops) {
+        $"For more information, see the section comprehension triggers in the reference manual.");
+    } else if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
         $"Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
