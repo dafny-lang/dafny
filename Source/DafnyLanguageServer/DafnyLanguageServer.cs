@@ -76,7 +76,6 @@ namespace Microsoft.Dafny.LanguageServer {
       var toReplace = "O:model_compress=false";
       var i = options.ProverOptions.IndexOf(toReplace);
       if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", options.ProverOptions)));
         return;
       }
 
