@@ -1,3 +1,11 @@
+module {:extern "DAST.Format"} DAST.Format
+/* Cues about how to format different AST elements if necessary,
+   e.g. to generate idiomatic code when needed. */
+{
+  datatype UnOpFormat = NoFormat() | CombineNotInner()
+  datatype BinOpFormat = NoFormat() | ImpliesFormat()
+}
+
 module {:extern "DAST"} DAST {
   import opened Std.Wrappers
 
@@ -75,12 +83,9 @@ module {:extern "DAST"} DAST {
 
   datatype BinOp =
     Eq(referential: bool, nullable: bool) |
-    Neq(referential: bool, nullable: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
-    Implies() |
     In() |
-    NotIn() |
     SetDifference() |
     Concat() |
     Passthrough(string)
@@ -100,8 +105,8 @@ module {:extern "DAST"} DAST {
     MapValue(mapElems: seq<(Expression, Expression)>) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
-    UnOp(unOp: UnaryOp, expr: Expression) |
-    BinOp(op: BinOp, left: Expression, right: Expression) |
+    UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnOpFormat) |
+    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinOpFormat) |
     ArrayLen(expr: Expression, dim: nat) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |

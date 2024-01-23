@@ -4,6 +4,7 @@ include "../Dafny/AST.dfy"
 module RAST {
   import opened Std.Wrappers
   import opened Std.Strings
+  import opened DAST.Format
 
   const IND := "  "
   // Indentation level
@@ -35,6 +36,15 @@ module RAST {
   {
     if |s| == 0 then "" else
     f(s[0]) + (if |s| > 1 then separator + SeqToString(s[1..], f, separator) else "")
+  }
+  function SeqToHeight<T>(s: seq<T>, f: T --> nat): (r: nat)
+    requires forall t <- s :: f.requires(t)
+    ensures forall t <- s :: f(t) <= r
+  {
+    if |s| == 0 then 0 else
+      var i := f(s[0]);
+      var j := SeqToHeight(s[1..], f);
+      if i < j then j else i
   }
   datatype ModDecl =
     | RawDecl(body: string)
@@ -216,7 +226,12 @@ module RAST {
   datatype MatchCase =
     MatchCase(pattern: Pattern, rhs: Expr)
   {
-    function ToString(ind: string): string {
+    function Height(): nat {
+      1 + rhs.Height()
+    }
+    function ToString(ind: string): string
+      decreases Height()
+    {
       var newIndent := if rhs.Block? then ind else ind + IND;
       var rhsString := rhs.ToString(newIndent);
 
@@ -229,7 +244,13 @@ module RAST {
   datatype AssignIdentifier =
     AssignIdentifier(identifier: string, rhs: Expr)
   {
-    function ToString(ind: string): string {
+    function Height(): nat {
+      1 + rhs.Height()
+    }
+
+    function ToString(ind: string): string
+      decreases Height()
+    {
       identifier + ": " + rhs.ToString(ind + IND)
     }
   }
@@ -247,31 +268,82 @@ module RAST {
       [raw[0]] + AddIndent(raw[1..], ind)
   }
 
+  function max(i: nat, j: nat): nat {
+    if i < j then j else i
+  }
+
   datatype Expr =
       RawExpr(content: string)
     | Match(matchee: Expr, cases: seq<MatchCase>)
     | StmtExpr(stmt: Expr, rhs: Expr)
     | Block(underlying: Expr)
     | StructBuild(name: string, assignments: seq<AssignIdentifier>)
+    | UnaryOp(op1: string, underlying: Expr, format: Format.UnOpFormat)
+    | BinaryOp(op2: string, left: Expr, right: Expr, format2: Format.BinOpFormat)
   {
-    function ToString(ind: string): string {
-      if Match? then
-        "match " + matchee.ToString(ind + IND) + " {" +
-        SeqToString(cases, (c: MatchCase) requires c < this =>
-                      "\n" + ind + IND + c.ToString(ind + IND), ",") +
-        "\n" + ind + "}"
-      else if StmtExpr? then
-        stmt.ToString(ind) + ";\n" + ind + rhs.ToString(ind)
-      else if Block? then
-        "{\n" + ind + IND + underlying.ToString(ind + IND) + "\n" + ind + "}"
-      else if StructBuild? then
-        name + " {" +
-        SeqToString(assignments, (assignment: AssignIdentifier)
-                    requires assignment < this
-                    =>
-                      "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
-        (if |assignments| > 0 then "\n" + ind else "") + "}"
-      else assert RawExpr?; AddIndent(content, ind)
+    function Height(): nat {
+      match this {
+        case Match(matchee, cases) =>
+          1 + max(matchee.Height(),
+            SeqToHeight(cases, (oneCase: MatchCase) 
+              requires oneCase < this
+            => oneCase.Height()))
+        case StmtExpr(stmt, rhs) =>
+          1 + max(stmt.Height(), rhs.Height())
+        case Block(underlying) =>
+          1 + underlying.Height()
+        case StructBuild(name, assignments) =>
+          1 + SeqToHeight(assignments, (assignment: AssignIdentifier)
+                        requires assignment < this
+                        => assignment.Height())
+        // Special cases
+        case UnaryOp(_, underlying, _) => 1 + underlying.Height()
+
+        case BinaryOp(op, left, right, format) =>
+          1 + max(left.Height(), right.Height())
+        case _ =>
+          1
+      }
+    }
+
+    // TODO: Take priorities into account to put parentheses or not
+    function ToString(ind: string): string
+      decreases Height()
+    {
+      match this {
+        case Match(matchee, cases) =>
+          "match " + matchee.ToString(ind + IND) + " {" +
+            SeqToString(cases,
+              (c: MatchCase) requires c.Height() < this.Height() =>
+                "\n" + ind + IND + c.ToString(ind + IND), ",") +
+            "\n" + ind + "}"
+        case StmtExpr(stmt, rhs) =>
+          stmt.ToString(ind) + ";\n" + ind + rhs.ToString(ind)
+        case Block(underlying) =>
+          "{\n" + ind + IND + underlying.ToString(ind + IND) + "\n" + ind + "}"
+        case StructBuild(name, assignments) =>
+          name + " {" +
+            SeqToString(assignments, (assignment: AssignIdentifier)
+                        requires assignment.Height() < this.Height()
+                        =>
+                          "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
+            (if |assignments| > 0 then "\n" + ind else "") + "}"
+        
+        // Special cases
+        case UnaryOp("!", BinaryOp("==", left, right, format),
+            CombineNotInner()) =>
+          assert BinaryOp("==", left, right, format).Height()
+            == BinaryOp("!=", left, right, BinOpFormat.NoFormat()).Height();
+          BinaryOp("!=", left, right, BinOpFormat.NoFormat()).ToString(ind)
+
+        case UnaryOp(op, underlying, format) =>
+          op + "("  + underlying.ToString(ind) + ")"
+
+        case BinaryOp(op, left, right, format) =>
+          "(" + left.ToString(ind) + ")" + op2 + "(" + right.ToString(ind) + ")"
+        case _ =>
+          assert RawExpr?; AddIndent(content, ind)
+      }
     }
     function Then(rhs2: Expr): Expr {
       StmtExpr(this, rhs2)
@@ -2154,7 +2226,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdentsCond + recIdentsT + recIdentsF;
           isErased := fErased || tErased;
         }
-        case UnOp(Not, e) => {
+        case UnOp(Not, e, format) => {
           var recursiveGen, _, recErased, recIdents := GenExpr(e, selfIdent, params, true);
           if !recErased {
             recursiveGen := "::dafny_runtime::DafnyErasable::erase_owned(" + recursiveGen + ")";
@@ -2165,7 +2237,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdents;
           isErased := true;
         }
-        case UnOp(BitwiseNot, e) => {
+        case UnOp(BitwiseNot, e, format) => {
           var recursiveGen, _, recErased, recIdents := GenExpr(e, selfIdent, params, true);
           if !recErased {
             recursiveGen := "::dafny_runtime::DafnyErasable::erase_owned(" + recursiveGen + ")";
@@ -2176,7 +2248,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdents;
           isErased := true;
         }
-        case UnOp(Cardinality, e) => {
+        case UnOp(Cardinality, e, format) => {
           var recursiveGen, recOwned, recErased, recIdents := GenExpr(e, selfIdent, params, false);
           if !recErased {
             var eraseFn := if recOwned then "erase_owned" else "erase";
@@ -2188,19 +2260,13 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdents;
           isErased := true;
         }
-        case BinOp(op, l, r) => {
+        case BinOp(op, l, r, format) => {
           var left, _, leftErased, recIdentsL := GenExpr(l, selfIdent, params, true);
           var right, _, rightErased, recIdentsR := GenExpr(r, selfIdent, params, true);
 
           match op {
-            case Implies() => {
-              s := "!(" + left + ") || " + right;
-            }
             case In() => {
               s := right + ".contains(&" + left + ")";
-            }
-            case NotIn() => {
-              s := "!(" + right + ".contains(&" + left + "))";
             }
             case SetDifference() => {
               s := left + ".difference(&" + right + ").cloned().collect::<::std::collections::HashSet<_>>()";
@@ -2220,6 +2286,7 @@ module {:extern "DCOMP"} DCOMP {
               match op {
                 case Eq(referential, nullable) => {
                   if (referential) {
+                    // TODO: Render using a call with two expressions
                     if (nullable) {
                       s := "::dafny_runtime::nullable_referential_equality(" + left + ", " + right + ")";
                     } else {
@@ -2227,17 +2294,6 @@ module {:extern "DCOMP"} DCOMP {
                     }
                   } else {
                     s := left + " == " + right;
-                  }
-                }
-                case Neq(referential, nullable) => {
-                  if (referential) {
-                    if (nullable) {
-                      s := "!::dafny_runtime::nullable_referential_equality(" + left + ", " + right + ")";
-                    } else {
-                      s := "!::std::rc::Rc::ptr_eq(&(" + left + "), &(" + right + "))";
-                    }
-                  } else {
-                    s := left + " != " + right;
                   }
                 }
                 case EuclidianDiv() => {
@@ -2250,10 +2306,16 @@ module {:extern "DCOMP"} DCOMP {
                   s := "::dafny_runtime::euclidian_modulo(" + left + ", " + right + ")";
                 }
                 case Mod() => {
-                  s := "(" + left + ") % (" + right + ")";
+                  s := R.Expr.BinaryOp("%", 
+                    R.Expr.RawExpr(left),
+                    R.Expr.RawExpr(right),
+                    Format.BinOpFormat.NoFormat()).ToString("");
                 }
                 case Passthrough(op) => {
-                  s := "(" + left + " " + op + " " + right + ")";
+                  s := R.Expr.BinaryOp(op, 
+                    R.Expr.RawExpr(left),
+                    R.Expr.RawExpr(right),
+                    Format.BinOpFormat.NoFormat()).ToString("");
                 }
               }
             }

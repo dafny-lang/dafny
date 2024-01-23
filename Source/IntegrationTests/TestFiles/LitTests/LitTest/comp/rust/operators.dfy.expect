@@ -1,0 +1,8 @@
+
+Dafny program verifier finished with 9 verified, 0 errors
+&& || ==> <==> <= < >= > != == operators(u8) operators(u16) operators(u32) operators(u64)
+char comparison
+map contains acccess update union diff comprehension equality cardinality
+set contains union diff comprehension equality cardinality
+sequence prefix sequence update cardinality sequence slice
+multiset comparison union equality access and cardinality

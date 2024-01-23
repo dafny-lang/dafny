@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Dafny;
 using DAST;
+using DAST.Format;
+using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.Compilers;
 using Std.Wrappers;
@@ -1063,6 +1065,12 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
+    BinOpBuilder BinOp(string op, Func<DAST.Expression, DAST.Expression, DAST.Expression> callback) {
+      var ret = new BinOpBuilder(op, callback);
+      AddBuildable(ret);
+      return ret;
+    }
+
     CallExprBuilder Call() {
       var ret = new CallExprBuilder();
       AddBuildable(ret);
@@ -1199,11 +1207,19 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class BinOpBuilder : ExprContainer, BuildableExpr {
-    readonly DAST.BinOp op;
+    private readonly Func<DAST.Expression, DAST.Expression, DAST.Expression> internalBuilder;
     readonly List<object> operands = new();
+    private readonly string op;
 
     public BinOpBuilder(DAST.BinOp op) {
+      this.internalBuilder = (DAST.Expression left, DAST.Expression right) =>
+        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinOpFormat_NoFormat());
+      this.op = op.ToString();
+    }
+
+    public BinOpBuilder(string op, Func<DAST.Expression, DAST.Expression, DAST.Expression> callback) {
       this.op = op;
+      internalBuilder = callback;
     }
 
     public void AddExpr(DAST.Expression item) {
@@ -1219,13 +1235,14 @@ namespace Microsoft.Dafny.Compilers {
       ExprContainer.RecursivelyBuild(operands, builtOperands);
 
       if (operands.Count != 2) {
-        builtOperands.Insert(0, ExprContainer.UnsupportedToExpr(op.ToString() + " with not 2 elements"));
+        builtOperands.Insert(0, ExprContainer.UnsupportedToExpr(op + " with not 2 elements"));
         return (DAST.Expression)DAST.Expression.create_SetValue(
           Sequence<DAST.Expression>.FromElements(builtOperands.ToArray()));
         //Throw for later 
         //throw new InvalidOperationException("Expected exactly two operands, got " + operands.Comma(o => o.ToString()));
       }
-      return (DAST.Expression)DAST.Expression.create_BinOp(op, builtOperands[0], builtOperands[1]);
+
+      return internalBuilder(builtOperands[0], builtOperands[1]);
     }
 
     public void AddUnsupported(string why) {

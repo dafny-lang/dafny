@@ -8,7 +8,7 @@ using System.Numerics;
 using Microsoft.BaseTypes;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using RAST;
+using DAST.Format;
 using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
@@ -1434,10 +1434,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (topLevel is TypeSynonymDecl typeSynonym) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
       } else if (topLevel is TraitDecl) {
+        ThrowSpecificUnsupported(Token.NoToken, Feature.Traits);
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("<b>Unsupported: Traits</b>"))
+          DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("<b>Unsupported: (Traits)</b>"))
         );
-        //ThrowSpecificUnsupported(Token.NoToken, Feature.Traits);
         // traits need a bit more work
 
         // resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
@@ -2106,21 +2106,24 @@ namespace Microsoft.Dafny.Compilers {
           case ResolvedUnaryOp.BoolNot: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_Not(),
-                buf.Finish()
+                buf.Finish(),
+                new UnOpFormat_NoFormat()
               ));
               break;
             }
           case ResolvedUnaryOp.BitwiseNot: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_BitwiseNot(),
-                buf.Finish()
+                buf.Finish(),
+                new UnOpFormat_NoFormat()
               ));
               break;
             }
           case ResolvedUnaryOp.Cardinality: {
               container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_UnOp(
                 UnaryOp.create_Cardinality(),
-                buf.Finish()
+                buf.Finish(),
+                new UnOpFormat_NoFormat()
               ));
               break;
             }
@@ -2203,30 +2206,70 @@ namespace Microsoft.Dafny.Compilers {
           _ => null
         };
 
-        var opAst = op switch {
-          BinaryExpr.ResolvedOpcode.EqCommon => DAST.BinOp.create_Eq(
+        object B(_IBinOp binOp) {
+          return builder.Builder.BinOp((DAST.BinOp)binOp);
+        }
+
+        var opStringClosure = opString;
+        object C(System.Func<DAST.Expression, DAST.Expression, DAST.Expression> callback) {
+          return builder.Builder.BinOp(opStringClosure, callback);
+        }
+
+        var newBuilder = op switch {
+          BinaryExpr.ResolvedOpcode.EqCommon => B((DAST.BinOp)DAST.BinOp.create_Eq(
             e0.Type.IsRefType,
             !e0.Type.IsNonNullRefType
-          ),
-          BinaryExpr.ResolvedOpcode.NeqCommon => DAST.BinOp.create_Neq(
-            e0.Type.IsRefType,
-            !e0.Type.IsNonNullRefType
-          ),
-          BinaryExpr.ResolvedOpcode.Div => NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianDiv() : DAST.BinOp.create_Div(),
-          BinaryExpr.ResolvedOpcode.Mod => NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianMod() : DAST.BinOp.create_Mod(),
-          BinaryExpr.ResolvedOpcode.Imp => DAST.BinOp.create_Implies(),
-          BinaryExpr.ResolvedOpcode.InSet => DAST.BinOp.create_In(),
-          BinaryExpr.ResolvedOpcode.InSeq => DAST.BinOp.create_In(),
-          BinaryExpr.ResolvedOpcode.NotInSet => DAST.BinOp.create_NotIn(),
-          BinaryExpr.ResolvedOpcode.NotInSeq => DAST.BinOp.create_NotIn(),
-          BinaryExpr.ResolvedOpcode.SetDifference => DAST.BinOp.create_SetDifference(),
-          BinaryExpr.ResolvedOpcode.Concat => DAST.BinOp.create_Concat(),
-          _ => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: Operator {op}</b>")),
+          )),
+          BinaryExpr.ResolvedOpcode.NeqCommon => C((DAST.Expression left, DAST.Expression right) => {
+            return (DAST.Expression)DAST.Expression.create_UnOp(new UnaryOp_Not(),
+             DAST.Expression.create_BinOp(
+               DAST.BinOp.create_Eq(
+                 e0.Type.IsRefType,
+                 !e0.Type.IsNonNullRefType
+               ), left, right, new BinOpFormat_NoFormat()),
+             new UnOpFormat_CombineNotInner()
+           );
+          }),
+          BinaryExpr.ResolvedOpcode.Div =>
+            B(NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianDiv() : DAST.BinOp.create_Div()),
+          BinaryExpr.ResolvedOpcode.Mod =>
+            B(NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianMod() : DAST.BinOp.create_Mod()),
+          BinaryExpr.ResolvedOpcode.Imp =>
+            C((DAST.Expression left, DAST.Expression right) =>
+              (DAST.Expression)DAST.Expression.create_BinOp(
+                DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString(
+                  "||")),
+                DAST.Expression.create_UnOp(
+                  new UnaryOp_Not(),
+                  left,
+                  new UnOpFormat_NoFormat()), right, new BinOpFormat_ImpliesFormat()
+              )),
+          BinaryExpr.ResolvedOpcode.InSet => B(DAST.BinOp.create_In()),
+          BinaryExpr.ResolvedOpcode.InSeq => B(DAST.BinOp.create_In()),
+          BinaryExpr.ResolvedOpcode.NotInSet =>
+            C((DAST.Expression left, DAST.Expression right) =>
+              (DAST.Expression)DAST.Expression.create_UnOp(
+                new UnaryOp_Not(),
+                DAST.Expression.create_BinOp(
+                  new BinOp_In(), left, right, new BinOpFormat_NoFormat()
+              ), new UnOpFormat_CombineNotInner())),
+          BinaryExpr.ResolvedOpcode.NotInSeq =>
+            C((DAST.Expression left, DAST.Expression right) =>
+            (DAST.Expression)DAST.Expression.create_UnOp(
+              new UnaryOp_Not(),
+              DAST.Expression.create_BinOp(
+                new BinOp_In(), left, right, new BinOpFormat_NoFormat()
+              ), new UnOpFormat_CombineNotInner())),
+          BinaryExpr.ResolvedOpcode.SetDifference => B(DAST.BinOp.create_SetDifference()),
+          BinaryExpr.ResolvedOpcode.Concat => B(DAST.BinOp.create_Concat()),
+          //BinaryExpr.ResolvedOpcode.And => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("&&")),
+
+          _ => B(DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: Operator {op}</b>"))),
         };
 
         opString = "";
 
-        currentBuilder = builder.Builder.BinOp((DAST.BinOp)opAst);
+        currentBuilder = newBuilder;
         // cleaned up by EmitExpr
       } else {
         throw new InvalidOperationException();
@@ -2382,9 +2425,10 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_BinOp(
                   DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("!=")),
                   DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(tmpVarName)),
-                  DAST.Expression.create_Literal(DAST.Literal.create_Null(GenType(boundVarType)))
-                ),
-                baseExpr
+                  DAST.Expression.create_Literal(DAST.Literal.create_Null(GenType(boundVarType))),
+                  new BinOpFormat_NoFormat()),
+                baseExpr,
+                new BinOpFormat_NoFormat()
               ));
             } else {
               throw new InvalidOperationException();
@@ -2398,9 +2442,11 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_BinOp(
                   DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("==")),
                   DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(tmpVarName)),
-                  DAST.Expression.create_Literal(DAST.Literal.create_Null(GenType(boundVarType)))
+                  DAST.Expression.create_Literal(DAST.Literal.create_Null(GenType(boundVarType))),
+                  new BinOpFormat_NoFormat()
                 ),
-                baseExpr
+                baseExpr,
+                new BinOpFormat_NoFormat()
               ));
             } else {
               throw new InvalidOperationException();
