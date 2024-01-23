@@ -155,22 +155,27 @@ class SplitPartTriggerWriter {
 
     AddTriggerAttribute(systemModuleManager);
 
-    errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-      $"Selected triggers: {String.Join(", ", Candidates)}");
-    errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-      $"Rejected triggers: {String.Join("\n", RejectedCandidates)}");
+    if (Candidates.Any()) {
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
+        $"Selected triggers: {string.Join(", ", Candidates)}");
+    }
+
+    if (RejectedCandidates.Any()) {
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
+        $"Rejected triggers: {string.Join("\n", RejectedCandidates)}");
+    }
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
-        $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. " +
+        $"Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
         $"For more information, see the section on quantifier triggers in the reference manual.");
     }
     if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
-        $"Triggers were added to this quantifier that may introduce matching loops, which may deteriorate verification performance. " +
+        $"Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
-        $"For more information, see the section on quantifier triggers in the reference manual.");
+        $"For more information, see the section comprehension triggers in the reference manual.");
     }
   }
 

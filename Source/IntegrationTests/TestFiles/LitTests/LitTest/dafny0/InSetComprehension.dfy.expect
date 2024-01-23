@@ -1,10 +1,10 @@
-InSetComprehension.dfy(10,17): Warning: /!\ No terms found to trigger on.
-InSetComprehension.dfy(12,17): Warning: /!\ No terms found to trigger on.
+InSetComprehension.dfy(10,17): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section comprehension triggers in the reference manual.
+InSetComprehension.dfy(12,17): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section comprehension triggers in the reference manual.
 InSetComprehension.dfy(14,16): Info: Selected triggers: {Even(m)}
 InSetComprehension.dfy(16,17): Info: Selected triggers: {u in uu}
 InSetComprehension.dfy(18,17): Info: Not generating triggers for "Id(u)". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
-InSetComprehension.dfy(28,16): Warning: /!\ No terms found to trigger on.
-InSetComprehension.dfy(30,16): Warning: /!\ No terms found to trigger on.
+InSetComprehension.dfy(28,16): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section comprehension triggers in the reference manual.
+InSetComprehension.dfy(30,16): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may deteriorate verification performance. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section comprehension triggers in the reference manual.
 InSetComprehension.dfy(33,16): Info: Selected triggers: {Even(m)}
 InSetComprehension.dfy(37,16): Info: Selected triggers: {u in uu}
 InSetComprehension.dfy(39,16): Info: Not generating triggers for "Id(u)". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
