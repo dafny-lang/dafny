@@ -1,7 +1,6 @@
-using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.Util;
+namespace Microsoft.Dafny;
 
 public static class PositionExtensions {
   public static DafnyPosition ToDafnyPosition(this IToken token) {

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -95,7 +96,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual DafnySymbolKind Kind => DafnySymbolKind.Field;
+  public virtual SymbolKind Kind => SymbolKind.Field;
 
   public string GetDescription(DafnyOptions options) {
     var prefix = IsMutable ? "var" : "const";

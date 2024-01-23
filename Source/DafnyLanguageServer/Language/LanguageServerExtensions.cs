@@ -30,13 +30,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
           serviceProvider.GetRequiredService<DafnyOptions>(),
           serviceProvider.GetRequiredService<IFileSystem>(),
-          serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+          serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
           serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
           serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
         .AddSingleton(CreateVerifier)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -48,7 +49,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
-  public override DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public override SymbolKind Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
   }

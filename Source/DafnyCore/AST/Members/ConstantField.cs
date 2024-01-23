@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -46,7 +47,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public bool AllowsAllocation => true;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
-  public override DafnySymbolKind Kind => DafnySymbolKind.Constant;
+  public override SymbolKind Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;
