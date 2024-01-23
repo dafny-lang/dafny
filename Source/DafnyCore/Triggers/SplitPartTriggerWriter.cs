@@ -167,12 +167,12 @@ class SplitPartTriggerWriter {
     }
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
+      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
         $"Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
         $"For more information, see the section quantifier instantiation rules in the reference manual.");
     } else if (!CouldSuppressLoops && !AllowsLoops) {
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Warning, null, reportingToken,
+      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
         $"Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
         $"For more information, see the section quantifier instantiation rules in the reference manual.");
