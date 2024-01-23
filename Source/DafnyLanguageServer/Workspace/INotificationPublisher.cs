@@ -10,7 +10,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
     /// </summary>
-    /// <param name="state">The document whose diagnostics should be published.</param>
     void PublishNotifications(IdeState previousState, IdeState state);
   }
 }

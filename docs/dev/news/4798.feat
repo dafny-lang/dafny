@@ -1,0 +1,4 @@
+- Fix: verification in the IDE no longer fails for iterators
+- Fix: the IDE now provides feedback when verification fails to run, for example due to a bad solver path
+- Fix: let the IDE correctly use the solver-path option when it's specified in a project file
+- Feat: improve the order of verification diagnostics emitted by the Dafny CLI, so that they now always follow the line order of the program.

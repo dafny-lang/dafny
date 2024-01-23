@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 static class CacheExtensions {
   public static T ProfileAndPruneCache<T, Key, Value>(this PruneIfNotUsedSinceLastPruneCache<Key, Value> cache,
-    Func<T> useCache, ITelemetryPublisher telemetryPublisher, string programName, string activity)
+    Func<T> useCache, TelemetryPublisherBase telemetryPublisher, string programName, string activity)
     where Value : class where Key : notnull {
     var beforeTotal = cache.Count;
     var result = useCache();

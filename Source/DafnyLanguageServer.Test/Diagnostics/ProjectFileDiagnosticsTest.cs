@@ -49,7 +49,7 @@ includes = [""doesNotExist.dfy""]
     var project = CreateAndOpenTestDocument(projectFile, DafnyProject.FileName);
     var diagnostics = await GetLastDiagnostics(project);
     Assert.Single(diagnostics);
-    Assert.Contains("references no files", diagnostics[0].Message);
+    Assert.Contains("no Dafny source files were specified as input", diagnostics[0].Message);
   }
 
   [Fact]
