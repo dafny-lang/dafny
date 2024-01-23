@@ -142,7 +142,7 @@ class SplitPartTriggerWriter {
     var reportingToken = Comprehension.Tok;
     var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
 
-    if (WantsAutoTriggers()) {
+    if (!WantsAutoTriggers()) {
       // NOTE: split and autotriggers attributes are passed down to Boogie
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
         "The attribute {:autotriggers false} can deteriorate verification performance. " +
