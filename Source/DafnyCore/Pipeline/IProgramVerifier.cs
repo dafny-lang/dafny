@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny {
   public record AssertionBatchResult(Implementation Implementation, VCResult Result);
 
   public record ProgramVerificationTasks(IReadOnlyList<IImplementationTask> Tasks);

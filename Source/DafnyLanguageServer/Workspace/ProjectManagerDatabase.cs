@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
-    private object myLock = new();
+    private readonly object myLock = new();
     public const int ProjectFileCacheExpiryTime = 100;
 
     private readonly CreateProjectManager createProjectManager;

@@ -121,7 +121,7 @@ public static class DafnyNewCli {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
     object projectFileValue = null;
-    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, dafnyOptions.ErrorWriter, out projectFileValue) ?? false;
+    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, out projectFileValue) ?? false;
     object value;
     if (option.Arity.MaximumNumberOfValues <= 1) {
       // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -193,41 +193,45 @@ public static class DafnyNewCli {
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var filePathForErrors = dafnyOptions.UseBaseNameForFileName
-      ? Path.GetFileName(singleFile.FullName)
-      : singleFile.FullName;
-    if (Path.GetExtension(singleFile.FullName) == ".toml") {
-      if (dafnyOptions.DafnyProject != null) {
-        var first = dafnyOptions.UseBaseNameForFileName ? Path.GetFileName(dafnyOptions.DafnyProject.Uri.LocalPath) : dafnyOptions.DafnyProject.Uri.LocalPath;
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
-        return false;
-      }
+    var filePathForErrors = dafnyOptions.GetPrintPath(singleFile.FullName);
+    var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
+    if (isProjectFile) {
+      return await ProcessProjectFile(dafnyOptions, singleFile, filePathForErrors);
+    }
 
-      if (!File.Exists(singleFile.FullName)) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
-        return false;
-      }
-      var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
-      if (projectFile == null) {
-        return false;
-      }
+    dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
+    return true;
+  }
 
-      foreach (var diagnostic in projectFile.Errors.AllMessages) {
-        var message = $"{diagnostic.Level}: {diagnostic.Message}";
-        if (diagnostic.Level == ErrorLevel.Error) {
-          await dafnyOptions.ErrorWriter.WriteLineAsync(message);
-        } else {
-          await dafnyOptions.OutputWriter.WriteLineAsync(message);
-        }
-      }
+  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors) {
+    if (dafnyOptions.DafnyProject != null) {
+      var first = dafnyOptions.GetPrintPath(dafnyOptions.DafnyProject.Uri.LocalPath);
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
+      return false;
+    }
 
-      projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
-      dafnyOptions.DafnyProject = projectFile;
-      if (projectFile.Errors.HasErrors) {
-        return false;
+    if (!File.Exists(singleFile.FullName)) {
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
+      return false;
+    }
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
+    if (projectFile == null) {
+      return false;
+    }
+
+    foreach (var diagnostic in projectFile.Errors.AllMessages) {
+      var message = $"{diagnostic.Level}: {diagnostic.Message}";
+      if (diagnostic.Level == ErrorLevel.Error) {
+        await dafnyOptions.ErrorWriter.WriteLineAsync(message);
+      } else {
+        await dafnyOptions.OutputWriter.WriteLineAsync(message);
       }
-    } else {
-      dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
+    }
+
+    projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
+    dafnyOptions.DafnyProject = projectFile;
+    if (projectFile.Errors.HasErrors) {
+      return false;
     }
     return true;
   }

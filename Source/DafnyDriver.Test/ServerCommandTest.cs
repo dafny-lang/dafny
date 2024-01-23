@@ -9,6 +9,7 @@ using OmniSharp.Extensions.JsonRpc.Client;
 using OmniSharp.Extensions.JsonRpc.Serialization;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using XunitAssertMessages;
 
 namespace DafnyDriver.Test;
 
@@ -21,7 +22,7 @@ public class ServerCommandTest {
     await process.StandardInput.WriteAsync(initializeMessage);
 
     var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
-    Assert.False(string.IsNullOrEmpty(initializedResponseFirstLine));
+    AssertM.False(string.IsNullOrEmpty(initializedResponseFirstLine), initializedResponseFirstLine);
     process.Kill();
     await process.WaitForExitAsync();
   }

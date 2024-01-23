@@ -1,9 +1,10 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// System.Collections.Concurrent.ConcurrentDictionary does not allow you to lazily add a value if it is missing,

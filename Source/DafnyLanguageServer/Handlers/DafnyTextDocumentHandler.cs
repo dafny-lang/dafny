@@ -35,12 +35,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
 
     public DafnyTextDocumentHandler(
       ILogger<DafnyTextDocumentHandler> logger, IProjectDatabase projects,
-      ITelemetryPublisher telemetryPublisher, INotificationPublisher notificationPublisher
+      TelemetryPublisherBase telemetryPublisher, INotificationPublisher notificationPublisher
     ) {
       this.logger = logger;
       this.projects = projects;
