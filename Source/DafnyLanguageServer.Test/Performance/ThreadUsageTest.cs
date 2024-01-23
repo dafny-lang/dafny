@@ -24,7 +24,7 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
     }
     var threadCountAfter = Process.GetCurrentProcess().Threads.Count;
     const int maxThreadCountIncrease = 5;
-    Assert.True(threadCountAfter - threadCountBefore < maxThreadCountIncrease);
+    Assert.InRange(threadCountAfter - threadCountBefore, 0, maxThreadCountIncrease);
   }
 
   public ThreadUsageTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
