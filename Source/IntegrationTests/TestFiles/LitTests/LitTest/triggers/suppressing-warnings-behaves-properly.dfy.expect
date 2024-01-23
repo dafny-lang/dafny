@@ -1,4 +1,4 @@
-suppressing-warnings-behaves-properly.dfy(10,9): Warning: Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section comprehension triggers in the reference manual.
+suppressing-warnings-behaves-properly.dfy(10,9): Warning: Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 suppressing-warnings-behaves-properly.dfy(11,9): Info: (Suppressed warning) No terms found to trigger on.
 suppressing-warnings-behaves-properly.dfy(12,9): Info: Not generating triggers for "n >= 0 || n < 0". Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.
 suppressing-warnings-behaves-properly.dfy(14,9): Info: Selected triggers: {f(n)}

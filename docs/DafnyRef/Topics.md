@@ -1146,3 +1146,12 @@ method TestD(dd: D) {
   }
 }
 ```
+
+## 12.8 Quantifier instantiation rules {#sec-quantifier-triggers}
+During verification, when Dafny knows that a universal quantifier is true, such as when verifying the body of a function that has the requires clause `forall x :: f(x) == 1`, it may instantiate the quantifier. Instantiation means Dafny will pick a value for all the variables of the quantifier, leading to a new expression, which it hopes to use to prove an assertion. In the above example, instantiating using `3` for `x` will lead to the expression `f(3) == 1`.
+
+For each universal quantifier, Dafny generates rules to determine which instantiations are worthwhile doing. We call these rules triggers, a term that originates from SMT solvers. If Dafny can not generate triggers for a specific quantifier, it falls back to a set of generic rules. However, this is likely to be problematic, since the generic rules can cause many useless instantiations, leading to verification timing out or failing to proof a valid assertion. When the generic rules are used, Dafny emits a warning telling the user no triggers were found for the quantifier.
+
+Even existential quantifiers need triggers. This is because when Dafny determines an existential quantifier is false, for example in `requires !exists x :: f(x) == 2`, Dafny will use a logical rewrite rule to change this existential into a universal quantifier, so it becomes `requires forall x :: f(x) != 2`. Before verification, Dafny can not determine whether quantifiers will be determined to be true or false, so it must assume any quantifier may turn into a universal quantifier, and thus they all need triggers.
+
+Besides quantifiers, comprehensions such as set and map comprehension also need triggers, since these are modelled using universal quantifiers.
