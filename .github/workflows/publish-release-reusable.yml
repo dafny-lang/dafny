@@ -86,7 +86,7 @@ jobs:
       run: dotnet pack --version-suffix ${{ inputs.name }} dafny/Source/Dafny.sln
 
     - name: Make NuGet package available as an artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
@@ -141,13 +141,16 @@ jobs:
     # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
     # a platform-specific directory), we build Dafny once here.
     - name: Re-build Dafny
+      if: ${{ !inputs.prerelease }}
       run: dotnet build dafny/Source/Dafny.sln
     - name: Build reference manual
+      if: ${{ !inputs.prerelease }}
       run: |
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
 
-    - name: Create GitHub release
+    - name: Create GitHub release (release)
+      if: ${{ !inputs.prerelease }}
       uses: softprops/action-gh-release@v1
       with:
         name: Dafny ${{ inputs.name }}
@@ -158,4 +161,18 @@ jobs:
         files: |
           dafny/Package/dafny-${{ inputs.name }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
+        fail_on_unmatched_files: true
+
+    # This step is separate from the release one because the refman is omitted
+    - name: Create GitHub release (prerelease)
+      if: ${{ inputs.prerelease }}
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Dafny ${{ inputs.name }}
+        tag_name: ${{ inputs.tag_name }}
+        body: ${{ inputs.release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
+        files: |
+          dafny/Package/dafny-${{ inputs.name }}*
         fail_on_unmatched_files: true
