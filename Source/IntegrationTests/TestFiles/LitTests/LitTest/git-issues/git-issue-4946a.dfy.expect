@@ -1,0 +1,2 @@
+git-issue-4946a.dfy(7,5): Error: subset type's base type is not fully determined; add an explicit type for bound variable 'ProgramTrait'
+1 resolution/type errors detected in git-issue-4946a.dfy

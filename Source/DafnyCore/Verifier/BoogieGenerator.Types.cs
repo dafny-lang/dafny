@@ -861,6 +861,9 @@ public partial class BoogieGenerator {
       return null;
     } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
       return null;
+    } else if (typ.IsTraitType) {
+      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy);
+      return null;
     } else {
       Contract.Assume(false);  // unexpected type
       return null;
