@@ -217,6 +217,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       result.SolverVersion = null;
     }
 
+    result.DafnyProject = projectOptions;
     result.ApplyDefaultOptionsWithoutSettingsDefault();
 
     return result;
