@@ -337,11 +337,11 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
   // That's the lemma that shows
   lemma escapeIdentReversible(i: string)
     requires is_tuple_numeric(i) // _0 _1 ...                 => _0, _1 ...
-          || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
-          || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
-          || isDafnyEncodedId(i) // i                         => i
-                                 // create_struct             => create_struct
-                                //  c#ons.tant?'              => r#_c_hons_dtant_q_k
+             || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
+             || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
+             || isDafnyEncodedId(i) // i                         => i
+                                    // create_struct             => create_struct
+    //  c#ons.tant?'              => r#_c_hons_dtant_q_k
     ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     if is_tuple_numeric(i) {
