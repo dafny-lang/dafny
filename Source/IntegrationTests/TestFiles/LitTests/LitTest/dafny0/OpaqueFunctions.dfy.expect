@@ -20,6 +20,8 @@ OpaqueFunctions.dfy(157,20): Error: assertion might not hold
 OpaqueFunctions.dfy(160,20): Error: assertion might not hold
 OpaqueFunctions.dfy(165,31): Error: assertion might not hold
 OpaqueFunctions.dfy(181,12): Error: assertion might not hold
+OpaqueFunctions.dfy(214,15): Error: assertion might not hold
+OpaqueFunctions.dfy(229,19): Error: assertion might not hold
 OpaqueFunctions.dfy(246,11): Error: assertion might not hold
 OpaqueFunctions.dfy(261,11): Error: assertion might not hold
 OpaqueFunctions.dfy(326,16): Error: assertion might not hold
@@ -30,7 +32,5 @@ OpaqueFunctions.dfy(350,15): Error: assertion might not hold
 OpaqueFunctions.dfy(352,15): Error: assertion might not hold
 OpaqueFunctions.dfy(354,15): Error: assertion might not hold
 OpaqueFunctions.dfy(367,17): Error: assertion might not hold
-OpaqueFunctions.dfy(214,15): Error: assertion might not hold
-OpaqueFunctions.dfy(229,19): Error: assertion might not hold
 
 Dafny program verifier finished with 20 verified, 31 errors

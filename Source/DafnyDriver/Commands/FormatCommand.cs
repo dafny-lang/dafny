@@ -33,7 +33,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
@@ -67,7 +67,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
       string tempFileName = null;
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        SynchronousCliCompilation.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
           OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
@@ -95,14 +95,12 @@ Use '--print' to output the content of the formatted files instead of overwritin
             }
 
             if (doCheck && (!doPrint || options.Verbose)) {
-              await options.OutputWriter.WriteLineAsync("The file " +
-                                                        (options.UseBaseNameForFileName
-                                                          ? Path.GetFileName(dafnyFile.FilePath)
-                                                          : dafnyFile.FilePath) + " needs to be formatted");
+              await options.OutputWriter.WriteLineAsync(
+                $"The file {options.GetPrintPath(dafnyFile.FilePath)} needs to be formatted");
             }
 
             if (!doCheck && !doPrint) {
-              CompilerDriver.WriteFile(dafnyFile.FilePath, result);
+              SynchronousCliCompilation.WriteFile(dafnyFile.FilePath, result);
             }
           }
         } else {
@@ -111,9 +109,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
             await options.ErrorWriter.WriteLineAsync(dafnyFile.BaseName + " was empty.");
           }
 
-          emptyFiles.Add((options.UseBaseNameForFileName
-            ? Path.GetFileName(dafnyFile.FilePath)
-            : dafnyFile.FilePath));
+          emptyFiles.Add(options.GetPrintPath(dafnyFile.FilePath));
         }
         if (doPrint) {
           await options.OutputWriter.WriteAsync(result);

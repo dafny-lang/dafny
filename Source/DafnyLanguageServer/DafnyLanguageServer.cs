@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer {
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
 
     private static void PublishSolverPath(ILanguageServer server) {
-      var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
+      var telemetryPublisher = server.GetRequiredService<TelemetryPublisherBase>();
       var options = server.GetRequiredService<DafnyOptions>();
       string solverPath;
       try {
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(DafnyOptions options, ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
+    private static void HandleZ3Version(DafnyOptions options, TelemetryPublisherBase telemetryPublisher, SMTLibSolverOptions proverOptions) {
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         return;

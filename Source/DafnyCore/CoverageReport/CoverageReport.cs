@@ -19,7 +19,6 @@ public class CoverageReport {
   private readonly int uniqueId = Interlocked.Increment(ref nextUniqueId);
   public string UniqueSuffix => suffix + (uniqueId == 1 ? "" : ("_" + uniqueId));
 
-
   /// <summary>
   /// Generate a new empty coverage report for a given program.
   /// If not null, scan the <param name="program"></param> for the list of files it consists of and populate the

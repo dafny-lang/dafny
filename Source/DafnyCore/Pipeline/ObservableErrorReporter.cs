@@ -4,13 +4,11 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using VCGeneration;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny {
   public class ObservableErrorReporter : ErrorReporter {
     private readonly Subject<NewDiagnostic> updates = new();
     public IObservable<NewDiagnostic> Updates => updates;
-
 
     private readonly Uri entryUri;
     private readonly Dictionary<ErrorLevel, int> counts = new();
@@ -34,10 +32,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
 
+      var usingSnippets = Options.Get(DafnyConsolePrinter.ShowSnippets);
       if (rootTok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message)
+            nestedToken.Inner, nestedToken.Message, usingSnippets)
         );
       }
 
