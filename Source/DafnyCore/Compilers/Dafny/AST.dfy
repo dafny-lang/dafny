@@ -75,9 +75,9 @@ module {:extern "DAST"} DAST {
     Neq(referential: bool, nullable: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
-    Implies() |
+    Implies() | // TODO: REplace by Not Or
     In() |
-    NotIn() |
+    NotIn() | // TODO: Replace by Not In
     SetDifference() |
     Concat() |
     Passthrough(string)
