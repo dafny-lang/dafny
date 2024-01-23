@@ -1,4 +1,4 @@
-// RUN: %verify --type-system-refresh --general-traits=datatype "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --general-traits=datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module FromIssue0 {
@@ -7,8 +7,8 @@ module FromIssue0 {
   }
 
   datatype Result =
-  | Bounce(next: Program)
-  | Done()
+    | Bounce(next: Program)
+    | Done()
 
   datatype Trivial extends Program =
     Trivial()
@@ -22,7 +22,7 @@ module FromIssue0 {
     Seq(left: Program, right: Program) // this once gave an error, saying Seq is empty because of cyclic dependencies
   {
     method Compute() returns (r: Result) {
-      var result := left.Compute();
+      var result := left.Compute(); // error: cannot prove termination
       match result
       case Done() => r := right.Compute();
       case Bounce(next) =>
@@ -65,7 +65,7 @@ module FromIssue3 {
   datatype Wrapper extends Interface = Wrapper(inner: Interface) // this once gave the cyclic-dependency error
   {
     function getString(i: int): string {
-      inner.getString(i+1)
+      inner.getString(i + 1) // error: cannot prove termination
     }
   }
 
@@ -102,7 +102,7 @@ module FromIssue4 {
   datatype Wrapper extends Interface = Wrapper(inner: Store)
   {
     function GetString(i: int): string {
-      inner.GetInterface().GetString(i + 1)
+      inner.GetInterface().GetString(i + 1) // error: cannot prove termination
     }
   }
 }
@@ -143,4 +143,78 @@ module Bad {
 
   datatype Mutual = M0(Nutual) | M1(Mutual) // warning: empty datatype
   datatype Nutual = N0(Mutual) // warning: empty datatype
+}
+
+// The following module contains tests for some previous boxing translation errors
+module RegressionTest {
+  trait Interface { }
+
+  datatype Wrapper = Wrapper(inner: Interface)
+
+  method Test0(ww: Wrapper) {
+    var w: Wrapper;
+    w := ww as Wrapper;
+  }
+
+  method Test1(i: Interface) {
+    var w: Wrapper;
+    w := Wrapper(i) as Wrapper;
+  }
+
+  predicate P(x: int) { true }
+
+  method Test() returns (ghost h: bool)  {
+    h := forall i: int :: P(i) ==> var j: int :| true; false;
+  }
+}
+
+// The following module also contains tests for some previous boxing translation errors
+module OtherRegressionTests {
+  trait Parent extends object { }
+  class MyClass extends Parent { }
+
+  datatype Brapper = Brapper(inner: Parent)
+
+  method Testx(c: MyClass) {
+    var kw :=
+      var jj: Parent := c;
+      Brapper(jj);
+    assert true;
+  }
+
+  // ----
+
+  trait Interface { }
+
+  datatype Wrapper extends Interface = Wrapper(inner: Interface)
+
+  datatype DetectZero extends Interface  = DetectZero
+
+  function getWrappedDetectZero(): Interface {
+    var i: Interface := DetectZero;
+    var w: Wrapper := Wrapper(i);
+    w
+  }
+
+  method Test(w: Wrapper) returns (i: Interface) {
+    i := w;
+    i :=
+      var k: Wrapper := Wrapper(i);
+      k;
+    var j: Interface :=
+      var i: Interface := DetectZero;
+      var w: Wrapper := Wrapper(i);
+      w;
+  }
+
+  method SameTest() returns () {
+    var ui: Interface := DetectZero;
+    var e := Wrapper(ui);
+
+    var kw :=
+      var jj: Interface := DetectZero;
+      Wrapper(jj);
+
+    assert true;
+  }
 }

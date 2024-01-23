@@ -1229,7 +1229,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
-        builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr, e => Bpl.Expr.Eq(result, e),
+        builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr,
+          e => Bpl.Expr.Eq(result, CondApplyBox(expr.tok, e, expr.Type, resultType)),
           resultDescription));
         builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
@@ -1376,7 +1377,7 @@ namespace Microsoft.Dafny {
           var pat = e.LHSs[i];
           var rhs = e.RHSs[i];
           var nm = varNameGen.FreshId(string.Format("#{0}#", i));
-          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
+          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type)));
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
           CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
