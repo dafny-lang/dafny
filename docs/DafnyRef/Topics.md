@@ -1155,3 +1155,5 @@ For each universal quantifier, Dafny generates rules to determine which instanti
 Even existential quantifiers need triggers. This is because when Dafny determines an existential quantifier is false, for example in `requires !exists x :: f(x) == 2`, Dafny will use a logical rewrite rule to change this existential into a universal quantifier, so it becomes `requires forall x :: f(x) != 2`. Before verification, Dafny can not determine whether quantifiers will be determined to be true or false, so it must assume any quantifier may turn into a universal quantifier, and thus they all need triggers.
 
 Besides quantifiers, comprehensions such as set and map comprehension also need triggers, since these are modelled using universal quantifiers.
+
+Besides not finding triggers, another problematic situation is when Dafny was able to generate triggers, but believes the rules it found may still cause useless instantiations due a pattern called matching loops. Dafny emits a warning when this happens.
