@@ -16,6 +16,7 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using VC;
 using IToken = Microsoft.Dafny.IToken;
+using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
 
@@ -240,8 +241,12 @@ public class CliCompilation {
       return canVerifies;
     }
 
-    var regex = new Regex(@"((?:[\w.-]+\/)*[\w.-]+)(?::(\d+))?");
+    var regex = new Regex(@"(.+)(?::(\d+))?", RegexOptions.RightToLeft);
     var result = regex.Match(filterPosition);
+    if (result.Length != filterPosition.Length || !result.Success) {
+      Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
+      return new List<ICanVerify>();
+    }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
     var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
