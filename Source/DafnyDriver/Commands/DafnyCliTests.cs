@@ -61,7 +61,7 @@ public static class DafnyCliTests {
     "--use-basename-for-filename",
 
     // Set a default resource limit, to catch cases where verification runs off the rails
-    "--resource-limit:50000000",
+    "--resource-limit:50e6",
 
     // Also include a time limit, because we do care about using too much time.
     "--verification-time-limit:300",
