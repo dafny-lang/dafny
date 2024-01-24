@@ -694,7 +694,7 @@ method Testing() {
 ```
 
 One benefit of functions is that not only can they appear in
-annotations, they can also be used in real code. One cannot write:
+annotations, they can also be used in real code. One can write:
 
 <!-- %no-check -->
 ```dafny
