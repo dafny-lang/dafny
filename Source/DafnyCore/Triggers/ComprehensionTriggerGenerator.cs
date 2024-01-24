@@ -19,13 +19,13 @@ namespace Microsoft.Dafny.Triggers {
   /// </summary>
   class ComprehensionTriggerGenerator {
     private readonly ErrorReporter reporter;
-    private readonly ComprehensionExpr comprehensionContainer;  //  the expression where the splits are originated from
+    private readonly ComprehensionExpr comprehension;  //  the expression where the splits are originated from
     private List<SplitPartTriggerWriter> partWriters;
 
-    internal ComprehensionTriggerGenerator(ComprehensionExpr comprehensionContainer, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
+    internal ComprehensionTriggerGenerator(ComprehensionExpr comprehension, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
       Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
-      this.comprehensionContainer = comprehensionContainer;
+      this.comprehension = comprehension;
       partWriters = quantifiers.Select(q => new SplitPartTriggerWriter(q)).ToList();
     }
 
@@ -133,7 +133,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private bool RewriteMatchingLoop(ModuleDefinition module) {
-      if (comprehensionContainer is QuantifierExpr unSplitQuantifier) {
+      if (comprehension is QuantifierExpr unSplitQuantifier) {
         bool rewritten = false;
         foreach (var triggerWriter in partWriters) {
           rewritten |= triggerWriter.RewriteMatchingLoop(reporter, module);
@@ -195,8 +195,8 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         partWriters = list;
-        Contract.Assert(this.comprehensionContainer is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
-        ((QuantifierExpr)this.comprehensionContainer).SplitQuantifier = splits;
+        Contract.Assert(this.comprehension is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
+        ((QuantifierExpr)this.comprehension).SplitQuantifier = splits;
       }
     }
 
@@ -218,8 +218,16 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
-      foreach (var triggerWriter in partWriters) {
-        triggerWriter.CommitTrigger(reporter, systemModuleManager);
+      if (partWriters.Count > 1) {
+        reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, 
+          comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
+           "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
+           $"For more information, see the section quantifier instantiation rules in the reference manual.");
+      }
+
+      for (var index = 0; index < partWriters.Count; index++) {
+        var triggerWriter = partWriters[index];
+        triggerWriter.CommitTrigger(reporter, partWriters.Count > 1 ? index : null, systemModuleManager);
       }
     }
   }

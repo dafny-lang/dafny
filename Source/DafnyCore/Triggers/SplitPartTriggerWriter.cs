@@ -137,16 +137,16 @@ class SplitPartTriggerWriter {
     Candidates = newCandidates;
   }
 
-  public void CommitTrigger(ErrorReporter errorReporter, SystemModuleManager systemModuleManager) {
+  public void CommitTrigger(ErrorReporter errorReporter, int? splitPartIndex, SystemModuleManager systemModuleManager) {
     bool suppressWarnings = Attributes.Contains(Comprehension.Attributes, "nowarn");
     var reportingToken = Comprehension.Tok;
     var warningLevel = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
 
     if (!WantsAutoTriggers()) {
       // NOTE: split and autotriggers attributes are passed down to Boogie
-      errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
         "The attribute {:autotriggers false} may cause brittle verification. " +
-        "You can silence this warning by explicitly adding no triggers, using {:trigger}. " +
+        "It's better to remove this attribute, or as a second option, manually define a trigger using {:trigger}. " +
         "For more information, see the section quantifier instantiation rules in the reference manual.");
     }
 
@@ -163,19 +163,25 @@ class SplitPartTriggerWriter {
     string InfoFirstLineEnd(int count) {
       return count < 2 ? " " : "\n  ";
     }
+
+    var messages = new List<string>();
+    if (splitPartIndex != null) {
+      messages.Add($"Part #{splitPartIndex} is '{Comprehension.Term}'");
+    }
     if (Candidates.Any()) {
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-        $"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
+      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
+    }
+    if (RejectedCandidates.Any()) {
+      messages.Add($"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n  ", RejectedCandidates)}");
     }
 
-    if (RejectedCandidates.Any()) {
-      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-        $"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n", RejectedCandidates)}");
+    if (messages.Any()) {
+      errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken, string.Join("\n", messages));
     }
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        $"Could not find a trigger for this comprehension. Without a trigger, the comprehension may cause brittle verification. " +
+        $"Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. " +
         $"To silence this warning, add an explicit trigger using the {{:trigger}} attribute. " +
         $"For more information, see the section quantifier instantiation rules in the reference manual.");
     } else if (!CouldSuppressLoops && !AllowsLoops) {
