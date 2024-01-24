@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny {
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
       var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
-      g = ApplyBox(rhs.tok, g);
+      g = BoxIfNotNormallyBoxed(rhs.tok, g, rhs.Type);
 
       Bpl.Trigger tr = null;
       var argsEtran = etran.WithNoLits();
