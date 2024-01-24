@@ -219,7 +219,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
       if (partWriters.Count > 1) {
-        reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, 
+        reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
           comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
            "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
            $"For more information, see the section quantifier instantiation rules in the reference manual.");
