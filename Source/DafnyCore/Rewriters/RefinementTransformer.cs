@@ -33,6 +33,9 @@ namespace Microsoft.Dafny {
       this.InheritingModule = m;
     }
 
+    public override string ToString() {
+      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
+    }
 
     public override IToken WithVal(string newVal) {
       return new RefinementToken(WrappedToken.WithVal(newVal), InheritingModule);

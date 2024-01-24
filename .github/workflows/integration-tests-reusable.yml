@@ -53,6 +53,7 @@ jobs:
       shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   test:
     needs: populate-matrix-dimensions
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

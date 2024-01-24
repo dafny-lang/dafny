@@ -17,7 +17,8 @@ public class ProofDependencyWarnings {
   }
 
   public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter,
-    ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry, DafnyConsolePrinter.VerificationResultLogEntry result) {
+    ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry,
+    DafnyConsolePrinter.VerificationResultLogEntry result) {
     if (result.Outcome != ConditionGeneration.Outcome.Correct) {
       return;
     }
@@ -27,41 +28,43 @@ public class ProofDependencyWarnings {
       result
         .VCResults
         .SelectMany(vcResult => vcResult.CoveredElements.Select(depManager.GetFullIdDependency))
-        .OrderBy(dep => (dep.RangeString(), dep.Description));
+        .OrderBy(dep => dep.Range)
+        .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => (dep.RangeString(), dep.Description));
+        .OrderBy(dep => dep.Range)
+        .ThenBy(dep => dep.Description).ToList();
 
-    var unusedObligations = unusedDependencies.OfType<ProofObligationDependency>();
-    var unusedRequires = unusedDependencies.OfType<RequiresDependency>();
-    var unusedEnsures = unusedDependencies.OfType<EnsuresDependency>();
-    var unusedAssumptions = unusedDependencies.OfType<AssumptionDependency>();
-    if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
-      foreach (var dependency in unusedObligations) {
-        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
-          reporter.Warning(MessageSource.Verifier, "", dependency.Range, $"proved using contradictory assumptions: {dependency.Description}");
+    foreach (var unusedDependency in unusedDependencies) {
+      if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
+        if (unusedDependency is ProofObligationDependency obligation) {
+          if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, obligation)) {
+            reporter.Warning(MessageSource.Verifier, "", obligation.Range,
+              $"proved using contradictory assumptions: {obligation.Description}");
+          }
+        }
+
+        if (unusedDependency is EnsuresDependency ensures) {
+          if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, ensures)) {
+            reporter.Warning(MessageSource.Verifier, "", ensures.Range,
+              $"ensures clause proved using contradictory assumptions");
+          }
         }
       }
 
-      foreach (var dep in unusedEnsures) {
-        if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"ensures clause proved using contradictory assumptions");
+      if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
+        if (unusedDependency is RequiresDependency requires) {
+          reporter.Warning(MessageSource.Verifier, "", requires.Range, $"unnecessary requires clause");
+        }
+
+        if (unusedDependency is AssumptionDependency assumption) {
+          if (ShouldWarnUnused(assumption)) {
+            reporter.Warning(MessageSource.Verifier, "", assumption.Range,
+              $"unnecessary (or partly unnecessary) {assumption.Description}");
+          }
         }
       }
-    }
-
-    if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
-      foreach (var dep in unusedRequires) {
-        reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary requires clause");
-      }
-
-      foreach (var dep in unusedAssumptions) {
-        if (ShouldWarnUnused(dep)) {
-          reporter.Warning(MessageSource.Verifier, "", dep.Range, $"unnecessary (or partly unnecessary) {dep.Description}");
-        }
-      }
-
     }
   }
 
