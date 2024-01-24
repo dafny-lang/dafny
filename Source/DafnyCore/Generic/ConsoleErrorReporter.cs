@@ -42,6 +42,12 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
+    if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+      var tw = new StringWriter();
+      DafnyConsolePrinter.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
+      errorLine += tw.ToString();
+    }
+
     var innerToken = tok;
     while (innerToken is NestedToken nestedToken) {
       innerToken = nestedToken.Inner;
@@ -59,16 +65,14 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       }
 
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
+      if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+        var tw = new StringWriter();
+        DafnyConsolePrinter.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
+        errorLine += tw.ToString();
+      }
     }
 
     Options.OutputWriter.Write(errorLine);
-
-
-    if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
-      TextWriter tw = new StringWriter();
-      new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
-      Options.OutputWriter.Write(tw.ToString());
-    }
 
     if (Options.OutputWriter == Console.Out) {
       Console.ForegroundColor = previousColor;

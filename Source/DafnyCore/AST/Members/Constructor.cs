@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -10,7 +11,7 @@ public class Constructor : Method {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
   }
 
-  public override DafnySymbolKind Kind => DafnySymbolKind.Constructor;
+  public override SymbolKind Kind => SymbolKind.Constructor;
   protected override string GetQualifiedName() {
     return EnclosingClass.Name;
   }

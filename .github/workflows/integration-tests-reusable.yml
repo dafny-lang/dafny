@@ -53,6 +53,7 @@ jobs:
       shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   test:
     needs: populate-matrix-dimensions
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -166,10 +167,10 @@ jobs:
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: integration-test-results-${{ matrix.os }}
+        name: integration-test-results-${{ matrix.os }}-${{ matrix.shard }}
         path: |
           dafny/Source/*/TestResults/*.trx
           dafny/Source/*/TestResults/*/coverage.cobertura.xml

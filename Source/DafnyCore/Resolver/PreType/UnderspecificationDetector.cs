@@ -55,6 +55,9 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
+          if (!DetectUnderspecificationVisitor.IsDetermined(dd.Var.PreType)) {
+            ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+          }
           CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
             CheckExpression(dd.Witness, context);
@@ -64,7 +67,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           if (dd.Var != null) {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
-              ReportError(dd, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+              ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
             }
             CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {

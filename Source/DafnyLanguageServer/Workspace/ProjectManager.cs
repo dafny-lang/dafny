@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reactive.Concurrency;
@@ -29,7 +27,6 @@ public delegate ProjectManager CreateProjectManager(
   VerificationResultCache verificationCache,
   DafnyProject project);
 
-public record FilePosition(Uri Uri, Position Position);
 
 /// <summary>
 /// Handles operation on a single document.
@@ -78,7 +75,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly CreateCompilation createCompilation;
   private readonly ExecutionEngine boogieEngine;
   private readonly IFileSystem fileSystem;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
   private IdeState latestIdeState;
   private ReplaySubject<IdeState> states = new(1);
@@ -89,7 +86,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ILogger<ProjectManager> logger,
     CreateMigrator createMigrator,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
@@ -109,7 +106,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options.Printer = new OutputLogger(logger);
     boogieEngine = new ExecutionEngine(options, cache, scheduler);
     var compilationInput = new CompilationInput(options, version, Project);
-    var initialIdeState = compilationInput.InitialIdeState(options);
+    var initialIdeState = IdeState.InitialIdeState(compilationInput);
     latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
@@ -170,6 +167,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     var throttleTime = options.Get(UpdateThrottling);
     var throttledUpdates = throttleTime == 0 ? States : States.Sample(TimeSpan.FromMilliseconds(throttleTime));
+
     var throttledSubscription = throttledUpdates.Subscribe(observer);
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
@@ -182,18 +180,18 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       Input = compilation.Input,
     };
 
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
+
     async Task<IdeState> Update(ICompilationEvent ev) {
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
-      var newState = await ev.UpdateState(options, logger, projectDatabase, latestCompilationState);
+      var newState = await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
       latestCompilationState = newState;
       return newState;
     }
-
-    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
   }
 
   private void TriggerVerificationForFile(Uri triggeringFile) {
@@ -208,7 +206,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var result = new DafnyOptions(serverOptions);
 
     foreach (var option in LanguageServer.Options) {
-      var hasProjectFileValue = projectOptions.TryGetValue(option, TextWriter.Null, out var projectFileValue);
+      var hasProjectFileValue = projectOptions.TryGetValue(option, out var projectFileValue);
       if (hasProjectFileValue) {
         result.Options.OptionArguments[option] = projectFileValue;
         result.ApplyBinding(option);
@@ -219,6 +217,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       result.SolverVersion = null;
     }
 
+    result.DafnyProject = projectOptions;
     result.ApplyDefaultOptionsWithoutSettingsDefault();
 
     return result;
@@ -306,7 +305,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
       if (GutterIconTesting) {
         foreach (var canVerify in orderedVerifiableLocations) {
-          await compilation.VerifySymbol(canVerify, true);
+          await compilation.VerifyLocation(canVerify, true);
         }
 
         logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
@@ -314,7 +313,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
       foreach (var canVerify in orderedVerifiableLocations) {
         // Wait for each task to try and run, so the order is respected.
-        await compilation.VerifySymbol(canVerify);
+        await compilation.VerifyLocation(canVerify);
       }
     }
     finally {
@@ -322,7 +321,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
   }
 
-  private IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(IReadOnlyList<ICanVerify> verifiables, IEnumerable<Location> changedRanges) {
+  private static IEnumerable<FilePosition> GetChangedVerifiablesFromRanges(IReadOnlyList<ICanVerify> verifiables, IEnumerable<Location> changedRanges) {
     IntervalTree<Position, Position> GetTree(Uri uri) {
       var intervalTree = new IntervalTree<Position, Position>();
       foreach (var canVerify in verifiables) {

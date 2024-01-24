@@ -45,6 +45,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
+    CommonOptionBag.ExtractCounterexample,
     CommonOptionBag.ShowInference,
     CommonOptionBag.ManualTriggerOption
   }.ToList();

@@ -135,7 +135,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
 
+#pragma warning disable VSTHRD002
     errorProcessing.Wait();
+#pragma warning restore VSTHRD002
     return process.ExitCode;
   }
 
