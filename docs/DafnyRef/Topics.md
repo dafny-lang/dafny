@@ -1164,6 +1164,6 @@ Dafny makes sure not to perform the exact same instantiation twice. However, if 
 
 Even existential quantifiers need triggers. This is because when Dafny determines an existential quantifier is false, for example in `requires !exists x :: f(x) == 2`, Dafny will use a logical rewrite rule to change this existential into a universal quantifier, so it becomes `requires forall x :: f(x) != 2`. Before verification, Dafny can not determine whether quantifiers will be determined to be true or false, so it must assume any quantifier may turn into a universal quantifier, and thus they all need triggers.
 
-Besides quantifiers, comprehensions such as set and map comprehension also need triggers, since these are modelled using universal quantifiers.
+Besides quantifiers, comprehensions such as set and map comprehension also need triggers, since these are modeled using universal quantifiers.
 
 Dafny may report 'Quantifier was split into X parts'. This occurs when Dafny determines it can only generate good triggers for a quantifier by splitting it into multiple smaller quantifiers, whose disjunction is logically equivalent to the original one. To maintain logical equivalence, Dafny has to generate more triggers than if the split had been done in source. One may consider doing the split in source to generate a leaner set of triggers.
