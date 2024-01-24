@@ -10,6 +10,9 @@ namespace Microsoft.Dafny;
 
 public static class VerifyCommand {
 
+  public static Option<string> FilterPosition = new("--filter-position",
+    @"Filter what gets verified based on a source location. The location is specified as a file path suffix that allows wildcards, optionally followed by a colon and a line number. For example, ""--filter=lastFolder/source.dfy:23""");
+  
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
     result.AddArgument(DafnyCommands.FilesArgument);
@@ -36,6 +39,7 @@ public static class VerifyCommand {
 
   private static IReadOnlyList<Option> Options =>
     new Option[] {
+        FilterPosition,
         BoogieOptionBag.BoogieFilter,
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
