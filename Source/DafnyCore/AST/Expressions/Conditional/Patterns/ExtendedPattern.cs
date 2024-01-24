@@ -93,6 +93,8 @@ public abstract class ExtendedPattern : TokenNode {
         return;
       }
 
+      Contract.Assert(tupleTypeDecl.Ctors.Count == 1);
+      Contract.Assert(tupleTypeDecl.Ctors[0] == tupleTypeDecl.GroundingCtor);
       idpat.Ctor = tupleTypeDecl.GroundingCtor;
 
       //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
