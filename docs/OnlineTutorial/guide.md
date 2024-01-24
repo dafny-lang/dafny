@@ -701,7 +701,7 @@ annotations, they can also be used in real code. One can write:
   var v := abs(3);
 ```
 
-Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code. However, doing so naively results in the body of a function be available for every caller, which can cause the verifier to time out or get extremely slow. A solution for that is to add the modifier `ghost` to the function declaration like `ghost function f()`. Now the function can only be used for specifictaion and not be called from real code.
+Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code. However, doing so naively results in the body of a function to be available for every caller, which can cause the verifier to time out or get extremely slow. A solution for that is to add the modifier `ghost` to the function declaration like `ghost function f()`. Now the function can only be used for specification and not be called from real code.
 
 > Note: Pre v4.0, a function was ghost by default, and could not be called from non-ghost code. From v4.0 on, a function is non-ghost by default.
 
