@@ -44,7 +44,7 @@ public static class DafnyCliTests {
     "/compileVerbose:0",
 
     // Set a default resource limit, to catch cases where verification runs off the rails
-    "/rlimit:50000",
+    "/rlimit:50000000",
 
     // Also include a time limit, because we do care about using too much time.
     "/timeLimit:300",
