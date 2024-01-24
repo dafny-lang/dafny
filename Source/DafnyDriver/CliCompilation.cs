@@ -250,12 +250,12 @@ public class CliCompilation {
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
     var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
-    if (!string.IsNullOrEmpty(linePart)) {
-      var line = int.Parse(linePart);
-      return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
+    if (string.IsNullOrEmpty(linePart)) {
+      return fileFiltered;
     }
 
-    return fileFiltered;
+    var line = int.Parse(linePart);
+    return fileFiltered.Where(c =>
+        c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
   }
 }
