@@ -701,22 +701,21 @@ annotations, they can only appear in annotations. One cannot write:
   var v := abs(3);
 ```
 
-as this is not an annotation. Functions are never part of
-the final compiled program, they are just tools to help us verify our code.
-Sometimes it is convenient to use a function in real code, so one can define a
-`function method`, which can be called from real code. Note
-that there are restrictions on what functions can be function methods (See the
-reference for details).
+as this is not an annotation.
+
+Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code. However, doing so naively results in the body of a function be available for every caller, which can cause the verifier to time out or get extremely slow. A solution for that is to add the modifier `ghost` to the function declaration like `ghost function f()`. Therefore, the function can only be used for specifictaion and not be called from real code.
+
+> Note: Pre v4.0, a function was ghost by default, and could not be called from non-ghost code. From v4.0 on, a function is non-ghost by default.
 
 **Exercise 5.**
   *Change your test method from Exercise 4 to capture the value of
   `max` to an out-parameter, and then do the checks from Exercise 4 using
   the variable. Dafny will reject this program because you are calling
-  `max` from real code. Fix this problem using a `function method`.*
+  `max` from real code (try it out). Fix this problem by removing the `ghost` modifier.*
 
 <!-- %check-resolve -->
 ```dafny
-function max(a: int, b: int): int
+ghost function max(a: int, b: int): int
 {
   0 // Use your code from Exercise 4
 }
