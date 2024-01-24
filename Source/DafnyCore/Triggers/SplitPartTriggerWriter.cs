@@ -159,15 +159,18 @@ class SplitPartTriggerWriter {
     if (Attributes.Contains(Comprehension.Attributes, "auto_generated")) {
       return;
     }
-    
+
+    string InfoFirstLineEnd(int count) {
+      return count < 2 ? " " : "\n  ";
+    }
     if (Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-        $"Selected triggers: {string.Join(", ", Candidates)}");
+        $"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
     }
 
     if (RejectedCandidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
-        $"Rejected triggers: {string.Join("\n", RejectedCandidates)}");
+        $"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n", RejectedCandidates)}");
     }
 
     if (!CandidateTerms.Any() || !Candidates.Any()) {
