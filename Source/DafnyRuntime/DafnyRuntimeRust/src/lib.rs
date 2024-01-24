@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 use std::{fmt::{Display, Formatter},
-          rc::Rc, ops::{Deref, Add},
+          rc::Rc, ops::{Add, Deref, Mul},
           hash::Hash,
           collections::{HashSet, HashMap},
           cell::RefCell, any::Any};
@@ -31,7 +31,6 @@ pub type SizeT = usize;
 // We use the named version using {...}, and use snake_case format
 
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
-
 
 #[allow(dead_code)]
 mod dafny_runtime_conversions {
@@ -313,6 +312,9 @@ where T: Clone {
         array[index].clone()
     }
 }
+
+
+#[allow(dead_code)]
 impl <T> Sequence<T> where T: Eq + Clone {
     fn contains(&self, value: &T) -> bool {
         self.to_array().contains(value)
@@ -491,23 +493,8 @@ impl <V> Set<V> where V: Clone + Eq {
     }
 }
 
-trait SetInterface<V>
-  where V: Clone + Eq + DafnyPrint
-{
-    fn cardinality(&self) -> SizeT;
-    fn cardinality_int(&self) -> Rc<BigInt>;
-    fn contains(&self, value: &V) -> bool;
-    fn union(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
-    fn intersection(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
-    fn difference(&self, other: &Rc<Set<V>>) -> Rc<Set<V>>;
-    fn is_disjoint_from(&self, other: &Rc<Set<V>>) -> bool;
-    fn equals(&self, other: &Rc<Set<V>>) -> bool;
-    fn is_subset_of(&self, other: &Rc<Set<V>>) -> bool;
-    fn is_proper_subset_of(&self, other: &Rc<Set<V>>) -> bool;
-    fn elements(&self) -> Rc<Set<V>>;
-}
-
-impl <V> SetInterface<V> for Rc<Set<V>>
+#[allow(dead_code)]
+impl <V> Set<V>
   where V: Clone + Eq + DafnyPrint
 {
     fn cardinality(&self) -> SizeT {
@@ -519,7 +506,7 @@ impl <V> SetInterface<V> for Rc<Set<V>>
     fn contains(&self, value: &V) -> bool {
         self.data.contains(value)
     }
-    fn union(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+    fn union(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
         if self.cardinality() == 0 {
             return Rc::clone(other);
         }
@@ -537,7 +524,7 @@ impl <V> SetInterface<V> for Rc<Set<V>>
         Set::set_from_sequence(&result)
     }
 
-    fn intersection(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+    fn intersection(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
         if self.cardinality() == 0 {
             return Rc::clone(self);
         }
@@ -558,7 +545,7 @@ impl <V> SetInterface<V> for Rc<Set<V>>
         Set::set_from_array(&Rc::new(result))
     }
 
-    fn difference(&self, other: &Rc<Set<V>>) -> Rc<Set<V>> {
+    fn difference(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
         if self.cardinality() == 0 {
             return Rc::clone(self);
         }
@@ -622,12 +609,12 @@ impl <V> SetInterface<V> for Rc<Set<V>>
         }
         true
     }
-
+    
     fn is_proper_subset_of(&self, other: &Rc<Set<V>>) -> bool {
         self.is_subset_of(other) && self.cardinality() != other.cardinality()
     }
 
-    fn elements(&self) -> Rc<Set<V>> {
+    fn elements(self: &Rc<Self>) -> Rc<Set<V>> {
         Rc::clone(self)
     }
 }

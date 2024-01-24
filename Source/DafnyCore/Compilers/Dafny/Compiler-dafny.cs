@@ -2134,6 +2134,22 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    // A few helpers to reduce the size of expressions
+    private static DAST.Expression Not(_IExpression expr, bool mergeInner = true) {
+      return (DAST.Expression)DAST.Expression.create_UnOp(
+        new UnaryOp_Not(),
+        (DAST.Expression)expr,
+        mergeInner ? new UnOpFormat_CombineNotInner() : new UnOpFormat_NoFormat());
+    }
+
+    private static DAST.Expression BinaryOp(_IBinOp op, _IExpression left, _IExpression right, _IBinOpFormat format = null) {
+      format ??= new BinOpFormat_NoFormat();
+
+      return (DAST.Expression)DAST.Expression.create_BinOp(
+        op, left, right, format
+      );
+    }
+
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
       Expression e0, Expression e1, IToken tok, Type resultType,
       out string opString,
@@ -2216,53 +2232,64 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var newBuilder = op switch {
-          BinaryExpr.ResolvedOpcode.EqCommon => B((DAST.BinOp)DAST.BinOp.create_Eq(
+          BinaryExpr.ResolvedOpcode.EqCommon => B((BinOp)BinOp.create_Eq(
             e0.Type.IsRefType,
             !e0.Type.IsNonNullRefType
           )),
-          BinaryExpr.ResolvedOpcode.NeqCommon => C((DAST.Expression left, DAST.Expression right) => {
-            return (DAST.Expression)DAST.Expression.create_UnOp(new UnaryOp_Not(),
-             DAST.Expression.create_BinOp(
-               DAST.BinOp.create_Eq(
-                 e0.Type.IsRefType,
-                 !e0.Type.IsNonNullRefType
-               ), left, right, new BinOpFormat_NoFormat()),
-             new UnOpFormat_CombineNotInner()
-           );
-          }),
+          BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
+            Not(BinaryOp(
+              BinOp.create_Eq(
+                e0.Type.IsRefType,
+                !e0.Type.IsNonNullRefType
+              ), left, right))),
           BinaryExpr.ResolvedOpcode.Div =>
-            B(NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianDiv() : DAST.BinOp.create_Div()),
+            B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianDiv() : BinOp.create_Div()),
           BinaryExpr.ResolvedOpcode.Mod =>
-            B(NeedsEuclideanDivision(resultType) ? DAST.BinOp.create_EuclidianMod() : DAST.BinOp.create_Mod()),
+            B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianMod() : BinOp.create_Mod()),
           BinaryExpr.ResolvedOpcode.Imp =>
-            C((DAST.Expression left, DAST.Expression right) =>
-              (DAST.Expression)DAST.Expression.create_BinOp(
-                DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString(
-                  "||")),
-                DAST.Expression.create_UnOp(
-                  new UnaryOp_Not(),
-                  left,
-                  new UnOpFormat_NoFormat()), right, new BinOpFormat_ImpliesFormat()
+            C((left, right) =>
+              BinaryOp(
+                DAST.BinOp.create_Or(),
+                Not(left, false), right, new BinOpFormat_ImpliesFormat()
               )),
-          BinaryExpr.ResolvedOpcode.InSet => B(DAST.BinOp.create_In()),
+          BinaryExpr.ResolvedOpcode.Iff =>
+            C((left, right) =>
+              BinaryOp(
+                BinOp.create_Eq(false, false),
+                left, right, new BinOpFormat_Equivalence()
+              )),
+          BinaryExpr.ResolvedOpcode.InSet => B(DAST.BinOp.create_In()), // TODO: Differentiate?
           BinaryExpr.ResolvedOpcode.InSeq => B(DAST.BinOp.create_In()),
           BinaryExpr.ResolvedOpcode.NotInSet =>
-            C((DAST.Expression left, DAST.Expression right) =>
-              (DAST.Expression)DAST.Expression.create_UnOp(
-                new UnaryOp_Not(),
-                DAST.Expression.create_BinOp(
-                  new BinOp_In(), left, right, new BinOpFormat_NoFormat()
-              ), new UnOpFormat_CombineNotInner())),
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_In(), left, right))),
           BinaryExpr.ResolvedOpcode.NotInSeq =>
-            C((DAST.Expression left, DAST.Expression right) =>
-            (DAST.Expression)DAST.Expression.create_UnOp(
-              new UnaryOp_Not(),
-              DAST.Expression.create_BinOp(
-                new BinOp_In(), left, right, new BinOpFormat_NoFormat()
-              ), new UnOpFormat_CombineNotInner())),
-          BinaryExpr.ResolvedOpcode.SetDifference => B(DAST.BinOp.create_SetDifference()),
-          BinaryExpr.ResolvedOpcode.Concat => B(DAST.BinOp.create_Concat()),
-          //BinaryExpr.ResolvedOpcode.And => DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString("&&")),
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_In(), left, right))),
+          BinaryExpr.ResolvedOpcode.SetDifference => B(BinOp.create_SetDifference()),
+          BinaryExpr.ResolvedOpcode.Concat => B(BinOp.create_Concat()),
+          BinaryExpr.ResolvedOpcode.And => B(BinOp.create_And()),
+          BinaryExpr.ResolvedOpcode.Or => B(BinOp.create_Or()),
+          BinaryExpr.ResolvedOpcode.Add => B(BinOp.create_Plus()),
+          BinaryExpr.ResolvedOpcode.Sub => B(BinOp.create_Minus()),
+          BinaryExpr.ResolvedOpcode.Mul => B(BinOp.create_Times()),
+          BinaryExpr.ResolvedOpcode.BitwiseAnd => B(BinOp.create_BitwiseAnd()),
+          BinaryExpr.ResolvedOpcode.BitwiseOr => B(BinOp.create_BitwiseOr()),
+          BinaryExpr.ResolvedOpcode.BitwiseXor => B(BinOp.create_BitwiseXor()),
+          BinaryExpr.ResolvedOpcode.LeftShift => B(BinOp.create_BitwiseShiftLeft()),
+          BinaryExpr.ResolvedOpcode.RightShift => B(BinOp.create_BitwiseShiftRight()),
+          BinaryExpr.ResolvedOpcode.Lt =>
+            B(BinOp.create_Lt()),
+          BinaryExpr.ResolvedOpcode.Le =>
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_Lt(), right, left,
+                new BinOpFormat_ReverseOperands()))),
+          BinaryExpr.ResolvedOpcode.Gt =>
+            C((left, right) =>
+              BinaryOp(new BinOp_Lt(), right, left, new BinOpFormat_ReverseOperands())),
+          BinaryExpr.ResolvedOpcode.Ge =>
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_Lt(), left, right))),
 
           _ => B(DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: Operator {op}</b>"))),
         };

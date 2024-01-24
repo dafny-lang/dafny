@@ -336,6 +336,18 @@ module RAST {
             == BinaryOp("!=", left, right, BinOpFormat.NoFormat()).Height();
           BinaryOp("!=", left, right, BinOpFormat.NoFormat()).ToString(ind)
 
+        case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
+            CombineNotInner()) =>
+          assert BinaryOp(">=", left, right, BinOpFormat.NoFormat()).Height()
+            == BinaryOp("<", left, right, BinOpFormat.NoFormat()).Height();
+          BinaryOp(">=", left, right, BinOpFormat.NoFormat()).ToString(ind)
+        
+        case UnaryOp("!", BinaryOp("<", left, right, ReverseOperands()),
+            CombineNotInner()) =>
+          assert BinaryOp("<=", right, left, BinOpFormat.NoFormat()).Height()
+            == BinaryOp("<", left, right, BinOpFormat.ReverseOperands()).Height();
+          BinaryOp("<=", right, left, BinOpFormat.NoFormat()).ToString(ind)
+        
         case UnaryOp(op, underlying, format) =>
           op + "("  + underlying.ToString(ind) + ")"
 
@@ -1696,6 +1708,22 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
+    static const OpTable: map<BinOp, string> := map[
+      Mod() := "%",
+      And() := "&&",
+      Or() := "||",
+      Div() := "/",
+      Lt() := "<",
+      Plus() := "+",
+      Minus() := "-",
+      Times() := "*",
+      BitwiseAnd() := "&",
+      BitwiseOr() := "|",
+      BitwiseXor() := "^",
+      BitwiseShiftRight() := ">>",
+      BitwiseShiftLeft() := "<<"
+    ]
+
     static method GenExpr(e: Expression, selfIdent: Option<string>, params: seq<string>, mustOwn: bool) returns (s: string, isOwned: bool, isErased: bool, readIdents: set<string>)
       ensures mustOwn ==> isOwned
       decreases e {
@@ -1936,6 +1964,7 @@ module {:extern "DCOMP"} DCOMP {
           isErased := false;
         }
         case Convert(expr, fromTpe, toTpe) => {
+          assert {:split_here} true;
           if fromTpe == toTpe {
             var recursiveGen, recOwned, recErased, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
             s := recursiveGen;
@@ -2202,6 +2231,7 @@ module {:extern "DCOMP"} DCOMP {
           }
         }
         case Ite(cond, t, f) => {
+          assert {:split_here} true;
           var condString, _, condErased, recIdentsCond := GenExpr(cond, selfIdent, params, true);
           if !condErased {
             condString := "::dafny_runtime::DafnyErasable::erase_owned(" + condString + ")";
@@ -2283,39 +2313,37 @@ module {:extern "DCOMP"} DCOMP {
                 right := "::dafny_runtime::DafnyErasable::erase_owned(" + right + ")";
               }
 
-              match op {
-                case Eq(referential, nullable) => {
-                  if (referential) {
-                    // TODO: Render using a call with two expressions
-                    if (nullable) {
-                      s := "::dafny_runtime::nullable_referential_equality(" + left + ", " + right + ")";
+              if op in OpTable {
+                s := R.Expr.BinaryOp(OpTable[op], 
+                    R.Expr.RawExpr(left),
+                    R.Expr.RawExpr(right),
+                    format).ToString("");
+              } else {
+                match op {
+                  case Eq(referential, nullable) => {
+                    if (referential) {
+                      // TODO: Render using a call with two expressions
+                      if (nullable) {
+                        s := "::dafny_runtime::nullable_referential_equality(" + left + ", " + right + ")";
+                      } else {
+                        s := "::std::rc::Rc::ptr_eq(&(" + left + "), &(" + right + "))";
+                      }
                     } else {
-                      s := "::std::rc::Rc::ptr_eq(&(" + left + "), &(" + right + "))";
+                      s := left + " == " + right;
                     }
-                  } else {
-                    s := left + " == " + right;
                   }
-                }
-                case EuclidianDiv() => {
-                  s := "::dafny_runtime::euclidian_division(" + left + ", " + right + ")";
-                }
-                case Div() => {
-                  s := "(" + left + ") / (" + right + ")";
-                }
-                case EuclidianMod() => {
-                  s := "::dafny_runtime::euclidian_modulo(" + left + ", " + right + ")";
-                }
-                case Mod() => {
-                  s := R.Expr.BinaryOp("%", 
-                    R.Expr.RawExpr(left),
-                    R.Expr.RawExpr(right),
-                    Format.BinOpFormat.NoFormat()).ToString("");
-                }
-                case Passthrough(op) => {
-                  s := R.Expr.BinaryOp(op, 
-                    R.Expr.RawExpr(left),
-                    R.Expr.RawExpr(right),
-                    Format.BinOpFormat.NoFormat()).ToString("");
+                  case EuclidianDiv() => {
+                    s := "::dafny_runtime::euclidian_division(" + left + ", " + right + ")";
+                  }
+                  case EuclidianMod() => {
+                    s := "::dafny_runtime::euclidian_modulo(" + left + ", " + right + ")";
+                  }
+                  case Passthrough(op) => {
+                    s := R.Expr.BinaryOp(op, 
+                      R.Expr.RawExpr(left),
+                      R.Expr.RawExpr(right),
+                      format).ToString("");
+                  }
                 }
               }
             }

@@ -2,8 +2,14 @@ module {:extern "DAST.Format"} DAST.Format
 /* Cues about how to format different AST elements if necessary,
    e.g. to generate idiomatic code when needed. */
 {
-  datatype UnOpFormat = NoFormat() | CombineNotInner()
-  datatype BinOpFormat = NoFormat() | ImpliesFormat()
+  datatype UnOpFormat =
+    NoFormat()
+    | CombineNotInner()
+  datatype BinOpFormat = 
+    NoFormat()
+    | ImpliesFormat()
+    | Equivalence()
+    | ReverseOperands()
 }
 
 module {:extern "DAST"} DAST {
@@ -85,6 +91,11 @@ module {:extern "DAST"} DAST {
     Eq(referential: bool, nullable: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
+    Lt() | // a <= b is !(b < a)
+    Plus() | Minus() | Times() |
+    BitwiseAnd() | BitwiseOr() | BitwiseXor() |
+    BitwiseShiftRight() | BitwiseShiftLeft() |
+    And() | Or() |
     In() |
     SetDifference() |
     Concat() |
