@@ -156,6 +156,10 @@ class SplitPartTriggerWriter {
 
     AddTriggerAttribute(systemModuleManager);
 
+    if (Attributes.Contains(Comprehension.Attributes, "auto_generated")) {
+      return;
+    }
+    
     if (Candidates.Any()) {
       errorReporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, reportingToken,
         $"Selected triggers: {string.Join(", ", Candidates)}");
