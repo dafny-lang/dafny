@@ -1147,7 +1147,7 @@ method TestD(dd: D) {
 }
 ```
 
-## 12.8 Quantifier instantiation rules {#sec-quantifier-triggers}
+## 12.8. Quantifier instantiation rules {#sec-quantifier-triggers}
 During verification, when Dafny knows that a universal quantifier is true, such as when verifying the body of a function that has the requires clause `forall x :: f(x) == 1`, it may instantiate the quantifier. Instantiation means Dafny will pick a value for all the variables of the quantifier, leading to a new expression, which it hopes to use to prove an assertion. In the above example, instantiating using `3` for `x` will lead to the expression `f(3) == 1`.
 
 For each universal quantifier, Dafny generates rules to determine which instantiations are worthwhile doing. We call these rules triggers, a term that originates from SMT solvers. If Dafny can not generate triggers for a specific quantifier, it falls back to a set of generic rules. However, this is likely to be problematic, since the generic rules can cause many useless instantiations, leading to verification timing out or failing to proof a valid assertion. When the generic rules are used, Dafny emits a warning telling the user no triggers were found for the quantifier, indicating the Dafny program should be changed so Dafny can find triggers for this quantifier.
@@ -1166,4 +1166,4 @@ Even existential quantifiers need triggers. This is because when Dafny determine
 
 Besides quantifiers, comprehensions such as set and map comprehension also need triggers, since these are modelled using universal quantifiers.
 
-Dafny may report 'Quantifier was split into X parts'. This occurs when Dafny determines it can only generate good triggers for a quantifier by splitting it into multiple smaller quantifiers, whose disjunction is logically equivalent to the original one. To maintain logical equivalence, Dafny has to generate more triggers then if the split had been done in source. One may consider doing to split in source to generate a leaner set of triggers.
+Dafny may report 'Quantifier was split into X parts'. This occurs when Dafny determines it can only generate good triggers for a quantifier by splitting it into multiple smaller quantifiers, whose disjunction is logically equivalent to the original one. To maintain logical equivalence, Dafny has to generate more triggers than if the split had been done in source. One may consider doing the split in source to generate a leaner set of triggers.
