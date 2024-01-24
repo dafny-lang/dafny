@@ -14,7 +14,7 @@ public static class VerifyCommand {
   static VerifyCommand() {
     DooFile.RegisterNoChecksNeeded(FilterPosition);
   }
-  
+
   public static readonly Option<string> FilterPosition = new("--filter-position",
     @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example: ""--filter=lastFolder/source.dfy:23""");
 
