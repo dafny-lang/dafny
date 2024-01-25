@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false "%s" > "%t"
+// RUN: %verify --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Here is the usual definition of possibly infinite lists, along with a function Tail(s, n), which drops

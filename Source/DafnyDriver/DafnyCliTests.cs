@@ -42,8 +42,6 @@ public static class DafnyCliTests {
     // We do not want output such as "Compiled program written to Foo.cs"
     // from the compilers, since that changes with the target language
     "/compileVerbose:0",
-
-    "/deprecation:1",
     
     // Set a default time limit, to catch cases where verification time runs off the rails
     // Set a default resource limit, to catch cases where verification runs off the rails
@@ -68,8 +66,6 @@ public static class DafnyCliTests {
 
     // Also include a time limit, because we do care about using too much time.
     "--verification-time-limit:300",
-
-    "--warn-deprecation",
 
     // test results do not include source code snippets
     "--show-snippets:false"

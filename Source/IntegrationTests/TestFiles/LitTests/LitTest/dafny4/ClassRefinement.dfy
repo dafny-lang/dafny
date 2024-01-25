@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --warn-deprecation false
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --allow-deprecation
 
 abstract module M0 {
   class Counter {

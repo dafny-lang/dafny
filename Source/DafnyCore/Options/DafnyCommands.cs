@@ -81,7 +81,7 @@ public static class DafnyCommands {
     CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
-    CommonOptionBag.WarnDeprecation,
+    CommonOptionBag.AllowDeprecation,
     CommonOptionBag.PluginOption,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,

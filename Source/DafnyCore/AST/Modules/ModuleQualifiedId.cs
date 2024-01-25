@@ -98,7 +98,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
     if (Root == null) {
       return null;
     }
-    
+
     var decl = Root;
     for (int k = 1; k < Path.Count; k++) {
       ModuleSignature p;

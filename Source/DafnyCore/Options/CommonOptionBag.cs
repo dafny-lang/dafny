@@ -48,8 +48,8 @@ true - In the compiled target code, transform any non-extern
   public static readonly Option<bool> Verbose = new("--verbose",
     "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => false,
-    "Warn about the use of deprecated features.") {
+  public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
+    "Do not warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -503,7 +503,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
-    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
+    DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
@@ -558,7 +558,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prelude,
       Target,
       Verbose,
-      WarnDeprecation,
+      AllowDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
