@@ -25,6 +25,10 @@ public class NoExecutableBackend : IExecutableBackend {
     throw new NotSupportedException();
   }
 
+  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+    throw new NotSupportedException();
+  }
+
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
     throw new NotSupportedException();
   }

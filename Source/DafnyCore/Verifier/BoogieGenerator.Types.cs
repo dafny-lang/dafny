@@ -1156,6 +1156,8 @@ public partial class BoogieGenerator {
     } else if (fromType.IsTraitType) {
       // cast from a non-reference trait
       return UnboxIfBoxed(r, toType);
+    } else if (fromType.Equals(toType)) {
+      return r;
     } else {
       Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
     }
