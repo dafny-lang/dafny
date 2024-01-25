@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
-      fMapDomain, fMapElements, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox;
+      fMapDomain, fMapElements, fMapValues, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly List<Model.Func> bitvectorFunctions = new();
 
@@ -67,6 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fSetDifference = new ModelFuncWrapper(this, "Set#Difference", 2, tyArgMultiplier);
       fMapDomain = new ModelFuncWrapper(this, "Map#Domain", 1, 2 * tyArgMultiplier);
       fMapElements = new ModelFuncWrapper(this, "Map#Elements", 1, 2 * tyArgMultiplier);
+      fMapValues = new ModelFuncWrapper(this, "Map#Values", 1, 2 * tyArgMultiplier);
       fMapBuild = new ModelFuncWrapper(this, "Map#Build", 3, 2 * tyArgMultiplier);
       fMapEmpty = new ModelFuncWrapper(this, "Map#Empty", 2, 0);
       fIs = new ModelFuncWrapper(this, "$Is", 2, tyArgMultiplier);
@@ -536,6 +537,21 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           yield break;
         }
         case SetType: {
+          if (fMapDomain.AppsWithResult(value.Element).Any()) {
+            foreach (var map in fMapDomain.AppsWithResult(value.Element)) {
+              var mapValue = PartialValue.Get(map.Args[0], state);
+              value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Keys"), new List<PartialValue> {mapValue}, new List<Constraint>());
+              yield return mapValue;
+            }
+            yield break;
+          }
+          if (fMapValues.AppsWithResult(value.Element).Any()) {
+            foreach (var map in fMapValues.AppsWithResult(value.Element)) {
+              var mapValue = PartialValue.Get(map.Args[0], state);
+              value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Values"), new List<PartialValue> {mapValue}, new List<Constraint>());
+              yield return mapValue;
+            }
+          }
           if (fSetEmpty.AppWithResult(value.Element) != null) {
             var zero = new LiteralExpr(Token.NoToken, 0);
             zero.Type = Type.Int;
@@ -563,15 +579,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           yield break;
         }
         case MapType: {
-          if (fMapEmpty.AppWithResult(value.Element) != null) {
-            var zero = new LiteralExpr(Token.NoToken, 0);
-            zero.Type = Type.Int;
-            var cardinalityExpr =
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
-            cardinalityExpr.Type = Type.Int;
-            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
-            yield break;
-          }
           var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
           var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
           var current = value.Element;
@@ -619,6 +626,15 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
           foreach (var partialValue in result) {
             yield return partialValue;
+          }
+          
+          if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
+            var zero = new LiteralExpr(Token.NoToken, 0);
+            zero.Type = Type.Int;
+            var cardinalityExpr =
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
+            cardinalityExpr.Type = Type.Int;
+            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
           }
 
           yield break;

@@ -68,6 +68,26 @@ public class PartialState {
     }
     return expandedSet;
   }
+
+  /// <summary>
+  /// Return a conjunction of expression that is represented by a balanced AST. This is intended to prevent
+  /// stackoverflow errors that occur if multiple conjuncts are joined in a linked list fashion.
+  /// </summary>
+  /// <returns></returns>
+  private Expression GetCompactConjunction(IEnumerable<Expression> conjuncts) {
+    if (!conjuncts.Any()) {
+      return new LiteralExpr(Token.NoToken, true);
+    }
+
+    if (conjuncts.Count() == 1) {
+      return conjuncts.First();
+    }
+    
+    var middle = conjuncts.Count() / 2;
+    var left = GetCompactConjunction(conjuncts.Take(middle));
+    var right = GetCompactConjunction(conjuncts.Skip(middle));
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, left, right);
+  }
   
   public Statement AsAssumption() {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
@@ -97,22 +117,7 @@ public class PartialState {
       .Select(constraint => constraint.AsExpression(allVariableNames, true))
       .Where(constraint => constraint != null).ToList();
 
-    Expression expression = null;
-    if (constraintsAsExpressions.Count == 0) {
-      expression = new LiteralExpr(Token.NoToken, true);
-    }
-    if (constraintsAsExpressions.Count == 1) {
-      expression = constraintsAsExpressions.First();
-    } else {
-      foreach (var constraint in constraintsAsExpressions) {
-        if (expression == null) {
-          expression = constraint;
-          continue;
-        }
-
-        expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, expression, constraint);
-      }
-    }
+    Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
     if (constraintsAsExpressions.Count > 1 && boundVars.Count > 0) {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
