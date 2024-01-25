@@ -4198,16 +4198,8 @@ namespace Microsoft.Dafny.Compilers {
         wr = wr.Write($"{localName} == null || ").ForkInParens();
       }
 
-      // TODO: is it necessary to check for .IsObject in the next line, and why isn't this just like in C# anyway?
       var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
       wr.Write($"{localName} instanceof {typeName}");
-      localName = $"(({typeName}){localName})";
-
-      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
-      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
-        // TODO: test constraints
-        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
-      }
     }
 
     protected override bool IssueCreateStaticMain(Method m) {

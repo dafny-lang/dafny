@@ -1690,7 +1690,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      if (fromType.IsRefType && !fromType.IsNonNullRefType && toType.IsRefType) {
+      if (fromType.IsRefType && !fromType.IsNonNullRefType) {
+        Contract.Assert(toType.IsRefType);
         wr = wr.Write($"{localName} is {(toType.IsNonNullRefType ? "not None and" : "None or")} ").ForkInParens();
       }
 
@@ -1698,12 +1699,6 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"isinstance({localName}, {FullName(toType.AsNewtype)})");
       } else {
         wr.Write($"isinstance({localName}, {TypeName(toType, wr, tok)})");
-      }
-
-      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
-      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
-        // TODO: test constraints
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.SubsetTypeTests);
       }
     }
 

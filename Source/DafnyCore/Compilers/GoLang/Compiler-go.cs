@@ -3595,6 +3595,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
       if (fromType.IsRefType && !fromType.IsNonNullRefType) {
+        Contract.Assert(toType.IsRefType);
         if (toType.IsNonNullRefType) {
           wr.Write($"!_dafny.IsDafnyNull({localName}) && ");
         } else {
@@ -3612,12 +3613,6 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, (*{ClassName(toType, wr, tok)})(nil))");
       } else {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, {TypeName(toType, wr, tok)}{{}})");
-      }
-
-      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
-      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
-        // TODO: test constraints
-        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
       }
     }
 

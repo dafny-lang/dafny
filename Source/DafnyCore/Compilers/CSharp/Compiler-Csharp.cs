@@ -3311,20 +3311,9 @@ namespace Microsoft.Dafny.Compilers {
         wr = wr.Write($"{localName} == null || ").ForkInParens();
       }
 
-      string toTypeString;
-      if (fromType.IsTraitType && toType.AsNewtype != null) {
-        toTypeString = toType.AsNewtype.GetFullCompileName(Options);
-      } else {
-        toTypeString = TypeName(toType, wr, tok);
-      }
+      var toTypeString = fromType.IsTraitType && toType.AsNewtype is { } newtypeDecl ? newtypeDecl.GetFullCompileName(Options) : TypeName(toType, wr, tok);
       wr.Write($"{localName} is {toTypeString}");
-      localName = $"(({toTypeString}){localName})";
 
-      var udtTo = toType.NormalizeExpandKeepConstraints() as UserDefinedType;
-      if (udtTo?.ResolvedClass is (SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) {
-        // TODO: test constraints
-        throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
-      }
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
