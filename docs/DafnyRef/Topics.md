@@ -1170,4 +1170,4 @@ forall x {P(x)} {Q(x)} :: P(x) ^
 forall x {(Q(x)} :: Q(x) =⇒ P(x+1)
 ```
 
-Note the trigger `{Q(x)}` in the first quantifier, which was added to maintain equivalence with the original quantifier. However, if the quantifier had been split in source, only the trigger `{P(x)}` would have been added for `forall x :: P(x)`.
+Note the trigger `{Q(x)}` in the first quantifier, which was added to maintain equivalence with the original quantifier. If the quantifier had been split in source, only the trigger `{P(x)}` would have been added for `forall x :: P(x)`.
