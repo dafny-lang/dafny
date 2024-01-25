@@ -1390,11 +1390,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitIsZero(string varName, ConcreteSyntaxTree wr);
     protected abstract void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
     /// <summary>
     /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
     /// reference types or subset types thereof.
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr);
+
     protected abstract void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,

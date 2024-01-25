@@ -610,15 +610,13 @@ public abstract class Type : TokenNode {
     get {
       var t = this;
       while (true) {
-        var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
-        if (udt == null) {
+        if (t.NormalizeExpandKeepConstraints() is not UserDefinedType udt) {
           return null;
         }
         if (udt.ResolvedClass is NonNullTypeDecl) {
           return udt;
         }
-        var sst = udt.ResolvedClass as SubsetTypeDecl;
-        if (sst != null) {
+        if (udt.ResolvedClass is SubsetTypeDecl sst) {
           t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
         } else {
           return null;
