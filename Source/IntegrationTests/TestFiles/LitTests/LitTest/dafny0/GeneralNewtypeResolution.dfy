@@ -171,7 +171,7 @@ module WhatCanBeCompiled {
   method IsTest(b: bool) returns (r: bool) {
     if
     case true =>
-      r := b is MyBool; // error: currently not supported (but could be)
+      r := b is MyBool; // fine
     case true =>
       r := b is AnyBool; // error: currently not supported (but could be)
     case true =>
@@ -375,8 +375,8 @@ module BitvectorForRuntimeChecks0 {
 
   method Conversions() returns (x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32, r: bool) {
     r := 10 is BV; // error: BV is a newtype (this will be allowed in the future, but isn't yet)
-    r := 10 is Word; // error: Word is a newtype (this will be allowed in the future, but isn't yet)
-    r := x is Word; // error: Word is a newtype (this will be allowed in the future, but isn't yet)
+    r := 10 is Word; // fine
+    r := x is Word; // fine
     r := y is Word;
 
     r := 10 is bv17;

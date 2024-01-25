@@ -8,6 +8,7 @@ method Main() {
   TypeDescriptors.Test();
   PrintChars.Test();
   Bitvectors.Test();
+  NewBehaviors.Test();
 }
 
 module Numerics {
@@ -489,5 +490,25 @@ module Bitvectors {
     se2 := set x | x in cc;
     se3 := set x | x in dd;
     return |se0| + |se1| + |se2| + |se3|;
+  }
+}
+
+module NewBehaviors {
+  newtype MyBool = bool
+  newtype Word = bv32
+
+  method Test() {
+    TestIs(false, 0x4_0000_0000);
+  }
+
+  method TestIs(b: bool, x: int)
+    requires !b && 0x1_0000_0000 <= x
+  {
+    var mIs: MyBool := b is MyBool;
+    var mAs: MyBool := b as MyBool;
+    var w0: bool := (x % 1000) is Word;
+    var w1: MyBool := x is Word;
+
+    print mIs, " ", mAs, " ", w0, " ", w1, "\n"; // true false true false
   }
 }

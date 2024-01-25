@@ -350,13 +350,13 @@ public class ExpressionTester {
     Contract.Requires(tte != null);
     var fromType = tte.E.Type;
     if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
-      // this is a no-op, so it can trivially be compiled
+      // this is a no-op or a simple null comparison, so it can trivially be compiled
       return true;
     }
 
-    var udtTo = tte.ToType.NormalizeExpandKeepConstraints() as UserDefinedType;
+    var udtTo = tte.ToType.NormalizePastUnconstrainedTypes() as UserDefinedType;
     if (udtTo == null) {
-      Contract.Assert(tte.ToType.IsCharType || tte.ToType.IsBitVectorType || tte.ToType.IsBigOrdinalType);
+      Contract.Assert(tte.ToType.TrimNewtypes() is BoolType or CharType or IntType or BitvectorType or BigOrdinalType or RealType);
       return true;
     }
     if (udtTo.ResolvedClass is ((SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) and var declWithConstraint) {

@@ -212,6 +212,18 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
+  /// Normalize proxies, expand synonyms, and expand unconstrained newtypes.
+  /// </summary>
+  public Type NormalizePastUnconstrainedTypes() {
+    Type typ = NormalizeExpandKeepConstraints();
+    while (typ.AsNewtype is { Var: null } newtypeDecl) {
+      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
+      typ = newtypeDecl.BaseType.Subst(subst).NormalizeExpandKeepConstraints();
+    }
+    return typ;
+  }
+
+  /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
   ///
   /// For more documentation, see method Normalize().
