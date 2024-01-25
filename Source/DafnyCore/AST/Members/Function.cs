@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using DafnyCore;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -485,7 +486,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return null;
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public SymbolKind Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {

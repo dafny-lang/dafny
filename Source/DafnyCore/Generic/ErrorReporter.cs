@@ -14,9 +14,11 @@ public abstract class ErrorReporter {
 
   public bool FailCompilation => HasErrors || (WarningCount > 0 && Options.FailOnWarnings);
   public int ErrorCount => Count(ErrorLevel.Error);
-  public bool HasErrors => ErrorCount > 0;
-  public int WarningCount => Count(ErrorLevel.Warning);
-  public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
+  
+  // public bool HasErrors => ErrorCount > 0;
+  // public int WarningCount => Count(ErrorLevel.Warning);
+  // public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
+  
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
   public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {

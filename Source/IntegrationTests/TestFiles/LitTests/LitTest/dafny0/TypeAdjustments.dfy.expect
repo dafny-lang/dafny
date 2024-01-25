@@ -1,3 +1,20 @@
+TypeAdjustments.dfy(23,13): Error: assertion might not hold
+TypeAdjustments.dfy(25,17): Error: assertion might not hold
+TypeAdjustments.dfy(27,13): Error: assertion might not hold
+TypeAdjustments.dfy(40,11): Error: assertion might not hold
+TypeAdjustments.dfy(105,15): Error: assertion might not hold
+TypeAdjustments.dfy(107,15): Error: assertion might not hold
+TypeAdjustments.dfy(133,16): Error: assertion might not hold
+TypeAdjustments.dfy(135,16): Error: assertion might not hold
+TypeAdjustments.dfy(137,16): Error: assertion might not hold
+TypeAdjustments.dfy(154,16): Error: assertion might not hold
+TypeAdjustments.dfy(156,16): Error: assertion might not hold
+TypeAdjustments.dfy(158,16): Error: assertion might not hold
+TypeAdjustments.dfy(203,11): Error: assertion might not hold
+TypeAdjustments.dfy(228,11): Error: assertion might not hold
+TypeAdjustments.dfy(243,13): Error: assertion might not hold
+TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
+TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
 TypeAdjustments.dfy(294,13): Error: assertion might not hold
 TypeAdjustments.dfy(316,13): Error: assertion might not hold
 TypeAdjustments.dfy(376,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
@@ -28,22 +45,5 @@ TypeAdjustments.dfy(497,22): Error: value does not satisfy the subset constraint
 TypeAdjustments.dfy(508,22): Error: value does not satisfy the subset constraints of '() -> int' (possible cause: it may be partial or have read effects)
 TypeAdjustments.dfy(540,24): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
 TypeAdjustments.dfy(566,24): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, int>'
-TypeAdjustments.dfy(23,13): Error: assertion might not hold
-TypeAdjustments.dfy(25,17): Error: assertion might not hold
-TypeAdjustments.dfy(27,13): Error: assertion might not hold
-TypeAdjustments.dfy(40,11): Error: assertion might not hold
-TypeAdjustments.dfy(105,15): Error: assertion might not hold
-TypeAdjustments.dfy(107,15): Error: assertion might not hold
-TypeAdjustments.dfy(133,16): Error: assertion might not hold
-TypeAdjustments.dfy(135,16): Error: assertion might not hold
-TypeAdjustments.dfy(137,16): Error: assertion might not hold
-TypeAdjustments.dfy(154,16): Error: assertion might not hold
-TypeAdjustments.dfy(156,16): Error: assertion might not hold
-TypeAdjustments.dfy(158,16): Error: assertion might not hold
-TypeAdjustments.dfy(203,11): Error: assertion might not hold
-TypeAdjustments.dfy(228,11): Error: assertion might not hold
-TypeAdjustments.dfy(243,13): Error: assertion might not hold
-TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
-TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
 
 Dafny program verifier finished with 19 verified, 47 errors

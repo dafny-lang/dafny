@@ -1998,6 +1998,10 @@ public abstract class CollectionType : NonProxyType {
     this.TypeArgs = new List<Type> { arg, other };
   }
 
+  protected CollectionType(Cloner cloner, CollectionType original) {
+    this.arg = cloner.CloneType(original.arg);
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Arg.ComputeMayInvolveReferences(visitedDatatypes);
   }

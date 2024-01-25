@@ -230,7 +230,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     LemmaModAutoMinus(n);
   }
 
-  lemma {:rlimit 2000} LemmaModAutoMinus(n: int)
+  lemma {:resource_limit 2000000} LemmaModAutoMinus(n: int)
     requires n > 0
     ensures ModAutoMinus(n)
   {

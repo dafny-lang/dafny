@@ -22,7 +22,7 @@ public static class BuildCommand {
       options.Compile = true;
       options.RunAfterCompile = false;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return CompilerDriver.Run(options);
+      return SynchronousCliCompilation.Run(options);
     });
     return result;
   }

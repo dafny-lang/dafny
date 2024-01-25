@@ -18,12 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
     private readonly IFileSystem fileSystem;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
     private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly ProgramParser programParser;
 
-    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
+    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, TelemetryPublisherBase telemetryPublisher,
       ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
       this.options = options;
       this.fileSystem = fileSystem;

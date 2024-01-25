@@ -73,7 +73,7 @@ Path - Generate tests targeting path-coverage.");
   }
 
   public static async Task<ExitValue> GenerateTests(DafnyOptions options) {
-    var exitValue = CompilerDriver.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var exitValue = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (exitValue != ExitValue.SUCCESS) {
       return exitValue;
     }

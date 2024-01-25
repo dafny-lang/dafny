@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -32,11 +30,11 @@ public class DafnyFile {
   }
 
   public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, IToken origin) {
+    DafnyOptions options, Uri uri, IToken origin, string errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
-      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin);
+      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
       if (result != null) {
         result.Uri = uri;
       }
@@ -75,7 +73,7 @@ public class DafnyFile {
       baseName = "";
     }
 
-    var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+    var filePathForErrors = options.GetPrintPath(filePath);
     if (getContent != null) {
       isPreverified = false;
       isPrecompiled = false;
@@ -115,7 +113,16 @@ public class DafnyFile {
           return null;
         }
 
-        dooFile = DooFile.Read(filePath);
+        try {
+          dooFile = DooFile.Read(filePath);
+        } catch (InvalidDataException) {
+          reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
+          return null;
+        } catch (ArgumentException e) {
+          reporter.Error(MessageSource.Project, origin, e.Message);
+          return null;
+        }
+
       }
 
       var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);
@@ -143,6 +150,9 @@ public class DafnyFile {
       }
       getContent = () => new StringReader(sourceText);
     } else {
+      if (errorOnNotRecognized != null) {
+        reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
+      }
       return null;
     }
 

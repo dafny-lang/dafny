@@ -59,8 +59,8 @@ method Foo() returns (x: int) {
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
-      await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(CompilationStatus.ParsingFailed, status.Status);
       var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar").Replace("2", "true"));
       var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
@@ -90,17 +90,16 @@ method Foo() returns (x: int) {
 
     [Fact]
     public async Task MultipleDocumentsSuccessfulResolution() {
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(directory);
+      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(CompilationStatus.ParsingFailed, status.Status);
+      var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       var source = @"
 method Foo() returns (x: int) {
   return 2;
 }".TrimStart();
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-      Directory.CreateDirectory(directory);
-      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
-      await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-
-      var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar"));
       var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
