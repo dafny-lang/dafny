@@ -687,22 +687,22 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Emit an upcast or (already verified) downcast assignment like:
-    /// 
+    ///
     ///     var boundVarName:boundVarType := tmpVarName as boundVarType;
     ///     [[bodyWriter]]
-    /// 
+    ///
     /// where
     ///   * "[[bodyWriter]]" is where the writer wr's position will be next
     /// </summary>
     /// <param name="boundVarName">Name of the variable after casting</param>
     /// <param name="boundVarType">Expected variable type</param>
     /// <param name="tmpVarName">The collection's variable name</param>
-    /// <param name="collectionElementType">type this variable is casted from, in case it is useful</param>
+    /// <param name="sourceType"></param>
     /// <param name="introduceBoundVar">Whether or not to declare the variable, in languages requiring declarations</param>
     /// <param name="tok">A position in the AST</param>
     /// <param name="wr">The concrete syntax tree writer</param>
     protected abstract void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr);
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr);
 
     /// <summary>
     /// Emit a simple foreach loop over the elements (which are known as "ingredients") of a collection assembled for

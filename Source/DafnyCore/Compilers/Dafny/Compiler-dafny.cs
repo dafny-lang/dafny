@@ -1098,18 +1098,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
-      if (introduceBoundVar) {
-        EmitIdentifier(
-          tmpVarName,
-          EmitCoercionIfNecessary(collectionElementType, boundVarType, tok, DeclareLocalVar(boundVarName, boundVarType, tok, wr))
-        );
-      } else {
-        EmitIdentifier(
-          tmpVarName,
-          EmitCoercionIfNecessary(collectionElementType, boundVarType, tok, IdentLvalue(boundVarName).EmitWrite(wr))
-        );
-      }
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      var w = introduceBoundVar ? DeclareLocalVar(boundVarName, boundVarType, tok, wr) : IdentLvalue(boundVarName).EmitWrite(wr);
+      EmitIdentifier(tmpVarName, EmitCoercionIfNecessary(sourceType, boundVarType, tok, w));
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
