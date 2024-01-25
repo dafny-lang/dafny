@@ -405,10 +405,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         value.AddDefinition(literalExpr, new(), new());
         yield break;
       }
-
-      // If this partial value is a primitive but we don't know its exact representation,
-      // we must assume that it is different from all other primitives of the same type
-      ModelFuncWrapper otherValuesFunction = null;
+      
       if (value.Type is BitvectorType || value.Type is CharType || value.Type is RealType || value.Type is BoolType || value.Type is IntType) {
         foreach (var element in Model.Elements.Where(element => element != value.Element)) {
           var elementType = GetFormattedDafnyType(element);
