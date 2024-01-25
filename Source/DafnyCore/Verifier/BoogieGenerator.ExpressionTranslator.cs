@@ -1551,7 +1551,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Contract.Requires(let != null);
         var substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < let.LHSs.Count; i++) {
-          BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], TrExpr(let.RHSs[i]), substMap);
+          var rhs = TrExpr(let.RHSs[i]);
+          var toType = let.LHSs[i].Var?.Type ?? let.LHSs[i].Expr.Type;
+          rhs = BoogieGenerator.CondApplyBox(rhs.tok, rhs, let.RHSs[i].Type, toType);
+          BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], rhs, substMap);
         }
         lhss = new List<Boogie.Variable>();
         rhss = new List<Boogie.Expr>();
