@@ -1,0 +1,12 @@
+git-issue-4939a.dfy(142,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'T' can be constructed
+git-issue-4939a.dfy(144,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'Mutual' can be constructed
+git-issue-4939a.dfy(145,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'Nutual' can be constructed
+git-issue-4939a.dfy(25,32): Error: cannot prove termination; try supplying a decreases clause
+git-issue-4939a.dfy(68,12): Error: cannot prove termination; try supplying a decreases clause
+git-issue-4939a.dfy(68,12): Error: decreases expression must be bounded below by 0
+git-issue-4939a.dfy(67,23): Related location
+git-issue-4939a.dfy(105,27): Error: cannot prove termination; try supplying a decreases clause
+git-issue-4939a.dfy(105,27): Error: decreases expression must be bounded below by 0
+git-issue-4939a.dfy(104,23): Related location
+
+Dafny program verifier finished with 12 verified, 5 errors

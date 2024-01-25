@@ -16,12 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
 
     public DafnyCounterExampleHandler(DafnyOptions options,
       ILogger<DafnyCounterExampleHandler> logger,
       IProjectDatabase projects,
-      ITelemetryPublisher telemetryPublisher) {
+      TelemetryPublisherBase telemetryPublisher) {
       this.logger = logger;
       this.projects = projects;
       this.telemetryPublisher = telemetryPublisher;
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       private CounterExampleItem GetCounterExample(PartialState state) {
        return new(
-          new Position(state.GetLineId() - 1, state.GetCharId()),
+         new Position(state.GetLineId() - 1, state.GetCharId()),
           state.AsAssumption().ToString()
         );
       }

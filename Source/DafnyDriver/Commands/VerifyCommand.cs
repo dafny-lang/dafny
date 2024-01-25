@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using System.Threading.Tasks;
+using DafnyDriver.Commands;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
@@ -14,12 +16,20 @@ public static class VerifyCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         options.TrackVerificationCoverage = true;
       }
-      options.Compile = false;
-      return CompilerDriver.Run(options);
+
+      if (options.Get(CommonOptionBag.VerificationLogFormat).Any() || options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+        // --log-format and --verification-coverage-report are not yet supported by CliCompilation
+        options.Compile = false;
+        return await SynchronousCliCompilation.Run(options);
+      }
+      var compilation = CliCompilation.Create(options);
+      compilation.Start();
+      await compilation.VerifyAllAndPrintSummary();
+      return compilation.ExitCode;
     });
     return result;
   }

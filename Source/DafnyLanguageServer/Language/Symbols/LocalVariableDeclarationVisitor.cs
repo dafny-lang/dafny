@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols;
 
-class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
+internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
   private readonly ILogger logger;
 
   private ScopeSymbol block;

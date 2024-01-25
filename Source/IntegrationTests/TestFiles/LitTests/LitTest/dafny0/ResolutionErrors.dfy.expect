@@ -133,7 +133,8 @@ ResolutionErrors.dfy(1023,22): Error: Type or type parameter is not declared in 
 ResolutionErrors.dfy(1030,7): Error: type-synonym cycle: A -> A
 ResolutionErrors.dfy(1033,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1037,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1046,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+ResolutionErrors.dfy(1046,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
+ResolutionErrors.dfy(1043,8): Error: class 'C' with fields without known initializers, like 'a' of type 'A', must declare a constructor
 ResolutionErrors.dfy(1049,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1054,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1059,7): Error: type-synonym cycle: A -> A

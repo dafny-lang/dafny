@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -81,7 +82,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override IEnumerable<ISymbol> ChildSymbols => base.ChildSymbols.Concat(Ctors);
-  public override DafnySymbolKind Kind => DafnySymbolKind.Enum;
+  public override SymbolKind Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
     var indent2 = indent + formatter.SpaceTab;

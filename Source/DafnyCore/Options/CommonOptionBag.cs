@@ -89,6 +89,23 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static IEnumerable<string> SplitOptionValueIntoFiles(IEnumerable<string> inputs) {
+    var result = new HashSet<string>();
+    foreach (var input in inputs) {
+      var values = input.Split(',');
+      foreach (var slice in values) {
+        var name = slice.Trim();
+        if (Directory.Exists(name)) {
+          var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+          foreach (var file in files) { result.Add(file); }
+        } else {
+          result.Add(name);
+        }
+      }
+    }
+    return result;
+  }
+
   public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
     "Specify the filepath that determines where to place and how to name build files.") {
     ArgumentHelpName = "file",
@@ -480,7 +497,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
+      (options, value) => { options.LibraryFiles = SplitOptionValueIntoFiles(value.Select(fi => fi.FullName)).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
@@ -511,7 +528,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
       options.ExtractCounterexample = value;
       options.EnhancedErrorMessages = 1;
-      options.ModelViewFile = "-";
     });
 
     DooFile.RegisterLibraryChecks(
