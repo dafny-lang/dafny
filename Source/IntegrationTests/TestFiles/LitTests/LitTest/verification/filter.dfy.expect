@@ -1,6 +1,18 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
-filter.dfy(10,16): Error: a postcondition could not be proved on this return path
-filter.dfy(10,10): Related location: this is the postcondition that could not be proved
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier finished with 0 verified, 0 errors
+filter.dfy(14,16): Error: a postcondition could not be proved on this return path
+filter.dfy(14,10): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 1 verified, 1 error
+filter.dfy(14,16): Error: a postcondition could not be proved on this return path
+filter.dfy(14,10): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 0 verified, 1 error
+source1.dfy(6,16): Error: a postcondition could not be proved on this return path
+source1.dfy(6,10): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 0 verified, 1 error
+
+Dafny program verifier finished with 1 verified, 0 errors
