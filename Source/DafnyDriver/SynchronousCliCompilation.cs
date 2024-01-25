@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
       if (getFilesExitCode != ExitValue.SUCCESS) {
         return (int)getFilesExitCode;
       }
-      
+
       using var driver = new SynchronousCliCompilation(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);

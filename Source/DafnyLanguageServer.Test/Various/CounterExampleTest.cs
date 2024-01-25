@@ -181,7 +181,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("r is real", counterExamples[0].Assumption);
       Assert.Contains("r == 1.0", counterExamples[0].Assumption);
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task SpecificInteger(Action<DafnyOptions> optionSettings) {
@@ -399,7 +399,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("c is char", counterExamples[0].Assumption);
       Assert.Contains("c == '0'", counterExamples[0].Assumption);
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task TwoCharacters(Action<DafnyOptions> optionSettings) {
@@ -455,7 +455,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("b is B", counterExamples[0].Assumption);
       Assert.Contains("b == B.A(5)", counterExamples[0].Assumption);
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithUnnamedDestructor2(Action<DafnyOptions> optionSettings) {
@@ -574,14 +574,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("a.C?", counterExamples[0].Assumption);
       Assert.Matches("(a.[BCD]_q|false) is bool", counterExamples[0].Assumption);
       Assert.Matches("(a.[BCD]_q == false|false == a.[BCD]_q)", counterExamples[0].Assumption);
-      Assert.Matches("(a.B_q == false|false == a.B_q|a.B_q == a.C_q|a.C_q == a.B_q|a.B_q == a.D_q|a.D_q == a.B_q)", 
+      Assert.Matches("(a.B_q == false|false == a.B_q|a.B_q == a.C_q|a.C_q == a.B_q|a.B_q == a.D_q|a.D_q == a.B_q)",
         counterExamples[0].Assumption);
-      Assert.Matches("(a.C_q == false|false == a.C_q|a.B_q == a.C_q|a.C_q == a.B_q|a.C_q == a.D_q|a.D_q == a.C_q)", 
+      Assert.Matches("(a.C_q == false|false == a.C_q|a.B_q == a.C_q|a.C_q == a.B_q|a.C_q == a.D_q|a.D_q == a.C_q)",
         counterExamples[0].Assumption);
-      Assert.Matches("(a.D_q == false|false == a.D_q|a.D_q == a.C_q|a.C_q == a.D_q|a.B_q == a.D_q|a.D_q == a.B_q)", 
+      Assert.Matches("(a.D_q == false|false == a.D_q|a.D_q == a.C_q|a.C_q == a.D_q|a.B_q == a.D_q|a.D_q == a.B_q)",
         counterExamples[0].Assumption);
       Assert.DoesNotContain("true", counterExamples[0].Assumption);
-     }
+    }
 
 
     [Theory]
@@ -962,7 +962,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Matches(new Regex("('b' == s2\\[0\\]|s2\\[0\\] == 'b'|sCat\\[\\|s[12]\\|\\] == s2\\[0\\]|s2\\[0\\] == sCat\\[\\|s[12]\\|\\])"), counterExamples[1].Assumption);
     }
 
-    [Theory (Skip="This test should be re-enabled once counterexamples support lambda expressions")]
+    [Theory(Skip = "This test should be re-enabled once counterexamples support lambda expressions")]
     [MemberData(nameof(OptionSettings))]
     public async Task SequenceGenerate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1099,7 +1099,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("|m| == 0", counterExamples[1].Assumption);
     }
 
-    [Theory (Skip="This test should be re-enabled once we support traits")]
+    [Theory(Skip = "This test should be re-enabled once we support traits")]
     [MemberData(nameof(OptionSettings))]
     public async Task TraitType(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1125,8 +1125,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Single(counterExamples);
       Assert.Fail("This test needs to be updated once we support traits");
     }
-    
-    [Theory (Skip="This test should be re-enabled once we support counterexamples that constrain function behavior")]
+
+    [Theory(Skip = "This test should be re-enabled once we support counterexamples that constrain function behavior")]
     [MemberData(nameof(OptionSettings))]
     public async Task ClassTypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1295,7 +1295,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Matches("(m\\[5\\] == 36|36 == m\\[5\\])", counterExamples[4].Assumption);
       Assert.DoesNotContain("9", counterExamples[4].Assumption);
     }
-    
+
     [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task MapsBuildRecursive(Action<DafnyOptions> optionSettings) {
@@ -1454,7 +1454,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(a + b < a || a + b < b);
     }
 
-    [Theory (Skip="This test should be re-enabled once we support counterexamples that constrain function behavior")]
+    [Theory(Skip = "This test should be re-enabled once we support counterexamples that constrain function behavior")]
     [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1523,9 +1523,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Single(counterExamples);
       Assert.Contains("c is M.C?", counterExamples[0].Assumption);
       Assert.Contains("c != null", counterExamples[0].Assumption);
-      Assert.Matches("(c.c1 == '\\\\u1023'|'\\\\u1023' == c.c1|c.c2 == '\\\\u1023'|'\\\\u1023' == c.c2)", 
+      Assert.Matches("(c.c1 == '\\\\u1023'|'\\\\u1023' == c.c1|c.c2 == '\\\\u1023'|'\\\\u1023' == c.c2)",
         counterExamples[0].Assumption);
-      Assert.Matches("(c.c1 == c.c2|c.c2 == c.c1|'\\\\u1023' == c.c1 && '\\\\u1023' == c.c2|'\\\\u1023' == c.c2 && '\\\\u1023' == c.c1)", 
+      Assert.Matches("(c.c1 == c.c2|c.c2 == c.c1|'\\\\u1023' == c.c1 && '\\\\u1023' == c.c2|'\\\\u1023' == c.c2 && '\\\\u1023' == c.c1)",
         counterExamples[0].Assumption);
     }
 
@@ -1565,7 +1565,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       return r.IsMatch(assumption);
     }
 
-    [Theory (Skip="This test should be re-enabled once it is OK to use fully-qualified names everywhere")]
+    [Theory(Skip = "This test should be re-enabled once it is OK to use fully-qualified names everywhere")]
     [MemberData(nameof(OptionSettings))]
     public async Task TypePolymorphism(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);

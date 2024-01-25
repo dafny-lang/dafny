@@ -36,14 +36,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
     // the model will begin assigning characters starting from this utf value
     private static readonly Regex UnderscoreRemovalRegex = new("__");
-    
+
     // This set is used by GetDafnyType to prevent infinite recursion
     private HashSet<Model.Element> exploredElements = new();
 
     private Dictionary<Model.Element, LiteralExpr> concretizedValues = new();
 
     public DafnyModel(Model model, DafnyOptions options) {
-      loopGuards = new List<string>(); 
+      loopGuards = new List<string>();
       Model = model;
       this.options = options;
       var tyArgMultiplier = options.TypeEncodingMethod switch {
@@ -97,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
       }
     }
-    
+
     public void AssignConcretePrimitiveValues() {
       bool isTrueReserved = false;
       foreach (var app in fU2Bool.Apps) {
@@ -120,12 +120,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         ModelFuncWrapper otherValuesFunction = null;
         switch (type) {
           case BitvectorType bitvectorType: {
-            var funcName = "U_2_bv" + bitvectorType.Width;
-            if (Model.HasFunc(funcName)) {
-              otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+              var funcName = "U_2_bv" + bitvectorType.Width;
+              if (Model.HasFunc(funcName)) {
+                otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+              }
+              break;
             }
-            break;
-          }
           case CharType:
             otherValuesFunction = fCharToInt;
             break;
@@ -133,9 +133,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             otherValuesFunction = fU2Real;
             break;
           case IntType: {
-            otherValuesFunction = fU2Int;
-            break;
-          }
+              otherValuesFunction = fU2Int;
+              break;
+            }
         }
         var reservedValues = otherValuesFunction.Apps
           .Select(app => GetLiteralExpression(app.Result, type))
@@ -150,14 +150,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           switch (type) {
             case BitvectorType:
             case IntType: {
-              literal =  new LiteralExpr(Token.NoToken, BigInteger.Parse(numericalValue.ToString()));
-              break;
-            }
+                literal = new LiteralExpr(Token.NoToken, BigInteger.Parse(numericalValue.ToString()));
+                break;
+              }
             case CharType:
               literal = new CharLiteralExpr(Token.NoToken, PrettyPrintChar(numericalValue));
               break;
             case RealType:
-             literal = new LiteralExpr(Token.NoToken, BigDec.FromString(numericalValue.ToString()));
+              literal = new LiteralExpr(Token.NoToken, BigDec.FromString(numericalValue.ToString()));
               break;
           }
           if (!reservedValues.Contains(literal.ToString())) {
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         }
         concretizedValues[element] = literal;
       }
-    } 
+    }
 
     /// <summary>
     /// Extract and parse the first Dafny model recorded in the model view file.
@@ -247,7 +247,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)
     /// </summary>
     public static bool IsUserVariableName(string name) =>
-      !name.Contains("$") && name.Count(c => c== '#') <= 1;
+      !name.Contains("$") && name.Count(c => c == '#') <= 1;
 
     /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       return name;
     }
-    
+
     /// <summary> Get the Dafny type of an element </summary>
     internal Type GetFormattedDafnyType(Model.Element element) {
       exploredElements = new HashSet<Model.Element>();
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var typeElement in GetIsResults(partialValue.Element)) {
         var reconstructedType = DafnyModelTypeUtils.GetInDafnyFormat(ReconstructType(typeElement));
         if (reconstructedType.ToString() != partialValue.Type.ToString()) {
-          partialValue.AddConstraint(new TypeTestExpr(Token.NoToken, partialValue.ElementIdentifier, reconstructedType), new List<PartialValue> {partialValue});
+          partialValue.AddConstraint(new TypeTestExpr(Token.NoToken, partialValue.ElementIdentifier, reconstructedType), new List<PartialValue> { partialValue });
         }
       }
     }
@@ -405,7 +405,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         value.AddDefinition(literalExpr, new(), new());
         yield break;
       }
-      
+
       if (value.Type is BitvectorType || value.Type is CharType || value.Type is RealType || value.Type is BoolType || value.Type is IntType) {
         foreach (var element in Model.Elements.Where(element => element != value.Element)) {
           var elementType = GetFormattedDafnyType(element);
@@ -415,7 +415,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               Token.NoToken,
               BinaryExpr.Opcode.Neq,
               value.ElementIdentifier,
-              partialValue.ElementIdentifier), new List<PartialValue>() {partialValue});
+              partialValue.ElementIdentifier), new List<PartialValue>() { partialValue });
             yield return partialValue;
           }
         }
@@ -466,226 +466,226 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
       switch (value.Type) {
         case SeqType: {
-          var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
-          BigNum seqLength = BigNum.MINUS_ONE;
-          if (lenghtTuple != null) {
-            var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
-            BigNum.TryParse(GetLiteralExpression(lengthValue.Element, lengthValue.Type).ToString(), out seqLength);
-            lengthValue.AddDefinition(
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value }, new());
-            yield return lengthValue;
-          }
-          
-          // Sequences can be constructed with the build operator:
-          List<PartialValue> elements = new();
+            var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
+            BigNum seqLength = BigNum.MINUS_ONE;
+            if (lenghtTuple != null) {
+              var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
+              BigNum.TryParse(GetLiteralExpression(lengthValue.Element, lengthValue.Type).ToString(), out seqLength);
+              lengthValue.AddDefinition(
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value }, new());
+              yield return lengthValue;
+            }
 
-          var substring = value.Element;
-          while (fSeqBuild.AppWithResult(substring) != null) {
-            elements.Insert(0, PartialValue.Get(Unbox(fSeqBuild.AppWithResult(substring).Args[1]), state));
-            substring = fSeqBuild.AppWithResult(substring).Args[0];
-          }
+            // Sequences can be constructed with the build operator:
+            List<PartialValue> elements = new();
 
-          for (int i = 0; i < elements.Count; i++) {
-            var index = new LiteralExpr(Token.NoToken, i);
-            index.Type = Type.Int;
-            var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), index), new() {value});
-            elements[i].AddDefinition(new SeqSelectExpr(
-                Token.NoToken,
-                true,
-                value.ElementIdentifier,
-                index,
-                null,
-                Token.NoToken),
-              new() { value, elements[i] }, new List<Constraint>() {lengthConstraint});
-            yield return elements[i];
-          }
+            var substring = value.Element;
+            while (fSeqBuild.AppWithResult(substring) != null) {
+              elements.Insert(0, PartialValue.Get(Unbox(fSeqBuild.AppWithResult(substring).Args[1]), state));
+              substring = fSeqBuild.AppWithResult(substring).Args[0];
+            }
 
-          if (elements.Count == 0) {
-            foreach (var funcTuple in fSeqIndex.AppsWithArg(0, value.Element)) {
-              var elementId = PartialValue.Get(funcTuple.Args[1], state);
-              var elementIdTry = GetLiteralExpression(funcTuple.Args[1], Type.Int);
-              if (elementIdTry != null && elementIdTry.ToString().Contains("-")) {
-                continue;
-              }
-              if (BigNum.TryParse(elementIdTry.ToString(), out var elementIdTryBigNum)) {
-                if (!seqLength.Equals(BigNum.MINUS_ONE) && !(elementIdTryBigNum - seqLength).IsNegative) {
-                  continue; // element out of bounds for sequence
-                }
-              }
-              var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), elementId.ElementIdentifier), new() {value, elementId});
-              var element = PartialValue.Get(Unbox(funcTuple.Result), state);
-              element.AddDefinition(new SeqSelectExpr(
+            for (int i = 0; i < elements.Count; i++) {
+              var index = new LiteralExpr(Token.NoToken, i);
+              index.Type = Type.Int;
+              var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), index), new() { value });
+              elements[i].AddDefinition(new SeqSelectExpr(
                   Token.NoToken,
                   true,
                   value.ElementIdentifier,
-                  elementId.ElementIdentifier,
+                  index,
                   null,
                   Token.NoToken),
-                new() { value, elementId, element }, new List<Constraint>() {lengthConstraint});
-              yield return element;
-              yield return elementId;
+                new() { value, elements[i] }, new List<Constraint>() { lengthConstraint });
+              yield return elements[i];
             }
-          } else {
-            value.AddDefinition(
-              new SeqDisplayExpr(Token.NoToken,
-                elements.ConvertAll(element => element.ElementIdentifier as Expression)), elements, new());
-          }
 
-          yield break;
-        }
+            if (elements.Count == 0) {
+              foreach (var funcTuple in fSeqIndex.AppsWithArg(0, value.Element)) {
+                var elementId = PartialValue.Get(funcTuple.Args[1], state);
+                var elementIdTry = GetLiteralExpression(funcTuple.Args[1], Type.Int);
+                if (elementIdTry != null && elementIdTry.ToString().Contains("-")) {
+                  continue;
+                }
+                if (BigNum.TryParse(elementIdTry.ToString(), out var elementIdTryBigNum)) {
+                  if (!seqLength.Equals(BigNum.MINUS_ONE) && !(elementIdTryBigNum - seqLength).IsNegative) {
+                    continue; // element out of bounds for sequence
+                  }
+                }
+                var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), elementId.ElementIdentifier), new() { value, elementId });
+                var element = PartialValue.Get(Unbox(funcTuple.Result), state);
+                element.AddDefinition(new SeqSelectExpr(
+                    Token.NoToken,
+                    true,
+                    value.ElementIdentifier,
+                    elementId.ElementIdentifier,
+                    null,
+                    Token.NoToken),
+                  new() { value, elementId, element }, new List<Constraint>() { lengthConstraint });
+                yield return element;
+                yield return elementId;
+              }
+            } else {
+              value.AddDefinition(
+                new SeqDisplayExpr(Token.NoToken,
+                  elements.ConvertAll(element => element.ElementIdentifier as Expression)), elements, new());
+            }
+
+            yield break;
+          }
         case SetType: {
-          if (fMapDomain.AppsWithResult(value.Element).Any()) {
-            foreach (var map in fMapDomain.AppsWithResult(value.Element)) {
-              var mapValue = PartialValue.Get(map.Args[0], state);
-              value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Keys"), new List<PartialValue> {mapValue}, new List<Constraint>());
-              yield return mapValue;
+            if (fMapDomain.AppsWithResult(value.Element).Any()) {
+              foreach (var map in fMapDomain.AppsWithResult(value.Element)) {
+                var mapValue = PartialValue.Get(map.Args[0], state);
+                value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Keys"), new List<PartialValue> { mapValue }, new List<Constraint>());
+                yield return mapValue;
+              }
+              yield break;
             }
-            yield break;
-          }
-          if (fMapValues.AppsWithResult(value.Element).Any()) {
-            foreach (var map in fMapValues.AppsWithResult(value.Element)) {
-              var mapValue = PartialValue.Get(map.Args[0], state);
-              value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Values"), new List<PartialValue> {mapValue}, new List<Constraint>());
-              yield return mapValue;
+            if (fMapValues.AppsWithResult(value.Element).Any()) {
+              foreach (var map in fMapValues.AppsWithResult(value.Element)) {
+                var mapValue = PartialValue.Get(map.Args[0], state);
+                value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Values"), new List<PartialValue> { mapValue }, new List<Constraint>());
+                yield return mapValue;
+              }
             }
-          }
-          if (fSetEmpty.AppWithResult(value.Element) != null) {
-            var zero = new LiteralExpr(Token.NoToken, 0);
-            zero.Type = Type.Int;
-            var cardinalityExpr =
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
-            cardinalityExpr.Type = Type.Int;
-            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
-            yield break;
-          }
-
-          foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
-            var setElement = PartialValue.Get(Unbox(tpl.Args[1]), state);
-            var containment = tpl.Result;
-            if (containment.Kind != Model.ElementKind.Boolean) {
-              continue;
-            }
-
-            var opcode = (containment as Model.Boolean).Value ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn;
-            var constraint = new BinaryExpr(Token.NoToken, opcode, setElement.ElementIdentifier,
-              value.ElementIdentifier);
-            value.AddConstraint(constraint, new() { value, setElement });
-            yield return setElement;
-          }
-
-          yield break;
-        }
-        case MapType: {
-          var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
-          var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
-          var current = value.Element;
-          var mapBuilds = fMapBuild.AppsWithResult(current).ToList();
-          var result = new List<PartialValue>();
-          while (mapBuilds.Count != 0) {
-            foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current)) {
-              result.AddRange(AddMappingHelper(
-                state,
-                value,
-                Unbox(mapBuild.Args[1]),
-                Unbox(mapBuild.Args[2]),
-                mapKeysAdded));
-            }
-
-            mapsElementsVisited.Add(current);
-            var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
-            if (nextMapBuild == null) {
+            if (fSetEmpty.AppWithResult(value.Element) != null) {
+              var zero = new LiteralExpr(Token.NoToken, 0);
+              zero.Type = Type.Int;
+              var cardinalityExpr =
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
+              cardinalityExpr.Type = Type.Int;
+              value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
               yield break;
             }
 
-            current = nextMapBuild.Args[0];
-            mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0])
-              .Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
-            result.AddRange(AddMappingHelper(
-              state,
-              value,
-              Unbox(nextMapBuild.Args[1]),
-              Unbox(nextMapBuild.Args[2]),
-              mapKeysAdded));
-          }
+            foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
+              var setElement = PartialValue.Get(Unbox(tpl.Args[1]), state);
+              var containment = tpl.Result;
+              if (containment.Kind != Model.ElementKind.Boolean) {
+                continue;
+              }
 
-          var mapDomain = fMapDomain.OptEval(current);
-          var mapElements = fMapElements.OptEval(current);
-          if (mapDomain != null && mapElements != null) {
-            foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+              var opcode = (containment as Model.Boolean).Value ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn;
+              var constraint = new BinaryExpr(Token.NoToken, opcode, setElement.ElementIdentifier,
+                value.ElementIdentifier);
+              value.AddConstraint(constraint, new() { value, setElement });
+              yield return setElement;
+            }
+
+            yield break;
+          }
+        case MapType: {
+            var mapKeysAdded = new HashSet<Model.Element>(); // prevents mapping a key to multiple values
+            var mapsElementsVisited = new HashSet<Model.Element>(); // prevents infinite recursion
+            var current = value.Element;
+            var mapBuilds = fMapBuild.AppsWithResult(current).ToList();
+            var result = new List<PartialValue>();
+            while (mapBuilds.Count != 0) {
+              foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current)) {
+                result.AddRange(AddMappingHelper(
+                  state,
+                  value,
+                  Unbox(mapBuild.Args[1]),
+                  Unbox(mapBuild.Args[2]),
+                  mapKeysAdded));
+              }
+
+              mapsElementsVisited.Add(current);
+              var nextMapBuild = mapBuilds.FirstOrDefault(m => !mapsElementsVisited.Contains(m.Args[0]));
+              if (nextMapBuild == null) {
+                yield break;
+              }
+
+              current = nextMapBuild.Args[0];
+              mapBuilds = fMapBuild.AppsWithResult(nextMapBuild.Args[0])
+                .Where(m => !mapsElementsVisited.Contains(m.Args[0])).ToList();
               result.AddRange(AddMappingHelper(
                 state,
                 value,
-                Unbox(app.Args[1]),
-                Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
-                mapKeysAdded, !((Model.Boolean)app.Result).Value));
+                Unbox(nextMapBuild.Args[1]),
+                Unbox(nextMapBuild.Args[2]),
+                mapKeysAdded));
             }
-          }
 
-          foreach (var partialValue in result) {
-            yield return partialValue;
-          }
-          
-          if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
-            var zero = new LiteralExpr(Token.NoToken, 0);
-            zero.Type = Type.Int;
-            var cardinalityExpr =
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
-            cardinalityExpr.Type = Type.Int;
-            value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
-          }
-
-          yield break;
-
-        }
-        default: {
-          // Elt is an array or an object:
-          var heap = state.State.TryGet("$Heap");
-          if (heap == null) {
-            yield break;
-          }
-
-          var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
-          var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
-
-          var notNullConstraints = new List<Constraint>();
-          if ((fields.Any() || constantFields.Any()) && value.Nullable) {
-            var nullValue = new LiteralExpr(Token.NoToken);
-            nullValue.Type = new InferredTypeProxy();
-            notNullConstraints.Add(value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier, nullValue), new List<PartialValue> { value }));
-          }
-
-          foreach (var fieldFunc in constantFields) {
-            var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
-            var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
-            field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-              new() { value }, notNullConstraints);
-            yield return field;
-          }
-
-          if (!fields.Any()) {
-            yield break;
-          }
-          
-          foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
-            foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
-              if (fieldName != "alloc") {
-                var field = PartialValue.Get(Unbox(tpl.Result), state);
-                // TODO: WellFormedNess of arrays!
-                if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
-                  field.AddDefinition(
-                    new SeqSelectExpr(Token.NoToken, true, value.ElementIdentifier,
-                      new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value }, notNullConstraints);
-                } else {
-                  field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-                    new() { value }, notNullConstraints);
-                }
-
-                yield return field;
+            var mapDomain = fMapDomain.OptEval(current);
+            var mapElements = fMapElements.OptEval(current);
+            if (mapDomain != null && mapElements != null) {
+              foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+                result.AddRange(AddMappingHelper(
+                  state,
+                  value,
+                  Unbox(app.Args[1]),
+                  Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
+                  mapKeysAdded, !((Model.Boolean)app.Result).Value));
               }
             }
+
+            foreach (var partialValue in result) {
+              yield return partialValue;
+            }
+
+            if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
+              var zero = new LiteralExpr(Token.NoToken, 0);
+              zero.Type = Type.Int;
+              var cardinalityExpr =
+                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
+              cardinalityExpr.Type = Type.Int;
+              value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
+            }
+
+            yield break;
+
           }
-          yield break;
-        }
+        default: {
+            // Elt is an array or an object:
+            var heap = state.State.TryGet("$Heap");
+            if (heap == null) {
+              yield break;
+            }
+
+            var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
+            var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
+
+            var notNullConstraints = new List<Constraint>();
+            if ((fields.Any() || constantFields.Any()) && value.Nullable) {
+              var nullValue = new LiteralExpr(Token.NoToken);
+              nullValue.Type = new InferredTypeProxy();
+              notNullConstraints.Add(value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier, nullValue), new List<PartialValue> { value }));
+            }
+
+            foreach (var fieldFunc in constantFields) {
+              var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
+              var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
+              field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
+                new() { value }, notNullConstraints);
+              yield return field;
+            }
+
+            if (!fields.Any()) {
+              yield break;
+            }
+
+            foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
+              foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
+                if (fieldName != "alloc") {
+                  var field = PartialValue.Get(Unbox(tpl.Result), state);
+                  // TODO: WellFormedNess of arrays!
+                  if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
+                    field.AddDefinition(
+                      new SeqSelectExpr(Token.NoToken, true, value.ElementIdentifier,
+                        new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value }, notNullConstraints);
+                  } else {
+                    field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
+                      new() { value }, notNullConstraints);
+                  }
+
+                  yield return field;
+                }
+              }
+            }
+            yield break;
+          }
       }
     }
 
@@ -833,7 +833,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Perform operations necessary to add a mapping to a map variable,
     /// return newly created PartialValue objects
     /// </summary>
-    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet, bool keyNotPresent=false) {
+    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet, bool keyNotPresent = false) {
       if (mapVariable == null || keySet.Contains(keyElement)) {
         yield break;
       }
@@ -841,19 +841,19 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
       var constraint = new BinaryExpr(Token.NoToken, opcode, key.ElementIdentifier, mapVariable.ElementIdentifier);
       var containsConstraints = new List<Constraint>();
-      containsConstraints.Add(mapVariable.AddConstraint(constraint, new() {key}));
+      containsConstraints.Add(mapVariable.AddConstraint(constraint, new() { key }));
       if (valueElement != null) {
         var value = PartialValue.Get(valueElement, state);
         var seqSelectExpression = new SeqSelectExpr(
-          Token.NoToken, 
-          true, 
-          mapVariable.ElementIdentifier, 
-          key.ElementIdentifier, 
-          null, 
+          Token.NoToken,
+          true,
+          mapVariable.ElementIdentifier,
+          key.ElementIdentifier,
+          null,
           Token.NoToken);
-        value.AddDefinition(seqSelectExpression, new() {mapVariable, key}, containsConstraints);
+        value.AddDefinition(seqSelectExpression, new() { mapVariable, key }, containsConstraints);
         yield return value;
-      } 
+      }
       keySet.Add(keyElement);
       yield return key;
     }

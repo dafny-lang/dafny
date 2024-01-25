@@ -28,7 +28,7 @@ class ModelFuncWrapper {
     this.argsToSkip = argsToSkip;
     func = model.Model.MkFunc(name, arity + this.argsToSkip);
   }
-  
+
   public ModelFuncWrapper(Model.Func func, int argsToSkip) {
     this.func = func;
     this.argsToSkip = argsToSkip;

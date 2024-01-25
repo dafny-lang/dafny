@@ -106,10 +106,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private CounterExampleItem GetCounterExample(PartialState state) {
-       return new(
-         new Position(state.GetLineId() - 1, state.GetCharId()),
-          state.AsAssumption().ToString()
-        );
+        return new(
+          new Position(state.GetLineId() - 1, state.GetCharId()),
+           state.AsAssumption().ToString()
+         );
       }
     }
   }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration; 
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class Constraint {
 
@@ -14,7 +14,7 @@ public class Constraint {
 
   public bool IsIdentifier => rawExpression is IdentifierExpr;
 
-  public Constraint(Expression expression, IEnumerable<PartialValue> referencedValues, IEnumerable<Constraint> antecedents, PartialValue? definesValue=null) {
+  public Constraint(Expression expression, IEnumerable<PartialValue> referencedValues, IEnumerable<Constraint> antecedents, PartialValue? definesValue = null) {
     this.rawExpression = expression;
     this.referencedValues = referencedValues.ToList();
     this.definesValue = definesValue;
@@ -103,7 +103,7 @@ public class Constraint {
   }
 
   private class DefinitionSubstituter : Cloner {
-    
+
     private Dictionary<string, Expression> substMap;
 
     public DefinitionSubstituter(Dictionary<PartialValue, Expression> substMap) {
@@ -119,7 +119,7 @@ public class Constraint {
     public override Expression CloneExpr(Expression expr) {
       if (expr is IdentifierExpr identifierExpr && substMap.TryGetValue(identifierExpr.Name, out var cloneExpr)) {
         return cloneExpr;
-      } 
+      }
       if (expr is IdentifierExpr identifierExpr2 && identifierExpr2.Name.StartsWith(PartialValue.ElementNamePrefix)) {
         return expr;
       }

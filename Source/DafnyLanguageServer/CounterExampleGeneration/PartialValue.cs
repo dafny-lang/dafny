@@ -23,7 +23,6 @@ public class PartialValue {
 
   private bool nullable = false;
   public bool Nullable => nullable;
-  private static Dictionary<PartialState, Dictionary<Model.Element, PartialValue>> allPartialValues = new();
 
   public IEnumerable<Expression> Values(Dictionary<PartialValue, Expression> definitions) {
     if (!definitions.ContainsKey(this)) {
@@ -39,8 +38,8 @@ public class PartialValue {
   }
 
   internal static PartialValue Get(Model.Element element, PartialState state) {
-    if (allPartialValues.ContainsKey(state) && allPartialValues[state].ContainsKey(element)) {
-      return allPartialValues[state][element];
+    if (state.allPartialValues.TryGetValue(element, out var value)) {
+      return value;
     }
     return new PartialValue(element, state);
   }
@@ -51,10 +50,7 @@ public class PartialValue {
     Constraints = new();
     relatedValues = new();
     haveExpanded = false;
-    if (!allPartialValues.ContainsKey(state)) {
-      allPartialValues[state] = new();
-    }
-    allPartialValues[state][element] = this;
+    state.allPartialValues[element] = this;
     type = state.Model.GetFormattedDafnyType(element);
     ElementIdentifier = new IdentifierExpr(Token.NoToken, ElementNamePrefix + Element.Id);
     ElementIdentifier.Type = type;
@@ -108,7 +104,7 @@ public class PartialValue {
     AddRelatedValuesConnections(referencedValues);
     return constraint;
   }
-  
+
   internal void AddDefinition(Expression constrainingExpression, List<PartialValue> referencedValues, List<Constraint> antecedents) {
     constrainingExpression.Type = type;
     if (referencedValues.Contains(this)) {
@@ -118,10 +114,10 @@ public class PartialValue {
     Constraints.Add(constraint);
     AddRelatedValuesConnections(referencedValues);
   }
-  
+
   internal void AddName(Expression constrainingExpression) {
     constrainingExpression.Type = type;
-    var constraint = new Constraint(constrainingExpression, new List<PartialValue> {this}, new List<Constraint>(), this);
+    var constraint = new Constraint(constrainingExpression, new List<PartialValue> { this }, new List<Constraint>(), this);
     Constraints.Add(constraint);
   }
 
@@ -154,7 +150,7 @@ public class PartialValue {
     }
     return fields;
   }
-  
+
   public IEnumerable<PartialValue> UnnamedDestructors() {
     foreach (var constraint in Constraints.Where(constraint => constraint.definesValue == this)) {
       if (constraint.rawExpression is DatatypeValue datatypeValue) {
@@ -200,7 +196,7 @@ public class PartialValue {
     }
 
     LiteralExpr cardinality = null;
-    
+
     foreach (var relatedValue in relatedValues) {
       var relatedValueDescribesCardinality = false;
       foreach (var definition in relatedValue.Values(definitions)) {
@@ -219,12 +215,12 @@ public class PartialValue {
       break;
     }
 
-      if (cardinality == null || cardinality.Value is not BigInteger bigInteger || 
-          !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
+    if (cardinality == null || cardinality.Value is not BigInteger bigInteger ||
+        !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
       return -1;
     }
-    
-    return (int) bigInteger;
+
+    return (int)bigInteger;
   }
 
 
@@ -252,9 +248,9 @@ public class PartialValue {
           }
         }
       }
-      
+
       return null;
-    } 
+    }
   }
 
   public override bool Equals(object obj) {
@@ -273,5 +269,5 @@ public class PartialValue {
     }
     return string.Join(", ", constraintsToPrint);
   }
-  
+
 }

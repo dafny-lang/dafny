@@ -1,5 +1,0 @@
--5.759933e-01 DafnyTests/RunAllTestsOption.dfy
--6.334269e-01 DafnyTests/TestAttribute.dfy
--5.695391e-01 DafnyTests/zeroExitCodeTests.dfy
-1.429678e+00 server/counterexample_commandline.dfy
--2.888010e-01 git-issues/git-issue-2026.dfy

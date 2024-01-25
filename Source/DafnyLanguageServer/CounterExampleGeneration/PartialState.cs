@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration; 
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class PartialState {
 
@@ -23,6 +23,7 @@ public class PartialState {
     @".*\((?<line>\d+),(?<character>\d+)\)",
     RegexOptions.IgnoreCase | RegexOptions.Singleline
   );
+  internal readonly Dictionary<Model.Element, PartialValue> allPartialValues = new();
 
   private const string BoundVarPrefix = "boundVar";
 
@@ -33,7 +34,7 @@ public class PartialState {
     SetupBoundVars();
     SetupVars();
   }
-  
+
   /// <summary>
   /// Start with the union of vars and boundVars and expand the set by adding 
   /// variables that represent fields of any object in the original set or
@@ -82,13 +83,13 @@ public class PartialState {
     if (conjuncts.Count() == 1) {
       return conjuncts.First();
     }
-    
+
     var middle = conjuncts.Count() / 2;
     var left = GetCompactConjunction(conjuncts.Take(middle));
     var right = GetCompactConjunction(conjuncts.Skip(middle));
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, left, right);
   }
-  
+
   public Statement AsAssumption() {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
     foreach (var partialValue in knownVariableNames.Keys) {
@@ -103,7 +104,7 @@ public class PartialState {
       }
     }
     Constraint.FindDefinitions(allVariableNames, constraints, true);
-    
+
     var boundVars = new List<BoundVar>();
     // TODO: make sure bound variable identifiers are not already taken
     for (int i = 0; i < variables.Length; i++) {
@@ -207,13 +208,13 @@ public class PartialState {
       knownVariableNames[value].Add(name);
     }
   }
-  
+
   public string FullStateName => State.Name;
 
   private string ShortenedStateName => ShortenName(State.Name, 20);
 
   public bool IsInitialState => FullStateName.Equals(InitialStateName);
-  
+
   public bool StateContainsPosition() {
     return StatePositionRegex.Match(ShortenedStateName).Success;
   }
@@ -290,5 +291,5 @@ public class PartialState {
     public int Line;
     public int Column;
   }
-  
+
 }
