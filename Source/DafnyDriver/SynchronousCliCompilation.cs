@@ -681,9 +681,9 @@ namespace Microsoft.Dafny {
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
-      var postCompileHalt = compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      var postCompileContinue = compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
 
-      if (postCompileHalt || dafnyProgram.Reporter.FailCompilation) {
+      if (!postCompileContinue || dafnyProgram.Reporter.FailCompilation) {
         return false;
       }
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
