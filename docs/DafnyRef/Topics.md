@@ -1167,7 +1167,7 @@ Even existential quantifiers need triggers. This is because when Dafny determine
 Dafny may report 'Quantifier was split into X parts'. This occurs when Dafny determines it can only generate good triggers for a quantifier by splitting it into multiple smaller quantifiers, whose aggregation is logically equivalent to the original one. To maintain logical equivalence, Dafny may have to generate more triggers than if the split had been done manually in the Dafny source file. An example is the expression `forall x :: P(x) && (Q(x) =⇒ P(x+1))`, which Dafny will split into
 <!-- %no-check -->
 ```dafny
-forall x {P(x)} {Q(x)} :: P(x) ^
+forall x {P(x)} {Q(x)} :: P(x) &&
 forall x {(Q(x)} :: Q(x) =⇒ P(x+1)
 ```
 
