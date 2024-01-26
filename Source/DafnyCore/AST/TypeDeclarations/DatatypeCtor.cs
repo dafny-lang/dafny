@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -49,7 +50,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.EnumMember;
+  public SymbolKind Kind => SymbolKind.EnumMember;
   public string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";

@@ -24,12 +24,12 @@ public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
   private readonly ResolutionCache cache;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
 
   public CachingResolver(
     Program program,
     ILogger<CachingResolver> logger,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     ResolutionCache cache)
     : base(program) {
     this.logger = logger;

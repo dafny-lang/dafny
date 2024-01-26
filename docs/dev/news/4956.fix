@@ -1,0 +1,3 @@
+Fix: check that subset-type variable's type is determined (resolver refresh).
+Fix crash in verifier when there was a previous error in determining subset-type/newtype base type.
+Fix crash in verifier when a subset type has no explicit `witness` clause and has a non-reference trait as its base type.

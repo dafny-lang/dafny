@@ -1,5 +1,5 @@
 ByMethod.dfy(38,18): Error: this invariant could not be proved to be maintained by the loop
-ByMethod.dfy(38,18): Related message: loop invariant violation
+ Related message: loop invariant violation
 ByMethod.dfy(42,4): Error: a postcondition could not be proved on this return path
 ByMethod.dfy(35,4): Related location: this is the postcondition that could not be proved
 ByMethod.dfy(47,11): Error: a postcondition could not be proved on this return path

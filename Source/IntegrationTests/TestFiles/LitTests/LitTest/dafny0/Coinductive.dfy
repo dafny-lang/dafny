@@ -10,10 +10,10 @@ module TestInductiveDatatypes
   datatype Record<T> = Ctor(T)
 
   datatype RecInt = Ctor(Record<int>)  // this is fine
-  datatype Rec_Forever = Ctor(Record<Rec_Forever>)  // error
+  datatype Rec_Forever = Ctor(Record<Rec_Forever>)  // warning: no instances
   datatype Rec_Stops = Cons(Record<Rec_Stops>, Rec_Stops) | Nil  // this is okay
 
-  datatype D<T> = Ctor(E<D<T>>)  // error: illegal cycle
+  datatype D<T> = Ctor(E<D<T>>)  // warning: no instances
   datatype E<T> = Ctor(T)
 
   // the following is okay
@@ -35,7 +35,7 @@ module MoreInductive {
 
   datatype M = All(List<M>)
   datatype H<'a> = HH('a, Tree<'a>)
-  datatype K<'a> = KK('a, Tree<K<'a>>)  // error
+  datatype K<'a> = KK('a, Tree<K<'a>>)  // warning: no instances
   datatype L<'a> = LL('a, Tree<List<L<'a>>>)
 }
 
@@ -61,7 +61,7 @@ module TestCoinductiveDatatypes
   datatype FiniteEnough_Class = Ctor(MyClass<FiniteEnough_Class>)
   datatype FiniteEnough_Co = Ctor(LazyRecord<FiniteEnough_Co>)
   datatype FiniteEnough_Dt = Ctor(GenericDt<FiniteEnough_Dt>)  // fine
-  datatype NotFiniteEnough_Dt = Ctor(GenericRecord<NotFiniteEnough_Dt>)  // error
+  datatype NotFiniteEnough_Dt = Ctor(GenericRecord<NotFiniteEnough_Dt>)  // warning: no instances
 
 }
 

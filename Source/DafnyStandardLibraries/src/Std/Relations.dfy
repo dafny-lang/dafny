@@ -33,11 +33,11 @@ module Std.Relations {
     forall x, y :: relation(x, y) ==> !relation(y, x)
   }
 
-  lemma AsymmetricIsAntiSymmetric<T>(relation: (T, T) -> bool)
+  lemma AsymmetricIsAntiSymmetric<T(!new)>(relation: (T, T) -> bool)
     ensures Asymmetric(relation) ==> AntiSymmetric(relation)
   {}
 
-  lemma AsymmetricIsIrreflexive<T>(relation: (T, T) -> bool)
+  lemma AsymmetricIsIrreflexive<T(!new)>(relation: (T, T) -> bool)
     ensures Asymmetric(relation) ==> Irreflexive(relation)
   {}
 

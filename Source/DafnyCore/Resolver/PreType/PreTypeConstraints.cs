@@ -468,10 +468,14 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
-          PreTypeResolver.ReportError(tok, errorFormatString, preType);
+          if (preType.Normalize() is PreTypeProxy && onProxyAction != null) {
+            onProxyAction();
+          } else {
+            PreTypeResolver.ReportError(tok, errorFormatString, preType);
+          }
         }
       });
     }

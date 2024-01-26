@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Triggers {
     readonly ErrorReporter reporter;
     private readonly HashSet<Expression> quantifiers = new HashSet<Expression>();
     internal readonly Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext = new Dictionary<Expression, HashSet<OldExpr>>();
-    internal readonly List<QuantifiersCollection> quantifierCollections = new List<QuantifiersCollection>();
+    internal readonly List<ComprehensionTriggerGenerator> quantifierCollections = new List<ComprehensionTriggerGenerator>();
 
     public QuantifierCollector(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
@@ -25,15 +25,15 @@ namespace Microsoft.Dafny.Triggers {
       if (expr is ComprehensionExpr e && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
         if (e is SetComprehension or MapComprehension) {
           quantifiers.Add(e);
-          quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(e, 1), reporter));
+          quantifierCollections.Add(new ComprehensionTriggerGenerator(e, Enumerable.Repeat(e, 1), reporter));
         } else if (e is QuantifierExpr quantifier) {
           quantifiers.Add(quantifier);
           if (quantifier.SplitQuantifier != null) {
             var collection = quantifier.SplitQuantifier.Select(q => q as ComprehensionExpr).Where(q => q != null);
-            quantifierCollections.Add(new QuantifiersCollection(e, collection, reporter));
+            quantifierCollections.Add(new ComprehensionTriggerGenerator(e, collection, reporter));
             quantifiers.UnionWith(quantifier.SplitQuantifier);
           } else {
-            quantifierCollections.Add(new QuantifiersCollection(e, Enumerable.Repeat(quantifier, 1), reporter));
+            quantifierCollections.Add(new ComprehensionTriggerGenerator(e, Enumerable.Repeat(quantifier, 1), reporter));
           }
         }
       }
