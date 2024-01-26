@@ -1,8 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -10,9 +12,11 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using VC;
 using IToken = Microsoft.Dafny.IToken;
+using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
 
@@ -189,6 +193,8 @@ public class CliCompilation {
       var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
       if (canVerifies != null) {
+        canVerifies = FilterCanVerifies(canVerifies);
+
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
           canVerifyResults[canVerify] = new CliCanVerifyResults();
@@ -227,5 +233,29 @@ public class CliCompilation {
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
     }
+  }
+
+  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies) {
+    var filterPosition = options.Get(VerifyCommand.FilterPosition);
+    if (filterPosition == null) {
+      return canVerifies;
+    }
+
+    var regex = new Regex(@"(.+)(?::(\d+))?", RegexOptions.RightToLeft);
+    var result = regex.Match(filterPosition);
+    if (result.Length != filterPosition.Length || !result.Success) {
+      Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
+      return new List<ICanVerify>();
+    }
+    var filePart = result.Groups[1].Value;
+    string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
+    var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
+    if (string.IsNullOrEmpty(linePart)) {
+      return fileFiltered;
+    }
+
+    var line = int.Parse(linePart);
+    return fileFiltered.Where(c =>
+        c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
   }
 }

@@ -3,12 +3,20 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore;
 using DafnyDriver.Commands;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
 public static class VerifyCommand {
+
+  static VerifyCommand() {
+    DooFile.RegisterNoChecksNeeded(FilterPosition);
+  }
+
+  public static readonly Option<string> FilterPosition = new("--filter-position",
+    @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example: ""--filter=lastFolder/source.dfy:23""");
 
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
@@ -36,6 +44,7 @@ public static class VerifyCommand {
 
   private static IReadOnlyList<Option> Options =>
     new Option[] {
+        FilterPosition,
         BoogieOptionBag.BoogieFilter,
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
