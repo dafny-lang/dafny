@@ -3313,7 +3313,6 @@ namespace Microsoft.Dafny.Compilers {
 
       var toTypeString = fromType.IsTraitType && toType.AsNewtype is { } newtypeDecl ? newtypeDecl.GetFullCompileName(Options) : TypeName(toType, wr, tok);
       wr.Write($"{localName} is {toTypeString}");
-
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,

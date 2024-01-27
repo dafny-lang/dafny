@@ -94,8 +94,7 @@ public abstract class Type : TokenNode {
   public void AddFreeTypeParameters(ISet<TypeParameter> tps) {
     Contract.Requires(tps != null);
     var ty = this.NormalizeExpandKeepConstraints();
-    var tp = ty.AsTypeParameter;
-    if (tp != null) {
+    if (ty.AsTypeParameter is {} tp) {
       tps.Add(tp);
     }
     foreach (var ta in ty.TypeArgs) {

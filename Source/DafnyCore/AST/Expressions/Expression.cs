@@ -429,8 +429,9 @@ public abstract class Expression : TokenNode {
   public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
-    var lit = new StringLiteralExpr(tok, s, true);
-    lit.Type = new SeqType(new CharType());  // resolve here
+    var lit = new StringLiteralExpr(tok, s, true) {
+      Type = new SeqType(new CharType())
+    };
     return lit;
   }
 
@@ -440,8 +441,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression StripParens(Expression expr) {
     while (true) {
-      var e = expr as ParensExpression;
-      if (e == null) {
+      if (expr is not ParensExpression e) {
         return expr;
       }
       expr = e.E;

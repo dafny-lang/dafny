@@ -147,7 +147,7 @@ namespace Microsoft.Dafny.Compilers {
         : "";
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
-      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
+      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };

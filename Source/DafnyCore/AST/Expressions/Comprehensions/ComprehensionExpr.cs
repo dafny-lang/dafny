@@ -242,6 +242,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
     }
     public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
+
     public override BoundedPool Clone(Cloner cloner) {
       return new IntBoundedPool(cloner.CloneExpr(LowerBound), cloner.CloneExpr(UpperBound));
     }
