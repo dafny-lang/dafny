@@ -1243,7 +1243,6 @@ namespace Microsoft.Dafny.Compilers {
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
     protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
-    protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 

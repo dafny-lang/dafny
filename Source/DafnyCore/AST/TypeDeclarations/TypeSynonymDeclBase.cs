@@ -66,7 +66,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   Expression RedirectingTypeDecl.Constraint { get { return null; } }
 
   bool RedirectingTypeDecl.ConstraintIsCompilable {
-    get => false;
+    get => throw new NotSupportedException();
     set => throw new NotSupportedException();
   }
 
