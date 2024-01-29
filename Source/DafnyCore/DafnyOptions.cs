@@ -36,6 +36,8 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
@@ -723,6 +725,7 @@ namespace Microsoft.Dafny {
 
         case "extractCounterexample":
           ExtractCounterexample = true;
+          EnhancedErrorMessages = 1;
           return true;
 
         case "verificationLogger":
@@ -1146,6 +1149,13 @@ namespace Microsoft.Dafny {
       SetZ3Option("type_check", "true");
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
+      SetZ3Option("model_evaluator.completion", "true");
+      SetZ3Option("model.completion", "true");
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        SetZ3Option("model_compress", "false");
+      } else {
+        SetZ3Option("model.compact", "false");
+      }
 
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
@@ -1412,10 +1422,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /extractCounterexample
     If verification fails, report a detailed counterexample for the
-    first failing assertion. Requires specifying the /mv:<file> option as well
-    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-    /proverOpt:O:model.completion=true.
+    first failing assertion (experimental).
 
 ---- Compilation options ---------------------------------------------------
 
