@@ -80,7 +80,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
 
   protected string compileName;
   public virtual string CompileName =>
-    compileName ??= SanitizedName;
+    compileName ??= SanitizeName(Name);
 
   Type type;
   public bool IsTypeExplicit = false;
