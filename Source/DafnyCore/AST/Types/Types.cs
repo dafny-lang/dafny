@@ -398,6 +398,10 @@ public abstract class Type : TokenNode {
 
   public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
 
+  public bool HavocCountsAsDefiniteAssignment(bool inGhostContext) {
+    return inGhostContext ? IsNonempty : HasCompilableValue;
+  }
+
   /// <summary>
   /// This property returns
   ///     - CompilableValue, if the type has a known compilable value
