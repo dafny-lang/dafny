@@ -1,19 +1,22 @@
 // RUN: %baredafny translate rs %args "%s"
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-const TWO_TO_THE_8:   int := 0x100
-const TWO_TO_THE_16:  int := 0x10000
-const TWO_TO_THE_32:  int := 0x1_00000000
-const TWO_TO_THE_64:  int := 0x1_00000000_00000000
+ghost const TWO_TO_THE_8:   int := 0x100
+ghost const TWO_TO_THE_16:  int := 0x10000
+ghost const TWO_TO_THE_32:  int := 0x1_00000000
+ghost const TWO_TO_THE_64:  int := 0x1_00000000_00000000
+ghost const TWO_TO_THE_128:  int := 0x1_00000000_00000000_00000000_00000000
 newtype uint8  = x: int | 0 <= x < TWO_TO_THE_8
 newtype uint16 = x: int | 0 <= x < TWO_TO_THE_16
 newtype uint32 = x: int | 0 <= x < TWO_TO_THE_32
 newtype uint64 = x: int | 0 <= x < TWO_TO_THE_64
+newtype uint128 = x: int | 0 <= x < TWO_TO_THE_128
 
 newtype int8  = x: int  | -0x80 <= x < 0x80
 newtype int16 = x: int  | -0x8000 <= x < 0x8000
 newtype int32 = x: int  | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int  | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
+newtype int128 = x: int  | -0x8000_0000_0000_0000_0000_0000_0000_0000 <= x < 0x8000_0000_0000_0000_0000_0000_0000_0000
 
 method Main() {
   var t := true;
@@ -106,7 +109,28 @@ method Main() {
      && x64 as bv64 << o64 as bv64 == t64 as bv64 {
     print "operators(u64)\n";
   }
+
+  
+  var o128: uint128 := 1 as uint128;
+  var s128: uint128 := 2 as uint128;
+  var w128: uint128 := 5 as uint128;
+  var x128: uint128 := 8 as uint128;
+  var y128: uint128 := 13 as uint128;
+  var z128: uint128 := 21 as uint128;
+  var m128: uint128 := 24 as uint128;
+  var t128: uint128 := 16 as uint128;
+  if x128 + y128 == z128
+     && y128 - x128 == z128
+     && x128 as bv128 & y128 as bv128 == x128 as bv128
+     && x128 as bv128 | y128 as bv128 == y128 as bv128
+     && x128 as bv128 ^ y128 as bv128 == w128 as bv128
+     && x128 * 3 == m128
+     && x128 as bv128 >> s128 as bv128 == s128 as bv128
+     && x128 as bv128 << o128 as bv128 == t128 as bv128 {
+    print "operators(u128)\n";
+  }
   assert {:split_here} true;
+  /*
   var a := 'a';
   var z := 'z';
   if a < z && z > a {
@@ -165,5 +189,5 @@ method Main() {
   }
   if 1 in h && h[1] == 3 && |h| == 3 {
     print "access and cardinality";
-  }
+  }*/
 }

@@ -2,6 +2,11 @@ module {:extern "DAST.Format"} DAST.Format
 /* Cues about how to format different AST elements if necessary,
    e.g. to generate idiomatic code when needed. */
 {
+  // Dafny AST compilation tenets:
+  // - The Compiled Dafny AST should be minimal
+  // - The generated code should look idiomatic and close to the original Dafny file if possible
+  // Since the two might conflict, the second one is taken care of by adding formatting information
+
   datatype UnOpFormat =
     NoFormat()
     | CombineNotInner()
@@ -39,10 +44,14 @@ module {:extern "DAST"} DAST {
 
   datatype Primitive = Int | Real | String | Bool | Char
 
+  datatype NewtypeRange =
+    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | BigInt
+    | NoRange
+
   datatype ResolvedType =
     | Datatype(path: seq<Ident>)
     | Trait(path: seq<Ident>)
-    | Newtype(Type)
+    | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
   datatype Ident = Ident(id: string)
 
@@ -54,7 +63,7 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>)
+  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>)
 
   datatype ClassItem = Method(Method)
 

@@ -21,6 +21,9 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
+  public override IReadOnlySet<string> SupportedNativeTypes =>
+    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
+
   public override string TargetBasename(string dafnyProgramName) =>
     Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
 

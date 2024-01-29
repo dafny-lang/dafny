@@ -184,8 +184,9 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer : UnsupportedContainer {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> witnessStmts, DAST.Expression witness) {
-      return new NewtypeBuilder(this, name, typeParams, baseType, witnessStmts, witness);
+    public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams,
+      DAST.Type baseType, DAST.NewtypeRange newtypeRange, List<DAST.Statement> witnessStmts, DAST.Expression witness) {
+      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, witnessStmts, witness);
     }
   }
 
@@ -194,13 +195,16 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly List<DAST.Type> typeParams;
     readonly DAST.Type baseType;
+    private readonly DAST.NewtypeRange newtypeRange;
     readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness) {
+    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.Type> typeParams,
+      DAST.NewtypeRange newtypeRange, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
+      this.newtypeRange = newtypeRange;
       this.baseType = baseType;
       this.witnessStmts = statements;
       this.witness = witness;
@@ -219,6 +223,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         this.baseType,
+        newtypeRange,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null ? Option<DAST._IExpression>.create_None() : Option<DAST._IExpression>.create_Some(this.witness)
       ));
@@ -563,7 +568,7 @@ namespace Microsoft.Dafny.Compilers {
       var builtLhs = LhsContainer.Build(lhs);
       DAST.Expression rhs;
       if (this.value == null) {
-        rhs = ExprContainer.UnsupportedToExpr("Cannot assign null value to variable: " + lhs);
+        rhs = ExprContainer.UnsupportedToExpr("<i>Cannot assign null value to variable</i>: " + lhs);
         //throw new InvalidOperationException("Cannot assign null value to variable: " + lhs);
       } else {
         var builtValue = new List<DAST.Expression>();
@@ -633,7 +638,7 @@ namespace Microsoft.Dafny.Compilers {
     public DAST.Statement Build() {
       List<DAST.Expression> builtCondition = new();
       ExprContainer.RecursivelyBuild(new List<object> {
-        condition ?? ExprContainer.UnsupportedToExpr("condition to if expression")
+        condition ?? ExprContainer.UnsupportedToExpr("<i>condition to if expression</i>")
       }, builtCondition);
 
       List<DAST.Statement> builtIfStatements = new();
@@ -774,7 +779,7 @@ namespace Microsoft.Dafny.Compilers {
     public DAST.Statement Build() {
       List<DAST.Expression> builtOver = new();
       ExprContainer.RecursivelyBuild(new List<object> {
-        over ?? ExprContainer.UnsupportedToExpr("Foreach over is null")
+        over ?? ExprContainer.UnsupportedToExpr("<i>Foreach over is null</i>")
       }, builtOver);
 
       List<DAST.Statement> builtStatements = new();

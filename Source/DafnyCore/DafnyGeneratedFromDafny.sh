@@ -37,7 +37,7 @@ fi
 
 ../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs $noverify
 
-# We will remove all the namespaces Std.* except Std.Wrappers
+# We remove all the standard libraries except Std.Wrappers, Std.Strings, Std.Collections.Seq, Std.Arithmetic and Std.Math
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 use std::{fmt::{Display, Formatter},
-          rc::Rc, ops::{Add, Deref, Mul},
+          rc::Rc, ops::{Add, Deref},
           hash::Hash,
           collections::{HashSet, HashMap},
           cell::RefCell, any::Any};

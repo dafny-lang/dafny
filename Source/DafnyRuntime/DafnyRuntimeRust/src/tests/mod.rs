@@ -81,9 +81,13 @@ mod tests {
     }
 
     //#[derive(PartialEq)]
-    struct MyStruct { // For a class
+    struct _MyStructUninit {
         first: MaybeUninit<Rc<String>>,
         last: MaybeUninit<Rc<String>>,
+    }
+    struct MyStruct { // For a class
+        first: Rc<String>,
+        last: Rc<String>,
     }
     impl DafnyPrint for MyStruct {
         fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
@@ -96,19 +100,20 @@ mod tests {
     impl MyStruct {
         fn constructor(first: &Rc<String>, last: &Rc<String>) -> *const MyStruct {
             let this =
-              allocate(Box::new(MyStruct {
+              allocate(Box::new(_MyStructUninit {
                 first: MaybeUninit::uninit(),
                 last: MaybeUninit::uninit()}));
             // Two ways to write uninitialized values
-            unsafe {(*(this  as *mut MyStruct)).first.as_mut_ptr().write(Rc::clone(first))};
-            unsafe {(*(this as *mut MyStruct)).last = transmute(Rc::clone(last))};
-            this
+            unsafe {(*(this  as *mut _MyStructUninit)).first.as_mut_ptr().write(Rc::clone(first))};
+            unsafe {(*(this as *mut _MyStructUninit)).last = transmute(Rc::clone(last))};
+            // new;
+            this as *const MyStruct
         }
     }
     impl HasFirst for MyStruct {
         // Use unsafe and pointer casting if necessary
         fn _get_first(&self) -> Rc<String> {
-            unsafe { std::ptr::read(self.first.as_ptr()).clone() }
+            self.first.clone()
         }
         fn _set_first(&self, new_first: &Rc<String>) {
             unsafe {(*(self as *const MyStruct as *mut MyStruct)).first
@@ -230,7 +235,7 @@ mod tests {
         assert!(!tree._isLeaf());
         // Use the unsafe read in the previous test
         let value = unsafe{std::ptr::read(&(*tree.value()).first)};
-        assert_eq!((*unsafe{value.assume_init()}).as_ref(), "Jane".to_string());
+        assert_eq!((*value).as_ref(), "Jane".to_string());
     }
 
     // Now let's encode a codatatype from Dafny
@@ -615,6 +620,58 @@ mod tests {
         assert_eq!(result1.get_value(), input.get_value());
         //assert_eq!(result2.get_value(), input.get_value());
         assert_eq!(result3.get_value(), input.get_value());
+    }
+
+    fn test_partial_initialization_aux(b: bool) {
+        let mut c: Option<Rc<MyStructDatatype>> = None;
+        if b {
+            c = Some(Rc::new(MyStructDatatype {
+                first: Rc::new("John".to_string()),
+                last: Rc::new("Doe".to_string()) }));
+        }
+        if b {
+            assert_eq!(c.as_ref().unwrap().first.as_str(), "John");
+            assert_eq!(c.as_ref().unwrap().last.as_str(), "Doe");
+        }
+        
+    }
+
+    #[test]
+    fn test_partial_initialization() {
+        test_partial_initialization_aux(true);
+        test_partial_initialization_aux(false);
+    }
+
+    type Even = Rc<BigInt>;
+    mod _Even {
+        use std::rc::Rc;
+        use num::{Integer, BigInt};
+        use super::Even;
+
+        pub fn halve(this: &Even) -> Rc<BigInt> {
+            Rc::new(this.div_floor(
+              &crate::BigInt::parse_bytes(b"2", 10).unwrap()
+            ))
+        }
+    }
+
+    fn TestEven(even: &Even) {
+        let half= _Even::halve(even);
+        assert_eq!(half.as_ref() * crate::BigInt::parse_bytes(b"2", 10).unwrap(),
+        even.as_ref().clone());
+    }
+
+    #[test]
+    fn test_even() {
+        let even = Even::new(crate::BigInt::parse_bytes(b"8", 10).unwrap());
+        TestEven(&even);
+    }
+
+    #[test]
+    fn test_newtypes() {
+        let five_bigint = Rc::new(crate::BigInt::parse_bytes(b"5", 10).unwrap())
+        // Convert five_bigint to u16
+        let five_u16: u16 = num::ToPrimitive::to_u16(&five_bigint).unwrap();
     }
 }
 // Struct containing two reference-counted fields
