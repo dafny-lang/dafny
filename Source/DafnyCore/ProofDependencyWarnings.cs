@@ -40,7 +40,11 @@ public class ProofDependencyWarnings {
     if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
       foreach (var dependency in unusedObligations) {
         if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, dependency)) {
-          reporter.Warning(MessageSource.Verifier, "", dependency.Range, $"proved using contradictory assumptions: {dependency.Description}");
+          var msg = $"proved using contradictory assumptions: {dependency.Description}";
+          var rest = dependency.ProofObligation is AssertStatementDescription
+                   ? " (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
+                   : "";
+          reporter.Warning(MessageSource.Verifier, "", dependency.Range, msg + rest);
         }
       }
 
