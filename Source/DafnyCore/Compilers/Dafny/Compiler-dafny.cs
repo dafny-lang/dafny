@@ -1402,7 +1402,7 @@ namespace Microsoft.Dafny.Compilers {
           if (rhs is UserDefinedType udt) {
             if (topLevelType != null) {
               throwGeneralUnsupported(); // Warning: internal invariant error
-              //topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
+                                         //topLevelType = udt.Subst(TypeParameter.SubstitutionMap(topLevel.TypeArgs, topLevelType.TypeArgs));
             } else {
               topLevelType = udt;
             }
