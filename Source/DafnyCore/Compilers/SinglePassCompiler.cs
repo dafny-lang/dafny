@@ -1403,8 +1403,23 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
     /// reference types or subset types thereof.
+    /// This method is used only for traits and reference types.
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr);
+
+    /// <summary>
+    /// Emit a conjunct that tests if the Dafny real number "source" is an integer, like:
+    ///    "TestIsInteger(source) && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected virtual void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) { }
+
+    /// <summary>
+    /// Emit a conjunct that tests if the Dafny integer "source" is a character, like:
+    ///     "TestIsRune(source) && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected virtual void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts){}
 
     /// <summary>
     /// Emit conjuncts that test if the Dafny integer "source" is in the range lo..hi, like:
