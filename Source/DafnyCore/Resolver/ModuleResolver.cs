@@ -2181,7 +2181,7 @@ namespace Microsoft.Dafny {
           } else {
             var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
             reporter.Info(MessageSource.Resolver, dd.tok,
-              $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
+              $"newtype {dd.Name} resolves as {targetComplete}{{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
           }
 
           return;
