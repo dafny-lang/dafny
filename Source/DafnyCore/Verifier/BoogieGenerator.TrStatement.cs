@@ -200,7 +200,7 @@ namespace Microsoft.Dafny {
         }
 
         // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them
-        // in this order, they type antecedents will in effect be assumed.
+        // in this order, the type antecedents will in effect be assumed.
         var bHavocLHSs = new List<Bpl.IdentifierExpr>();
         foreach (var lhs in simpleLHSs) {
           MarkDefiniteAssignmentTracker(lhs, builder);
@@ -2402,7 +2402,7 @@ namespace Microsoft.Dafny {
               bldr.Add(cmd);
             }
 
-            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
+            if (!origRhsIsHavoc || ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
               MarkDefiniteAssignmentTracker(ie, bldr);
             }
           });
@@ -2434,7 +2434,7 @@ namespace Microsoft.Dafny {
                 bldr.Add(cmd);
               }
 
-              if (!origRhsIsHavoc || field.Type.IsNonempty) {
+              if (!origRhsIsHavoc || field.Type.HavocCountsAsDefiniteAssignment(field.IsGhost)) {
                 MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
               }
             });
