@@ -144,7 +144,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
   public List<BoundVar> UncompilableBoundVars() {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
     var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v, true);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

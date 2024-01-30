@@ -113,13 +113,16 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
     }
 
-    public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
+    public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds,
+      PoolVirtues requiredVirtues, bool countNonCompilableAsMissing) where VT : IVariable {
       Contract.Requires(vars != null);
       Contract.Requires(bounds == null || vars.Count == bounds.Count);
       Contract.Ensures(Contract.Result<List<VT>>() != null);
       var missing = new List<VT>();
       for (var i = 0; i < vars.Count; i++) {
-        if (bounds == null || bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
+        if (bounds == null || bounds[i] == null ||
+            (bounds[i].Virtues & requiredVirtues) != requiredVirtues ||
+            (countNonCompilableAsMissing && !bounds[i].IsCompilable(vars[i].Type))) {
           missing.Add(vars[i]);
         }
       }
@@ -159,6 +162,9 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       return others;
     }
 
+    public virtual bool IsCompilable(Type boundVariableType) =>
+      ExpressionTester.IsTypeTestCompilable(boundVariableType.NormalizeToAncestorType(), boundVariableType);
+
     public abstract BoundedPool Clone(Cloner cloner);
   }
   public class ExactBoundedPool : BoundedPool {
@@ -169,6 +175,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
     public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 15;  // the best of all bounds
+
     public override BoundedPool Clone(Cloner cloner) {
       return new ExactBoundedPool(cloner.CloneExpr(E));
     }
@@ -274,6 +281,11 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       }
     }
     public override int Preference() => 10;
+    public override bool IsCompilable(Type boundVariableType) {
+      Contract.Assert(boundVariableType.Equals(BoundVariableType));
+      return ExpressionTester.IsTypeTestCompilable(CollectionElementType, BoundVariableType);
+    }
+
   }
   public class SetBoundedPool : CollectionBoundedPool {
     public readonly Expression Set;
@@ -413,7 +425,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public List<BoundVar> UncompilableBoundVars() {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
     var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v, true);
   }
 
   public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)

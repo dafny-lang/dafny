@@ -347,9 +347,11 @@ public class ExpressionTester {
   }
 
   public static bool IsTypeTestCompilable(TypeTestExpr tte) {
-    Contract.Requires(tte != null);
-    var fromType = tte.E.Type;
-    if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
+    return IsTypeTestCompilable(tte.E.Type, tte.ToType);
+  }
+
+  public static bool IsTypeTestCompilable(Type fromType, Type toType) {
+    if (fromType.IsSubtypeOf(toType, false, true)) {
       // this is a no-op or a simple null comparison, so it can trivially be compiled
       return true;
     }

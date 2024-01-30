@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
             if (!context.AllowedToDependOnAllocationState) {
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
-                         ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+                         ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc, false)) {
                 var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";
                 var message =
                   $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
@@ -218,7 +218,8 @@ namespace Microsoft.Dafny {
                 // resolution), the resolver will generate an error about that later.
               } else {
                 // we cannot be sure that the set/map really is finite
-                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
+                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
+                           ComprehensionExpr.BoundedPool.PoolVirtues.Finite, false)) {
                   Reporter.Error(MessageSource.Resolver, e,
                     "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
                     e.WhatKind, bv.Name);
