@@ -3360,7 +3360,7 @@ namespace Microsoft.Dafny.Compilers {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, Expression.CreateBoolLiteral(s.Thn.Tok, false));
             var thenWriter = EmitIf(out guardWriter, false, wr);
             EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
@@ -3370,9 +3370,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             // let's compile the "then" branch
             wr = EmitIf(out guardWriter, false, wr);
-            EmitExpr(new LiteralExpr(null, true) {
-              Type = Type.Bool
-            }, false, guardWriter, wStmts);
+            EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), false, guardWriter, wStmts);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -3435,9 +3433,7 @@ namespace Microsoft.Dafny.Compilers {
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
           // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
           var wBody = CreateWhileLoop(out var guardWriter, wr);
-          EmitExpr(new LiteralExpr(null, true) {
-            Type = Type.Bool
-          }, false, guardWriter, wStmts);
+          EmitExpr(Expression.CreateBoolLiteral(s.Body.tok, true), false, guardWriter, wStmts);
           EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
@@ -3451,9 +3447,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (loopStmt.Alternatives.Count != 0) {
           var w = CreateWhileLoop(out var whileGuardWriter, wr);
-          EmitExpr(new LiteralExpr(null, true) {
-            Type = Type.Bool
-          }, false, whileGuardWriter, wStmts);
+          EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
           w = EmitContinueLabel(loopStmt.Labels, w);
           foreach (var alternative in loopStmt.Alternatives) {
             var thn = EmitIf(out var guardWriter, true, w);

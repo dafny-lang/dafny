@@ -703,11 +703,9 @@ public partial class BoogieGenerator {
     Contract.Requires(expr != null);
     var xType = x.Type.NormalizeExpand();
     if (xType is BoolType) {
-      var lit = new LiteralExpr(x.tok, false);
-      lit.Type = Type.Bool;  // resolve here
+      var lit = Expression.CreateBoolLiteral(x.tok, false);
       yield return lit;
-      lit = new LiteralExpr(x.tok, true);
-      lit.Type = Type.Bool;  // resolve here
+      lit = Expression.CreateBoolLiteral(x.tok, true);
       yield return lit;
       yield break;  // there are no more possible witnesses for booleans
     } else if (xType is CharType) {
@@ -715,8 +713,7 @@ public partial class BoogieGenerator {
     } else if (xType.IsBitVectorType) {
       // TODO: something could be done for bitvectors
     } else if (xType.IsRefType) {
-      var lit = new LiteralExpr(x.tok);  // null
-      lit.Type = xType;
+      var lit = new LiteralExpr(x.tok) { Type = xType };  // null
       yield return lit;
     } else if (xType.IsDatatype) {
       var dt = xType.AsDatatype;

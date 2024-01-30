@@ -622,9 +622,7 @@ namespace Microsoft.Dafny {
             IsGhost = m.IsGhost
           };
 
-          Expression parRange = new LiteralExpr(m.tok, true) {
-            Type = Type.Bool
-          };
+          Expression parRange = Expression.CreateBoolLiteral(m.tok, true);
           foreach (var pre in m.Req) {
             parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
           }

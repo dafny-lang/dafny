@@ -418,8 +418,9 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
     Contract.Requires(tok != null);
-    var lit = new LiteralExpr(tok, b);
-    lit.Type = Type.Bool;  // resolve here
+    var lit = new LiteralExpr(tok, b) {
+      Type = Type.Bool
+    };
     return lit;
   }
 

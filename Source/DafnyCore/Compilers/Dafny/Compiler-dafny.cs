@@ -2260,9 +2260,7 @@ namespace Microsoft.Dafny.Compilers {
           };
         }
       } else {
-        typeTest = wr => EmitExpr(new LiteralExpr(tok, true) {
-          Type = Type.Bool
-        }, false, wr, null);
+        typeTest = wr => EmitExpr(Expression.CreateBoolLiteral(tok, true), false, wr, null);
       }
 
       return typeTest;
