@@ -3315,6 +3315,18 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{localName} is {toTypeString}");
     }
 
+    protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
+      wr.Write(" <= ");
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(" && ");
+
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(" < ");
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
+      wr.Write(" && ");
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("{0}.FromElements", TypeHelperName(ct, wr, tok));

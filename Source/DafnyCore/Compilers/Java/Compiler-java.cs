@@ -4202,6 +4202,18 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{localName} instanceof {typeName}");
     }
 
+    protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(".compareTo(");
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
+      wr.Write(") >= 0 && ");
+
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(".compareTo(");
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
+      wr.Write(") < 0 && ");
+    }
+
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }

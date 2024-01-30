@@ -316,6 +316,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
+      var wrTarget = wr.ForkInParens();
+      wr.Write(testIsNull ? " == null" : " != null");
+      return wrTarget;
+    }
+
     /// <summary>
     /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
     /// for tail calls (see EmitJumpToTailCallStart).
@@ -397,6 +403,10 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type ?? rhs.Type, tok, wr);
       EmitExpr(rhs, inLetExprBody, w, wStmts);
+    }
+
+    protected virtual void EmitDummyVariableUse(string variableName, ConcreteSyntaxTree wr) {
+      // by default, do nothing
     }
 
     /// <summary>
@@ -1395,6 +1405,13 @@ namespace Microsoft.Dafny.Compilers {
     /// reference types or subset types thereof.
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr);
+
+    /// <summary>
+    /// Emit conjuncts that test if the Dafny integer "source" is in the range lo..hi, like:
+    ///     "lo <= source && source < hi && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected virtual void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts){}
 
     protected abstract void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // used for sets, multisets, and sequences
