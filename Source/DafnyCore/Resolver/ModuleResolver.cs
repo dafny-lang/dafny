@@ -2137,21 +2137,17 @@ namespace Microsoft.Dafny {
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
 
-      List<(NativeType, bool coversAllBitPatterns)> bigEnoughNativeTypes;
-      bool constraintConsistsSolelyOfRangeConstraints;
+      List<(NativeType, bool coversEntireIntegerRange)> bigEnoughNativeTypes;
       var detectedRange = "";
       if (dd.BaseType.NormalizeToAncestorType() is BitvectorType bitvectorAncestorType) {
         bigEnoughNativeTypes = FigureOutNativeTypeForBitvectorNewtype(dd, bitvectorAncestorType, ddVar == null,
           nativeTypeChoices ?? NativeTypes, nativeTypeChoices != null);
-        constraintConsistsSolelyOfRangeConstraints = ddVar == null;
       } else if (dd.BaseType.NormalizeToAncestorType() is IntType) {
         bigEnoughNativeTypes = FigureOutNativeTypeForIntegerNewtype(dd, ddVar, ddConstraint,
-          nativeTypeChoices ?? NativeTypes, nativeTypeChoices != null,
-          out constraintConsistsSolelyOfRangeConstraints, out detectedRange);
+          nativeTypeChoices ?? NativeTypes, nativeTypeChoices != null, out detectedRange);
       } else {
         // No native type available
-        bigEnoughNativeTypes = new List<(NativeType, bool coversAllBitPatterns)>();
-        constraintConsistsSolelyOfRangeConstraints = true;
+        bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
       }
       if (bigEnoughNativeTypes == null) {
         // An error occurred while computing "bigEnoughNativeTypes"
@@ -2159,20 +2155,17 @@ namespace Microsoft.Dafny {
       }
 
       // Finally, of the big-enough native types, pick the first one that is supported by the selected target compiler.
-      foreach (var (nativeT, coversAllBitPatterns) in bigEnoughNativeTypes) {
+      foreach (var (nativeT, coversEntireIntegerRange) in bigEnoughNativeTypes) {
         if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           // Pick this one!
           dd.NativeType = nativeT;
-          if (constraintConsistsSolelyOfRangeConstraints) {
-            dd.NativeTypeRangeImpliesAllConstraints = true;
-          }
-          if (coversAllBitPatterns && nativeT.Sel != NativeType.Selection.Number) {
+          if (coversEntireIntegerRange && nativeT.Sel != NativeType.Selection.Number) {
             dd.TargetTypeCoversAllBitPatterns = true;
           }
 
           // Give an info message saying which type was selected--unless the user requested
           // one particular native type, in which case that must have been the one picked.
-          if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
+          if (nativeTypeChoices is { Count: 1 }) {
             Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
             if (dd.TargetTypeCoversAllBitPatterns) {
               reporter.Info(MessageSource.Resolver, dd.tok,
@@ -2204,11 +2197,11 @@ namespace Microsoft.Dafny {
     /// Returns null if a failure is detected and reported.
     /// </summary>
     [CanBeNull]
-    private List<(NativeType, bool coversAllBitPatterns)> FigureOutNativeTypeForBitvectorNewtype(NewtypeDecl dd,
+    private List<(NativeType, bool coversEntireIntegerRange)> FigureOutNativeTypeForBitvectorNewtype(NewtypeDecl dd,
       BitvectorType bitvectorAncestorType, bool noFurtherConstraints,
       List<NativeType> nativeTypesUnderConsideration, bool reportErrorIfTUCDoesNotFit) {
 
-      var bigEnoughNativeTypes = new List<(NativeType, bool coversAllBitPatterns)>();
+      var bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
       foreach (var nativeType in nativeTypesUnderConsideration) {
         if (nativeType.Bitwidth != 0 && bitvectorAncestorType.Width <= nativeType.Bitwidth) {
           bigEnoughNativeTypes.Add((nativeType, noFurtherConstraints && bitvectorAncestorType.Width == nativeType.Bitwidth));
@@ -2239,12 +2232,13 @@ namespace Microsoft.Dafny {
     /// Returns null if a failure is detected and reported.
     /// </summary>
     [CanBeNull]
-    private List<(NativeType, bool coversAllBitPatterns)> FigureOutNativeTypeForIntegerNewtype(NewtypeDecl dd,
+    private List<(NativeType, bool coversEntireIntegerRange)> FigureOutNativeTypeForIntegerNewtype(NewtypeDecl dd,
       [CanBeNull] BoundVar ddVar, [CanBeNull] Expression ddConstraint,
       List<NativeType> nativeTypesUnderConsideration, bool reportErrorIfTUCDoesNotFit,
-      out bool constraintConsistsSolelyOfRangeConstraints, out string detectedRange) {
+      out string detectedRange) {
       Contract.Requires((ddVar == null) == (ddConstraint == null));
 
+      bool constraintConsistsSolelyOfRangeConstraints;
       BigInteger? lowBound = null;
       BigInteger? highBound = null;
       if (ddVar == null) {
@@ -2278,7 +2272,7 @@ namespace Microsoft.Dafny {
       var emptyRange = lowBound != null && highBound != null && highBound <= lowBound;
       detectedRange = lowBound == null || highBound == null ? "" : emptyRange ? "empty" : $"{lowBound} .. {highBound}";
 
-      var bigEnoughNativeTypes = new List<(NativeType, bool coversAllBitPatterns)>();
+      var bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
       foreach (var nativeT in nativeTypesUnderConsideration) {
         bool lowerOk = emptyRange || (lowBound != null && nativeT.LowerBound <= lowBound);
         bool upperOk = emptyRange || (highBound != null && nativeT.UpperBound >= highBound);

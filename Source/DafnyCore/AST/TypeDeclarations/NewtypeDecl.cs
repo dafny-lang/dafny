@@ -18,7 +18,6 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set; }
 
-  [FilledInDuringResolution] public bool NativeTypeRangeImpliesAllConstraints; // indicates that all values in the range of the native type are values of the newtype
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
   public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
