@@ -42,7 +42,7 @@ public class ProofDependencyWarnings {
           if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, obligation)) {
             var msg = $"proved using contradictory assumptions: {obligation.Description}";
             var rest = obligation.ProofObligation is AssertStatementDescription
-                     ? " (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
+                     ? ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
                      : "";
             reporter.Warning(MessageSource.Verifier, "", obligation.Range, msg + rest);
           }
