@@ -1163,6 +1163,16 @@ namespace Microsoft.Dafny {
         CallGraphBuilder.Build(declarations, reporter);
       }
 
+      // The call graph hasn't been completely constructed, because it's missing the edges having to do with
+      // extreme predicates/lemmas. However, figuring out whether or not constraints are compilable depends on
+      // there being no cycles in the call graph. Therefore, we do an initial check for cycles at this time.
+      var cycleErrorHasBeenReported = new HashSet<ICallable>();
+      foreach (var decl in declarations) {
+        if (decl is RedirectingTypeDecl dd) {
+          CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
+        }
+      }
+
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
@@ -1451,7 +1461,6 @@ namespace Microsoft.Dafny {
         // check that greatest lemmas are not recursive with non-greatest-lemma methods.
         // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
-        var cycleErrorHasBeenReported = new HashSet<ICallable>();
         foreach (var d in declarations) {
           if (d is TopLevelDeclWithMembers { Members: var members }) {
             foreach (var member in members) {
@@ -1494,16 +1503,7 @@ namespace Microsoft.Dafny {
           }
 
           if (d is RedirectingTypeDecl dd) {
-            if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
-              var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
-              if (cycleErrorHasBeenReported.Contains(r)) {
-                // An error has already been reported for this cycle, so don't report another.
-                // Note, the representative, "r", may itself not be a const.
-              } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
-                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
-                cycleErrorHasBeenReported.Add(r);
-              }
-            }
+            CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
           }
         }
       }
@@ -1651,6 +1651,20 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
         new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
+    }
+
+    private void CheckForCyclesAmongRedirectingTypes(RedirectingTypeDecl dd, HashSet<ICallable> cycleErrorHasBeenReported) {
+      var enclosingModule = dd.EnclosingModule;
+      if (enclosingModule.CallGraph.GetSCCSize(dd) != 1) {
+        var r = enclosingModule.CallGraph.GetSCCRepresentative(dd);
+        if (cycleErrorHasBeenReported.Contains(r)) {
+          // An error has already been reported for this cycle, so don't report another.
+          // Note, the representative, "r", may itself not be a const.
+        } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
+          ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
+          cycleErrorHasBeenReported.Add(r);
+        }
       }
     }
 
