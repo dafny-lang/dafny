@@ -130,9 +130,9 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
       }
     }
     if (zp < 0) {
-     assert (x + n) % n == x % n by {
-       LemmaMulInequality(zp, -1, n);
-     }
+      assert (x + n) % n == x % n by {
+        LemmaMulInequality(zp, -1, n);
+      }
     }
   }
 
