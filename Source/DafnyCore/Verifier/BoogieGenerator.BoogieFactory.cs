@@ -804,7 +804,7 @@ namespace Microsoft.Dafny {
       } else if (aNoLit == Bpl.Expr.Not(b) || bNoLit == Bpl.Expr.Not(a)) {
         return Bpl.Expr.False;
       } else {
-        return BplIff(a, b);
+        return Bpl.Expr.Iff(a, b);
       }
     }
 
@@ -821,7 +821,7 @@ namespace Microsoft.Dafny {
       } else if (aNoLit == Bpl.Expr.False) {
         return Bpl.Expr.True;
       } else {
-        return BplImp(a, b);
+        return Bpl.Expr.Imp(a, b);
       }
     }
 
