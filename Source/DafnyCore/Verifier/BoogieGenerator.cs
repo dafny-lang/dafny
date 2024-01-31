@@ -3301,7 +3301,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-
+    public Expr UnboxUnlessBoxType(IToken tok, Expr e, Type type) {
+      return TrType(type) == predef.BoxType ? e : ApplyUnbox(tok, e, TrType(type));
+    }
 
     /// <summary>
     ///   Unboxes an expression with the Box type.

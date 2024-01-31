@@ -1537,7 +1537,7 @@ namespace Microsoft.Dafny {
         // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
         //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
         var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
-        var ai_prime = TrType(elementType) == predef.BoxType ? ai : ApplyUnbox(tok, ai, TrType(elementType));
+        var ai_prime = UnboxUnlessBoxType(tok, ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
         q = new Bpl.ForallExpr(tok, bvs, tr,
           Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
