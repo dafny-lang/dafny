@@ -49,6 +49,7 @@ class SlowVerifier : IProgramVerifier {
     public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public ManualSplit Split => original.Split;
     public Boogie.IToken ScopeToken => original.ScopeToken;
+    public string ScopeId => original.ScopeId;
     public Boogie.IToken Token => original.Token;
 
     public IObservable<IVerificationStatus> TryRun() {

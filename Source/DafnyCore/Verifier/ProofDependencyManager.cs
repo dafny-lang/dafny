@@ -21,22 +21,19 @@ namespace Microsoft.Dafny {
     public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
     private readonly Dictionary<string, HashSet<ProofDependency>> idsByMemberName = new();
     private UInt64 proofDependencyIdCount = 0;
-    private string currentDefinition = null;
+    private string currentDefinition;
 
     public string GetProofDependencyId(ProofDependency dep) {
       var idString = $"id{proofDependencyIdCount}";
       ProofDependenciesById[idString] = dep;
       proofDependencyIdCount++;
-      if (!idsByMemberName.TryGetValue(currentDefinition, out var currentSet)) {
-        currentSet = new HashSet<ProofDependency>();
-        idsByMemberName[currentDefinition] = currentSet;
-      }
+      var currentSet = idsByMemberName.GetOrCreate(currentDefinition, () => new HashSet<ProofDependency>());
       currentSet.Add(dep);
       return idString;
     }
 
-    public void SetCurrentDefinition(string defName) {
-      currentDefinition = defName;
+    public void SetCurrentDefinition(string verificationScopeId) {
+      currentDefinition = verificationScopeId;
     }
 
     public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {

@@ -14,11 +14,11 @@ public class ProofDependencyWarnings {
   public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts, 
     ErrorReporter reporter, ProofDependencyManager manager)
   {
-    foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeToken)) {
+    foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
       WarnAboutSuspiciousDependenciesForImplementation(options,
         reporter,
         manager,
-        resultsForScope.Key.val,
+        resultsForScope.Key,
         resultsForScope.Select(p => p.Result.Result).ToList());
     }
   }
