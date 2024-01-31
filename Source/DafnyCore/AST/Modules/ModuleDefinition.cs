@@ -62,8 +62,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
-  public readonly Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  public Attributes Attributes { get; set; }
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
