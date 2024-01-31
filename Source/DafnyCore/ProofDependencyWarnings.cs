@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyCore.Verifier;
@@ -8,6 +9,20 @@ using VC;
 namespace Microsoft.Dafny;
 
 public class ProofDependencyWarnings {
+  
+
+  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts, 
+    ErrorReporter reporter, ProofDependencyManager manager)
+  {
+    foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeToken)) {
+      WarnAboutSuspiciousDependenciesForImplementation(options,
+        reporter,
+        manager,
+        resultsForScope.Key.val,
+        resultsForScope.Select(p => p.Result.Result).ToList());
+    }
+  }
+  
   public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
     var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
     var orderedResults =

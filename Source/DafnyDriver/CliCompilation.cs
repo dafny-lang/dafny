@@ -12,10 +12,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
-using VC;
-using IToken = Microsoft.Dafny.IToken;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -210,13 +207,9 @@ public class CliCompilation {
               Compilation.ReportDiagnosticsInResult(options, task, completed.Result, Compilation.Reporter);
             }
 
-            foreach (var resultsForScope in results.CompletedParts.GroupBy(p => p.Task.ScopeToken)) {
-              ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options,
-                resolution.ResolvedProgram!.Reporter,
-                resolution.ResolvedProgram.ProofDependencyManager,
-                resultsForScope.Key.val,
-                resultsForScope.Select(p => p.Result.Result).ToList());
-            }
+            var parts = results.CompletedParts;
+            ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts, 
+              resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
 
           } catch (ProverException e) {
             Interlocked.Increment(ref statSum.SolverExceptionCount);
