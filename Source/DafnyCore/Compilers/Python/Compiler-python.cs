@@ -837,7 +837,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(name);
       if (type != null) { wr.Write($": {TypeName(type, wr, tok)}"); }
       if (rhs != null) { wr.Write($" = {rhs}"); }
-      wr.WriteLine();
+      if (!leaveRoomForRhs) {
+        wr.WriteLine();
+      }
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
