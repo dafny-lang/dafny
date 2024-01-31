@@ -851,6 +851,10 @@ method Test()
 
 The success message is optional but is recommended if errorMessage is set.
 
+### 11.4.6. `{:contradiction}`
+
+Silences warnings about this assertion being involved in a proof using contradictory assumptions when `--warn-contradictory-assumptions` is enabled. This allows clear identification of intentional proofs by contradiction.
+
 ## 11.5. Attributes on variable declarations
 
 ### 11.5.1. `{:assumption}` {#sec-assumption}
