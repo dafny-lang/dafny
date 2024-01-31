@@ -209,13 +209,16 @@ public class CliCompilation {
             foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Task.Split.Token)) {
               Compilation.ReportDiagnosticsInResult(options, task, completed.Result, Compilation.Reporter);
 
+            }
+
+            foreach (var resultsForScope in results.CompletedParts.GroupBy(p => p.Task.ScopeToken)) {
               ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options,
                 resolution.ResolvedProgram!.Reporter,
                 resolution.ResolvedProgram.ProofDependencyManager,
-                new DafnyConsolePrinter.ImplementationLogEntry(task.Implementation.VerboseName,
-                  task.Implementation.tok),
-                DafnyConsolePrinter.DistillVerificationResult(completed.Result));
+                resultsForScope.Key.val,
+                resultsForScope.Select(p => p.Result.Result).ToList());
             }
+
           } catch (ProverException e) {
             Interlocked.Increment(ref statSum.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);

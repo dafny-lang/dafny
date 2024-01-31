@@ -249,7 +249,7 @@ public class Compilation : IDisposable {
 
     //return prefix;
   }
-  
+
   public static string GetImplementationName(Implementation implementation) {
     var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
 
@@ -315,8 +315,7 @@ public class Compilation : IDisposable {
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution) 
-  {
+    ResolutionResult resolution) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
