@@ -1060,15 +1060,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
-      // Companion classes in JavaScript are just the same as the type, except for erasable type wrappers
+      // Many (that is, more so than in C# or Java) companion classes in JavaScript are just the same as the type
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
-      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
-          DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-        var s = FullTypeName(udt, member);
-        return TypeName_UDT(s, udt, wr, udt.tok);
-      } else {
-        return TypeName(type, wr, tok, member);
+      if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt) {
+        if ((udt.ResolvedClass is DatatypeDecl dt && DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) ||
+            udt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
+          var s = FullTypeName(udt, member);
+          return TypeName_UDT(s, udt, wr, udt.tok);
+        }
       }
+
+      return TypeName(type, wr, tok, member);
     }
 
     // ----- Declarations -------------------------------------------------------------
