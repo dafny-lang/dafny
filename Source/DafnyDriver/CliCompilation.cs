@@ -151,26 +151,27 @@ public class CliCompilation {
       if (ev is BoogieUpdate boogieUpdate) {
         if (boogieUpdate.BoogieStatus is Completed completed) {
           var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
+          canVerifyResult.CompletedParts.Add((boogieUpdate.VerificationTask, completed));
 
+          // TODO first update this to record resolution of ICanVerify things.
           switch (completed.Result.Outcome) {
-            case ConditionGeneration.Outcome.Correct:
-            case ConditionGeneration.Outcome.ReachedBound:
+            case SolverOutcome.Valid:
+            case SolverOutcome.Bounded:
               Interlocked.Increment(ref statSum.VerifiedCount);
               break;
-            case ConditionGeneration.Outcome.Errors:
-              Interlocked.Add(ref statSum.ErrorCount, completed.Result.Errors.Count);
+            case SolverOutcome.Invalid:
+              Interlocked.Add(ref statSum.ErrorCount, completed.Result.CounterExamples.Count);
               break;
-            case ConditionGeneration.Outcome.TimedOut:
+            case SolverOutcome.TimeOut:
               Interlocked.Increment(ref statSum.TimeoutCount);
               break;
-            case ConditionGeneration.Outcome.OutOfMemory:
+            case SolverOutcome.OutOfMemory:
               Interlocked.Increment(ref statSum.OutOfMemoryCount);
               break;
-            case ConditionGeneration.Outcome.OutOfResource:
+            case SolverOutcome.OutOfResource:
               Interlocked.Increment(ref statSum.OutOfResourceCount);
               break;
-            case ConditionGeneration.Outcome.Inconclusive:
+            case SolverOutcome.Undetermined:
               Interlocked.Increment(ref statSum.InconclusiveCount);
               break;
             default:
@@ -205,10 +206,8 @@ public class CliCompilation {
           var results = canVerifyResults[canVerify];
           try {
             await results.Finished.Task;
-            foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
-              foreach (var vcResult in completed.Result.VCResults) {
-                Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
-              }
+            foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Task.Split.Token)) {
+              Compilation.ReportDiagnosticsInResult(options, task, completed.Result, Compilation.Reporter);
 
               ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options,
                 resolution.ResolvedProgram!.Reporter,

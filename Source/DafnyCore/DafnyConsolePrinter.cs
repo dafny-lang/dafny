@@ -20,7 +20,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private readonly static ConditionalWeakTable<DafnyOptions, ConcurrentDictionary<Uri, List<string>>> fsCaches = new();
+  private static readonly ConditionalWeakTable<DafnyOptions, ConcurrentDictionary<Uri, List<string>>> fsCaches = new();
 
   private DafnyOptions options;
 
@@ -29,28 +29,28 @@ public class DafnyConsolePrinter : ConsolePrinter {
     int VCNum,
     DateTime StartTime,
     TimeSpan RunTime,
-    ProverInterface.Outcome Outcome,
+    SolverOutcome Outcome,
     List<(Boogie.IToken Tok, string Description)> Asserts,
     IEnumerable<TrackedNodeComponent> CoveredElements,
     int ResourceCount);
   public record VerificationResultLogEntry(
-    ConditionGeneration.Outcome Outcome,
+    VcOutcome Outcome,
     TimeSpan RunTime,
     int ResourceCount,
     List<VCResultLogEntry> VCResults,
     List<Counterexample> Counterexamples);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
-  public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+  public static VerificationResultLogEntry DistillVerificationResult(ImplementationRunResult verificationResult) {
     return new VerificationResultLogEntry(
-      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
-      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
+      verificationResult.VcOutcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, verificationResult.RunResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
   }
 
-  private static VCResultLogEntry DistillVCResult(VCResult r) {
-    return new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
-        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
-        r.resourceCount);
+  private static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
+    return new VCResultLogEntry(r.vcNum, r.StartTime, r.RunTime, r.Outcome,
+        r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.CoveredElements,
+        r.ResourceCount);
   }
 
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
@@ -153,7 +153,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
+  public override void ReportEndVerifyImplementation(Implementation implementation, ImplementationRunResult result) {
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
     VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }

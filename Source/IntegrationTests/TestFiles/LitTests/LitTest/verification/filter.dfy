@@ -4,6 +4,7 @@
 // RUN: ! %verify --filter-position='filter.dfy:14' %s >> %t
 // RUN: ! %verify --filter-position='src/source1.dfy:5' %S/Inputs/dfyconfig.toml >> %t
 // RUN: %verify --filter-position='src/source1.dfy:2' %S/Inputs/dfyconfig.toml >> %t
+// RUN: ! %verify --isolate-assertions --filter-position='filter.dfy:15' %s >> %t
 // RUN: %diff "%s.expect" "%t"
 
 method Succeeds()
@@ -12,4 +13,5 @@ method Succeeds()
 
 method Fails() 
   ensures false {
+  assert false;
 }

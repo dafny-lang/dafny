@@ -382,7 +382,7 @@ public record IdeState(
 
   private IdeState UpdateCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
     var previousState = this;
-    var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Implementation);
+    var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Split.Implementation).Distinct();
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
 
     var uri = canVerifyPartsIdentified.CanVerify.Tok.Uri;
@@ -391,7 +391,7 @@ public record IdeState(
 
     var range = canVerifyPartsIdentified.CanVerify.NameToken.GetLspRange();
     var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
-    var names = canVerifyPartsIdentified.Parts.Select(t => Compilation.GetImplementationName(t.Implementation));
+    var names = canVerifyPartsIdentified.Parts.Select(t => Compilation.GetSplitName(t.Split));
     var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
       Implementations: names.ToImmutableDictionary(k => k,
         k => {
@@ -409,7 +409,7 @@ public record IdeState(
   private IdeState UpdateBoogieException(BoogieException boogieException) {
     var previousState = this;
 
-    var name = Compilation.GetImplementationName(boogieException.Task.Implementation);
+    var name = Compilation.GetSplitName(boogieException.Task.Split);
     var uri = boogieException.CanVerify.Tok.Uri;
     var range = boogieException.CanVerify.NameToken.GetLspRange();
 
@@ -440,7 +440,7 @@ public record IdeState(
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);
 
-    var name = Compilation.GetImplementationName(boogieUpdate.ImplementationTask.Implementation);
+    var name = Compilation.GetSplitName(boogieUpdate.VerificationTask.Split);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
     var uri = boogieUpdate.CanVerify.Tok.Uri;
     var range = boogieUpdate.CanVerify.NameToken.GetLspRange();
@@ -458,33 +458,37 @@ public record IdeState(
       hitErrorLimit = false;
     }
 
-    if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
-      counterExamples = counterExamples.Concat(batchCompleted.VcResult.counterExamples);
-      hitErrorLimit |= batchCompleted.VcResult.maxCounterExamples == batchCompleted.VcResult.counterExamples.Count;
+    if (boogieUpdate.BoogieStatus is Completed batchCompleted) {
+      counterExamples = counterExamples.Concat(batchCompleted.Result.CounterExamples);
+      hitErrorLimit |= batchCompleted.Result.MaxCounterExamples == batchCompleted.Result.CounterExamples.Count;
       var newDiagnostics =
-        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.ImplementationTask, batchCompleted.VcResult).ToArray();
+        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, batchCompleted.Result).ToArray();
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
       logger.LogTrace(
         $"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
     }
 
-    if (boogieUpdate.BoogieStatus is Completed completed) {
-      var errorReporter = new ObservableErrorReporter(options, uri);
-      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
-      errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
-
-      if (Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
-          || Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)) {
-        ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options,
-          errorReporter,
-          boogieUpdate.ProofDependencyManager,
-          new DafnyConsolePrinter.ImplementationLogEntry(boogieUpdate.ImplementationTask.Implementation.VerboseName,
-            boogieUpdate.ImplementationTask.Implementation.tok),
-          DafnyConsolePrinter.DistillVerificationResult(completed.Result));
-      }
-
-      diagnostics = diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
-    }
+    // TODO Come up with a solution 
+    // WarnContradictoryAssumptions should be executable based on a single assertion batch.
+    // WarnRedundantAssumptions is more like find references. It needs all the batches under in a verification scope.
+    // If we're saying that WarnRedundantAssumptions is critical, than verifying single assertions is crap.
+    // if (boogieUpdate.BoogieStatus is Completed completed) {
+    //   var errorReporter = new ObservableErrorReporter(options, uri);
+    //   List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
+    //   errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
+    //
+    //   if (Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
+    //       || Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)) {
+    //     ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options,
+    //       errorReporter,
+    //       boogieUpdate.ProofDependencyManager,
+    //       new DafnyConsolePrinter.ImplementationLogEntry(boogieUpdate.VerificationTask.Implementation.VerboseName,
+    //         boogieUpdate.VerificationTask.Implementation.tok),
+    //       DafnyConsolePrinter.DistillVerificationResult(completed.Result));
+    //   }
+    //
+    //   diagnostics = diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
+    // }
 
     var view = new IdeImplementationView(range, status, diagnostics.ToList(),
       previousView.HitErrorLimit || hitErrorLimit);
@@ -500,31 +504,33 @@ public record IdeState(
   private void UpdateGutterIconTrees(BoogieUpdate update, DafnyOptions options, ILogger logger) {
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
     if (update.BoogieStatus is Running) {
-      gutterIconManager.ReportVerifyImplementationRunning(this, update.ImplementationTask.Implementation);
+      // TODO remove duplication?
+      gutterIconManager.ReportVerifyImplementationRunning(this, update.VerificationTask.Split.Implementation);
     }
 
-    if (update.BoogieStatus is BatchCompleted batchCompleted) {
+    if (update.BoogieStatus is Completed batchCompleted) {
       gutterIconManager.ReportAssertionBatchResult(this,
-        new AssertionBatchResult(update.ImplementationTask.Implementation, batchCompleted.VcResult));
+        new AssertionBatchResult(update.VerificationTask.Split, batchCompleted.Result));
     }
 
-    if (update.BoogieStatus is Completed completed) {
-      var tokenString = BoogieGenerator.ToDafnyToken(true, update.ImplementationTask.Implementation.tok).TokenToString(options);
-      var verificationResult = completed.Result;
-      // Sometimes, the boogie status is set as Completed
-      // but the assertion batches were not reported yet.
-      // because they are on a different thread.
-      // This loop will ensure that every vc result has been dealt with
-      // before we report that the verification of the implementation is finished 
-      foreach (var result in completed.Result.VCResults) {
-        logger.LogDebug(
-          $"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {this.Version}");
-        gutterIconManager.ReportAssertionBatchResult(this,
-          new AssertionBatchResult(update.ImplementationTask.Implementation, result));
-      }
-
-      gutterIconManager.ReportEndVerifyImplementation(this, update.ImplementationTask.Implementation, verificationResult);
-    }
+    // TODO switch to 
+    // if (update.BoogieStatus is Completed completed) {
+    //   var tokenString = BoogieGenerator.ToDafnyToken(true, update.VerificationTask.Implementation.tok).TokenToString(options);
+    //   var verificationResult = completed.Result;
+    //   // Sometimes, the boogie status is set as Completed
+    //   // but the assertion batches were not reported yet.
+    //   // because they are on a different thread.
+    //   // This loop will ensure that every vc result has been dealt with
+    //   // before we report that the verification of the implementation is finished 
+    //   foreach (var result in completed.Result.VCResults) {
+    //     logger.LogDebug(
+    //       $"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {this.Version}");
+    //     gutterIconManager.ReportAssertionBatchResult(this,
+    //       new AssertionBatchResult(update.VerificationTask.Implementation, result));
+    //   }
+    //
+    //   gutterIconManager.ReportEndVerifyImplementation(this, update.VerificationTask.Implementation, verificationResult);
+    // }
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
@@ -534,10 +540,9 @@ public record IdeState(
       case Queued:
         return PublishedVerificationStatus.Queued;
       case Running:
-      case BatchCompleted:
         return PublishedVerificationStatus.Running;
       case Completed completed:
-        return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
+        return completed.Result.Outcome == SolverOutcome.Valid
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
       default:
