@@ -16,7 +16,18 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public Expression/*?*/ Witness { get; set; } // non-null iff WitnessKind is Compiled or Ghost
   [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
 
-  [FilledInDuringResolution] bool RedirectingTypeDecl.ConstraintIsCompilable { get; set; }
+  private bool? constraintIsCompilable = null;
+  [FilledInDuringResolution]
+  bool RedirectingTypeDecl.ConstraintIsCompilable {
+    get {
+      Contract.Assert(constraintIsCompilable != null);
+      return (bool)constraintIsCompilable;
+    }
+    set {
+      Contract.Assert(constraintIsCompilable == null);
+      constraintIsCompilable = value;
+    }
+  }
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
