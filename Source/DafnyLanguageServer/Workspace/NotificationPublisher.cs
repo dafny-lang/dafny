@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             OrderBy(s => s.NameRange.Start).ToList());
     }
 
-    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
+    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeCanVerifyState result) {
       const PublishedVerificationStatus nothingToVerifyStatus = PublishedVerificationStatus.Correct;
       var status = result.PreparationProgress switch {
         VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,

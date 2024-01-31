@@ -21,7 +21,7 @@ public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus 
   IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks);
+public record IdeCanVerifyState(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -37,7 +37,7 @@ public record IdeState(
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
+  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> CanVerifyStates,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
@@ -62,7 +62,7 @@ public record IdeState(
       ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty,
       program,
       SymbolTable.Empty(),
-      LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>>.Empty,
+      LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>>.Empty,
       Array.Empty<Counterexample>(),
       ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
       ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
@@ -77,27 +77,27 @@ public record IdeState(
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
 
     var verificationResults = clientSide
-      ? VerificationResults
-      : MigrateImplementationViews(migrator, VerificationResults);
+      ? CanVerifyStates
+      : MigrateImplementationViews(migrator, CanVerifyStates);
     return this with {
       Version = newVersion,
       Status = CompilationStatus.Parsing,
-      VerificationResults = verificationResults,
+      CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }
 
-  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
+  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
     Migrator migrator,
-    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
     if (previous == null) {
       return oldVerificationDiagnostics;
     }
-    var result = ImmutableDictionary<Range, IdeVerificationResult>.Empty;
+    var result = ImmutableDictionary<Range, IdeCanVerifyState>.Empty;
     foreach (var entry in previous) {
       var newOuterRange = migrator.MigrateRange(entry.Key);
       if (newOuterRange == null) {
@@ -121,9 +121,9 @@ public record IdeState(
     return oldVerificationDiagnostics.SetItem(uri, result);
   }
 
-  public IReadOnlyDictionary<Range, IdeVerificationResult> GetVerificationResults(Uri uri) {
-    return VerificationResults.GetValueOrDefault(uri) ??
-      ((IReadOnlyDictionary<Range, IdeVerificationResult>)ImmutableDictionary<Range, IdeVerificationResult>.Empty);
+  public IReadOnlyDictionary<Range, IdeCanVerifyState> GetVerificationResults(Uri uri) {
+    return CanVerifyStates.GetValueOrDefault(uri) ??
+      ((IReadOnlyDictionary<Range, IdeCanVerifyState>)ImmutableDictionary<Range, IdeCanVerifyState>.Empty);
   }
 
   public IEnumerable<Diagnostic> GetAllDiagnostics() {
@@ -138,7 +138,7 @@ public record IdeState(
     return resolutionDiagnostics.Concat(verificationDiagnostics);
   }
 
-  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x) {
+  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeCanVerifyState> x) {
     var anyImplementationHitErrorLimit = x.Value.VerificationTasks.Values.Any(i => i.HitErrorLimit);
     IEnumerable<Diagnostic> result;
     if (anyImplementationHitErrorLimit) {
@@ -159,7 +159,7 @@ public record IdeState(
   }
 
   public IEnumerable<Uri> GetDiagnosticUris() {
-    return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
+    return StaticDiagnostics.Keys.Concat(CanVerifyStates.Keys);
   }
 
   public async Task<IdeState> UpdateState(DafnyOptions options,
@@ -223,18 +223,18 @@ public record IdeState(
 
     var uri = scheduledVerification.CanVerify.Tok.Uri;
     var range = scheduledVerification.CanVerify.NameToken.GetLspRange();
-    var previousVerificationResult = previousState.VerificationResults[uri][range];
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var preparationProgress = new[]
       { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max();
-    var verificationResult = new IdeVerificationResult(PreparationProgress: preparationProgress,
+    var verificationResult = new IdeCanVerifyState(PreparationProgress: preparationProgress,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
     return previousState with {
-      VerificationResults = previousState.VerificationResults.SetItem(uri,
-        previousState.VerificationResults[uri].SetItem(range, verificationResult))
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
     };
   }
 
@@ -305,7 +305,7 @@ public record IdeState(
     }
 
     var verificationResults = finishedResolution.Result.CanVerifies == null
-      ? previousState.VerificationResults
+      ? previousState.CanVerifyStates
       : finishedResolution.Result.CanVerifies.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
         k => k.GroupBy<ICanVerify, Range>(l => l.NameToken.GetLspRange()).ToImmutableDictionary(
           l => l.Key,
@@ -321,13 +321,13 @@ public record IdeState(
       SymbolTable = symbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
       GhostRanges = ghostRanges,
-      VerificationResults = verificationResults,
+      CanVerifyStates = verificationResults,
       VerificationTrees = trees
     };
   }
 
-  private static IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
-    return results.Aggregate((a, b) => new IdeVerificationResult(
+  private static IdeCanVerifyState MergeResults(IEnumerable<IdeCanVerifyState> results) {
+    return results.Aggregate((a, b) => new IdeCanVerifyState(
       MergeStates(a.PreparationProgress, b.PreparationProgress),
       a.VerificationTasks.ToImmutableDictionary().Merge(b.VerificationTasks,
         (aView, bView) => new IdeVerificationTaskState(
@@ -344,12 +344,12 @@ public record IdeState(
     return new[] { first, second }.Min();
   }
 
-  private static IdeVerificationResult MergeVerifiable(IdeState previousState, ICanVerify canVerify) {
+  private static IdeCanVerifyState MergeVerifiable(IdeState previousState, ICanVerify canVerify) {
     var range = canVerify.NameToken.GetLspRange();
     var previousImplementations =
       previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.VerificationTasks ??
       ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
-    return new IdeVerificationResult(PreparationProgress: VerificationPreparationState.NotStarted,
+    return new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.NotStarted,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
@@ -390,9 +390,9 @@ public record IdeState(
       canVerifyPartsIdentified.CanVerify, implementations.ToArray());
 
     var range = canVerifyPartsIdentified.CanVerify.NameToken.GetLspRange();
-    var previousImplementations = previousState.VerificationResults[uri][range].VerificationTasks;
+    var previousImplementations = previousState.CanVerifyStates[uri][range].VerificationTasks;
     var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
-    var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
+    var verificationResult = new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.Done,
       VerificationTasks: names.ToImmutableDictionary(k => k,
         k => {
           var previous = previousImplementations.GetValueOrDefault(k);
@@ -401,8 +401,8 @@ public record IdeState(
             previous?.HitErrorLimit ?? false);
         }));
     return previousState with {
-      VerificationResults = previousState.VerificationResults.SetItem(uri,
-        previousState.VerificationResults[uri].SetItem(range, verificationResult))
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
     };
   }
 
@@ -413,7 +413,7 @@ public record IdeState(
     var uri = boogieException.CanVerify.Tok.Uri;
     var range = boogieException.CanVerify.NameToken.GetLspRange();
 
-    var previousVerificationResult = previousState.VerificationResults[uri][range];
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name) ??
                        new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, Array.Empty<Diagnostic>(), false);
@@ -429,8 +429,8 @@ public record IdeState(
     var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, diagnostics.ToList(), previousView.HitErrorLimit);
 
     return previousState with {
-      VerificationResults = previousState.VerificationResults.SetItem(uri,
-        previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
         }))
     };
@@ -445,7 +445,7 @@ public record IdeState(
     var uri = boogieUpdate.CanVerify.Tok.Uri;
     var range = boogieUpdate.CanVerify.NameToken.GetLspRange();
 
-    var previousVerificationResult = previousState.VerificationResults[uri][range];
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name) ??
                        new IdeVerificationTaskState(range, status, Array.Empty<Diagnostic>(), false);
@@ -472,6 +472,7 @@ public record IdeState(
     // WarnContradictoryAssumptions should be executable based on a single assertion batch.
     // WarnRedundantAssumptions is more like find references. It needs all the batches under in a verification scope.
     // If we're saying that WarnRedundantAssumptions is critical, than verifying single assertions is crap.
+    
     // if (boogieUpdate.BoogieStatus is Completed completed) {
     //   var errorReporter = new ObservableErrorReporter(options, uri);
     //   List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
@@ -494,8 +495,8 @@ public record IdeState(
       previousView.HitErrorLimit || hitErrorLimit);
     return previousState with {
       Counterexamples = counterExamples,
-      VerificationResults = previousState.VerificationResults.SetItem(uri,
-        previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
         }))
     };
