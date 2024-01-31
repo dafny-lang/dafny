@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
         VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
         VerificationPreparationState.Done =>
-          result.Implementations.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
+          result.VerificationTasks.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
         _ => throw new ArgumentOutOfRangeException()
       };
 
@@ -112,7 +112,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
       var max = new[] { first, second }.Max();
       var min = new[] { first, second }.Min();
-      return max >= PublishedVerificationStatus.Error ? min : max;
+      var minMaxRunning = new [] { PublishedVerificationStatus.Running, min }.Max();
+      return max >= PublishedVerificationStatus.Error ? minMaxRunning : max;
     }
 
     private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();

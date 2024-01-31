@@ -17,11 +17,11 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
+public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus Status,
   IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeImplementationView> Implementations);
+public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -104,8 +104,8 @@ public record IdeState(
         continue;
       }
 
-      var newValue = ImmutableDictionary<string, IdeImplementationView>.Empty;
-      foreach (var innerEntry in entry.Value.Implementations) {
+      var newValue = ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
+      foreach (var innerEntry in entry.Value.VerificationTasks) {
         var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
         if (newInnerRange != null) {
           newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
@@ -115,7 +115,7 @@ public record IdeState(
         }
       }
 
-      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      result = result.Add(newOuterRange, entry.Value with { VerificationTasks = newValue });
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);
@@ -133,13 +133,13 @@ public record IdeState(
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
     var resolutionDiagnostics = StaticDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
-      return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
+      return x.Value.VerificationTasks.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
     });
     return resolutionDiagnostics.Concat(verificationDiagnostics);
   }
 
   private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x) {
-    var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
+    var anyImplementationHitErrorLimit = x.Value.VerificationTasks.Values.Any(i => i.HitErrorLimit);
     IEnumerable<Diagnostic> result;
     if (anyImplementationHitErrorLimit) {
       var diagnostic = new Diagnostic() {
@@ -224,11 +224,11 @@ public record IdeState(
     var uri = scheduledVerification.CanVerify.Tok.Uri;
     var range = scheduledVerification.CanVerify.NameToken.GetLspRange();
     var previousVerificationResult = previousState.VerificationResults[uri][range];
-    var previousImplementations = previousVerificationResult.Implementations;
+    var previousImplementations = previousVerificationResult.VerificationTasks;
     var preparationProgress = new[]
       { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max();
     var verificationResult = new IdeVerificationResult(PreparationProgress: preparationProgress,
-      Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
+      VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
@@ -329,8 +329,8 @@ public record IdeState(
   private static IdeVerificationResult MergeResults(IEnumerable<IdeVerificationResult> results) {
     return results.Aggregate((a, b) => new IdeVerificationResult(
       MergeStates(a.PreparationProgress, b.PreparationProgress),
-      a.Implementations.ToImmutableDictionary().Merge(b.Implementations,
-        (aView, bView) => new IdeImplementationView(
+      a.VerificationTasks.ToImmutableDictionary().Merge(b.VerificationTasks,
+        (aView, bView) => new IdeVerificationTaskState(
           aView.Range,
           Combine(aView.Status, bView.Status),
           aView.Diagnostics.Concat(bView.Diagnostics).ToList(), aView.HitErrorLimit || bView.HitErrorLimit))));
@@ -347,10 +347,10 @@ public record IdeState(
   private static IdeVerificationResult MergeVerifiable(IdeState previousState, ICanVerify canVerify) {
     var range = canVerify.NameToken.GetLspRange();
     var previousImplementations =
-      previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.Implementations ??
-      ImmutableDictionary<string, IdeImplementationView>.Empty;
+      previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range)?.VerificationTasks ??
+      ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
     return new IdeVerificationResult(PreparationProgress: VerificationPreparationState.NotStarted,
-      Implementations: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
+      VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
         Diagnostics = IdeState.MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
@@ -390,13 +390,13 @@ public record IdeState(
       canVerifyPartsIdentified.CanVerify, implementations.ToArray());
 
     var range = canVerifyPartsIdentified.CanVerify.NameToken.GetLspRange();
-    var previousImplementations = previousState.VerificationResults[uri][range].Implementations;
-    var names = canVerifyPartsIdentified.Parts.Select(t => Compilation.GetSplitName(t.Split));
+    var previousImplementations = previousState.VerificationResults[uri][range].VerificationTasks;
+    var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
     var verificationResult = new IdeVerificationResult(PreparationProgress: VerificationPreparationState.Done,
-      Implementations: names.ToImmutableDictionary(k => k,
+      VerificationTasks: names.ToImmutableDictionary(k => k,
         k => {
           var previous = previousImplementations.GetValueOrDefault(k);
-          return new IdeImplementationView(range, PublishedVerificationStatus.Queued,
+          return new IdeVerificationTaskState(range, PublishedVerificationStatus.Queued,
             previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false);
         }));
@@ -409,14 +409,14 @@ public record IdeState(
   private IdeState UpdateBoogieException(BoogieException boogieException) {
     var previousState = this;
 
-    var name = Compilation.GetSplitName(boogieException.Task.Split);
+    var name = Compilation.GetTaskName(boogieException.Task);
     var uri = boogieException.CanVerify.Tok.Uri;
     var range = boogieException.CanVerify.NameToken.GetLspRange();
 
     var previousVerificationResult = previousState.VerificationResults[uri][range];
-    var previousImplementations = previousVerificationResult.Implementations;
+    var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name) ??
-                       new IdeImplementationView(range, PublishedVerificationStatus.Error, Array.Empty<Diagnostic>(), false);
+                       new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, Array.Empty<Diagnostic>(), false);
     var diagnostics = previousView.Diagnostics;
 
     var internalErrorDiagnostic = new Diagnostic {
@@ -426,12 +426,12 @@ public record IdeState(
     };
     diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic }).ToList();
 
-    var view = new IdeImplementationView(range, PublishedVerificationStatus.Error, diagnostics.ToList(), previousView.HitErrorLimit);
+    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, diagnostics.ToList(), previousView.HitErrorLimit);
 
     return previousState with {
       VerificationResults = previousState.VerificationResults.SetItem(uri,
         previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
-          Implementations = previousVerificationResult.Implementations.SetItem(name, view)
+          VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
         }))
     };
   }
@@ -440,15 +440,15 @@ public record IdeState(
     var previousState = this;
     UpdateGutterIconTrees(boogieUpdate, options, logger);
 
-    var name = Compilation.GetSplitName(boogieUpdate.VerificationTask.Split);
+    var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
     var uri = boogieUpdate.CanVerify.Tok.Uri;
     var range = boogieUpdate.CanVerify.NameToken.GetLspRange();
 
     var previousVerificationResult = previousState.VerificationResults[uri][range];
-    var previousImplementations = previousVerificationResult.Implementations;
+    var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name) ??
-                       new IdeImplementationView(range, status, Array.Empty<Diagnostic>(), false);
+                       new IdeVerificationTaskState(range, status, Array.Empty<Diagnostic>(), false);
     var counterExamples = previousState.Counterexamples;
     bool hitErrorLimit = previousView.HitErrorLimit;
     var diagnostics = previousView.Diagnostics;
@@ -458,11 +458,11 @@ public record IdeState(
       hitErrorLimit = false;
     }
 
-    if (boogieUpdate.BoogieStatus is Completed batchCompleted) {
-      counterExamples = counterExamples.Concat(batchCompleted.Result.CounterExamples);
-      hitErrorLimit |= batchCompleted.Result.MaxCounterExamples == batchCompleted.Result.CounterExamples.Count;
+    if (boogieUpdate.BoogieStatus is Completed completed) {
+      counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
+      hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       var newDiagnostics =
-        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, batchCompleted.Result).ToArray();
+        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, completed.Result).ToArray();
       diagnostics = diagnostics.Concat(newDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
       logger.LogTrace(
         $"BatchCompleted received for {previousState.Input} and found #{newDiagnostics.Length} new diagnostics.");
@@ -490,13 +490,13 @@ public record IdeState(
     //   diagnostics = diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     // }
 
-    var view = new IdeImplementationView(range, status, diagnostics.ToList(),
+    var view = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
       previousView.HitErrorLimit || hitErrorLimit);
     return previousState with {
       Counterexamples = counterExamples,
       VerificationResults = previousState.VerificationResults.SetItem(uri,
         previousState.VerificationResults[uri].SetItem(range, previousVerificationResult with {
-          Implementations = previousVerificationResult.Implementations.SetItem(name, view)
+          VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
         }))
     };
   }

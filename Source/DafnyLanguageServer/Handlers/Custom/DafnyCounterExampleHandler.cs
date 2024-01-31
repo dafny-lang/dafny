@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       return s.Status == CompilationStatus.ResolutionSucceeded &&
              s.VerificationResults[uri].Values.All(r =>
                r.PreparationProgress == VerificationPreparationState.Done &&
-               r.Implementations.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
+               r.VerificationTasks.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
     }
 
     private class CounterExampleLoader {
