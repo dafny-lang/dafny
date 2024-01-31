@@ -208,7 +208,6 @@ public class CliCompilation {
             await results.Finished.Task;
             foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Task.Split.Token)) {
               Compilation.ReportDiagnosticsInResult(options, task, completed.Result, Compilation.Reporter);
-
             }
 
             foreach (var resultsForScope in results.CompletedParts.GroupBy(p => p.Task.ScopeToken)) {
