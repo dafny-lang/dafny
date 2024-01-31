@@ -976,8 +976,7 @@ namespace Microsoft.Dafny.Compilers {
       {
         var usedOrAutoInitTypeParams = UsedTypeParameters(dt, true);
         CreateRTD(name, usedOrAutoInitTypeParams, out var wDefault, wr);
-
-        WriteRuntimeTypeDescriptorsLocals(usedOrAutoInitTypeParams, true, wDefault);
+        WriteRuntimeTypeDescriptorsLocals(usedOrAutoInitTypeParams, wDefault);
 
         var usedTypeParams = UsedTypeParameters(dt);
         var sep = typeDescriptorUses.Length != 0 && usedTypeParams.Count != 0 ? ", " : "";
@@ -1022,8 +1021,9 @@ namespace Microsoft.Dafny.Compilers {
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       // RTD
       {
-        CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
-        var d = TypeInitializationValue(udt, wr, nt.tok, false, true);
+        CreateRTD(IdName(nt), nt.TypeArgs, out var wDefaultBody, wr);
+        WriteRuntimeTypeDescriptorsLocals(nt.TypeArgs, wDefaultBody);
+        var d = DefaultValue(udt, wr, nt.tok, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
 
@@ -1048,19 +1048,20 @@ namespace Microsoft.Dafny.Compilers {
       // RTD
       {
         CreateRTD(IdName(sst), sst.TypeArgs, out var wDefaultBody, wr);
+        WriteRuntimeTypeDescriptorsLocals(sst.TypeArgs, wDefaultBody);
         var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-        var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
+        var d = DefaultValue(udt, wr, sst.tok, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
 
+      GenerateIsMethod(sst, wr);
     }
 
-    private void CreateRTD(string typeName, List<TypeParameter>/*?*/ usedParams, out ConcreteSyntaxTree wDefaultBody, ConcreteSyntaxTree wr) {
+    private void CreateRTD(string typeName, List<TypeParameter> usedParams, out ConcreteSyntaxTree wDefaultBody, ConcreteSyntaxTree wr) {
       Contract.Requires(typeName != null);
+      Contract.Requires(usedParams != null);
       Contract.Requires(wr != null);
       Contract.Ensures(Contract.ValueAtReturn(out wDefaultBody) != null);
-
-      usedParams ??= new List<TypeParameter>();
 
       wr.WriteLine();
       wr.Write($"func {FormatRTDName(typeName)}(");
@@ -1378,15 +1379,13 @@ namespace Microsoft.Dafny.Compilers {
       return count;
     }
 
-    void WriteRuntimeTypeDescriptorsLocals(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree wr) {
+    void WriteRuntimeTypeDescriptorsLocals(List<TypeParameter> typeParams, ConcreteSyntaxTree wr) {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
-          wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.GetCompileName(Options)));
-          EmitDummyVariableUse(FormatRTDName(tp.GetCompileName(Options)), wr);
-        }
+        wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.GetCompileName(Options)));
+        EmitDummyVariableUse(FormatRTDName(tp.GetCompileName(Options)), wr);
       }
     }
 
@@ -1440,8 +1439,6 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(tp != null);
         string th;
         if (thisContext != null && tp.Parent is TopLevelDeclWithMembers and not TraitDecl) {
-          th = "_this.";
-        } else if (thisContext == null && tp.Parent is SubsetTypeDecl) {
           th = "_this.";
         } else {
           th = "";
