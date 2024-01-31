@@ -163,6 +163,8 @@ public class NoContext : ICodeContext {
 public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
+  string FullDafnyName { get; }
+
   IToken tok { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
