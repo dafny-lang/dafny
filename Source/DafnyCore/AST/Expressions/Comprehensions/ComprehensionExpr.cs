@@ -105,12 +105,13 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
         return a ?? b;
       }
 
-      if (Expression.IsIntLiteral(Expression.StripParensAndCasts(a), out var aa) &&
-          Expression.IsIntLiteral(Expression.StripParensAndCasts(b), out var bb)) {
+      if (Expression.IsIntLiteral(a, out var aa) && Expression.IsIntLiteral(b, out var bb)) {
         var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
         return new LiteralExpr(a.tok, x) { Type = a.Type };
       }
-      return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
+      // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
+      // (better would be to return an expression that computes to the minimum of "a" and "b")
+      return a;
     }
 
     public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds,

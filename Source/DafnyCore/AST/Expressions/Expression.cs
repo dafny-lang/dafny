@@ -494,11 +494,11 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static bool IsIntLiteral(Expression expr, out BigInteger value) {
     Contract.Requires(expr != null);
-    var e = StripParens(expr) as LiteralExpr;
-    if (e != null && e.Value is int x) {
+    var e = StripParensAndCasts(expr) as LiteralExpr;
+    if (e is { Value: int x }) {
       value = new BigInteger(x);
       return true;
-    } else if (e != null && e.Value is BigInteger xx) {
+    } else if (e is { Value: BigInteger xx }) {
       value = xx;
       return true;
     } else {

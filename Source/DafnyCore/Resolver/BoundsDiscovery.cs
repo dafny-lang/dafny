@@ -245,7 +245,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
       foreach (var bv in bvars) {
         var c = GetImpliedTypeConstraint(bv, bv.Type);
-        expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
+        expr = polarity ? Expression.CreateAnd(c, expr, false) : Expression.CreateImplies(c, expr, false);
       }
       var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
       return bests;
@@ -701,7 +701,12 @@ namespace Microsoft.Dafny {
           while (true) {
             var bin = thisSide as BinaryExpr;
             if (bin == null) {
-              break; // done simplifying
+              if (thisSide is ConversionExpr conversionExpr &&
+                  thisSide.Type.NormalizeExpand().Equals(conversionExpr.E.Type.NormalizeExpand())) {
+                thisSide = conversionExpr.E.Resolved;
+              } else {
+                break; // done simplifying
+              }
 
             } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
@@ -750,7 +755,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(!FreeVariables(thatSide).Contains(bv));
 
       // Now, see if the interesting side is simply bv itself
-      if (thisSide is IdentifierExpr && ((IdentifierExpr)thisSide).Var == bv) {
+      if (Expression.StripParensAndCasts(thisSide) is IdentifierExpr { Var: var thisSideVar } && thisSideVar == bv) {
         // we're cool
       } else {
         // no, the situation is more complicated than we care to understand
