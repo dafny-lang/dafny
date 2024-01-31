@@ -1246,12 +1246,34 @@ namespace Microsoft.Dafny.Compilers {
         DeclareField("Witness", true, true, true, typeName, witness, cw);
       }
       EmitTypeDescriptorMethod(nt, w);
+      GenerateIsMethod(nt, cw.StaticMemberWriter);
 
       if (nt.ParentTraits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 
       return cw;
+    }
+
+    void GenerateIsMethod(RedirectingTypeDecl declWithConstraints, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+
+        wr.Write($"public static bool {IsMethodName}(");
+
+        var count = EmitTypeDescriptorsForClass(declWithConstraints.TypeArgs, (TopLevelDecl)declWithConstraints,
+          out _, out var wCtorParams, out _, out _);
+        if (count != 0) {
+          wr.Write($"{wCtorParams}, ");
+        }
+
+        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var typeName = TypeName(type, wr, declWithConstraints.tok);
+        var wrBody = wr.NewBlock($"{typeName} {IdName(sourceFormal)})");
+        GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
+      }
     }
 
     void DeclareBoxedNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -1289,6 +1311,7 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine($"return {witness};");
       }
       EmitTypeDescriptorMethod(sst, cw.StaticMemberWriter);
+      GenerateIsMethod(sst, cw.StaticMemberWriter);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {

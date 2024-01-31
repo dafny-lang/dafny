@@ -600,6 +600,8 @@ namespace Microsoft.Dafny.Compilers {
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
       wDefault.WriteLine("return {0};", d);
 
+      GenerateIsMethod(nt, cw.MethodWriter);
+
       if (nt.ParentTraits.Count != 0) {
         // in constructor:
         //   this._value = value;
@@ -613,6 +615,25 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return cw;
+    }
+
+    void GenerateIsMethod(RedirectingTypeDecl declWithConstraints, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+
+        wr.Write($"static {IsMethodName}(");
+
+        var count = WriteRuntimeTypeDescriptorsFormals(declWithConstraints.TypeArgs, false, wr);
+        if (count != 0) {
+          wr.Write(", ");
+        }
+
+        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var wrBody = wr.NewBlock($"{IdName(sourceFormal)})");
+        GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
+      }
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
@@ -630,6 +651,8 @@ namespace Microsoft.Dafny.Compilers {
         d = TypeInitializationValue(udt, wr, sst.tok, false, false);
       }
       w.NewBlock("static get Default()").WriteLine($"return {d};");
+
+      GenerateIsMethod(sst, cw.MethodWriter);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {

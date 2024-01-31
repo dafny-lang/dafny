@@ -54,6 +54,7 @@ namespace Microsoft.Dafny.Compilers {
     public virtual string ModuleSeparator => ".";
     protected virtual string StaticClassAccessor => ".";
     protected virtual string InstanceClassAccessor => ".";
+    protected virtual string IsMethodName => "_Is";
 
     protected ErrorReporter Reporter;
 
@@ -5827,6 +5828,98 @@ namespace Microsoft.Dafny.Compilers {
         wr = EmitReturnExpr(wr);
       }
       return wr;
+    }
+
+    /// <summary>
+    /// Generates the body of an _Is method for a subset type or newtype.
+    /// "wr" is the writer the for body.
+    /// It is assumed that the caller has declared an enclosing method body that includes a parameter "sourceFormal" and having the type
+    /// "declWithConstraints" (with its type parameters as type arguments).
+    /// It is also assumed that the type has a compilable constraint (otherwise, no "_Is" method should be generated).
+    /// </summary>
+    protected void GenerateIsMethodBody(RedirectingTypeDecl declWithConstraints, Formal sourceFormal, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+      Contract.Requires(declWithConstraints.ConstraintIsCompilable);
+
+      void ReturnBoolLiteral(ConcreteSyntaxTree writer, bool value) {
+        var wrReturn = EmitReturnExpr(writer);
+        EmitLiteralExpr(wrReturn, Expression.CreateBoolLiteral(declWithConstraints.tok, value));
+      }
+
+      if (declWithConstraints is NewtypeDecl { TargetTypeCoversAllBitPatterns: true }) {
+        // newtype has trivial constraint
+        ReturnBoolLiteral(wr, true);
+        return;
+      }
+
+      IVariable baseTypeVarDecl;
+      Type baseType;
+      if (declWithConstraints.Var != null) {
+        baseTypeVarDecl = declWithConstraints.Var;
+        baseType = baseTypeVarDecl.Type;
+      } else {
+        baseType = ((NewtypeDecl)declWithConstraints).BaseType;
+        baseTypeVarDecl = new BoundVar(declWithConstraints.RangeToken, "_base", baseType);
+      }
+      baseType = baseType.NormalizeExpandKeepConstraints();
+      var baseTypeVar = new IdentifierExpr(declWithConstraints.tok, baseTypeVarDecl);
+
+      // var _base = (BaseType)source;
+      var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+      var wStmts = wr.Fork();
+      DeclareLocalVar(IdName(baseTypeVarDecl), baseType, declWithConstraints.tok, true, null, wr);
+      var wRhs = EmitAssignmentRhs(wr);
+      var source = new IdentifierExpr(sourceFormal.tok, sourceFormal);
+      EmitConversionExpr(source, type, baseType, false, wRhs, wStmts);
+      EmitDummyVariableUse(IdName(baseTypeVarDecl), wr);
+
+      if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } baseTypeUdt) {
+        wStmts = wr.Fork();
+        var thenWriter = EmitIf(out var guardWriter, hasElse: false, wr);
+        ReturnBoolLiteral(wr, false);
+
+        var wrArgument = EmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
+        EmitExpr(baseTypeVar, false, wrArgument, wStmts);
+
+        wr = thenWriter;
+      }
+
+      if (declWithConstraints.Var == null) {
+        ReturnBoolLiteral(wr, true);
+      } else {
+        var wStmtsReturn = wr.Fork();
+        var wrReturn = EmitReturnExpr(wr);
+        EmitExpr(declWithConstraints.Constraint, false, wrReturn, wStmtsReturn);
+      }
+    }
+
+    protected ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+      Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
+      Contract.Requires(declWithConstraints.ConstraintIsCompilable);
+
+      if (declWithConstraints is NonNullTypeDecl) {
+        // Non-null types don't have a special target class, so we just do the non-null constraint check here.
+        return EmitNullTest(false, wr);
+      }
+
+      if (declWithConstraints is NewtypeDecl { TargetTypeCoversAllBitPatterns: true }) {
+        EmitLiteralExpr(wr, Expression.CreateBoolLiteral(declWithConstraints.tok, true));
+        var abyssWriter = new ConcreteSyntaxTree();
+        return abyssWriter;
+      }
+
+      // in mind that type parameters are not accessible in static methods in some target languages).
+      var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
+      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
+      wr.Write(StaticClassAccessor);
+      wr.Write(IsMethodName);
+      var wrArguments = wr.ForkInParens();
+      var sep = "";
+      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
+        declWithConstraints.tok, wrArguments, ref sep);
+      wrArguments.Write(sep);
+      return wrArguments;
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage,

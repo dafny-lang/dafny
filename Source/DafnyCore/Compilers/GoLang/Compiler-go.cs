@@ -32,6 +32,7 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     public override string ModuleSeparator => "_";
+    protected override string IsMethodName => "Is_";
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
@@ -1026,6 +1027,8 @@ namespace Microsoft.Dafny.Compilers {
         wDefaultBody.WriteLine("return {0}", d);
       }
 
+      GenerateIsMethod(nt, wr);
+
       if (nt.ParentTraits.Count != 0) {
         cw.InstanceFieldWriter.WriteLine($"_value {TypeName(udt, cw.InstanceFieldWriter, nt.tok)}");
       }
@@ -1049,6 +1052,7 @@ namespace Microsoft.Dafny.Compilers {
         var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
+
     }
 
     private void CreateRTD(string typeName, List<TypeParameter>/*?*/ usedParams, out ConcreteSyntaxTree wDefaultBody, ConcreteSyntaxTree wr) {
@@ -1075,6 +1079,26 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       var wString = wr.NewNamedBlock($"func (_this type_{typeName}_) String() string");
       wString.WriteLine($"return \"{ModuleName}.{typeName}\"");
+    }
+
+    void GenerateIsMethod(RedirectingTypeDecl declWithConstraints, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+
+        wr.Write($"func (_this *{FormatCompanionTypeName(IdName((TopLevelDecl)declWithConstraints))}) Is_(");
+
+        var count = WriteRuntimeTypeDescriptorsFormals(declWithConstraints.TypeArgs, false, out var wrFormals, out _);
+        if (count != 0) {
+          wr.Write($"{wrFormals}, ");
+        }
+
+        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var typeName = TypeName(type, wr, declWithConstraints.tok);
+        var wrBody = wr.NewBlock($"{IdName(sourceFormal)} {typeName}) bool");
+        GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
+      }
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {

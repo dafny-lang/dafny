@@ -364,6 +364,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
+      Contract.Requires(d is SubsetTypeDecl or NewtypeDecl);
+
       var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(d), d, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(d.tok, d);
@@ -377,6 +379,8 @@ namespace Microsoft.Dafny.Compilers {
         block.Write(TypeInitializationValue(udt, wr, d.tok, false, false));
       }
       block.WriteLine();
+
+      GenerateIsMethod((RedirectingTypeDecl)d, w);
 
       if (d is NewtypeDecl newtypeDecl && newtypeDecl.ParentTraits.Count != 0) {
         // in constructor:
@@ -393,6 +397,25 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
       DeclareType(sst, sst.WitnessKind, sst.Witness, wr);
+    }
+
+    void GenerateIsMethod(RedirectingTypeDecl declWithConstraints, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+
+        wr.Write($"def {IsMethodName}(");
+
+        var sep = "";
+        var count = WriteRuntimeTypeDescriptorsFormals(TypeArgumentInstantiation.ListFromFormals(declWithConstraints.TypeArgs), wr, ref sep,
+          FormatDefaultTypeParameterValue);
+        wr.Write(sep);
+
+        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var wrBody = wr.NewBlockPy($"{IdName(sourceFormal)}):");
+        GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
+      }
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {

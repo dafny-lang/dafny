@@ -423,6 +423,8 @@ namespace Microsoft.Dafny.Compilers {
         var w = cw.StaticMemberWriter.NewBlock(")");
         w.WriteLine($"return {witness};");
       }
+
+      GenerateIsMethod(sst, cw.StaticMemberWriter);
     }
 
     protected class ClassWriter : IClassWriter {
@@ -3593,11 +3595,35 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+      GenerateIsMethod(nt, cw.StaticMemberWriter);
+
       if (nt.ParentTraits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 
       return cw;
+    }
+
+    void GenerateIsMethod(RedirectingTypeDecl declWithConstraints, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+
+        wr.Write($"public static {TypeParameters(declWithConstraints.TypeArgs, " ")}boolean {IsMethodName}(");
+
+        var wCtorParams = new ConcreteSyntaxTree();
+        var count = EmitTypeDescriptorsForClass(declWithConstraints.TypeArgs, (TopLevelDecl)declWithConstraints,
+          null, wCtorParams, null, null);
+        if (count != 0) {
+          wr.Write($"{wCtorParams}, ");
+        }
+
+        var sourceFormal = new Formal(declWithConstraints.tok, "_source", type, true, false, null);
+        var typeName = TypeName(type, wr, declWithConstraints.tok);
+        var wrBody = wr.NewBlock($"{typeName} {IdName(sourceFormal)})");
+        GenerateIsMethodBody(declWithConstraints, sourceFormal, wrBody);
+      }
     }
 
     void DeclareBoxedNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
