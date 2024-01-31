@@ -855,45 +855,6 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
-  /// Returns "true" if:  Given a value of type "this", can we determine at run time if the
-  /// value is a member of type "target"?
-  /// </summary>
-  public bool IsTestableToBe(Type target) {
-    Contract.Requires(target != null);
-
-    // First up, we know how to check for null, so let's expand "target" and "source"
-    // past any type synonyms and also past any (built-in) non-null constraint.
-    var source = this.NormalizeExpandKeepConstraints();
-    if (source is UserDefinedType && ((UserDefinedType)source).ResolvedClass is NonNullTypeDecl) {
-      source = source.NormalizeExpand(); // also lop off non-null constraint
-    }
-    target = target.NormalizeExpandKeepConstraints();
-    if (target is UserDefinedType && ((UserDefinedType)target).ResolvedClass is NonNullTypeDecl) {
-      target = target.NormalizeExpand(); // also lop off non-null constraint
-    }
-
-    if (source.IsSubtypeOf(target, false, true)) {
-      // Every value of "source" (except possibly "null") is also a member of type "target",
-      // so no run-time test is needed (except possibly a null check).
-      return true;
-#if SOON  // include in a coming PR that sorts this one in the compilers
-      } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
-        // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
-        // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
-        // to if it is compilable after all.)
-        var constraints = target.GetTypeConstraints();
-        return false;
-#endif
-    } else if (target.TypeArgs.Count == 0) {
-      // No type parameters. So, we just need to check the run-time class/interface type.
-      return true;
-    } else {
-      // We give up.
-      return false;
-    }
-  }
-
-  /// <summary>
   /// Returns "true" iff "sub" is a subtype of "super".
   /// Expects that neither "super" nor "sub" is an unresolved proxy.
   /// </summary>
