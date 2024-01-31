@@ -1,6 +1,7 @@
 name: Check Deep Tests (Reusable Workflow)
 
 on:
+  workflow_dispatch:
   workflow_call:
 
 jobs:
@@ -12,7 +13,7 @@ jobs:
       with:
         path: dafny
         submodules: recursive
-    - uses: actions/github-script@v6
+    - uses: actions/github-script@v7
       if: github.repository_owner == 'dafny-lang'
       with:
         # Since nightly-build.yml always targets fixed branches now, rather than being parameterized by

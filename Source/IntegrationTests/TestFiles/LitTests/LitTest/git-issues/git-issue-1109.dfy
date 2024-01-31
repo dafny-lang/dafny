@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /stdin < "%s" > "%t"
+// RUN: %exits-with 4 %verify --stdin < "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma TestStdin()

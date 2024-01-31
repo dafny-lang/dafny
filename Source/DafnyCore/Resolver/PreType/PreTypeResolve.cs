@@ -472,41 +472,12 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-#if THIS_COMES_LATER
-    public void PostResolveChecks(List<TopLevelDecl> declarations) {
-      Contract.Requires(declarations != null);
-      foreach (TopLevelDecl topd in declarations) {
-        TopLevelDecl d = topd is ClassLikeDecl ? ((ClassLikeDecl)topd).NonNullTypeDecl : topd;
-
-        if (ErrorCount == prevErrorCount) {
-          // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
-          foreach (TopLevelDecl topd in declarations) {
-            TopLevelDecl d = topd is ClassLikeDecl ? ((ClassLikeDecl)topd).NonNullTypeDecl : topd;
-            if (topd is TopLevelDeclWithMembers cl) {
-              foreach (var member in cl.Members) {
-                if (member is ConstantField field && field.Rhs != null) {
-                  // make sure initialization only refers to constant field or literal expression
-                  if (CheckIsConstantExpr(field, field.Rhs)) {
-                    AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type,
-                      "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-                  }
-                  
-                }
-              }
-            }
-          }
-        }
-
-      }
-    }
-#endif
-
     void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
       Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
     }
 
-    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
-      Constraints.AddConfirmation(check, preType, tok, errorFormatString);
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
+      Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
     void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
@@ -719,6 +690,17 @@ namespace Microsoft.Dafny {
         if (nd.Var != null) {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
           nd.Var.PreType = nd.BasePreType;
+        }
+        var onProxyAction = () => {
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.tok,
+            $"{nd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
+        };
+        if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
+            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})", onProxyAction);
+        } else {
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
+            "a newtype must be based on some numeric type (got {0})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
 

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
+// RUN: %verify --show-inference "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This test checks that typical expressions requiring WF checks do not suddenly

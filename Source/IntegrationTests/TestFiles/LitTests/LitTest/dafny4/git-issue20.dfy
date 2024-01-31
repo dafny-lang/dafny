@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate {:opaque} p(i:int)

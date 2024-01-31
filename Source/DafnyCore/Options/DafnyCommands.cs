@@ -17,6 +17,7 @@ public static class DafnyCommands {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
     }, false, "Dafny input files and/or a Dafny project file");
   }
+
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
     CommonOptionBag.FormatPrint,
@@ -43,7 +44,10 @@ public static class DafnyCommands {
     CommonOptionBag.WarnContradictoryAssumptions,
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
-    CommonOptionBag.VerificationCoverageReport
+    CommonOptionBag.VerificationCoverageReport,
+    CommonOptionBag.ExtractCounterexample,
+    CommonOptionBag.ShowInference,
+    CommonOptionBag.ManualTriggerOption
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -65,7 +69,7 @@ public static class DafnyCommands {
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
-    DeveloperOptionBag.Print,
+    DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
@@ -85,6 +89,7 @@ public static class DafnyCommands {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.GeneralTraits,
+    CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,

@@ -38,7 +38,8 @@ public class LanguageServerFilesystem : IFileSystem {
     string existingText = "";
     try {
       if (OnDiskFileSystem.Instance.Exists(uri)) {
-        existingText = OnDiskFileSystem.Instance.ReadFile(uri).ReadToEnd();
+        using var fileStream = OnDiskFileSystem.Instance.ReadFile(uri);
+        existingText = fileStream.ReadToEnd();
       }
     } catch (IOException) {
       // If we don't manage to detect whether this document already existed ond disc,

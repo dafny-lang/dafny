@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --function-syntax:experimentalPredicateAlwaysGhost --print:- "%s" > "%t"
+// RUN: %verify --function-syntax:experimentalPredicateAlwaysGhost --print:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function F0(): int

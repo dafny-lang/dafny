@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler "%s" -- --standard-libraries --relax-definite-assignment
 
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 method id<T>(r: T) returns (r2: T)  {
   r2 := r;

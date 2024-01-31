@@ -24,6 +24,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     private const int MaxTestExecutionTimeMs = 30000;
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
+    public async Task HoverPutsErrorsFirst() {
+      var documentItem = await GetDocumentItem(@"
+method {:vcs_split_on_every_assert} Test(x: int, y: int)
+  requires x < y
+{
+  var callIt := giveIt(x, y);
+}
+function giveIt(x: int, y: int): int
+  requires x != y // OK
+  requires 0 < x  // Error
+  requires 0 < y  // OK
+  requires x + 1 < y // Error
+", "HoverPutsErrorsFirst.dfy", true);
+      // When hovering the postcondition, it should display the position of the failing path
+      await AssertVerificationHoverMatches(documentItem, (3, 21),
+        @"**Error:**???**Error:**???**Success:**???**Success:**???"
+      );
+    }
+
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
 method Abs(x: int) returns (y: int)
@@ -468,7 +488,7 @@ Could not prove: `i <= 0`"
       var documentItem = await GetDocumentItem(@"
 ghost function f(i:nat, j:nat):int {if i == 0 then 0 else f(i - 1, i * j + 1) + f(i - 1, 2 * i * j)}
 
-lemma{:rlimit 10000} L()
+lemma{:resource_limit 10000000} L()
 {
   assert f(10, 5) == 0;
 } ", "testfileSlow.dfy", true);

@@ -430,7 +430,7 @@ method Bar() { assert false; }";
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.True(successfulRun);
-    var range = new Range(0, 20, 0, 42);
+    var range = new Range(0, 31, 0, 53);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
 
@@ -653,7 +653,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [Fact]
-  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+  public async Task RefiningDeclarationStatusIsNotFoldedIntoTheBase() {
     var source = @"
 abstract module BaseModule {
   method Foo() returns (x: int) ensures x > 2 

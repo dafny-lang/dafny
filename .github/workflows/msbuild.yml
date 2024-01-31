@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
@@ -55,7 +55,7 @@ jobs:
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
       run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
@@ -91,7 +91,7 @@ jobs:
           submodules: recursive
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{env.dotnet-version}}
 
@@ -108,12 +108,13 @@ jobs:
           dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
 
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: integration-test-results-ubuntu-20.04
+          pattern: integration-test-results-ubuntu-20.04-*
+          merge-multiple: true
 
       - name: Download unit test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: unit-test-results-ubuntu-20.04
 
@@ -174,7 +175,7 @@ jobs:
           # Report "yellow" status if less than 90% total coverage.
           thresholds: '86 90'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always() # Upload results even if the job fails
         with:
           name: test-coverage-results

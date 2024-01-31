@@ -30,21 +30,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
           serviceProvider.GetRequiredService<DafnyOptions>(),
           serviceProvider.GetRequiredService<IFileSystem>(),
-          serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+          serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
           serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
           serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
           new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilation>(serviceProvider => (options, engine, compilation) => new Compilation(
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
           serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
-          options, engine, compilation
+          engine, compilation
           ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();

@@ -14,7 +14,7 @@ public delegate IdeStateObserver CreateIdeStateObserver(IdeState initialState);
 
 public class IdeStateObserver : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
   private readonly ILogger logger;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
   private readonly object lastPublishedStateLock = new();
@@ -23,7 +23,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
   public IdeState LastPublishedState { get; private set; }
 
   public IdeStateObserver(ILogger logger,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     INotificationPublisher notificationPublisher,
     IdeState initialState) {
     this.initialState = initialState;
@@ -37,9 +37,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     var ideState = initialState with {
       Version = LastPublishedState.Version + 1
     };
-#pragma warning disable VSTHRD002
-    notificationPublisher.PublishNotifications(LastPublishedState, ideState).Wait();
-#pragma warning restore VSTHRD002
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
 
@@ -52,11 +50,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
         return;
       }
 
-      // To prevent older updates from being sent after newer ones, we can only run one PublishNotifications at a time.
-      // So we wait for it here to finish, and the lock in this method prevents more than one from running at a time.
-#pragma warning disable VSTHRD002
-      notificationPublisher.PublishNotifications(LastPublishedState, snapshot).Wait();
-#pragma warning restore VSTHRD002
+      notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
       LastPublishedState = snapshot;
       logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
     }

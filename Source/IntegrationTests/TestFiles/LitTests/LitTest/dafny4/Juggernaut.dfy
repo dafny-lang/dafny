@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Jug()

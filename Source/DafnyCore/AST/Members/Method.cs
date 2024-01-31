@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -46,7 +47,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -56,6 +57,13 @@ public class Method : MemberDecl, TypeParameter.ParentType,
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+    }
+
+    if (Attributes.Contains(Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(false));
+    }
+    if (Attributes.Contains(Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
+      yield return new Assumption(this, tok, AssumptionDescription.HasAssumeConcurrentAttribute(true));
     }
 
     if (AllowsNontermination) {
@@ -381,7 +389,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public virtual SymbolKind Kind => SymbolKind.Method;
   public string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";

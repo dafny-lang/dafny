@@ -30,9 +30,9 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     Exports = original.Exports;
   }
 
-  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name,
+  public AliasModuleDecl(DafnyOptions options, RangeToken rangeToken, ModuleQualifiedId path, Name name,
     ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
-    : base(rangeToken, name, parent, opened, false, cloneId) {
+    : base(options, rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);

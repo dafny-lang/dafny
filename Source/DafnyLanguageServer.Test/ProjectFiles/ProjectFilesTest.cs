@@ -16,29 +16,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
-  public async Task ProjectFileErrorIsShown() {
-    var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, DafnyProject.FileName);
-    var diagnostics = await GetLastDiagnostics(projectFile, DiagnosticSeverity.Error);
-    Assert.Single(diagnostics);
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.First().Range);
-    Assert.Contains("contains the following errors", diagnostics.First().Message);
-  }
+  public async Task ProducerLibrary() {
+    var libraryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var producerSource = @"
+module Producer {
+  const x := 3
+}".TrimStart();
+    Directory.CreateDirectory(libraryDirectory);
+    var producerPath = Path.Combine(libraryDirectory, "producer.dfy").Replace("\\", "/");
+    await File.WriteAllTextAsync(producerPath, producerSource);
+    var consumerSource = @"
+module Consumer {
+  import opened Producer
+  const y := x + 2
+}".TrimStart();
 
-  [Fact]
-  public async Task ProjectFileErrorIsShownFromDafnyFile() {
-    var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    Directory.CreateDirectory(directory);
-    var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
-    await File.WriteAllTextAsync(projectFilePath, projectFileSource);
-    await CreateOpenAndWaitForResolve("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
-    Assert.Equal(2, diagnostics.Diagnostics.Count());
-    Assert.Equal(new Range(0, 0, 0, 0), diagnostics.Diagnostics.First().Range);
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains("contains the following errors"));
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains($"Files referenced by project are:{Environment.NewLine}ProjectFileErrorIsShownFromDafnyFile.dfy"));
+    var projectFileSource = $@"
+[options]
+library = [""{producerPath}""]".TrimStart();
+
+    var consumerDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(consumerDirectory);
+    await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
+    var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   /// <summary>
@@ -79,7 +82,7 @@ module Consumer {
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Equal("Project references no files", diagnostics.First().Message);
+    Assert.Equal("no Dafny source files were specified as input", diagnostics.First().Message);
   }
 
   [Fact]
