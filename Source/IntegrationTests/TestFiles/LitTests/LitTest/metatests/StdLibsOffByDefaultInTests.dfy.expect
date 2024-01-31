@@ -1,0 +1,4 @@
+StdLibsOffByDefaultInTests.dfy(8,20): Error: module Std does not exist (position 0 in path Std.Wrappers)
+1 resolution/type errors detected in StdLibsOffByDefaultInTests.dfy
+
+Dafny program verifier finished with 1 verified, 0 errors

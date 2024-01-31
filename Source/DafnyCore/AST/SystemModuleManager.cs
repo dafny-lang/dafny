@@ -11,8 +11,7 @@ namespace Microsoft.Dafny;
 
 public class SystemModuleManager {
   public DafnyOptions Options { get; }
-  public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
-    false, false, null, null, null, true);
+  public readonly ModuleDefinition SystemModule;
   internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
@@ -80,8 +79,16 @@ public class SystemModuleManager {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
+  /// <summary>
+  /// Return a resolved type for "set<object?>".
+  /// </summary>
+  public Type ObjectSetType() {
+    return new SetType(true, ObjectQ());
+  }
 
   public SystemModuleManager(DafnyOptions options) {
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+      ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
@@ -96,6 +103,7 @@ public class SystemModuleManager {
     NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+    ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
     ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
@@ -279,7 +287,7 @@ public class SystemModuleManager {
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
-        Type = new SetType(true, ObjectQ()),
+        Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
@@ -293,7 +301,7 @@ public class SystemModuleManager {
       return function;
     }
 
-    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var reads = CreateMember("reads", ObjectSetType(), null);
     var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
@@ -409,7 +417,7 @@ public class SystemModuleManager {
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }
 
-      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, DontCompile());
+      tt = new TupleTypeDecl(argumentGhostness, SystemModule, nonGhostTupleTypeDecl, null);
       if (tt.NonGhostDims > MaxNonGhostTupleSizeUsed) {
         MaxNonGhostTupleSizeToken = tok;
         MaxNonGhostTupleSizeUsed = tt.NonGhostDims;
@@ -470,7 +478,7 @@ public class SystemModuleManager {
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {
-    var moduleResolver = new ModuleResolver(programResolver);
+    var moduleResolver = new ModuleResolver(programResolver, programResolver.Options);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
@@ -482,6 +490,39 @@ public class SystemModuleManager {
           CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
         }
       }
+    }
+  }
+
+  public void CheckHasAllTupleNonGhostDimsUpTo(int max) {
+    var allNeededDims = Enumerable.Range(0, max + 1).ToHashSet();
+    var allDeclaredDims = tupleTypeDecls.Keys
+        .Select(argumentGhostness => argumentGhostness.Count(ghost => !ghost))
+        .Distinct()
+        .ToHashSet();
+    if (!allDeclaredDims.SetEquals(allNeededDims)) {
+      throw new ArgumentException(@$"Not all tuple types declared between 0 and {max}!
+needed: {allNeededDims.Comma()}
+declared: {allDeclaredDims.Comma()}");
+    }
+  }
+
+  public void CheckHasAllArrayDimsUpTo(int max) {
+    var allNeededDims = Enumerable.Range(1, max).ToHashSet();
+    var allDeclaredDims = arrayTypeDecls.Keys.ToHashSet();
+    if (!allDeclaredDims.SetEquals(allNeededDims)) {
+      throw new ArgumentException(@$"Not all array types declared between 1 and {max}!
+needed: {allNeededDims.Comma()}
+declared: {allDeclaredDims.Comma()}");
+    }
+  }
+
+  public void CheckHasAllArrowAritiesUpTo(int max) {
+    var allNeededArities = Enumerable.Range(0, max + 1).ToHashSet();
+    var allDeclaredArities = ArrowTypeDecls.Keys.ToHashSet();
+    if (!allDeclaredArities.SetEquals(allNeededArities)) {
+      throw new ArgumentException(@$"Not all arrow types declared between 0 and {max}
+needed: {allNeededArities.Comma()}
+declared: {allDeclaredArities.Comma()}");
     }
   }
 }

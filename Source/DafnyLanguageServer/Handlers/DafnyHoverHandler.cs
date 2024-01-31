@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -23,16 +22,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
-    private DafnyOptions options;
 
     private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects, DafnyOptions options) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
       this.projects = projects;
-      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -43,10 +40,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogDebug("received hover request for {Document}", request.TextDocument);
-      IdeState? state;
-      try {
-        state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
-      } catch (OperationCanceledException) {
+      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      if (state == null) {
+        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
+        return null;
+      }
+      if (state.Status == CompilationStatus.ParsingFailed) {
         return new Hover {
           Contents = new MarkedStringsOrMarkupContent(new MarkupContent {
             Kind = MarkupKind.Markdown,
@@ -54,10 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           })
         };
       }
-      if (state == null) {
-        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
-        return null;
-      }
+
       var diagnosticHoverContent = GetDiagnosticsHover(state, request.TextDocument.Uri.ToUri(), request.Position, out var areMethodStatistics);
       var (symbol, symbolHoverContent) = GetStaticHoverContent(request, state);
       if (diagnosticHoverContent == null && symbolHoverContent == null) {
@@ -73,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
       IDeclarationOrUsage? declarationOrUsage =
-        state.Program.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        state.ResolvedProgram.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
       if (declarationOrUsage is IHasUsages usage) {
@@ -90,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
 
-      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol) : null;
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(state.Input.Options, symbol) : null;
       return (symbol, symbolHoverContent);
     }
 
@@ -144,6 +140,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             .Select(keyValuePair => keyValuePair.Value)
             .ToList();
 
+        // Put errors in the front. Put assertions with the highest resource count first
+        List<(string content, long resources)> errors = new();
+        List<(string content, long resources)> other = new();
+
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {
             continue;
@@ -154,17 +154,28 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           foreach (var assertionNode in assertions) {
             if (assertionNode.Range.Contains(position) ||
                 assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-              if (information != "") {
-                information += "\n\n";
-              }
 
-              information += GetAssertionInformation(state, position, assertionNode, assertionBatch,
-                assertionIndex, assertionBatchCount, node);
+              var whereToAdd = assertionNode.StatusVerification == GutterVerificationStatus.Error ?
+                errors : other;
+              var content = GetAssertionInformation(state, position, assertionNode, assertionBatch,
+                                            assertionIndex, assertionBatchCount, node);
+              var resources = assertionBatch.ResourceCount;
+              whereToAdd.Add((content, resources));
             }
 
             assertionIndex++;
           }
         }
+
+        var biggerResourceCountFirst =
+          Comparer<(string content, long resources)>.Create(
+          (left, right) =>
+            right.resources.CompareTo(left.resources)
+        );
+        errors.Sort(biggerResourceCountFirst);
+        other.Sort(biggerResourceCountFirst);
+        errors.AddRange(other);
+        information = string.Join("\n\n", errors.Select(info => info.content));
 
         if (information != "") {
           return information;
@@ -304,10 +315,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
-          if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
+
+          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
@@ -442,7 +455,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private string CreateSymbolMarkdown(ISymbol symbol) {
+    private string CreateSymbolMarkdown(DafnyOptions options, ISymbol symbol) {
       var docString = symbol is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
       return (docString + $"\n```dafny\n{symbol.GetDescription(options)}\n```").TrimStart();
     }

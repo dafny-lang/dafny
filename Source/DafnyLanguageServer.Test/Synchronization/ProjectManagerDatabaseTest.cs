@@ -9,7 +9,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [Collection("Sequential Collection")]
 public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {

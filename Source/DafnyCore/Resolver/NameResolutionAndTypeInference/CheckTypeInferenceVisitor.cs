@@ -28,15 +28,15 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (decl is NewtypeDecl newtypeDecl) {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
-            newtypeDecl.Var.Name);
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
+            $"{newtypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
-          "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
+          $"{subsetTypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
@@ -116,7 +116,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var n = (BigInteger)e.Value;
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
-        if (e.Type.IsBitVectorType && ModuleResolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+        if (e.Type.IsBitVectorType && ConstantFolder.MaxBv(e.Type.AsBitVectorType.Width) < absN) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -161,9 +161,16 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (e.Member is Function || e.Member is Method) {
         var i = 0;
         foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
-          var tp = i < e.TypeApplication_AtEnclosingClass.Count
-            ? e.Member.EnclosingClass.TypeArgs[i]
+          var tp = i < e.TypeApplication_AtEnclosingClass.Count ?
+              (e.Member.EnclosingClass is DefaultClassDecl ?
+                // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl
+                // and does not have type arguments
+                null :
+                e.Member.EnclosingClass.TypeArgs[i])
             : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+          if (tp == null) {
+            continue;
+          }
           if (!IsDetermined(p.Normalize())) {
             resolver.ReportError(ResolutionErrors.ErrorId.r_type_parameter_not_determined, e.tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
@@ -211,7 +218,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (ConversionExpr)expr;
       if (e.ToType.IsRefType) {
         var fromType = e.E.Type;
-        Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) || fromType.IsRefType);
+        Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType);
         if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
           // looks good
         } else {
@@ -228,7 +235,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.tok,
           "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
-      } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
+      } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
         // it's fine
       } else if (!e.ToType.IsRefType) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,

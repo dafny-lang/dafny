@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Dafny;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -40,6 +41,10 @@ namespace Microsoft.Dafny {
 
     public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {
       return idsByMemberName[defName];
+    }
+
+    public IEnumerable<ProofDependency> GetAllPotentialDependencies() {
+      return idsByMemberName.Values.SelectMany(deps => deps);
     }
 
     // The "id" attribute on a Boogie AST node is used by Boogie to label
@@ -77,6 +82,13 @@ namespace Microsoft.Dafny {
       } else {
         throw new ArgumentException($"Malformed dependency ID: {component.SolverLabel}");
       }
+    }
+
+    public IEnumerable<ProofDependency> GetOrderedFullDependencies(IEnumerable<TrackedNodeComponent> components) {
+      return components
+        .Select(GetFullIdDependency)
+        .OrderBy(dep => dep.Range)
+        .ThenBy(dep => dep.Description);
     }
   }
 }

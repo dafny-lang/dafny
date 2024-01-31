@@ -5,6 +5,7 @@
         <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
+        <DefaultItemExcludes>$(DefaultItemExcludes);TestFiles\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -39,7 +40,7 @@
         <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="..\..\Test\**\*.*" Exclude="..\..\Test\**\.#*" LinkBase="TestFiles\LitTests\LitTest">
+        <Content Include="TestFiles\LitTests\LitTest\**\*.*" Exclude="TestFiles\LitTests\LitTest\**\.#*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="..\..\docs\DafnyRef\examples\**\*.*" LinkBase="TestFiles\LitTests\LitTest\refman\examples">

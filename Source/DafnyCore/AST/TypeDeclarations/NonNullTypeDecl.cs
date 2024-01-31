@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class NonNullTypeDecl : SubsetTypeDecl, ISymbol {
-  public override string WhatKind { get { return "non-null type"; } }
+public class NonNullTypeDecl : SubsetTypeDecl {
+  public override string WhatKind => "non-null type";
   public readonly ClassLikeDecl Class;
 
   /// <summary>
@@ -45,7 +46,7 @@ public class NonNullTypeDecl : SubsetTypeDecl, ISymbol {
     return result;
   }
 
-  public override DafnySymbolKind Kind => Class.Kind;
+  public override SymbolKind Kind => Class.Kind;
 
   public override string GetDescription(DafnyOptions options) {
     return Class.GetDescription(options);

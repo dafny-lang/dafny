@@ -1926,13 +1926,17 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var recursiveGen, recIdents := GenStmts(body, None, paramNames, true, "");
+          var recursiveGen, recIdents := GenStmts(body, if selfIdent != None then Some("_this") else None, paramNames, true, "");
           readIdents := {};
           var allReadCloned := "";
           while recIdents != {} decreases recIdents {
             var next: string :| next in recIdents;
 
-            if !(next in paramNames) {
+            if selfIdent != None && next == "_this" {
+              if selfIdent != None {
+                allReadCloned := allReadCloned + "let _this = self.clone();\n";
+              }
+            } else if !(next in paramNames) {
               allReadCloned := allReadCloned + "let " + escapeIdent(next) + " = " + escapeIdent(next) + ".clone();\n";
               readIdents := readIdents + {next};
             }

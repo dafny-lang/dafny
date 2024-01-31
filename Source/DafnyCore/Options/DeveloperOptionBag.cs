@@ -14,7 +14,7 @@ Print Boogie program translated from Dafny
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<string> Print = new("--print", @"
+  public static readonly Option<string> PrintOption = new("--print", @"
 Print Dafny program after parsing it.
 (Use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
@@ -36,14 +36,13 @@ enabling necessary special handling.".TrimStart()) {
   };
 
   static DeveloperOptionBag() {
-
     DafnyOptions.RegisterLegacyBinding(ResolvedPrint, (options, value) => {
       options.DafnyPrintResolvedFile = value;
       options.ExpandFilename(options.DafnyPrintResolvedFile, x => options.DafnyPrintResolvedFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
 
-    DafnyOptions.RegisterLegacyBinding(Print, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(PrintOption, (options, value) => {
       options.DafnyPrintFile = value;
       options.ExpandFilename(options.DafnyPrintFile, x => options.DafnyPrintFile = x, options.LogPrefix,
         options.FileTimestamp);
@@ -57,7 +56,7 @@ enabling necessary special handling.".TrimStart()) {
 
     DooFile.RegisterNoChecksNeeded(
       BoogiePrint,
-      Print,
+      PrintOption,
       ResolvedPrint,
       Bootstrapping
     );

@@ -10,7 +10,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
 
@@ -65,7 +65,7 @@ warn-shadowing = true
     var sourceFile = CreateTestDocument(hasShadowingSource, sourceFilePath);
     await client.OpenDocumentAndWaitAsync(sourceFile, CancellationToken);
 
-    var diagnostics0 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics0 = await GetLastDiagnostics(sourceFile);
     Assert.Single(diagnostics0);
     Assert.Contains("Shadowed", diagnostics0[0].Message);
 
@@ -73,7 +73,7 @@ warn-shadowing = true
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     ApplyChange(ref sourceFile, new Range(0, 0, 0, 0), "//comment\n");
-    var diagnostics1 = await GetLastDiagnostics(sourceFile, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics1);
   }
 

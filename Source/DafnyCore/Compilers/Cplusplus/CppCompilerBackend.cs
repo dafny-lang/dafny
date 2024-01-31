@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class CppCompilerBackend : ExecutableBackend {
+
   protected override SinglePassCompiler CreateCompiler() {
     return new CppCompiler(Options, Reporter, OtherFileNames);
   }
@@ -45,6 +47,14 @@ public class CppCompilerBackend : ExecutableBackend {
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
     return 0 == RunProcess(psi, outputWriter, errorWriter);
+  }
+
+  public override Command GetCommand() {
+    return new Command(TargetId, $@"Translate Dafny sources to {TargetName} source and build files.
+
+This back-end has various limitations (see Docs/Compilation/Cpp.md).
+This includes lack of support for BigIntegers (aka int), most higher order functions,
+and advanced features like traits or co-inductive types.");
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };

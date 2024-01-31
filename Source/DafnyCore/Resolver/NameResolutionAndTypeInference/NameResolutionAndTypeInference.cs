@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
-            if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name == "fuel" && arg is NameSegment)) {
+            if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment)) {
               ResolveExpression(arg, resolutionContext);
             } else {
               ResolveRevealLemmaAttribute(arg);
@@ -1118,7 +1118,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
       } else if (expr is WildcardExpr) {
-        expr.Type = new SetType(true, SystemModuleManager.ObjectQ());
+        expr.Type = SystemModuleManager.ObjectSetType();
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
@@ -5606,7 +5606,7 @@ namespace Microsoft.Dafny {
         var hint0 = "(did you forget to qualify a name or declare a module import 'opened'?)";
         var hint1 = " (note that names in outer modules are not visible in contained modules)";
         var hint2 = "";
-        if (Options.Get(CommonOptionBag.GeneralTraits) && expr.Name.EndsWith("?")) {
+        if (Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && expr.Name.EndsWith("?")) {
           var nameWithoutQuestionMark = expr.Name[..^1];
           if (nameWithoutQuestionMark.Length != 0 &&
               moduleInfo.TopLevels.TryGetValue(nameWithoutQuestionMark, out decl) && decl is TraitDecl) {

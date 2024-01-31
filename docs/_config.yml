@@ -65,3 +65,11 @@ exclude:
    - vendor/cache/
    - vendor/gems/
    - vendor/ruby/
+   - "*.expect"
+
+defaults:
+  -
+    scope:
+      path: "" # an empty string here means all files in the project
+    values:
+      layout: "single"

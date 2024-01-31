@@ -107,7 +107,7 @@ type ImapSimulator<!A, B> =
     /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
@@ -143,7 +143,7 @@ type ImapSimulator<!A, B> =
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
+      return BoogieGenerator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
 }

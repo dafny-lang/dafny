@@ -15,10 +15,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationOrderTest : ClientBasedLanguageServerTest {
 
   [Fact]
-  public async Task MigrationOfRecentlyRelatedChanges() {
+  public async Task VerificationOrderStaysCorrectAfterMigrationOfSymbolHeaders() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"
@@ -27,25 +27,27 @@ method Foo() {
 }
 ".TrimStart();
 
-    var directory = Path.GetRandomFileName();
-    var firstFile = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "firstFile.dfy"));
+    var document = await CreateOpenAndWaitForResolve(sourceA, "MigrationOfRecentlyRelatedChanges.dfy");
 
     await WaitUntilCompletedForUris(1, CancellationToken);
+    verificationStatusReceiver.ClearHistory();
 
-    ApplyChange(ref firstFile, new Range(3, 0, 3, 0), "method GetsPriority() { assert false; }\n");
-    var history1 = await WaitUntilCompletedForUris(1, CancellationToken);
-    AssertExpectedOrderForFirstFile(history1, new Range(3, 7, 3, 19));
-    ApplyChange(ref firstFile, new Range(0, 0, 0, 0), "//comment before assert false\n");
+    ApplyChange(ref document, new Range(3, 0, 3, 0), "method GetsPriority() { assert false; }\n");
+    await WaitUntilAllStatusAreCompleted(document);
+    AssertFirstFinishedVerifiableIs(new Range(3, 7, 3, 19));
+    ApplyChange(ref document, new Range(0, 0, 0, 0), "//comment before assert false\n");
 
-    var history2 = await WaitUntilCompletedForUris(1, CancellationToken);
-    AssertExpectedOrderForFirstFile(history2, new Range(4, 7, 4, 19));
+    await WaitUntilAllStatusAreCompleted(document);
+    AssertFirstFinishedVerifiableIs(new Range(4, 7, 4, 19));
 
-    void AssertExpectedOrderForFirstFile(IList<FileVerificationStatus> history, Range expectedRange) {
-      var firstErrorStatus = history.First(h =>
-        h.Uri == firstFile.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Error));
+    void AssertFirstFinishedVerifiableIs(Range expectedRange) {
+      var nonMigratedResults = verificationStatusReceiver.History.
+        SkipWhile(h => h.NamedVerifiables.All(s => s.Status >= PublishedVerificationStatus.Error));
+      var firstErrorStatus = nonMigratedResults.First(h => h.Uri == document.Uri && h.NamedVerifiables.Any(v => v.Status == PublishedVerificationStatus.Error));
       var errorRange = firstErrorStatus.NamedVerifiables.First(v => v.Status == PublishedVerificationStatus.Error);
       Assert.Equal(expectedRange, errorRange.NameRange);
       Assert.Contains(firstErrorStatus.NamedVerifiables, v => v.Status != PublishedVerificationStatus.Error);
+      verificationStatusReceiver.ClearHistory();
     }
   }
 
@@ -53,7 +55,7 @@ method Foo() {
   public async Task VerificationPriorityBasedOnChangesWorksWithMultipleFiles() {
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
-      options.Set(ServerCommand.Verification, VerifyOnMode.ChangeProject);
+      options.Set(ProjectManager.Verification, VerifyOnMode.ChangeProject);
     });
 
     var sourceA = @"

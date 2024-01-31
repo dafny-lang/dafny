@@ -39,6 +39,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
+    Contract.Assert(Ctors.Count == 1);
     ArgumentGhostness = argumentGhostness;
     foreach (var ctor in Ctors) {
       ctor.EnclosingDatatype = this;  // resolve here
@@ -49,6 +50,9 @@ public class TupleTypeDecl : IndDatatypeDecl {
       }
     }
     this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
+
+    // Resolve parent type information - not currently possible for tuples to have any parent traits
+    ParentTypeInformation = new InheritanceInformationClass();
   }
   private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
     Contract.Requires(0 <= dims);
@@ -60,6 +64,10 @@ public class TupleTypeDecl : IndDatatypeDecl {
     }
     return ts;
   }
+
+  /// <summary>
+  /// Creates the one and only constructor of the tuple type.
+  /// </summary>
   private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
     Contract.Requires(typeArgs != null);
     var formals = new List<Formal>();

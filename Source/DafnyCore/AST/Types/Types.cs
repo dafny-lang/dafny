@@ -134,13 +134,44 @@ public abstract class Type : TokenNode {
     Contract.Ensures(Contract.Result<Type>() != null);
     Type type = this;
     while (true) {
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
-        type = pt.T;
+      if (type is TypeProxy { T: { } proxyTarget }) {
+        type = proxyTarget;
       } else {
         return type;
       }
     }
+  }
+
+  /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies, and then using an InternalTypeSynonym if
+  /// the type is not in scope.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeAndAdjustForScope() {
+    return NormalizeExpand(ExpandMode.DontExpandJustAdjustForScopes);
+  }
+
+  /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+  /// not follow subset types.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeExpandKeepConstraints() {
+    return NormalizeExpand(ExpandMode.ExpandSynonymsOnly);
+  }
+
+  public Type NormalizeExpand(bool keepConstraints) {
+    return NormalizeExpand(keepConstraints ? ExpandMode.ExpandSynonymsOnly : ExpandMode.ExpandSynonymsAndSubsetTypes);
+  }
+
+  public enum ExpandMode {
+    DontExpandJustAdjustForScopes,
+    ExpandSynonymsOnly,
+    ExpandSynonymsAndSubsetTypes
   }
 
   /// <summary>
@@ -149,9 +180,10 @@ public abstract class Type : TokenNode {
   /// For more documentation, see method Normalize().
   /// </summary>
   [System.Diagnostics.Contracts.Pure]
-  public Type NormalizeExpand(bool keepConstraints = false) {
+  public Type NormalizeExpand(ExpandMode expandMode = ExpandMode.ExpandSynonymsAndSubsetTypes) {
     Contract.Ensures(Contract.Result<Type>() != null);
     Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+
     Type type = this;
     while (true) {
 
@@ -178,12 +210,13 @@ public abstract class Type : TokenNode {
         }
 
         if (rtd.IsRevealedInScope(scope)) {
-          if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
-            type = ((TypeSynonymDecl)rtd).RhsWithArgumentIgnoringScope(udt.TypeArgs);
-            continue;
-          } else {
-            return type;
+          if (expandMode != ExpandMode.DontExpandJustAdjustForScopes && rtd is TypeSynonymDecl typeSynonymDecl) {
+            if (typeSynonymDecl is not SubsetTypeDecl || expandMode == ExpandMode.ExpandSynonymsAndSubsetTypes) {
+              type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+              continue;
+            }
           }
+          return type;
         } else { // type is hidden, no more normalization is possible
           return rtd.SelfSynonym(type.TypeArgs);
         }
@@ -200,7 +233,7 @@ public abstract class Type : TokenNode {
           var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
           Contract.Assert(rhs is UserDefinedType);
           var cl = ((UserDefinedType)rhs).ResolvedClass as ClassLikeDecl;
-          Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+          Contract.Assert(cl != null && cl.NonNullTypeDecl != null, rhs.ToString());
           Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
         }
 
@@ -214,17 +247,6 @@ public abstract class Type : TokenNode {
 
       return type;
     }
-  }
-
-  /// <summary>
-  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
-  /// not follow subset types.
-  ///
-  /// For more documentation, see method Normalize().
-  /// </summary>
-  [System.Diagnostics.Contracts.Pure]
-  public Type NormalizeExpandKeepConstraints() {
-    return NormalizeExpand(true);
   }
 
   /// <summary>
@@ -270,14 +292,15 @@ public abstract class Type : TokenNode {
   [System.Diagnostics.Contracts.Pure]
   public abstract bool Equals(Type that, bool keepConstraints = false);
 
-  public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
-  public bool IsCharType { get { return NormalizeExpand() is CharType; } }
-  public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
-  public bool IsRealType { get { return NormalizeExpand() is RealType; } }
-  public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
-  public bool IsBitVectorType { get { return AsBitVectorType != null; } }
-  public bool IsStringType { get { return AsSeqType?.Arg.IsCharType == true; } }
-  public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
+  public bool IsBoolType => NormalizeExpand() is BoolType;
+  public bool IsCharType => NormalizeExpand() is CharType;
+  public bool IsIntegerType => NormalizeExpand() is IntType;
+  public bool IsRealType => NormalizeExpand() is RealType;
+  public bool IsBigOrdinalType => NormalizeExpand() is BigOrdinalType;
+  public bool IsBitVectorType => AsBitVectorType != null;
+  public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
+  public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
+
   public bool IsNumericBased() {
     var t = NormalizeExpand();
     return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
@@ -328,6 +351,10 @@ public abstract class Type : TokenNode {
   }
 
   public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
+
+  public bool HavocCountsAsDefiniteAssignment(bool inGhostContext) {
+    return inGhostContext ? IsNonempty : HasCompilableValue;
+  }
 
   /// <summary>
   /// This property returns
@@ -680,58 +707,32 @@ public abstract class Type : TokenNode {
       }
     }
   }
-  public bool IsArrowType {
-    get { return AsArrowType != null; }
-  }
-  public ArrowType AsArrowType {
-    get {
-      var t = NormalizeExpand();
-      return t as ArrowType;
-    }
-  }
+  public bool IsArrowType => AsArrowType != null;
 
-  public bool IsMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && t.Finite;
-    }
-  }
-  public bool IsIMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && !t.Finite;
-    }
-  }
-  public bool IsISetType {
-    get {
-      var t = NormalizeExpand() as SetType;
-      return t != null && !t.Finite;
-    }
-  }
+  public ArrowType AsArrowType => NormalizeExpand() as ArrowType;
+
+  public bool IsMapType => NormalizeExpand() is MapType { Finite: true };
+
+  public bool IsIMapType => NormalizeExpand() is MapType { Finite: false };
+
+  public bool IsISetType => NormalizeExpand() is SetType { Finite: false };
+
   public NewtypeDecl AsNewtype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      return udt == null ? null : udt.ResolvedClass as NewtypeDecl;
+      return udt?.ResolvedClass as NewtypeDecl;
     }
   }
   public TypeSynonymDecl AsTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as TypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as TypeSynonymDecl;
     }
   }
   public InternalTypeSynonymDecl AsInternalTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as InternalTypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as InternalTypeSynonymDecl;
     }
   }
   public RedirectingTypeDecl AsRedirectingType {
@@ -747,59 +748,33 @@ public abstract class Type : TokenNode {
   public RevealableTypeDecl AsRevealableType {
     get {
       var udt = this as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return (udt.ResolvedClass as RevealableTypeDecl);
-      }
+      return udt?.ResolvedClass as RevealableTypeDecl;
     }
   }
-  public bool IsRevealableType {
-    get { return AsRevealableType != null; }
-  }
-  public bool IsDatatype {
-    get {
-      return AsDatatype != null;
-    }
-  }
+  public bool IsRevealableType => AsRevealableType != null;
+
+  public bool IsDatatype => AsDatatype != null;
+
   public DatatypeDecl AsDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as DatatypeDecl;
-      }
+      return udt?.ResolvedClass as DatatypeDecl;
     }
   }
-  public bool IsIndDatatype {
-    get {
-      return AsIndDatatype != null;
-    }
-  }
+  public bool IsIndDatatype => AsIndDatatype != null;
+
   public IndDatatypeDecl AsIndDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as IndDatatypeDecl;
-      }
+      return udt?.ResolvedClass as IndDatatypeDecl;
     }
   }
-  public bool IsCoDatatype {
-    get {
-      return AsCoDatatype != null;
-    }
-  }
+  public bool IsCoDatatype => AsCoDatatype != null;
+
   public CoDatatypeDecl AsCoDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as CoDatatypeDecl;
-      }
+      return udt?.ResolvedClass as CoDatatypeDecl;
     }
   }
   public bool InvolvesCoDatatype {
@@ -807,23 +782,18 @@ public abstract class Type : TokenNode {
       return IsCoDatatype;  // TODO: should really check structure of the type recursively
     }
   }
-  public bool IsTypeParameter {
-    get {
-      return AsTypeParameter != null;
-    }
-  }
-  public bool IsInternalTypeSynonym {
-    get { return AsInternalTypeSynonym != null; }
-  }
+  public bool IsTypeParameter => AsTypeParameter != null;
+
+  public bool IsInternalTypeSynonym => AsInternalTypeSynonym != null;
+
   public TypeParameter AsTypeParameter {
     get {
       var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
       return ct?.ResolvedClass as TypeParameter;
     }
   }
-  public bool IsAbstractType {
-    get { return AsAbstractType != null; }
-  }
+  public bool IsAbstractType => AsAbstractType != null;
+
   public AbstractTypeDecl AsAbstractType {
     get {
       var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
@@ -1224,7 +1194,9 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
-  /// Returns a stack of base types leading to "type".  More precisely, of the tower returned,
+  /// Returns a stack of base types leading to "type".  More precisely:
+  ///
+  /// With "typeSynonymsAreSignificant" being "false", then, of the tower returned,
   ///     tower[0] == type.NormalizeExpand()
   ///     tower.Last == type.NormalizeExpandKeepConstraints()
   /// In between, for consecutive indices i and i+1:
@@ -1232,14 +1204,23 @@ public abstract class Type : TokenNode {
   /// The tower thus has the property that:
   ///     tower[0] is not a UserDefinedType with .ResolvedClass being a SubsetTypeDecl,
   ///     but all other tower[i] (for i > 0) are.
+  ///
+  /// With "typeSynonymsAreSignificant" being "true", then, of the tower returned,
+  ///     tower[0] == type.Normalize()
+  ///     tower.Last == type.NormalizeExpandKeepConstraints()
+  /// In between, for consecutive indices i and i+1:
+  ///     tower[i] is the base type (that is, .Rhs) of the subset type or type synonym tower[i+1]
+  /// The tower thus has the property that:
+  ///     tower[0] is not a UserDefinedType with .ResolvedClass being a TypeSynonymDecl,
+  ///     but all other tower[i] (for i > 0) are.
   /// </summary>
-  public static List<Type> GetTowerOfSubsetTypes(Type type) {
+  public static List<Type> GetTowerOfSubsetTypes(Type type, bool typeSynonymsAreSignificant = false) {
     Contract.Requires(type != null);
-    type = type.NormalizeExpandKeepConstraints();
+    type = typeSynonymsAreSignificant ? type.NormalizeAndAdjustForScope() : type.NormalizeExpandKeepConstraints();
     List<Type> tower;
-    if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
+    if (type is UserDefinedType { ResolvedClass: TypeSynonymDecl sst } && (typeSynonymsAreSignificant || sst is SubsetTypeDecl)) {
       var parent = sst.RhsWithArgument(type.TypeArgs);
-      tower = GetTowerOfSubsetTypes(parent);
+      tower = GetTowerOfSubsetTypes(parent, typeSynonymsAreSignificant);
     } else {
       tower = new List<Type>();
     }
@@ -2021,6 +2002,10 @@ public abstract class CollectionType : NonProxyType {
     this.TypeArgs = new List<Type> { arg, other };
   }
 
+  protected CollectionType(Cloner cloner, CollectionType original) {
+    this.arg = cloner.CloneType(original.arg);
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Arg.ComputeMayInvolveReferences(visitedDatatypes);
   }
@@ -2145,77 +2130,6 @@ public class SeqType : CollectionType {
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
   public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
     return new ComprehensionExpr.SeqBoundedPool(source, Arg, Arg);
-  }
-}
-public class MapType : CollectionType {
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-  private bool finite;
-  public Type Range {
-    get { return range; }
-  }
-  private Type range;
-  public override void SetTypeArgs(Type domain, Type range) {
-    base.SetTypeArgs(domain, range);
-    Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
-    this.range = range;
-  }
-  public MapType(bool finite, Type domain, Type range) : base(domain, range) {
-    Contract.Requires((domain == null && range == null) || (domain != null && range != null));
-    this.finite = finite;
-    this.range = range;
-  }
-  public Type Domain {
-    get { return Arg; }
-  }
-  public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
-  [System.Diagnostics.Contracts.Pure]
-  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
-    return CollectionTypeName + targs;
-  }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as MapType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var dom = Domain.Subst(subst);
-    if (dom is InferredTypeProxy) {
-      ((InferredTypeProxy)dom).KeepConstraints = true;
-    }
-    var ran = Range.Subst(subst);
-    if (ran is InferredTypeProxy) {
-      ((InferredTypeProxy)ran).KeepConstraints = true;
-    }
-    if (dom == Domain && ran == Range) {
-      return this;
-    } else {
-      return new MapType(Finite, dom, ran);
-    }
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new MapType(Finite, arguments[0], arguments[1]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // A map type supports equality if both its Keys type and Values type does.  It is checked
-      // that the Keys type always supports equality, so we only need to check the Values type here.
-      return range.SupportsEquality;
-    }
-  }
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
-  }
-
-  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMap;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MapBoundedPool(source, Domain, Domain, Finite);
   }
 }
 

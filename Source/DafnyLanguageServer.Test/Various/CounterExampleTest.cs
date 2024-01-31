@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [MemberData(nameof(OptionSettings))]
     public async Task CounterexamplesStillWorksIfNothingHasBeenVerified(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var source = @"
       method Abs(x: int) returns (y: int)
         ensures y > 0
@@ -150,9 +151,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var documentItem = CreateTestDocument(source, "GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
-        .OrderBy(counterExample => counterExample.Position)
-        .
-        OrderBy(counterexample => counterexample.Position).ToArray();
+        .OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
       Assert.Equal((2, 6), counterExamples[0].Position);
       Assert.True(counterExamples[0].Variables.ContainsKey("y:int"));
@@ -1553,7 +1552,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       ".TrimStart();
       var documentItem = CreateTestDocument(source, "GetDafnyTypeInfiniteRecursion.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      (await RequestCounterExamples(documentItem.Uri)).ToList(); ;
+      (await RequestCounterExamples(documentItem.Uri)).ToList();
     }
 
     public CounterExampleTest(ITestOutputHelper output) : base(output) {

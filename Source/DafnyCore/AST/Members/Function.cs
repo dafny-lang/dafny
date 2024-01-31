@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using DafnyCore;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -28,6 +29,8 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       k = WhatKind;
     }
 
+    // If this function is opaque due to the opaque keyword, include it.
+    k = (IsOpaque && !Attributes.Contains(Attributes, "opaque")) ? "opaque " + k : k;
     return HasStaticKeyword ? "static " + k : k;
   }
 
@@ -59,7 +62,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute && !HasAxiomAttribute) {
+    if (Body is null && HasPostcondition && EnclosingClass.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Concrete && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
@@ -247,7 +250,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.SignatureEllipsis = signatureEllipsis;
-    this.IsOpaque = isOpaque;
+    this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
 
     if (attributes != null) {
       List<Expression> args = Attributes.FindExpressions(attributes, "fuel");
@@ -375,11 +378,10 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
-    bool warnShadowing = false;
+    bool warnShadowing = true;
     if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
       resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
     }
-    resolver.DominatingStatementLabels.PushMarker();
 
     resolver.scope.PushMarker();
     if (IsStatic) {
@@ -467,7 +469,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
-    resolver.DominatingStatementLabels.PopMarker();
   }
 
   public string GetTriviaContainingDocstring() {
@@ -485,7 +486,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return null;
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public SymbolKind Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {

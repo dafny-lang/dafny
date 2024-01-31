@@ -42,25 +42,33 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       var fileNodes = state.Program.FindNodesInUris(request.TextDocument.Uri.ToUri()).OfType<ISymbol>();
-      return fileNodes.Select(topLevel => new SymbolInformationOrDocumentSymbol(FromSymbol(topLevel))).ToList();
+      return fileNodes.SelectMany(FromSymbol).Select(s => new SymbolInformationOrDocumentSymbol(s)).ToList();
     }
 
-    private DocumentSymbol FromSymbol(ISymbol symbol) {
+    private IEnumerable<DocumentSymbol> FromSymbol(ISymbol symbol) {
       var documentation = (symbol as IHasDocstring)?.GetDocstring(serverOptions) ?? "";
       var children = new List<DocumentSymbol>();
       if (symbol is IHasSymbolChildren hasSymbolChildren) {
         foreach (var child in hasSymbolChildren.ChildSymbols) {
-          var childDocumentSymbol = FromSymbol(child);
-          children.Add(childDocumentSymbol);
+          var childDocumentSymbols = FromSymbol(child);
+          children.AddRange(childDocumentSymbols);
         }
       }
-      return new DocumentSymbol {
-        Children = children,
-        Name = symbol.NameToken.val,
-        Detail = documentation,
-        Range = symbol.RangeToken.ToLspRange(),
-        Kind = (SymbolKind)symbol.Kind,
-        SelectionRange = symbol.NameToken.ToRange().ToLspRange()
+
+      if (string.IsNullOrEmpty(symbol.NameToken.val)) {
+        return children;
+      }
+
+      var range = symbol.RangeToken.ToLspRange();
+      return new DocumentSymbol[] {
+        new() {
+          Children = children,
+          Name = symbol.NameToken.val,
+          Detail = documentation,
+          Range = range,
+          Kind = (SymbolKind)symbol.Kind,
+          SelectionRange = symbol.NameToken == Token.NoToken ? range : symbol.NameToken.ToRange().ToLspRange()
+        }
       };
     }
   }

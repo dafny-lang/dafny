@@ -241,7 +241,7 @@ module SomeModule {
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
+      return BoogieGenerator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
 }

@@ -42,10 +42,12 @@ method Bar() {
       var a2 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a3 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       var a4 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var a5 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
-      var a6 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.Equal(somethingElse.Uri, a6.Uri);
+      var a7 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(somethingElse.Uri, a7.Uri);
     }
 
     [Fact]
@@ -56,7 +58,9 @@ method Foo() returns (x: int) {
 }".TrimStart();
       var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
-      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(CompilationStatus.ParsingFailed, status.Status);
       var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar").Replace("2", "true"));
       var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
@@ -65,13 +69,18 @@ method Foo() returns (x: int) {
         CompilationStatus.ResolutionStarted,
         CompilationStatus.ResolutionFailed
       };
-      var documents = new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) };
+      var documents = new[] { projectFile.Uri, documentItem1.Uri, DocumentUri.File(secondFilePath) };
+      await CheckExpectedStatuses(expectedStatuses, documents);
+    }
+
+    private async Task CheckExpectedStatuses(CompilationStatus[] expectedStatuses, DocumentUri[] documents) {
       foreach (var expectedStatus in expectedStatuses) {
         var statuses = new Dictionary<DocumentUri, CompilationStatusParams>();
         foreach (var _ in documents) {
           var statusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
           statuses.Add(statusParams.Uri, statusParams);
         }
+
         foreach (var document in documents) {
           var status = statuses[document];
           Assert.Equal(expectedStatus, status.Status);
@@ -81,14 +90,16 @@ method Foo() returns (x: int) {
 
     [Fact]
     public async Task MultipleDocumentsSuccessfulResolution() {
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(directory);
+      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Equal(CompilationStatus.ParsingFailed, status.Status);
+      var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       var source = @"
 method Foo() returns (x: int) {
   return 2;
 }".TrimStart();
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-      Directory.CreateDirectory(directory);
-      await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
-      var secondFilePath = Path.Combine(directory, "RunWithMultipleDocuments2.dfy");
       await File.WriteAllTextAsync(secondFilePath, source.Replace("Foo", "Bar"));
       var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
 
@@ -96,19 +107,9 @@ method Foo() returns (x: int) {
         CompilationStatus.ResolutionStarted,
         CompilationStatus.ResolutionSucceeded
       };
-      var documents = new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) };
-      foreach (var expectedStatus in expectedStatuses) {
-        var statuses = new Dictionary<DocumentUri, CompilationStatusParams>();
-        foreach (var _ in documents) {
-          var statusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-          statuses.Add(statusParams.Uri, statusParams);
-        }
-        foreach (var document in documents) {
-          var status = statuses[document];
-          Assert.Equal(expectedStatus, status.Status);
-        }
-      }
-      foreach (var _ in documents) {
+      var allDocuments = new[] { projectFile.Uri, documentItem1.Uri, DocumentUri.File(secondFilePath) };
+      await CheckExpectedStatuses(expectedStatuses, allDocuments);
+      foreach (var _ in new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) }) {
         await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken);
       }
     }
@@ -212,7 +213,7 @@ method Abs(x: int) returns (y: int)
       await WaitForStatus(null, PublishedVerificationStatus.Error, CancellationToken, documentItem);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DocumentLoadWithOnSaveVerificationDoesNotSendVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -221,7 +222,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
 
       // We load two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.
@@ -230,14 +231,14 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
-      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      var documentItem2 = CreateTestDocument(source, "test_2.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem2);
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact]
     public async Task DocumentLoadAndSaveWithNeverVerifySendsNoVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -246,7 +247,7 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
 
       // We load two and save two documents. If no verification is executed, we should receive each
       // compilation status twice without any verification status inbetween.
@@ -256,7 +257,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem1, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem1, CompilationStatus.ResolutionSucceeded);
       await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken, documentItem1);
-      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      var documentItem2 = CreateTestDocument(source, "test_2.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
       await AssertProgress(documentItem2, CompilationStatus.ResolutionStarted);

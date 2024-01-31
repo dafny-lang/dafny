@@ -60,7 +60,21 @@ public class ProofObligationDependency : ProofDependency {
   public override string Description =>
       $"{ProofObligation.SuccessDescription}";
 
-  public ProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
+  public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
+    Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
+    ProofObligation = proofObligation;
+  }
+}
+
+public class AssumedProofObligationDependency : ProofDependency {
+  public override RangeToken Range { get; }
+
+  public PODesc.ProofObligationDescription ProofObligation { get; }
+
+  public override string Description =>
+      $"assumption that {ProofObligation.SuccessDescription}";
+
+  public AssumedProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
     Range = tok as RangeToken ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }
@@ -71,14 +85,17 @@ public class ProofObligationDependency : ProofDependency {
 public class RequiresDependency : ProofDependency {
   private Expression requires;
 
+  private IToken tok;
+
   public override RangeToken Range =>
-    requires.RangeToken;
+    tok as RangeToken ?? requires.RangeToken;
 
   public override string Description =>
     $"requires clause";
 
-  public RequiresDependency(Expression requires) {
+  public RequiresDependency(IToken token, Expression requires) {
     this.requires = requires;
+    this.tok = token;
   }
 }
 
@@ -86,14 +103,17 @@ public class RequiresDependency : ProofDependency {
 public class EnsuresDependency : ProofDependency {
   private readonly Expression ensures;
 
+  private readonly IToken tok;
+
   public override RangeToken Range =>
-    ensures.RangeToken;
+    tok as RangeToken ?? ensures.RangeToken;
 
   public override string Description =>
     "ensures clause";
 
-  public EnsuresDependency(Expression ensures) {
+  public EnsuresDependency(IToken token, Expression ensures) {
     this.ensures = ensures;
+    this.tok = token;
   }
 }
 
@@ -150,21 +170,22 @@ public class CallDependency : ProofDependency {
 
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
-  private readonly Expression expr;
-
   public override RangeToken Range =>
-    expr.RangeToken;
+    Expr.RangeToken;
 
   public override string Description =>
-    comment ?? $"assume {OriginalString()}";
+    comment ?? OriginalString();
+
+  public bool WarnWhenUnused { get; }
 
   private readonly string comment;
-  public bool IsAssumeStatement { get; }
 
-  public AssumptionDependency(bool isAssumeStatement, string comment, Expression expr) {
+  public Expression Expr { get; }
+
+  public AssumptionDependency(bool warnWhenUnused, string comment, Expression expr) {
+    this.WarnWhenUnused = warnWhenUnused;
     this.comment = comment;
-    this.expr = expr;
-    this.IsAssumeStatement = isAssumeStatement;
+    this.Expr = expr;
   }
 }
 

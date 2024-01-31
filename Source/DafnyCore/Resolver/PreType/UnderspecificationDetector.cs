@@ -55,6 +55,9 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
+          if (!DetectUnderspecificationVisitor.IsDetermined(dd.Var.PreType)) {
+            ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+          }
           CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
             CheckExpression(dd.Witness, context);
@@ -64,7 +67,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           if (dd.Var != null) {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
-              ReportError(dd, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
+              ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
             }
             CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {
@@ -285,7 +288,7 @@ namespace Microsoft.Dafny {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ModuleResolver.MaxBV(width) < absN) {
+          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ConstantFolder.MaxBv(width) < absN) {
             cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -356,14 +359,6 @@ namespace Microsoft.Dafny {
       } else if (expr is IdentifierExpr) {
         // by specializing for IdentifierExpr, error messages will be clearer
         CheckPreTypeIsDetermined(expr.tok, expr.PreType, "variable");
-
-      } else if (expr is ConversionExpr) {
-        var e = (ConversionExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "cast target");
-
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        CheckPreTypeIsDetermined(e.tok, e.PreType, "type test target");
 
       } else if (CheckPreTypeIsDetermined(expr.tok, expr.PreType, "expression")) {
         if (expr is UnaryOpExpr uop) {

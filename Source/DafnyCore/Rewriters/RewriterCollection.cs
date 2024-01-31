@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public static class RewriterCollection {
 
@@ -22,14 +22,14 @@ public static class RewriterCollection {
 
     if (reporter.Options.AutoTriggers) {
       result.Add(new QuantifierSplittingRewriter(reporter));
-      result.Add(new TriggerGeneratingRewriter(reporter));
+      result.Add(new TriggerGeneratingRewriter(reporter, program.SystemModuleManager));
     }
 
     if (reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
       result.Add(new ExpectContracts(reporter));
     }
 
-    if (reporter.Options.RunAllTests) {
+    if (reporter.Options.Get(RunAllTestsMainMethod.IncludeTestRunner)) {
       result.Add(new RunAllTestsMainMethod(reporter));
     }
 

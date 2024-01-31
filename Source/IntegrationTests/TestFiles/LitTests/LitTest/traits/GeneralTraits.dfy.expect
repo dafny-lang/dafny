@@ -1,0 +1,29 @@
+GeneralTraits.dfy(24,25): Error: datatype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(25,26): Error: codatatype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(26,27): Error: abstract type is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(27,24): Error: newtype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(28,35): Error: newtype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(56,36): Error: Raised while checking export set ProvideThem: a abstract type can only extend traits (found 'Trait')
+GeneralTraits.dfy(37,9): Error: This export set is not consistent: ProvideThem
+GeneralTraits.dfy(70,11): Error: arguments must have comparable types (got object and MyInt)
+GeneralTraits.dfy(71,11): Error: arguments must have comparable types (got TraitC and MyInt)
+GeneralTraits.dfy(73,12): Error: arguments must have comparable types (got MyInt and object)
+GeneralTraits.dfy(74,12): Error: arguments must have comparable types (got MyInt and TraitC)
+GeneralTraits.dfy(78,11): Error: arguments must have comparable types (got object and Dt)
+GeneralTraits.dfy(79,11): Error: arguments must have comparable types (got TraitC and Dt)
+GeneralTraits.dfy(81,12): Error: arguments must have comparable types (got Dt and object)
+GeneralTraits.dfy(82,12): Error: arguments must have comparable types (got Dt and TraitC)
+GeneralTraits.dfy(95,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(96,9): Error: == can only be applied to expressions of types that support equality (got TraitB)
+GeneralTraits.dfy(98,15): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(99,15): Error: == can only be applied to expressions of types that support equality (got TraitB)
+GeneralTraits.dfy(101,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(102,9): Error: == can only be applied to expressions of types that support equality (got TraitB)
+GeneralTraits.dfy(104,15): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(105,15): Error: == can only be applied to expressions of types that support equality (got TraitB)
+GeneralTraits.dfy(107,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(108,17): Error: == can only be applied to expressions of types that support equality (got TraitA)
+GeneralTraits.dfy(159,10): Error: type 'SmallReal' already inherits a member 'Floor' from the built-in ancestor type 'real'
+GeneralTraits.dfy(164,10): Error: type 'AnotherReal' already inherits a member 'Floor' from the built-in ancestor type 'real'
+GeneralTraits.dfy(190,13): Error: member 'G' does not exist in newtype 'AnotherReal'
+28 resolution/type errors detected in GeneralTraits.dfy
