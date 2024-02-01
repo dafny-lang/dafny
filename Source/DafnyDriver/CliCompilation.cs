@@ -265,6 +265,12 @@ public class CliCompilation {
   }
 
   static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
+    if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
+      return;
+    }
+
+    output.WriteLine();
+
     output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount,
       Util.Plural(stats.ErrorCount));
     if (stats.InconclusiveCount != 0) {
