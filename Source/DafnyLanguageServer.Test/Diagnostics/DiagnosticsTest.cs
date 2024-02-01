@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(13, 11, 13, 17) &&
-        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
