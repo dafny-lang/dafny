@@ -200,6 +200,8 @@ module Tests {
 
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
+   * SCC at height 0:
+   *   MyInt
    */
   method Error0() returns (x: int, z: bool)
   {
@@ -276,6 +278,8 @@ module PlusTests {
 
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
+   * SCC at height 0:
+   *   MyInt
    */
   method Plus1()
   {
@@ -319,6 +323,10 @@ module PlusTests' {
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
+   * SCC at height 0:
+   *   C
+   * SCC at height 0:
+   *   MyInt
    */
   method Plusses(b: bool, i: int, j: MyInt, r: real)
   {
@@ -351,6 +359,14 @@ module MorePlusTests {
 
 module References {
   /* CALL GRAPH for module References:
+   * SCC at height 0:
+   *   C
+   * SCC at height 0:
+   *   K
+   * SCC at height 0:
+   *   M
+   * SCC at height 0:
+   *   R
    */
   method M0() returns (c: C, r: R)
   {
@@ -934,6 +950,10 @@ module SameSCC {
 
 module UnderspecifiedTypeConversions0 {
   /* CALL GRAPH for module UnderspecifiedTypeConversions0:
+   * SCC at height 0:
+   *   Cell
+   * SCC at height 0:
+   *   UCell
    */
   method M(c: Cell<int>)
   {
@@ -959,6 +979,10 @@ module UnderspecifiedTypeConversions0 {
 
 module UnderspecifiedTypeConversions1 {
   /* CALL GRAPH for module UnderspecifiedTypeConversions1:
+   * SCC at height 0:
+   *   Cell
+   * SCC at height 0:
+   *   UCell
    */
   method M(c: Cell<int>)
   {

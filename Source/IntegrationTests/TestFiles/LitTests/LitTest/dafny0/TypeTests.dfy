@@ -230,7 +230,7 @@ module OtherCycles0 {
   datatype B = Ctor(int -> B)  // error: cannot be constructed
 
   datatype Cycle = Cycle(Cyc)  // error: cannot be constructed
-  type Cyc = c: Cycle | true
+  type Cyc = c: Cycle | true // error: cycle: Cyc -> Cycle -> Cyc
 }
 
 module OtherCycles1 {
