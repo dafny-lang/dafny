@@ -15,4 +15,4 @@ CustomErrorMesage.dfy(42,63): Error: this invariant could not be proved to be ma
 CustomErrorMesage.dfy(43,63): Error: this invariant could not be proved to be maintained by the loop
  Related message: output array doesn't match input arry
 
-Dafny program verifier finished with 1 verified, 9 errors
+Dafny program verifier finished with 1 verified and 9 failed assertions

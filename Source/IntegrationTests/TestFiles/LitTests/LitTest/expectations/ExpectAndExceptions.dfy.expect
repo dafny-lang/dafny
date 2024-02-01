@@ -1,12 +1,12 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 2 verified and 0 failed assertions
 [Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure(Kaboom!)
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 2 verified and 0 failed assertions
 [Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure(Kaboom!)
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 2 verified and 0 failed assertions
 [Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure(Kaboom!)
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 2 verified and 0 failed assertions
 [Program halted] ExpectAndExceptions.dfy(17,19): NatOutcome.NatFailure(Kaboom!)

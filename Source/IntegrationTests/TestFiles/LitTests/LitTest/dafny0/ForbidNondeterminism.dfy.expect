@@ -5,7 +5,7 @@ ForbidNondeterminism.dfy(40,17): Error: variable 's', which is subject to defini
 ForbidNondeterminism.dfy(42,0): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
 ForbidNondeterminism.dfy(57,11): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 3 verified, 6 errors
+Dafny program verifier finished with 3 verified and 6 failed assertions
 ForbidNondeterminism.dfy(18,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
 ForbidNondeterminism.dfy(38,4): Error: out-parameter 's', which is subject to definite-assignment rules, might be uninitialized at this return point
 ForbidNondeterminism.dfy(38,4): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
@@ -17,4 +17,4 @@ ForbidNondeterminism.dfy(71,11): Error: unless an initializer is provided for th
 ForbidNondeterminism.dfy(65,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 ForbidNondeterminism.dfy(79,2): Error: field 'data', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 
-Dafny program verifier finished with 2 verified, 10 errors
+Dafny program verifier finished with 2 verified and 10 failed assertions

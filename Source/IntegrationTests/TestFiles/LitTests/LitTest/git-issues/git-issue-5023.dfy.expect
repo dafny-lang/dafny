@@ -8,4 +8,4 @@ git-issue-5023.dfy(157,4): Error: field 'five', which is subject to definite-ass
 git-issue-5023.dfy(167,11): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-5023.dfy(170,23): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
 
-Dafny program verifier finished with 7 verified, 9 errors
+Dafny program verifier finished with 7 verified and 9 failed assertions

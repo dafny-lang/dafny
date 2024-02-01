@@ -6,4 +6,4 @@ Frame.dfy(68,27): Error: insufficient reads clause to read array element
 Frame.dfy(120,17): Error: function precondition could not be proved
 Frame.dfy(123,18): Error: assertion might not hold
 
-Dafny program verifier finished with 6 verified, 7 errors
+Dafny program verifier finished with 6 verified and 7 failed assertions

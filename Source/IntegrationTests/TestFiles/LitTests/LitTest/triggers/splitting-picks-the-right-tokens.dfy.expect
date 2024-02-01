@@ -5,4 +5,4 @@ splitting-picks-the-right-tokens.dfy(16,11): Related location: this is the preco
 splitting-picks-the-right-tokens.dfy(22,13): Error: a precondition for this call could not be proved
 splitting-picks-the-right-tokens.dfy(9,11): Related location: this is the precondition that could not be proved
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 0 verified and 2 failed assertions

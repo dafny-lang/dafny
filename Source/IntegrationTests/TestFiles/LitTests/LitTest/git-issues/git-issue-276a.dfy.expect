@@ -51,4 +51,4 @@ git-issue-276a.dfy(30,26): Related location
 git-issue-276a.dfy(30,35): Error: index out of range
 git-issue-276a.dfy(43,18): Error: index out of range
 
-Dafny program verifier finished with 15 verified, 28 errors
+Dafny program verifier finished with 15 verified and 28 failed assertions

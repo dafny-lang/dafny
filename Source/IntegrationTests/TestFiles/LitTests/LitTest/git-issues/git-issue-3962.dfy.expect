@@ -9,4 +9,4 @@ git-issue-3962.dfy(24,4): Info: ==
 git-issue-3962.dfy(20,16): Error: the calculation step between the previous line and this line could not be proved
 git-issue-3962.dfy(24,17): Error: the calculation step between the previous line and this line could not be proved
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 0 verified and 2 failed assertions

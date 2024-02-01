@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 TraitCompileErrors.dfy(7,26): Error: Function StaticMembers.Tr.Func has no body
 TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body
 TraitCompileErrors.dfy(9,29): Error: Function StaticMembers.Tr.TwoF has no body

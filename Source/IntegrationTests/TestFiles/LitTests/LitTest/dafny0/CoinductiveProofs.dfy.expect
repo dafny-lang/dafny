@@ -30,4 +30,4 @@ CoinductiveProofs.dfy(209,0): Error: a postcondition could not be proved on this
 CoinductiveProofs.dfy(208,21): Related location: this is the postcondition that could not be proved
 CoinductiveProofs.dfy(4,23): Related location
 
-Dafny program verifier finished with 23 verified, 12 errors
+Dafny program verifier finished with 23 verified and 12 failed assertions

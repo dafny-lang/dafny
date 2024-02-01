@@ -18,4 +18,4 @@ AutoReq.dfy(7,4): Related location
 AutoReq.dfy(247,4): Error: function precondition could not be proved
 AutoReq.dfy(239,13): Related location
 
-Dafny program verifier finished with 30 verified, 8 errors
+Dafny program verifier finished with 30 verified and 8 failed assertions

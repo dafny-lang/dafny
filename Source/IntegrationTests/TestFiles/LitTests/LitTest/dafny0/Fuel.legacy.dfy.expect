@@ -64,4 +64,4 @@ Fuel.legacy.dfy(435,22): Error: assertion might not hold
 Fuel.legacy.dfy(436,22): Error: assertion might not hold
 Fuel.legacy.dfy(437,23): Error: assertion might not hold
 
-Dafny program verifier finished with 30 verified, 39 errors
+Dafny program verifier finished with 30 verified and 39 failed assertions

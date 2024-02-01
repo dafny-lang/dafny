@@ -46,4 +46,4 @@ TypeAdjustments.dfy(508,22): Error: value does not satisfy the subset constraint
 TypeAdjustments.dfy(540,24): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
 TypeAdjustments.dfy(566,24): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<nat, int>'
 
-Dafny program verifier finished with 19 verified, 47 errors
+Dafny program verifier finished with 19 verified and 47 failed assertions

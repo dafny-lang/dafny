@@ -1,7 +1,7 @@
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 3 verified and 0 failed assertions
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 1 verified and 0 failed assertions
 hello from the library
 hello extern
 hello from a nested module

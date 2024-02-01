@@ -4,4 +4,4 @@ git-issue-3243.dfy(10,16): Error: this loop invariant could not be proved on ent
 git-issue-3243.dfy(21,16): Error: this loop invariant could not be proved on entry
  Related message: loop invariant violation
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 0 verified and 2 failed assertions

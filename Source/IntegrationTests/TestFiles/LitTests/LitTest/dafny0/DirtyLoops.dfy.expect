@@ -91,7 +91,7 @@ DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modif
 DirtyLoops.dfy(506,22): Error: assertion might not hold
 DirtyLoops.dfy(533,11): Error: assertion might not hold
 
-Dafny program verifier finished with 22 verified, 46 errors
+Dafny program verifier finished with 22 verified and 46 failed assertions
 DirtyLoops.dfy.tmp.dprint.dfy(408,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy.tmp.dprint.dfy(6,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy.tmp.dprint.dfy(16,2): Warning: note, this loop has no body (loop frame: i)

@@ -9,7 +9,7 @@ Processing command (at Snapshots2.v0.dfy(14,11)) assert {:id "id8"} true;
 Processing command (at Snapshots2.v0.dfy(14,15)) assert {:id "id7"} _module.__default.Q() <==> Lit(_module.__default.R());
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 3 verified and 0 failed assertions
 Processing call to procedure N (call) in implementation M (correctness) (at Snapshots2.v1.dfy(3,4)):
   >>> added after: a##cached##0 := a##cached##0 && false;
 Processing implementation P (well-formedness) (at Snapshots2.v1.dfy(10,11)):
@@ -28,4 +28,4 @@ Processing command (at Snapshots2.v1.dfy(14,11)) assert {:id "id19"} true;
 Processing command (at Snapshots2.v1.dfy(14,15)) assert {:id "id18"} _module.__default.Q() <==> Lit(_module.__default.R());
   >>> DoNothingToAssert
 
-Dafny program verifier finished with 2 verified, 1 error
+Dafny program verifier finished with 2 verified and 1 failed assertions
