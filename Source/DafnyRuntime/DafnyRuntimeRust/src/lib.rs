@@ -98,7 +98,7 @@ mod dafny_runtime_conversions {
         use std::rc::Rc;
 
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
-            Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
+            Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), false)
         }
         pub fn dafny_string_to_string(s: &Rc<Sequence<char>>) -> String {
             let characters = s.to_array();
