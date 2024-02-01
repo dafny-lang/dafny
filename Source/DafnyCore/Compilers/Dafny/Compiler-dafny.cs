@@ -8,6 +8,7 @@ using System.Numerics;
 using Microsoft.BaseTypes;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using System.IO;
 using DAST.Format;
 using Std.Wrappers;
 
@@ -766,9 +767,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<ExprContainer> st && st.Builder is CallExprBuilder callExpr) {
-        callExpr.SetName(protectedName);
+        callExpr.SetName((DAST.CallName)DAST.CallName.create_Name(Sequence<Rune>.UnicodeFromString(protectedName)));
       } else if (wr is BuilderSyntaxTree<ExprContainer> st2 && st2.Builder is CallStmtBuilder callStmt) {
-        callStmt.SetName(protectedName);
+        callStmt.SetName((DAST.CallName)DAST.CallName.create_Name(Sequence<Rune>.UnicodeFromString(protectedName)));
       } else {
         throwGeneralUnsupported("Builder issue: wr is as " + wr.GetType() +
                                 (wr is BuilderSyntaxTree<ExprContainer> st3 ?
@@ -1669,6 +1670,10 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.ArrayLength:
           break;
+        case SpecialField.ID.Keys:
+          break;
+        case SpecialField.ID.Values:
+          break;
         default:
           throwGeneralUnsupported("<i>Special field: " + id + "</i>");
           break;//throw new InvalidOperationException();
@@ -1719,6 +1724,16 @@ namespace Microsoft.Dafny.Compilers {
           objExpr,
           arraySpecial.IdParam != null ? ((int)arraySpecial.IdParam) : 0
         ), null, this);
+      } else if (member is SpecialField { SpecialId: SpecialField.ID.Keys }) {
+        obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
+        var objExpr = objReceiver.Finish();
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_MapKeys(
+          objExpr), null, this);
+      } else if (member is SpecialField { SpecialId: SpecialField.ID.Values }) {
+        obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
+        var objExpr = objReceiver.Finish();
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_MapValues(
+          objExpr), null, this);
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
         var objExpr = objReceiver.Finish();
@@ -2271,6 +2286,14 @@ namespace Microsoft.Dafny.Compilers {
             e0.Type.IsRefType,
             !e0.Type.IsNonNullRefType
           )),
+          BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(
+            false,
+            false
+          )),
+          BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(
+            false,
+            false
+          )),
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
@@ -2295,6 +2318,15 @@ namespace Microsoft.Dafny.Compilers {
               )),
           BinaryExpr.ResolvedOpcode.InSet => B(DAST.BinOp.create_In()), // TODO: Differentiate?
           BinaryExpr.ResolvedOpcode.InSeq => B(DAST.BinOp.create_In()),
+          BinaryExpr.ResolvedOpcode.InMap => B(DAST.BinOp.create_In()),
+          BinaryExpr.ResolvedOpcode.MapMerge =>
+            B(DAST.BinOp.create_MapMerge()),
+          BinaryExpr.ResolvedOpcode.MapSubtraction =>
+          B(DAST.BinOp.create_MapSubtraction()),
+
+          BinaryExpr.ResolvedOpcode.NotInMap =>
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_In(), left, right))),
           BinaryExpr.ResolvedOpcode.NotInSet =>
             C((left, right) =>
               Not(BinaryOp(new BinOp_In(), left, right))),
@@ -2315,16 +2347,28 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.RightShift => B(BinOp.create_BitwiseShiftRight()),
           BinaryExpr.ResolvedOpcode.Lt =>
             B(BinOp.create_Lt()),
+          BinaryExpr.ResolvedOpcode.LtChar =>
+            B(BinOp.create_LtChar()),
           BinaryExpr.ResolvedOpcode.Le =>
             C((left, right) =>
               Not(BinaryOp(new BinOp_Lt(), right, left,
                 new BinOpFormat_ReverseOperands()))),
+          BinaryExpr.ResolvedOpcode.LeChar =>
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_LtChar(), right, left,
+                new BinOpFormat_ReverseOperands()))),
           BinaryExpr.ResolvedOpcode.Gt =>
             C((left, right) =>
               BinaryOp(new BinOp_Lt(), right, left, new BinOpFormat_ReverseOperands())),
+          BinaryExpr.ResolvedOpcode.GtChar =>
+            C((left, right) =>
+              BinaryOp(new BinOp_LtChar(), right, left, new BinOpFormat_ReverseOperands())),
           BinaryExpr.ResolvedOpcode.Ge =>
             C((left, right) =>
               Not(BinaryOp(new BinOp_Lt(), left, right))),
+          BinaryExpr.ResolvedOpcode.GeChar =>
+            C((left, right) =>
+              Not(BinaryOp(new BinOp_LtChar(), left, right))),
 
           _ => B(DAST.BinOp.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: <i>Operator {op}</i></b>"))),
         };
@@ -2449,21 +2493,71 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
-      throwGeneralUnsupported("<i>EmitMapBuilder_New</i>");
+      if (wr is BuilderSyntaxTree<StatementContainer> builder) {
+        var eType = e.Type.AsMapType;
+        var keyType = GenType(eType.Range);
+        var valueType = GenType(eType.Domain);
+        var mapType = DAST.Type.create_Map(keyType, valueType);
+        builder.Builder.AddStatement(
+          (DAST.Statement)DAST.Statement.create_DeclareVar(
+            Sequence<Rune>.UnicodeFromString(collectionName),
+            mapType,
+            Option<_IExpression>.create_Some(
+              DAST.Expression.create_MapBuilder(keyType, valueType)
+              )
+            ));
+      } else {
+        throwGeneralUnsupported("<i>EmitMapBuilder_New (non-statement)</i>");
+      }
       //throw new InvalidOperationException();
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
-      throwGeneralUnsupported("<i>EmitSetBuilder_Add</i>");
+      if (wr is BuilderSyntaxTree<StatementContainer> builder) {
+        var stmtBuilder = new CallStmtBuilder();
+        stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_SetBuilderAdd());
+        stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
+        stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
+        stmtBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(collName)));
+        stmtBuilder.AddExpr(ConvertExpression(elmt, builder));
+        builder.Builder.AddBuildable(stmtBuilder);
+      } else {
+        throwGeneralUnsupported("<i>EmitSetBuilder_Add</i>");
+      }
       //throw new InvalidOperationException();
+    }
+
+    private DAST.Expression ConvertExpression(Expression term, BuilderSyntaxTree<StatementContainer> wStmt) {
+      var buffer0 = new ExprBuffer(null);
+      EmitExpr(term, false, new BuilderSyntaxTree<ExprContainer>(buffer0, this), wStmt);
+      return buffer0.Finish();
+    }
+
+    private BuilderSyntaxTree<ExprContainer> CreateExprBuilder() {
+      var exprBuffer = new ExprBuffer(null);
+      var exprBuilder = new BuilderSyntaxTree<ExprContainer>(exprBuffer, this);
+      return exprBuilder;
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
         bool inLetExprBody, ConcreteSyntaxTree wr) {
-      throwGeneralUnsupported("<i>EMitMapBuilder_Add</i>");
-      var buffer1 = new ExprBuffer(null);
-      return new BuilderSyntaxTree<ExprContainer>(buffer1, this);
+      if (wr is BuilderSyntaxTree<StatementContainer> builder) {
+        var stmtBuilder = new CallStmtBuilder();
+        stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_MapBuilderAdd());
+        stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
+        stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
+        stmtBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(collName)));
+        var keyBuilder = CreateExprBuilder();
+        stmtBuilder.AddBuildable((ExprBuffer)keyBuilder.Builder);
+        stmtBuilder.AddExpr(ConvertExpression(term, builder));
+        builder.Builder.AddBuildable(stmtBuilder);
+        return keyBuilder;
+      } else {
+        throwGeneralUnsupported("<i>EMitMapBuilder_Add</i>");
+        var buffer1 = new ExprBuffer(null);
+        return new BuilderSyntaxTree<ExprContainer>(buffer1, this);
+      }
     }
 
     protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
@@ -2524,10 +2618,23 @@ namespace Microsoft.Dafny.Compilers {
       return typeTest;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
-      throwGeneralUnsupported("<i>GetCollectionBuilder_Build</i>");
-      return "Missing feature: GetCollectionBuilder_Build";
-      //throw new InvalidOperationException();
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        var callExpr = new CallExprBuilder();
+        if (ct.IsMapType) {
+          callExpr.SetName((DAST.CallName)DAST.CallName.create_MapBuilderBuild());
+        } else {
+          callExpr.SetName((DAST.CallName)DAST.CallName.create_SetBuilderBuild());
+        }
+
+        callExpr.SetTypeArgs(new List<DAST.Type> { });
+        callExpr.SetOuts(new List<ISequence<Rune>> { }); ;
+        callExpr.AddExpr((DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(collName)));
+        builder.Builder.AddBuildable(callExpr);
+      } else {
+        throwGeneralUnsupported("<i>GetCollectionBuilder_Build</i>");
+      }
     }
 
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {

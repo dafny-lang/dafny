@@ -188,6 +188,9 @@ module RAST {
   function Vec(underlying: Type): Type {
     TypeApp("::std::vec::Vec", [underlying])
   }
+  function NewVec(elements: seq<Expr>): Expr {
+    Call(RawExpr("vec!"), [], elements)
+  }
   
   const CloneTrait := RawType("Clone")
   const DafnyPrintTrait := RawType("::dafny_runtime::DafnyPrint")
@@ -371,6 +374,12 @@ module RAST {
     Call(RawExpr("::std::rc::Rc::new"), [], [underlying])
   }
 
+  datatype Associativity = LeftToRight | RightToLeft | RequiresParentheses
+  datatype PrintingInfo = 
+    | Precedence(precedence: nat)
+    | SuffixPrecedence(precedence: nat)
+    | PrecedenceAssociativity(precedence: nat, associativity: Associativity)
+
   datatype Expr =
       RawExpr(content: string)
     | Match(matchee: Expr, cases: seq<MatchCase>)
@@ -392,12 +401,47 @@ module RAST {
     | Continue(optLbl: Option<string>)
     | Return(optExpr: Option<Expr>)
     | Call(obj: Expr, typeParameters: seq<Type>, arguments: seq<Expr>)
+    | Select(obj: Expr, name: string)
     | Borrow(underlying: Expr)
   {
     predicate NoExtraSemicolonAfter() {
       DeclareVar? || AssignVar? || Break? || Continue? || Return? || 
         (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
     }
+    // Taken from https://doc.rust-lang.org/reference/expressions.html
+    const printingInfo: PrintingInfo := 
+      match this {
+        case RawExpr(_) => Precedence(200)
+        // Paths => Precedence(1)
+        // Method call => Precedence(2)
+        // Field expression => PrecedenceAssociativity(3, LeftToRight)
+        // case function call | ArrayIndexing => Precedence(4)
+        case UnaryOp(op, underlying, format) =>
+          match op {
+            case "?" => SuffixPrecedence(5)
+            case "-" | "*" | "!" | "&" | "&mut" => Precedence(6)
+            case _ => Precedence(200)
+          }
+        case BinaryOp(op2, left, right, format) =>
+          match op2 {
+            case "as" => PrecedenceAssociativity(10, LeftToRight)
+            case "*" | "/" | "%" => PrecedenceAssociativity(20, LeftToRight)
+            case "+" | "-" => PrecedenceAssociativity(30, LeftToRight)
+            case "<<" | ">>" => PrecedenceAssociativity(40, LeftToRight)
+            case "&" => PrecedenceAssociativity(50, LeftToRight)
+            case "^" => PrecedenceAssociativity(60, LeftToRight)
+            case "|" => PrecedenceAssociativity(70, LeftToRight)
+            case "==" | "!=" | "<" | ">" | "<=" | ">=" => PrecedenceAssociativity(80, RequiresParentheses)
+            case "&&" => PrecedenceAssociativity(90, LeftToRight)
+            case "||" => PrecedenceAssociativity(100, LeftToRight)
+            case ".." | "..=" => PrecedenceAssociativity(110, RequiresParentheses)
+            case "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" =>
+              PrecedenceAssociativity(110, RightToLeft)
+            case _ => PrecedenceAssociativity(0, RequiresParentheses)
+          }
+          case _ => Precedence(200)
+      }
+
     function Height(): nat {
       match this {
         case LiteralInt(_) => 1
@@ -457,6 +501,8 @@ module RAST {
                   SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height())))
         case Borrow(underlying) =>
           1 + underlying.Height()
+        case Select(expression, name) =>
+          1 + expression.Height()
         case _ =>
           assert RawExpr?;
           1
@@ -468,6 +514,25 @@ module RAST {
       ensures this == r || r.Height() < this.Height()
     {
       match this {
+         // Special cases
+        case UnaryOp("!", BinaryOp("==", left, right, format),
+          CombineNotInner()) =>
+          assert BinaryOp("==", left, right, format).Height()
+              == BinaryOp("!=", left, right, BinOpFormat.NoFormat()).Height();
+          BinaryOp("!=", left, right, BinOpFormat.NoFormat())
+
+        case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
+          CombineNotInner()) =>
+          assert BinaryOp(">=", left, right, BinOpFormat.NoFormat()).Height()
+              == BinaryOp("<", left, right, BinOpFormat.NoFormat()).Height();
+          BinaryOp(">=", left, right, BinOpFormat.NoFormat())
+
+        case UnaryOp("!", BinaryOp("<", left, right, ReverseOperands()),
+          CombineNotInner()) =>
+          assert BinaryOp("<=", right, left, BinOpFormat.NoFormat()).Height()
+              == BinaryOp("<", left, right, BinOpFormat.ReverseOperands()).Height();
+          BinaryOp("<=", right, left, BinOpFormat.NoFormat())
+
         case ConversionNum(tpe, expr) =>
           if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
              || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
@@ -495,7 +560,20 @@ module RAST {
       }
     }
 
-    // TODO: Take priorities into account to put parentheses or not
+    predicate LeftRequiresParentheses(left: Expr) {
+      printingInfo.precedence <= left.printingInfo.precedence &&
+      (printingInfo.precedence == left.printingInfo.precedence ==>
+        (printingInfo.PrecedenceAssociativity? &&
+        !printingInfo.associativity.LeftToRight?))
+    }
+
+    predicate RightRequiresParentheses(right: Expr) {
+      printingInfo.precedence <= right.printingInfo.precedence &&
+      (printingInfo.precedence == right.printingInfo.precedence ==>
+        (printingInfo.PrecedenceAssociativity? &&
+         !printingInfo.associativity.RightToLeft?))
+    }
+
     function ToString(ind: string): string
       decreases Height()
     {
@@ -538,30 +616,25 @@ module RAST {
                         "\n" + ind + IND + arg.ToString(ind + IND), ",") +
           (if |arguments| > 0 then "\n" + ind else "") + ")"
 
-        // Special cases
-        case UnaryOp("!", BinaryOp("==", left, right, format),
-          CombineNotInner()) =>
-          assert BinaryOp("==", left, right, format).Height()
-              == BinaryOp("!=", left, right, BinOpFormat.NoFormat()).Height();
-          BinaryOp("!=", left, right, BinOpFormat.NoFormat()).ToString(ind)
-
-        case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
-          CombineNotInner()) =>
-          assert BinaryOp(">=", left, right, BinOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinOpFormat.NoFormat()).Height();
-          BinaryOp(">=", left, right, BinOpFormat.NoFormat()).ToString(ind)
-
-        case UnaryOp("!", BinaryOp("<", left, right, ReverseOperands()),
-          CombineNotInner()) =>
-          assert BinaryOp("<=", right, left, BinOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinOpFormat.ReverseOperands()).Height();
-          BinaryOp("<=", right, left, BinOpFormat.NoFormat()).ToString(ind)
-
         case UnaryOp(op, underlying, format) =>
-          op + "("  + underlying.ToString(ind) + ")"
+          var (leftP, rightP) :=
+            if printingInfo.precedence < underlying.printingInfo.precedence then
+              ("(", ")")
+            else
+              ("", "");
+          var leftOp := if op == "&mut" then op + " " else if op == "?" then "" else op;
+          var rightOp := if op == "?" then op else "";
 
+          leftOp + leftP  + underlying.ToString(ind) + rightP + rightOp
         case BinaryOp(op2, left, right, format) =>
-          "(" + left.ToString(ind) + ")" + op2 + "(" + right.ToString(ind) + ")"
+          var (leftLeftP, leftRighP) :=
+            if LeftRequiresParentheses(left) then ("(", ")") else ("", "");
+          var (rightLeftP, rightRightP) :=
+            if RightRequiresParentheses(right) then ("(", ")") else ("", "");
+          var opRendered := if op2 == "as" then " " + op2 + " " else op2;
+          var indLeft := if leftLeftP == "(" then ind + IND else ind;
+          var indRight := if rightLeftP == "(" then ind + IND else ind;
+          leftLeftP + left.ToString(indLeft) + leftRighP + opRendered + rightLeftP + right.ToString(indRight) + rightRightP
         case DeclareVar(declareType, name, optType, optExpr) =>
           "let " + (if declareType == MUT then "mut " else "") +
           name + (if optType.Some? then ": " + optType.value.ToString(ind + IND) else "") +
@@ -598,6 +671,8 @@ module RAST {
           ) + "("+SeqToString(args, (arg: Expr) requires arg.Height() < this.Height() => arg.ToString(ind + IND), ", ")+")"
         case Borrow(underlying) =>
           "&(" + underlying.ToString(ind) + ")"
+        case Select(expression, name) =>
+          "("+expression.ToString(ind)+")." + name        
         case r =>
           assert r.RawExpr?; AddIndent(r.content, ind)
       }
@@ -1381,20 +1456,20 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Seq(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.Vec(elem);
+          s := R.Rc(R.TypeApp("::dafny_runtime::Sequence", [elem]));
         }
         case Set(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.TypeApp("::std::collections::HashSet", [elem]);
+          s := R.Rc(R.TypeApp("::dafny_runtime::Set", [elem]));
         }
         case Multiset(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.TypeApp("::std::collections::HashMap", [elem, R.U64]);
+          s := R.Rc(R.TypeApp("::dafny_runtime::Multiset", [elem]));
         }
         case Map(key, value) => {
           var keyType := GenType(key, inBinding, inFn);
           var valueType := GenType(value, inBinding, inFn);
-          s := R.TypeApp("::std::collections::HashMap", [keyType, valueType]);
+          s := R.Rc(R.TypeApp("::dafny_runtime::Map", [keyType, valueType]));
         }
         case Arrow(args, result) => {
           // we cannot use impl until Rc<Fn> impls Fn
@@ -1834,9 +1909,15 @@ module {:extern "DCOMP"} DCOMP {
             case None => {}
           }
 
+          var renderedName := match name {
+            case Name(name) => escapeIdent(name)
+            case MapBuilderAdd() | SetBuilderAdd() => "add"
+            case MapBuilderBuild() | SetBuilderBuild() => "build"
+          };
+
           generated := R.RawExpr(
             (if receiver != "" then (receiver + " = ") else "") +
-            enclosingString + escapeIdent(name) + typeArgString + "(" + argString + ");");
+            enclosingString + renderedName + typeArgString + "(" + argString + ");");
         }
         case Return(expr) => {
           var expr, _, recIdents := GenExpr(expr, selfIdent, params, true);
@@ -2323,21 +2404,18 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var s := "vec![";
           i := 0;
+          var arguments := [];
           while i < |generatedValues| {
-            if i > 0 {
-              s := s + ", ";
-            }
-
             var genKey := generatedValues[i].0;
             var genValue := generatedValues[i].1;
 
-            s := s + "(" + genKey.ToString(IND) + ", " + genValue.ToString(IND) + ")";
+            arguments := arguments + [R.Tuple([genKey, genValue])];
             i := i + 1;
           }
-          s := s + "].into_iter().collect::<std::collections::HashMap<_, _>>()";
-          r := R.RawExpr(s);
+          r := R.Call(R.RawExpr("::dafny_runtime::Map::from_array_owned"), [], [
+            R.NewVec(arguments)
+          ]);
 
           isOwned := true;
         }
@@ -2407,10 +2485,16 @@ module {:extern "DCOMP"} DCOMP {
 
           match op {
             case In() => {
-              r := R.RawExpr(right.ToString(IND) + ".contains(&" + left.ToString(IND) + ")");
+              r := R.Call(R.Select(right, "contains"), [], [R.Borrow(left)]);
             }
             case SetDifference() => {
-              r := R.RawExpr(left.ToString(IND) + ".difference(&" + right.ToString(IND) + ").cloned().collect::<::std::collections::HashSet<_>>()");
+              r := R.Call(R.Select(left, "difference"), [], [R.Borrow(right)]);
+            }
+            case MapMerge() => {
+              r := R.Call(R.Select(left, "add_multiple"), [], [R.Borrow(right)]);
+            }
+            case MapSubtraction() => {
+              r := R.Call(R.Select(left, "substract"), [], [R.Borrow(right)]);
             }
             case Concat() => {
               r := R.RawExpr("[" + left.ToString(IND) + ", " + right.ToString(IND) + "].concat()");
@@ -2428,25 +2512,25 @@ module {:extern "DCOMP"} DCOMP {
                     if (referential) {
                       // TODO: Render using a call with two expressions
                       if (nullable) {
-                        r := R.RawExpr("::dafny_runtime::nullable_referential_equality(" + left.ToString(IND) + ", " + right.ToString(IND) + ")");
+                        r := R.Call(R.RawExpr("::dafny_runtime::nullable_referential_equality"), [], [left, right]);
                       } else {
-                        r := R.RawExpr("::std::rc::Rc::ptr_eq(&(" + left.ToString(IND) + "), &(" + right.ToString(IND) + "))");
+                        r := R.Call(R.RawExpr("::std::rc::Rc::ptr_eq"), [], [R.Borrow(left), R.Borrow(right)]);
                       }
                     } else {
-                      r := R.RawExpr(left.ToString(IND) + " == " + right.ToString(IND));
+                      r := R.BinaryOp("==", left, right, DAST.Format.BinOpFormat.NoFormat());
                     }
                   }
                   case EuclidianDiv() => {
-                    r := R.RawExpr("::dafny_runtime::euclidian_division(" + left.ToString(IND) + ", " + right.ToString(IND) + ")");
+                    r := R.Call(R.RawExpr("::dafny_runtime::euclidian_division"), [], [left, right]);
                   }
                   case EuclidianMod() => {
-                    r := R.RawExpr("::dafny_runtime::euclidian_modulo(" + left.ToString(IND) + ", " + right.ToString(IND) + ")");
+                    r := R.Call(R.RawExpr("::dafny_runtime::euclidian_modulo"), [], [left, right]);
+                  }
+                  case LtChar() => {
+                    r := R.Call(R.RawExpr("::dafny_runtime::char_lt"), [], [left, right]);
                   }
                   case Passthrough(op) => {
-                    r := R.Expr.BinaryOp(op,
-                                         left,
-                                         right,
-                                         format);
+                    r := R.Expr.BinaryOp(op, left, right, format);
                   }
                 }
               }
@@ -2474,6 +2558,18 @@ module {:extern "DCOMP"} DCOMP {
 
           isOwned := true;
           readIdents := recIdents;
+        }
+        case MapKeys(expr) => {
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+          isOwned := true;
+          readIdents := recIdents;
+          r := R.Call(R.Select(recursiveGen, "keys"), [], []);
+        }
+        case MapValues(expr) => {
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+          isOwned := true;
+          readIdents := recIdents;
+          r := R.Call(R.Select(recursiveGen, "values"), [], []);
         }
         case SelectFn(on, field, isDatatype, isStatic, arity) => {
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
@@ -2677,12 +2773,17 @@ module {:extern "DCOMP"} DCOMP {
           var enclosingExpr, _, recIdents := GenExpr(on, selfIdent, params, false);
           readIdents := readIdents + recIdents;
           var enclosingString := enclosingExpr.ToString(IND);
+          var renderedName := match name {
+            case Name(ident) => escapeIdent(ident)
+            case MapBuilderAdd | SetBuilderAdd => "add"
+            case MapBuilderBuild | SetBuilderBuild => "build"
+          };
           match on {
             case Companion(_) => {
-              enclosingString := enclosingString + "::" + escapeIdent(name.id);
+              enclosingString := enclosingString + "::" + renderedName;
             }
             case _ => {
-              enclosingString := "(" + enclosingString + ")." + escapeIdent(name.id);
+              enclosingString := "(" + enclosingString + ")." + renderedName;
             }
           }
 
@@ -2845,6 +2946,19 @@ module {:extern "DCOMP"} DCOMP {
           r := R.RawExpr("::dafny_runtime::integer_range(" + lo.ToString(IND) + ", " + hi.ToString(IND) + ")");
           isOwned := true;
           readIdents := recIdentsLo + recIdentsHi;
+        }
+        case MapBuilder(keyType, valueType) => {
+          var kType := GenType(keyType, false, false);
+          var vType := GenType(valueType, false, false);
+          isOwned := true;
+          readIdents := {};
+          r := R.RawExpr("::dafny_runtime::MapBuilder::<" + kType.ToString(IND) + ", " + vType.ToString(IND) + ">::new()");
+        }
+        case SetBuilder(elemType) => {
+          var eType := GenType(elemType, false, false);
+          isOwned := true;
+          readIdents := {};
+          r := R.RawExpr("::dafny_runtime::SetBuilder::<" + eType.ToString(IND) + ">::new()");
         }
       }
     }

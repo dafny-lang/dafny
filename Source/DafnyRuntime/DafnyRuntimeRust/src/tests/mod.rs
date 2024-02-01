@@ -2,12 +2,12 @@
 // Test module
 #[cfg(test)]
 mod tests {
-    use std::{rc::{Rc, Weak}, fmt::Formatter, borrow::Borrow, cell::RefCell, mem::{transmute, MaybeUninit}};
-    use as_any::AsAny;
+    use std::{any::Any, borrow::Borrow, cell::RefCell, fmt::Formatter, mem::{transmute, MaybeUninit}, rc::{Rc, Weak}};
     use num::{BigInt, One, Zero};
     use once_cell::unsync::Lazy;
+    
 
-    use crate::{DafnyPrint, deallocate, allocate, Sequence, is_instance_of, LazyFieldWrapper};
+    use crate::{allocate, deallocate, is_instance_of, AsAny, DafnyPrint, DafnyUpdowncast, LazyFieldWrapper, Sequence};
 
     // A datatype encoded in Rust
     // T can either be an allocated type *const X or a reference type Rc<X>
@@ -110,6 +110,11 @@ mod tests {
             this as *const MyStruct
         }
     }
+    impl AsAny for MyStruct {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
     impl HasFirst for MyStruct {
         // Use unsafe and pointer casting if necessary
         fn _get_first(&self) -> Rc<String> {
@@ -146,11 +151,13 @@ mod tests {
         // In the first case, do nothing, in the second case, panic
         let is_no_struct = unsafe { &*theobject }.as_any().downcast_ref::<NoStruct>().is_some();
         assert!(!is_no_struct, "The value should not be a NoStruct");
-        assert!(!is_instance_of::<dyn HasFirst, NoStruct>(theobject));
+        assert!(!is_instance_of::<dyn HasFirst, NoStruct>(theobject)); // Why is this working??!
+        //assert!(!DafnyUpdowncast::<NoStruct>::is_instance_of(&theobject)); // TODO: Clone instead
         
         let is_has_first = unsafe { &*theobject }.as_any().downcast_ref::<MyStruct>().is_some();
         assert!(is_has_first, "The value should be a HasFirst");
-        assert!(!is_instance_of::<dyn HasFirst, MyStruct>(theobject));
+        assert!(is_instance_of::<dyn HasFirst, MyStruct>(theobject));
+        //assert!(DafnyUpdowncast::<MyStruct>::is_instance_of(&theobject));
 
         let replaced_value = unsafe { (*theobject).replace_first(&Rc::new("Jack".to_string())) };
         assert_eq!(replaced_value, Rc::new("Jane".to_string()), "Replaced value should be 'Jane'");
@@ -669,9 +676,100 @@ mod tests {
 
     #[test]
     fn test_newtypes() {
-        let five_bigint = Rc::new(crate::BigInt::parse_bytes(b"5", 10).unwrap())
+        let five_bigint = Rc::new(crate::BigInt::parse_bytes(b"5", 10).unwrap());
         // Convert five_bigint to u16
-        let five_u16: u16 = num::ToPrimitive::to_u16(&five_bigint).unwrap();
+        let five_u16: u16 = num::ToPrimitive::to_u16(five_bigint.as_ref()).unwrap();
     }
+
+    /*enum OptionT<T> {
+        NoneT {},
+        SomeT { value: T }
+    }
+    impl <Input> AsAny for OptionT<Input> {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+    impl <U, T : DafnyUpdowncast<U>> DafnyUpdowncast<OptionT<U>> for OptionT<T>
+      where T: Clone + AsAny, U: Clone + AsAny
+    {
+        fn updowncast(&self) -> OptionT<U> {
+            match self {
+                OptionT::NoneT{} => OptionT::NoneT{},
+                OptionT::SomeT{value} => OptionT::SomeT{value: value.updowncast()}
+            }
+        }
+
+        fn is_instance_of(&self) -> bool {
+            match self {
+                OptionT::NoneT{} => true,
+                OptionT::SomeT{value} => value.is_instance_of()
+            }
+        }
+    }
+    impl <U, T : DafnyUpdowncast<U>> DafnyUpdowncast<Rc<OptionT<U>>> for Rc<OptionT<T>>
+      where T: Clone + AsAny, U: Clone + AsAny
+    {
+        fn updowncast(&self) -> Rc<OptionT<U>> {
+            Rc::new(self.as_ref().updowncast())
+        }
+
+        fn is_instance_of(&self) -> bool {
+            DafnyUpdowncast::<OptionT<U>>::is_instance_of(self.as_ref())
+        }
+    }
+
+    trait Supertrait: AsAny {
+    }
+
+    trait Trait: Supertrait + AsAny {
+    }
+
+    struct Class {}
+
+    impl Trait for Class {}
+
+    impl Supertrait for Class {}
+
+    // We ensure Class implements Any
+    impl AsAny for Class {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+    
+    impl DafnyUpdowncast<Class, dyn Trait> {
+        fn convert(this: *const Class) -> *const dyn Trait {
+            this
+        }
+    }
+    impl UpcastClass<dyn Trait, dyn Supertrait> {
+        fn convert(this: *const Trait) -> *const dyn Supertrait {
+            this
+        }
+    }
+
+    #[test]
+    fn test_covariance() {
+        // trait X {}
+        // class A extends X {}
+        // method Test() {
+        //   var a := new A;
+        //   var x: Option<X> := Some(a);
+        // }
+        
+
+        let x: *const Class = Box::into_raw(Box::new(Class{}));
+        let y: Rc<Option<*const Class>> = Rc::new(Some(x));
+        //let y_to_trait: Rc<Option<*const dyn Trait>> = y.updowncast();
+        //let y_to_supertrait: Rc<Option<*const dyn Supertrait>> = y.updowncast();
+        //let trait_to_supertrait: Rc<Option<*const dyn Supertrait>> = y_to_trait.updowncast();
+        //let supertrait_to_trait: Rc<Option<*const dyn Trait>> = y_to_supertrait.updowncast();
+        //let trait_to_class: Rc<Option<*const Class>> = y_to_trait.updowncast();
+
+        // Let's write tests methods that we will add methods for later in the class
+
+
+    }*/
 }
 // Struct containing two reference-counted fields

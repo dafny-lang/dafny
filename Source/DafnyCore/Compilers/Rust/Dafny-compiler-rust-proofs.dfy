@@ -293,7 +293,7 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
       UnescapeIdent(escapeIdent(i));
       UnescapeIdent(idiomatic_rust(i));
       ReverseIdiomaticRust(idiomatic_rust(i));
-      { EscapeIdentInvertibleForIdiomaticRust(i); }
+      { IdiomaticRustInvertible(i); }
       i;
     }
   }

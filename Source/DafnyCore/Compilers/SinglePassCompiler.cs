@@ -1408,7 +1408,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// The "ct" type is either a SetType or a MapType.
     /// </summary>
-    protected abstract string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr);
+    protected abstract void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt);
 
     /// <summary>
     /// Returns a pair (ty, f) where
@@ -5591,8 +5592,8 @@ namespace Microsoft.Dafny.Compilers {
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
         EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, returned, wStmts);
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -5643,8 +5644,8 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
 
-        var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, returned, wStmts);
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;

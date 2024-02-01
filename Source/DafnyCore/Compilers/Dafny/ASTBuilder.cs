@@ -833,14 +833,14 @@ namespace Microsoft.Dafny.Compilers {
 
   class CallStmtBuilder : ExprContainer, BuildableStatement {
     object on = null;
-    string name = null;
+    DAST.CallName name = null;
     List<DAST.Type> typeArgs = null;
     readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
     public CallStmtBuilder() { }
 
-    public void SetName(string name) {
+    public void SetName(CallName name) {
       if (this.name != null) {
         throw new InvalidOperationException();
       } else {
@@ -889,7 +889,7 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Statement)DAST.Statement.create_Call(
         builtOn[0],
-        Sequence<Rune>.UnicodeFromString(name),
+        name,
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray()),
         outs == null ? Option<ISequence<ISequence<Rune>>>.create_None() : Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
@@ -1007,7 +1007,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ExprBuffer : ExprContainer {
+  class ExprBuffer : ExprContainer, BuildableExpr {
     Stack<object> exprs = new();
     public readonly object parent;
 
@@ -1056,6 +1056,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddUnsupported(string why) {
       AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+
+    public DAST.Expression Build() {
+      return Finish();
     }
   }
 
@@ -1257,14 +1261,14 @@ namespace Microsoft.Dafny.Compilers {
 
   class CallExprBuilder : ExprContainer, BuildableExpr {
     object on = null;
-    string name = null;
+    DAST.CallName name = null;
     List<DAST.Type> typeArgs = null;
     readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
     public CallExprBuilder() { }
 
-    public void SetName(string name) {
+    public void SetName(DAST.CallName name) {
       if (this.name != null) {
         throw new InvalidOperationException();
       } else {
@@ -1313,7 +1317,7 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Expression)DAST.Expression.create_Call(
         builtOn[0],
-        Sequence<Rune>.UnicodeFromString(name),
+        name,
         Sequence<DAST.Type>.FromArray((typeArgs ?? new()).ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
       );

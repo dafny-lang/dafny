@@ -73,6 +73,10 @@ module {:extern "DAST"} DAST {
 
   datatype Method = Method(isStatic: bool, hasBody: bool, overridingPath: Option<seq<Ident>>, name: string, typeParams: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Option<seq<Ident>>)
 
+  datatype CallName =
+    Name(name: string) |
+    MapBuilderAdd | MapBuilderBuild | SetBuilderAdd | SetBuilderBuild
+
   datatype Statement =
     DeclareVar(name: string, typ: Type, maybeValue: Option<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
@@ -80,7 +84,7 @@ module {:extern "DAST"} DAST {
     Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
     Foreach(boundName: string, boundType: Type, over: Expression, body: seq<Statement>) |
-    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
     Break(toLabel: Option<string>) |
@@ -101,12 +105,13 @@ module {:extern "DAST"} DAST {
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
     Lt() | // a <= b is !(b < a)
+    LtChar() |
     Plus() | Minus() | Times() |
     BitwiseAnd() | BitwiseOr() | BitwiseXor() |
     BitwiseShiftRight() | BitwiseShiftLeft() |
     And() | Or() |
     In() |
-    SetDifference() |
+    SetDifference() | MapMerge() | MapSubtraction() |
     Concat() |
     Passthrough(string)
 
@@ -123,17 +128,21 @@ module {:extern "DAST"} DAST {
     SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
     MapValue(mapElems: seq<(Expression, Expression)>) |
+    MapBuilder(keyType: Type, valueType: Type) |
+    SetBuilder(elemType: Type) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnOpFormat) |
     BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinOpFormat) |
     ArrayLen(expr: Expression, dim: nat) |
+    MapKeys(expr: Expression) |
+    MapValues(expr: Expression) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat) |
-    Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
     IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
