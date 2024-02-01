@@ -233,7 +233,7 @@ implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
+   - `--succeed-on-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
