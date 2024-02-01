@@ -48,8 +48,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     this.NewSelfSynonym();
   }
 
-  /// <summary>
-  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
+  /// <summary>  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
   /// </summary>
   public Type RhsWithArgument(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);
