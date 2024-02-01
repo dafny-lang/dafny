@@ -298,9 +298,6 @@ public class MultiBackendTest {
       CommonOptionBag.SpillTranslation,
       CommonOptionBag.OptimizeErasableDatatypeWrapper,
       CommonOptionBag.AddCompileSuffix,
-      CommonOptionBag.RelaxDefiniteAssignment,
-      BoogieOptionBag.SolverResourceLimit,
-      BoogieOptionBag.VerificationTimeLimit,
       RunCommand.MainOverride,
     }.Select(o => o.Name);
 
