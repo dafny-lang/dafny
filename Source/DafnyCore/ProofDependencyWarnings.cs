@@ -9,11 +9,10 @@ using VC;
 namespace Microsoft.Dafny;
 
 public class ProofDependencyWarnings {
-  
 
-  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts, 
-    ErrorReporter reporter, ProofDependencyManager manager)
-  {
+
+  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts,
+    ErrorReporter reporter, ProofDependencyManager manager) {
     foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
       WarnAboutSuspiciousDependenciesForImplementation(options,
         reporter,
@@ -22,7 +21,7 @@ public class ProofDependencyWarnings {
         resultsForScope.Select(p => p.Result.Result).ToList());
     }
   }
-  
+
   public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
     var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
     var orderedResults =

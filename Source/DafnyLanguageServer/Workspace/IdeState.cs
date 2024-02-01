@@ -21,7 +21,7 @@ public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus 
   IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeCanVerifyState(VerificationPreparationState PreparationProgress, 
+public record IdeCanVerifyState(VerificationPreparationState PreparationProgress,
   ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks,
   IReadOnlyList<Diagnostic> Diagnostics);
 
@@ -333,7 +333,7 @@ public record IdeState(
     return results.Aggregate((a, b) => new IdeCanVerifyState(
       MergeStates(a.PreparationProgress, b.PreparationProgress),
       a.VerificationTasks.ToImmutableDictionary().Merge(b.VerificationTasks,
-        (aView, bView) => aView /* Merge should not occur */), 
+        (aView, bView) => aView /* Merge should not occur */),
       a.Diagnostics.Concat(b.Diagnostics)));
   }
 
@@ -474,7 +474,7 @@ public record IdeState(
     // WarnContradictoryAssumptions should be executable based on a single assertion batch.
     // WarnRedundantAssumptions is more like find references. It needs all the batches under in a verification scope.
     // If we're saying that WarnRedundantAssumptions is critical, than verifying single assertions is crap.
-    
+
     // if (boogieUpdate.BoogieStatus is Completed completed) {
     //   var errorReporter = new ObservableErrorReporter(options, uri);
     //   List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
@@ -498,7 +498,7 @@ public record IdeState(
       hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
     if (newTaskStates.Values.All(s => s.Status >= PublishedVerificationStatus.Error)) {
-      
+
       var errorReporter = new ObservableErrorReporter(options, uri);
       List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
@@ -506,10 +506,10 @@ public record IdeState(
       ProofDependencyWarnings.ReportSuspiciousDependencies(options,
         newTaskStates.Values.Select(s => (s.Task, (Completed)s.RawStatus)),
         errorReporter, boogieUpdate.ProofDependencyManager);
-      
+
       newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     }
-    
+
     return previousState with {
       Counterexamples = counterExamples,
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,

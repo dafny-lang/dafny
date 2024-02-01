@@ -240,12 +240,12 @@ public class Compilation : IDisposable {
   public static string GetTaskName(IVerificationTask split) {
     var dafnyToken = BoogieGenerator.ToDafnyToken(false, split.Token);
     var prefix = dafnyToken.line + "," + dafnyToken.col;
-    
-     // Refining declarations get the token of what they're refining, so to distinguish them we need to
-     // add the refining module name to the prefix.
-     if (split.ScopeToken is RefinementToken refinementToken) {
-       prefix += "." + refinementToken.InheritingModule.Name;
-     }
+
+    // Refining declarations get the token of what they're refining, so to distinguish them we need to
+    // add the refining module name to the prefix.
+    if (split.ScopeToken is RefinementToken refinementToken) {
+      prefix += "." + refinementToken.InheritingModule.Name;
+    }
 
     return prefix;
   }
@@ -289,10 +289,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, _ => true, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, bool onlyPrepareVerificationForGutterTests) {
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+    bool onlyPrepareVerificationForGutterTests = false) {
     var resolution = await Resolution;
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
@@ -306,16 +307,16 @@ public class Compilation : IDisposable {
     updates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
     return true;
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution) {
+    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -360,7 +361,7 @@ public class Compilation : IDisposable {
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in tasks) {
+        foreach (var task in tasks.Where(taskFilter)) {
           VerifyTask(canVerify, task);
         }
       }

@@ -131,7 +131,7 @@ public class CliCompilation {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
-        foreach (var part in canVerifyPartsIdentified.Parts) {
+        foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
           canVerifyResult.Tasks.Add(part);
         }
 
@@ -191,24 +191,35 @@ public class CliCompilation {
       var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
       if (canVerifies != null) {
-        canVerifies = FilterCanVerifies(canVerifies);
+        canVerifies = FilterCanVerifies(canVerifies, out var line);
 
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
-          canVerifyResults[canVerify] = new CliCanVerifyResults();
-          await Compilation.VerifyCanVerify(canVerify, false);
+          var results = new CliCanVerifyResults();
+          canVerifyResults[canVerify] = results;
+          if (line != null) {
+            results.TaskFilter = t => KeepVerificationTask(t, line.Value);
+          }
+          await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
         }
 
         foreach (var canVerify in orderedCanVerifies) {
           var results = canVerifyResults[canVerify];
           try {
             await results.Finished.Task;
-            foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Task.Split.Token)) {
-              Compilation.ReportDiagnosticsInResult(options, task, completed.Result, Compilation.Reporter);
+
+            // We use an intermediate reporter so we can sort the diagnostics from all parts by token
+            var batchReporter = new BatchErrorReporter(options);
+            foreach (var (task, completed) in results.CompletedParts) {
+              Compilation.ReportDiagnosticsInResult(options, task, completed.Result, batchReporter);
+            }
+
+            foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+              Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
             }
 
             var parts = results.CompletedParts;
-            ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts, 
+            ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts,
               resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
 
           } catch (ProverException e) {
@@ -229,9 +240,14 @@ public class CliCompilation {
     }
   }
 
-  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies) {
+  private bool KeepVerificationTask(IVerificationTask task, int line) {
+    return task.ScopeToken.line == line || task.Token.line == line;
+  }
+
+  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
     var filterPosition = options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
+      line = null;
       return canVerifies;
     }
 
@@ -239,17 +255,20 @@ public class CliCompilation {
     var result = regex.Match(filterPosition);
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
+      line = null;
       return new List<ICanVerify>();
     }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
     var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
     if (string.IsNullOrEmpty(linePart)) {
+      line = null;
       return fileFiltered;
     }
 
-    var line = int.Parse(linePart);
+    var parsedLine = int.Parse(linePart);
+    line = parsedLine;
     return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
+        c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
   }
 }
