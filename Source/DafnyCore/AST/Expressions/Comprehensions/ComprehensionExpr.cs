@@ -262,9 +262,12 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
 
     public override PoolVirtues Virtues {
       get {
-        var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc | PoolVirtues.Enumerable;
+        var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
         if (IsFiniteCollection) {
           v |= PoolVirtues.Finite;
+        }
+        if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
+          v |= PoolVirtues.Enumerable;
         }
         return v;
       }
