@@ -150,7 +150,7 @@ public class CliCompilation {
           var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
           canVerifyResult.CompletedParts.Add((boogieUpdate.VerificationTask, completed));
 
-          // TODO first update this to record resolution of ICanVerify things.
+          // TODO Different PR, update the completed X output so it looks at ICanVerify things.
           switch (completed.Result.Outcome) {
             case SolverOutcome.Valid:
             case SolverOutcome.Bounded:

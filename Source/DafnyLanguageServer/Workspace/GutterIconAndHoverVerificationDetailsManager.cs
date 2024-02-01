@@ -245,7 +245,9 @@ Send notifications about the verification status of each line in the program.
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation, ImplementationRunResult verificationResult) {
+  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation,
+    int implementationResourceCount,
+    VcOutcome implementationOutcome) {
 
     var uri = ((IToken)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
@@ -258,9 +260,9 @@ Send notifications about the verification status of each line in the program.
     } else {
       lock (LockProcessing) {
         implementationNode.Stop();
-        implementationNode.ResourceCount = verificationResult.ResourceCount;
-        targetMethodNode.ResourceCount += verificationResult.ResourceCount;
-        var finalOutcome = verificationResult.VcOutcome switch {
+        implementationNode.ResourceCount = implementationResourceCount;
+        targetMethodNode.ResourceCount += implementationResourceCount;
+        var finalOutcome = implementationOutcome switch {
           VcOutcome.Correct => GutterVerificationStatus.Verified,
           _ => GutterVerificationStatus.Error
         };
@@ -268,7 +270,7 @@ Send notifications about the verification status of each line in the program.
         implementationNode.StatusVerification = finalOutcome;
         // Will be only executed by the last instance.
         if (!targetMethodNode.Children.All(child => child.Finished)) {
-          targetMethodNode.StatusVerification = verificationResult.VcOutcome switch {
+          targetMethodNode.StatusVerification = implementationOutcome switch {
             VcOutcome.Correct => targetMethodNode.StatusVerification,
             _ => GutterVerificationStatus.Error
           };

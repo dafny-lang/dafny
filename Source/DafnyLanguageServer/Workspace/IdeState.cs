@@ -440,7 +440,6 @@ public record IdeState(
 
   private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
-    UpdateGutterIconTrees(boogieUpdate, options, logger);
 
     var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
@@ -461,6 +460,10 @@ public record IdeState(
     }
 
     if (boogieUpdate.BoogieStatus is Completed completed) {
+      // WarnContradictoryAssumptions should be computable after completing a single assertion batch.
+      // And we should do this because it allows this warning to be shown when doing --filter-position on a single assertion
+      // https://github.com/dafny-lang/dafny/issues/5039 
+      
       counterExamples = completed.Result.CounterExamples;
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       var newDiagnostics =
@@ -470,34 +473,12 @@ public record IdeState(
         $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics.");
     }
 
-    // TODO Come up with a solution 
-    // WarnContradictoryAssumptions should be executable based on a single assertion batch.
-    // WarnRedundantAssumptions is more like find references. It needs all the batches under in a verification scope.
-    // If we're saying that WarnRedundantAssumptions is critical, than verifying single assertions is crap.
-
-    // if (boogieUpdate.BoogieStatus is Completed completed) {
-    //   var errorReporter = new ObservableErrorReporter(options, uri);
-    //   List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
-    //   errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
-    //
-    //   if (Input.Options.Get(CommonOptionBag.WarnContradictoryAssumptions)
-    //       || Input.Options.Get(CommonOptionBag.WarnRedundantAssumptions)) {
-    //     ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(Input.Options,
-    //       errorReporter,
-    //       boogieUpdate.ProofDependencyManager,
-    //       new DafnyConsolePrinter.ImplementationLogEntry(boogieUpdate.VerificationTask.Implementation.VerboseName,
-    //         boogieUpdate.VerificationTask.Implementation.tok),
-    //       DafnyConsolePrinter.DistillVerificationResult(completed.Result));
-    //   }
-    //
-    //   diagnostics = diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
-    // }
-
     var newCanVerifyDiagnostics = new List<Diagnostic>();
     var taskState = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
       hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
-    if (newTaskStates.Values.All(s => s.Status >= PublishedVerificationStatus.Error)) {
+    var allTasksAreCompleted = newTaskStates.Values.All(s => s.Status >= PublishedVerificationStatus.Error);
+    if (allTasksAreCompleted) {
 
       var errorReporter = new ObservableErrorReporter(options, uri);
       List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
@@ -509,7 +490,19 @@ public record IdeState(
 
       newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     }
-
+    UpdateGutterIconTrees(boogieUpdate, options, logger);
+    
+    // TODO move inside UpdateGutterIconTrees ?
+    if (allTasksAreCompleted) {
+      var results = newTaskStates.Values.Select(t => (t.Task, ((Completed)t.RawStatus).Result));
+      foreach (var g in results.GroupBy(r => r.Task.ScopeId)) {
+        var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
+        var resourceCount = g.Sum(e => e.Result.ResourceCount);
+        var outcome = g.Select(e => Compilation.GetOutcome(e.Result.Outcome)).Max();
+        gutterIconManager.ReportEndVerifyImplementation(this, g.First().Task.Split.Implementation, resourceCount, outcome);
+      }
+    }
+    
     return previousState with {
       Counterexamples = counterExamples,
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
@@ -531,25 +524,6 @@ public record IdeState(
       gutterIconManager.ReportAssertionBatchResult(this,
         new AssertionBatchResult(update.VerificationTask.Split, batchCompleted.Result));
     }
-
-    // TODO switch to 
-    // if (update.BoogieStatus is Completed completed) {
-    //   var tokenString = BoogieGenerator.ToDafnyToken(true, update.VerificationTask.Implementation.tok).TokenToString(options);
-    //   var verificationResult = completed.Result;
-    //   // Sometimes, the boogie status is set as Completed
-    //   // but the assertion batches were not reported yet.
-    //   // because they are on a different thread.
-    //   // This loop will ensure that every vc result has been dealt with
-    //   // before we report that the verification of the implementation is finished 
-    //   foreach (var result in completed.Result.VCResults) {
-    //     logger.LogDebug(
-    //       $"Possibly duplicate reporting assertion batch {result.vcNum} as completed in {tokenString}, version {this.Version}");
-    //     gutterIconManager.ReportAssertionBatchResult(this,
-    //       new AssertionBatchResult(update.VerificationTask.Implementation, result));
-    //   }
-    //
-    //   gutterIconManager.ReportEndVerifyImplementation(this, update.VerificationTask.Implementation, verificationResult);
-    // }
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {

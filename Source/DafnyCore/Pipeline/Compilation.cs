@@ -237,13 +237,13 @@ public class Compilation : IDisposable {
     }
   }
 
-  public static string GetTaskName(IVerificationTask split) {
-    var dafnyToken = BoogieGenerator.ToDafnyToken(false, split.Token);
-    var prefix = dafnyToken.line + "," + dafnyToken.col;
+  public static string GetTaskName(IVerificationTask task) {
+    var dafnyToken = BoogieGenerator.ToDafnyToken(false, task.Token);
+    var prefix = task.ScopeId + dafnyToken.line + "," + dafnyToken.col;
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (split.ScopeToken is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementToken refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 
@@ -498,7 +498,7 @@ public class Compilation : IDisposable {
       implementation.GetTimeLimit(options), result.CounterExamples);
   }
 
-  private static VcOutcome GetOutcome(SolverOutcome outcome) {
+  public static VcOutcome GetOutcome(SolverOutcome outcome) {
     switch (outcome) {
       case SolverOutcome.Valid:
         return VcOutcome.Correct;
