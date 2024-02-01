@@ -37,4 +37,4 @@ LabelsOldAt.dfy(367,11): Error: assertion might not hold
 LabelsOldAt.dfy(376,11): Error: assertion might not hold
 LabelsOldAt.dfy(385,11): Error: assertion might not hold
 
-Dafny program verifier finished with 28 verified, 35 errors
+Dafny program verifier finished with 28 verified and 35 failed assertions

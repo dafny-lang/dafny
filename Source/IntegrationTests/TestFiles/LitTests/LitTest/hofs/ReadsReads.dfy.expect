@@ -18,4 +18,4 @@ ReadsReads.dfy(252,13): Error: assertion might not hold
 ReadsReads.dfy(262,13): Error: assertion might not hold
 ReadsReads.dfy(272,13): Error: assertion might not hold
 
-Dafny program verifier finished with 16 verified, 19 errors
+Dafny program verifier finished with 16 verified and 19 failed assertions

@@ -13,4 +13,4 @@ ControlStructures.dfy(381,2): Error: cannot prove termination; try supplying a d
 ControlStructures.dfy(448,16): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 
-Dafny program verifier finished with 18 verified, 13 errors
+Dafny program verifier finished with 18 verified and 13 failed assertions

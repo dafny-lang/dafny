@@ -5,4 +5,4 @@ errorLimit.dfy(11,13): Error: assertion might not hold
 errorLimit.dfy(13,13): Error: assertion might not hold
 errorLimit.dfy(15,13): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 6 errors
+Dafny program verifier finished with 0 verified and 6 failed assertions

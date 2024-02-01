@@ -1,16 +1,16 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Compiled assembly into JustRun.dll
 Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Wrote textual form of target program to JustRun-go/src/JustRun.go
 Additional target code written to JustRun-go/src/dafny/dafny.go
 Additional target code written to JustRun-go/src/dafny/dafnyFromDafny.go
@@ -19,7 +19,7 @@ Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Wrote textual form of target program to JustRun-java/JustRun.java
 Additional target code written to JustRun-java/dafny/Array.java
 Additional target code written to JustRun-java/dafny/BigOrdinal.java
@@ -94,7 +94,7 @@ Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Wrote textual form of target program to JustRun.cpp
 Additional target code written to JustRun.h
 Additional target code written to DafnyRuntime.h
@@ -102,7 +102,7 @@ Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 Wrote textual form of target program to JustRun-py/__main__.py
 Additional target code written to JustRun-py/System_.py
 Additional target code written to JustRun-py/_dafny.py
@@ -111,20 +111,20 @@ Running...
 
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 hello, Dafny

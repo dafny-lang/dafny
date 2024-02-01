@@ -41,4 +41,4 @@ Refinement.dfy[Modify1](238,14): Related location: this is the postcondition tha
 Refinement.dfy(274,6): Error: a postcondition could not be proved on this return path
 Refinement.dfy[Modify1](244,14): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 28 verified, 13 errors
+Dafny program verifier finished with 28 verified and 13 failed assertions

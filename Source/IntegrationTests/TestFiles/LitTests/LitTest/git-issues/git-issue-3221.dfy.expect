@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 M.m: Testing M.m
 PASSED
 M.t: Testing M.t
@@ -11,23 +11,23 @@ PASSED
 pp: Testing pp
 PASSED
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 q: Testing q
 PASSED
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 M.m: Testing M.m
 PASSED
 m: Testing m
 PASSED
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 M.m: Testing M.m
 PASSED
 M.t: Testing M.t
 PASSED
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 0 verified and 0 failed assertions
 m: Testing m
 PASSED
 q: Testing q

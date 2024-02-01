@@ -10,4 +10,4 @@ TraitsDecreases.dfy(138,4): Error: predicate's (possibly automatically generated
 TraitsDecreases.dfy(145,4): Error: predicate's (possibly automatically generated) decreases clause must be below or equal to that in the trait
 TraitsDecreases.dfy(152,4): Error: method's (possibly automatically generated) decreases clause must be below or equal to that in the trait
 
-Dafny program verifier finished with 12 verified, 11 errors
+Dafny program verifier finished with 12 verified and 11 failed assertions

@@ -27,4 +27,4 @@ loop-detection-messages--unit-tests.dfy(25,9): Info: Selected triggers: {g(j), f
 loop-detection-messages--unit-tests.dfy(26,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 loop-detection-messages--unit-tests.dfy(27,9): Info: The attribute {:autotriggers false} may cause brittle verification. It's better to remove this attribute, or as a second option, manually define a trigger using {:trigger}. For more information, see the section quantifier instantiation rules in the reference manual.
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 1 verified and 0 failed assertions

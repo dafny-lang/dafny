@@ -3,4 +3,4 @@ TraitOverride1.dfy(205,2): Error: a postcondition could not be proved on this re
 TraitOverride1.dfy(204,40): Related location: this is the postcondition that could not be proved
 TraitOverride1.dfy(188,32): Related location
 
-Dafny program verifier finished with 29 verified, 2 errors
+Dafny program verifier finished with 29 verified and 2 failed assertions

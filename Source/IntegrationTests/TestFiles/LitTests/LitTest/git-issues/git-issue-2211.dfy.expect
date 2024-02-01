@@ -2,4 +2,4 @@ git-issue-2211.dfy(17,0): Error: a postcondition could not be proved on this ret
 git-issue-2211.dfy(16,10): Related location: this is the postcondition that could not be proved
 git-issue-2211.dfy(8,2): Related location
 
-Dafny program verifier finished with 2 verified, 1 error
+Dafny program verifier finished with 2 verified and 1 failed assertions

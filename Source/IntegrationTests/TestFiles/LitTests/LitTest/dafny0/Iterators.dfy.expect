@@ -41,4 +41,4 @@ Iterators.dfy(461,21): Error: this invariant could not be proved to be maintaine
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
 
-Dafny program verifier finished with 35 verified, 30 errors
+Dafny program verifier finished with 35 verified and 30 failed assertions
