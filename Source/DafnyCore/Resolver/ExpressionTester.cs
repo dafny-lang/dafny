@@ -359,33 +359,46 @@ public class ExpressionTester {
       return true;
     }
 
-    var udtTo = tte.ToType.NormalizePastUnconstrainedTypes() as UserDefinedType;
+    var udtTo = toType.NormalizePastUnconstrainedTypes() as UserDefinedType;
     if (udtTo == null) {
-      Contract.Assert(tte.ToType.TrimNewtypes() is BoolType or CharType or IntType or BitvectorType or BigOrdinalType or RealType);
+      Contract.Assert(toType.NormalizeToAncestorType() is BoolType or CharType or IntType or BitvectorType or BigOrdinalType or RealType);
       return true;
     }
-    if (udtTo.ResolvedClass is ((SubsetTypeDecl and not NonNullTypeDecl) or NewtypeDecl) and var declWithConstraint) {
-      // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases are allowed only in ghost contexts.
-      // return declWithConstraint.ConstraintIsCompilable;
-      return false;
+    if (udtTo.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
+      var declWithConstraints = (RedirectingTypeDecl)udtTo.ResolvedClass;
+      if (!declWithConstraints.ConstraintIsCompilable) {
+        return false;
+      }
+      // okay, so the constraints are compilable, but we still need to check the injectivity property below
     }
 
     // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
+    //
     // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
     // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
-    // be certain about the "...". So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
+    // be certain about the "..." (in fact, we can't really do it on any target platform, because multiple Dafny types can map to the same
+    // target type). So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
     // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
+    //
     // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
     // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
     // then the mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique, which means we can check if an
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
     var B = udtTo.ResolvedClass; // important that this includes any constraints of tte.ToType, so no type parameters are lost
-    var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
+    var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
     var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
     if (fromType.TypeArgs.Count != 0) {
       // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
-      var A = (UserDefinedType)fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
-      var A_U = B_T.AsParentType(A.ResolvedClass);
+      var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
+      Type A_U;
+      if (A is UserDefinedType udtA) {
+        A_U = B_T.AsParentType(udtA.ResolvedClass);
+      } else {
+        // Evidently, A is not a subset type, newtype, reference type, or trait type (so, A equals A.NormalizeToAncestorType()).
+        // We can therefore move B_T up to its parent A by normalizing, expanding, and trimming it all the way.
+        Contract.Assert(A.NormalizeToAncestorType().Equals(A));
+        A_U = B_T.NormalizeToAncestorType();
+      }
       // the type test can be performed at run time if all the type parameters of "B_T" are free type parameters of "A_U".
       A_U.AddFreeTypeParameters(tps);
     }

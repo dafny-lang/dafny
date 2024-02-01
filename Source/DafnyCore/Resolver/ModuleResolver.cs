@@ -1176,40 +1176,20 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
-          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
-            var constraintIsCompilable = true;
-
-            // Check base type
-            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
-            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
-              CheckIfCompilable(baseDecl);
-              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
-            }
-
-            // Check the type's constraint
-            if (declWithConstraint.Constraint != null) {
-              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
-            }
-
-            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
-          }
-
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
             if (iter.Body != null) {
-              ComputeGhostInterest(iter.Body, false, null, iter);
               CheckExpression(iter.Body, this, iter);
             }
 
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
-              CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              CheckExpression(subsetTypeDecl.Witness, this,
+                new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
                 var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
                 ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
@@ -1221,7 +1201,6 @@ namespace Microsoft.Dafny {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
             }
-            CheckIfCompilable(newtypeDecl);
 
             if (newtypeDecl.Witness != null) {
               CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1255,7 +1234,16 @@ namespace Microsoft.Dafny {
               CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
             }
           }
+        }
 
+        FigureOutIfTypeConstraintsAreCompilable(declarations);
+
+        // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
+        // visit iterator bodies and members (which will make calls to CheckIsCompilable).
+        foreach (TopLevelDecl d in declarations) {
+          if (d is IteratorDecl { Body: { } iterBody } iter) {
+            ComputeGhostInterest(iter.Body, false, null, iter);
+          }
           if (d is TopLevelDeclWithMembers cl) {
             ResolveClassMembers_Pass1(cl);
           }
@@ -1707,6 +1695,31 @@ namespace Microsoft.Dafny {
       Contract.Assert(declarations.Count == output.Count); // this assumes there were no duplicates in the given declarations
 
       return output;
+    }
+
+    private void FigureOutIfTypeConstraintsAreCompilable(List<TopLevelDecl> declarations) {
+      // It's important to do the declarations in topological order from how they depend on each other.
+      declarations = TopologicallySortedTopLevelDecls(declarations);
+
+      foreach (var d in declarations.Where(decl => decl is SubsetTypeDecl or NewtypeDecl)) {
+        var declWithConstraints = (RedirectingTypeDecl)d;
+
+        var constraintIsCompilable = true;
+
+        // Check base type
+        var baseType = (declWithConstraints.Var?.Type ?? ((NewtypeDecl)declWithConstraints).BaseType).NormalizeExpandKeepConstraints();
+        if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
+          constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
+        }
+
+        // Check the type's constraint
+        if (declWithConstraints.Constraint != null) {
+          constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraints.Constraint,
+            new CodeContextWrapper(declWithConstraints, true));
+        }
+
+        declWithConstraints.ConstraintIsCompilable = constraintIsCompilable;
+      }
     }
 
     /// <summary>
@@ -3885,26 +3898,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(ty != null);
       ty = ty.NormalizeExpandKeepConstraints();
-      var udt = ty as UserDefinedType;
-      if (udt != null) {
-        if (udt.ResolvedClass is NewtypeDecl) {
-          var dd = (NewtypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.BaseType);
-          if (dd.Var != null) {
-            Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-            substMap.Add(dd.Var, e);
-            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-            c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
+      if (ty is UserDefinedType udt) {
+        Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
+          var c = GetImpliedTypeConstraint(e, baseType);
+          if (boundVar != null) {
+            var ee = new ConversionExpr(e.tok, e, boundVar.Type) { Type = boundVar.Type };
+            var substMap = new Dictionary<IVariable, Expression> { { boundVar, ee } };
+            var typeMap = TypeParameter.SubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
+            var substituter = new Substituter(null, substMap, typeMap);
+            c = Expression.CreateAnd(c, substituter.Substitute(constraint));
           }
           return c;
-        } else if (udt.ResolvedClass is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-          substMap.Add(dd.Var, e);
-          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-          c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
-          return c;
+        }
+
+        if (udt.ResolvedClass is NewtypeDecl newtypeDecl) {
+          return CombineConstraints(newtypeDecl.BaseType, newtypeDecl.Var, newtypeDecl.Constraint);
+        }
+        if (udt.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
+          return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
         }
       }
       return Expression.CreateBoolLiteral(e.tok, true);
