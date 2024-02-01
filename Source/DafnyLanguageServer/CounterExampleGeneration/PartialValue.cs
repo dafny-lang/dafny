@@ -144,7 +144,6 @@ public class PartialValue {
         if (definition.rawExpression is MemberSelectExpr memberSelectExpr &&
             memberSelectExpr.Obj.ToString() == ElementIdentifier.ToString()) {
           fields[memberSelectExpr.MemberName] = relatedValue;
-          break;
         }
       }
     }
