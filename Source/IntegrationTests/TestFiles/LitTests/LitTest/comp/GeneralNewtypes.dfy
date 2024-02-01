@@ -8,6 +8,8 @@ method Main() {
   TypeDescriptors.Test();
   PrintChars.Test();
   Bitvectors.Test();
+  SubsetTypeIsTests.Test();
+  NewtypeIsTests.Test();
   NewBehaviors.Test();
 }
 
@@ -464,7 +466,7 @@ module Bitvectors {
       x := i as BV;
       x := j as BV;
     }
-/* SOON
+
     r := 10 is bv5;
     r := x is bv5;
     r := y is bv5;
@@ -474,7 +476,6 @@ module Bitvectors {
     r := c is bv5;
     r := i is bv5;
     r := j is bv5;
-*/
   }
 
   newtype Bits = b: bv109 | Predicate(b)
@@ -490,6 +491,73 @@ module Bitvectors {
     se2 := set x | x in cc;
     se3 := set x | x in dd;
     return |se0| + |se1| + |se2| + |se3|;
+  }
+}
+
+module SubsetTypeIsTests {
+  type BV = b: bv5 | b != 23
+  type Word = bv32
+  type Big = b: bv1024 | true
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  datatype Color = Blue | Yellow
+  trait RefTrait extends object { }
+  class MyClass extends RefTrait { }
+
+  type Subset = b: bv5 | b != 23
+
+  method Test() {
+    TestsAndConversions(0, 0, 0, 0, 0, 0, 0, 0);
+    TestsAndConversions(24, 23, 23, 23, 23, 23, 23, 23);
+    TestsAndConversions(24, 99, 99, 24, 99, 99, 99, 99);
+    print "done\n";
+  }
+
+  method TestsAndConversions(x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32) {
+    print " ", 10 is bv5;
+    print " ", x is bv5;
+    print " ", y is bv5;
+    print " ", z is bv5;
+    print " ", a is bv5;
+    print " ", b is bv5;
+    print " ", c is bv5;
+    print " ", i is bv5;
+    print " ", j is bv5;
+    print "\n";
+  }
+}
+
+
+module NewtypeIsTests {
+  newtype BV = b: bv5 | b != 23
+  newtype Word = bv32
+  newtype Big = b: bv1024 | true
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  datatype Color = Blue | Yellow
+  trait RefTrait extends object { }
+  class MyClass extends RefTrait { }
+
+  type Subset = b: bv5 | b != 23
+
+  method Test() {
+    TestsAndConversions(0, 0, 0, 0, 0, 0, 0, 0);
+    TestsAndConversions(24, 23, 23, 23, 23, 23, 23, 23);
+    TestsAndConversions(24, 99, 99, 24, 99, 99, 99, 99);
+    print "done\n";
+  }
+
+  method TestsAndConversions(x: BV, y: Word, z: Big, a: bv5, b: bv32, c: bv1024, i: int, j: int32) {
+    print " ", 10 is bv5;
+    print " ", x is bv5;
+    print " ", y is bv5;
+    print " ", z is bv5;
+    print " ", a is bv5;
+    print " ", b is bv5;
+    print " ", c is bv5;
+    print " ", i is bv5;
+    print " ", j is bv5;
+    print "\n";
   }
 }
 

@@ -171,11 +171,11 @@ module WhatCanBeCompiled {
   method IsTest(b: bool) returns (r: bool) {
     if
     case true =>
-      r := b is MyBool; // fine
+      r := b is MyBool;
     case true =>
-      r := b is AnyBool; // error: currently not supported (but could be)
+      r := b is AnyBool;
     case true =>
-      r := b is TrueBool; // error: currently not supported (but could be)
+      r := b is TrueBool;
     case true =>
       r := b is FermatBool; // error: this type test is ghost
     case true =>
@@ -374,9 +374,9 @@ module BitvectorForRuntimeChecks0 {
   }
 
   method Conversions() returns (x: BV, y: Word, z: Big, a: bv17, b: bv32, c: bv1024, i: int, j: int32, r: bool) {
-    r := 10 is BV; // error: BV is a newtype (this will be allowed in the future, but isn't yet)
-    r := 10 is Word; // fine
-    r := x is Word; // fine
+    r := 10 is BV;
+    r := 10 is Word;
+    r := x is Word;
     r := y is Word;
 
     r := 10 is bv17;
@@ -464,4 +464,75 @@ module NativeTypePreference {
   // A newtype based on a bitvector is always native-sized according to the bitvector width, regardless of any constraints. Hence,
   // there is an error reported on the next line.
   newtype {:nativeType "byte"} D4 = x: D3 | x < 100 witness 30 // error: "byte" cannot be determined to be big enough
+}
+
+module CyclesInFiguringOutWhatIsCompilable {
+  type OnTopOfNat = n: nat | true
+
+  predicate P(x: int) { true }
+  type PUp = x: int | P(x) // compilable, since P is
+  type PPUp = s: set<int> | |set x: PUp | x in s| < 10 // compilable, since PUp is
+
+  type PPDown = s: set<int> | |set x: PDown | x in s| < 10 // compilable, since PDown is
+  type PDown = x: int | P(x) // compilable, since P is
+
+  type PSpiral4 = x: PSpiral3 | true
+  type PSpiral2 = x: PSpiral1 | true
+  type PSpiral0 = x: int | P(x)
+  type PSpiral1 = x: PSpiral0 | true
+  type PSpiral3 = x: PSpiral2 | true
+
+  method AllFine(x: int, s: set<int>) {
+    print x is OnTopOfNat;
+    print x is PUp;
+    print x is PDown;
+    print s is PPUp;
+    print s is PPDown;
+    print x is PSpiral0;
+    print x is PSpiral1;
+    print x is PSpiral2;
+    print x is PSpiral3;
+    print x is PSpiral4;
+  }
+
+
+  ghost predicate Q(x: int) { true }
+  type QUp = x: int | Q(x) // not compilable, since Q isn't
+  type QQUp = s: set<int> | |set x: QUp | x in s| < 10 // not compilable, since QUp isn't
+  type QQDown = s: set<int> | |set x: QDown | x in s| < 10 // not compilable, since QDown isn't
+  type QDown = x: int | Q(x) // not compilable, since Q isn't
+
+  type QSpiral4 = x: QSpiral3 | true
+  type QSpiral2 = x: QSpiral1 | true
+  type QSpiral0 = x: int | Q(x)
+  type QSpiral1 = x: QSpiral0 | true
+  type QSpiral3 = x: QSpiral2 | true
+
+  method Errors(x: int, s: set<int>) {
+    print x is QUp; // error: not compilable
+    print x is QDown; // error: not compilable
+    print s is QQUp; // error: not compilable
+    print s is QQDown; // error: not compilable
+    print x is QSpiral0; // error: not compilable
+    print x is QSpiral1; // error: not compilable
+    print x is QSpiral2; // error: not compilable
+    print x is QSpiral3; // error: not compilable
+    print x is QSpiral4; // error: not compilable
+  }
+}
+
+module ForallStatementRegression {
+  ghost predicate P(x: int) {
+    x != 11
+  }
+
+  newtype MyInt = x: int | -2 <= x < 16 && P(x)
+
+  method Test() {
+    var a := new int[20];
+    forall i: MyInt | 5 <= i && i as int < a.Length { // error: not compilable (since P is ghost)
+      a[i] := i as int;
+    }
+    print a[..], "\n";
+  }
 }

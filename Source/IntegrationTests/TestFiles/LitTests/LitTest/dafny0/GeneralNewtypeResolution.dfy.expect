@@ -97,7 +97,17 @@ GeneralNewtypeResolution.dfy(456,32): Error: a newtype must be based on some num
 GeneralNewtypeResolution.dfy(457,33): Error: a newtype must be based on some numeric type (got bv7)
 GeneralNewtypeResolution.dfy(458,33): Error: a newtype must be based on some numeric type (got bv7)
 GeneralNewtypeResolution.dfy(460,32): Error: a newtype must be based on some numeric type (got bv13)
-99 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(512,12): Error: an expression of type 'int' is not run-time checkable to be a 'QUp'
+GeneralNewtypeResolution.dfy(513,12): Error: an expression of type 'int' is not run-time checkable to be a 'QDown'
+GeneralNewtypeResolution.dfy(514,12): Error: an expression of type 'set<int>' is not run-time checkable to be a 'QQUp'
+GeneralNewtypeResolution.dfy(515,12): Error: an expression of type 'set<int>' is not run-time checkable to be a 'QQDown'
+GeneralNewtypeResolution.dfy(516,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral0'
+GeneralNewtypeResolution.dfy(517,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral1'
+GeneralNewtypeResolution.dfy(518,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral2'
+GeneralNewtypeResolution.dfy(519,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral3'
+GeneralNewtypeResolution.dfy(520,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral4'
+GeneralNewtypeResolution.dfy(533,4): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+109 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Trait)
@@ -119,8 +129,6 @@ GeneralNewtypeResolution.dfy(118,6): Error: RHS (of type FalseBool) not assignab
 GeneralNewtypeResolution.dfy(119,6): Error: RHS (of type bool) not assignable to LHS (of type TrueBool)
 GeneralNewtypeResolution.dfy(122,6): Error: RHS (of type FalseBool) not assignable to LHS (of type TrueBool)
 GeneralNewtypeResolution.dfy(123,6): Error: RHS (of type bool) not assignable to LHS (of type TrueBool)
-GeneralNewtypeResolution.dfy(176,13): Error: an expression of type 'bool' is not run-time checkable to be a 'AnyBool'
-GeneralNewtypeResolution.dfy(178,13): Error: an expression of type 'bool' is not run-time checkable to be a 'TrueBool'
 GeneralNewtypeResolution.dfy(180,13): Error: an expression of type 'bool' is not run-time checkable to be a 'FermatBool'
 GeneralNewtypeResolution.dfy(182,13): Error: an expression of type 'bool' is not run-time checkable to be a 'GhostBool'
 GeneralNewtypeResolution.dfy(184,13): Error: an expression of type 'bool' is not run-time checkable to be a 'OnTopOfGhostBool'
@@ -167,7 +175,6 @@ GeneralNewtypeResolution.dfy(305,6): Error: RHS (of type bv32) not assignable to
 GeneralNewtypeResolution.dfy(306,6): Error: RHS (of type bv1024) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(307,6): Error: RHS (of type int) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable to LHS (of type BV)
-GeneralNewtypeResolution.dfy(377,12): Error: an expression of type 'int' is not run-time checkable to be a 'BV'
 GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword) GeneralNewtypeResolution.dfy(411,33)
@@ -181,4 +188,14 @@ GeneralNewtypeResolution.dfy(454,33): Error: A newtype based on a bitvector type
 GeneralNewtypeResolution.dfy(456,32): Error: A newtype based on a bitvector type (bv7) cannot use a native type that admits negative values ('short'). Hint: Try using the unsigned native type 'ushort'.
 GeneralNewtypeResolution.dfy(458,33): Error: A newtype based on a bitvector type (bv7) cannot use a native type that admits negative values ('number').
 GeneralNewtypeResolution.dfy(466,31): Error: The width of bitvector type bv13 cannot fit into native type 'byte'. Note: constraints of bitvector-based newtypes are not considered when determining native types.
-83 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(512,12): Error: an expression of type 'int' is not run-time checkable to be a 'QUp'
+GeneralNewtypeResolution.dfy(513,12): Error: an expression of type 'int' is not run-time checkable to be a 'QDown'
+GeneralNewtypeResolution.dfy(514,12): Error: an expression of type 'set<int>' is not run-time checkable to be a 'QQUp'
+GeneralNewtypeResolution.dfy(515,12): Error: an expression of type 'set<int>' is not run-time checkable to be a 'QQDown'
+GeneralNewtypeResolution.dfy(516,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral0'
+GeneralNewtypeResolution.dfy(517,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral1'
+GeneralNewtypeResolution.dfy(518,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral2'
+GeneralNewtypeResolution.dfy(519,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral3'
+GeneralNewtypeResolution.dfy(520,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral4'
+GeneralNewtypeResolution.dfy(533,4): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+90 resolution/type errors detected in GeneralNewtypeResolution.dfy
