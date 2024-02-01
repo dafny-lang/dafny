@@ -5,6 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class Formal : NonglobalVariable {
+  public Attributes Attributes { get; set; }
+
   public readonly bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
   public readonly bool IsOld;
@@ -13,7 +15,8 @@ public class Formal : NonglobalVariable {
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
-  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, 
+    Attributes attributes = null, 
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
     : base(tok, name, type, isGhost) {
     Contract.Requires(tok != null);
@@ -24,16 +27,13 @@ public class Formal : NonglobalVariable {
     InParam = inParam;
     IsOld = isOld;
     DefaultValue = defaultValue;
+    Attributes = attributes;
     IsNameOnly = isNameOnly;
     IsOlder = isOlder;
     NameForCompilation = nameForCompilation ?? name;
   }
 
-  public bool HasName {
-    get {
-      return !Name.StartsWith("#");
-    }
-  }
+  public bool HasName => !Name.StartsWith("#");
 
   private string sanitizedName;
   public override string SanitizedName =>
@@ -53,7 +53,7 @@ public class Formal : NonglobalVariable {
 /// </summary>
 public class ImplicitFormal : Formal {
   public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-    : base(tok, name, type, inParam, isGhost, null) {
+    : base(tok, name, type, inParam, isGhost, null, null) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
