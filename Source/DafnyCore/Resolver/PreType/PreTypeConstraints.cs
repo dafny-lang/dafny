@@ -479,14 +479,22 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
       confirmations.Add(new ConfirmationInfo(tok,
         () => ConfirmConstraint(check, preType, null),
-        () => string.Format(errorFormatString, preType)));
+        () => string.Format(errorFormatString, preType),
+        (ResolverPass reporter) => {
+          if (preType.Normalize() is PreTypeProxy && onProxyAction != null) {
+            onProxyAction();
+          } else {
+            reporter.ReportError(tok, errorFormatString, preType);
+          }
+        }));
     }
 
     public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
-      confirmations.Add(new ConfirmationInfo(tok, check, errorMessage));
+      confirmations.Add(new ConfirmationInfo(tok, check, errorMessage,
+        (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
     }
 
     void ConfirmTypeConstraints() {
@@ -495,10 +503,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    record ConfirmationInfo(IToken Tok, Func<bool> Check, Func<string> ErrorMessage) {
+    record ConfirmationInfo(IToken Tok, Func<bool> Check, Func<string> ErrorMessage, Action<ResolverPass> OnError) {
       public void Confirm(ResolverPass reporter) {
         if (!Check()) {
-          reporter.ReportError(Tok, ErrorMessage());
+          OnError(reporter);
         }
       }
 

@@ -1,0 +1,1 @@
+Allow a datatype to depend on traits without being told "datatype has no instances"

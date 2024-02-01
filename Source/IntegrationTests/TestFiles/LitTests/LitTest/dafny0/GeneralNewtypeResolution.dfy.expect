@@ -177,7 +177,8 @@ GeneralNewtypeResolution.dfy(307,6): Error: RHS (of type int) not assignable to 
 GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
-GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword) GeneralNewtypeResolution.dfy(411,33)
+GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
+GeneralNewtypeResolution.dfy(411,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 GeneralNewtypeResolution.dfy(434,13): Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got bv5)
 GeneralNewtypeResolution.dfy(441,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors
 GeneralNewtypeResolution.dfy(442,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors

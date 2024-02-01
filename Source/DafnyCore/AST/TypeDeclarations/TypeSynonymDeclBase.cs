@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -122,6 +123,6 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public abstract DafnySymbolKind Kind { get; }
+  public abstract SymbolKind Kind { get; }
   public abstract string GetDescription(DafnyOptions options);
 }

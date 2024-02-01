@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -86,7 +87,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
   }
 
   public abstract IToken NameToken { get; }
-  public DafnySymbolKind Kind => throw new NotImplementedException();
+  public SymbolKind Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();
   }

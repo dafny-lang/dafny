@@ -18,51 +18,67 @@ public class ConsoleErrorReporter : BatchErrorReporter {
   }
 
   protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-    if (base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
-      msg = msg.Replace("\n", "\n ");
-
-      ConsoleColor previousColor = Console.ForegroundColor;
-      if (Options.OutputWriter == Console.Out) {
-        Console.ForegroundColor = ColorForLevel(level);
-      }
-      var errorLine = ErrorToString(level, tok, msg);
-      while (tok is NestedToken nestedToken) {
-        tok = nestedToken.Inner;
-        if (tok.Filepath == nestedToken.Filepath &&
-            tok.line == nestedToken.line &&
-            tok.col == nestedToken.col) {
-          continue;
-        }
-        msg = nestedToken.Message ?? "[Related location]";
-        errorLine += $" {msg} {tok.TokenToString(Options)}";
-      }
-
-      if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
-        errorLine += " (ID: " + errorId + ")\n";
-        var info = ErrorRegistry.GetDetail(errorId);
-        if (info != null) {
-          errorLine += info; // already ends with eol character
-        }
-      } else {
-        errorLine += "\n";
-      }
-
-      Options.OutputWriter.Write(errorLine);
-
-      if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
-        TextWriter tw = new StringWriter();
-        new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
-        Options.OutputWriter.Write(tw.ToString());
-      }
-
-      if (Options.OutputWriter == Console.Out) {
-        Console.ForegroundColor = previousColor;
-      }
-      return true;
+    var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
+    if (!printMessage) {
+      return false;
     }
 
-    return false;
+    // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
+    msg = msg.Replace("\n", "\n ");
+
+    ConsoleColor previousColor = Console.ForegroundColor;
+    if (Options.OutputWriter == Console.Out) {
+      Console.ForegroundColor = ColorForLevel(level);
+    }
+    var errorLine = ErrorToString(level, tok, msg);
+
+    if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
+      errorLine += " (ID: " + errorId + ")\n";
+      var info = ErrorRegistry.GetDetail(errorId);
+      if (info != null) {
+        errorLine += info; // already ends with eol character
+      }
+    } else {
+      errorLine += "\n";
+    }
+
+    if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+      var tw = new StringWriter();
+      DafnyConsolePrinter.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
+      errorLine += tw.ToString();
+    }
+
+    var innerToken = tok;
+    while (innerToken is NestedToken nestedToken) {
+      innerToken = nestedToken.Inner;
+      if (innerToken.Filepath == nestedToken.Filepath &&
+          innerToken.line == nestedToken.line &&
+          innerToken.col == nestedToken.col) {
+        continue;
+      }
+
+      var innerMessage = nestedToken.Message;
+      if (innerMessage == null) {
+        innerMessage = "Related location";
+      } else {
+        innerMessage = "Related location: " + innerMessage;
+      }
+
+      errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
+      if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+        var tw = new StringWriter();
+        DafnyConsolePrinter.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
+        errorLine += tw.ToString();
+      }
+    }
+
+    Options.OutputWriter.Write(errorLine);
+
+    if (Options.OutputWriter == Console.Out) {
+      Console.ForegroundColor = previousColor;
+    }
+
+    return true;
   }
 
   public ConsoleErrorReporter(DafnyOptions options) : base(options) {

@@ -5,7 +5,7 @@ standard-libraries = true
 # but consumers don't have to have this option set
 # to use the standard libraries in general.
 reads-clauses-on-methods = true
-resource-limit = 1000
+resource-limit = 1000000
 warn-as-errors = true
 warn-redundant-assumptions = true
 warn-contradictory-assumptions = true

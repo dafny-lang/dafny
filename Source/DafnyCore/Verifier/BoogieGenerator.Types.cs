@@ -859,6 +859,9 @@ public partial class BoogieGenerator {
       return null;
     } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
       return null;
+    } else if (typ.IsTraitType) {
+      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy);
+      return null;
     } else {
       Contract.Assume(false);  // unexpected type
       return null;
@@ -1377,7 +1380,7 @@ public partial class BoogieGenerator {
     Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
     Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
 
-    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.Name, MethodTranslationKind.SpecWellformedness));
+    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
 
     if (!InVerificationScope(decl)) {
       // Checked in other file
@@ -1415,7 +1418,7 @@ public partial class BoogieGenerator {
     var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
       inParams, new List<Variable>(),
       false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-    AddVerboseNameAttribute(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
+    AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 
     // TODO: Can a checksum be inserted here?
