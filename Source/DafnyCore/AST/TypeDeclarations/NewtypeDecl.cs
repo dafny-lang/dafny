@@ -33,7 +33,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     this.NewSelfSynonym();
   }
   public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint,
-    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
+    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining) : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);

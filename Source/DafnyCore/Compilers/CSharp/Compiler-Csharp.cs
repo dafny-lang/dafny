@@ -2205,7 +2205,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
-      } else if (AsNativeType(e.Type) is {} nativeType) {
+      } else if (AsNativeType(e.Type) is { } nativeType) {
         GetNativeInfo(nativeType.Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
         if (needsCastAfterArithmetic) {
           wr = wr.Write($"({nativeName})").ForkInParens();
