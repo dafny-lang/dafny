@@ -65,6 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           continue;
         }
 
+        logger.LogTrace($"Publishing symbol status {current.Stringify()}");
         languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, current);
       }
     }
@@ -159,6 +160,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             publishedDiagnostics.TryRemove(publishUri, out _);
           }
 
+          logger.LogTrace($"Publish diagnostics called for URI {publishUri}");
           languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
             Uri = publishUri,
             Version = filesystem.GetVersion(publishUri),

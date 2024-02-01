@@ -232,9 +232,8 @@ namespace Microsoft.Dafny {
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
         return new MultiSetType(tt.HasTypeArg() ? CloneType(tt.Arg) : null);
-      } else if (t is MapType) {
-        var tt = (MapType)t;
-        return new MapType(tt.Finite, CloneType(tt.Domain), CloneType(tt.Range));
+      } else if (t is MapType mapType) {
+        return new MapType(this, mapType);
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
         return new ArrowType(Tok(tt.tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));

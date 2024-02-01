@@ -36,10 +36,10 @@ namespace Microsoft.Dafny {
   /// 
   /// Will be replaced by CompilationManager
   /// </summary>
-  public class CompilerDriver : IDisposable {
+  public class SynchronousCliCompilation : IDisposable {
     private readonly ExecutionEngine engine;
 
-    public CompilerDriver(DafnyOptions dafnyOptions) {
+    public SynchronousCliCompilation(DafnyOptions dafnyOptions) {
       engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
         return (int)getFilesExitCode;
       }
 
-      using var driver = new CompilerDriver(options);
+      using var driver = new SynchronousCliCompilation(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
 
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
 
       ISet<String> filesSeen = new HashSet<string>();
       foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
-                 Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
+                 Concat(CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         var extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -213,23 +213,6 @@ namespace Microsoft.Dafny {
       }
 
       return ExitValue.SUCCESS;
-    }
-
-    static IEnumerable<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
-      var result = new HashSet<string>();
-      foreach (var input in inputs) {
-        var values = input.Split(',');
-        foreach (var slice in values) {
-          var name = slice.Trim();
-          if (Directory.Exists(name)) {
-            var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
-            foreach (var file in files) { result.Add(file); }
-          } else {
-            result.Add(name);
-          }
-        }
-      }
-      return result;
     }
 
     private static IExecutableBackend GetBackend(DafnyOptions options) {

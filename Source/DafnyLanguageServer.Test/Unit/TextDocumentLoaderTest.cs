@@ -22,8 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IFileSystem> fileSystem;
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<ISymbolTableFactory> symbolTableFactory;
-    private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILogger<ITextDocumentLoader>> logger;
 
@@ -31,16 +29,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       this.output = new WriterFromOutputHelper(output);
       parser = new();
       symbolResolver = new();
-      symbolTableFactory = new();
-      ghostStateDiagnosticCollector = new();
       fileSystem = new();
       logger = new Mock<ILogger<ITextDocumentLoader>>();
-      textDocumentLoader = TextDocumentLoader.Create(
+      textDocumentLoader = new TextDocumentLoader(
+        logger.Object,
         parser.Object,
-        symbolResolver.Object,
-        symbolTableFactory.Object,
-        ghostStateDiagnosticCollector.Object,
-        logger.Object
+        symbolResolver.Object
       );
     }
 
@@ -83,8 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var uri = versionedTextDocumentIdentifier.Uri.ToUri();
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
       var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(DafnyOptions.Default), fs, DafnyOptions.Default, uri, Token.NoToken);
-      var input = new CompilationInput(DafnyOptions.Default, 0,
-        ProjectManagerDatabase.ImplicitProject(uri));
+      var input = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(uri));
       var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
         CustomStackSizePoolTaskScheduler.Create(0, 0));
       var compilation = new Compilation(new Mock<ILogger<Compilation>>().Object, new Mock<IFileSystem>().Object, textDocumentLoader,
