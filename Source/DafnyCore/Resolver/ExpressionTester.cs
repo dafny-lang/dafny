@@ -70,7 +70,7 @@ public class ExpressionTester {
     Expression subexpressionsAreInsideBranchesOnlyExcept = null;
 
     if (expr is IdentifierExpr expression) {
-      if (expression.Var != null && expression.Var.IsGhost) {
+      if (expression.Var is { IsGhost: true }) {
         ReportError(ErrorId.r_ghost_var_only_in_specifications, expression,
           $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
         return false;

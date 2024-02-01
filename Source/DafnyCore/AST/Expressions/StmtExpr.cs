@@ -62,9 +62,9 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       var s = (CalcStmt)S;
       return s.Result;
     } else if (S is RevealStmt) {
-      return new LiteralExpr(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
+      return CreateBoolLiteral(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
     } else if (S is UpdateStmt) {
-      return new LiteralExpr(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
+      return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
