@@ -15,8 +15,8 @@ public class Formal : NonglobalVariable {
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
-  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, 
-    Attributes attributes = null, 
+  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+    Attributes attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
     : base(tok, name, type, isGhost) {
     Contract.Requires(tok != null);

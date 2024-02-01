@@ -269,7 +269,7 @@ namespace Microsoft.Dafny {
       return (Formal)clones.GetOrCreate(formal, () => isReference
        ? formal
        : new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-         CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes), 
+         CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
          formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
          RangeToken = formal.RangeToken,
          IsTypeExplicit = formal.IsTypeExplicit
