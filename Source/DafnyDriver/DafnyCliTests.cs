@@ -42,8 +42,7 @@ public static class DafnyCliTests {
     // We do not want output such as "Compiled program written to Foo.cs"
     // from the compilers, since that changes with the target language
     "/compileVerbose:0",
-    
-    // Set a default time limit, to catch cases where verification time runs off the rails
+
     // Set a default resource limit, to catch cases where verification runs off the rails
     "/rlimit:50000000",
 

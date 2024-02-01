@@ -27,15 +27,22 @@ public class GoBackend : ExecutableBackend {
     return base.OnPostCompile(dafnyProgramName, targetDirectory, outputWriter) && OptimizeImports(targetDirectory, outputWriter);
   }
 
-  public bool OptimizeImports(string targetFilename, TextWriter outputWriter) {
+  private bool OptimizeImports(string targetFilename, TextWriter outputWriter) {
     var goArgs = new List<string> {
       "-w",
       targetFilename
     };
 
+    var writer = new StringWriter();
+
     var psi = PrepareProcessStartInfo("goimports", goArgs);
 
-    return 0 == RunProcess(psi, outputWriter, outputWriter);
+    var result = RunProcess(psi, writer, writer);
+    if (result != 0) {
+      outputWriter.WriteLine("Error occurred while invoking goimports:");
+      outputWriter.Write(writer.ToString());
+    }
+    return 0 == result;
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,
