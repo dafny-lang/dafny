@@ -5890,46 +5890,26 @@ namespace Microsoft.Dafny.Compilers {
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr,
-      bool isReturning = false, bool elseReturnValue = false, bool isSubfiltering = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false) {
 
-      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl and var declWithConstraint } udt) {
-        if (declWithConstraint is SubsetTypeDecl or NewtypeDecl { NativeTypeRangeImpliesAllConstraints: false }) {
-          // the type is a subset type or newtype with non-trivial constraints
+      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
+        var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-          var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
-          if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } normalizedVariableType) {
-            wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType,
-              inLetExprBody, tok, wr, isReturning: isReturning, elseReturnValue: elseReturnValue, isSubfiltering: true);
-          }
+        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-          if (declWithConstraint.Var != null) {
-            var typeMap = TypeParameter.SubstitutionMap(declWithConstraint.TypeArgs, udt.TypeArgs);
-            var instantiatedBaseType = baseType.Subst(typeMap);
-            var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), instantiatedBaseType) { Type = instantiatedBaseType };
-            var subContract = new Substituter(null,
-              new Dictionary<IVariable, Expression>() {
-                {declWithConstraint.Var, theValue}
-              },
-              typeMap
-            );
-            var constraintInContext = subContract.Substitute(declWithConstraint.Constraint);
-            var wStmts = wr.Fork();
-            var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-            EmitExpr(constraintInContext, inLetExprBody, guardWriter, wStmts);
-            if (isReturning) {
-              var elseBranch = wr;
-              elseBranch = EmitBlock(elseBranch);
-              elseBranch = EmitReturnExpr(elseBranch);
-              wStmts = elseBranch.Fork();
-              EmitExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
-            }
-            wr = thenWriter;
-          }
+        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+
+        if (isReturning) {
+          var elseBranch = wr;
+          elseBranch = EmitBlock(elseBranch);
+          elseBranch = EmitReturnExpr(elseBranch);
+          var wStmts = elseBranch.Fork();
+          EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
         }
+        wr = thenWriter;
       }
 
-      if (isReturning && !isSubfiltering) {
+      if (isReturning) {
         wr = EmitReturnExpr(wr);
       }
       return wr;
