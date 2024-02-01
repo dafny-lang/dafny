@@ -34,4 +34,4 @@ ReadsOnMethods.dfy(516,11): Related location
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field
 
-Dafny program verifier finished with 67 verified and 32 failed assertions
+Dafny program verifier finished with 67 verified, 32 errors

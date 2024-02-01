@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 1 verified and 0 failed assertions
+Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 [Program halted] array size exceeds memory limit: 9223372036854775808

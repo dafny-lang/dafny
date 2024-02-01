@@ -3,4 +3,4 @@ text.dfy(5,21): Error: this loop invariant could not be proved on entry
 text.dfy(5,21): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 
-Dafny program verifier finished with 0 verified and 2 failed assertions
+Dafny program verifier finished with 0 verified, 2 errors

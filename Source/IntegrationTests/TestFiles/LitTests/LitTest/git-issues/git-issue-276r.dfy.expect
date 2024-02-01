@@ -15,4 +15,4 @@ git-issue-276r.dfy(20,10): Info: newtype b14 resolves as {:nativeType "byte"} (d
 git-issue-276r.dfy(21,10): Info: newtype b15 resolves as {:nativeType "byte"} (detected range: 0 .. 40)
 git-issue-276r.dfy(22,10): Info: newtype b16 resolves as {:nativeType "byte"} (detected range: 0 .. 35)
 
-Dafny program verifier finished with 17 verified and 0 failed assertions
+Dafny program verifier finished with 17 verified, 0 errors

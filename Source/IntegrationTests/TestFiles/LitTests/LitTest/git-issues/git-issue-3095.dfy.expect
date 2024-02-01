@@ -46,4 +46,4 @@ git-issue-3095.dfy(103,19): Error: assertion might not hold
 git-issue-3095.dfy(113,11): Error: assertion might not hold
 git-issue-3095.dfy(114,28): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified and 27 failed assertions
+Dafny program verifier finished with 0 verified, 27 errors

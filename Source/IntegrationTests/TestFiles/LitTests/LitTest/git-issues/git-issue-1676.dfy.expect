@@ -25,4 +25,4 @@ git-issue-1676.dfy(213,47): Error: value of expression (of type 'multiset<bv10>'
 git-issue-1676.dfy(224,40): Error: value does not satisfy the subset constraints of 'MyOrdinal'
 git-issue-1676.dfy(225,40): Error: value does not satisfy the subset constraints of 'MyOrdinal'
 
-Dafny program verifier finished with 19 verified and 26 failed assertions
+Dafny program verifier finished with 19 verified, 26 errors

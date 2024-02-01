@@ -3,4 +3,4 @@ Verifying foo (correctness) ...
   [1 proof obligation]  error
 git-issue59.dfy(7,17): Error: value does not satisfy the subset constraints of 'byte'
 
-Dafny program verifier finished with 0 verified and 1 failed assertions
+Dafny program verifier finished with 0 verified, 1 error

@@ -56,7 +56,7 @@ SmallTests.dfy(909,14): Error: target object might be null
 SmallTests.dfy(920,10): Error: assertion might not hold
 SmallTests.dfy(926,10): Error: assertion might not hold
 
-Dafny program verifier finished with 56 verified and 50 failed assertions
+Dafny program verifier finished with 56 verified, 50 errors
 SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 

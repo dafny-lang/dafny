@@ -27,4 +27,4 @@ LabeledAsserts.dfy(172,15): Error: assertion might not hold
 LabeledAsserts.dfy(189,19): Error: assertion might not hold
 LabeledAsserts.dfy(193,13): Error: assertion might not hold
 
-Dafny program verifier finished with 11 verified and 26 failed assertions
+Dafny program verifier finished with 11 verified, 26 errors

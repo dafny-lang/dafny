@@ -3,4 +3,4 @@ text.dfy(8,17): Related location: this is the postcondition that could not be pr
 text.dfy(27,2): Error: a postcondition could not be proved on this return path
 text.dfy(23,17): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 2 verified and 2 failed assertions
+Dafny program verifier finished with 2 verified, 2 errors

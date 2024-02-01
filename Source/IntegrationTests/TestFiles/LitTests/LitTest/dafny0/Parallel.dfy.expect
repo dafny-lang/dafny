@@ -14,4 +14,4 @@ Parallel.dfy(293,21): Error: assertion might not hold
 Parallel.dfy(342,9): Error: assertion might not hold
 Parallel.dfy(329,32): Related location
 
-Dafny program verifier finished with 19 verified and 10 failed assertions
+Dafny program verifier finished with 19 verified, 10 errors

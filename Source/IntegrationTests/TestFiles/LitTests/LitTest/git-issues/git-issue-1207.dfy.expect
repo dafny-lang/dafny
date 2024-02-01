@@ -34,4 +34,4 @@ git-issue-1207.dfy(50,49): Error: index out of range
 git-issue-1207.dfy(50,57): Error: index out of range
 git-issue-1207.dfy(51,9): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified and 30 failed assertions
+Dafny program verifier finished with 0 verified, 30 errors

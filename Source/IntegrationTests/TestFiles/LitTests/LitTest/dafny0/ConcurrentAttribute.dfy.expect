@@ -14,4 +14,4 @@ ConcurrentAttribute.dfy(109,23): Error: modifies clause could not be proved to b
 ConcurrentAttribute.dfy(116,29): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
 ConcurrentAttribute.dfy(116,29): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
 
-Dafny program verifier finished with 15 verified and 11 failed assertions
+Dafny program verifier finished with 15 verified, 11 errors

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 6 verified and 0 failed assertions
+Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
 1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
 2: BranchCoverage.dfy(31,34): entry to method _module._default.M
@@ -85,7 +85,7 @@ Dafny program verifier finished with 6 verified and 0 failed assertions
 40: 1
 41: 3
 
-Dafny program verifier finished with 6 verified and 0 failed assertions
+Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
 1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
 2: BranchCoverage.dfy(31,34): entry to method _module._default.M
@@ -171,7 +171,7 @@ Dafny program verifier finished with 6 verified and 0 failed assertions
 40: 1
 41: 3
 
-Dafny program verifier finished with 6 verified and 0 failed assertions
+Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
 1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
 2: BranchCoverage.dfy(31,34): entry to method _module._default.M
@@ -257,7 +257,7 @@ Dafny program verifier finished with 6 verified and 0 failed assertions
 40: 1
 41: 3
 
-Dafny program verifier finished with 6 verified and 0 failed assertions
+Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
 1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
 2: BranchCoverage.dfy(31,34): entry to method _module._default.M
@@ -343,7 +343,7 @@ Dafny program verifier finished with 6 verified and 0 failed assertions
 40: 1
 41: 3
 
-Dafny program verifier finished with 6 verified and 0 failed assertions
+Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
 1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
 2: BranchCoverage.dfy(31,34): entry to method _module._default.M

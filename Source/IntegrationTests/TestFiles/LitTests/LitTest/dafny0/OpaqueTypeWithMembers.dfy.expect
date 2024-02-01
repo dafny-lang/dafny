@@ -14,4 +14,4 @@ OpaqueTypeWithMembers.dfy(141,16): Error: function precondition could not be pro
 OpaqueTypeWithMembers.dfy(115,13): Related location
 OpaqueTypeWithMembers.dfy(113,28): Related location
 
-Dafny program verifier finished with 17 verified and 9 failed assertions
+Dafny program verifier finished with 17 verified, 9 errors

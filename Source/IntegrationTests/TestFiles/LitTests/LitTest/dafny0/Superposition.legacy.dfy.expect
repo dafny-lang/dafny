@@ -16,4 +16,4 @@ Superposition.legacy.dfy(27,25): Related location: this is the postcondition tha
 Verifying M1.C.M (correctness) ...
   [1 proof obligation]  verified
 
-Dafny program verifier finished with 2 verified and 2 failed assertions
+Dafny program verifier finished with 2 verified, 2 errors

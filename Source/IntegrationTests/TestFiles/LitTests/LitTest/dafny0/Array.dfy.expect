@@ -29,4 +29,4 @@ Array.dfy(338,5): Error: assignment might update an array element not in the enc
 Array.dfy(353,17): Error: assertion might not hold
 Array.dfy(358,17): Error: left-hand sides that.x and this.x might refer to the same location
 
-Dafny program verifier finished with 41 verified and 27 failed assertions
+Dafny program verifier finished with 41 verified, 27 errors

@@ -15,4 +15,4 @@ GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assi
 GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 
-Dafny program verifier finished with 6 verified and 14 failed assertions
+Dafny program verifier finished with 6 verified, 14 errors

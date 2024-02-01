@@ -11,4 +11,4 @@ text.dfy(15,22): Related location: this is the postcondition that could not be p
 text.dfy(16,0): Error: a postcondition could not be proved on this return path
 text.dfy(13,12): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 0 verified and 6 failed assertions
+Dafny program verifier finished with 0 verified, 6 errors

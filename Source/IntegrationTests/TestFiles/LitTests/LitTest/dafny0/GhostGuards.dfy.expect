@@ -4,4 +4,4 @@ GhostGuards.dfy(29,2): Info: ghost while
 GhostGuards.dfy(42,2): Info: ghost while
 GhostGuards.dfy(55,2): Info: ghost match
 
-Dafny program verifier finished with 1 verified and 0 failed assertions
+Dafny program verifier finished with 1 verified, 0 errors

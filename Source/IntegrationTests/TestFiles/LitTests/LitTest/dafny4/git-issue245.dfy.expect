@@ -15,4 +15,4 @@ git-issue245.dfy(93,19): Related location: this is the postcondition that could 
 git-issue245.dfy(96,11): Error: a postcondition could not be proved on this return path
 git-issue245.dfy(97,17): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 24 verified and 12 failed assertions
+Dafny program verifier finished with 24 verified, 12 errors

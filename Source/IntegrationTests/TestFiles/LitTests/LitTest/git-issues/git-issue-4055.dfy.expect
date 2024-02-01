@@ -2,4 +2,4 @@ git-issue-4055.dfy(12,9): Warning: Assertion with {:only} temporarily transforms
 git-issue-4055.dfy(7,9): Error: assertion might not hold
 git-issue-4055.dfy(18,9): Error: assertion might not hold
 
-Dafny program verifier finished with 1 verified and 2 failed assertions
+Dafny program verifier finished with 1 verified, 2 errors

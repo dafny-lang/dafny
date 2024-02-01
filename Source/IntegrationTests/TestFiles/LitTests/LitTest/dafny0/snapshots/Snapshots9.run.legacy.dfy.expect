@@ -7,7 +7,7 @@ Processing command (at Snapshots9.v0.dfy(12,11)) assert {:id "id7"} ok#0;
 Snapshots9.v0.dfy(13,0): Error: a postcondition could not be proved on this return path
 Snapshots9.v0.dfy(12,10): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 0 verified and 2 failed assertions
+Dafny program verifier finished with 0 verified, 2 errors
 Processing command (at Snapshots9.v1.dfy(6,11)) assert {:id "id10"} ok#0;
   >>> RecycleError
 Snapshots9.v1.dfy(8,7): Error: a postcondition could not be proved on this return path
@@ -17,4 +17,4 @@ Processing command (at Snapshots9.v1.dfy(19,11)) assert {:id "id15"} ok#0;
 Snapshots9.v1.dfy(21,0): Error: a postcondition could not be proved on this return path
 Snapshots9.v1.dfy(19,10): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 0 verified and 2 failed assertions
+Dafny program verifier finished with 0 verified, 2 errors
