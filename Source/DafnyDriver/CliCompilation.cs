@@ -127,7 +127,7 @@ public class CliCompilation {
   }
 
   public async Task VerifyAllAndPrintSummary() {
-    var statSum = new PipelineStatistics();
+    var stats = new PipelineStatistics();
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
@@ -156,22 +156,22 @@ public class CliCompilation {
           switch (completed.Result.Outcome) {
             case ConditionGeneration.Outcome.Correct:
             case ConditionGeneration.Outcome.ReachedBound:
-              Interlocked.Increment(ref statSum.VerifiedCount);
+              Interlocked.Add(ref stats.VerifiedCount, completed.Result.VCResults.Sum(r => r.asserts.Count));
               break;
             case ConditionGeneration.Outcome.Errors:
-              Interlocked.Add(ref statSum.ErrorCount, completed.Result.Errors.Count);
+              Interlocked.Add(ref stats.ErrorCount, completed.Result.Errors.Count);
               break;
             case ConditionGeneration.Outcome.TimedOut:
-              Interlocked.Increment(ref statSum.TimeoutCount);
+              Interlocked.Increment(ref stats.TimeoutCount);
               break;
             case ConditionGeneration.Outcome.OutOfMemory:
-              Interlocked.Increment(ref statSum.OutOfMemoryCount);
+              Interlocked.Increment(ref stats.OutOfMemoryCount);
               break;
             case ConditionGeneration.Outcome.OutOfResource:
-              Interlocked.Increment(ref statSum.OutOfResourceCount);
+              Interlocked.Increment(ref stats.OutOfResourceCount);
               break;
             case ConditionGeneration.Outcome.Inconclusive:
-              Interlocked.Increment(ref statSum.InconclusiveCount);
+              Interlocked.Increment(ref stats.InconclusiveCount);
               break;
             default:
               throw new ArgumentOutOfRangeException();
@@ -218,17 +218,17 @@ public class CliCompilation {
                 DafnyConsolePrinter.DistillVerificationResult(completed.Result));
             }
           } catch (ProverException e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref stats.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
           } catch (Exception e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref stats.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
               $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
           }
         }
       }
 
-      SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+      WriteTrailer(options, options.OutputWriter, stats);
 
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
@@ -257,5 +257,31 @@ public class CliCompilation {
     var line = int.Parse(linePart);
     return fileFiltered.Where(c =>
         c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
+  }
+  
+  static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
+    output.Write("{0} finished with {1} verified and {2} failed assertions", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount);
+    if (stats.InconclusiveCount != 0) {
+      output.Write(", {0} inconclusive", stats.InconclusiveCount);
+    }
+
+    if (stats.TimeoutCount != 0) {
+      output.Write(", {0} timed out", stats.TimeoutCount);
+    }
+
+    if (stats.OutOfMemoryCount != 0) {
+      output.Write(", {0} out of memory", stats.OutOfMemoryCount);
+    }
+
+    if (stats.OutOfResourceCount != 0) {
+      output.Write(", {0} out of resource", stats.OutOfResourceCount);
+    }
+
+    if (stats.SolverExceptionCount != 0) {
+      output.Write(", {0} solver exceptions", stats.SolverExceptionCount);
+    }
+
+    output.WriteLine();
+    output.Flush();
   }
 }
