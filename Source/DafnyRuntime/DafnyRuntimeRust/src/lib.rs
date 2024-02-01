@@ -98,7 +98,7 @@ mod dafny_runtime_conversions {
         use std::rc::Rc;
 
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
-            Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), false)
+            Sequence::new_array_sequence(&Rc::new(s.chars().collect()), false)
         }
         pub fn dafny_string_to_string(s: &Rc<Sequence<char>>) -> String {
             let characters = s.to_array();
@@ -111,11 +111,11 @@ mod dafny_runtime_conversions {
         use crate::Sequence;
         use std::rc::Rc;
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<u16>> {
-            Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
+            Sequence::new_array_sequence(&Rc::new(s.encode_utf16().collect()), false)
         }
         pub fn dafny_string_to_string(s: &Rc<Sequence<u16>>) -> String {
             let characters = s.to_array();
-            String::from_utf16_lossy(&characters)
+            String::from_utf16(&characters).unwrap()
         }
     }
     
@@ -126,22 +126,16 @@ enum Sequence<T>
   where T: Clone,
 {
     ArraySequence {
-        is_string: bool,
-        node_count: usize,
         // Values could be a native array because we will know statically that all 
         // accesses are in bounds when using this data structure
         values: Rc<Vec<T>>,
     },
     ConcatSequence {
-        is_string: bool,
-        node_count: usize,
         left: Rc<Sequence<T>>,
         right: Rc<Sequence<T>>,
         length: SizeT,
     },
     LazySequence {
-        is_string: bool,
-        node_count: usize,
         length: SizeT,
         boxed: RefCell<Rc<Sequence<T>>>
     }
@@ -150,42 +144,20 @@ enum Sequence<T>
 #[allow(dead_code)]
 impl <T> Sequence<T>
 where T: Clone {
-    fn is_string(&self) -> bool {
-        match self {
-            Sequence::ArraySequence { is_string, .. } => *is_string,
-            Sequence::ConcatSequence { is_string, .. } => *is_string,
-            Sequence::LazySequence { is_string, .. } => *is_string,
-        }
-    }
     fn new_array_sequence(values: &Rc<Vec<T>>) -> Rc<Sequence<T>> {        
-        Sequence::<T>::new_array_sequence_is_string(values, false)
-    }
-    fn new_array_sequence_is_string(values: &Rc<Vec<T>>, is_string: bool) -> Rc<Sequence<T>> {        
         Rc::new(Sequence::ArraySequence {
-            is_string,
-            node_count: 1,
             values: Rc::clone(values),
         })
     }
     fn new_concat_sequence(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
-        Sequence::<T>::new_concat_sequence_is_string(left, right, false)
-    }
-    fn new_concat_sequence_is_string(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
-        Rc::new(Sequence::ConcatSequence {
-            is_string: is_string || (left.is_string() && right.is_string()),
-            node_count: 1 + left.node_count() + right.node_count(),
+       Rc::new(Sequence::ConcatSequence {
             left: Rc::clone(&left),
             right: Rc::clone(&right),
             length: left.cardinality() + right.cardinality(),
         })
     }
     fn new_lazy_sequence(boxed: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
-        Sequence::<T>::new_lazy_sequence_is_string(boxed, false)
-    }
-    fn new_lazy_sequence_is_string(underlying: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
         Rc::new(Sequence::LazySequence {
-            is_string: is_string || underlying.is_string(),
-            node_count: underlying.node_count() + 1,
             length: underlying.cardinality(),
             boxed: RefCell::new(Rc::clone(underlying)),
         })
@@ -200,11 +172,11 @@ where T: Clone {
             let mut array: Vec<T> = Vec::with_capacity(*length);
             Sequence::<T>::append_recursive(&mut array, self);
             Rc::new(array)
-        } else if let Sequence::LazySequence { boxed, is_string, ..  } = self {
+        } else if let Sequence::LazySequence { boxed, ..  } = self {
             let result = boxed.borrow().to_array();
             // Put the value back into boxed
             boxed.replace(Rc::clone(
-                &Sequence::<T>::new_array_sequence_is_string(&result, *is_string)));
+                &Sequence::<T>::new_array_sequence(&result)));
             result
         } else {
             panic!("This should never happen")
