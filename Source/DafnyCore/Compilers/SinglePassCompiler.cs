@@ -3345,7 +3345,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_assign_such_that_forbidden, s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
         var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable, true);
         if (missingBounds.Count != 0) {
           foreach (var bv in missingBounds) {
             Error(ErrorId.c_assign_such_that_is_too_complex, s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
@@ -5377,16 +5377,8 @@ namespace Microsoft.Dafny.Compilers {
           EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
         }
 
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        var fromType = e.E.Type;
-        if (fromType.IsSubtypeOf(e.ToType, false, false)) {
-          EmitExpr(Expression.CreateBoolLiteral(e.tok, true), inLetExprBody, wr, wStmts);
-        } else {
-          var name = $"_is_{GetUniqueAstNumber(e)}";
-          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, ref wStmts);
-          EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
-        }
+      } else if (expr is TypeTestExpr typeTestExpr) {
+        CompileTypeTest(typeTestExpr, inLetExprBody, wr, ref wStmts);
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
@@ -5491,7 +5483,7 @@ namespace Microsoft.Dafny.Compilers {
           //        return E;
           //      })
           Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
-          var missingBounds = ComprehensionExpr.BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+          var missingBounds = ComprehensionExpr.BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable, true);
           if (missingBounds.Count != 0) {
             foreach (var bv in missingBounds) {
               Error(ErrorId.c_let_such_that_is_too_complex, e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
@@ -5698,6 +5690,119 @@ namespace Microsoft.Dafny.Compilers {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    private void CompileTypeTest(TypeTestExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var fromType = expr.E.Type;
+      if (fromType.IsSubtypeOf(expr.ToType, false, false)) {
+        // This is a special case; no checks need to be done
+        EmitExpr(Expression.CreateBoolLiteral(expr.tok, true), inLetExprBody, wr, wStmts);
+        return;
+      }
+
+      var toType = expr.ToType;
+      var from = expr.E;
+
+      // The "is" check consists of two parts. First, check that "expr.E" can be represented in the target representation of
+      // "expr.ToType". Then, check that the constraints of "expr.ToType" are satisfied by "expr.E as expr.ToType". Note that
+      // this "expr.E as expr.ToType" does a conversion to the target representation of "expr.ToType", even if the value so
+      // produced does not satisfy the constraint of an "expr.ToType"; but this representation conversion has to be done before
+      // the "_Is" can be called.
+
+      // In the following, "ancestor of T" for a type "T" refers to the normalized (that is, following type proxies), expanded
+      // (that is, following type synonyms and subset types), and newtype-trimmed (that is, following newtypes) base type of T.
+      // "Ancestor" does not follow to trait parents.
+      //
+      // If the ancestor of "fromType" is a trait or a reference type, then:
+      //   0. Check if "from" is of the ancestor type of "toType".
+      //      Notes:
+      //       a) Suppose "toType" is "C<X, Y>". Then, because of Dafny's injectivity requirement, this can be done by checking
+      //          if "from" is of some type "C<_, _>". That is, there is no need to check the type arguments "X" and "Y".
+      //       b) "C" can be a trait, a class, a datatype/codatatype, or (when supported by --general-traits=full) a newtype.
+      //       c) In the target language, this test is typically done by an operation like "instanceof". In most cases, the test
+      //          can be done by "from instanceof C", but if "toType" is a reference type, then the test needs to be
+      //          "from == null || from instanceof C". However, the "from == null" disjunct can still be omitted if
+      //            -- "fromType" is a non-null reference type, or
+      //            -- "instanceof" in already checks non-nullness and "toType" is a non-null reference type.
+      //   1. Check that the subset-type constraints of "toType" (from "toType.NormalizeExpand()" to "toType" -- there is no need
+      //      to check any newtype constraints that "toType.NormalizeExpand()" may have, since those are effectively checked already
+      //      by the "instanceof" check performed in step (0)) hold of "from as toType.NormalizeExpand()".
+      //      Notes:
+      //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
+      if (fromType.IsTraitType || fromType.IsRefType) {
+        var name = $"_is_{GetUniqueAstNumber(expr)}";
+        wr = CreateIIFE_ExprBody(name, fromType, expr.tok, expr.E, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+        EmitTypeTest(name, fromType, expr.ToType, expr.tok, wr);
+        return;
+      }
+
+      var needsIntegralCheck = fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real);
+      var needsCharCheck = fromType.NormalizeToAncestorType() is not CharType && toType.NormalizeToAncestorType() is CharType;
+      var needsRangeCheck =
+        (toType.NormalizeToAncestorType().AsBitVectorType is { } toBitvectorType &&
+         (fromType.NormalizeExpandKeepConstraints().AsBitVectorType is not { } fromBitvectorType ||
+          toBitvectorType.Width < fromBitvectorType.Width)) ||
+        (toType.AsNativeType() != null && fromType.AsNativeType()?.Sel != toType.AsNativeType().Sel);
+
+      if (needsIntegralCheck || needsCharCheck || needsRangeCheck) {
+        // Introduce a name for "from", to make sure "from" is computed just once
+        var boundVariableDecl = new BoundVar(from.tok, $"_is_{GetUniqueAstNumber(from)}", fromType);
+        var name = IdName(boundVariableDecl);
+        wr = CreateIIFE_ExprBody(name, fromType, expr.tok, expr.E, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+        from = new IdentifierExpr(boundVariableDecl.tok, boundVariableDecl);
+      }
+
+      if (needsIntegralCheck) {
+        EmitIsIntegerTest(from, wr, wStmts);
+        from = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+      }
+
+      if (needsCharCheck) {
+        var fromAsInt = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+        if (UnicodeCharEnabled) {
+          EmitIsRuneTest(fromAsInt, wr, wStmts);
+        } else {
+          EmitIsInIntegerRange(fromAsInt, 0, 0x1_0000, wr, wStmts);
+        }
+        from = new ConversionExpr(from.tok, from, Type.Char) { Type = Type.Char };
+      }
+
+      if (needsRangeCheck) {
+        var nativeType = toType.AsNativeType();
+        var bitvectorType = toType.NormalizeToAncestorType().AsBitVectorType;
+        Contract.Assert(nativeType != null || bitvectorType != null);
+
+        BigInteger lo;
+        BigInteger hi;
+        if (bitvectorType == null) {
+          lo = nativeType.LowerBound;
+          hi = nativeType.UpperBound;
+        } else {
+          lo = 0;
+          hi = BigInteger.One << bitvectorType.Width;
+          if (nativeType != null) {
+            Contract.Assert(nativeType.LowerBound <= 0);
+            if (nativeType.UpperBound < hi) {
+              hi = nativeType.UpperBound;
+            }
+          }
+        }
+
+        var fromAsInt = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+        EmitIsInIntegerRange(fromAsInt, lo, hi, wr, wStmts);
+        from = new ConversionExpr(from.tok, from, toType) { Type = toType };
+      }
+
+      if (toType.NormalizeExpandKeepConstraints() is UserDefinedType toUdt &&
+          toUdt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
+        var declWithConstraints = (RedirectingTypeDecl)toUdt.ResolvedClass;
+        // check the constraints, by calling the _Is method
+        var wrArgument = EmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
+        var targetRepresentationOfFrom = new ConversionExpr(from.tok, from, toType) { Type = toType };
+        EmitExpr(targetRepresentationOfFrom, false, wrArgument, wStmts);
+      } else {
+        EmitExpr(Expression.CreateBoolLiteral(expr.tok, true), inLetExprBody, wr, wStmts);
       }
     }
 
