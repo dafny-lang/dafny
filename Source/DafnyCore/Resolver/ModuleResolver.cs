@@ -2725,9 +2725,7 @@ namespace Microsoft.Dafny {
       type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
       if (type is UserDefinedType { ResolvedClass: var cl } udt) {
         Contract.Assert(cl != null);
-        if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
-          return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);
-        } else if (cl is SubsetTypeDecl subsetTypeDecl) {
+        if (cl is SubsetTypeDecl subsetTypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
         } else if (cl is NewtypeDecl newtypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
