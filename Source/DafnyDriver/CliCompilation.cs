@@ -150,34 +150,38 @@ public class CliCompilation {
       }
 
       if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
-
-          switch (completed.Result.Outcome) {
-            case ConditionGeneration.Outcome.Correct:
-            case ConditionGeneration.Outcome.ReachedBound:
-              Interlocked.Add(ref stats.VerifiedCount, completed.Result.VCResults.Sum(r => r.asserts.Count));
+        if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
+          switch (batchCompleted.VcResult.outcome) {
+            case ProverInterface.Outcome.Valid:
+            case ProverInterface.Outcome.Bounded:
+              Interlocked.Add(ref stats.VerifiedCount, batchCompleted.VcResult.asserts.Count);
               break;
-            case ConditionGeneration.Outcome.Errors:
-              Interlocked.Add(ref stats.ErrorCount, completed.Result.Errors.Count);
+            case ProverInterface.Outcome.Invalid:
+              var total = batchCompleted.VcResult.asserts.Count;
+              var errors = batchCompleted.VcResult.counterExamples.Count;
+              Interlocked.Add(ref stats.VerifiedCount, total - errors);
+              Interlocked.Add(ref stats.ErrorCount, errors);
               break;
-            case ConditionGeneration.Outcome.TimedOut:
+            case ProverInterface.Outcome.TimeOut:
               Interlocked.Increment(ref stats.TimeoutCount);
               break;
-            case ConditionGeneration.Outcome.OutOfMemory:
+            case ProverInterface.Outcome.OutOfMemory:
               Interlocked.Increment(ref stats.OutOfMemoryCount);
               break;
-            case ConditionGeneration.Outcome.OutOfResource:
+            case ProverInterface.Outcome.OutOfResource:
               Interlocked.Increment(ref stats.OutOfResourceCount);
               break;
-            case ConditionGeneration.Outcome.Inconclusive:
+            case ProverInterface.Outcome.Undetermined:
               Interlocked.Increment(ref stats.InconclusiveCount);
               break;
             default:
               throw new ArgumentOutOfRangeException();
           }
+        }
 
+        if (boogieUpdate.BoogieStatus is Completed completed) {
+          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
           if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
             canVerifyResult.Finished.TrySetResult();
           }
@@ -259,7 +263,7 @@ public class CliCompilation {
     return fileFiltered.Where(c =>
         c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
   }
-  
+
   static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
     output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount,
       Util.Plural(stats.ErrorCount));
