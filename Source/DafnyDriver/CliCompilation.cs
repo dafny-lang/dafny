@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using VC;
 using IToken = Microsoft.Dafny.IToken;
 using Token = Microsoft.Dafny.Token;
+using Util = Microsoft.Dafny.Util;
 
 namespace DafnyDriver.Commands;
 
@@ -260,13 +261,14 @@ public class CliCompilation {
   }
   
   static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
-    output.Write("{0} finished with {1} verified and {2} failed assertions", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount);
+    output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount,
+      Util.Plural(stats.ErrorCount));
     if (stats.InconclusiveCount != 0) {
-      output.Write(", {0} inconclusive", stats.InconclusiveCount);
+      output.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
     }
 
     if (stats.TimeoutCount != 0) {
-      output.Write(", {0} timed out", stats.TimeoutCount);
+      output.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
     }
 
     if (stats.OutOfMemoryCount != 0) {
