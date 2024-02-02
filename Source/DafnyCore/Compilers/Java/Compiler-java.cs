@@ -1133,8 +1133,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(UnicodeCharEnabled ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
-      } else if (AsNativeType(e.Type) is NativeType nt) {
-        EmitNativeIntegerLiteral((BigInteger)e.Value, nt, wr);
+      } else if (AsNativeType(e.Type) is { } nativeType) {
+        EmitNativeIntegerLiteral((BigInteger)e.Value, nativeType, wr);
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
           wr.Write("java.math.BigInteger.ZERO");
@@ -1742,11 +1742,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
       bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
+      string nativeName = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
       }
       var leftShift = nativeType == null ? ".shiftLeft" : "<<";
       var rightShift = nativeType == null ? ".shiftRight" : ">>>";
@@ -1770,7 +1770,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+    private void EmitShift(Expression e0, Expression e1, string op, bool truncate, [CanBeNull] NativeType nativeType, bool firstOp,
         ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {

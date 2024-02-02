@@ -843,14 +843,14 @@ namespace Microsoft.Dafny {
               int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false); // let TrInMultiSet translate e.E1
+                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInMultiSet) {
-                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false);  // let TrInMultiSet translate e.E1
+                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false);  // let TrInMultiSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               }
               Boogie.Expr e1 = TrExpr(e.E1);
@@ -1180,10 +1180,10 @@ namespace Microsoft.Dafny {
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend, BoogieGenerator.TrType(binaryExpr.Type.AsSeqType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.InSeq:
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                 case BinaryExpr.ResolvedOpcode.NotInSeq:
                   Boogie.Expr arg = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     bool finite = e.E1.Type.AsMapType.Finite;
