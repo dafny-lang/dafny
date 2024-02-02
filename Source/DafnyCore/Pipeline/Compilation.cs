@@ -249,18 +249,6 @@ public class Compilation : IDisposable {
     return prefix;
   }
 
-  public static string GetImplementationName(Implementation implementation) {
-    var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
-
-    // Refining declarations get the token of what they're refining, so to distinguish them we need to
-    // add the refining module name to the prefix.
-    if (implementation.tok is RefinementToken refinementToken) {
-      prefix += "." + refinementToken.InheritingModule.Name;
-    }
-
-    return prefix;
-  }
-
   private int runningVerificationJobs;
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.

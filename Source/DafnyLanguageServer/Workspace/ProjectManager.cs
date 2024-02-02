@@ -297,9 +297,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
         return symbol.Tok.pos;
       }
       var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = canVerifies.OrderByDescending(GetPriorityAttribute)
+      var orderedVerifiables = canVerifies
+        .OrderByDescending(GetPriorityAttribute)
         .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
-        .ThenBy(TopToBottomPriority).ToList(); ;
+        .ThenBy(TopToBottomPriority).ToList();
       logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
 
       var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
