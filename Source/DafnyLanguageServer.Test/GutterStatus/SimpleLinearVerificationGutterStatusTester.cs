@@ -65,6 +65,9 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
 
   [Fact]
   public async Task GitIssue3821GutterIgnoredProblem() {
+    await SetUp(options => {
+      options.Set(BoogieOptionBag.Cores, 1u);
+    });
     await VerifyTrace(@"
  | :function fib(n: nat): nat {
  | :  if n <= 1 then n else fib(n-1) + fib(n-2)
@@ -122,15 +125,15 @@ method Foo() ensures false { } ";
   [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :// The maximum Id
- .  |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :ghost const maxId := 200;
-    |  |  |  |  |  I  I  |  |  |  |  |  I  I  |  |  |  |  | :
- .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
- .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :  101 <= issueId < maxId
- .  .  |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :}
-       |  |  |  |  I  I  I  |  |  |  |  I  I  I  |  |  |  | :
- .  .  .  S  S  |  I  .  .  .  S  S [=] I  .  .  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
- .  .  .  S  |  |  I  .  .  .  S  | [=] I  .  .  .  S  |  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
+    |  |  |  |  I  I  |  |  |  |  I  I  |  |  |  | :// The maximum Id
+ .  |  |  |  |  I  I  |  |  |  |  I  I  |  |  |  | :ghost const maxId := 200;
+    |  |  |  |  I  I  |  |  |  |  I  I  |  |  |  | :
+ .  .  |  |  |  I  I  I  |  |  |  I  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
+ .  .  |  |  |  I  I  I  |  |  |  I  I  I  |  |  | :  101 <= issueId < maxId
+ .  .  |  |  |  I  I  I  |  |  |  I  I  I  |  |  | :}
+       |  |  |  I  I  I  |  |  |  I  I  I  |  |  | :
+ .  .  .  S  |  I  .  .  .  S [=] I  .  .  .  S  | :type IssueId = i : int | isIssueIdValid(i)
+ .  .  .  S  |  I  .  .  .  S [=] I  .  .  .  S  | :  witness 101 //Replace1:   witness 99 //Replace2:   witness 101 ", false, "EnsuresItWorksForSubsetTypes.dfy");
   }
 
   [Fact]

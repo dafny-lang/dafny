@@ -171,29 +171,29 @@ public record IdeState(
     IProjectDatabase projectDatabase, ICompilationEvent e) {
     switch (e) {
       case DeterminedRootFiles determinedRootFiles:
-        return await UpdateDeterminedRootFiles(options, logger, projectDatabase, determinedRootFiles);
+        return await HandleDeterminedRootFiles(options, logger, projectDatabase, determinedRootFiles);
       case BoogieUpdate boogieUpdate:
-        return UpdateBoogieUpdate(options, logger, boogieUpdate);
+        return HandleBoogieUpdate(options, logger, boogieUpdate);
       case CanVerifyPartsIdentified canVerifyPartsIdentified:
-        return UpdateCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
+        return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
       case FinishedParsing finishedParsing:
-        return UpdateFinishedParsing(finishedParsing);
+        return HandleFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
-        return UpdateFinishedResolution(options, logger, telemetryPublisher, finishedResolution);
+        return HandleFinishedResolution(options, logger, telemetryPublisher, finishedResolution);
       case InternalCompilationException internalCompilationException:
-        return UpdateInternalCompilationException(internalCompilationException);
+        return HandleInternalCompilationException(internalCompilationException);
       case BoogieException boogieException:
-        return UpdateBoogieException(boogieException);
+        return HandleBoogieException(boogieException);
       case NewDiagnostic newDiagnostic:
-        return UpdateNewDiagnostic(newDiagnostic);
+        return HandleNewDiagnostic(newDiagnostic);
       case ScheduledVerification scheduledVerification:
-        return UpdateScheduledVerification(scheduledVerification);
+        return HandleScheduledVerification(scheduledVerification);
       default:
         throw new ArgumentOutOfRangeException(nameof(e));
     }
   }
 
-  private async Task<IdeState> UpdateDeterminedRootFiles(DafnyOptions options, ILogger logger,
+  private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
     IProjectDatabase projectDatabase, DeterminedRootFiles determinedRootFiles) {
 
     var errors = determinedRootFiles.Diagnostics.Values.SelectMany(x => x).
@@ -221,7 +221,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateScheduledVerification(ScheduledVerification scheduledVerification) {
+  private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
     var previousState = this;
 
     var uri = scheduledVerification.CanVerify.Tok.Uri;
@@ -241,7 +241,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateNewDiagnostic(NewDiagnostic newDiagnostic) {
+  private IdeState HandleNewDiagnostic(NewDiagnostic newDiagnostic) {
     var previousState = this;
 
     // Until resolution is finished, keep showing the old diagnostics. 
@@ -256,7 +256,7 @@ public record IdeState(
     return previousState;
   }
 
-  private IdeState UpdateInternalCompilationException(InternalCompilationException internalCompilationException) {
+  private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
     var previousState = this;
     var internalErrorDiagnostic = new Diagnostic {
       Message =
@@ -273,7 +273,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateFinishedResolution(DafnyOptions options,
+  private IdeState HandleFinishedResolution(DafnyOptions options,
     ILogger logger,
     TelemetryPublisherBase telemetryPublisher,
     FinishedResolution finishedResolution) {
@@ -358,7 +358,7 @@ public record IdeState(
       }), previousIdeCanVerifyState?.Diagnostics ?? new List<Diagnostic>());
   }
 
-  private IdeState UpdateFinishedParsing(FinishedParsing finishedParsing) {
+  private IdeState HandleFinishedParsing(FinishedParsing finishedParsing) {
     var previousState = this;
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
@@ -382,7 +382,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
+  private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
     var previousState = this;
     var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Split.Implementation).Distinct();
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
@@ -408,7 +408,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateBoogieException(BoogieException boogieException) {
+  private IdeState HandleBoogieException(BoogieException boogieException) {
     var previousState = this;
 
     var name = Compilation.GetTaskName(boogieException.Task);
@@ -438,7 +438,7 @@ public record IdeState(
     };
   }
 
-  private IdeState UpdateBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
+  private IdeState HandleBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
 
     var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
@@ -521,7 +521,7 @@ public record IdeState(
 
       foreach (var result in results) {
         logger.LogDebug(
-          $"Possibly duplicate reporting assertion batch {result.vcNum}, version {this.Version}");
+          $"Possibly duplicate reporting assertion batch {result.vcNum}, version {Version}");
         gutterIconManager.ReportAssertionBatchResult(this,
           new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, result));
       }
