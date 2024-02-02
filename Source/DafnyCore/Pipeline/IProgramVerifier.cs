@@ -6,7 +6,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
 
 namespace Microsoft.Dafny {
-  public record AssertionBatchResult(ManualSplit Split, VerificationRunResult Result);
+  public record AssertionBatchResult(Implementation Implementation, VerificationRunResult Result);
 
   public record ProgramVerificationTasks(IReadOnlyList<IVerificationTask> Tasks);
 

@@ -463,7 +463,7 @@ public record IdeState(
       // WarnContradictoryAssumptions should be computable after completing a single assertion batch.
       // And we should do this because it allows this warning to be shown when doing --filter-position on a single assertion
       // https://github.com/dafny-lang/dafny/issues/5039 
-      
+
       counterExamples = completed.Result.CounterExamples;
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       var newDiagnostics =
@@ -477,7 +477,9 @@ public record IdeState(
     var taskState = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
       hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
-    var allTasksAreCompleted = newTaskStates.Values.All(s => s.Status >= PublishedVerificationStatus.Error);
+
+    var scopeGroup = newTaskStates.Values.Where(s => s.Task.ScopeId == boogieUpdate.VerificationTask.ScopeId).ToList();
+    var allTasksAreCompleted = scopeGroup.All(s => s.Status >= PublishedVerificationStatus.Error);
     if (allTasksAreCompleted) {
 
       var errorReporter = new ObservableErrorReporter(options, uri);
@@ -485,24 +487,14 @@ public record IdeState(
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
 
       ProofDependencyWarnings.ReportSuspiciousDependencies(options,
-        newTaskStates.Values.Select(s => (s.Task, (Completed)s.RawStatus)),
+        scopeGroup.Select(s => (s.Task, (Completed)s.RawStatus)),
         errorReporter, boogieUpdate.ProofDependencyManager);
 
       newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
     }
-    UpdateGutterIconTrees(boogieUpdate, options, logger);
-    
-    // TODO move inside UpdateGutterIconTrees ?
-    if (allTasksAreCompleted) {
-      var results = newTaskStates.Values.Select(t => (t.Task, ((Completed)t.RawStatus).Result));
-      foreach (var g in results.GroupBy(r => r.Task.ScopeId)) {
-        var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
-        var resourceCount = g.Sum(e => e.Result.ResourceCount);
-        var outcome = g.Select(e => Compilation.GetOutcome(e.Result.Outcome)).Max();
-        gutterIconManager.ReportEndVerifyImplementation(this, g.First().Task.Split.Implementation, resourceCount, outcome);
-      }
-    }
-    
+
+    UpdateGutterIconTrees(logger, boogieUpdate, scopeGroup);
+
     return previousState with {
       Counterexamples = counterExamples,
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
@@ -513,16 +505,30 @@ public record IdeState(
     };
   }
 
-  private void UpdateGutterIconTrees(BoogieUpdate update, DafnyOptions options, ILogger logger) {
+  private void UpdateGutterIconTrees(ILogger logger, BoogieUpdate boogieUpdate, IReadOnlyList<IdeVerificationTaskState> scopeGroup) {
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
-    if (update.BoogieStatus is Running) {
-      // TODO remove duplication?
-      gutterIconManager.ReportVerifyImplementationRunning(this, update.VerificationTask.Split.Implementation);
+    if (boogieUpdate.BoogieStatus is Running && scopeGroup.Count(e => e.Status == PublishedVerificationStatus.Running) == 1) {
+      gutterIconManager.ReportVerifyImplementationRunning(this, boogieUpdate.VerificationTask.Split.Implementation);
     }
 
-    if (update.BoogieStatus is Completed batchCompleted) {
+    if (boogieUpdate.BoogieStatus is Completed completed) {
       gutterIconManager.ReportAssertionBatchResult(this,
-        new AssertionBatchResult(update.VerificationTask.Split, batchCompleted.Result));
+        new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, completed.Result));
+    }
+
+    if (scopeGroup.All(e => e.Status >= PublishedVerificationStatus.Error)) {
+      var results = scopeGroup.Select(e => e.RawStatus).OfType<Completed>().Select(c => c.Result).ToList();
+
+      foreach (var result in results) {
+        logger.LogDebug(
+          $"Possibly duplicate reporting assertion batch {result.vcNum}, version {this.Version}");
+        gutterIconManager.ReportAssertionBatchResult(this,
+          new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, result));
+      }
+
+      var resourceCount = results.Sum(e => e.ResourceCount);
+      var outcome = results.Select(e => Compilation.GetOutcome(e.Outcome)).Max();
+      gutterIconManager.ReportEndVerifyImplementation(this, boogieUpdate.VerificationTask.Split.Implementation, resourceCount, outcome);
     }
   }
 

@@ -300,11 +300,11 @@ Send notifications about the verification status of each line in the program.
   /// Called when a split is finished to be verified
   /// </summary>
   public void ReportAssertionBatchResult(IdeState ideState, AssertionBatchResult batchResult) {
-    var uri = ((IToken)batchResult.Split.Token).Uri;
+    var uri = ((IToken)batchResult.Implementation.tok).Uri;
     var tree = ideState.VerificationTrees[uri];
 
     lock (LockProcessing) {
-      var implementation = batchResult.Split.Implementation;
+      var implementation = batchResult.Implementation;
       var result = batchResult.Result;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(tree, implementation, out var implementationNode);

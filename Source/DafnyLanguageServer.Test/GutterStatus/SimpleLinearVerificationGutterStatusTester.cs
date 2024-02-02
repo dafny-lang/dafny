@@ -101,23 +101,23 @@ method Foo() ensures false { } ";
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  |  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
- .  |  |  |  |  |  I  I  |  |  |  | :  true
- .  |  |  |  |  |  I  I  |  |  |  | :}
-    |  |  |  |  |  I  I  |  |  |  | :
- .  .  .  S [S][ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
- .  .  .  S [=][=][-][-][-][-][~] | :   ensures i == 2
- .  .  .  S [S][ ][I][I][I][I][S] | :{
- .  .  .  S [S][ ][I][I][I][I][S] | :  if x {
- .  .  .  S [S][ ][I][I][I][I][S] | :    i := 2;
- .  .  .  S [=][=][-][-][-][-][~] | :  } else {
- .  .  .  S [S][ ]/!\[I][I][I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
- .  .  .  S [S][ ][I][I][I][I][S] | :  }
- .  .  .  S [S][ ][I][I][I][I][S] | :}
-       |  |  |  |  I  I  I  |  |  | :    
- .  .  |  |  |  |  I  I  I  |  |  | :predicate OkBis() {
- .  .  |  |  |  |  I  I  I  |  |  | :  false
- .  .  |  |  |  |  I  I  I  |  |  | :}", true);
+ .  |  |  |  |  I  I  |  |  |  | :predicate Ok() {
+ .  |  |  |  |  I  I  |  |  |  | :  true
+ .  |  |  |  |  I  I  |  |  |  | :}
+    |  |  |  |  I  I  |  |  |  | :
+ .  .  .  S [ ][I][I][I][I][S] | :method Test(x: bool) returns (i: int)
+ .  .  .  S [=][-][-][-][-][~] | :   ensures i == 2
+ .  .  .  S [ ][I][I][I][I][S] | :{
+ .  .  .  S [ ][I][I][I][I][S] | :  if x {
+ .  .  .  S [ ][I][I][I][I][S] | :    i := 2;
+ .  .  .  S [=][-][-][-][-][~] | :  } else {
+ .  .  .  S [ ]/!\[I][I][I][S] | :    i := 1; //Replace1:   i := /; //Replace2:    i := 2;
+ .  .  .  S [ ][I][I][I][I][S] | :  }
+ .  .  .  S [ ][I][I][I][I][S] | :}
+       |  |  |  I  I  I  |  |  | :    
+ .  .  |  |  |  I  I  I  |  |  | :predicate OkBis() {
+ .  .  |  |  |  I  I  I  |  |  | :  false
+ .  .  |  |  |  I  I  I  |  |  | :}", true);
   }
   [Fact]
   public async Task EnsuresItWorksForSubsetTypes() {
@@ -136,26 +136,26 @@ method Foo() ensures false { } ";
   [Fact]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
- .  |  |  |  | :predicate F(i: int) {
- .  |  |  |  | :  false // Should not be highlighted in gutter.
- .  |  |  |  | :}
-    |  |  |  | :
- .  .  S [S][ ]:method H()
- .  .  S [=][=]:  ensures F(1)
- .  .  S [=][=]:{
- .  .  S [S][ ]:}", true);
+ .  |  |  | :predicate F(i: int) {
+ .  |  |  | :  false // Should not be highlighted in gutter.
+ .  |  |  | :}
+    |  |  | :
+ .  .  S [ ]:method H()
+ .  .  S [=]:  ensures F(1)
+ .  .  S [=]:{
+ .  .  S [ ]:}", true);
   }
 
   [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
- .  |  |  |  |  I  I  | :predicate P(x: int)
-    |  |  |  |  I  I  | :
- .  .  S [S][ ][I] |  | :method Main() {
- .  .  S [=][=][I] |  | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
- .  .  S [S][ ][I] |  | :}
-                   |  | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
+ .  |  |  |  I  I  | :predicate P(x: int)
+    |  |  |  I  I  | :
+ .  .  S [ ][I] |  | :method Main() {
+ .  .  S [=][I] |  | :  ghost var x :| P(x); //Replace:  ghost var x := 1;
+ .  .  S [ ][I] |  | :}
+                |  | :// Comment to not trim this line", false, $"EnsureNoAssertShowsVerified{i}.dfy");
     }
   }
 
@@ -178,87 +178,87 @@ method Foo() ensures false { } ";
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresDefaultArgumentsShowsError() {
     await VerifyTrace(@"
- .  S [~][=]:datatype D = T(i: nat := -2)", true);
+ .  S [=]:datatype D = T(i: nat := -2)", true);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
     await VerifyTrace(@"
-    |  |  |  | :// The following should trigger only one error
- .  |  |  |  | :ghost const a := [1, 2];
-    |  |  |  | :
- .  .  S [~][=]:ghost const b := a[-1];", false);
+    |  |  | :// The following should trigger only one error
+ .  |  |  | :ghost const a := [1, 2];
+    |  |  | :
+ .  .  S [=]:ghost const b := a[-1];", false);
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
- .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
- .  S [S][ ][I][S][ ][I][S][ ]:  //Replace1:\n  //Replace2:\\n  
- .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
-############[-][~][=][I][S][ ]:
-#####################[-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
+ .  S [ ][I][S][ ][I][S][ ]:method f(x: int) {
+ .  S [ ][I][S][ ][I][S][ ]:  //Replace1:\n  //Replace2:\\n  
+ .  S [=][I][S][ ][I][S][ ]:  assert x == 2; }
+#########[-][~][=][I][S][ ]:
+##################[-][~][=]:", true, "EnsuresAddingNewlinesMigratesPositions.dfy");
   }
 
   [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresWorkWithInformationsAsWell() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
- .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
- .  S [S][ ][I][S][S][ ]:ensures
- .  S [=][=][-][~][=][=]:  x > 3 { y := x;
- .  S [S][ ][I][S][S][ ]:  //Replace1:\n
- .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [S][ ][-][~][~][=]:    y := y + 1;
- .  S [S][ ][I][S][S][ ]:  }
- .  S [S][ ][I][S][S][ ]:}
-############[I][S][S][ ]:", false);
+ .  S [ ][I][S][ ]:method f(x: int) returns (y: int)
+ .  S [ ][I][S][ ]:ensures
+ .  S [=][-][~][=]:  x > 3 { y := x;
+ .  S [ ][I][S][ ]:  //Replace1:\n
+ .  S [=][-][~][ ]:  while(y <= 1) invariant y >= 2 {
+ .  S [ ][-][~][=]:    y := y + 1;
+ .  S [ ][I][S][ ]:  }
+ .  S [ ][I][S][ ]:}
+#########[I][S][ ]:", false);
   }
 
   [Fact]
   public async Task EnsureMultilineAssertIsCorreclyHandled() {
     await VerifyTrace(@"
- .  S [S][ ]:method x() {
- .  S [=][=]:  assert false
- .  S [=][=]:    || false;
- .  S [S][ ]:}", true);
+ .  S [ ]:method x() {
+ .  S [=]:  assert false
+ .  S [=]:    || false;
+ .  S [ ]:}", true);
   }
 
   [Fact]
   public async Task EnsureBodylessMethodsAreCovered() {
     await VerifyTrace(@"
- .  |  |  |  |  | :method test() {
- .  |  |  |  |  | :}
-    |  |  |  |  | :
- .  .  .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [=][=]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [O][O]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
-       |  |  |  | :
- .  .  |  |  |  | :predicate test2(x: nat) {
- .  .  |  |  |  | :  true
- .  .  |  |  |  | :}", false);
+ .  |  |  |  | :method test() {
+ .  |  |  |  | :}
+    |  |  |  | :
+ .  .  .  S [ ]:method {:extern} test3(a: nat, b: nat)
+ .  .  .  S [ ]:  ensures true
+ .  .  .  S [=]:  ensures test2(a - b)
+ .  .  .  S [ ]:  ensures true
+ .  .  .  S [O]:  ensures test2(a - b)
+ .  .  .  S [ ]:  ensures true
+       |  |  | :
+ .  .  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  | :  true
+ .  .  |  |  | :}", false);
   }
 
 
   [Fact]
   public async Task EnsureBodylessFunctionsAreCovered() {
     await VerifyTrace(@"
- .  |  |  |  |  | :method test() {
- .  |  |  |  |  | :}
-    |  |  |  |  | :
- .  .  .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [=][=]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
- .  .  .  S [O][O]:  ensures test2(a - b)
- .  .  .  S [S][ ]:  ensures true
-       |  |  |  | :
- .  .  |  |  |  | :predicate test2(x: nat) {
- .  .  |  |  |  | :  true
- .  .  |  |  |  | :}", true);
+ .  |  |  |  | :method test() {
+ .  |  |  |  | :}
+    |  |  |  | :
+ .  .  .  S [ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  .  .  S [ ]:  ensures true
+ .  .  .  S [=]:  ensures test2(a - b)
+ .  .  .  S [ ]:  ensures true
+ .  .  .  S [O]:  ensures test2(a - b)
+ .  .  .  S [ ]:  ensures true
+       |  |  | :
+ .  .  |  |  | :predicate test2(x: nat) {
+ .  .  |  |  | :  true
+ .  .  |  |  | :}", true);
   }
 
   public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
