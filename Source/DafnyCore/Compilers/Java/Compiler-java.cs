@@ -1135,7 +1135,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(UnicodeCharEnabled ? $"{DafnySeqClass}.asUnicodeString(" : $"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
-      } else if (AsNativeType(e.Type) is {} nativeType) {
+      } else if (AsNativeType(e.Type) is { } nativeType) {
         EmitNativeIntegerLiteral((BigInteger)e.Value, nativeType, wr);
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {

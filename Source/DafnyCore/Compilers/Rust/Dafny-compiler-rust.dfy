@@ -528,9 +528,9 @@ module {:extern "DCOMP"} DCOMP {
 
           // if inFn || inBinding {
           s := s + ") -> " + resultType + " + 'static>>";
-          // } else {
-          //   s := s + ") -> " + resultType + " + Clone + 'static>";
-          // }
+        // } else {
+        //   s := s + ") -> " + resultType + " + Clone + 'static>";
+        // }
 
         case TypeArg(Ident(name)) => s := escapeIdent(name);
         case Primitive(p) =>
