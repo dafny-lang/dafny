@@ -112,7 +112,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
       var max = new[] { first, second }.Max();
       var min = new[] { first, second }.Min();
-      var minMaxRunning = new[] { PublishedVerificationStatus.Running, min }.Max();
+
+      // If one task is completed, we do not allowed queued as a status.
+      var minMaxRunning = min == PublishedVerificationStatus.Queued ? PublishedVerificationStatus.Running : min;
       return max >= PublishedVerificationStatus.Error ? minMaxRunning : max;
     }
 
