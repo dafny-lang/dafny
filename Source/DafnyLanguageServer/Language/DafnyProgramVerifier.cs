@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
 
         var tasksFromBoogie = engine.GetVerificationTasks(boogieProgram);
-        
+
         // Ordering is required to let gutter icon tests behave more deterministically
         // In situations where there are multiple valid orders of execution
         // In particular, GitIssue3821GutterIgnoredProblem fails without this
