@@ -450,9 +450,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(Tok, true) {
-        Type = Type.Bool
-      };
+      Expression reqExpr = Expression.CreateBoolLiteral(Tok, true);
 
       foreach (var revealStmt in addedReveals) {
         if (revealStmt.Depth <= autoRevealDepth) {

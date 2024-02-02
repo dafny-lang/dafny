@@ -4459,7 +4459,9 @@ namespace Microsoft.Dafny {
           return defaultSolver;
         }
 
-        Expression.IsIntLiteral(arg, out var value);
+        if (!Expression.IsIntLiteral(arg, out var value)) {
+          return 0;
+        }
         try {
           return (int)value;
         } catch (OverflowException) {
