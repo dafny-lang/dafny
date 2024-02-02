@@ -29,11 +29,11 @@ jobs:
             chmod: true
           - os: windows-2019
             suffix: win
-            z3_bin: x64_windows-2019
+            z3_bin: x64-windows-2019
             chmod: false
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
-            z3_bin: x64_ubuntu-20.04
+            z3_bin: x64-ubuntu-20.04
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
