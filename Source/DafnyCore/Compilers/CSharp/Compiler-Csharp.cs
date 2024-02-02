@@ -267,7 +267,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     string IdProtectModule(string moduleName) {
-      return string.Join("." , moduleName.Split(".").Select(IdProtect));
+      return string.Join(".", moduleName.Split(".").Select(IdProtect));
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
