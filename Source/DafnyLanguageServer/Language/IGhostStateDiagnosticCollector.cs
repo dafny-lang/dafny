@@ -20,6 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GetGhostStateDiagnostics(
-      SignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken);
+      LegacySignatureAndCompletionTable signatureAndCompletionTable, CancellationToken cancellationToken);
   }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -10,7 +11,7 @@ public class Constructor : Method {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
   }
 
-  public override DafnySymbolKind Kind => DafnySymbolKind.Constructor;
+  public override SymbolKind Kind => SymbolKind.Constructor;
   protected override string GetQualifiedName() {
     return EnclosingClass.Name;
   }
@@ -37,12 +38,14 @@ public class Constructor : Method {
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
-    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+    List<AttributedExpression> req,
+    Specification<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     DividedBlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

@@ -17,10 +17,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsOnChangeVerification.dfy");
       client.OpenDocument(documentItem);
 
-      await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
+      await WaitForStatus(new Range(11, 32, 11, 36), PublishedVerificationStatus.Running, CancellationToken);
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
@@ -31,13 +31,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
-        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+        options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsOnSaveVerification.dfy");
       client.OpenDocument(documentItem);
       client.SaveDocument(documentItem);
 
-      await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
+      await WaitForStatus(new Range(11, 32, 11, 36), PublishedVerificationStatus.Running, CancellationToken);
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
@@ -50,14 +50,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task ChangingTheDocumentStopsManualVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
-        options.Set(ServerCommand.Verification, VerifyOnMode.Save);
+        options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2);
+      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       client.OpenDocument(documentItem);
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 
-      await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
+      await WaitForStatus(new Range(11, 32, 11, 36), PublishedVerificationStatus.Running, CancellationToken);
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
@@ -80,7 +80,7 @@ function {:unroll 100} Ack(m: nat, n: nat): nat
     Ack(m - 1, Ack(m, n - 1))
 }
 
-method {:timeLimit 10} test() {
+method {:resource_limit ""10e6""} test() {
   assert Ack(5, 5) == 0;
 }".TrimStart();
 

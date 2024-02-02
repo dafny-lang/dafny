@@ -7,6 +7,13 @@ public class BatchErrorReporter : ErrorReporter {
   public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessagesByLevel;
   public readonly List<DafnyDiagnostic> AllMessages = new();
 
+  public void CopyDiagnostics(ErrorReporter intoReporter) {
+    foreach (var diagnostic in AllMessages) {
+      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+        diagnostic.Message);
+    }
+  }
+
   public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
     AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
@@ -16,7 +23,7 @@ public class BatchErrorReporter : ErrorReporter {
     };
   }
 
-  public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       // discard the message
       return false;

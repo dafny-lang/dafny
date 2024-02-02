@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [Fact]
     public async Task UpdateDuringARequestWillCancelTheRequest() {
       var programThatResolvesSlowlyEnough = RepeatStrBuilder(@"method Foo() {}", 1000);
-      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough);
+      var documentItem = CreateTestDocument(programThatResolvesSlowlyEnough, "UpdateDuringARequestWillCancelTheRequest.dfy");
       client.OpenDocument(documentItem);
       var hoverTask = client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem }, CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//comment\n");
@@ -55,8 +55,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
   }
 }".TrimStart();
       var failSource = @"method Contradiction() { assert false; }";
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "VerificationErrorDetectedAfterCanceledSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       DidChangeTextDocumentParams MakeChange(int? version, Range range, string text) {
@@ -75,36 +75,37 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       }
 
       // Add a space in the document
-      var change1 = MakeChange(documentItem.Version + 1, new Range((0, 6), (0, 6)), " ");
-      client.DidChangeTextDocument(change1);
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 6)), " ");
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
       // Remove the space, and use a non-consecutive version to test that the server doesn't drop the change
-      var change2 = MakeChange(documentItem.Version + 4, new Range((0, 6), (0, 7)), "");
+      var change2 = MakeChange(documentItem.Version + 2, new Range((0, 6), (0, 7)), "");
+      documentItem = documentItem with { Version = change2.TextDocument.Version };
       client.DidChangeTextDocument(change2);
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
       // Do the previous again a few times. This seems to be what it takes to guarantee cancelling verification.
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 5, new Range((0, 6), (0, 6)), " "));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), " ");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 6, new Range((0, 6), (0, 7)), ""));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), "");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 8, new Range((0, 6), (0, 6)), " "));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), " ");
       client.SaveDocument(documentItem);
-      client.DidChangeTextDocument(MakeChange(documentItem.Version + 9, new Range((0, 6), (0, 7)), ""));
+      ApplyChange(ref documentItem, new Range((0, 6), (0, 7)), "");
       client.SaveDocument(documentItem);
 
       // Make a verification-breaking change, and use a non-consecutive version
       // to test that the server doesn't drop the change
-      var change3 = MakeChange(documentItem.Version + 11, new Range((0, 0), (11, 1)), failSource);
+      var change3 = MakeChange(documentItem.Version + 2, new Range((0, 0), (11, 1)), failSource);
+      documentItem = documentItem with { Version = change3.TextDocument.Version };
       client.DidChangeTextDocument(change3);
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
-      Assert.Equal(documentItem.Version + 11, diagnostics.Version);
+      Assert.Equal(documentItem.Version, diagnostics.Version);
       Assert.Single(diagnostics.Diagnostics);
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);
     }
@@ -153,10 +154,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(resolutionDiagnostics);
 
-      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var verificationDiagnostics = await GetNextDiagnostics(documentItem);
       Assert.Empty(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -190,7 +191,6 @@ method Multiply(x: int, y: int) returns (product: int)
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         await client.WaitForNotificationCompletionAsync(loadingDocuments[i].Uri, CancellationTokenWithHighTimeout);
-        await Projects.GetLastDocumentAsync(loadingDocuments[i]).WaitAsync(CancellationTokenWithHighTimeout);
       }
 
       foreach (var loadingDocument in loadingDocuments) {

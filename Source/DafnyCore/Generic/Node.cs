@@ -53,6 +53,16 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
+  public IEnumerable<IToken> CoveredTokens {
+    get {
+      var token = StartToken;
+      while (token.Prev != EndToken) {
+        yield return token;
+        token = token.Next;
+      }
+    }
+  }
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -65,25 +75,14 @@ public abstract class Node : INode {
 
       var childrenFiltered = GetConcreteChildren(this).ToList();
 
-      Dictionary<int, IToken> startToEndTokenNotOwned;
-      try {
-        startToEndTokenNotOwned =
-          childrenFiltered
-            .ToDictionary(child => child.StartToken.pos, child => child.EndToken!);
-      } catch (ArgumentException) {
-        // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
-        startToEndTokenNotOwned = new();
-        foreach (var child in childrenFiltered) {
-          if (startToEndTokenNotOwned.ContainsKey(child.StartToken.pos)) {
-            var previousEnd = startToEndTokenNotOwned[child.StartToken.pos];
-            if (child.EndToken.pos > previousEnd.pos) {
-              startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-            }
-          } else {
-            startToEndTokenNotOwned[child.StartToken.pos] = child.EndToken;
-          }
-        }
-      }
+      // If we parse a resolved document, some children sometimes have the same token because they are auto-generated
+      var startToEndTokenNotOwned = childrenFiltered.
+        // Because RangeToken.EndToken is inclusive, a token with an empty range has an EndToken that occurs before the StartToken
+        // We need to filter these out to prevent an infinite loop
+        Where(c => c.StartToken.pos <= c.EndToken.pos).
+        GroupBy(child => child.StartToken.pos).
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+      );
 
       var result = new List<IToken>();
       if (StartToken == null) {
@@ -137,7 +136,8 @@ public abstract class Node : INode {
     return Enumerable.Empty<Assumption>();
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+    reportError ??= _ => { };
     beforeChildren ??= node => true;
     afterChildren ??= node => { };
 
@@ -158,7 +158,8 @@ public abstract class Node : INode {
       var nodeAfterChildren = toVisit.First;
       foreach (var child in current.Children) {
         if (child == null) {
-          throw new InvalidOperationException($"Object of type {current.GetType()} has null child");
+          reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+          continue;
         }
 
         if (nodeAfterChildren == null) {
@@ -181,7 +182,7 @@ public abstract class Node : INode {
       return matches[^1].Value;
     }
 
-    if (StartToken.Prev.val is "|" or "{") {
+    if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
         return matches[^1].Value;

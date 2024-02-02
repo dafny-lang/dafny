@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using DafnyCore.Test;
 using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -31,8 +33,8 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
-    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
-    options.Set(ServerCommand.GhostIndicators, true);
+    var options = new DafnyOptions(TextReader.Null, (TextWriter)new WriterFromOutputHelper(output), (TextWriter)new WriterFromOutputHelper(output));
+    options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
       new DummyLogger());
@@ -48,8 +50,8 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
-    public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris), null, Guid.NewGuid()) {
+    public DummyModuleDecl(DafnyOptions options) : base(options,
+      new DefaultModuleDefinition(), null, Guid.NewGuid()) {
     }
     public override object Dereference() {
       return this;
@@ -61,7 +63,7 @@ public class GhostStateDiagnosticCollectorTest {
     // Builtins is null to trigger an error.
     var options = DafnyOptions.DefaultImmutableOptions;
     var rootUri = new Uri(Directory.GetCurrentDirectory());
-    var dummyModuleDecl = new DummyModuleDecl(new List<Uri> { rootUri });
+    var dummyModuleDecl = new DummyModuleDecl(options);
     var reporter = new CollectingErrorReporter(options);
     var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
       Sets.Empty<Uri>());
@@ -69,8 +71,8 @@ public class GhostStateDiagnosticCollectorTest {
     var source = new CancellationTokenSource();
     source.CancelAfter(TimeSpan.FromSeconds(50));
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
-        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new LegacySignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
+        null!, null!, ImmutableDictionary<Uri, IIntervalTree<Position, ILocalizableSymbol>>.Empty, true)
       , source.Token);
     Assert.Empty(ghostDiagnostics);
   }

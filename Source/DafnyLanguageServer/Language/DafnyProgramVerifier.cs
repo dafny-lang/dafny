@@ -1,13 +1,11 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -28,38 +26,37 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
-      CompilationAfterResolution compilation,
+      ResolutionResult resolution,
       ModuleDefinition moduleDefinition,
       CancellationToken cancellationToken) {
 
-      var verifiableModules = Translator.VerifiableModules(compilation.Program);
-      if (!verifiableModules.Contains(moduleDefinition)) {
+      if (!BoogieGenerator.ShouldVerifyModule(resolution.ResolvedProgram, moduleDefinition)) {
         throw new Exception("tried to get verification tasks for a module that is not verified");
       }
 
       await mutex.WaitAsync(cancellationToken);
       try {
 
-        var program = compilation.Program;
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+        var program = resolution.ResolvedProgram;
+        var errorReporter = (ObservableErrorReporter)program.Reporter;
 
         cancellationToken.ThrowIfCancellationRequested();
 
         var boogieProgram = await DafnyMain.LargeStackFactory.StartNew(() => {
           Type.ResetScopes();
-          var translatorFlags = new Translator.TranslatorFlags(errorReporter.Options) {
+          var translatorFlags = new BoogieGenerator.TranslatorFlags(errorReporter.Options) {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
-            ReportRanges = true
+            ReportRanges = program.Options.Get(DafnyConsolePrinter.ShowSnippets)
           };
-          var translator = new Translator(errorReporter, translatorFlags);
-          return translator.DoTranslation(compilation.Program, moduleDefinition);
+          var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
+          return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;
 
         cancellationToken.ThrowIfCancellationRequested();
 
         if (engine.Options.PrintFile != null) {
-          var moduleCount = Translator.VerifiableModules(program).Count();
+          var moduleCount = BoogieGenerator.VerifiableModules(program).Count();
           var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }

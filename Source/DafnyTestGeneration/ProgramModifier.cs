@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Token = Microsoft.Dafny.Token;
@@ -38,7 +39,8 @@ namespace DafnyTestGeneration {
       var options = dafnyInfo.Options;
       BlockCoalescer.CoalesceBlocks(program);
       foreach (var implementation in program.Implementations.Where(i => Utils.DeclarationHasAttribute(i, TestGenerationOptions.TestInlineAttribute))) {
-        var depthExpression = Utils.GetAttributeValue(implementation, TestGenerationOptions.TestInlineAttribute).First();
+        var depthExpression = Utils.GetAttributeValue(implementation, TestGenerationOptions.TestInlineAttribute)
+          .FirstOrDefault(new LiteralExpr(Microsoft.Boogie.Token.NoToken, BigNum.ONE));
         var attribute = new QKeyValue(new Token(), "inline",
           new List<object>() { depthExpression }, null);
         attribute.Next = implementation.Attributes;
@@ -57,9 +59,10 @@ namespace DafnyTestGeneration {
       }
       program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));
       program = new RemoveChecks(options).VisitProgram(program);
-      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.CallGraph) {
+      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.InlinedBlock) {
         program = new AnnotationVisitor(options).VisitProgram(program);
       }
+      program = Utils.DeepCloneResolvedProgram(program, options); // need to make sure the program is resolved and typed
       TestEntries = program.Implementations
         .Where(implementation =>
           Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestEntryAttribute) &&
@@ -147,17 +150,15 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        var state = Utils.GetBlockId(node, options);
-        if (state == null) { // cannot map back to Dafny source location
-          return base.VisitBlock(node);
-        }
-        var data = new List<object>
-          { "Block", implementation.Name, state };
         int afterPartition = node.cmds.FindIndex(cmd =>
           cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
         afterPartition = afterPartition > -1 ? afterPartition : 0;
-        node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
-        return node;
+        foreach (var state in Utils.AllBlockIds(node, options)) {
+          var data = new List<object>
+            { "Block", implementation.Name, state };
+          node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
+        }
+        return base.VisitBlock(node);
       }
 
       public override Implementation VisitImplementation(Implementation node) {

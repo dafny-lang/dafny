@@ -14,9 +14,10 @@ public class PrefixLemma : Method {
   public readonly ExtremeLemma ExtremeLemma;
   public PrefixLemma(RangeToken rangeToken, Name name, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
-    List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
+    List<AttributedExpression> req, [Captured] Specification<FrameExpression> reads,
+    Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
     BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)
-    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
+    : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, null) {
     Contract.Requires(k != null);
     Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
     Contract.Requires(extremeLemma != null);

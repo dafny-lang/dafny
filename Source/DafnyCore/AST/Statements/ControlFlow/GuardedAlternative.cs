@@ -8,10 +8,9 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
-  public Attributes Attributes;
+  public Attributes Attributes { get; set; }
   public override IEnumerable<INode> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(new List<Node>() { Guard }).Concat<Node>(Body);
   public override IEnumerable<INode> PreResolveChildren => Children;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

@@ -1,0 +1,7 @@
+ModuleInsertionErrors.dfy(23,11): Error: Duplicate module name: B
+ModuleInsertionErrors.dfy(21,11): Related location
+ModuleInsertionErrors.dfy(24,11): Error: Duplicate module name: N
+ModuleInsertionErrors.dfy(26,11): Related location
+ModuleInsertionErrors.dfy(30,17): Error: Duplicate module name: O
+ModuleInsertionErrors.dfy(29,17): Related location
+3 resolution/type errors detected in ModuleInsertionErrors.dfy

@@ -104,6 +104,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Reads);
       Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
@@ -125,9 +126,7 @@
       if (function.Result != null) {
         Visit(function.Result);
       }
-      foreach (var read in function.Reads) {
-        Visit(read);
-      }
+      Visit(function.Reads);
       foreach (var requirement in function.Req) {
         Visit(requirement);
       }

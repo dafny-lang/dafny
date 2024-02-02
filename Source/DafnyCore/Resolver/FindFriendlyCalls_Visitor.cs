@@ -1,5 +1,4 @@
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 

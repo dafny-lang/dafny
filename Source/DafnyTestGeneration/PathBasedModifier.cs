@@ -26,14 +26,15 @@ namespace DafnyTestGeneration {
     private const string BlockVarNamePrefix = "block";
     // Dafny will try to generate tests for paths through the program of increasingly greater length,
     // PathLengthStep determines the increments by which Dafny should increase maximum path length in-between attempts
-    private const int PathLengthStep = 5;
+    private const int PathLengthStep = 20;
 
     public PathBasedModifier(Modifications modifications) {
       this.modifications = modifications;
     }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      foreach (var implementation in p.Implementations) {
+      var implementations = p.Implementations.ToList();
+      foreach (var implementation in implementations) {
         if (!ImplementationIsToBeTested(implementation) ||
             !DafnyInfo.IsAccessible(implementation.VerboseName.Split(" ")[0])) {
           continue;
@@ -42,10 +43,12 @@ namespace DafnyTestGeneration {
         int pathLength = PathLengthStep;
         bool newPathsFound = true;
         // Consider paths of increasing length, pruning out infeasible sub-paths in the process:
+        var blockToVariable = InitBlockVars(implementation);
+        var firstBlock = implementation.Blocks[0]; // 
         while (newPathsFound) {
           List<Path> pathsToConsider = new(); // paths without known unfeasible subpaths
           var totalPaths = 0;
-          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength)) {
+          foreach (var path in GeneratePaths(implementation, pathLength - PathLengthStep, pathLength, blockToVariable, firstBlock)) {
             totalPaths++;
             var pathId = path.ToString(DafnyInfo.Options);
             if (pathLength <= PathLengthStep || !modifications.Values.Any(modification =>
@@ -65,7 +68,8 @@ namespace DafnyTestGeneration {
             var testEntryNames = Utils.DeclarationHasAttribute(path.Impl, TestGenerationOptions.TestInlineAttribute)
               ? TestEntries
               : new() { path.Impl.VerboseName };
-            yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), testEntryNames,
+            var programCopy = Utils.DeepCloneResolvedProgram(p, DafnyInfo.Options);
+            yield return modifications.GetProgramModification(programCopy, path.Impl, new HashSet<string>(), testEntryNames,
               path.ToString(DafnyInfo.Options));
             path.NoAssertPath();
           }
@@ -100,14 +104,13 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Iterate over paths through an implementation in a depth-first search fashion
     /// </summary>
-    private IEnumerable<Path> GeneratePaths(Implementation impl, int minPathLength, int maxPathLength) {
+    private IEnumerable<Path> GeneratePaths(Implementation impl, int minPathLength, int maxPathLength, Dictionary<Block, Variable> blockToVariable, Block firstBlock) {
       List<Block> currPath = new(); // list of basic blocks along the current path
       // remember alternative paths that could have been taken at every goto: 
       List<List<Block>> otherGotos = new() { new() };
       // set of boolean variables indicating that blocks in currPath list have been visited:
       HashSet<Variable> currPathVariables = new();
-      var blockToVariable = InitBlockVars(impl);
-      var block = impl.Blocks[0];
+      var block = firstBlock;
       while (block != null) {
         if ((block.TransferCmd is ReturnCmd && currPath.Count >= minPathLength) || currPath.Count == maxPathLength - 1) {
           yield return new Path(impl, currPathVariables.ToList(), new() { block },

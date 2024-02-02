@@ -15,6 +15,7 @@ public class Program : TokenNode {
     Contract.Invariant(DefaultModule != null);
   }
 
+  public bool HasParseErrors { get; set; }
   public readonly string FullName;
 
   // Resolution essentially flattens the module hierarchy, for
@@ -31,6 +32,8 @@ public class Program : TokenNode {
   public DafnyOptions Options => Reporter.Options;
   public ErrorReporter Reporter { get; set; }
 
+  public ProofDependencyManager ProofDependencyManager { get; set; } = new();
+
   public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
     CompilationData compilation) {
     Contract.Requires(name != null);
@@ -41,6 +44,20 @@ public class Program : TokenNode {
     SystemModuleManager = systemModuleManager;
     Reporter = reporter;
     Compilation = compilation;
+  }
+
+  public Program(Cloner cloner, Program original) {
+    FullName = original.FullName;
+    DefaultModule = new LiteralModuleDecl(cloner, original.DefaultModule, original.DefaultModule.EnclosingModuleDefinition);
+    Files = original.Files;
+    SystemModuleManager = original.SystemModuleManager;
+    Reporter = original.Reporter;
+    Compilation = original.Compilation;
+    HasParseErrors = original.HasParseErrors;
+
+    if (cloner.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
   }
 
   //Set appropriate visibilty before presenting module
@@ -70,28 +87,17 @@ public class Program : TokenNode {
 
   /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
   /// (skips included tokens)
-  public IToken GetFirstTopLevelToken() {
-    var rootToken = DefaultModuleDef.StartToken;
-    if (rootToken.Next == null) {
-      return null;
-    }
+  public IToken GetStartOfFirstFileToken() {
+    return GetFirstTokenForUri(Compilation.RootSourceUris[0]);
+  }
 
-    var firstToken = rootToken;
-    // We skip all included files
-    while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
-      firstToken = firstToken.Next;
-    }
-
-    if (firstToken == null || firstToken.kind == 0) {
-      return null;
-    }
-
-    return firstToken;
+  public IToken GetFirstTokenForUri(Uri uri) {
+    return this.FindNodesInUris(uri).MinBy(n => n.RangeToken.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };
 
-  public override IEnumerable<INode> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => DefaultModuleDef.Includes.Concat<INode>(Files);
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return Modules().SelectMany(m => m.Assumptions(decl));

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public interface IToken : Microsoft.Boogie.IToken {
+public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
   public RangeToken To(IToken end) => new RangeToken(this, end);
 
   /*
@@ -55,14 +55,9 @@ public interface IToken : Microsoft.Boogie.IToken {
 /// </summary>
 public class Token : IToken {
 
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
-  public static readonly Token NoToken = new Token();
-
-  static Token() {
-    NoToken.Next = NoToken;
-    NoToken.Prev = NoToken;
-  }
-
+  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
+  public static readonly Token NoToken = new();
+  public static readonly Token Cli = new();
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {
@@ -120,6 +115,13 @@ public class Token : IToken {
 
   public override string ToString() {
     return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
+  }
+
+  public int CompareTo(IToken other) {
+    if (line != other.line) {
+      return line.CompareTo(other.line);
+    }
+    return col.CompareTo(other.col);
   }
 }
 
@@ -183,19 +185,19 @@ public abstract class TokenWrapper : IToken {
     get { return WrappedToken.Prev; }
     set { throw new NotSupportedException(); }
   }
+
+  public int CompareTo(IToken other) {
+    return WrappedToken.CompareTo(other);
+  }
 }
 
 public static class TokenExtensions {
 
-  public static string TokenToString(this Boogie.IToken tok, DafnyOptions options) {
-    if (tok is IToken dafnyToken) {
-      return dafnyToken.TokenToString(options);
+  public static string TokenToString(this IToken tok, DafnyOptions options) {
+    if (tok == Token.Cli) {
+      return "CLI";
     }
 
-    return $"{tok.filename}({tok.line},{tok.col - 1})";
-  }
-
-  public static string TokenToString(this IToken tok, DafnyOptions options) {
     if (tok.Uri == null) {
       return $"({tok.line},{tok.col - 1})";
     }
@@ -215,6 +217,10 @@ public static class TokenExtensions {
   public static RangeToken ToRange(this IToken token) {
     if (token is BoogieRangeToken boogieRangeToken) {
       return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    }
+
+    if (token is NestedToken nestedToken) {
+      return ToRange(nestedToken.Outer);
     }
     return token as RangeToken ?? new RangeToken(token, token);
   }
@@ -302,16 +308,20 @@ public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
   public IToken StartToken { get; }
   public IToken EndToken { get; }
-  public IToken NameToken { get; }
+
+  /// <summary>
+  /// If only a single position is used to refer to this piece of code, this position is the best
+  /// </summary>
+  public IToken Center { get; }
 
   // Used for range reporting
   public override string val => new(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
 
-  public BoogieRangeToken(IToken startTok, IToken endTok, IToken nameToken) : base(
-    nameToken ?? startTok) {
+  public BoogieRangeToken(IToken startTok, IToken endTok, IToken center) : base(
+    center ?? startTok) {
     StartToken = startTok;
     EndToken = endTok;
-    NameToken = nameToken;
+    Center = center;
   }
 
   public override IToken WithVal(string newVal) {

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -58,6 +57,21 @@ public abstract class Expression : TokenNode {
 
       //modifies type;
       type = value.Normalize();
+    }
+  }
+
+  /// <summary>
+  /// The new type inference includes a "type adjustment" phase, which determines the best subset types for a program. This phase works
+  /// by adjusting (mutating) types in place, using "AdjustableType" type proxies. During that phase, it is necessary to obtain the
+  /// un-normalized type stored in each AST node, which is what the "UnnormalizedType" property does. This property should only be used
+  /// during the type adjustment phase. After type inference is complete, use ".Type" instead.
+  /// </summary>
+  public Type UnnormalizedType {
+    get {
+      return type;
+    }
+    set {
+      type = value;
     }
   }
   /// <summary>
@@ -404,8 +418,9 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
     Contract.Requires(tok != null);
-    var lit = new LiteralExpr(tok, b);
-    lit.Type = Type.Bool;  // resolve here
+    var lit = new LiteralExpr(tok, b) {
+      Type = Type.Bool
+    };
     return lit;
   }
 
@@ -415,8 +430,9 @@ public abstract class Expression : TokenNode {
   public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
-    var lit = new StringLiteralExpr(tok, s, true);
-    lit.Type = new SeqType(new CharType());  // resolve here
+    var lit = new StringLiteralExpr(tok, s, true) {
+      Type = new SeqType(new CharType())
+    };
     return lit;
   }
 
@@ -426,8 +442,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression StripParens(Expression expr) {
     while (true) {
-      var e = expr as ParensExpression;
-      if (e == null) {
+      if (expr is not ParensExpression e) {
         return expr;
       }
       expr = e.E;
@@ -479,11 +494,11 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static bool IsIntLiteral(Expression expr, out BigInteger value) {
     Contract.Requires(expr != null);
-    var e = StripParens(expr) as LiteralExpr;
-    if (e != null && e.Value is int x) {
+    var e = StripParensAndCasts(expr) as LiteralExpr;
+    if (e is { Value: int x }) {
       value = new BigInteger(x);
       return true;
-    } else if (e != null && e.Value is BigInteger xx) {
+    } else if (e is { Value: BigInteger xx }) {
       value = xx;
       return true;
     } else {
@@ -757,6 +772,18 @@ public abstract class Expression : TokenNode {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };
+  }
+
+  /// <summary>
+  /// If "expr" is an expression that exists only as a resolved expression, then wrap it in the usual unresolved structure.
+  /// </summary>
+  public static Expression WrapAsParsedStructureIfNecessary(Expression expr, SystemModuleManager systemModuleManager) {
+    if (expr is FunctionCallExpr functionCallExpr) {
+      return WrapResolvedCall(functionCallExpr, systemModuleManager);
+    } else if (expr is MemberSelectExpr memberSelectExpr) {
+      return WrapResolvedMemberSelect(memberSelectExpr);
+    }
+    return expr;
   }
 
   /// <summary>

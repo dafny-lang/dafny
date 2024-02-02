@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -89,6 +90,18 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+
+      Contract.Assume(type != null);  /* we assume object has been resolved */
+      return type;
+    }
+  }
+
   public PreType PreType { get; set; }
 
   public bool IsMutable {
@@ -118,7 +131,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
+  public SymbolKind Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }

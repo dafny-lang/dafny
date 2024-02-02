@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using Xunit;
@@ -24,15 +25,15 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
 
   protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
-      verificationStatusGutterReceivers[i] = new();
+      verificationStatusGutterReceivers[i] = new(logger);
     }
-    verificationStatusGutterReceiver = new();
+    verificationStatusGutterReceiver = new(logger);
     (client, Server) = await Initialize(options =>
       options
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
     , o => {
-      o.Set(ServerCommand.LineVerificationStatus, true);
+      o.Set(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, true);
       modifyOptions?.Invoke(o);
     });
   }

@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,7 +12,6 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie.SMTLib;
-using Microsoft.Extensions.Options;
 using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
@@ -41,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
-      var logger = server.GetRequiredService<ILogger<Server>>();
+      var logger = server.GetRequiredService<ILogger<LanguageServer>>();
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
@@ -53,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer {
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
 
     private static void PublishSolverPath(ILanguageServer server) {
-      var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
+      var telemetryPublisher = server.GetRequiredService<TelemetryPublisherBase>();
       var options = server.GetRequiredService<DafnyOptions>();
       string solverPath;
       try {
@@ -68,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(DafnyOptions options, ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
+    private static void HandleZ3Version(DafnyOptions options, TelemetryPublisherBase telemetryPublisher, SMTLibSolverOptions proverOptions) {
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         return;
@@ -90,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer {
     /// As part of the LSP spec, a language server must kill itself if its parent process dies
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
-    private static void KillLanguageServerIfParentDies(ILogger<Server> logger, InitializeParams request,
+    private static void KillLanguageServerIfParentDies(ILogger<LanguageServer> logger, InitializeParams request,
         Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;

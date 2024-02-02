@@ -26,8 +26,11 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis,
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
-      Feature.SeparateCompilation
+      Feature.SeparateCompilation,
+      Feature.RuntimeCoverageReport
     };
+
+    public override string ModuleSeparator => "_";
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -42,7 +45,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.js", wr);
+        EmitRuntimeSource("DafnyRuntimeJs", wr, false);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_js", wr, false);
       }
     }
 
@@ -57,16 +63,17 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      if (!isExtern || libraryName != null) {
+      if (externModule == null || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
 
       string footer = ")(); // end of module " + moduleName;
       var block = wr.NewBlock("(function()", footer);
       var beforeReturnBody = block.Fork(0);
-      if (!isExtern) {
+      if (externModule == null) {
         // create new module here
         beforeReturnBody.WriteLine("let $module = {};");
       } else if (libraryName == null) {
@@ -440,7 +447,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           thn.WriteLine("return \"{0}\";", nm);
           i++;
@@ -454,7 +461,7 @@ namespace Microsoft.Dafny.Compilers {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+          var nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
           cw.Write("return \"{0}\"", nm);
           var sep = " + \"(\" + ";
@@ -1250,8 +1257,11 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       start = start ?? "0";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewNamedBlock("for (let {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
@@ -1285,7 +1295,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree preconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree preconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -1304,7 +1314,9 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         typeTest = "true";
       }
-      return typeTest == "true" ? null : typeTest;
+
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
@@ -1560,7 +1572,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"
+        Contract.Assert(!cl.EnclosingModuleDefinition.TryToAvoidName); // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
@@ -1771,14 +1783,18 @@ namespace Microsoft.Dafny.Compilers {
       return wr.ForkInParens();
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       if (indices.Count == 1) {
-        wr.Write("[{0}]", indices[0]);
+        wr.Write("[");
+        indices[0](wr);
+        wr.Write("]");
       } else {
         wr.Write(".elmts");
         foreach (var index in indices) {
-          wr.Write("[{0}]", index);
+          wr.Write("[");
+          index(wr);
+          wr.Write("]");
         }
       }
       return w;
@@ -2416,6 +2432,8 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsCharType) {
           wr.Write(").toNumber())");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }
@@ -2478,18 +2496,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnyMapClass}.of(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.Empty.slice()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(sep);
-        wr.Write("[");
+        wr.Write(".updateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(",");
         wr.Append(Expr(p.B, inLetExprBody, wStmts));
-        wr.Write("]");
-        sep = ", ";
+        wr.Write(")");
       }
-      wr.Write(")");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {

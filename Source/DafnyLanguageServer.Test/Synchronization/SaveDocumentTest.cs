@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 function GetConstant(): int {
   1
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -28,8 +28,8 @@ function GetConstant(): int {
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfVerifyNever.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -42,10 +42,10 @@ function GetConstant(): int {
 function GetConstant() int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSyntaxErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -56,10 +56,10 @@ function GetConstant() int {
 function GetConstant(): int {
   d
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSemanticErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -70,8 +70,8 @@ function GetConstant(): int {
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "UpdatesFlawlessDocumentIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -84,12 +84,12 @@ function GetConstant(): int {
 method DoIt() {
   assert false;
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "VerificationErrorsAreCapturedIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);

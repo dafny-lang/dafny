@@ -31,7 +31,7 @@ public class ClonerTest {
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
       false, false, new List<TypeParameter>(), new List<Formal> { formal1, formal2 },
       new List<Formal>(), new List<AttributedExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
+      new Specification<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       new BlockStmt(rangeToken, new List<Statement>()), null, Token.NoToken, false);
 

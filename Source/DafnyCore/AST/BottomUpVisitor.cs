@@ -56,6 +56,7 @@ public class BottomUpVisitor {
   }
   public void Visit(Method method) {
     Visit(method.Req);
+    Visit(method.Reads.Expressions);
     Visit(method.Mod.Expressions);
     Visit(method.Ens);
     Visit(method.Decreases.Expressions);
@@ -64,7 +65,7 @@ public class BottomUpVisitor {
   }
   public void Visit(Function function) {
     Visit(function.Req);
-    Visit(function.Reads);
+    Visit(function.Reads.Expressions);
     Visit(function.Ens);
     Visit(function.Decreases.Expressions);
     if (function.Body != null) { Visit(function.Body); }

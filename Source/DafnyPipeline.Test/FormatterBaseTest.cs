@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Text.RegularExpressions;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -67,16 +68,16 @@ namespace DafnyPipeline.Test {
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
-        var firstToken = dafnyProgram.GetFirstTopLevelToken();
+        var firstToken = dafnyProgram.GetFirstTokenForUri(uri);
         if (firstToken == null && !expectNoToken) {
           Assert.False(true, "Did not find a first token");
         }
 
         var reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
-        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
+        EnsureEveryTokenIsOwned(uri, programNotIndented, dafnyProgram);
         if (expectedProgram != reprinted) {
           Console.Out.WriteLine("Formatting after parsing generates an error:");
           Assert.Equal(expectedProgram, reprinted);
@@ -99,20 +100,19 @@ namespace DafnyPipeline.Test {
         });
         var reprintedCloned = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
-        EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
+        EnsureEveryTokenIsOwned(uri, programNotIndented, dafnyProgram);
         if (expectedProgram != reprintedCloned) {
           Console.Out.WriteLine("Formatting after parsing + cloning generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
 
-
         // Formatting should work after resolution as well.
         DafnyMain.Resolve(dafnyProgram);
         reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
           options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
@@ -128,10 +128,10 @@ namespace DafnyPipeline.Test {
         ;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
-        firstToken = dafnyProgram.GetFirstTopLevelToken();
+        firstToken = dafnyProgram.GetFirstTokenForUri(uri);
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+            IndentationFormatter.ForProgram(dafnyProgram, firstToken.Uri, reduceBlockiness))
           : reprinted;
         if (reprinted != reprinted2) {
           Console.Write("Double formatting is not stable:\n");
@@ -141,8 +141,8 @@ namespace DafnyPipeline.Test {
       }
     }
 
-    private void EnsureEveryTokenIsOwned(string programNotIndented, Program dafnyProgram) {
-      var firstToken = dafnyProgram.GetFirstTopLevelToken();
+    private void EnsureEveryTokenIsOwned(Uri uri, string programNotIndented, Program dafnyProgram) {
+      var firstToken = dafnyProgram.GetFirstTokenForUri(uri);
       if (firstToken == null) {
         return;
       }

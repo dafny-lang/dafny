@@ -1,13 +1,21 @@
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
 
 public class RunAllTestsMainMethod : IRewriter {
+
+  static RunAllTestsMainMethod() {
+    DooFile.RegisterNoChecksNeeded(IncludeTestRunner);
+  }
+
+  public static Option<bool> IncludeTestRunner = new("--include-test-runner",
+    "Include a program entry point that will run all methods marked with {:test}");
 
   /** The name used for Main when executing tests. Should be a name that cannot be a Dafny name,
       that Dafny will not use as a mangled Dafny name for any backend, and that is not likely
@@ -34,6 +42,7 @@ public class RunAllTestsMainMethod : IRewriter {
     var mainMethod = new Method(RangeToken.NoToken, new Name(SyntheticTestMainName), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
+      new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       null, noVerifyAttribute, null);
@@ -84,7 +93,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-    var tok = program.GetFirstTopLevelToken();
+    var tok = program.GetStartOfFirstFileToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 

@@ -12,8 +12,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IToken> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>();
-  [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
+  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
@@ -32,12 +31,13 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     IsRefining = original.IsRefining;
     IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
+    SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, parent, false, isRefining, cloneId) {
+    : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -45,13 +45,14 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = provideAll;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public void SetupDefaultSignature() {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this.EnclosingModuleDefinition;
-    sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
+    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;

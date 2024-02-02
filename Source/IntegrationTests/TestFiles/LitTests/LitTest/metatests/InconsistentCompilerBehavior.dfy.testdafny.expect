@@ -1,0 +1,53 @@
+Using legacy resolver and verifying...
+Using refresh resolver and verifying...
+Executing on C#...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on C# (with --include-runtime:false)...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on JavaScript...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on Go...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on Java...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on Python...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on C++...
+Executing on Rust...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+-Different than any output
++0
+ 
+
+Executing on ResolvedDesugaredExecutableDafny...

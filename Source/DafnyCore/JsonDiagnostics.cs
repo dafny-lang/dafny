@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Boogie;
 using VCGeneration;
 using static Microsoft.Dafny.ErrorRegistry;
 
@@ -25,8 +24,10 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     var range = new JsonObject {
       ["start"] = SerializePosition(tok),
     };
-    if (tok is BoogieRangeToken rt) {
-      range["end"] = SerializePosition(rt.EndToken);
+    if (tok is RangeToken rangeToken1) {
+      range["end"] = SerializePosition(rangeToken1.EndToken);
+    } else if (tok is BoogieRangeToken rangeToken2) {
+      range["end"] = SerializePosition(rangeToken2.EndToken);
     }
     return range;
   }
@@ -60,9 +61,10 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   }
 
   private static IEnumerable<JsonNode> SerializeInnerTokens(Boogie.IToken tok) {
-    while (tok is NestedToken ntok) {
-      tok = ntok.Inner;
-      yield return SerializeRelated(tok, null, "Related location");
+    while (tok is NestedToken nestedToken) {
+      tok = nestedToken.Inner;
+      var message = nestedToken.Message != null ? "Related location: " + nestedToken.Message : "Related location";
+      yield return SerializeRelated(tok, null, message);
     }
   }
 
@@ -109,9 +111,9 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  public override bool Message(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
-    if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Options.OutputWriter);
+  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
+    if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+      new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;
     }
 

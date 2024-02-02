@@ -232,9 +232,8 @@ namespace Microsoft.Dafny {
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
         return new MultiSetType(tt.HasTypeArg() ? CloneType(tt.Arg) : null);
-      } else if (t is MapType) {
-        var tt = (MapType)t;
-        return new MapType(tt.Finite, CloneType(tt.Domain), CloneType(tt.Range));
+      } else if (t is MapType mapType) {
+        return new MapType(this, mapType);
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
         return new ArrowType(Tok(tt.tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
@@ -257,6 +256,9 @@ namespace Microsoft.Dafny {
         return inferredTypeProxy;
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
+      } else if (t is AdjustableType adjustableType) {
+        // don't bother keeping AdjustableType wrappers
+        return CloneType(adjustableType.T);
       } else {
         Contract.Assert(false); // unexpected type (e.g., no other type proxies are expected at this time)
         return null; // to please compiler
@@ -512,7 +514,7 @@ namespace Microsoft.Dafny {
       var formals = f.Formals.ConvertAll(p => CloneFormal(p, false));
       var result = f.Result != null ? CloneFormal(f.Result, false) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
-      var reads = f.Reads.ConvertAll(CloneFrameExpr);
+      var reads = CloneSpecFrameExpr(f.Reads);
       var decreases = CloneSpecExpr(f.Decreases);
       var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body = CloneExpr(f.Body);

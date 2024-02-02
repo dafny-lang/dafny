@@ -155,7 +155,7 @@ Only modules may be declared abstract.
 
     Add(ErrorId.p_general_traits_beta,
       @"
-Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:1.
+Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:datatype.
 ", Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,

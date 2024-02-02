@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using OmniSharp.Extensions.JsonRpc.Server;
 using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
@@ -17,7 +18,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("SOLVER=noop");
-        options.Set(ServerCommand.ProjectMode, true);
         modifyOptions?.Invoke(options);
       }
 
@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     private async Task AssertHoverContains(TextDocumentItem documentItem, Position hoverPosition, string expectedContent) {
       var hover = await RequestHover(documentItem, hoverPosition);
-      if (expectedContent == "null") {
+      if (expectedContent == "null" || expectedContent == null) {
         Assert.Null(hover);
         return;
       }
@@ -68,9 +68,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       var hoverRegex = new Regex(@"\n//\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
       var source = hoverRegex.Replace(sourceWithHovers, "");
       var hovers = hoverRegex.Matches(sourceWithHovers);
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "AssertHover.dfy");
       if (useProjectFile) {
-        await CreateAndOpenTestDocument("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
+        await CreateOpenAndWaitForResolve("", Path.Combine(Path.GetDirectoryName(documentItem.Uri.GetFileSystemPath())!, DafnyProject.FileName));
       }
       client.OpenDocument(documentItem);
       var lineDelta = 0;
@@ -86,6 +86,35 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task RecoverableParseErrorTypeRhs() {
+      var markup = @"
+class Bla { }
+
+method Foo() {
+  var ><x := new Bla();
+}
+/".TrimStart();
+      MarkupTestFile.GetPositionAndRanges(markup, out var source, out var position, out _);
+      var document = CreateTestDocument(source);
+      client.OpenDocument(document);
+      var hoverResult = await client.RequestHover(new HoverParams() {
+        Position = position,
+        TextDocument = document
+      }, CancellationToken);
+      Assert.Contains("No hover information available", hoverResult.ToString());
+    }
+
+    [Fact]
+    public async Task RecoverableParseError() {
+      var document = await CreateOpenAndWaitForResolve(@"
+class Foo {
+  const x := '\U2345'
+//      ^[```dafny\nconst x: ?\n```]
+}".TrimStart());
+      await AssertHoverContains(document, new Position(1, 8), "No hover information available due to program error");
+    }
+
+    [Fact]
     public async Task HoveringMethodInvocationOfMethodDeclaredInSameDocumentReturnsSignature() {
       await AssertHover(@"
 method DoIt() returns (x: int) {
@@ -96,7 +125,6 @@ method CallDoIt() returns () {
 //            ^[```dafny\nmethod DoIt() returns (x: int)\n```]
 }", true);
     }
-
 
     [Fact]
     public async Task HoveringBoundVariablesFormalsLocalVariablesInMatchExprOrStatement() {
@@ -146,10 +174,10 @@ function F2(dt: DT): int {
 
     [Fact]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(NeverVerifies);
+      var documentItem = CreateTestDocument(NeverVerifies, "HoverReturnsBeforeVerificationIsComplete.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.False(verificationTask.IsCompleted);

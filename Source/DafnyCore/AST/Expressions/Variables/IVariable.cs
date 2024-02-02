@@ -35,6 +35,13 @@ public interface IVariable : ISymbol {
   Type Type {
     get;
   }
+
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
+  Type UnnormalizedType {
+    get;
+  }
   Type OptionalType {
     get;
   }

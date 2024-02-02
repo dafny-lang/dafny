@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 
 namespace ExtensionMethods {
   using Microsoft.Dafny;
@@ -35,8 +34,11 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.MethodSynthesis
+      Feature.MethodSynthesis,
+      Feature.RuntimeCoverageReport
     };
+
+    public override string ModuleSeparator => "_";
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
@@ -55,10 +57,17 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
+    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+      , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
+      , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
+      , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
+        EmitRuntimeSource("DafnyRuntimePython", wr);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_py", wr);
       }
 
       Imports.Add(DafnyRuntimeModule);
@@ -86,16 +95,17 @@ namespace Microsoft.Dafny.Compilers {
       return mw.NewBlockPy($"def StaticMain({argsParameterName}):");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
-        string libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
-      var file = wr.NewFile($"{modulePath}.py");
+      var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, bool isExtern, string libraryName) {
+    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName) {
+      moduleName = IdProtect(moduleName);
       Imports.Add(moduleName);
     }
 
@@ -108,11 +118,7 @@ namespace Microsoft.Dafny.Compilers {
       Imports.ForEach(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
         wr.WriteLine();
-        wr.WriteLine($"assert \"{moduleName}\" == __name__");
-        if (!moduleName.Contains('.')) {
-          wr.WriteLine($"{moduleName} = sys.modules[__name__]");
-        }
-
+        wr.WriteLine($"# Module: {moduleName}");
         Imports.Add(moduleName);
       }
     }
@@ -120,52 +126,15 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      switch (name) {
-        case "False":
-        case "None":
-        case "True":
-        case "and":
-        case "as":
-        case "assert":
-        case "async":
-        case "await":
-        case "break":
-        case "class":
-        case "continue":
-        case "def":
-        case "del":
-        case "elif":
-        case "else":
-        case "except":
-        case "finally":
-        case "for":
-        case "from":
-        case "global":
-        case "if":
-        case "import":
-        case "in":
-        case "is":
-        case "lambda":
-        case "nonlocal":
-        case "not":
-        case "or":
-        case "pass":
-        case "raise":
-        case "return":
-        case "try":
-        case "while":
-        case "with":
-        case "yield":
-          name = $"{name}_";
-          break;
-        default:
-          while (name.StartsWith("_")) {
-            name = $"{name[1..]}_";
-          }
-          if (name.Length > 0 && char.IsDigit(name[0])) {
-            name = $"d_{name}";
-          }
-          break;
+      if (Keywords.Contains(name)) {
+        name = $"{name}_";
+      } else {
+        while (name.StartsWith("_")) {
+          name = $"{name[1..]}_";
+        }
+        if (name.Length > 0 && char.IsDigit(name[0])) {
+          name = $"d_{name}";
+        }
       }
       return name;
     }
@@ -178,7 +147,7 @@ namespace Microsoft.Dafny.Compilers {
         : "";
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
-      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
+      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
@@ -259,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var DtT = dt.GetCompileName(Options);
+      var DtT = IdProtect(dt.GetCompileName(Options));
 
       var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
         ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.tok))})"
@@ -273,7 +242,7 @@ namespace Microsoft.Dafny.Compilers {
         var values = dt.Ctors.Select(ctor =>
           ctor.IsGhost
           ? ForcePlaceboValue(UserDefinedType.FromTopLevelDecl(dt.tok, dt), w, dt.tok)
-          : $"{DtCtorDeclarationName(ctor, false)}()");
+          : $"{DtCtorDeclarationName(ctor)}()");
         w.WriteLine($"return [{values.Comma()}]");
       }
 
@@ -336,7 +305,7 @@ namespace Microsoft.Dafny.Compilers {
           .Select(d => $"('{IdProtect(d.GetCompileName(Options))}', Any)");
         var argList = argListX.Concat(argListY).Comma();
         var namedtuple = $"NamedTuple('{IdProtect(ctor.GetCompileName(Options))}', [{argList}])";
-        var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
+        var header = $"class {DtCtorDeclarationName(ctor)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
 
@@ -355,7 +324,7 @@ namespace Microsoft.Dafny.Compilers {
       var dt = ctor.EnclosingDatatype;
 
       // Dt.Ctor
-      var fString = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+      var fString = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                 dt.Name + "." + ctor.Name;
 
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
@@ -389,7 +358,7 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine("return super().__hash__()");
     }
 
-    private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
+    private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = false) {
       var dt = ctor.EnclosingDatatype;
       return $"{(full ? dt.GetFullCompileName(Options) : dt.GetCompileName(Options))}_{ctor.GetCompileName(Options)}";
     }
@@ -599,14 +568,15 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
 
-      return DatatypeWrapperEraser.SimplifyType(Options, type, true) switch {
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      return simplifiedType switch {
         var x when x.IsBuiltinArrowType => $"{DafnyDefaults}.pointer",
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
         BoolType or TypeProxy => $"{DafnyDefaults}.bool",
         CharType => UnicodeCharEnabled ? $"{DafnyDefaults}.codepoint" : $"{DafnyDefaults}.char",
         IntType or BitvectorType => $"{DafnyDefaults}.int",
         RealType => $"{DafnyDefaults}.real",
-        SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
+        SeqType or SetType or MultiSetType or MapType => TypeHelperName(simplifiedType.NormalizeExpandKeepConstraints()),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
@@ -616,10 +586,6 @@ namespace Microsoft.Dafny.Compilers {
         },
         _ => throw new cce.UnreachableException()
       };
-
-      string CollectionTypeDescriptor() {
-        return TypeHelperName(type.NormalizeExpandKeepConstraints());
-      }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         if ((thisContext != null && typeParameter.Parent is TopLevelDeclWithMembers and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
@@ -704,6 +670,11 @@ namespace Microsoft.Dafny.Compilers {
       throw new cce.UnreachableException();
     }
 
+    private string FullName(TopLevelDecl decl) {
+      var localDefinition = decl.EnclosingModuleDefinition == enclosingModule;
+      return IdProtect(localDefinition ? decl.GetCompileName(Options) : decl.GetFullCompileName(Options));
+    }
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
 
@@ -735,7 +706,7 @@ namespace Microsoft.Dafny.Compilers {
               case SubsetTypeDecl td:
                 switch (td.WitnessKind) {
                   case SubsetTypeDecl.WKind.Compiled:
-                    return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
+                    return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
                   case SubsetTypeDecl.WKind.Special:
                     if (ArrowType.IsPartialArrowTypeName(td.Name)) {
                       return "None";
@@ -759,7 +730,7 @@ namespace Microsoft.Dafny.Compilers {
 
               case NewtypeDecl td:
                 if (td.Witness != null) {
-                  return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".default()";
+                  return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
                 } else {
                   return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                 }
@@ -768,7 +739,7 @@ namespace Microsoft.Dafny.Compilers {
                 var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs, true).ConvertAll(ta => ta.Actual);
                 return dt is TupleTypeDecl
                   ? $"({relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))}{(relevantTypeArgs.Count == 1 ? "," : "")})"
-                  : $"{dt.GetFullCompileName(Options)}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
+                  : $"{FullName(cl)}.default({relevantTypeArgs.Comma(arg => TypeDescriptor(arg, wr, tok))})()";
 
               case TypeParameter tp:
                 return constructTypeParameterDefaultsFromTypeDescriptors
@@ -959,8 +930,11 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       var lowerBound = start == null ? "" : start + ", ";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewBlockPy($"for {indexVar} in range({lowerBound}{bound}):");
     }
 
@@ -1160,7 +1134,7 @@ namespace Microsoft.Dafny.Compilers {
         TypeParameter => $"TypeVar(\'{IdProtect(cl.GetCompileName(Options))}\')",
         ArrayClassDecl => DafnyArrayClass,
         TupleTypeDecl => "tuple",
-        _ => IdProtect(cl.GetFullCompileName(Options))
+        _ => FullName(cl)
       };
     }
 
@@ -1180,13 +1154,13 @@ namespace Microsoft.Dafny.Compilers {
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string typeDescriptorArguments, string arguments,
       ConcreteSyntaxTree wr, bool qualifiedName = true) {
       if (isCoCall) {
-        wr.Write($"{dt.GetFullCompileName(Options)}__Lazy(lambda: ");
+        wr.Write($"{FullName(dt)}__Lazy(lambda: ");
         var end = wr.Fork();
         wr.Write(")");
         wr = end;
       }
       if (dt is not TupleTypeDecl) {
-        wr.Write($"{DtCtorDeclarationName(ctor, qualifiedName)}");
+        wr.Write($"{DtCtorDeclarationName(ctor, dt.EnclosingModuleDefinition != enclosingModule)}");
       } else if (ctor.Destructors.Count(d => !d.IsGhost) == 1) {
         // 1-tuples need this this for disambiguation
         arguments += ",";
@@ -1324,17 +1298,24 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices is { Count: >= 1 });
       var w = wr.Fork();
-      wr.Write($"[{indices.Comma()}]");
+      wr.Write("[");
+      for (var i = 0; i < indices.Count; i++) {
+        if (i > 0) {
+          wr.Write(", ");
+        }
+        indices[i](wr);
+      }
+      wr.Write("]");
       return w;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null);  // follows from precondition
-      var strings = indices.Select(index => Expr(index, inLetExprBody, wStmts).ToString());
+      var strings = indices.Select<Expression, Action<ConcreteSyntaxTree>>(index => wr => EmitExpr(index, inLetExprBody, wr, wStmts));
       return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
@@ -1423,7 +1404,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       var functionName = ProtectedFreshId("_lambda");
@@ -1467,7 +1447,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree ToFatPointer(Type type, ConcreteSyntaxTree wr) {
       if (type.HasFatPointer) {
-        wr.Write(type.AsNewtype.GetFullCompileName(Options));
+        wr.Write(FullName(type.AsNewtype));
         return wr.ForkInParens();
       } else {
         return wr;
@@ -1712,7 +1692,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (fromType.IsTraitType && toType.AsNewtype != null) {
-        wr.Write($"isinstance({localName}, {toType.AsNewtype.GetFullCompileName(Options)})");
+        wr.Write($"isinstance({localName}, {FullName(toType.AsNewtype)})");
       } else {
         wr.Write($"isinstance({localName}, {TypeName(toType, wr, tok)})");
       }
@@ -1785,7 +1765,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       if (!boundVarType.IsRefType) {
         return null;
       }
@@ -1793,22 +1773,24 @@ namespace Microsoft.Dafny.Compilers {
       var typeTest = boundVarType.IsObject || boundVarType.IsObjectQ
         ? True
         : $"isinstance({tmpVarName}, {TypeName(boundVarType, wPreconditions, tok)})";
-      return boundVarType.IsNonNullRefType
+      return wr => wr.Write(boundVarType.IsNonNullRefType
         ? $"{tmpVarName} is not None and {typeTest}"
-        : $"{tmpVarName} is None or {typeTest}";
+        : $"{tmpVarName} is None or {typeTest}");
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
       return TypeHelperName(ct) + $"({collName})";
     }
 
-    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
-      wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
-      wLo = wr.Fork();
-      wr.Write(", ");
-      wHi = wr.Fork();
-      wr.Write(')');
-      return new IntType();
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
+      return (new IntType(), (wr) => {
+        wr.Write($"{DafnyRuntimeModule}.IntegerRange(");
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      }
+      );
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,

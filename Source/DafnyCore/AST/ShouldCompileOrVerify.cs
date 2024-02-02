@@ -13,7 +13,10 @@ public static class ShouldCompileOrVerify {
     }
 
     if (module.FullName == "_System") {
-      return true;
+      return program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.Omit;
+    }
+    if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+      return false;
     }
 
     if (module is DefaultModuleDefinition) {
@@ -21,6 +24,14 @@ public static class ShouldCompileOrVerify {
       // https://github.com/dafny-lang/dafny/issues/4009
       return true;
     }
+
+    if (program.Options.Backend?.TargetId != "lib") {
+      bool compileIt = true;
+      if (Attributes.ContainsBool(module.Attributes, "compile", ref compileIt) && !compileIt) {
+        return false;
+      }
+    }
+
     return program.UrisToCompile.Contains(module.Tok.Uri);
   }
 

@@ -16,8 +16,6 @@ env:
 jobs:
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: master
 
   singletons:
     needs: check-deep-tests
@@ -25,17 +23,20 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dafny
         submodules: recursive
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
+    - name: Check whitespace and style
+      working-directory: dafny
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
     - name: Get Boogie Version
       run: |
         sudo apt-get update
@@ -45,7 +46,7 @@ jobs:
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
@@ -53,11 +54,8 @@ jobs:
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
-    - name: Check whitespace and style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
       run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test dafny/Source/IntegrationTests
 
@@ -71,6 +69,7 @@ jobs:
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      ref: ${{ github.ref }}
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
@@ -86,13 +85,13 @@ jobs:
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: dafny
           submodules: recursive
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{env.dotnet-version}}
 
@@ -109,12 +108,13 @@ jobs:
           dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
 
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: integration-test-results-ubuntu-20.04
+          pattern: integration-test-results-ubuntu-20.04-*
+          merge-multiple: true
 
       - name: Download unit test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: unit-test-results-ubuntu-20.04
 
@@ -127,7 +127,7 @@ jobs:
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura \
-            -classfilters:"-Microsoft.Dafny.*PreType*;-Microsoft.Dafny.ResolverPass;-Microsoft.Dafny.*Underspecification*;-Microsoft.Dafny.DetectUnderspecificationVisitor;-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector;-DAST.*;-DCOMP.*"
+            -classfilters:"-Microsoft.Dafny.*PreType*;-Microsoft.Dafny.ResolverPass;-Microsoft.Dafny.*Underspecification*;-Microsoft.Dafny.DetectUnderspecificationVisitor;-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector;-Microsoft.Dafny.Compilers.DafnyCompiler;-DAST.*;-DCOMP.*"
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \
@@ -175,7 +175,7 @@ jobs:
           # Report "yellow" status if less than 90% total coverage.
           thresholds: '86 90'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always() # Upload results even if the job fails
         with:
           name: test-coverage-results

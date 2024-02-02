@@ -1,0 +1,4 @@
+resolveManyReplacement.dfy(10,7): Error: a replaceable module may only be replaced once
+resolveManyReplacement.dfy(15,7): Related location: other replacing module
+resolveManyReplacement.dfy(15,7): Error: modules 'Replacement1' and 'Replacement2' both have CompileName 'FooModule'
+2 resolution/type errors detected in resolveManyReplacement.dfy

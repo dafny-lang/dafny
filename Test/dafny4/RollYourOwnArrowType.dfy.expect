@@ -1,7 +1,0 @@
-RollYourOwnArrowType.dfy(6,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-RollYourOwnArrowType.dfy(141,16): Error: the given witness expression might not satisfy constraint
-RollYourOwnArrowType.dfy(139,21): Related location
-RollYourOwnArrowType.dfy(123,2): Related location
-RollYourOwnArrowType.dfy(123,16): Related location
-
-Dafny program verifier finished with 28 verified, 2 errors

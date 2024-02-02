@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -92,6 +93,16 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       return type.Normalize();
     }
   }
+
+  /// <summary>
+  /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
+  /// </summary>
+  public Type UnnormalizedType {
+    get {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      return type;
+    }
+  }
   Type IVariable.OptionalType {
     get { return Type; }  // same as Type for NonglobalVariable
   }
@@ -124,7 +135,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   public IToken NameToken => tok;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
-  public DafnySymbolKind Kind => DafnySymbolKind.Variable;
+  public SymbolKind Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }

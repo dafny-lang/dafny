@@ -14,8 +14,8 @@ namespace PluginsTestVerification {
     public ErrorRewriter(ErrorReporter reporter) : base(reporter) {
     }
 
-    public override void PostResolve(Program program) {
-      Reporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(),
+    public override void PreVerify(ModuleDefinition module) {
+      Reporter.Error(MessageSource.Compiler, Token.NoToken,
         "Plugin Error that does not prevent verification");
     }
   }

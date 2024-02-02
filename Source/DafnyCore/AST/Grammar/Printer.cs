@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
 Everything - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
+Serialization - print the source that will be included in a compiled dll.
 NoIncludes - disable printing of {:verify false} methods
     incorporated via the include mechanism, as well as datatypes and
     fields included from other files.
@@ -191,7 +191,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public void PrintProgramLargeStack(Program prog, bool afterResolver) {
+#pragma warning disable VSTHRD002
       DafnyMain.LargeStackFactory.StartNew(() => PrintProgram(prog, afterResolver)).Wait();
+#pragma warning restore VSTHRD002
     }
 
     public void PrintProgram(Program prog, bool afterResolver) {
@@ -567,8 +569,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
-      if (module.IsAbstract) {
+      if (module.ModuleKind == ModuleKindEnum.Abstract) {
         wr.Write("abstract ");
+      }
+      if (module.ModuleKind == ModuleKindEnum.Replaceable) {
+        wr.Write("replaceable ");
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
@@ -579,8 +584,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId);
+      if (module.Implements != null) {
+        var kindString = module.Implements.Kind switch {
+          ImplementationKind.Refinement => "refines",
+          ImplementationKind.Replacement => "replaces",
+          _ => throw new ArgumentOutOfRangeException()
+        };
+        wr.Write($"{kindString} {module.Implements.Target} ");
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
@@ -629,10 +639,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int ind = indent + IndentAmount;
       PrintSpec("requires", iter.Requires, ind);
       if (iter.Reads.Expressions != null) {
-        PrintFrameSpecLine("reads", iter.Reads.Expressions, ind, iter.Reads.HasAttributes() ? iter.Reads.Attributes : null);
+        PrintFrameSpecLine("reads", iter.Reads, ind);
       }
       if (iter.Modifies.Expressions != null) {
-        PrintFrameSpecLine("modifies", iter.Modifies.Expressions, ind, iter.Modifies.HasAttributes() ? iter.Modifies.Attributes : null);
+        PrintFrameSpecLine("modifies", iter.Modifies, ind);
       }
       PrintSpec("yield requires", iter.YieldRequires, ind);
       PrintSpec("yield ensures", iter.YieldEnsures, ind);
@@ -933,7 +943,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", f.Req, ind);
-      PrintFrameSpecLine("reads", f.Reads, ind, null);
+      PrintFrameSpecLine("reads", f.Reads, ind);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
       wr.WriteLine();
@@ -1018,8 +1028,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       int ind = indent + IndentAmount;
       PrintSpec("requires", method.Req, ind);
+      var readsExpressions = method.Reads.Expressions;
+      if (readsExpressions != null) {
+        var isDefault = readsExpressions.Count == 1 && readsExpressions[0].E is WildcardExpr;
+        if (!isDefault) {
+          PrintFrameSpecLine("reads", method.Reads, ind);
+        }
+      }
       if (method.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", method.Mod.Expressions, ind, method.Mod.HasAttributes() ? method.Mod.Attributes : null);
+        PrintFrameSpecLine("modifies", method.Mod, ind);
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
@@ -1108,18 +1125,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    internal void PrintFrameSpecLine(string kind, List<FrameExpression> ee, int indent, Attributes attrs) {
+    internal void PrintFrameSpecLine(string kind, Specification<FrameExpression> ee, int indent) {
       Contract.Requires(kind != null);
-      Contract.Requires(cce.NonNullElements(ee));
-      if (ee != null && ee.Count != 0) {
+      Contract.Requires(ee != null);
+      if (ee != null && ee.Expressions != null && ee.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
-        if (attrs != null) {
-          PrintAttributes(attrs);
-        }
+        PrintAttributes(ee.Attributes);
         wr.Write(" ");
-        PrintFrameExpressionList(ee);
+        PrintFrameExpressionList(ee.Expressions);
       }
     }
 
@@ -1161,10 +1176,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (options.DafnyPrintResolvedFile != null) {
-        ty = ty.Normalize();
+        ty = AdjustableType.NormalizeSansAdjustableType(ty);
       }
       string s = ty.TypeName(options, null, true);
-      if (!(ty is TypeProxy) && !s.StartsWith("_")) {
+      if (ty is AdjustableType or not TypeProxy && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }
@@ -1238,6 +1253,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (expectStmt != null && expectStmt.Message != null) {
           wr.Write(", ");
           PrintExpression(expectStmt.Message, true);
+          wr.Write(";");
         } else {
           wr.Write(";");
         }
@@ -1353,7 +1369,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         PrintAttributes(s.Attributes);
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
+        PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
         bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
           if (hasSpecs) {
@@ -1378,8 +1394,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (options.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
-          foreach (var expr in s.ForallExpressions) {
+        if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
+          foreach (var expr in s.EffectiveEnsuresClauses) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
           if (s.Body != null) {
@@ -1767,7 +1783,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-      PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
+      PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
       if (omitBody) {
         wr.WriteLine();
         Indent(indent + IndentAmount);
@@ -1829,7 +1845,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
       if (s.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+        PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
       }
       if (s.Body != null) {
         if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
@@ -2228,8 +2244,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ExprDotName)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit && // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
@@ -2254,8 +2270,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         var e = (ApplySuffix)expr;
         // determine if parens are needed
         int opBindingStrength = 0x90;
-        bool parensNeeded = !e.Lhs.IsImplicit &&  // KRML: I think that this never holds
-          ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        bool parensNeeded = !e.Lhs.IsImplicit && ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        Contract.Assert(!parensNeeded); // KRML: I think parens are never needed
 
         if (parensNeeded) { wr.Write("("); }
         if (ParensMayMatter(e.Lhs)) {
@@ -2681,6 +2697,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("var ");
           PrintCasePattern(e.Lhs);
           wr.Write(" :- ");
+        } else {
+          wr.Write(":- ");
         }
         PrintExpression(e.Rhs, true);
         wr.Write("; ");
@@ -2775,7 +2793,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintExpression(e.Range, false);
         }
         var readsPrefix = " reads ";
-        foreach (var read in e.Reads) {
+        PrintAttributes(e.Reads.Attributes);
+        foreach (var read in e.Reads.Expressions) {
           wr.Write(readsPrefix);
           PrintExpression(read.E, false);
           readsPrefix = ", ";
@@ -2886,9 +2905,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
         var e = (BoxingCastExpr)expr;
         PrintExpr(e.E, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-      } else if (expr is Translator.BoogieWrapper) {
+      } else if (expr is BoogieGenerator.BoogieWrapper) {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
-      } else if (expr is Translator.BoogieFunctionCall) {
+      } else if (expr is BoogieGenerator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
@@ -3040,6 +3059,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // print arguments after incorporating default parameters
         for (; i < bindings.Arguments.Count; i++) {
           var arg = bindings.Arguments[i];
+          if (arg is DefaultValueExpression { Resolved: null }) {
+            // An error was detected during resolution, so this argument was not filled in. Omit printing it.
+            continue;
+          }
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);

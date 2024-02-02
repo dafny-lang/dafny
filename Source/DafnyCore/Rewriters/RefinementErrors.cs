@@ -57,6 +57,7 @@ public class RefinementErrors {
     ref_mismatched_refinement_body,
     ref_method_refines_method,
     ref_no_new_method_precondition,
+    ref_no_new_method_reads,
     ref_no_new_method_modifies,
     ref_no_new_method_decreases,
     ref_mismatched_method_static,

@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Language;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,13 +28,13 @@ method Bar()
   BarLemma(); // this is ghost
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
 
       var directory = Path.GetRandomFileName();
-      var projectFile = await CreateAndOpenTestDocument("", Path.Combine(directory, DafnyProject.FileName));
-      var docA = await CreateAndOpenTestDocument(sourceA, Path.Combine(directory, "a.dfy"));
-      var docB = await CreateAndOpenTestDocument(sourceB, Path.Combine(directory, "b.dfy"));
+      var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
+      var docA = await CreateOpenAndWaitForResolve(sourceA, Path.Combine(directory, "a.dfy"));
+      var docB = await CreateOpenAndWaitForResolve(sourceB, Path.Combine(directory, "b.dfy"));
 
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var report2 = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -70,12 +71,13 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, false);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, false);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
-      await AssertNoGhostnessIsComing(CancellationToken);
+      await GetLastDiagnostics(documentItem);
+      await WaitUntilAllStatusAreCompleted(documentItem);
+      Assert.Equal(0, ghostnessReceiver.History.Count);
     }
 
     [Fact]
@@ -94,9 +96,9 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarations.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -122,9 +124,9 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostIfStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -148,9 +150,9 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostAssignments.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -174,9 +176,9 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostCalls.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -208,9 +210,9 @@ class C {
   lemma MyLemma()
 }".TrimStart();
       await SetUp(options => {
-        options.Set(ServerCommand.GhostIndicators, true);
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentWithGhostMarkStatementsMarksAllGhostStatements.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics
@@ -221,6 +223,30 @@ class C {
       Assert.Equal(new Range((9, 4), (11, 5)), diagnostics[1].Range);
       Assert.Equal(new Range((13, 4), (13, 11)), diagnostics[2].Range);
       Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
+    }
+
+    [Fact]
+    public async Task OpeningDocumentContainingGhostAndRemovingGhostPublishesEmptyRange() {
+      var source = @"
+method Test() {
+  ghost var x := 2;
+  var nonghost := 3;
+}
+".TrimStart();
+      await SetUp(options => {
+        options.Set(GhostStateDiagnosticCollector.GhostIndicators, true);
+      });
+      var documentItem = CreateTestDocument(source, "OpeningDocumentContainingGhostAndRemovingGhostPublishesEmptyRange.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var diagnostics = report.Diagnostics
+        .OrderBy(diagnostic => diagnostic.Range.Start)
+        .ToArray();
+      Assert.Single(diagnostics);
+      Assert.Equal(new Range((1, 2), (1, 19)), diagnostics[0].Range);
+      ApplyChange(ref documentItem, ((1, 0), (2, 0)), "");
+      report = await ghostnessReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Empty(report.Diagnostics.ToArray());
     }
 
     public GhostDiagnosticsTest(ITestOutputHelper output) : base(output) {

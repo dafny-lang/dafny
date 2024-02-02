@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -64,6 +65,12 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
   Expression RedirectingTypeDecl.Constraint { get { return null; } }
+
+  bool RedirectingTypeDecl.ConstraintIsCompilable {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
   Expression RedirectingTypeDecl.Witness { get { return null; } }
   FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
@@ -115,4 +122,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
+
+  public abstract SymbolKind Kind { get; }
+  public abstract string GetDescription(DafnyOptions options);
 }

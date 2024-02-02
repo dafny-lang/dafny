@@ -24,7 +24,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
-      Feature.TuplesWiderThan20
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
     };
 
     public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
@@ -71,19 +73,39 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       wr.WriteLine("using System.Collections;");
+
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        wr.WriteLine("using System.IO;");
+      }
+
+      if (program.Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
       Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
       }
-      EmitDafnySourceAttribute(program, wr);
 
-      if (Options.IncludeRuntime) {
-        ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
+      if (program.Options.SystemModuleTranslationMode != CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        EmitDafnySourceAttribute(program, wr);
       }
 
+      if (Options.IncludeRuntime) {
+        EmitRuntimeSource("DafnyRuntimeCsharp", wr, false);
+      }
+      if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
+        EmitRuntimeSource("DafnyStandardLibraries_cs", wr, false);
+      }
+
+      if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
+        EmitCoverageReportInstrumentation(program, wr);
+      }
     }
 
     /// <summary>
@@ -119,16 +141,40 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      if (systemModuleManager.MaxNonGhostTupleSizeUsed > 20) {
-        UnsupportedFeatureError(systemModuleManager.MaxNonGhostTupleSizeToken, Feature.TuplesWiderThan20);
+      switch (Options.SystemModuleTranslationMode) {
+        case CommonOptionBag.SystemModuleMode.Omit: {
+            CheckCommonSytemModuleLimits(systemModuleManager);
+            break;
+          }
+        case CommonOptionBag.SystemModuleMode.OmitAllOtherModules: {
+            CheckSystemModulePopulatedToCommonLimits(systemModuleManager);
+            break;
+          }
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      // The declarations below would normally be omitted if we aren't compiling the system module,
+      // but they are all marked as "internal", so they have to be included in each separately-compiled assembly.
+      // In particular, FuncExtensions contain extension methods for the System.Func<> family of delegates,
+      // and extension methods always only apply within the current assembly.
+      //
+      // Instead we just make sure to guard them with "#if ISDAFNYRUNTIMELIB" when compiling the system module,
+      // so they don't become duplicates when --include-runtime is used.
+      // See comment at the top of DafnyRuntime.cs.
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#if ISDAFNYRUNTIMELIB");
+      }
+
+      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
       EmitFuncExtensions(systemModuleManager, wr);
+
+      if (Options.SystemModuleTranslationMode == CommonOptionBag.SystemModuleMode.OmitAllOtherModules) {
+        wr.WriteLine("#endif");
+      }
     }
 
     // Generates casts for functions of those arities present in the program, like:
@@ -220,7 +266,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+      string libraryName /*?*/, ConcreteSyntaxTree wr) {
       return wr.NewBlock($"namespace {IdProtect(moduleName)}", " // end of " + $"namespace {IdProtect(moduleName)}");
     }
 
@@ -1083,7 +1130,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
 
         switch (dt) {
@@ -1166,7 +1213,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdName(dt) : dt.GetFullCompileName(Options);
+      var dtName = dt.EnclosingModuleDefinition.TryToAvoidName ? IdName(dt) : dt.GetFullCompileName(Options);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
 
@@ -1988,8 +2035,11 @@ namespace Microsoft.Dafny.Compilers {
       return startWr;
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr, string start = null) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> boundAction, ConcreteSyntaxTree wr, string start = null) {
       start = start ?? "0";
+      var boundWriter = new ConcreteSyntaxTree();
+      boundAction(boundWriter);
+      var bound = boundWriter.ToString();
       return wr.NewNamedBlock("for (var {0} = {2}; {0} < {1}; {0}++)", indexVar, bound, start);
     }
 
@@ -2022,7 +2072,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     [CanBeNull]
-    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+    protected override Action<ConcreteSyntaxTree> GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -2039,7 +2089,8 @@ namespace Microsoft.Dafny.Compilers {
         typeTest = "true";
       }
 
-      return typeTest == "true" ? null : typeTest;
+      typeTest = typeTest == "true" ? null : typeTest;
+      return typeTest == null ? null : wr => wr.Write(typeTest);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
@@ -2154,8 +2205,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
-      } else if (AsNativeType(e.Type) != null) {
-        GetNativeInfo(AsNativeType(e.Type).Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+      } else if (AsNativeType(e.Type) is { } nativeType) {
+        GetNativeInfo(nativeType.Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
         if (needsCastAfterArithmetic) {
           wr = wr.Write($"({nativeName})").ForkInParens();
         }
@@ -2239,11 +2290,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
+      string nativeName = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
       }
 
       // ( e0 op1 e1) | (e0 op2 (width - e1))
@@ -2257,7 +2308,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr.ForkInParens(), inLetExprBody, wStmts, tr);
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+    private void EmitShift(Expression e0, Expression e1, string op, bool truncate, [CanBeNull] NativeType nativeType, bool firstOp,
         ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
@@ -2422,10 +2473,10 @@ namespace Microsoft.Dafny.Compilers {
       if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
-      if (cl.EnclosingModuleDefinition.IsDefaultModule) {
+      if (cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       }
 
@@ -2617,13 +2668,15 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
       wr.Write("[");
       var sep = "";
       foreach (var index in indices) {
-        wr.Write("{0}(int)({1})", sep, index);
+        wr.Write("{0}(int)(", sep);
+        index(wr);
+        wr.Write(")");
         sep = ", ";
       }
       wr.Write("]");
@@ -2756,7 +2809,7 @@ namespace Microsoft.Dafny.Compilers {
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",
         ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
-      var wrArrName = EmitArrayUpdate(new List<string> { ixVar }, body, wrLoopBody);
+      var wrArrName = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wr => wr.Write(ixVar) }, body, wrLoopBody);
       wrArrName.Write(arrVar);
       EndStmt(wrLoopBody);
 
@@ -2803,7 +2856,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || from.IsRefType == to.IsRefType);
+      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || from.IsRefType == to.IsRefType);
 
       var w = new ConcreteSyntaxTree();
       if (from.IsTraitType && to.AsNewtype != null) {
@@ -3238,6 +3291,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
         }
+      } else if (e.E.Type.Equals(e.ToType) || e.E.Type.AsNewtype != null || e.ToType.AsNewtype != null) {
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
       } else {
         Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
       }
@@ -3340,7 +3395,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (Options.Compile || Options.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+      if (Options.Compile || Options.Get(RunAllTestsMainMethod.IncludeTestRunner) || !Attributes.Contains(decl.Attributes, "test")) {
         return;
       }
 
@@ -3375,7 +3430,7 @@ namespace Microsoft.Dafny.Compilers {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
-      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_module." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.TryToAvoidName ? "_module." : "";
       companion = modName + companion;
 
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
@@ -3393,5 +3448,30 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, catchBlock);
     }
 
+    protected void EmitCoverageReportInstrumentation(Program program, ConcreteSyntaxTree wr) {
+      wr.WriteLine(@"
+namespace DafnyProfiling {
+  public class CodeCoverage {
+    static uint[] tallies;
+    static string talliesFileName;
+    public static void Setup(int size, string theTalliesFileName) {
+      tallies = new uint[size];
+      talliesFileName = theTalliesFileName;
+    }
+    public static void TearDown() {
+      using TextWriter talliesWriter = new StreamWriter(
+        new FileStream(talliesFileName, FileMode.Create));
+      for (var i = 0; i < tallies.Length; i++) {
+        talliesWriter.WriteLine(""{0}"", tallies[i]);
+      }
+      tallies = null;
+    }
+    public static bool Record(int id) {
+      tallies[id]++;
+      return true;
+    }
+  }
+}");
+    }
   }
 }
