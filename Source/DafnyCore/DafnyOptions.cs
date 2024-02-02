@@ -580,6 +580,16 @@ namespace Microsoft.Dafny {
           WarnShadowing = true;
           return true;
 
+        case "warnContradictoryAssumptions":
+          Set(CommonOptionBag.WarnContradictoryAssumptions, true);
+          TrackVerificationCoverage = true;
+          return true;
+
+        case "warnRedundantAssumptions":
+          Set(CommonOptionBag.WarnRedundantAssumptions, true);
+          TrackVerificationCoverage = true;
+          return true;
+
         case "verifyAllModules":
           VerifyAllModules = true;
           return true;
