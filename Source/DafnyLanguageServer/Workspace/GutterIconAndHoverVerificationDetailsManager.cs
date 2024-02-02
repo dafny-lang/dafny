@@ -315,7 +315,7 @@ Send notifications about the verification status of each line in the program.
       } else {
         var wasAlreadyProcessed = implementationNode.NewChildren.Any(assertNode =>
           assertNode is AssertionVerificationTree assertionNode
-          && assertionNode.AssertionBatchNum == result.vcNum);
+          && assertionNode.AssertionBatchNum == result.VcNum);
         if (wasAlreadyProcessed) {
           return;
         }
@@ -324,7 +324,7 @@ Send notifications about the verification status of each line in the program.
 
         var assertionBatchTime = (int)result.RunTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.ResourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.CoveredElements.ToList());
+        implementationNode.AddAssertionBatchMetrics(result.VcNum, assertionBatchTime, assertionBatchResourceCount, result.CoveredElements.ToList());
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -352,7 +352,7 @@ Send notifications about the verification status of each line in the program.
           ) {
             StatusVerification = status,
             StatusCurrent = CurrentStatus.Current,
-            AssertionBatchNum = result.vcNum,
+            AssertionBatchNum = result.VcNum,
             Started = true,
             Finished = true
           }.WithDuration(implementationNode.StartTime, assertionBatchTime)

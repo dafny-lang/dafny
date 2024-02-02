@@ -48,7 +48,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   private static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
-    return new VCResultLogEntry(r.vcNum, r.StartTime, r.RunTime, r.Outcome,
+    return new VCResultLogEntry(r.VcNum, r.StartTime, r.RunTime, r.Outcome,
         r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.CoveredElements,
         r.ResourceCount);
   }

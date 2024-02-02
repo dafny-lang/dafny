@@ -521,7 +521,7 @@ public record IdeState(
 
       foreach (var result in results) {
         logger.LogDebug(
-          $"Possibly duplicate reporting assertion batch {result.vcNum}, version {Version}");
+          $"Possibly duplicate reporting assertion batch {result.VcNum}, version {Version}");
         gutterIconManager.ReportAssertionBatchResult(this,
           new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, result));
       }

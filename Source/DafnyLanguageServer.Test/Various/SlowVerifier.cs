@@ -46,7 +46,6 @@ class SlowVerifier : IProgramVerifier {
     }
 
     public IVerificationStatus CacheStatus => new Stale();
-    public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public ManualSplit Split => original.Split;
     public Boogie.IToken ScopeToken => original.ScopeToken;
     public string ScopeId => original.ScopeId;
