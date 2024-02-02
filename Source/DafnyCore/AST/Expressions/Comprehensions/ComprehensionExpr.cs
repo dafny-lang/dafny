@@ -266,9 +266,9 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
         var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
         if (IsFiniteCollection) {
           v |= PoolVirtues.Finite;
-          if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
-            v |= PoolVirtues.Enumerable;
-          }
+        }
+        if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
+          v |= PoolVirtues.Enumerable;
         }
         return v;
       }
