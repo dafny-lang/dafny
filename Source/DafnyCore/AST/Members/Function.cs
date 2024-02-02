@@ -536,8 +536,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(Tok, true);
-      reqExpr.Type = Type.Bool;
+      Expression reqExpr = Expression.CreateBoolLiteral(Tok, true);
 
       var bodyExpr = Body;
 
