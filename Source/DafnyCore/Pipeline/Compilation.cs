@@ -238,8 +238,7 @@ public class Compilation : IDisposable {
   }
 
   public static string GetTaskName(IVerificationTask task) {
-    var dafnyToken = BoogieGenerator.ToDafnyToken(false, task.Token);
-    var prefix = task.ScopeId + dafnyToken.line + "," + dafnyToken.col;
+    var prefix = task.ScopeId + task.Split.SplitIndex;
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
