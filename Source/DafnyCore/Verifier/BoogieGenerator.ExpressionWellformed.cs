@@ -892,8 +892,7 @@ namespace Microsoft.Dafny {
         case UnaryExpr unaryExpr: {
             UnaryExpr e = unaryExpr;
             CheckWellformed(e.E, wfOptions, locals, builder, etran);
-            if (e is ConversionExpr) {
-              var ee = (ConversionExpr)e;
+            if (e is ConversionExpr ee) {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
 

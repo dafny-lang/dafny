@@ -1,5 +1,5 @@
-ReadsOnMethods.dfy(279,8): Warning: /!\ No terms found to trigger on.
-ReadsOnMethods.dfy(280,11): Warning: /!\ No terms found to trigger on.
+ReadsOnMethods.dfy(279,8): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+ReadsOnMethods.dfy(280,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 ReadsOnMethods.dfy(19,16): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(29,29): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(44,32): Error: insufficient reads clause to read field
