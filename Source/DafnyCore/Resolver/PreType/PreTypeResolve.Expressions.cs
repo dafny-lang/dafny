@@ -475,34 +475,28 @@ namespace Microsoft.Dafny {
         var prevErrorCount = ErrorCount;
         resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         if (ErrorCount == prevErrorCount) {
+          string errorMessageFormat;
           var toPreType = (DPreType)Type2PreType(e.ToType);
           var ancestorDecl = AncestorDecl(toPreType.Decl);
           var familyDeclName = ancestorDecl.Name;
           if (familyDeclName == "int") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "real") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (IsBitvectorName(familyDeclName)) {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "char") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (familyDeclName == "ORDINAL") {
-            Constraints.AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait, e.E.PreType, e.ToType, expr.tok,
-              "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            errorMessageFormat = "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
-              "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to reference type '{0}' must be from an expression of a compatible type (got '{1}')";
           } else if (ancestorDecl is TraitDecl) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
-              "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to trait type '{0}' must be from an expression of a compatible type (got '{1}')";
           } else {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
-              "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
+            errorMessageFormat = "type cast to type '{0}' must be from an expression of a compatible type (got '{1}')";
           }
+          AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true, errorMessageFormat);
           e.PreType = toPreType;
         } else {
           e.PreType = CreatePreTypeProxy("'as' target type");
@@ -514,18 +508,9 @@ namespace Microsoft.Dafny {
         expr.PreType = ConstrainResultToBoolFamilyOperator(expr.tok, "is");
         resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         var toPreType = Type2PreType(e.ToType);
-        AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
-        Constraints.AddConfirmation(() => {
-          // TODO: all of these tests should be revisited (they don't seem right in the presence of newtype's)
-          var fromPT = e.E.PreType.NormalizeWrtScope() as DPreType;
-          var toPT = toPreType.NormalizeWrtScope() as DPreType;
-          if (fromPT != null && toPT != null && IsSuperPreTypeOf(toPT, fromPT)) {
-            // This test is allowed and it always returns true
-          } else if (fromPT == null || toPT == null || !IsSuperPreTypeOf(fromPT, toPT)) {
-            // TODO: I think this line can never be reached, since we get here only if we get past the guarded Comparable constraint
-            ReportError(e.tok, "a type test to '{0}' must be from a compatible type (got '{1}')", toPreType, e.E.PreType);
-          }
-        });
+        AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
+          "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
+        // TODO: should the previous call make use of .NormalizeWrtScope() ?
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
@@ -543,7 +528,8 @@ namespace Microsoft.Dafny {
           case TernaryExpr.Opcode.PrefixNeqOp:
             expr.PreType = ConstrainResultToBoolFamily(expr.tok, "ternary op", "boolean literal used as if it had type {0}");
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrORDINAL, e.E0.PreType, expr.tok, "prefix-equality limit argument must be an ORDINAL or integer expression (got {0})");
-            AddComparableConstraint(e.E1.PreType, e.E2.PreType, expr.tok, "arguments must have the same type (got {0} and {1})");
+            AddComparableConstraint(e.E1.PreType, e.E2.PreType, expr.tok, false,
+              "arguments must have the same type (got {0} and {1})");
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsCoDatatype, e.E1.PreType, expr.tok, "arguments to prefix equality must be codatatypes (instead of {0})");
             break;
           default:
@@ -769,7 +755,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Eq:
         case BinaryExpr.Opcode.Neq:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          AddComparableConstraint(e0.PreType, e1.PreType, tok, "arguments must have comparable types (got {0} and {1})");
+          AddComparableConstraint(e0.PreType, e1.PreType, tok, false, "arguments must have comparable types (got {0} and {1})");
           break;
 
         case BinaryExpr.Opcode.Disjoint:
@@ -905,13 +891,13 @@ namespace Microsoft.Dafny {
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, "'" + opString + "'");
           Constraints.AddGuardedConstraint(() => {
             // For "Innable x s", if s is known, then:
-            // if s == c<a> or s == c<a, b> where c is a collection type, then a :> x, else error.
+            // if s == c<a> or s == c<a, b> where c is a collection type, then a ~~ x, else error.
             var a0 = e0.PreType.NormalizeWrtScope();
             var a1 = e1.PreType.NormalizeWrtScope();
             var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
-              AddSubtypeConstraint(coll.Arguments[0], a0, tok, "expecting element type to be assignable to {0} (got {1})");
+              AddComparableConstraint(coll.Arguments[0], a0, tok, false, "expecting element type to be assignable to {0} (got {1})");
               return true;
             } else if (a1 is DPreType) {
               // type head is determined and it isn't a collection type

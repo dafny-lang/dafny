@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
-    private List<System.Action> confirmations = new();
+    private List<ConfirmationInfo> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -157,6 +157,15 @@ namespace Microsoft.Dafny {
       PreTypeResolver.allPreTypeProxies.Clear();
     }
 
+    public void AssertThatStateIsClear() {
+      Contract.Assert(unnormalizedSubtypeConstraints.Count == 0);
+      Contract.Assert(equalityConstraints.Count == 0);
+      Contract.Assert(guardedConstraints.Count == 0);
+      Contract.Assert(defaultAdvice.Count == 0);
+      Contract.Assert(confirmations.Count == 0);
+      // Note, PreTypeResolver.allPreTypeProxies may still be nonempty, since it's not part of the PreTypeConstraint state proper
+    }
+
     public void PrintTypeInferenceState(string/*?*/ header = null) {
       if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
@@ -172,7 +181,9 @@ namespace Microsoft.Dafny {
       PrintList("Default-type advice", defaultAdvice, advice => {
         return $"{advice.PreType} ~-~-> {advice.WhatString}";
       });
-      options.OutputWriter.WriteLine($"    Post-inference confirmations: {confirmations.Count}");
+      PrintList("Post-inference confirmations", confirmations, confirmationInfo => {
+        return confirmationInfo.DebugInformation();
+      });
     }
 
     void PrintLegend() {
@@ -196,8 +207,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null) {
-      equalityConstraints.Enqueue(new EqualityConstraint(a, b, tok, msgFormat, baseError));
+    public void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true) {
+      equalityConstraints.Enqueue(new EqualityConstraint(a, b, tok, msgFormat, baseError, reportErrors));
     }
 
     private bool ApplyEqualityConstraints() {
@@ -214,8 +225,8 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null) {
-      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError));
+    public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true) {
+      unnormalizedSubtypeConstraints.Add(new SubtypeConstraint(super, sub, tok, errorFormatString, baseError, reportErrors));
     }
 
     public void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer) {
@@ -294,7 +305,7 @@ namespace Microsoft.Dafny {
         var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => PreTypeResolver.CreatePreTypeProxy()));
         var constraint = constraintOrigins[proxy];
         DebugPrint($"    DEBUG: head decision {proxy} := {pt}");
-        AddEqualityConstraint(proxy, pt, constraint.tok, constraint.ErrorFormatString); // TODO: the message could be made more specific now (perhaps)
+        AddEqualityConstraint(proxy, pt, constraint.tok, constraint.ErrorFormatString, null, constraint.ReportErrors); // TODO: the message could be made more specific now (perhaps)
         anythingChanged = true;
       }
       return anythingChanged;
@@ -468,35 +479,39 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
-      confirmations.Add(() => {
-        if (!ConfirmConstraint(check, preType, null)) {
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
+      confirmations.Add(new ConfirmationInfo(tok,
+        () => ConfirmConstraint(check, preType, null),
+        () => string.Format(errorFormatString, preType),
+        (ResolverPass reporter) => {
           if (preType.Normalize() is PreTypeProxy && onProxyAction != null) {
             onProxyAction();
           } else {
-            PreTypeResolver.ReportError(tok, errorFormatString, preType);
+            reporter.ReportError(tok, errorFormatString, preType);
           }
-        }
-      });
+        }));
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, Type toType, IToken tok, string errorFormatString) {
-      Contract.Requires(toType is NonProxyType);
-      var toPreType = (DPreType)PreTypeResolver.Type2PreType(toType);
-      confirmations.Add(() => {
-        if (!ConfirmConstraint(check, preType, toPreType)) {
-          PreTypeResolver.ReportError(tok, errorFormatString, preType);
-        }
-      });
-    }
-
-    public void AddConfirmation(System.Action confirm) {
-      confirmations.Add(confirm);
+    public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
+      confirmations.Add(new ConfirmationInfo(tok, check, errorMessage,
+        (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
     }
 
     void ConfirmTypeConstraints() {
       foreach (var confirmation in confirmations) {
-        confirmation();
+        confirmation.Confirm(PreTypeResolver);
+      }
+    }
+
+    record ConfirmationInfo(IToken Tok, Func<bool> Check, Func<string> ErrorMessage, Action<ResolverPass> OnError) {
+      public void Confirm(ResolverPass reporter) {
+        if (!Check()) {
+          OnError(reporter);
+        }
+      }
+
+      public string DebugInformation() {
+        return ErrorMessage();
       }
     }
 
@@ -650,8 +665,9 @@ namespace Microsoft.Dafny {
     /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
     /// "super<L>" is a supertype of "sub<subArguments>".
     /// Otherwise, return "null".
+    /// If "forAsOrIs" is "true", then allow "sub" to be replaced by an ancestore type of "sub" if "sub" is a newtype.
     /// </summary>
-    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments) {
+    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool forAsOrIs) {
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -660,7 +676,14 @@ namespace Microsoft.Dafny {
         var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
         foreach (var parentType in AllParentTraits(md)) {
           var parentPreType = (DPreType)PreTypeResolver.Type2PreType(parentType).Substitute(subst);
-          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments);
+          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments, false);
+          if (arguments != null) {
+            return arguments;
+          }
+        }
+        if (forAsOrIs && md is NewtypeDecl newtypeDecl) {
+          var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
+          var arguments = GetTypeArgumentsForSuperType(super, basePreType.Decl, basePreType.Arguments, true);
           if (arguments != null) {
             return arguments;
           }

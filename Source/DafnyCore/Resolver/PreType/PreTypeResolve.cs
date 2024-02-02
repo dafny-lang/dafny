@@ -270,6 +270,19 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
+    /// <summary>
+    /// Returns the non-newtype ancestor pre-type of "preType".
+    /// This method assumes that the ancestors of "preType.Decl" do not form any cycles. That is, any such cycle detection must already
+    /// have been done.
+    /// </summary>
+    public static DPreType AncestorPreType(DPreType preType) {
+      while (preType.Decl is NewtypeDecl newtypeDecl) {
+        var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
+        preType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
+      }
+      return preType;
+    }
+
     [CanBeNull]
     public static string AncestorName(PreType preType) {
       var dp = preType.Normalize() as DPreType;
@@ -480,42 +493,161 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
-      Contract.Requires(a != null);
-      Contract.Requires(b != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(errorFormatString != null);
-      Constraints.AddGuardedConstraint(() => ApplyComparableConstraints(a, b, tok, errorFormatString));
+    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString) {
+      // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
+      // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
+      // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
+      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, forAsOrIs,
+        "(Duplicate error message) " + errorFormatString, false));
+      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, forAsOrIs), () => string.Format(errorFormatString, a, b));
     }
 
-    bool ApplyComparableConstraints(PreType a, PreType b, IToken tok, string errorFormatString) {
-      // The meaning of a comparable constraint
-      //     A ~~ B
-      // is the disjunction
-      //     A :> B    or    B :> A
+    /// <summary>
+    /// This method returns whether or not A and B are comparable types (notated with the constraint A ~~ B).
+    ///
+    /// The meaning of a comparable constraint
+    ///     A ~~ B
+    /// is the disjunction
+    ///     A ::> B    or    B ::> A
+    ///
+    /// If "!forAsOrIs", then "X ::> Y" means
+    ///     X :> Y
+    ///
+    /// If "forAsOrIs", then "X ::> Y" means
+    ///     X' :> Y', or
+    ///     (X' and Y' are various bv types), or
+    ///     (X' is int and Y' is in {int, char, bv, ORDINAL, real}.
+    /// where X' and Y' are the newtype ancestors of X and Y, respectively.
+    /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
+    /// several additional cases, see IsConversionCompatible.
+    /// </summary>
+    bool CheckComparableTypes(PreType a, PreType b, bool forAsOrIs) {
+      if (PreType.Same(a, b)) {
+        // this allows the case where "a" and "b" are proxies that are equal
+        return true;
+      }
+      if (a.Normalize() is not DPreType aa || b.Normalize() is not DPreType bb) {
+        return false;
+      }
+      if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
+        return true;
+      }
+      if (!forAsOrIs) {
+        return false;
+      }
+      if (IsConversionCompatible(aa, bb) || IsConversionCompatible(bb, aa)) {
+        return true;
+      }
+      return false;
+    }
+
+    bool IsConversionCompatible(DPreType a, DPreType b) {
+      var aAncestor = AncestorPreType(a);
+      var bAncestor = AncestorPreType(b);
+
+      if (PreType.Same(aAncestor, bAncestor)) {
+        return true;
+      }
+      var aFamily = aAncestor.Decl.Name;
+      var bFamily = bAncestor.Decl.Name;
+      var bName = b.Decl.Name;
+
+      if (IsBitvectorName(aFamily) && (bFamily == "int" || IsBitvectorName(bFamily))) {
+        return true;
+      }
+      if (aFamily == "int" && bName is "char" or "real" or "ORDINAL") {
+        return true;
+      }
+
+      var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
+      if (legacy) {
+        if (aFamily == "real" && (bFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(bFamily))) {
+          return true;
+        }
+        if (aFamily == "char" && (bFamily is "int" or "ORDINAL" || IsBitvectorName(bFamily))) {
+          return true;
+        }
+        if (IsBitvectorName(aFamily) && (bFamily is "int" or "real" or "char" or "ORDINAL")) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString, bool reportErrors = true) {
+      // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
-      if (ptA != null && ptB != null &&
-          Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments) == null &&
-          Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments) == null) {
+      if (ptA != null && ptB != null && ptA.Decl != ptB.Decl) {
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, forAsOrIs);
+        if (subArguments != null) {
+          // use B :> A
+          var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
+          return true;
+        }
+        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, forAsOrIs);
+        if (subArguments != null) {
+          // use A :> B
+          var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
+          return true;
+        }
+
+        if (forAsOrIs && (IsConversionCompatible(ptA, ptB) || IsConversionCompatible(ptB, ptA))) {
+          return true;
+        }
+
         // neither A :> B nor B :> A is possible
-        ReportError(tok, errorFormatString, a, b);
+        if (reportErrors) {
+          ReportError(tok, errorFormatString, a, b);
+        }
         return true;
-      } else if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
-        // use B :> A
-        Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
-        Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString);
-        return true;
-      } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
-        // use A :> B
-        Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
-        Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString);
-        return true;
-      } else {
-        // not enough information to determine
-        return false;
       }
+
+      if (!forAsOrIs) {
+        if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
+          // use B :> A
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+          Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
+          return true;
+        } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
+          // use A :> B
+          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+          Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
+          return true;
+        }
+      }
+
+      if (ptA != null && ptB != null && ptA.Decl == ptB.Decl) {
+        // Here is where we approximate the answer. We'll only constrain that variant type parameters are *comparable*, not that
+        // they are consistently comparable. For example, if ptA is C<A0, A1> and ptB is C<B0, A1> and C is declared as C<+T, +U>,
+        // then "comparable types" says
+        //     (A0 ::> B0 and A1 ::> B1)  or  (B0 ::> A0 and B1 ::> A1)
+        // but we will use only
+        //     (A0 ::> B0 or B0 ::> A0)  and  (A1 ::> B1 or B1 ::> A1)
+        Contract.Assert(ptA.Decl.TypeArgs.Count == ptA.Arguments.Count);
+        Contract.Assert(ptA.Arguments.Count == ptB.Arguments.Count);
+        for (var i = 0; i < ptA.Decl.TypeArgs.Count; i++) {
+          var aa = ptA.Arguments[i];
+          var bb = ptB.Arguments[i];
+          var msgFormat = $"{errorFormatString} (type argument {i})"; // TODO: this should be improved to use ptA/ptB
+          if (ptA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
+            Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
+          } else {
+            Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
+          }
+        }
+
+        return true;
+      }
+
+      // not enough information to determine
+      return false;
     }
 
     /// <summary>
@@ -553,6 +685,7 @@ namespace Microsoft.Dafny {
         foreach (var d in allDeclarations) {
           basicPreTypeResolver.ResolveDeclarationBody(d);
         }
+        basicPreTypeResolver.Constraints.AssertThatStateIsClear();
       }
     }
 
@@ -584,6 +717,7 @@ namespace Microsoft.Dafny {
       }
 
       preTypeResolver.ResolveDeclarationSignature(d);
+      preTypeResolver.Constraints.AssertThatStateIsClear();
 
       resolver.allTypeParameters.PopMarker();
       resolver.allTypeParameters = oldAllTypeParameters;
@@ -868,13 +1002,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Constraint != null);
 
-      if (dd.Var != null) {
+      if (dd.Var == null) {
+        if (initialResolutionPass) {
+          Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
+        }
+      } else {
         if (initialResolutionPass == dd.Var.Type is TypeProxy) {
           scope.PushMarker();
           ScopePushExpectSuccess(dd.Var, dd.WhatKind + " variable", false);
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
           ConstrainTypeExprBool(dd.Constraint, dd.WhatKind + " constraint must be of type bool (instead got {0})");
           scope.PopMarker();
+          Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
+        } else {
           Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' constraint");
         }
       }
