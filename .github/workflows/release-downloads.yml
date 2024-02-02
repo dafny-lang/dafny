@@ -24,7 +24,7 @@ jobs:
           osn: 'ubuntu-20.04'
         - os:  'ubuntu-20.04'
           osn: 'ubuntu-20.04'
-        - os:  'macos-latest'
+        - os:  'macos-14'
           osn: 'x64-macos-11'
         - os:  'windows-2019'
           osn: 'windows-2019'
