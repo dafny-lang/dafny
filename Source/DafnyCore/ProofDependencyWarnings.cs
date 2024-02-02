@@ -40,8 +40,11 @@ public class ProofDependencyWarnings {
       if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
         if (unusedDependency is ProofObligationDependency obligation) {
           if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, obligation)) {
-            reporter.Warning(MessageSource.Verifier, "", obligation.Range,
-              $"proved using contradictory assumptions: {obligation.Description}");
+            var msg = $"proved using contradictory assumptions: {obligation.Description}";
+            var rest = obligation.ProofObligation is AssertStatementDescription
+                     ? ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
+                     : "";
+            reporter.Warning(MessageSource.Verifier, "", obligation.Range, msg + rest);
           }
         }
 
@@ -103,6 +106,10 @@ public class ProofDependencyWarnings {
       if (assertedExpr is not null &&
           Expression.IsBoolLiteral(assertedExpr, out var lit) &&
           lit == false) {
+        return false;
+      }
+
+      if (poDep.ProofObligation is AssertStatementDescription { IsIntentionalContradiction: true }) {
         return false;
       }
     }

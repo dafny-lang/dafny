@@ -238,13 +238,14 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
   public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
 (experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
-May slow down verification slightly.
-May produce spurious warnings.") {
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.") {
     IsHidden = true
   };
   public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
 (experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
-May slow down verification slightly.
+May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };

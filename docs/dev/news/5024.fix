@@ -1,0 +1,1 @@
+Don't consider `:= *` to be a definite assignment for non-ghost variables of a `(00)` type

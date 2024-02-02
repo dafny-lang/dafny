@@ -1,7 +1,7 @@
 SmallTests.dfy(920,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
 SmallTests.dfy(926,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
+SmallTests.dfy(548,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
@@ -58,6 +58,6 @@ SmallTests.dfy(926,10): Error: assertion might not hold
 
 Dafny program verifier finished with 56 verified, 50 errors
 SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: /!\ No trigger covering all quantified variables found.
+SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification

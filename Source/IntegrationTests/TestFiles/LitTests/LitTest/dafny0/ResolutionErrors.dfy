@@ -1040,10 +1040,10 @@ module CycleError2 {
 module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
-  class C {
+  class C { // error: since A is not auto-init, class C needs a constructor
     var a: A  // this is fine
   }
-  datatype D<X> = Make(A, B, C)  // error: cannot construct a D<X>
+  datatype D<X> = Make(A, B, C)  // warning: D<X> is empty
 }
 module CycleError4 {
   type A = B  // error: cycle: A -> B -> A

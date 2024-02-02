@@ -374,7 +374,7 @@ public class MatchFlattener : IRewriter {
       var freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
       // Update the current context
       var newContext = context.FillHole(new IdCtx(ctor));
-      var body = CompilePatternPaths(mti, newContext, LinkedLists.Concat(freshMatchees, remainingMatchees), constructorPaths);
+      var body = CompilePatternPaths(mti, newContext, LinkedLists.FromList(freshMatchees, remainingMatchees), constructorPaths);
       if (body is null) {
         // If no path matches this constructor, drop the case
         continue;
@@ -396,8 +396,7 @@ public class MatchFlattener : IRewriter {
         }
 
         var args = new List<Expression>();
-        var literalExpr = new LiteralExpr(mti.Tok, false);
-        literalExpr.Type = Type.Bool;
+        var literalExpr = Expression.CreateBoolLiteral(mti.Tok, false);
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
