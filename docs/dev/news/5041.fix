@@ -1,0 +1,3 @@
+Detect the same ghost usage in initializing assignments as in other expressions. The effect of this fix is to allow more iset/imap comprehensions to be compiled.
+
+Also, report errors if the LHS of `:=` in compiled `map`/`imap` comprehensions contains ghosts.
