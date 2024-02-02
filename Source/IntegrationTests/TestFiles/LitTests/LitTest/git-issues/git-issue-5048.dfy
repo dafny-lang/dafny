@@ -1,9 +1,9 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
-module A.base {
+module A.try {
   datatype Dt = Dt
 }
 
 method Main() {
-  print A.base.Dt, "\n";
+  print A.try.Dt, "\n";
 }
