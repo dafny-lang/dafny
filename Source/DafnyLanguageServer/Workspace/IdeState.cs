@@ -464,7 +464,7 @@ public record IdeState(
       // And we should do this because it allows this warning to be shown when doing --filter-position on a single assertion
       // https://github.com/dafny-lang/dafny/issues/5039 
 
-      counterExamples = completed.Result.CounterExamples;
+      counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       var newDiagnostics =
         Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, completed.Result);
