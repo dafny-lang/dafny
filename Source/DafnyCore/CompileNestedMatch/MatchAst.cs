@@ -59,7 +59,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
     this.cases = cases;
   }
 
-  public override IEnumerable<Node> Children => new[] { source }.Concat<Node>(cases);
+  public override IEnumerable<INode> Children => new[] { source }.Concat<Node>(cases);
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -171,7 +171,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   public List<MatchCaseStmt> Cases => cases;
   IEnumerable<MatchCase> IMatch.Cases => Cases;
 
-  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -229,8 +229,8 @@ public class MatchCaseStmt : MatchCase {
     Contract.Invariant(cce.NonNullElements(Body));
   }
 
-  public override IEnumerable<Node> Children => body;
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => body;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeToken.StartToken, ctor, arguments) {
@@ -263,8 +263,8 @@ public class MatchCaseExpr : MatchCase {
     Contract.Invariant(body != null);
   }
 
-  public override IEnumerable<Node> Children => Arguments.Concat<Node>(new[] { body });
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => Arguments.Concat<Node>(new[] { body });
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {

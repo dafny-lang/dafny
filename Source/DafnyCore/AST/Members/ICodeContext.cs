@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -49,7 +50,7 @@ public class CodeContextWrapper : ICodeContext {
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
-public interface ICallable : ICodeContext, INode {
+public interface ICallable : ICodeContext, ISymbol {
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }
@@ -74,20 +75,29 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
     : base(callable, isGhostContext) {
   }
 
-  protected ICallable cwInner => (ICallable)inner;
-  public IToken Tok => cwInner.Tok;
+  public ICallable CwInner => (ICallable)inner;
+  public IToken Tok => CwInner.Tok;
+  public IEnumerable<INode> Children => CwInner.Children;
+  public IEnumerable<INode> PreResolveChildren => CwInner.PreResolveChildren;
 
-  public string WhatKind => cwInner.WhatKind;
-  public string NameRelativeToModule => cwInner.NameRelativeToModule;
-  public Specification<Expression> Decreases => cwInner.Decreases;
+  public string WhatKind => CwInner.WhatKind;
+  public string NameRelativeToModule => CwInner.NameRelativeToModule;
+  public Specification<Expression> Decreases => CwInner.Decreases;
 
   public bool InferredDecreases {
-    get => cwInner.InferredDecreases;
-    set { cwInner.InferredDecreases = value; }
+    get => CwInner.InferredDecreases;
+    set { CwInner.InferredDecreases = value; }
   }
 
-  public bool AllowsAllocation => cwInner.AllowsAllocation;
-  public RangeToken RangeToken => cwInner.RangeToken;
+  public bool AllowsAllocation => CwInner.AllowsAllocation;
+
+  public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
+  public RangeToken RangeToken => CwInner.RangeToken;
+  public IToken NameToken => CwInner.NameToken;
+  public SymbolKind Kind => CwInner.Kind;
+  public string GetDescription(DafnyOptions options) {
+    return CwInner.GetDescription(options);
+  }
 }
 
 
@@ -101,9 +111,8 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public string GetDocstring(DafnyOptions options) {
-    throw new cce.UnreachableException();
-  }
+  public IEnumerable<INode> Children => throw new cce.UnreachableException();
+  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
 
   public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
   public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
@@ -112,7 +121,17 @@ public class DontUseICallable : ICallable {
     set { throw new cce.UnreachableException(); }
   }
   public bool AllowsAllocation => throw new cce.UnreachableException();
+  public IEnumerable<INode> GetConcreteChildren() {
+    throw new cce.UnreachableException();
+  }
+
+  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
   public RangeToken RangeToken => throw new cce.UnreachableException();
+  public IToken NameToken => throw new cce.UnreachableException();
+  public SymbolKind Kind => throw new cce.UnreachableException();
+  public string GetDescription(DafnyOptions options) {
+    throw new cce.UnreachableException();
+  }
 }
 
 /// <summary>
@@ -144,9 +163,9 @@ public class NoContext : ICodeContext {
 public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
 
+  string FullDafnyName { get; }
+
   IToken tok { get; }
-  IEnumerable<IToken> OwnedTokens { get; }
-  IToken StartToken { get; }
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
@@ -154,4 +173,6 @@ public interface RedirectingTypeDecl : ICallable {
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
   FreshIdGenerator IdGenerator { get; }
+
+  [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }

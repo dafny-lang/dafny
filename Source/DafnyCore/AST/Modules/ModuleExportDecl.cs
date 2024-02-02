@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -11,20 +12,32 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IToken> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>();
-  [FilledInDuringResolution] public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>();
+  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
-  public override IEnumerable<Node> Children => Exports;
-  public override IEnumerable<Node> PreResolveChildren => Exports;
+  public override IEnumerable<INode> Children => Exports;
+  public override IEnumerable<INode> PreResolveChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-    : base(rangeToken, name, parent, false, isRefining) {
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    Exports = original.Exports;
+    Extends = original.Extends;
+    ProvideAll = original.ProvideAll;
+    RevealAll = original.RevealAll;
+    IsRefining = original.IsRefining;
+    IsDefault = original.IsDefault;
+    ThisScope = new VisibilityScope(FullSanitizedName);
+    SetupDefaultSignature();
+  }
+
+  public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
+    List<ExportSignature> exports, List<IToken> extends,
+    bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
+    : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -32,13 +45,14 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = provideAll;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
+    SetupDefaultSignature();
   }
 
   public void SetupDefaultSignature() {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this.EnclosingModuleDefinition;
-    sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
+    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;
@@ -82,7 +96,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public override string GetTriviaContainingDocstring() {
     if (Tok.TrailingTrivia.Trim() != "") {
       return Tok.TrailingTrivia;
     }

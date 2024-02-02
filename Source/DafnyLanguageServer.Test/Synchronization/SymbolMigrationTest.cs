@@ -20,17 +20,17 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSemanticallyCorrectDocumentUsesDafnyResolver.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
-      Assert.Equal(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
+      Assert.Equal(2, document.SignatureAndCompletionTable.LocationsPerUri.First().Value.Keys.OfType<FunctionSymbol>().Count());
     }
 
     [Fact]
@@ -45,14 +45,14 @@ function GetConstant2(): int {
 }
 
 ".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSemanticallyIncorrectDocumentUsesMigration.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -65,14 +65,14 @@ function GetConstant(): int {
 
 ".TrimStart();
       var change = "function GetConstant2(): int {";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToSyntacticallyIncorrectDocumentUsesMigration.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((4, 0), (4, 0)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetParsedDocumentNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
     }
 
@@ -88,17 +88,17 @@ method GetIt(x: int) returns (y: int) {
   } else {
     y := GetIt(x - 1);
   }";
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangeToDocumentWithVerificationErrorsUsesDafnyResolver.dfy");
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
+        ref documentItem,
         new Range((1, 0), (1, 11)),
         change
       );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
+      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
-      Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());
+      Assert.Single(document.SignatureAndCompletionTable.LocationsPerUri.First().Value.Keys.OfType<MethodSymbol>());
     }
 
     public SymbolMigrationTest(ITestOutputHelper output) : base(output) {

@@ -12,6 +12,7 @@ public interface Plugin {
   public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options);
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options);
+  public IEnumerable<CompilerInstrumenter> GetCompilerInstrumenters(ErrorReporter reporter);
 }
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
@@ -25,6 +26,10 @@ record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
 
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
     return Enumerable.Empty<DocstringRewriter>();
+  }
+
+  public IEnumerable<CompilerInstrumenter> GetCompilerInstrumenters(ErrorReporter reporter) {
+    return Enumerable.Empty<CompilerInstrumenter>();
   }
 
   class ErrorRewriter : IRewriter {
@@ -59,6 +64,10 @@ public class ConfiguredPlugin : Plugin {
   public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
     return Configuration.GetDocstringRewriters(options);
   }
+
+  public IEnumerable<CompilerInstrumenter> GetCompilerInstrumenters(ErrorReporter reporter) {
+    return Configuration.GetCompilerInstrumenters(reporter);
+  }
 }
 
 /// <summary>
@@ -79,15 +88,17 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
       Rewriters = FindPluginComponents<Rewriter, Func<ErrorReporter, Rewriter>>(assembly, CreateRewriterFactory);
       Compilers = FindPluginComponents<IExecutableBackend, Func<IExecutableBackend>>(assembly, CreateCompilerFactory);
+      CompilerInstrumenters = FindPluginComponents<CompilerInstrumenter, Func<ErrorReporter, CompilerInstrumenter>>(assembly, CreateCompilerInstrumenterFactory);
 
       // Report an error if this assembly doesn't contain any plugins.  We only
       // get to this point if we have not found a `PluginConfiguration` either,
       // so no need to check for one here.
-      if (Rewriters.Length == 0 && Compilers.Length == 0) {
+      if (Rewriters.Length == 0 && Compilers.Length == 0 && CompilerInstrumenters.Length == 0) {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugin classes.  " +
                             "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
                             $"- ${typeof(Plugins.IExecutableBackend).FullName}\n" +
+                            $"- ${typeof(Plugins.CompilerInstrumenter).FullName}\n" +
                             $"- ${typeof(Plugins.PluginConfiguration).FullName}");
       }
     }
@@ -104,8 +115,13 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
     private Func<IExecutableBackend>[] Compilers { get; init; }
 
+    private Func<ErrorReporter, CompilerInstrumenter>[] CompilerInstrumenters { get; init; }
+
     Func<IExecutableBackend> CreateCompilerFactory(System.Type type) =>
       () => (IExecutableBackend)Activator.CreateInstance(type);
+
+    Func<ErrorReporter, CompilerInstrumenter> CreateCompilerInstrumenterFactory(System.Type type) =>
+      errorReporter => (CompilerInstrumenter)Activator.CreateInstance(type, errorReporter);
 
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) =>
       Rewriters.Select(funcErrorReporterRewriter =>
@@ -113,6 +129,9 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
     public override IExecutableBackend[] GetCompilers(DafnyOptions options) =>
       Compilers.Select(c => c()).ToArray();
+
+    public override CompilerInstrumenter[] GetCompilerInstrumenters(ErrorReporter reporter) =>
+      CompilerInstrumenters.Select(c => c(reporter)).ToArray();
   }
 
   public static IEnumerable<System.Type> GetConfigurationsTypes(Assembly assembly) {

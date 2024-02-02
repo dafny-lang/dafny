@@ -2,13 +2,15 @@
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.GutterStatus;
 
 public class LinearRenderingTest {
   public static LineVerificationStatus RenderLineVerificationStatusOriginal(
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
     return verificationStatus switch {
+      GutterVerificationStatus.Skipped =>
+        LineVerificationStatus.Skipped,
       GutterVerificationStatus.Nothing =>
         currentStatus switch {
           CurrentStatus.Current => LineVerificationStatus.Nothing,

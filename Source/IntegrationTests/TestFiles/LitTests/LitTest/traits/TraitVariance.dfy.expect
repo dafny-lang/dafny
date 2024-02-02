@@ -1,0 +1,3 @@
+TraitVariance.dfy(30,41): Error: formal type parameter 'X' is not used according to its variance specification
+TraitVariance.dfy(32,41): Error: formal type parameter 'X' is not used according to its variance specification
+2 resolution/type errors detected in TraitVariance.dfy

@@ -99,9 +99,34 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /defaultFunctionOpacity:<value>
+      Change the default opacity of functions. 
+      `transparent` (default) means functions are transparent, can be manually made opaque and then revealed. 
+      `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
+      `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
+
+  /generalNewtypes:<value>
+      0 (default) - A newtype can only be based on numeric types or another newtype.
+      1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.
+
+  /generalTraits:<value>
+      legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+      datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
+      full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.
+
   /ntitrace:<value>
       0 (default) - Don't print debug information for the new type system.
       1 - Print debug information for the new type system.
+
+  /readsClausesOnMethods:<value>
+      0 (default) - Reads clauses on methods are forbidden.
+      1 - Reads clauses on methods are permitted (with a default of 'reads *').
+
+  /standardLibraries:<value>
+      0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
+      See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
+      Not compatible with the /unicodeChar:0 option.
 
   /titrace:<value>
       0 (default) - Don't print type-inference debug information.
@@ -317,35 +342,13 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /extractCounterexample
       If verification fails, report a detailed counterexample for the
-      first failing assertion. Requires specifying the /mv:<file> option as well
-      as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-      /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-      /proverOpt:O:model.completion=true.
+      first failing assertion (experimental).
   
-  ---- Test generation options -----------------------------------------------
-  
-  /warnDeadCode
-      Use counterexample generation to warn about potential dead code.
-  /generateTestMode:<None|Block|Path>
-      None (default) - Has no effect.
-      Block - Prints block-coverage tests for the given program.
-      Path - Prints path-coverage tests for the given program.
-      Using /definiteAssignment:3, /generateTestNoPrune, 
-      /generateTestSeqLengthLimit, and /loopUnroll is highly recommended
-      when generating tests.
-  /generateTestSeqLengthLimit:<n>
-      Add an axiom that sets the length of all sequences to be no greater 
-      than <n>. 0 (default) indicates no limit.
-  /generateTestTargetMethod:<methodName>
-      If specified, only this method will be tested.
-  /generateTestPrintBpl:<fileName>
-      Print the Boogie code used during test generation.
-  /generateTestVerbose
-      Print various debugging info as comments for the generated tests.
-  /generateTestNoPrune
-      Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
   
+  /compileSuffix:<value>
+      Add the suffix _Compile to module names without :extern
+
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
       go - Compile to Go.
@@ -378,6 +381,16 @@ Usage: dafny [ option ... ] [ filename ... ]
   /out:<file>
       Specify the filename and location for the generated target language files.
 
+  /runAllTests:<n>
+      0 (default) - Annotates compiled methods with the {:test}
+              attribute such that they can be tested using a testing framework
+              in the target language (e.g. xUnit for C#).
+          1 - Emits a main method in the target language that will execute
+              every method in the program with the {:test} attribute. Cannot
+              be used if the program already contains a main method. Note that
+              /compile:3 or 4 must be provided as well to actually execute
+              this main method!
+
   /compile:<n>
       0 - Do not compile Dafny program.
       1 (default) - Upon successful verification of the Dafny program,
@@ -398,15 +411,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       When running a Dafny file through /compile:3 or /compile:4, '--args' provides
       all arguments after it to the Main function, at index starting at 1.
       Index 0 is used to store the executable's name if it exists.
-  /runAllTests:<n> (experimental)
-      0 (default) - Annotates compiled methods with the {:test}
-          attribute such that they can be tested using a testing framework
-          in the target language (e.g. xUnit for C#).
-      1 - Emits a main method in the target language that will execute
-          every method in the program with the {:test} attribute. Cannot
-          be used if the program already contains a main method. Note that
-          /compile:3 or 4 must be provided as well to actually execute
-          this main method!
   
   /compileVerbose:<n>
       0 - Don't print status of compilation to the console.
@@ -494,6 +498,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   /printWithUniqueIds : print augmented information that uniquely
                    identifies variables
   /printUnstructured : with /print option, desugars all structured statements
+  /printPassive :  with /print option, prints passive version of program
   /printDesugared : with /print option, desugars calls
   /printLambdaLifting : with /print option, desugars lambda lifting
 
@@ -510,6 +515,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 unroll loops, following up to n back edges (and then some)
   /soundLoopUnrolling
                 sound loop unrolling
+  /doModSetAnalysis
+                automatically infer modifies clauses
   /printModel:<n>
                 0 (default) - do not print Z3's error model
                 1 - print Z3's error model
@@ -651,8 +658,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /smokeTimeout:<n>
                 Timeout, in seconds, for a single theorem prover
                 invocation during smoke test, defaults to 10.
-  /causalImplies
-                Translate Boogie's A ==> B into prover's A ==> A && B.
   /typeEncoding:<t>
                 Encoding of types when generating VC of a polymorphic program:
                    m = monomorphic (default)
@@ -672,6 +677,10 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Without pruning, due to the unstable nature of SMT solvers,
                 a change to any part of a Boogie program has the potential 
                 to affect the verification of any other part of the program.
+
+                Only use this if your program contains uses clauses
+                where required, otherwise pruning will break your program.
+                More information can be found here: https://github.com/boogie-org/boogie/blob/afe8eb0ffbb48d593de1ae3bf89712246444daa8/Source/ExecutionEngine/CommandLineOptions.cs#L160
   /printPruned:<file>
                 After pruning, print the Boogie program to the specified file.
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates
@@ -693,6 +702,13 @@ Usage: dafny [ option ... ] [ filename ... ]
                 This option is implemented by renaming variables and reordering
                 declarations in the input, and by setting solver options that have
                 similar effects.
+  /trackVerificationCoverage
+                Track and report which program elements labeled with an
+                `{:id ...}` attribute were necessary to complete verification.
+                Assumptions, assertions, requires clauses, ensures clauses,
+                assignments, and calls can be labeled for inclusion in this
+                report. This generalizes and replaces the previous
+                (undocumented) `/printNecessaryAssertions` option.
 
   ---- Verification-condition splitting --------------------------------------
 
@@ -761,7 +777,7 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Limit the number of seconds spent trying to verify
                 each procedure
   /rlimit:<num>
-                Limit the Z3 resource spent trying to verify each procedure
+                Limit the Z3 resource spent trying to verify each procedure.
   /errorTrace:<n>
                 0 - no Trace labels in the error output,
                 1 (default) - include useful Trace labels in error output,

@@ -20,14 +20,14 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
     Lhss = lhss;
   }
 
-  public override IEnumerable<Node> Children => Lhss;
-  public override IEnumerable<Node> PreResolveChildren => Lhss;
+  public override IEnumerable<INode> Children => Lhss;
+  public override IEnumerable<INode> PreResolveChildren => Lhss;
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);
   }
 
-  public override void Resolve(Resolver resolver, ResolutionContext context) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
     foreach (var lhs in Lhss) {
       var ec = resolver.Reporter.Count(ErrorLevel.Error);
       resolver.ResolveExpression(lhs, context);

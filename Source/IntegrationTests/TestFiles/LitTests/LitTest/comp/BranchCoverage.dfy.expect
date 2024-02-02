@@ -1,0 +1,430 @@
+
+Dafny program verifier finished with 6 verified, 0 errors
+0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
+1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
+2: BranchCoverage.dfy(31,34): entry to method _module._default.M
+3: BranchCoverage.dfy(33,12): then branch
+4: BranchCoverage.dfy(35,19): then branch
+5: BranchCoverage.dfy(37,9): else branch
+6: BranchCoverage.dfy(42,34): entry to method _module._default.N
+7: BranchCoverage.dfy(45,12): then branch
+8: BranchCoverage.dfy(47,19): then branch
+9: BranchCoverage.dfy(47,9): implicit else branch
+10: BranchCoverage.dfy(53,17): entry to method _module._default.P
+11: BranchCoverage.dfy(56,7): then branch
+12: BranchCoverage.dfy(56,2): implicit else branch
+13: BranchCoverage.dfy(61,7): then branch
+14: BranchCoverage.dfy(63,9): else branch
+15: BranchCoverage.dfy(73,11): then branch
+16: BranchCoverage.dfy(75,14): then branch
+17: BranchCoverage.dfy(75,9): implicit else branch
+18: BranchCoverage.dfy(83,34): entry to method _module._default.Q
+19: BranchCoverage.dfy(95,2): if-case branch
+20: BranchCoverage.dfy(97,2): if-case branch
+21: BranchCoverage.dfy(100,2): if-case branch
+22: BranchCoverage.dfy(106,34): entry to method _module._default.R
+23: BranchCoverage.dfy(109,14): while body
+24: BranchCoverage.dfy(114,10): while body
+25: BranchCoverage.dfy(122,4): while-case branch
+26: BranchCoverage.dfy(124,16): then branch
+27: BranchCoverage.dfy(124,6): implicit else branch
+28: BranchCoverage.dfy(129,4): while-case branch
+29: BranchCoverage.dfy(132,4): while-case branch
+30: BranchCoverage.dfy(144,2): entry to function _module._default.Fib
+31: BranchCoverage.dfy(145,4): then branch
+32: BranchCoverage.dfy(147,4): then branch
+33: BranchCoverage.dfy(147,4): else branch
+34: BranchCoverage.dfy(156,2): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(157,12): then branch
+36: BranchCoverage.dfy(157,12): else branch
+37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
+38: BranchCoverage.dfy(166,2): then branch
+39: BranchCoverage.dfy(168,2): else branch
+40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
+41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
+0: 0
+1: 0
+2: 3
+3: 1
+4: 0
+5: 2
+6: 3
+7: 1
+8: 0
+9: 2
+10: 1
+11: 0
+12: 1
+13: 1
+14: 0
+15: 0
+16: 0
+17: 1
+18: 3
+19: 1
+20: 1
+21: 1
+22: 1
+23: 111
+24: 0
+25: 56
+26: 1
+27: 55
+28: 28
+29: 28
+30: 465
+31: 233
+32: 0
+33: 232
+34: 11
+35: 1
+36: 10
+37: 11
+38: 1
+39: 10
+40: 1
+41: 3
+
+Dafny program verifier finished with 6 verified, 0 errors
+0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
+1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
+2: BranchCoverage.dfy(31,34): entry to method _module._default.M
+3: BranchCoverage.dfy(33,12): then branch
+4: BranchCoverage.dfy(35,19): then branch
+5: BranchCoverage.dfy(37,9): else branch
+6: BranchCoverage.dfy(42,34): entry to method _module._default.N
+7: BranchCoverage.dfy(45,12): then branch
+8: BranchCoverage.dfy(47,19): then branch
+9: BranchCoverage.dfy(47,9): implicit else branch
+10: BranchCoverage.dfy(53,17): entry to method _module._default.P
+11: BranchCoverage.dfy(56,7): then branch
+12: BranchCoverage.dfy(56,2): implicit else branch
+13: BranchCoverage.dfy(61,7): then branch
+14: BranchCoverage.dfy(63,9): else branch
+15: BranchCoverage.dfy(73,11): then branch
+16: BranchCoverage.dfy(75,14): then branch
+17: BranchCoverage.dfy(75,9): implicit else branch
+18: BranchCoverage.dfy(83,34): entry to method _module._default.Q
+19: BranchCoverage.dfy(95,2): if-case branch
+20: BranchCoverage.dfy(97,2): if-case branch
+21: BranchCoverage.dfy(100,2): if-case branch
+22: BranchCoverage.dfy(106,34): entry to method _module._default.R
+23: BranchCoverage.dfy(109,14): while body
+24: BranchCoverage.dfy(114,10): while body
+25: BranchCoverage.dfy(122,4): while-case branch
+26: BranchCoverage.dfy(124,16): then branch
+27: BranchCoverage.dfy(124,6): implicit else branch
+28: BranchCoverage.dfy(129,4): while-case branch
+29: BranchCoverage.dfy(132,4): while-case branch
+30: BranchCoverage.dfy(144,2): entry to function _module._default.Fib
+31: BranchCoverage.dfy(145,4): then branch
+32: BranchCoverage.dfy(147,4): then branch
+33: BranchCoverage.dfy(147,4): else branch
+34: BranchCoverage.dfy(156,2): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(157,12): then branch
+36: BranchCoverage.dfy(157,12): else branch
+37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
+38: BranchCoverage.dfy(166,2): then branch
+39: BranchCoverage.dfy(168,2): else branch
+40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
+41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
+0: 0
+1: 0
+2: 3
+3: 1
+4: 0
+5: 2
+6: 3
+7: 1
+8: 0
+9: 2
+10: 1
+11: 0
+12: 1
+13: 1
+14: 0
+15: 0
+16: 0
+17: 1
+18: 3
+19: 1
+20: 1
+21: 1
+22: 1
+23: 111
+24: 0
+25: 56
+26: 1
+27: 55
+28: 28
+29: 28
+30: 465
+31: 233
+32: 0
+33: 232
+34: 11
+35: 1
+36: 10
+37: 11
+38: 1
+39: 10
+40: 1
+41: 3
+
+Dafny program verifier finished with 6 verified, 0 errors
+0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
+1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
+2: BranchCoverage.dfy(31,34): entry to method _module._default.M
+3: BranchCoverage.dfy(33,12): then branch
+4: BranchCoverage.dfy(35,19): then branch
+5: BranchCoverage.dfy(37,9): else branch
+6: BranchCoverage.dfy(42,34): entry to method _module._default.N
+7: BranchCoverage.dfy(45,12): then branch
+8: BranchCoverage.dfy(47,19): then branch
+9: BranchCoverage.dfy(47,9): implicit else branch
+10: BranchCoverage.dfy(53,17): entry to method _module._default.P
+11: BranchCoverage.dfy(56,7): then branch
+12: BranchCoverage.dfy(56,2): implicit else branch
+13: BranchCoverage.dfy(61,7): then branch
+14: BranchCoverage.dfy(63,9): else branch
+15: BranchCoverage.dfy(73,11): then branch
+16: BranchCoverage.dfy(75,14): then branch
+17: BranchCoverage.dfy(75,9): implicit else branch
+18: BranchCoverage.dfy(83,34): entry to method _module._default.Q
+19: BranchCoverage.dfy(95,2): if-case branch
+20: BranchCoverage.dfy(97,2): if-case branch
+21: BranchCoverage.dfy(100,2): if-case branch
+22: BranchCoverage.dfy(106,34): entry to method _module._default.R
+23: BranchCoverage.dfy(109,14): while body
+24: BranchCoverage.dfy(114,10): while body
+25: BranchCoverage.dfy(122,4): while-case branch
+26: BranchCoverage.dfy(124,16): then branch
+27: BranchCoverage.dfy(124,6): implicit else branch
+28: BranchCoverage.dfy(129,4): while-case branch
+29: BranchCoverage.dfy(132,4): while-case branch
+30: BranchCoverage.dfy(144,2): entry to function _module._default.Fib
+31: BranchCoverage.dfy(145,4): then branch
+32: BranchCoverage.dfy(147,4): then branch
+33: BranchCoverage.dfy(147,4): else branch
+34: BranchCoverage.dfy(156,2): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(157,12): then branch
+36: BranchCoverage.dfy(157,12): else branch
+37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
+38: BranchCoverage.dfy(166,2): then branch
+39: BranchCoverage.dfy(168,2): else branch
+40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
+41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
+0: 0
+1: 0
+2: 3
+3: 1
+4: 0
+5: 2
+6: 3
+7: 1
+8: 0
+9: 2
+10: 1
+11: 0
+12: 1
+13: 1
+14: 0
+15: 0
+16: 0
+17: 1
+18: 3
+19: 1
+20: 1
+21: 1
+22: 1
+23: 111
+24: 0
+25: 56
+26: 1
+27: 55
+28: 28
+29: 28
+30: 465
+31: 233
+32: 0
+33: 232
+34: 11
+35: 1
+36: 10
+37: 11
+38: 1
+39: 10
+40: 1
+41: 3
+
+Dafny program verifier finished with 6 verified, 0 errors
+0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
+1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
+2: BranchCoverage.dfy(31,34): entry to method _module._default.M
+3: BranchCoverage.dfy(33,12): then branch
+4: BranchCoverage.dfy(35,19): then branch
+5: BranchCoverage.dfy(37,9): else branch
+6: BranchCoverage.dfy(42,34): entry to method _module._default.N
+7: BranchCoverage.dfy(45,12): then branch
+8: BranchCoverage.dfy(47,19): then branch
+9: BranchCoverage.dfy(47,9): implicit else branch
+10: BranchCoverage.dfy(53,17): entry to method _module._default.P
+11: BranchCoverage.dfy(56,7): then branch
+12: BranchCoverage.dfy(56,2): implicit else branch
+13: BranchCoverage.dfy(61,7): then branch
+14: BranchCoverage.dfy(63,9): else branch
+15: BranchCoverage.dfy(73,11): then branch
+16: BranchCoverage.dfy(75,14): then branch
+17: BranchCoverage.dfy(75,9): implicit else branch
+18: BranchCoverage.dfy(83,34): entry to method _module._default.Q
+19: BranchCoverage.dfy(95,2): if-case branch
+20: BranchCoverage.dfy(97,2): if-case branch
+21: BranchCoverage.dfy(100,2): if-case branch
+22: BranchCoverage.dfy(106,34): entry to method _module._default.R
+23: BranchCoverage.dfy(109,14): while body
+24: BranchCoverage.dfy(114,10): while body
+25: BranchCoverage.dfy(122,4): while-case branch
+26: BranchCoverage.dfy(124,16): then branch
+27: BranchCoverage.dfy(124,6): implicit else branch
+28: BranchCoverage.dfy(129,4): while-case branch
+29: BranchCoverage.dfy(132,4): while-case branch
+30: BranchCoverage.dfy(144,2): entry to function _module._default.Fib
+31: BranchCoverage.dfy(145,4): then branch
+32: BranchCoverage.dfy(147,4): then branch
+33: BranchCoverage.dfy(147,4): else branch
+34: BranchCoverage.dfy(156,2): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(157,12): then branch
+36: BranchCoverage.dfy(157,12): else branch
+37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
+38: BranchCoverage.dfy(166,2): then branch
+39: BranchCoverage.dfy(168,2): else branch
+40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
+41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
+0: 0
+1: 0
+2: 3
+3: 1
+4: 0
+5: 2
+6: 3
+7: 1
+8: 0
+9: 2
+10: 1
+11: 0
+12: 1
+13: 1
+14: 0
+15: 0
+16: 0
+17: 1
+18: 3
+19: 1
+20: 1
+21: 1
+22: 1
+23: 111
+24: 0
+25: 56
+26: 1
+27: 55
+28: 28
+29: 28
+30: 465
+31: 233
+32: 0
+33: 232
+34: 11
+35: 1
+36: 10
+37: 11
+38: 1
+39: 10
+40: 1
+41: 3
+
+Dafny program verifier finished with 6 verified, 0 errors
+0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
+1: BranchCoverage.dfy(26,2): entry to function _module._default.FunctionNeverCalled
+2: BranchCoverage.dfy(31,34): entry to method _module._default.M
+3: BranchCoverage.dfy(33,12): then branch
+4: BranchCoverage.dfy(35,19): then branch
+5: BranchCoverage.dfy(37,9): else branch
+6: BranchCoverage.dfy(42,34): entry to method _module._default.N
+7: BranchCoverage.dfy(45,12): then branch
+8: BranchCoverage.dfy(47,19): then branch
+9: BranchCoverage.dfy(47,9): implicit else branch
+10: BranchCoverage.dfy(53,17): entry to method _module._default.P
+11: BranchCoverage.dfy(56,7): then branch
+12: BranchCoverage.dfy(56,2): implicit else branch
+13: BranchCoverage.dfy(61,7): then branch
+14: BranchCoverage.dfy(63,9): else branch
+15: BranchCoverage.dfy(73,11): then branch
+16: BranchCoverage.dfy(75,14): then branch
+17: BranchCoverage.dfy(75,9): implicit else branch
+18: BranchCoverage.dfy(83,34): entry to method _module._default.Q
+19: BranchCoverage.dfy(95,2): if-case branch
+20: BranchCoverage.dfy(97,2): if-case branch
+21: BranchCoverage.dfy(100,2): if-case branch
+22: BranchCoverage.dfy(106,34): entry to method _module._default.R
+23: BranchCoverage.dfy(109,14): while body
+24: BranchCoverage.dfy(114,10): while body
+25: BranchCoverage.dfy(122,4): while-case branch
+26: BranchCoverage.dfy(124,16): then branch
+27: BranchCoverage.dfy(124,6): implicit else branch
+28: BranchCoverage.dfy(129,4): while-case branch
+29: BranchCoverage.dfy(132,4): while-case branch
+30: BranchCoverage.dfy(144,2): entry to function _module._default.Fib
+31: BranchCoverage.dfy(145,4): then branch
+32: BranchCoverage.dfy(147,4): then branch
+33: BranchCoverage.dfy(147,4): else branch
+34: BranchCoverage.dfy(156,2): entry to function _module._default.Factorial
+35: BranchCoverage.dfy(157,12): then branch
+36: BranchCoverage.dfy(157,12): else branch
+37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
+38: BranchCoverage.dfy(166,2): then branch
+39: BranchCoverage.dfy(168,2): else branch
+40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
+41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
+0: 0
+1: 0
+2: 3
+3: 1
+4: 0
+5: 2
+6: 3
+7: 1
+8: 0
+9: 2
+10: 1
+11: 0
+12: 1
+13: 1
+14: 0
+15: 0
+16: 0
+17: 1
+18: 3
+19: 1
+20: 1
+21: 1
+22: 1
+23: 111
+24: 0
+25: 56
+26: 1
+27: 55
+28: 28
+29: 28
+30: 465
+31: 233
+32: 0
+33: 232
+34: 11
+35: 1
+36: 10
+37: 11
+38: 1
+39: 10
+40: 1
+41: 3

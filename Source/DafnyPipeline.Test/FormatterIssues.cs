@@ -1,4 +1,6 @@
-﻿using JetBrains.Annotations;
+﻿using System;
+using System.IO;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -6,6 +8,31 @@ namespace DafnyPipeline.Test;
 
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
 public class FormatterIssues : FormatterBaseTest {
+  [Fact]
+  public void GitIssue4269FormatLemmaIde() {
+    FormatterWorksFor(@"
+module Foo {
+  lemma Bar(t: string)
+  {
+
+  }
+}
+");
+  }
+
+  [Fact]
+  public void GitIssue4269BFormatMapIde() {
+    FormatterWorksFor(@"
+module Foo {
+  method Bar(
+    a: map<string, string>,
+    b: map<string, string>,
+    c: map<string, string>
+  )
+}
+");
+  }
+
   [Fact]
   public void GitIssue3912FormatterCollectionArrow() {
     FormatterWorksFor(@"

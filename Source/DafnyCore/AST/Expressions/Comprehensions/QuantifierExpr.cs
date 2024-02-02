@@ -11,7 +11,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   private readonly int UniqueId;
   private static int currentQuantId = -1;
 
-  protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+  protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.Or;
 
   private Expression SplitQuantifierToExpression() {
     Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
@@ -73,19 +73,19 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
   }
 
-  public override IEnumerable<Node> PreResolveChildren => base.SubExpressions;
+  public override IEnumerable<INode> PreResolveChildren => base.SubExpressions;
   public IEnumerable<Expression> PreResolveSubExpressions => base.SubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      if (SplitQuantifier == null) {
-        foreach (var e in base.SubExpressions) {
-          yield return e;
-        }
-      } else {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
+      foreach (var e in base.SubExpressions) {
+        yield return e;
+      }
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+
+      if (SplitQuantifier != null) {
         foreach (var e in SplitQuantifier) {
           yield return e;
         }

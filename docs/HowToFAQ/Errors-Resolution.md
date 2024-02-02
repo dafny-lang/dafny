@@ -754,6 +754,7 @@ This does mean that the specifier has to do the work of designing a valid termin
 ## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses** {#r_loop_in_proof_may_not_use_modifies}
 
 <!-- TODO - this example give r_loop_may_not_use_modifies
+<!-- %no-check -->
 ```dafny
 class A {  }
 lemma m(j: int, a: A) {

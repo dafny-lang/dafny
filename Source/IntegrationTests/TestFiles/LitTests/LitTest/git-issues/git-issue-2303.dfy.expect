@@ -1,0 +1,4 @@
+git-issue-2303.dfy(5,10): Error: newtype's base type is not fully determined; add an explicit type for bound variable 'x'
+git-issue-2303.dfy(10,8): Error: type for constant 'x' is 'int0', but its initialization value type is 'int'
+git-issue-2303.dfy(14,7): Error: subset type's base type is not fully determined; add an explicit type for bound variable 'x'
+3 resolution/type errors detected in git-issue-2303.dfy

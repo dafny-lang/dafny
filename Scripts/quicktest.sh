@@ -41,6 +41,8 @@ echo Running with Go
 $DAFNY run -t:go c.dfy | diff - $tmp || exit 1
 echo Running with Python
 $DAFNY run -t:py c.dfy | diff - $tmp || exit 1
+echo Running with Rust
+$DAFNY run -t:rs c.dfy | diff - $tmp || exit 1
 
 rm -rf c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json
 echo "" > $tmp
@@ -63,8 +65,11 @@ $DAFNY build -t:go c.dfy | diff - $tmp || exit 1
 echo Building with Python
 $DAFNY build -t:py c.dfy | diff - $tmp || exit 1
 python c-py/c.py | diff - $tmpx || exit 1
+echo Building with Rust
+$DAFNY build -t:rs c.dfy | diff - $tmp || exit 1
+./c-rust/target/debug/c | diff - $tmpx || exit 1
 
 echo Quicktest script succeeded
 
-rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c-rust c.runtimeconfig.json
 rm $tmp $tmpx

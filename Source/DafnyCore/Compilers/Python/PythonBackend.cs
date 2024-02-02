@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -12,11 +13,14 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
   public override string TargetName => "Python";
+  public override bool IsStable => true;
   public override string TargetExtension => "py";
   public override int TargetIndentSize => 4;
 
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
+
+  public override string TargetBasename(string dafnyProgramName) => "__main__";
 
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => true;
@@ -28,7 +32,7 @@ public class PythonBackend : ExecutableBackend {
     return new PythonCompiler(Options, Reporter);
   }
 
-  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)""\s*==\s*__name__\s*$");
+  private static readonly Regex ModuleLine = new(@"^\s*#\s*Module:\s+([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)\s*$");
 
   private static string FindModuleName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
@@ -42,6 +46,17 @@ public class PythonBackend : ExecutableBackend {
     rd.Close();
     return Path.GetExtension(externFilename) == ".py" ? Path.GetFileNameWithoutExtension(externFilename) : null;
   }
+
+  private static readonly Dictionary<OSPlatform, string> PlatformDefaults = new() {
+    { OSPlatform.Linux, "python3" },
+    { OSPlatform.Windows, "python" },
+    { OSPlatform.FreeBSD, "python3" },
+    { OSPlatform.OSX, "python3" },
+  };
+  private static string DefaultPythonCommand => PlatformDefaults.SingleOrDefault(
+      kv => RuntimeInformation.IsOSPlatform(kv.Key),
+      new(OSPlatform.Linux, "python3")
+    ).Value;
 
   bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
@@ -84,6 +99,11 @@ public class PythonBackend : ExecutableBackend {
         return false;
       }
     }
+    if (!runAfterCompile) {
+      var psi = PrepareProcessStartInfo(DefaultPythonCommand);
+      psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
+      return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
+    }
     return true;
   }
 
@@ -91,7 +111,7 @@ public class PythonBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-    var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
     return 0 == RunProcess(psi, outputWriter, errorWriter);
   }

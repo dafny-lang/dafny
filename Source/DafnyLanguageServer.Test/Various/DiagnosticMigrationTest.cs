@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,20 +18,19 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedAfter() {
-    var documentItem = CreateTestDocument(FastToFailVerification, "untitled:Untitled-1");
-    client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var documentItem = await CreateOpenAndWaitForResolve(FastToFailVerification, "untitled:Untitled-1");
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
   }
 
   [Fact]
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedBefore() {
-    var documentItem = CreateTestDocument(FastToFailVerification);
+    var documentItem = CreateTestDocument(FastToFailVerification, "ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedBefore.dfy");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), NeverVerifies + "\n\n");
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -45,7 +45,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   public async Task ResolutionDiagnosticsAreRemovedWhenRangeIsDeleted() {
     var documentItem = CreateTestDocument(FastToFailVerification + "\n" + FastToPassVerification);
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
     ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "");
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -61,7 +61,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
 
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -92,9 +92,14 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
       }
     });
 
+    // NotificationPublisher.publishedDiagnostics is currently not migrated,
+    // that's why the equality check fails and these parse diagnostics are sent.
+    // Instead, there should be a single IDE state for the entire server, which is updated by a Compilation
+    // https://github.com/dafny-lang/dafny/issues/4377
+    var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.Equal(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
     Assert.Equal(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
   }
@@ -108,7 +113,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.Single(resolutionDiagnostics);
 
     ApplyChange(ref documentItem, null, "method u() ensures true { var x: bool := true; }");
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Empty(verificationDiagnostics);
 
     ApplyChange(ref documentItem, new Range(0, 42, 0, 46), "1");
@@ -125,17 +130,17 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
-    var resolutionDiagnostics1 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
+    var resolutionDiagnostics1 = await GetNextDiagnostics(documentItem);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics1[0].Message);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
 
     // Check that no other resolution diagnostics came in by fixing verification and getting new verification diagnostics.
     ApplyChange(ref documentItem, new Range(0, 7, 0, 21), "");
-    var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+    var verificationDiagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Empty(verificationDiagnostics2);
   }
 
@@ -148,14 +153,14 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
 
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
 
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    Assert.Equal(Relocator.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
-    var verificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    var resolutionDiagnostics = await GetNextDiagnostics(documentItem);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
+    var verificationDiagnostics2 = await GetLastDiagnostics(documentItem);
     Assert.Equal(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }

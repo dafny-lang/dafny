@@ -22,8 +22,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     this.options = options;
   }
 
-  protected static List<Node>? FindInnermostNodeIntersecting(Node node, Range range) {
-    if (node.RangeToken.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
+  protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
+    if (node.StartToken.line > 0 && !node.RangeToken.ToLspRange().Intersects(range)) {
       return null;
     }
 
@@ -35,7 +35,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       }
     }
 
-    return new List<Node>() { node };
+    return node.StartToken.line > 0 ? new List<INode> { node } : null;
   }
 
   class ExplicitAssertionDafnyCodeAction : DafnyCodeAction {
@@ -46,7 +46,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     public ExplicitAssertionDafnyCodeAction(
       DafnyOptions options,
-      Dafny.Program program,
+      Node program,
       Expression failingImplicitAssertion,
       Range selection
       ) : base("Insert explicit failing assertion") {
@@ -65,12 +65,12 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         return suggestedEdits.ToArray();
       }
 
-      Node? insertionNode = null;
+      INode? insertionNode = null;
       for (var i = 0; i < nodesTillFailure.Count; i++) {
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
-            (node is not UpdateStmt || nextNode is not VarDeclStmt)) {
+            node is not UpdateStmt && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt) {
           insertionNode = node;
           break;
         }
@@ -95,7 +95,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
       insertionNode ??= nodesTillFailure[0];
 
       var start = insertionNode.StartToken;
-      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
+      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion, new PrintFlags(UseOriginalDafnyNames: true))};\n" +
                       IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
       suggestedEdits.Add(
         new DafnyCodeActionEdit(
@@ -110,12 +110,13 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection) {
-    if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
+    Diagnostic diagnostic, Range selection) {
+    if (input.Program == null || diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;
     }
+
     var failingExpressions = new List<Expression>() { };
-    input.VerificationTree.Visit(tree => {
+    input.VerificationTree?.Visit(tree => {
       if (tree is AssertionVerificationTree assertTree &&
           assertTree.Finished &&
             assertTree.Range.Intersects(selection) &&

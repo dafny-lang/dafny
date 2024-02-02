@@ -3,14 +3,14 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat {
-  public override string WhatKind => "lambda";
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
+  public override string WhatKind => Reads.Expressions.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
 
   public Expression Body => Term;
 
-  public readonly List<FrameExpression> Reads;
+  public readonly Specification<FrameExpression> Reads;
 
-  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
+  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
     : base(tok, rangeToken, bvars, requires, body, null) {
     Contract.Requires(reads != null);
     Reads = reads;
@@ -22,14 +22,14 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat 
       if (Range != null) {
         yield return Range;
       }
-      foreach (var read in Reads) {
+      foreach (var read in Reads.Expressions) {
         yield return read.E;
       }
     }
   }
 
   public LambdaExpr(Cloner cloner, LambdaExpr original) : base(cloner, original) {
-    Reads = original.Reads.ConvertAll(cloner.CloneFrameExpr);
+    Reads = cloner.CloneSpecFrameExpr(original.Reads);
   }
 
   public LambdaExpr Clone(Cloner cloner) {

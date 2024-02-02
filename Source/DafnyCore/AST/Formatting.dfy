@@ -15,7 +15,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
       import opened MicrosoftDafny
       import opened System
 
-      const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
+      const {:extern "System", "String.Empty"} CsStringEmpty: CsString
 
       trait IIndentationFormatter {
         // Given the current indentation at this point
@@ -31,7 +31,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
         ensures allocated(x) {
       }
 
-      /** Prints the entire program while fixing identation, based on
+      /** Prints the entire program while fixing indentation, based on
           1) indentation information provided by the IIndentationFormatter reindent
           2) Reindentation algorithm provided by the same reindent */
       method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)

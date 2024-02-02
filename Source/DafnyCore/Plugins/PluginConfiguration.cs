@@ -48,4 +48,13 @@ public abstract class PluginConfiguration {
   public virtual DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
     return Array.Empty<DocstringRewriter>();
   }
+
+  /// <summary>
+  /// Override this method to provide compiler instrumenters
+  /// </summary>
+  /// <param name="options"></param>
+  /// <returns>A list of compiler instrumenters implemented by this plugin</returns>
+  public virtual CompilerInstrumenter[] GetCompilerInstrumenters(ErrorReporter reporter) {
+    return Array.Empty<CompilerInstrumenter>();
+  }
 }

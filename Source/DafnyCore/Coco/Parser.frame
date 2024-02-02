@@ -33,10 +33,11 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
+using System.Threading;
 
 -->namespace
 
-public class Parser {
+public partial class Parser {
 -->constants
   const bool _T = true;
   const bool _x = false;
@@ -44,6 +45,7 @@ public class Parser {
 
   public Scanner scanner;
   public Errors  errors;
+  CancellationToken cancellationToken;
 
   public IToken t;    // last recognized token
   public IToken la;   // lookahead token
@@ -51,9 +53,10 @@ public class Parser {
 
 -->declarations
 
-  public Parser(Scanner scanner, Errors errors) {
+  public Parser(Scanner scanner, Errors errors, CancellationToken cancellationToken) {
     this.scanner = scanner;
     this.errors = errors;
+    this.cancellationToken = cancellationToken;
     this.la = scanner.FirstToken;
     this.t = scanner.FirstToken; // just to satisfy its non-null constraint
   }
@@ -64,7 +67,7 @@ public class Parser {
     }
     errDist = 0;
   }
-
+  
   public void SemErr(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
@@ -72,6 +75,7 @@ public class Parser {
   }
 
   void Get() {
+    cancellationToken.ThrowIfCancellationRequested();
     for (; ; ) {
       var tmp = la;
       la = scanner.Scan();
@@ -167,6 +171,13 @@ public class Errors {
     return s;
   }
 
+  public void SemErr(string errorId, IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, errorId, tok, msg);
+  }
+  
   public void SemErr(Enum errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);

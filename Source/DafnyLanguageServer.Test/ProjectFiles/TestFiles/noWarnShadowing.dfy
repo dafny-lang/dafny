@@ -4,3 +4,4 @@ method Foo() {
     var x := 4;
   }
 }
+

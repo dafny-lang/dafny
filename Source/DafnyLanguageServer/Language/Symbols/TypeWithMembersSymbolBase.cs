@@ -5,11 +5,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public abstract class TypeWithMembersSymbolBase : Symbol, ILocalizableSymbol {
     public abstract INode Node { get; }
 
-    public IList<ISymbol> Members { get; } = new List<ISymbol>();
+    public IList<ILegacySymbol> Members { get; } = new List<ILegacySymbol>();
 
-    public override IEnumerable<ISymbol> Children => Members;
+    public override IEnumerable<ILegacySymbol> Children => Members;
 
-    protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) { }
+    protected TypeWithMembersSymbolBase(ILegacySymbol? scope, string name) : base(scope, name) { }
 
     public abstract string GetDetailText(DafnyOptions options, CancellationToken cancellationToken);
   }
@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public TNode Declaration { get; }
     public override Node Node => Declaration;
 
-    protected TypeWithMembersSymbolBase(ISymbol? scope, TNode declaration) : base(scope, declaration.Name) {
+    protected TypeWithMembersSymbolBase(ILegacySymbol? scope, TNode declaration) : base(scope, declaration.Name) {
       Declaration = declaration;
     }
 

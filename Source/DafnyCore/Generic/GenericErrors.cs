@@ -7,14 +7,16 @@ using static Microsoft.Dafny.ErrorRegistry;
 public class GenericErrors {
 
   public enum ErrorId {
+    none,
     g_deprecated_this_in_constructor_modifies_clause,
     g_no_old_unicode_char,
     g_unicode_escape_must_have_six_digits,
     g_unicode_escape_is_too_large,
     g_unicode_escape_may_not_be_surrogate,
     g_U_unicode_chars_are_disallowed,
-    g_cli_option_error,
+    g_option_error,
     g_feature_unsupported,
+    g_fuel_must_increase,
 
   }
 

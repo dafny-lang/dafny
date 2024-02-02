@@ -31,14 +31,14 @@ method Foo()
 }";
     string solverProcessName = $"z3-{DafnyOptions.DefaultZ3Version}";
     var processes1 = GetCurrentZ3Processes();
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, "SolverProcessCountDoesNotIncreaseOnEachVerification.dfy");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     var processes2 = GetCurrentZ3Processes();
     Assert.Equal(processes1 + 1, processes2);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
-    await GetLastDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem);
     var processes3 = GetCurrentZ3Processes();
     Assert.Equal(processes2, processes3);
   }

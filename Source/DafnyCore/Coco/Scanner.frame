@@ -443,37 +443,46 @@ public class Scanner {
   }
 
   Token/*!*/ NextToken() {
-    Contract.Ensures(Contract.Result<Token>() != null);
-    if(!parsingTrivia) {
-      posTrailingStart = pos;
-      posTrailingEndLeadingStart = pos;
-      parsingTrivia = true;
-      triviaTrailing = pos > 0;
-      triviaNewlines = 0;
-      lastWasCr = false;
-    } else {
-      // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
-      if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
-        triviaNewlines = 0;
-        lastWasCr = (ch == '\r');
-      }
-    }
-    while (ch == ' ' ||
--->scan1
-    ) {
-      if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
-        if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
-          triviaNewlines++;
-        }
-        lastWasCr = (ch == '\r');
-      }
-      NextCh();
-      if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || !lastWasCr)) {
-        triviaTrailing = false;
+    while(true) { // To avoid recursion
+      Contract.Ensures(Contract.Result<Token>() != null);
+      if(!parsingTrivia) {
+        posTrailingStart = pos;
         posTrailingEndLeadingStart = pos;
+        parsingTrivia = true;
+        triviaTrailing = pos > 0;
+        triviaNewlines = 0;
+        lastWasCr = false;
+      } else {
+        // We just skipped a comment. Any newline coming after the comment doesn't count for the splitting of the trivia
+        if(triviaTrailing && (ch == '\r' || (ch == '\n' && !lastWasCr)) && oldEols == 0) {
+          triviaNewlines = 0;
+          lastWasCr = (ch == '\r');
+        }
       }
-    }
+      while (ch == ' ' ||
+-->scan1
+      ) {
+        if(triviaTrailing && (ch == '\r' || ch == '\n') && oldEols == 0) {
+          if(ch == '\r' || (ch == '\n' && !lastWasCr)) { // Don't count \r\n as two newlines.
+            triviaNewlines++;
+          }
+          lastWasCr = (ch == '\r');
+        }
+        NextCh();
+        if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || !lastWasCr)) {
+          triviaTrailing = false;
+          posTrailingEndLeadingStart = pos;
+        }
+      }
+      if (ch == '/' && Comment0() ||ch == '/' && Comment1()) { // From COCO's scan2
+        continue; // Avoid recursive calls to NextToken() that crashes MAC devices
+      }
+      break;/*
+      // Default Coco frame
 -->scan2
+      */
+    }
+    int apx = 0; // From Coco
     parsingTrivia = false;
     if(t == null) { // There is no trailing trivia before the first token
       posTrailingEndLeadingStart = 0;

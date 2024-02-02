@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
           var hasPrintAttribute = HasPrintAttribute(iter.Attributes);
           if (!hasPrintAttribute && iter.Body != null) {
             if (Reporter.Options.EnforcePrintEffects) {
-              iter.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, iter));
+              iter.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, iter));
             }
           }
         } else if (decl is TopLevelDeclWithMembers cl) {
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
                 ReportError(ErrorId.rw_print_attribute_forbidden_on_functions, member.tok, ":print attribute is not allowed on functions");
               }
               if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
-                f.ByMethodDecl.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
+                f.ByMethodDecl.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
               }
             } else if (member is Method method) {
               if (hasPrintAttribute) {
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
                 }
               } else if (!member.IsGhost && method.Body != null) {
                 if (Reporter.Options.EnforcePrintEffects) {
-                  method.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, method));
+                  method.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, method));
                 }
               }
             }
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      stmt.SubStatements.Iter(s => CheckNoPrintEffects(s, codeContext));
+      stmt.SubStatements.ForEach(s => CheckNoPrintEffects(s, codeContext));
     }
   }
 }

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -61,8 +62,8 @@ public class PluginsTest {
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
@@ -77,8 +78,8 @@ public class PluginsTest {
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
@@ -92,8 +93,8 @@ public class PluginsTest {
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+    var reporter = new BatchErrorReporter(options);
+    var dafnyProgram = Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);

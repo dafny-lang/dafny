@@ -13,11 +13,15 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
   }
 
   public UnchangedExpr Clone(Cloner cloner) {
-    var result = new UnchangedExpr(cloner.Tok(tok), Frame.ConvertAll(cloner.CloneFrameExpr), At);
+    return new UnchangedExpr(cloner, this);
+  }
+
+  public UnchangedExpr(Cloner cloner, UnchangedExpr original) : base(cloner, original) {
+    Frame = original.Frame.ConvertAll(cloner.CloneFrameExpr);
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
+      AtLabel = original.AtLabel;
     }
-    return result;
   }
 
   public UnchangedExpr(IToken tok, List<FrameExpression> frame, string/*?*/ at)

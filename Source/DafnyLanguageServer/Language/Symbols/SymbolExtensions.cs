@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     /// <param name="symbol">The symbol to get all the descendants of.</param>
     /// <returns>The descendants in pre-order of the given symbol.</returns>
-    public static IEnumerable<ISymbol> GetAllDescendantsAndSelf(this ISymbol symbol) {
+    public static IEnumerable<ILegacySymbol> GetAllDescendantsAndSelf(this ILegacySymbol symbol) {
       yield return symbol;
       foreach (var child in symbol.Children) {
         foreach (var descendant in GetAllDescendantsAndSelf(child)) {
@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
     }
-    public static IEnumerable<TSymbol> AsEnumerable<TSymbol>(this TSymbol? symbol) where TSymbol : ISymbol {
+    public static IEnumerable<TSymbol> AsEnumerable<TSymbol>(this TSymbol? symbol) where TSymbol : ILegacySymbol {
       if (symbol != null) {
         yield return symbol;
       }

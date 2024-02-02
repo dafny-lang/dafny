@@ -36,9 +36,9 @@ If your change is user-visible, then part of the PR should be corresponding chan
 Any PR should have tests that check whether the bug-fix fixes the problem addressed or that the new functionality 
 is properly working.
 
-  - Dafny's integration tests are in [`Test`](../Test).  PRs that fix issues reported on GitHub should include a test in [`Test/git-issues/`](../Test/git-issues/).
+  - Dafny's integration tests are in [this directory](Source/IntegrationTests/TestFiles/LitTests/LitTest).  PRs that fix issues reported on GitHub should include a test under [`git-issues/`](Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/).
 
-    Each `.dfy` file in `Test/` is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [`Test/README.md`](../Test/README.md) for more info on running Dafny' integration tests.
+    Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny' integration tests.
 
   - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
 
@@ -97,3 +97,7 @@ For example, `Formatting.dfy`
 - Defines `CsStringEmpty` as an alias for `System.String.Empty`
 - Defines `Microsoft.Dafny.HelperString.FinishesByNewline` by also using externs. That helper is defined in `IndentationFormatter.cs`
 - Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `ReindentProgramFromFirstToken`
+
+### What is the release process?
+
+You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).

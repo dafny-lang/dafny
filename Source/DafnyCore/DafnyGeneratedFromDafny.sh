@@ -1,8 +1,8 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Until we get proper dependency to previous Dafny, you have to generate the file GeneratedFromDafny.cs
 # To remove this manual build process, when it will be appropriate:
 # 1. Delete the file GeneratedFromDafny.cs
-# 2. Add a dependcy to 
+# 2. Add a dependency to 
 #      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
 # That's it! The same file will now be automatically generated as obj/Debug/net6.0/GeneratedFromDafny.cs
 # 3. Remove the following dependencies that are being taken care by dafny-msbuild
@@ -16,16 +16,16 @@
 if [ "$#" != 0 ]; then
   output="$1"
 else
-  output="GeneratedFromDafny.cs"
+  output="GeneratedFromDafny"
 fi
 
-../../Scripts/dafny translate cs --output $output AST/Formatting.dfy
-python -c "
+../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs
+python3 -c "
 import re
-with open ('$output', 'r' ) as f:
+with open ('$output.cs', 'r' ) as f:
   content = f.read()
   content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
-with open('$output', 'w') as w:
+with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include $output
+dotnet format whitespace --include $output.cs

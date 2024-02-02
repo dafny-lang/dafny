@@ -12,7 +12,7 @@ public abstract class NestedMatchCase : TokenNode {
     this.Pat = pat;
   }
 
-  public void CheckLinearNestedMatchCase(Type type, ResolutionContext resolutionContext, Resolver resolver) {
+  public void CheckLinearNestedMatchCase(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     Pat.CheckLinearExtendedPattern(type, resolutionContext, resolver);
   }
 }

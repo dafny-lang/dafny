@@ -86,6 +86,28 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
+  /// <summary>
+  /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
+  /// to Expr.
+  /// </summary>
+  public void AssembleExprPreType(List<PreType> dtvPreTypeArgs) {
+    Contract.Requires(Var != null || dtvPreTypeArgs != null);
+    if (Var != null) {
+      Contract.Assert(this.Id == this.Var.Name);
+      this.Expr = new IdentifierExpr(this.tok, this.Var) {
+        PreType = this.Var.PreType
+      };
+    } else {
+      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
+        Ctor = this.Ctor,
+        PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
+      };
+      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs); // resolve here
+      this.Expr = dtValue;
+    }
+  }
+
   public IEnumerable<VT> Vars {
     get {
       if (Var != null) {
@@ -102,6 +124,6 @@ public class CasePattern<VT> : TokenNode
     }
   }
 
-  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { Var };
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Handlers;
@@ -15,6 +16,23 @@ namespace Microsoft.Dafny.LanguageServer.Formatting;
 public class FormattingTest : ClientBasedLanguageServerTest {
   public override async Task InitializeAsync() {
     await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+  }
+
+  [Fact]
+  public async Task GitIssue4827() {
+    var source = @"
+include ""empty.dfy""
+
+module Main {
+  }
+";
+    var target = @"
+include ""empty.dfy""
+
+module Main {
+}
+";
+    await FormattingWorksFor(source, target, Path.Combine(Directory.GetCurrentDirectory(), "Formatting/TestFiles/FormattingWorksFor.dfy"));
   }
 
   [Fact]
@@ -142,26 +160,27 @@ module A {
     }
   }
 
-  private async Task FormattingWorksFor(string source, string target = null) {
+  private async Task FormattingWorksFor(string source, string target = null, string filePath = "FormattingWorksFor.dfy") {
     if (target == null) {
       target = source;
     }
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(source, filePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    DocumentAfterParsing document = await Documents.GetLastDocumentAsync(documentItem);
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
-    var finalText = source;
-    Assert.NotNull(document);
-    var codeActionInput = new DafnyCodeActionInput(document);
 
-    foreach (var edit in edits) {
-      finalText = codeActionInput.Extract(new Range((0, 0), edit.Range.Start)) +
-                  edit.NewText +
-                  codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
+    if (edits.Count == 0) {
+      Assert.Equal(target, source);
+    } else {
+      Assert.Single(edits);
+      var edit = edits[0];
+      var buffer = new TextBuffer(source);
+      var end = new Position(buffer.Lines.Count - 1, buffer.Lines[^1].EndIndex - buffer.Lines[^1].StartIndex);
+      var finalText = buffer.Extract(new Range((0, 0), edit.Range.Start)) +
+                      edit.NewText +
+                      buffer.Extract(new Range(edit.Range.End, end));
+      Assert.Equal(target, finalText);
     }
-    Assert.Equal(target, finalText);
   }
 
   public FormattingTest(ITestOutputHelper output) : base(output) {

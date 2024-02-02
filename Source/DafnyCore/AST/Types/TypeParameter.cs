@@ -112,6 +112,14 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
+  public static List<TPVariance> Variances(List<TypeParameter> typeParameters, bool negate = false) {
+    if (negate) {
+      return typeParameters.ConvertAll(tp => Negate(tp.Variance));
+    } else {
+      return typeParameters.ConvertAll(tp => tp.Variance);
+    }
+  }
+
   public enum EqualitySupportValue { Required, InferredRequired, Unspecified }
   public struct TypeParameterCharacteristics {
     public RangeToken RangeToken = null;

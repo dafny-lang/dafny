@@ -37,17 +37,21 @@
 | [Externally-implemented constructors](#sec-extern-decls) |  X  |  |  |  X  |  X  |  X  |  X  |
 | [Auto-initialization of tuple variables](#sec-tuple-types) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Subtype constraints in quantifiers](#sec-quantifier-expression) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
-| [Tuples with more than 20 arguments](#sec-tuple-types) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Tuples with more than 20 arguments](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Arrays with more than 16 dimensions](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
+| [Arrow types with more than 16 arguments](##sec-compilation-built-ins) |  |  X  |  X  |  |  X  |  X  |  X  |
 | [Unicode chars](##sec-characters) |  X  |  X  |  X  |  X  |  X  |  |  X  |
-| [Converting values to strings](##sec-print-statement) |  X  |  X  |  X  |  X  |  X  |  |  X  |
-| [Legacy CLI without commands](###sec-dafny-commands) |  X  |  X  |  X  |  X  |  X  |  X  |  |
+| [Converting values to strings](#sec-print-statement) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [Legacy CLI without commands](#sec-dafny-commands) |  X  |  X  |  X  |  X  |  X  |  X  |  |
+| [Separate compilation](#sec-compilation) |  X  |  |  X  |  X  |  X  |  X  |  X  |
+| [All built-in types in runtime library](#sec-compilation-built-ins) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [Execution coverage report](#sec-dafny-test) |  X  |  |  |  |  |  |  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
-    for details.
+    Not all `forall` statements can be sequentialized.
 
 [^compiler-sequence-display-of-characters-note]: This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `"Hello"`.
 

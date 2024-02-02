@@ -1,1 +1,0 @@
-When using the Dafny IDE, parsing is now cached in order to improve performance when making changes in multi-file projects.

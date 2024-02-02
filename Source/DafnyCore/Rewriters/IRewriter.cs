@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
     ///
     /// The token is usually obtained on expressions and statements in the field `tok`
-    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// If you do not have access to them, use moduleDefinition.GetStartOfFirstFileToken()
     /// </summary>
     /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     protected internal IRewriter(ErrorReporter reporter) {
@@ -68,26 +68,15 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 4/8
-    /// Override this method to obtain a module definition after the module
-    /// has been cloned and re-resolved prior to compilation.
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is cloned and re-resolved for compilation.</param>
-    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
     /// Phase 5/8
     /// Override this method to obtain the module definition after resolution and
     /// SCC/Cyclicity/Recursivity analysis.
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
-    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
+    ///   is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    /// <param name="errorReporter"></param>
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition, ErrorReporter errorReporter) {
       Contract.Requires(moduleDefinition != null);
     }
 
@@ -121,6 +110,14 @@ namespace Microsoft.Dafny {
     /// </summary>
     /// <param name="program">The entire program after it is fully resolved</param>
     internal virtual void PostResolve(Program program) {
+      Contract.Requires(program != null);
+    }
+
+    internal virtual void PreVerify(ModuleDefinition module) {
+      Contract.Requires(module != null);
+    }
+
+    public virtual void PostVerification(Program program) {
       Contract.Requires(program != null);
     }
 

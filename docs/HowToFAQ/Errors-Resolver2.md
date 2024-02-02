@@ -1,5 +1,5 @@
 
-<!-- %check-resolve %default %useHeadings %check-ids -->
+<!-- %check-resolve %default %useHeadings  -->
 
 <!-- FILE ./DafnyCore/Resolver/TypeConstraint.cs-->
 

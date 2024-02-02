@@ -52,9 +52,9 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
     }
   }
 
-  public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
+  public override IEnumerable<INode> Children => Locals.Concat<Node>(SubStatements);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> PreResolveChildren => Children;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
     return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;

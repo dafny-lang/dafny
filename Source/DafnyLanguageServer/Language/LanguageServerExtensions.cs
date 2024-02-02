@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -26,20 +27,33 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
-        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(
+        .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
           serviceProvider.GetRequiredService<DafnyOptions>(),
-          serviceProvider.GetRequiredService<ITelemetryPublisher>(),
-          serviceProvider.GetRequiredService<LoggerFactory>()))
+          serviceProvider.GetRequiredService<IFileSystem>(),
+          serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
+          serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+          serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
+        .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
+          new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
+            compilation))
         .AddSingleton(CreateVerifier)
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
+          serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
+          serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+          serviceProvider.GetRequiredService<IProgramVerifier>(),
+          engine, compilation
+          ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return new DafnyProgramVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<DafnyOptions>()
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
       );
     }
   }

@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -21,7 +23,13 @@ namespace Microsoft.Dafny {
       return new HashSet<T>();
     }
   }
+
   public static class Util {
+
+    public static bool LessThanOrEquals<T>(this T first, T second)
+      where T : IComparable<T> {
+      return first.CompareTo(second) != 1;
+    }
 
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
 #pragma warning disable VSTHRD003
@@ -35,8 +43,8 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD105
     }
 
-    public static string Comma(this IEnumerable<string> l) {
-      return Comma(l, s => s);
+    public static string Comma<T>(this IEnumerable<T> l) {
+      return Comma(l, s => s.ToString());
     }
 
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
@@ -79,6 +87,10 @@ namespace Microsoft.Dafny {
         c = comma;
       }
       return res;
+    }
+
+    public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> enumerable) {
+      return enumerable.Select((value, index) => (value, index));
     }
 
     public static string PrintableNameList(List<string> names, string grammaticalConjunction) {
@@ -152,7 +164,7 @@ namespace Microsoft.Dafny {
     }
 
     public static Dictionary<A, B> Dict<A, B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A, B>(LinqExtender.Zip(xs, ys));
+      return Dict<A, B>(Enumerable.Zip(xs, ys).Select(x => new Tuple<A, B>(x.First, x.Second)));
     }
 
     public static Dictionary<A, B> Dict<A, B>(IEnumerable<Tuple<A, B>> xys) {
@@ -244,9 +256,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
-        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
+        UnescapedCharacters(options, s, isVerbatimString).ForEach(ch => sb.Append(new Rune(ch)));
       } else {
-        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append((char)ch));
+        UnescapedCharacters(options, s, isVerbatimString).ForEach(ch => sb.Append((char)ch));
       }
       return sb.ToString();
     }
@@ -463,7 +475,7 @@ namespace Microsoft.Dafny {
             foreach (var member in c.Members) {
               if (member is Function f) {
                 List<Function> calls = new List<Function>();
-                foreach (var e in f.Reads) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
+                foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
                 if (f.Body != null) {
@@ -505,6 +517,24 @@ namespace Microsoft.Dafny {
       }
 
       return createValue();
+    }
+
+    public static Action<T> Concat<T>(Action<T> first, Action<T> second) {
+      return v => {
+        first(v);
+        second(v);
+      };
+    }
+
+    public static V AddOrUpdate<K, V>(this IDictionary<K, V> dictionary, K key, V newValue, Func<V, V, V> update) {
+      if (dictionary.TryGetValue(key, out var existingValue)) {
+        var updated = update(existingValue, newValue);
+        dictionary[key] = updated;
+        return updated;
+      }
+
+      dictionary[key] = newValue;
+      return newValue;
     }
 
     public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
@@ -601,6 +631,10 @@ namespace Microsoft.Dafny {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
         program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
+    }
+
+    public static IEnumerable<string> Lines(TextReader reader) {
+      return new LinesEnumerable(reader);
     }
   }
 
@@ -863,7 +897,7 @@ namespace Microsoft.Dafny {
         if (f.Req.Any(e => Traverse(e.E, "Req.E", f))) {
           return true;
         }
-        if (f.Reads.Any(e => Traverse(e.E, "Reads.E", f))) {
+        if (f.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", f))) {
           return true;
         }
         if (f.Ens.Any(e => Traverse(e.E, "Ens.E", f))) {
@@ -892,6 +926,9 @@ namespace Microsoft.Dafny {
           return true;
         }
         if (m.Req.Any(e => Traverse(e.E, "Req.E", m))) {
+          return true;
+        }
+        if (m.Reads.Expressions.Any(e => Traverse(e.E, "Reads.E", m))) {
           return true;
         }
         if (m.Mod.Expressions.Any(e => Traverse(e.E, "Mod.E", m) == true)) {
@@ -939,6 +976,47 @@ namespace Microsoft.Dafny {
 
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
              OnExit(expr, field, parent);
+    }
+  }
+
+  class LinesEnumerable : IEnumerable<string> {
+    private readonly TextReader Reader;
+
+    public LinesEnumerable(TextReader reader) {
+      Reader = reader;
+    }
+
+    public IEnumerator<string> GetEnumerator() {
+      return new LinesEnumerator(Reader);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
+
+  class LinesEnumerator : IEnumerator<string> {
+
+    private readonly TextReader Reader;
+
+    public LinesEnumerator(TextReader reader) {
+      Reader = reader;
+    }
+
+    public bool MoveNext() {
+      Current = Reader.ReadLine();
+      return Current != null;
+    }
+
+    public void Reset() {
+      throw new NotImplementedException();
+    }
+
+    public string Current { get; internal set; }
+
+    object IEnumerator.Current => Current;
+
+    public void Dispose() {
     }
   }
 }

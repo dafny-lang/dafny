@@ -1,8 +1,10 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -402,7 +404,7 @@ iterator Iter2(x: int) yields (y: int)
       });
     }
 
-    protected Node? FindNode(Node? node, Func<Node, bool> nodeFinder) {
+    protected INode? FindNode(INode? node, Func<INode, bool> nodeFinder) {
       if (node == null) {
         return node;
       }
@@ -426,7 +428,7 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(output));
+      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(output));
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -434,8 +436,8 @@ iterator Iter2(x: int) yields (y: int)
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
 
-        var dafnyProgram = Utils.Parse(options, programString, false);
-        BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+        var reporter = new BatchErrorReporter(options);
+        var dafnyProgram = Utils.Parse(reporter, programString, false);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
@@ -447,7 +449,7 @@ iterator Iter2(x: int) yields (y: int)
             Assert.NotNull(targetNode);
           }
 
-          var docString = targetNode.GetDocstring(options);
+          var docString = ((IHasDocstring)targetNode).GetDocstring(options);
           Assert.Equal(expectedDocstring, docString);
         }
       }

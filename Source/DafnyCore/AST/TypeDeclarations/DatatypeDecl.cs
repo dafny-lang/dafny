@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -15,13 +16,13 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     Contract.Invariant(1 <= Ctors.Count);
   }
 
-  public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
+  public override IEnumerable<INode> Children => Ctors.Concat(base.Children);
 
-  public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
+  public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -79,6 +80,9 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     }
     return base.IsEssentiallyEmpty();
   }
+
+  public override IEnumerable<ISymbol> ChildSymbols => base.ChildSymbols.Concat(Ctors);
+  public override SymbolKind Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
     var indent2 = indent + formatter.SpaceTab;
@@ -165,7 +169,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public string GetTriviaContainingDocstring() {
     foreach (var token in OwnedTokens) {
       if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
         return token.TrailingTrivia;
@@ -173,5 +177,23 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
+    foreach (var ctor in Ctors) {
+      foreach (var formal in ctor.Formals) {
+        if (formal.DefaultValue is null) {
+          continue;
+        }
+
+        var addedReveals = Rewriter.ExprToFunctionalDependencies(formal.DefaultValue, EnclosingModuleDefinition);
+        formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
+
+        if (addedReveals.Any()) {
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+            AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
+        }
+      }
+    }
   }
 }

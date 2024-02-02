@@ -8,9 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
-namespace DafnyServer.CounterexampleGeneration {
+namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
   /// <summary>
   /// Represents a program state in a DafnyModel
@@ -57,8 +56,8 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <param name="maxDepth">The maximum depth up to which to expand the
     /// variable set.</param>
     /// <returns>Set of variables</returns>
-    public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
-      HashSet<DafnyModelVariable> expandedSet = new();
+    public List<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
+      List<DafnyModelVariable> expandedSet = new();
       // The following is the queue for elements to be added to the set. The 2nd
       // element of a tuple is the depth of the variable w.r.t. the original set
       List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
@@ -110,6 +109,10 @@ namespace DafnyServer.CounterexampleGeneration {
     private string ShortenedStateName => ShortenName(State.Name, 20);
 
     public bool IsInitialState => FullStateName.Equals(InitialStateName);
+
+    public bool StateContainsPosition() {
+      return StatePositionRegex.Match(ShortenedStateName).Success;
+    }
 
     public int GetLineId() {
       var match = StatePositionRegex.Match(ShortenedStateName);
@@ -167,7 +170,7 @@ namespace DafnyServer.CounterexampleGeneration {
           continue;
         }
         var name = f.Name.Substring(0, n);
-        if (!name.Contains('#')) {
+        if (!name.Contains('#') || name.Contains("$")) {
           continue;
         }
 

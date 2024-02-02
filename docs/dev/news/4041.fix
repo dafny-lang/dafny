@@ -1,2 +1,0 @@
-Added a new CLI option --warn-deprecation, which is on by default
-Extraneous semicolons are now warned about by default; the warning can be disabled using --warn-deprecation:false

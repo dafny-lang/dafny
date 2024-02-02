@@ -11,7 +11,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
   public readonly List<AttributedExpression> Ens;
   public readonly Statement Body;
   [FilledInDuringResolution]
-  public List<Expression> ForallExpressions;   // fill in by rewriter.
+  public List<Expression> EffectiveEnsuresClauses;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
 
   [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;
@@ -57,9 +57,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds;
+      Bounds = original.Bounds.ConvertAll(bp => bp.Clone(cloner));
       Kind = original.Kind;
-      ForallExpressions = original.ForallExpressions?.Select(cloner.CloneExpr).ToList();
+      EffectiveEnsuresClauses = original.EffectiveEnsuresClauses?.Select(cloner.CloneExpr).ToList();
     }
   }
 
@@ -125,6 +125,12 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
       foreach (var ee in Ens) {
         foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
         yield return ee.E;
+      }
+
+      if (EffectiveEnsuresClauses != null) {
+        foreach (var e in EffectiveEnsuresClauses) {
+          yield return e;
+        }
       }
     }
   }

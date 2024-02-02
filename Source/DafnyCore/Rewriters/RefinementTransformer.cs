@@ -33,6 +33,9 @@ namespace Microsoft.Dafny {
       this.InheritingModule = m;
     }
 
+    public override string ToString() {
+      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
+    }
 
     public override IToken WithVal(string newVal) {
       return new RefinementToken(WrappedToken.WithVal(newVal), InheritingModule);
@@ -180,66 +183,72 @@ namespace Microsoft.Dafny {
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
     private Method currentMethod;
-    public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
+    private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.RefinementQId?.Decl != null) { // There is a refinement parent and it resolved OK
-        RefinedSig = m.RefinementQId.Sig;
 
-        Contract.Assert(RefinedSig.ModuleDef != null);
-        Contract.Assert(m.RefinementQId.Def == RefinedSig.ModuleDef);
-        // check that the openness in the imports between refinement and its base matches
-        var declarations = m.TopLevelDecls;
-        var baseDeclarations = m.RefinementQId.Def.TopLevelDecls.ToList();
-        foreach (var im in declarations) {
-          // TODO: this is a terribly slow algorithm; use the symbol table instead
-          foreach (var bim in baseDeclarations) {
-            if (bim.Name.Equals(im.Name)) {
-              if (im is ModuleDecl mdecl) {
-                if (bim is ModuleDecl mbim) {
-                  if (mdecl.Opened != mbim.Opened) {
-                    if (mdecl.Opened) {
-                      Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
-                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                        im.Name, m.Name, m.RefinementQId.ToString());
-                    } else {
-                      Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
-                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                        im.Name, m.Name, m.RefinementQId.ToString());
-                    }
-                  }
-                }
-              }
-              break;
-            }
-          }
-        }
-        PreResolveWorker(m);
-      } else {
+      if (m.Implements?.Target.Decl == null) {
         // do this also for non-refining modules
         CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
         AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
+      } else {
+        // There is a refinement parent and it resolved OK
+        var refinementTarget = m.Implements.Target;
+        if (m.Implements.Kind == ImplementationKind.Refinement && refinementTarget.Def.ModuleKind == ModuleKindEnum.Replaceable) {
+          Reporter.Error(MessageSource.RefinementTransformer, "refineReplaceable", refinementTarget.Tok,
+            "replaceable module cannot be refined");
+
+          return;
+        }
+        RefinedSig = refinementTarget.Sig;
+
+
+        Contract.Assert(RefinedSig.ModuleDef != null);
+        Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
+        // check that the openness in the imports between refinement and its base matches
+        var declarations = m.TopLevelDecls;
+        var baseDeclarations = refinementTarget.Def.TopLevelDecls.ToList();
+        foreach (var im in declarations) {
+          // TODO: this is a terribly slow algorithm; use the symbol table instead
+          var bim = baseDeclarations.FirstOrDefault(bim => bim.Name.Equals(im.Name));
+          if (bim != null) {
+            if (im is ModuleDecl mdecl && bim is ModuleDecl mbim && mdecl.Opened != mbim.Opened) {
+              if (mdecl.Opened) {
+                Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
+                  "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
+                  im.Name, m.Name, m.Implements.Target.ToString());
+              } else {
+                Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
+                  "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
+                  im.Name, m.Name, m.Implements.Target.ToString());
+              }
+            }
+          }
+        }
+
+        PreResolveWorker(m);
       }
     }
 
-    void PreResolveWorker(ModuleDefinition m) {
-      Contract.Requires(m != null);
+    void PreResolveWorker(ModuleDefinition module) {
+      Contract.Requires(module != null);
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
       }
-      moduleUnderConstruction = m;
+      moduleUnderConstruction = module;
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
-      var prev = m.RefinementQId.Def;
+      var refinementTarget = module.Implements.Target;
+      var prev = refinementTarget.Def;
 
       //copy the signature, including its opened imports
-      refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementQId.Def, false, null);
+      refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
+      ModuleResolver.ResolveOpenedImports(refinedSigOpened, prev, Reporter, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
-      var pointers = m.TopLevelDeclPointers;
+      var pointers = module.TopLevelDeclPointers;
       foreach (var pointer in pointers) {
         var key = pointer.Get().Name;
         declaredNames.TryAdd(key, pointer);
@@ -247,37 +256,37 @@ namespace Microsoft.Dafny {
 
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
-      foreach (var d in prev.TopLevelDecls) {
-        processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out var nwPointer)) {
-          var clone = refinementCloner.CloneDeclaration(d, m);
-          m.SourceDecls.Add(clone);
+      foreach (var originalDeclaration in prev.TopLevelDecls) {
+        processedDecl.Add(originalDeclaration.Name);
+        if (!declaredNames.TryGetValue(originalDeclaration.Name, out var newPointer)) {
+          var clone = refinementCloner.CloneDeclaration(originalDeclaration, module);
+          module.SourceDecls.Add(clone);
         } else {
-          var neww = nwPointer.Get();
-          if (d.Name == "_default" || neww.IsRefining || d is AbstractTypeDecl) {
-            MergeTopLevelDecls(m, nwPointer, d);
-          } else if (neww is TypeSynonymDecl) {
-            var msg = $"a type synonym ({neww.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
-            Error(ErrorId.ref_refinement_type_must_match_base, neww.tok, msg);
-          } else if (!(d is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, neww.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
+          var newDeclaration = newPointer.Get();
+          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
+            MergeTopLevelDecls(module, newPointer, originalDeclaration);
+          } else if (newDeclaration is TypeSynonymDecl) {
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.Implements.Target}), even if it denotes the same type";
+            Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
+          } else if (!(originalDeclaration is AbstractModuleDecl)) {
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.Implements.Target}', you must use the refining (`...`) notation");
           }
         }
       }
-      CheckSuperfluousRefiningMarks(m.TopLevelDecls, processedDecl);
-      AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
+      CheckSuperfluousRefiningMarks(module.TopLevelDecls, processedDecl);
+      AddDefaultBaseTypeToUnresolvedNewtypes(module.TopLevelDecls);
 
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
         if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var pointer)) {
           // if it is redefined, we need to merge them.
-          MergeTopLevelDecls(m, pointer, d);
+          MergeTopLevelDecls(module, pointer, d);
         }
       }
-      m.RefinementQId.Sig = RefinedSig;
+      refinementTarget.Sig = RefinedSig;
 
-      Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+      Contract.Assert(moduleUnderConstruction == module);  // this should be as it was set earlier in this method
     }
 
     private void CheckSuperfluousRefiningMarks(IEnumerable<TopLevelDecl> topLevelDecls, List<string> excludeList) {
@@ -474,7 +483,7 @@ namespace Microsoft.Dafny {
           var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
           return oexports.IsSubsetOf(exports);
         }
-        derivedPointer = derivedPointer.RefinementQId.Def;
+        derivedPointer = derivedPointer.Implements.Target.Def;
       }
       return false;
     }
@@ -563,7 +572,7 @@ namespace Microsoft.Dafny {
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var reads = previousFunction.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
       var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
@@ -633,6 +642,7 @@ namespace Microsoft.Dafny {
       var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
+      var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
@@ -645,30 +655,32 @@ namespace Microsoft.Dafny {
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
         return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
-          req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
+      var newRange = currentMethod.RangeToken.MakeRefined(moduleUnderConstruction);
+      var newName = currentMethod.NameNode.Clone(refinementCloner);
       if (previousMethod is LeastLemma) {
-        return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+        return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+        return new GreatestLemma(newRange, newName, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Lemma) {
-        return new Lemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+        return new Lemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is TwoStateLemma) {
         var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
+        return new Method(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
+          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
       }
     }
 
@@ -740,16 +752,14 @@ namespace Microsoft.Dafny {
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
-      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
+      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
       for (int i = 0; i < nw.Members.Count; i++) {
         var member = nw.Members[i];
-        if (!declaredNames.ContainsKey(member.Name)) {
-          declaredNames.Add(member.Name, i);
-        }
+        declaredNames.TryAdd(member.Name, i);
       }
 
       // Merge the declarations of prev into the declarations of m
@@ -813,8 +823,8 @@ namespace Microsoft.Dafny {
               if (f.Req.Count != 0) {
                 Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
-              if (f.Reads.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+              if (f.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
@@ -863,6 +873,9 @@ namespace Microsoft.Dafny {
               var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
+              }
+              if (m.Reads.Expressions.Count != 0) {
+                Error(ErrorId.ref_no_new_method_reads, m.Reads.Expressions[0].E.tok, "a refining method is not allowed to extend the reads clause");
               }
               if (m.Mod.Expressions.Count != 0) {
                 Error(ErrorId.ref_no_new_method_modifies, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
@@ -1141,7 +1154,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new RangeToken(new Translator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
+                body.Add(new AssertStmt(new RangeToken(new BoogieGenerator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
@@ -1287,7 +1300,7 @@ namespace Microsoft.Dafny {
               body.Add(cNew);
               i++; j++;
               if (addedAssert != null) {
-                var tok = new Translator.ForceCheckToken(addedAssert.RangeToken.StartToken);
+                var tok = new BoogieGenerator.ForceCheckToken(addedAssert.RangeToken.StartToken);
                 body.Add(new AssertStmt(new RangeToken(tok, addedAssert.RangeToken.EndToken), addedAssert, null, null, null));
               }
             } else {
@@ -1684,9 +1697,10 @@ namespace Microsoft.Dafny {
     readonly ModuleDefinition moduleUnderConstruction;
     private bool wrapWithRefinementToken = true;
 
-    public RefinementCloner(ModuleDefinition m) {
+    public RefinementCloner(ModuleDefinition m) : base(false, false) {
       moduleUnderConstruction = m;
     }
+
     public override BlockStmt CloneMethodBody(Method m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
@@ -1711,14 +1725,15 @@ namespace Microsoft.Dafny {
 
       return tok;
     }
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var dd = base.CloneDeclaration(d, m);
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+      var dd = base.CloneDeclaration(d, newParent);
       if (dd is ModuleExportDecl ddex) {
         // In refinement cloning, a default export set from the parent should, in the
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
-        if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+        if (dex.IsDefault && d.Name != newParent.Name) {
+          ddex = new ModuleExportDecl(ddex.Options, dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends,
+            dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

@@ -26,6 +26,20 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   private bool scopeIsInherited = false;
 
+  protected Declaration(Cloner cloner, Declaration original) : base(cloner, original) {
+    NameNode = original.NameNode.Clone(cloner);
+    BodyStartTok = cloner.Tok(original.BodyStartTok);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+  }
+
+  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
+    Contract.Requires(name != null);
+    this.NameNode = name;
+    this.Attributes = attributes;
+    this.IsRefining = isRefining;
+  }
+
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);
 
@@ -101,48 +115,15 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   public virtual string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
-      IsExtern(options, out _, out compileName);
+      this.IsExtern(options, out _, out compileName);
       compileName ??= SanitizedName;
     }
 
     return compileName;
   }
 
-  public bool IsExtern(DafnyOptions options, out string/*?*/ qualification, out string/*?*/ name) {
-    // ensures result==false ==> qualification == null && name == null
-    Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
-    // ensures result==true ==> qualification != null ==> name != null
-    Contract.Ensures(!Contract.Result<bool>() || Contract.ValueAtReturn(out qualification) == null || Contract.ValueAtReturn(out name) != null);
-
-    qualification = null;
-    name = null;
-    if (!options.DisallowExterns) {
-      var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
-      if (externArgs != null) {
-        if (externArgs.Count == 0) {
-          return true;
-        } else if (externArgs.Count == 1 && externArgs[0] is StringLiteralExpr) {
-          name = externArgs[0].AsStringLiteral();
-          return true;
-        } else if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
-          qualification = externArgs[0].AsStringLiteral();
-          name = externArgs[1].AsStringLiteral();
-          return true;
-        }
-      }
-    }
-    return false;
-  }
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-
-  protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
-    this.Attributes = attributes;
-    this.IsRefining = isRefining;
-  }
 
   [Pure]
   public override string ToString() {
@@ -151,6 +132,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   }
 
   internal FreshIdGenerator IdGenerator = new();
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
+  public override IEnumerable<INode> PreResolveChildren => Children;
 }

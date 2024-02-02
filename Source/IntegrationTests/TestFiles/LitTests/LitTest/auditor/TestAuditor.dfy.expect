@@ -1,0 +1,34 @@
+TestAuditor.dfy(150,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+TestAuditor.dfy(154,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
+TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
+TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(139,2): Warning: note, this forall statement has no body
+TestAuditor.dfy(143,2): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(93,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(95,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(139,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+TestAuditor.dfy(22,6): Warning: MinusBv8NoBody: Ghost declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
+TestAuditor.dfy(27,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
+TestAuditor.dfy(38,2): Warning: MinusBv8Assume: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
+TestAuditor.dfy(45,17): Warning: GenerateBytes: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
+TestAuditor.dfy(45,17): Warning: GenerateBytes: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
+TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
+TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
+TestAuditor.dfy(60,2): Warning: GenerateBytesWrapper: Definition has `assume {:axiom}` statement in body. Possible mitigation: Replace with `assert` and prove.
+TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
+TestAuditor.dfy(72,19): Warning: ExternFunction: Function with `{:extern}` attribute. Possible mitigation: Turn into a `method` with `modifies {}` and test thoroughly for lack of side effects.
+TestAuditor.dfy(72,19): Warning: ExternFunction: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
+TestAuditor.dfy(83,7): Warning: DoesNotTerminate: Method may not terminate (uses `decreases *`). Possible mitigation: Provide a valid `decreases` clause.
+TestAuditor.dfy(95,4): Warning: ForallWithoutBody: Definition contains `forall` statement with no body. Possible mitigation: Provide a body.
+TestAuditor.dfy(102,4): Warning: LoopWithoutBody: Definition contains loop with no body. Possible mitigation: Provide a body.
+TestAuditor.dfy(128,27): Warning: AssumedConcurrentMethod: Reads clause has `{:assume_concurrent}` attribute. Possible mitigation: Manually review and test in a concurrent setting.
+TestAuditor.dfy(128,27): Warning: AssumedConcurrentMethod: Modifies clause has `{:assume_concurrent}` attribute. Possible mitigation: Manually review and test in a concurrent setting.
+TestAuditor.dfy(135,16): Warning: AxiomWithStuffInIt: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
+TestAuditor.dfy(150,2): Warning: AssertOnly: Assertion has explicit temporary `{:only}` attribute. Possible mitigation: Remove the `{:only}` attribute.
+TestAuditor.dfy(154,15): Warning: MethodOnly: Member has explicit temporary `{:only}` attribute. Possible mitigation: Remove the `{:only}` attribute.
+TestAuditor.dfy(160,26): Warning: GenerateBytesWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
+TestAuditor.dfy(164,28): Warning: ExternFunctionWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
+TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
+Dafny auditor completed with 22 findings
+
+Dafny program verifier did not attempt verification

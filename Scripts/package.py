@@ -20,7 +20,7 @@ import ntpath
 # Configuration
 
 Z3_VERSIONS = [ "4.8.5", "4.12.1" ]
-Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17"
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02"
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
@@ -70,15 +70,27 @@ def flush(*args, **kwargs):
 class Release:
 
     def __init__(self, os, platform, version, out):
-        self.z3_zips = [ "z3-{}-{}-bin.zip".format(z3_version, os) for z3_version in Z3_VERSIONS ]
         self.platform, self.os = platform, os
         self.os_name = self.os.split("-")[0]
+        self.z3_zips = self.get_z3_zips()
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         if out != None:
             self.dafny_name = out
         self.target = "{}-{}".format(gitHubToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
         self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
+
+    def get_z3_zips(self):
+        z3_zips = [ "z3-{}-{}-{}-bin.zip".format(z3_version, self.platform, self.os) for z3_version in Z3_VERSIONS ]
+
+        # There are no arm macOS builds for Z3 4.8.*
+        # x64 one will work just fine though
+        if self.platform == "arm64" and "macos" in self.os:
+            for i in range(len(Z3_VERSIONS)):
+                if "4.8." in z3_zips[i]:
+                    z3_zips[i] = z3_zips[i].replace("arm64", "x64")
+
+        return z3_zips
 
     def url(self, z3_zip):
         return "{}/{}".format(Z3_URL_BASE, z3_zip)
@@ -129,7 +141,7 @@ class Release:
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
-                "-c", "Release", 
+                "-c", "Release",
                 *(["-f", framework] if framework else [])]
             projectFile = path.join(SOURCE_DIRECTORY, project, project + ".csproj")
             exitStatus = subprocess.call(["dotnet", "publish", projectFile, *publish_args], env=env)

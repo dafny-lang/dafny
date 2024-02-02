@@ -7,8 +7,7 @@ namespace Microsoft.Dafny;
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
   public readonly List<Statement> Body;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  public Attributes Attributes { get; set; }
   public NestedMatchCaseStmt(RangeToken rangeToken, ExtendedPattern pat, List<Statement> body) : base(rangeToken.StartToken, pat) {
     RangeToken = rangeToken;
     Contract.Requires(body != null);
@@ -29,11 +28,11 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public NestedMatchCaseStmt Clone(Cloner cloner) {
     return new NestedMatchCaseStmt(cloner, this);
   }
-  public override IEnumerable<Node> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<INode> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
   public void Resolve(
-    Resolver resolver,
+    ModuleResolver resolver,
     ResolutionContext resolutionContext,
     Dictionary<TypeParameter, Type> subst,
     Type sourceType) {

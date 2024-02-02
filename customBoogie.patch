@@ -2,7 +2,7 @@ diff --git a/Source/Dafny.sln b/Source/Dafny.sln
 index 426b132e2..18db4aebb 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -41,6 +41,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExte
+@@ -43,6 +43,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExte
  EndProject
  Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore.Test", "DafnyCore.Test\DafnyCore.Test.csproj", "{33C29F26-A27B-474D-B436-83EA615B09FC}"
  EndProject
@@ -57,12 +57,22 @@ diff --git a/Source/DafnyCore/DafnyCore.csproj b/Source/DafnyCore/DafnyCore.cspr
 index 4a8b2f89b..a308be9bf 100644
 --- a/Source/DafnyCore/DafnyCore.csproj
 +++ b/Source/DafnyCore/DafnyCore.csproj
-@@ -31,7 +31,7 @@
+@@ -33,5 +33,15 @@
        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
-       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
--      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.8" />
+       <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="3.0.10" />
 +      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\BaseTypes\BaseTypes.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Core\Core.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Graph\Graph.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Model\Model.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\CodeContractsExtender\CodeContractsExtender.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\VCExpr\VCExpr.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\VCGeneration\VCGeneration.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Provers\SMTLib\SMTLib.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Houdini\Houdini.csproj" />
++      <ProjectReference Include="..\..\boogie\Source\Concurrency\Concurrency.csproj" />
        <PackageReference Include="Tomlyn" Version="0.16.2" />
    </ItemGroup>
  

@@ -6,7 +6,7 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
   public static readonly InternalCompilersPluginConfiguration Singleton = new();
 
   public override IExecutableBackend[] GetCompilers(DafnyOptions options) {
-    return new Plugins.IExecutableBackend[] {
+    return new IExecutableBackend[] {
       new CsharpBackend(options),
       new JavaScriptBackend(options),
       new GoBackend(options),
@@ -14,7 +14,8 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new PythonBackend(options),
       new CppCompilerBackend(options),
       new LibraryBackend(options),
-      new DafnyBackend(options),
+      new RustBackend(options),
+      new ResolvedDesugaredExecutableDafnyBackend(options)
     };
   }
 }

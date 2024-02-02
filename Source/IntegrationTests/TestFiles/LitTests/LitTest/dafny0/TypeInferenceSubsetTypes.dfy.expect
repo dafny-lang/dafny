@@ -1,0 +1,3 @@
+TypeInferenceSubsetTypes.dfy(60,15): Error: target object might be null
+
+Dafny program verifier finished with 6 verified, 1 error

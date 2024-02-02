@@ -10,6 +10,14 @@ public class ArrowType : UserDefinedType {
     get { return TypeArgs.GetRange(0, Arity); }
   }
 
+  public List<TypeParameter.TPVariance> Variances(bool negate = false) {
+    if (negate) {
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Contra : TypeParameter.TPVariance.Co).ToList();
+    } else {
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Co : TypeParameter.TPVariance.Contra).ToList();
+    }
+  }
+
   public Type Result {
     get { return TypeArgs[Arity]; }
   }
@@ -107,7 +115,7 @@ public class ArrowType : UserDefinedType {
       // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
       // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
       var udt = typeArgs[0].Normalize() as UserDefinedType;  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
-      if (udt != null && ((udt.FullName != null && BuiltIns.IsTupleTypeName(udt.FullName)) || udt.ResolvedClass is TupleTypeDecl)) {
+      if (udt != null && ((udt.FullName != null && SystemModuleManager.IsTupleTypeName(udt.FullName)) || udt.ResolvedClass is TupleTypeDecl)) {
         domainNeedsParens = true;
       }
     }
@@ -138,6 +146,6 @@ public class ArrowType : UserDefinedType {
     }
   }
 
-  public override IEnumerable<Node> Children => Args.Concat(new List<Node>() { Result });
-  public override IEnumerable<Node> PreResolveChildren => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<INode> Children => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<INode> PreResolveChildren => Args.Concat(new List<Node>() { Result });
 }

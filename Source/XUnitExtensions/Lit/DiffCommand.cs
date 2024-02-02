@@ -10,13 +10,14 @@ namespace XUnitExtensions.Lit {
   /// because 'diff' does not exist on Windows.
   /// </summary>
   public class DiffCommand : ILitCommand {
+    public static readonly bool UpdateExpectFile = false;
 
-    private readonly string expectedPath;
-    private readonly string actualPath;
+    public string ExpectedPath { get; }
+    public string ActualPath { get; }
 
     private DiffCommand(string expectedPath, string actualPath) {
-      this.expectedPath = expectedPath;
-      this.actualPath = actualPath;
+      ExpectedPath = expectedPath;
+      ActualPath = actualPath;
     }
 
     public static ILitCommand Parse(string[] args) {
@@ -28,16 +29,25 @@ namespace XUnitExtensions.Lit {
       return new DiffCommand(expectedPath, actualPath);
     }
 
+    public static string? Run(string expectedOutputFile, string actualOutput) {
+      if (UpdateExpectFile) {
+        var path = Path.GetFullPath(expectedOutputFile).Replace("bin/Debug/net6.0/", "");
+        File.WriteAllText(path, actualOutput);
+        return null;
+      }
+      var expected = File.ReadAllText(expectedOutputFile);
+      return AssertWithDiff.GetDiffMessage(expected, actualOutput);
+    }
+
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var expected = File.ReadAllText(expectedPath);
-      var actual = File.ReadAllText(actualPath);
-      var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);
+      var actual = File.ReadAllText(ActualPath);
+      var diffMessage = Run(ExpectedPath, actual);
       return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
     }
 
     public override string ToString() {
-      return $"DiffCommand {expectedPath} {actualPath}";
+      return $"DiffCommand {ExpectedPath} {ActualPath}";
     }
   }
 }

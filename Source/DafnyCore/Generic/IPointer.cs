@@ -23,6 +23,7 @@ record Pointer<T>(Func<T> Get, Action<T> Set) : IPointer<T> {
 public static class PointerExtensions {
   public static IEnumerable<IPointer<T>> ToPointers<T>(this IList<T> values) {
     return Enumerable.Range(0, values.Count)
-      .Select(index => new Pointer<T>(() => values[index], value => values[index] = value));
+      .Select(index => new Pointer<T>(() => values[index],
+        value => values[index] = value));
   }
 }

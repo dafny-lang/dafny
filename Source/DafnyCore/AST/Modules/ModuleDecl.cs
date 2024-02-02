@@ -1,15 +1,31 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
 /// <summary>
 /// Represents a submodule declaration at module level scope
 /// </summary>
-public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
-  public override string WhatKind { get { return "module"; } }
-  [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
+public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
+
+  public DafnyOptions Options { get; }
+
+  /// <summary>
+  /// Only equivalent between modules if one is a clone of the other.
+  /// This property is used to determine if two module declarations have the same contents when doing resolution caching
+  /// This should be replaced by using content hashes of module declaration contents, at which point this property
+  /// becomes obsolete.
+  /// </summary>
+  public Guid CloneId { get; }
+
+  public override string WhatKind => "module";
+
+  [FilledInDuringResolution]
+  public ModuleSignature Signature { get; set; }
+
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
     Contract.Requires(Signature != null);
     return Signature;
@@ -20,24 +36,31 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   }
   public int Height;
 
-  public readonly bool Opened;
+  public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
-  public ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    Options = original.Options;
+    Opened = original.Opened;
+    CloneId = original.CloneId;
+  }
+
+  protected ModuleDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
+    Options = options;
     Height = -1;
     Signature = null;
     Opened = opened;
+    CloneId = cloneId;
   }
   public abstract object Dereference();
-
-  public int? ResolvedHash { get; set; }
 
   public override bool IsEssentiallyEmpty() {
     // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
     return true;
   }
 
-  protected override string GetTriviaContainingDocstring() {
+  public virtual string GetTriviaContainingDocstring() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -56,5 +79,10 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     }
 
     return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
+
+  public SymbolKind Kind => SymbolKind.Namespace;
+  public string GetDescription(DafnyOptions options) {
+    return $"module {Name}";
   }
 }

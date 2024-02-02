@@ -18,20 +18,20 @@ public class ExpressionTester {
   ///     added from the caller to the by-method.
   ///   - .Constraint_Bounds of LetExpr will be updated
   /// </summary>
-  [CanBeNull] private readonly Resolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
+  [CanBeNull] private readonly ModuleResolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
 
-  private ExpressionTester([CanBeNull] Resolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
+  private ExpressionTester([CanBeNull] ModuleResolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
     this.resolver = resolver;
     this.reporter = reporter;
     this.options = options;
   }
 
   // Static call to CheckIsCompilable
-  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
+  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
@@ -70,7 +70,7 @@ public class ExpressionTester {
     Expression subexpressionsAreInsideBranchesOnlyExcept = null;
 
     if (expr is IdentifierExpr expression) {
-      if (expression.Var != null && expression.Var.IsGhost) {
+      if (expression.Var is { IsGhost: true }) {
         ReportError(ErrorId.r_ghost_var_only_in_specifications, expression,
           $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
         return false;
@@ -250,7 +250,7 @@ public class ExpressionTester {
         Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
-          letExpr.Constraint_Bounds = Resolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
+          letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;
@@ -278,6 +278,9 @@ public class ExpressionTester {
       // don't recurse down any attributes
       if (comprehensionExpr.Range != null) {
         isCompilable = CheckIsCompilable(comprehensionExpr.Range, codeContext) && isCompilable;
+      }
+      if (comprehensionExpr is MapComprehension { TermLeft: { } termLeft }) {
+        isCompilable = CheckIsCompilable(termLeft, codeContext) && isCompilable;
       }
       isCompilable = CheckIsCompilable(comprehensionExpr.Term, codeContext) && isCompilable;
       return isCompilable;
@@ -357,7 +360,7 @@ public class ExpressionTester {
     // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
     // are allowed only in ghost contexts.
     var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
-    if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+    if (udtTo.ResolvedClass is SubsetTypeDecl and not NonNullTypeDecl) {
       return false;
     }
 
@@ -368,7 +371,7 @@ public class ExpressionTester {
     // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
     // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
     // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
-    // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
+    // then the mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique, which means we can check if an
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
     var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
     var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
@@ -546,10 +549,10 @@ public class ExpressionTester {
       return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
-      return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
+      return e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
     } else if (expr is MapComprehension) {
       var e = (MapComprehension)expr;
-      return !e.Finite || e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
+      return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
     } else if (expr is LambdaExpr) {
       var e = (LambdaExpr)expr;
       return UsesSpecFeatures(e.Term);

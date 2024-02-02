@@ -1,13 +1,27 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
-public record DafnyPosition(int Line, int Column);
+public record DafnyPosition(int Line, int Column) : IComparable<DafnyPosition> {
+  public int CompareTo(DafnyPosition other) {
+    var lineComparison = Line.CompareTo(other.Line);
+    if (lineComparison != 0) {
+      return lineComparison;
+    }
 
-public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd);
+    return Column.CompareTo(other.Column);
+  }
+}
+
+public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
+  public bool Contains(DafnyPosition position) {
+    return Start.LessThanOrEquals(position) && position.LessThanOrEquals(ExclusiveEnd);
+  }
+}
 
 /// <summary>
 /// A quick fix replaces a range with the replacing text.
@@ -32,7 +46,7 @@ public static class ErrorRegistry {
   public static string NoneId => "none";
 #nullable enable
   public static List<ActionSignature>? GetAction(string? errorId) {
-    return errorId != null && codeActionMap.ContainsKey(errorId) ? new List<ActionSignature> { codeActionMap[errorId] } : null;
+    return errorId != null && codeActionMap.TryGetValue(errorId, out var value) ? new List<ActionSignature> { value } : null;
   }
 #nullable disable
 
@@ -52,12 +66,12 @@ public static class ErrorRegistry {
   }
 
 
-  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) };
+  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
   }
 
-  public static DafnyAction OneAction(string title, RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new(title, new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) });
+  public static DafnyAction OneAction(string title, RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
   public static RangeToken IncludeComma(RangeToken range) {

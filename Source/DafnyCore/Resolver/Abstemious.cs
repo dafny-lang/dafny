@@ -73,6 +73,6 @@ public class Abstemious {
       CheckDestructsAreAbstemiousCompliant(e.E);
       return;
     }
-    expr.SubExpressions.Iter(CheckDestructsAreAbstemiousCompliant);
+    expr.SubExpressions.ForEach(CheckDestructsAreAbstemiousCompliant);
   }
 }

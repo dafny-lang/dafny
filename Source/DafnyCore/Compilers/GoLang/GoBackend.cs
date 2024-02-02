@@ -12,6 +12,7 @@ public class GoBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
   public override string TargetName => "Go";
+  public override bool IsStable => true;
   public override string TargetExtension => "go";
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-go/src";
@@ -20,6 +21,21 @@ public class GoBackend : ExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
   protected override SinglePassCompiler CreateCompiler() {
     return new GoCompiler(Options, Reporter);
+  }
+
+  public override bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+    return base.OnPostCompile(dafnyProgramName, targetDirectory, outputWriter) && OptimizeImports(targetDirectory, outputWriter);
+  }
+
+  public bool OptimizeImports(string targetFilename, TextWriter outputWriter) {
+    var goArgs = new List<string> {
+      "-w",
+      targetFilename
+    };
+
+    var psi = PrepareProcessStartInfo("goimports", goArgs);
+
+    return 0 == RunProcess(psi, outputWriter, outputWriter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,

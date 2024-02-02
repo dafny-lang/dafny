@@ -248,14 +248,32 @@ public class Helpers {
         return (int)x;
     }
 
-    private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
+    private final static BigInteger BYTE_LIMIT =   new BigInteger("256");                   // 0x1_00
+    private final static BigInteger USHORT_LIMIT = new BigInteger("65536");                 // 0x1_0000
+    private final static BigInteger UINT_LIMIT =   new BigInteger("4294967296");            // 0x1_0000_0000
+    private final static BigInteger ULONG_LIMIT =  new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
 
-    public static BigInteger unsignedLongToBigInteger(long l) {
-        if (0 <= l) {
-            return BigInteger.valueOf(l);
-        } else {
-            return BigInteger.valueOf(l).add(ULONG_LIMIT);
+    private static BigInteger unsignedToBigInteger_h(BigInteger i, BigInteger LIMIT) {
+        if (i.signum() == -1) {
+            i = i.add(LIMIT);
         }
+        return i;
+    }
+
+    public static BigInteger unsignedToBigInteger(byte b){
+        return unsignedToBigInteger_h(BigInteger.valueOf(b), BYTE_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(short s){
+        return unsignedToBigInteger_h(BigInteger.valueOf(s), USHORT_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(int i){
+        return unsignedToBigInteger_h(BigInteger.valueOf(i), UINT_LIMIT);
+    }
+
+    public static BigInteger unsignedToBigInteger(long l){
+        return unsignedToBigInteger_h(BigInteger.valueOf(l), ULONG_LIMIT);
     }
 
     public static byte divideUnsignedByte(byte a, byte b) {

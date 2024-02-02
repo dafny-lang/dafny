@@ -5,13 +5,10 @@ namespace Microsoft.Dafny;
 
 public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   private Attributes attributes;
+
   public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
+    get { return attributes; }
+    set { attributes = value; }
   }
 
   public bool HasAttributes() {
@@ -21,12 +18,14 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
     tok = cloner.Tok(original.tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
+    RangeToken = cloner.Range(original.rangeToken);
   }
 
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
     this.tok = tok;
     Attributes = attrs;
   }
+
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
 
   /// <summary>
@@ -38,9 +37,7 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   /// Returns the non-null non-specification subexpressions of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
-    get {
-      yield break;
-    }
+    get { yield break; }
   }
 
   /// <summary>

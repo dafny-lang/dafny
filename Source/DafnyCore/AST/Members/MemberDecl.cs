@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
 public abstract class MemberDecl : Declaration {
   public abstract string WhatKind { get; }
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
-  public readonly bool HasStaticKeyword;
+  protected bool hasStaticKeyword;
+  public bool HasStaticKeyword => hasStaticKeyword;
   public virtual bool IsStatic {
     get {
       return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
@@ -16,7 +18,7 @@ public abstract class MemberDecl : Declaration {
 
   public virtual bool IsOpaque => false;
 
-  protected readonly bool isGhost;
+  protected bool isGhost;
   public bool IsGhost { get { return isGhost; } }
 
   public string ModifiersAsString() {
@@ -57,11 +59,17 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  public MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+  protected MemberDecl(Cloner cloner, MemberDecl original) : base(cloner, original) {
+    this.hasStaticKeyword = original.hasStaticKeyword;
+    this.EnclosingClass = original.EnclosingClass;
+    this.isGhost = original.isGhost;
+  }
+
+  protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    HasStaticKeyword = hasStaticKeyword;
+    this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
   /// <summary>
@@ -95,9 +103,9 @@ public abstract class MemberDecl : Declaration {
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (Name == "requires") {
-        return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
       } else if (Name == "reads") {
-        return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
       } else {
         return EnclosingClass.FullSanitizedName + "." + SanitizedName;
       }
@@ -105,4 +113,49 @@ public abstract class MemberDecl : Declaration {
   }
 
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
+
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
+      yield return a;
+    }
+    if (this.HasUserAttribute("only", out _)) {
+      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+    }
+  }
+
+  public void RecursiveCallParameters(IToken tok, List<TypeParameter> typeParams, List<Formal> ins,
+    Expression receiverSubst, Dictionary<IVariable, Expression> substMap,
+    out Expression receiver, out List<Expression> arguments) {
+    Contract.Requires(tok != null);
+    Contract.Requires(this != null);
+    Contract.Requires(EnclosingClass is TopLevelDeclWithMembers);
+    Contract.Requires(typeParams != null);
+    Contract.Requires(ins != null);
+    // receiverSubst is allowed to be null
+    Contract.Requires(substMap != null);
+    Contract.Ensures(Contract.ValueAtReturn(out receiver) != null);
+    Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
+
+    if (IsStatic) {
+      receiver = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)EnclosingClass, true); // this also resolves it
+    } else if (receiverSubst != null) {
+      receiver = receiverSubst;
+    } else {
+      receiver = new ImplicitThisExpr(tok);
+      receiver.Type = ModuleResolver.GetReceiverType(tok, this);  // resolve here
+    }
+
+    arguments = new List<Expression>();
+    foreach (var inFormal in ins) {
+      Expression inE;
+      if (substMap.TryGetValue(inFormal, out inE)) {
+        arguments.Add(inE);
+      } else {
+        var ie = new IdentifierExpr(inFormal.tok, inFormal.Name);
+        ie.Var = inFormal;  // resolve here
+        ie.Type = inFormal.Type;  // resolve here
+        arguments.Add(ie);
+      }
+    }
+  }
 }

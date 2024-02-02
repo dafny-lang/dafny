@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ public class JavaBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
   public override string TargetName => "Java";
+  public override bool IsStable => true;
   public override string TargetExtension => "java";
 
   public override string TargetBasename(string dafnyProgramName) =>
@@ -97,7 +99,7 @@ public class JavaBackend : ExecutableBackend {
       if (Options.SpillTargetCode == 0) {
         Directory.Delete(targetDirectory, true);
       } else {
-        classFiles.ForEach(f => File.Delete(f));
+        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
       }
     }
 

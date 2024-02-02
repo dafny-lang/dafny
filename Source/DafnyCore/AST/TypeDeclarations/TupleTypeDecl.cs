@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -35,9 +34,12 @@ public class TupleTypeDecl : IndDatatypeDecl {
   }
 
   private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(BuiltIns.TupleTypeName(argumentGhostness)), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
+    : base(RangeToken.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
+      CreateConstructors(typeArgs, argumentGhostness),
+      new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
+    Contract.Assert(Ctors.Count == 1);
     ArgumentGhostness = argumentGhostness;
     foreach (var ctor in Ctors) {
       ctor.EnclosingDatatype = this;  // resolve here
@@ -48,6 +50,9 @@ public class TupleTypeDecl : IndDatatypeDecl {
       }
     }
     this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
+
+    // Resolve parent type information - not currently possible for tuples to have any parent traits
+    ParentTypeInformation = new InheritanceInformationClass();
   }
   private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
     Contract.Requires(0 <= dims);
@@ -59,6 +64,10 @@ public class TupleTypeDecl : IndDatatypeDecl {
     }
     return ts;
   }
+
+  /// <summary>
+  /// Creates the one and only constructor of the tuple type.
+  /// </summary>
   private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
     Contract.Requires(typeArgs != null);
     var formals = new List<Formal>();
@@ -77,13 +86,13 @@ public class TupleTypeDecl : IndDatatypeDecl {
       var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null, nameForCompilation: compileName);
       formals.Add(f);
     }
-    string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
+    string ctorName = SystemModuleManager.TupleTypeCtorName(typeArgs.Count);
     var ctor = new DatatypeCtor(RangeToken.NoToken, new Name(ctorName), false, formals, null);
     return new List<DatatypeCtor>() { ctor };
   }
 
   public override string SanitizedName =>
-    sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
+    sanitizedName ??= $"Tuple{SystemModuleManager.ArgumentGhostnessToString(ArgumentGhostness)}";
 
   public override string GetCompileName(DafnyOptions options) => NonGhostTupleTypeDecl?.GetCompileName(options) ?? $"Tuple{NonGhostDims}";
 }

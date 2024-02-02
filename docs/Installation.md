@@ -55,7 +55,6 @@ and any user code in one project.
 
 - Dafny targeting Javascript produces Javascript source consistent with Node.js v 16.0.0
 
-
 ### Python
 
 - Dafny targeting Python produces targets Python 3.7 source.
@@ -66,6 +65,10 @@ with the user's choice of python tool (that compiles at least 3.7).
 ### Go
 
 - Dafny targeting Go produces Go source content consistent with Go 1.18.
+
+### Rust
+
+- Partial and growing support
 
 ### C++
 
@@ -140,16 +143,18 @@ After the compiler dependencies are installed, you can run a quick test of the i
 
 ## Mac (Binary) {#Mac-binary}
 
-To install a binary installation of dafny on Mac OS, do one of the following:
-Either
+To install a binary installation of Dafny on macOS, do one of the following:
+
+Either  
    * Install the Mac binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
-   * Unzip the downloaded file in a (empty) location of your choice ($INSTALL)
-   * cd into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
-   * dafny is run with the command `$INSTALL/dafny/dafny`
+   * Unzip the downloaded file in a (empty) location of your choice (`$INSTALL`)
+   * `cd` into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
+   * Dafny is run with the command `$INSTALL/dafny/dafny`
+
 or
-   * install dafny using brew, with the command `brew install dafny` (the version on brew sometimes lags the
+   * Install Dafny using brew, with the command `brew install dafny` (the version on brew sometimes lags the
      project release page)
-   * run dafny with the command `dafny`
+   * Run Dafny with the command `dafny`
 
 If you intend to use the Dafny compiler, install the appropriate tools as described [here](#compiling-dafny).
 
@@ -205,7 +210,9 @@ To set up Dafny to compile to Go:
 * Install Go from [https://golang.org/dl](https://golang.org/dl) or
    * Linux: `sudo apt install golang`
    * Mac: `brew install golang`
-* Make sure `go` is on your path
+* Install `goimports` from [https://pkg.go.dev/golang.org/x/tools/cmd/goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+   * `go install golang.org/x/tools/cmd/goimports@latest`
+* Make sure `go` and `goimports` are on your path
 
 To separately compile and run your program for Go:
 - `dafny build --target:go MyProgram.dfy`
@@ -234,4 +241,9 @@ To setup Dafny to compile to python3:
 
 To separately compile and run your program for Python:
 - `dafny build -t:py MyProgram.dfy`
-- `python3 MyProgram-py/MyProgram.py
+- `python3 MyProgram-py/MyProgram.py`
+
+### Rust
+
+To setup Dafny to compile to Rust:
+* Install Rust from https://rustup.rs/

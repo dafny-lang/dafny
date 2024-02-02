@@ -1,36 +1,39 @@
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class TextReplacementTest : SynchronizationTestBase {
+  public class TextReplacementTest {
     [Fact]
-    public async Task ReplaceSingleLineTextAtStart() {
+    public void ReplaceSingleLineTextAtStart() {
       var source = @"
 function GetConstant(): int {
   1
 }".TrimStart();
       var change = "function GetIt():int";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 0), (0, 27)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
       var expected = @"
 function GetIt():int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+
+      var range = new Range((0, 0), (0, 27));
+      AssertCorrectBufferUpdate(source, range, change, expected);
+    }
+
+    private static void AssertCorrectBufferUpdate(string source, Range range, string change, string expected) {
+      var buffer = new TextBuffer(source);
+
+      buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
+        Range = range,
+        RangeLength = range.End.Character,
+        Text = change
+      });
+      Assert.Equal(expected, buffer.Text);
     }
 
     [Fact]
-    public async Task ReplaceMultiLineTextAtStart() {
+    public void ReplaceMultiLineTextAtStart() {
       var source = @"
 function GetConstant(): int {
   1
@@ -38,48 +41,33 @@ function GetConstant(): int {
       var change = @"function Get21(): int
 {
   2";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 0), (1, 2)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+
+      var range = new Range((0, 0), (1, 2));
       var expected = @"
 function Get21(): int
 {
   21
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task ReplaceSingleLineTextAtEnd() {
+    public void ReplaceSingleLineTextAtEnd() {
       var source = @"
 function GetConstant(): int {
   1
 }".TrimStart();
       var change = "/* test */ }";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((2, 0), (2, 1)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((2, 0), (2, 1));
       var expected = @"
 function GetConstant(): int {
   1
 /* test */ }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task ReplaceMultiLineTextAtEnd() {
+    public void ReplaceMultiLineTextAtEnd() {
       var source = @"
 function GetConstant(): int {
   1
@@ -87,24 +75,16 @@ function GetConstant(): int {
       var change = @"
 23
 /* test */ }".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((1, 2), (2, 1)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((1, 2), (2, 1));
       var expected = @"
 function GetConstant(): int {
   23
 /* test */ }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task ReplaceMultiLineTextInTheMiddle() {
+    public void ReplaceMultiLineTextInTheMiddle() {
       var source = @"
 class Test {
     var x: int;
@@ -133,15 +113,7 @@ method GetXY() returns (x: int, y: int)
     {
         x := this.x;
         y := ".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((10, 4), (13, 17)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((10, 4), (13, 17));
       var expected = @"
 class Test {
     var x: int;
@@ -165,34 +137,26 @@ class Test {
         this.y
     }
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task ReplaceSingleLineTextInTheMiddleOfALine() {
+    public void ReplaceSingleLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
   1
 }".TrimStart();
       var change = "Another";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 12), (0, 20)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 12), (0, 20));
       var expected = @"
 function GetAnother(): int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task ReplaceMultiLineTextInTheMiddleOfALine() {
+    public void ReplaceMultiLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
   1
@@ -202,15 +166,7 @@ function GetConstant(): int {
 }
 
 function Some";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 9), (0, 20)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 9), (0, 20));
       var expected = @"
 function It(): string {
   ""test""
@@ -219,42 +175,19 @@ function It(): string {
 function Some(): int {
   1
 }".TrimStart();
-      Assert.Equal(expected, document.TextDocumentItem.Text);
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
 
     [Fact]
-    public async Task RemoveCompleteDocumentContent() {
+    public void RemoveCompleteDocumentContent() {
       var source = @"
 function GetConstant(): int {
   1
 }".TrimStart();
       var change = "";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(
-        documentItem,
-        new Range((0, 0), (2, 1)),
-        change
-      );
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
+      var range = new Range((0, 0), (2, 1));
       var expected = "";
-      Assert.Equal(expected, document.TextDocumentItem.Text);
-    }
-
-    [Fact]
-    public async Task ReplaceCompleteDocumentContent() {
-      var source = "ghost function GetConstant(): int { 1 }";
-      var change = "function ReturnSame(x: int): int { x }";
-      var documentItem = CreateTestDocument(source);
-      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);
-      var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.Equal(change, document.TextDocumentItem.Text);
-    }
-
-    public TextReplacementTest(ITestOutputHelper output) : base(output) {
+      AssertCorrectBufferUpdate(source, range, change, expected);
     }
   }
 }

@@ -6,11 +6,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public ValuetypeDecl Declaration { get; }
     public INode Node => Declaration;
 
-    public IList<ISymbol> Members { get; } = new List<ISymbol>();
+    public IList<ILegacySymbol> Members { get; } = new List<ILegacySymbol>();
 
-    public override IEnumerable<ISymbol> Children => Members;
+    public override IEnumerable<ILegacySymbol> Children => Members;
 
-    public ValueTypeSymbol(ISymbol? scope, ValuetypeDecl valueTypeDeclaration) : base(scope, valueTypeDeclaration.Name) {
+    public ValueTypeSymbol(ILegacySymbol? scope, ValuetypeDecl valueTypeDeclaration) : base(scope, valueTypeDeclaration.Name) {
       Declaration = valueTypeDeclaration;
     }
 

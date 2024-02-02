@@ -7,11 +7,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public partial class Resolver {
+  public partial class ModuleResolver {
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      private readonly ModuleResolver resolver;
+
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
         readonly bool inLambdaExpression;
@@ -53,10 +54,10 @@ namespace Microsoft.Dafny {
         ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
       }
 
-      private readonly ErrorReporter reporter;
+      private ErrorReporter Reporter => resolver.Reporter;
 
-      public BoundsDiscoveryVisitor(ErrorReporter reporter) {
-        this.reporter = reporter;
+      public BoundsDiscoveryVisitor(ModuleResolver resolver) {
+        this.resolver = resolver;
       }
 
       public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
@@ -67,7 +68,7 @@ namespace Microsoft.Dafny {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
           if (forallStmt.Body == null) {
-            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
           }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
@@ -79,7 +80,7 @@ namespace Microsoft.Dafny {
             assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
-          oneBodyLoopStmt.ComputeBodySurrogate(reporter);
+          oneBodyLoopStmt.ComputeBodySurrogate(Reporter);
         }
 
         return base.VisitOneStatement(stmt, context);
@@ -146,7 +147,7 @@ namespace Microsoft.Dafny {
           boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
           i++;
         }
-        var objVar = new BoundVar(e.tok, "_obj", elementType);
+        var objVar = new BoundVar(e.tok, "_obj", elementType.NormalizeExpand());
         var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
@@ -168,7 +169,7 @@ namespace Microsoft.Dafny {
 
       protected override void VisitExpression(Expression expr, BoundsDiscoveryContext context) {
         if (expr is LambdaExpr lambdaExpr) {
-          lambdaExpr.Reads.Iter(DesugarFunctionsInFrameClause);
+          lambdaExpr.Reads.Expressions.ForEach(DesugarFunctionsInFrameClause);
 
           // Make the context more specific when visiting inside a lambda expression
           context = new BoundsDiscoveryContext(context, lambdaExpr);
@@ -205,7 +206,7 @@ namespace Microsoft.Dafny {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
                 message += " (see documentation for 'older' parameters)";
-                reporter.Error(MessageSource.Resolver, e, message);
+                Reporter.Error(MessageSource.Resolver, e, message);
               }
             }
 
@@ -218,7 +219,7 @@ namespace Microsoft.Dafny {
               } else {
                 // we cannot be sure that the set/map really is finite
                 foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                  reporter.Error(MessageSource.Resolver, e,
+                  Reporter.Error(MessageSource.Resolver, e,
                     "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
                     e.WhatKind, bv.Name);
                 }
@@ -302,7 +303,7 @@ namespace Microsoft.Dafny {
       // Note, in the following loop, it's important to go backwards, because DiscoverAllBounds_Aux_SingleVar assumes "knownBounds" has been
       // filled in for higher-indexed variables.
       for (var j = bvars.Count; 0 <= --j;) {
-        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
+        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds, out _);
         knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds);
 #if DEBUG_PRINT
         if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
@@ -320,9 +321,11 @@ namespace Microsoft.Dafny {
       return knownBounds;
     }
 
-    public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
+    public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
+      out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, new List<ComprehensionExpr.BoundedPool>() { null });
+      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true,
+        new List<ComprehensionExpr.BoundedPool>() { null }, out constraintConsistsSolelyOfRangeConstraints);
     }
 
     /// <summary>
@@ -330,7 +333,7 @@ namespace Microsoft.Dafny {
     /// that is not bounded.
     /// </summary>
     private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_SingleVar<VT>(List<VT> bvars, int j, Expression expr,
-      bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds) where VT : IVariable {
+      bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds, out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(0 <= j && j < bvars.Count);
       Contract.Requires(expr != null);
@@ -353,7 +356,14 @@ namespace Microsoft.Dafny {
       }
 
       // Go through the conjuncts of the range expression to look for bounds.
+      // Only very specific conjuncts qualify for "constraintConsistsSolelyOfRangeConstraints". To make the bookkeeping
+      // of these simple, we count the total number of conjuncts and the number of qualifying conjuncts. Then, after the
+      // loop, we can compare these.
+      var totalNumberOfConjuncts = 0;
+      var conjunctsQualifyingAsRangeConstraints = 0;
       foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
+        totalNumberOfConjuncts++;
+
         if (conjunct is IdentifierExpr) {
           var ide = (IdentifierExpr)conjunct;
           if (ide.Var == (IVariable)bv) {
@@ -425,6 +435,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.SeqEq:
           case BinaryExpr.ResolvedOpcode.MultiSetEq:
           case BinaryExpr.ResolvedOpcode.MapEq:
+            conjunctsQualifyingAsRangeConstraints++;
             var otherOperand = whereIsBv == 0 ? e1 : e0;
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(otherOperand));
             break;
@@ -434,6 +445,7 @@ namespace Microsoft.Dafny {
             throw new cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
           case BinaryExpr.ResolvedOpcode.Lt:
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+              conjunctsQualifyingAsRangeConstraints++;
               if (whereIsBv == 0) {
                 // bv < E
                 bounds.Add(new ComprehensionExpr.IntBoundedPool(null, e1));
@@ -444,6 +456,7 @@ namespace Microsoft.Dafny {
             }
             break;
           case BinaryExpr.ResolvedOpcode.Le:
+            conjunctsQualifyingAsRangeConstraints++;
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               if (whereIsBv == 0) {
                 // bv <= E
@@ -468,6 +481,7 @@ namespace Microsoft.Dafny {
             break;
         }
       }
+      constraintConsistsSolelyOfRangeConstraints = conjunctsQualifyingAsRangeConstraints == totalNumberOfConjuncts;
       return bounds;
     }
 
@@ -479,7 +493,7 @@ namespace Microsoft.Dafny {
 
       var formals = fce.Function.Formals;
       Contract.Assert(formals.Count == fce.Args.Count);
-      if (LinqExtender.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
+      if (Enumerable.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
         bounds.Add(new ComprehensionExpr.OlderBoundedPool());
         return;
       }
@@ -761,16 +775,15 @@ namespace Microsoft.Dafny {
       var fvThatSide = FreeVariables(thatSide);
       for (int j = boundVars.Count; bvi + 1 <= --j;) {
         if (fvThatSide.Contains(boundVars[j])) {
-          if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
-            var jBounds = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
+          if (knownBounds[j] is ComprehensionExpr.IntBoundedPool jBounds) {
             Expression u = null;
-            if (op == BinaryExpr.ResolvedOpcode.Lt || op == BinaryExpr.ResolvedOpcode.Le) {
+            if (op is BinaryExpr.ResolvedOpcode.Lt or BinaryExpr.ResolvedOpcode.Le) {
               u = whereIsBv == 0 ? jBounds.UpperBound : jBounds.LowerBound;
             } else if (op == BinaryExpr.ResolvedOpcode.Gt || op == BinaryExpr.ResolvedOpcode.Ge) {
               u = whereIsBv == 0 ? jBounds.LowerBound : jBounds.UpperBound;
             }
             if (u != null && !FreeVariables(u).Contains(bv) && IsMonotonic(u, boundVars[j], true)) {
-              thatSide = Translator.Substitute(thatSide, boundVars[j], u);
+              thatSide = BoogieGenerator.Substitute(thatSide, boundVars[j], u);
               fvThatSide = FreeVariables(thatSide);
               continue;
             }

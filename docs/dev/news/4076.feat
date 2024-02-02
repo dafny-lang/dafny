@@ -1,2 +1,0 @@
-
-the obsolete and unsound option /allocated is removed; the behavior of dafny is locked to the case of /allocated:4.

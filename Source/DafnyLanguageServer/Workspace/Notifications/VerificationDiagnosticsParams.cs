@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
+using DafnyCore.Verifier;
 using MediatR;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -28,8 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public static VerificationStatusGutter ComputeFrom(
         DocumentUri uri,
-        int version,
-        VerificationTree[] verificationTrees,
+        int? version,
+        ICollection<VerificationTree> verificationTrees,
         Container<Diagnostic> resolutionErrors,
         int linesCount,
         bool verificationStarted) {
@@ -39,13 +40,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public static LineVerificationStatus[] RenderPerLineDiagnostics(
       DocumentUri uri,
-      VerificationTree[] verificationTrees,
+      ICollection<VerificationTree> verificationTrees,
       int numberOfLines,
       bool verificationStarted,
       Container<Diagnostic> parseAndResolutionErrors) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (verificationTrees.Length == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
+      if (verificationTrees.Count == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }
@@ -53,9 +54,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         return result;
       }
 
+      var oneMemberHasOnly =
+        verificationTrees.Any(tree => tree is TopLevelDeclMemberVerificationTree { MarkedAsOnly: true });
+
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
         if (verificationTree.Uri == uri) {
+          if (oneMemberHasOnly && verificationTree is TopLevelDeclMemberVerificationTree { MarkedAsOnly: false }) {
+            verificationTree.StatusCurrent = CurrentStatus.Current;
+            verificationTree.StatusVerification = GutterVerificationStatus.Skipped;
+          }
           verificationTree.RenderInto(result);
         }
       }
@@ -96,6 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public enum GutterVerificationStatus {
     Nothing = 0,
     Verified = 200,
+    Skipped = 250,
     Inconclusive = 270,
     Error = 400
   }
@@ -118,6 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
+    Skipped = 250,
     // For trees containing children with errors (e.g. functions, methods, fields, subset types)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
@@ -172,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The position of the symbol name attached to this node, or Range.Start if it's anonymous
      Position Position
   ) {
-    public string PrefixedDisplayName => Kind + " " + DisplayName;
+    public string PrefixedDisplayName => Kind + " `" + DisplayName + "`";
 
     // Overriden by checking children if there are some
     public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
@@ -187,9 +197,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DateTime EndTime { get; protected set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     // Resources allocated at the end of the computation.
-    public int ResourceCount { get; set; } = 0;
+    public long ResourceCount { get; set; } = 0;
 
-
+    public List<TrackedNodeComponent> CoveredIds { get; set; } = new();
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
@@ -278,6 +288,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       bool isFinalError, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
       LineVerificationStatus simpleStatus = verificationStatus switch {
+        GutterVerificationStatus.Skipped => LineVerificationStatus.Skipped, // Always current
         GutterVerificationStatus.Nothing => LineVerificationStatus.Nothing,
         // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
         // because there might be other errors on the same range.
@@ -299,7 +310,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
       };
-      return (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
+      return
+        simpleStatus == LineVerificationStatus.Skipped ? simpleStatus :
+          (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
     }
 
     protected virtual bool IsFinalError => false;
@@ -339,25 +352,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
     }
 
-    // If the verification never starts on this node, it means there is nothing to verify about it.
-    // Returns true if a status was updated
-    public bool SetVerifiedIfPending() {
-      if (StatusCurrent == CurrentStatus.Obsolete) {
-        StatusCurrent = CurrentStatus.Current;
-        StatusVerification = GutterVerificationStatus.Verified;
-        foreach (var child in Children) {
-          child.SetVerifiedIfPending();
-        }
-        return true;
-      }
-
-      return false;
-    }
-
     public virtual VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -365,14 +360,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record DocumentVerificationTree(
-    DocumentTextBuffer TextDocumentItem
-  ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
-    TextDocumentItem.Uri.ToUri(),
-    LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
+    INode Program,
+    Uri Uri)
+    : VerificationTree("Document", Uri.ToString(), Uri.ToString(), Uri.ToString(), Uri, ComputeRange(Program, Uri), new Position(0, 0)) {
 
-    public static Range LinesToRange(int lines) {
-      return new Range(new Position(0, 0),
-        new Position(lines, 0));
+    private static Range ComputeRange(INode node, Uri uri) {
+      if (node is not Program program) {
+        return new Range(0, 0, -1, 0);
+      }
+      var end = program.Files.FirstOrDefault(f => f.RangeToken.Uri == uri)?.EndToken ?? Token.NoToken;
+      while (end.Next != null) {
+        end = end.Next;
+      }
+
+      var endPosition = end.GetLspPosition();
+      var endTriviaLines = end.TrailingTrivia.Split("\n");
+      endPosition = new Position(endPosition.Line + endTriviaLines.Length - 1,
+        endPosition.Character + endTriviaLines[^1].Length);
+
+      return new Range(new Position(0, 0), endPosition);
     }
   }
 
@@ -385,16 +391,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Uri Uri,
     // The range of this node.
     Range Range,
-    Position Position
+    Position Position,
+    bool MarkedAsOnly
   ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Uri, Range, Position) {
     // Recomputed from the children which are ImplementationVerificationTree
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatches = AssertionBatches
@@ -416,6 +420,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
           result[new AssertionBatchIndex(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
             $"Assertion batch #{result.Count + 1}",
+            implementationNode.VerboseName,
             $"assertion-batch-{implementationNumber}-{vcNum}",
             Filename,
             Uri,
@@ -423,6 +428,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           ) {
             Children = children,
             ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
+            CoveredIds = implementationNode.AssertionBatchMetrics[vcNum].CoveredIds,
             RelativeNumber = result.Count + 1,
           }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time);
         }
@@ -451,6 +457,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   // Invariant: There is at least 1 child for every assertion batch
   public record AssertionBatchVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
@@ -468,9 +475,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
@@ -481,11 +485,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public record AssertionBatchMetrics(
     int Time,
-    int ResourceCount
+    int ResourceCount,
+    List<TrackedNodeComponent> CoveredIds
   );
 
   public record ImplementationVerificationTree(
     string DisplayName,
+    string VerboseName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
@@ -503,9 +509,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       new Dictionary<int, AssertionBatchMetrics>();
 
     public override VerificationTree GetCopyForNotification() {
-      if (Finished) {
-        return this;// Won't be modified anymore, no need to duplicate
-      }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
         AssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>(AssertionBatchMetrics).ToImmutableDictionary()
@@ -514,8 +517,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     private Implementation? implementation = null;
 
-    public void AddAssertionBatchMetrics(int vcNum, int milliseconds, int resourceCount) {
-      NewAssertionBatchMetrics[vcNum] = new AssertionBatchMetrics(milliseconds, resourceCount);
+    public void AddAssertionBatchMetrics(int vcNum, int milliseconds, int resourceCount, List<TrackedNodeComponent> coveredIds) {
+      NewAssertionBatchMetrics[vcNum] = new AssertionBatchMetrics(milliseconds, resourceCount, coveredIds);
     }
 
     public override bool Start() {

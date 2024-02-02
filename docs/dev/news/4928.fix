@@ -1,0 +1,3 @@
+Check for correct usage of type characteristics in specifications and other places where they were missing.
+
+This fix will cause build breaks for programs with missing type characteristics (like `(!new)` and `(0)`). Any such error message is accompanied with a hint about what type characterics need to be added where.
