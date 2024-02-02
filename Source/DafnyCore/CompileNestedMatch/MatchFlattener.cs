@@ -396,8 +396,7 @@ public class MatchFlattener : IRewriter {
         }
 
         var args = new List<Expression>();
-        var literalExpr = new LiteralExpr(mti.Tok, false);
-        literalExpr.Type = Type.Bool;
+        var literalExpr = Expression.CreateBoolLiteral(mti.Tok, false);
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }

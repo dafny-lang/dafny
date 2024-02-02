@@ -70,7 +70,7 @@ public class ExpressionTester {
     Expression subexpressionsAreInsideBranchesOnlyExcept = null;
 
     if (expr is IdentifierExpr expression) {
-      if (expression.Var != null && expression.Var.IsGhost) {
+      if (expression.Var is { IsGhost: true }) {
         ReportError(ErrorId.r_ghost_var_only_in_specifications, expression,
           $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
         return false;
@@ -278,6 +278,9 @@ public class ExpressionTester {
       // don't recurse down any attributes
       if (comprehensionExpr.Range != null) {
         isCompilable = CheckIsCompilable(comprehensionExpr.Range, codeContext) && isCompilable;
+      }
+      if (comprehensionExpr is MapComprehension { TermLeft: { } termLeft }) {
+        isCompilable = CheckIsCompilable(termLeft, codeContext) && isCompilable;
       }
       isCompilable = CheckIsCompilable(comprehensionExpr.Term, codeContext) && isCompilable;
       return isCompilable;
@@ -546,10 +549,10 @@ public class ExpressionTester {
       return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
-      return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
+      return e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
     } else if (expr is MapComprehension) {
       var e = (MapComprehension)expr;
-      return !e.Finite || e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
+      return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
     } else if (expr is LambdaExpr) {
       var e = (LambdaExpr)expr;
       return UsesSpecFeatures(e.Term);
