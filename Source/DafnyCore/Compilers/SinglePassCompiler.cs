@@ -1416,14 +1416,14 @@ namespace Microsoft.Dafny.Compilers {
     ///     "TestIsRune(source) && "
     /// It is fine for the target code to repeat the mention of "source", if necessary.
     /// </summary>
-    protected virtual void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts){}
+    protected virtual void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) { }
 
     /// <summary>
     /// Emit conjuncts that test if the Dafny integer "source" is in the range lo..hi, like:
     ///     "lo <= source && source < hi && "
     /// It is fine for the target code to repeat the mention of "source", if necessary.
     /// </summary>
-    protected virtual void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts){}
+    protected virtual void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) { }
 
     protected abstract void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // used for sets, multisets, and sequences
