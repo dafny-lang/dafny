@@ -615,6 +615,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
+      var wrTarget = wr.ForkInParens();
+      wr.Write(testIsNull ? " == None" : " != None");
+      return wrTarget;
+    }
+
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       if (!member.IsStatic) {
         wr.WriteLine("_this = self");

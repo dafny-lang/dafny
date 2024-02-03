@@ -1474,6 +1474,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
+      if (!testIsNull) {
+        wr.Write("!");
+      }
+      wr.Write("_dafny.IsDafnyNull");
+      return wr.ForkInParens();
+    }
+
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       wr.WriteLine("goto TAIL_CALL_START");
       wr.WriteLine("TAIL_CALL_START:");
@@ -1826,7 +1834,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    void EmitDummyVariableUse(string variableName, ConcreteSyntaxTree wr) {
+    protected override void EmitDummyVariableUse(string variableName, ConcreteSyntaxTree wr) {
       Contract.Requires(variableName != null);
       Contract.Requires(wr != null);
 

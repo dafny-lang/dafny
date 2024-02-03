@@ -316,6 +316,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
+      var wrTarget = wr.ForkInParens();
+      wr.Write(testIsNull ? " == null" : " != null");
+      return wrTarget;
+    }
+
     /// <summary>
     /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
     /// for tail calls (see EmitJumpToTailCallStart).
@@ -397,6 +403,10 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type ?? rhs.Type, tok, wr);
       EmitExpr(rhs, inLetExprBody, w, wStmts);
+    }
+
+    protected virtual void EmitDummyVariableUse(string variableName, ConcreteSyntaxTree wr) {
+      // by default, do nothing
     }
 
     /// <summary>
