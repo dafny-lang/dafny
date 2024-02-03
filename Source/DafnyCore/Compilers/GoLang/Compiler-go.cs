@@ -1021,8 +1021,8 @@ namespace Microsoft.Dafny.Compilers {
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       // RTD
       {
-        CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
         var d = TypeInitializationValue(udt, wr, nt.tok, false, true);
+        CreateRTD(IdName(nt), nt.TypeArgs, out var wDefaultBody, wr);
         wDefaultBody.WriteLine("return {0}", d);
       }
 
@@ -1051,12 +1051,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void CreateRTD(string typeName, List<TypeParameter>/*?*/ usedParams, out ConcreteSyntaxTree wDefaultBody, ConcreteSyntaxTree wr) {
+    private void CreateRTD(string typeName, List<TypeParameter> usedParams, out ConcreteSyntaxTree wDefaultBody, ConcreteSyntaxTree wr) {
       Contract.Requires(typeName != null);
+      Contract.Requires(usedParams != null);
       Contract.Requires(wr != null);
       Contract.Ensures(Contract.ValueAtReturn(out wDefaultBody) != null);
-
-      usedParams ??= new List<TypeParameter>();
 
       wr.WriteLine();
       wr.Write($"func {FormatRTDName(typeName)}(");
