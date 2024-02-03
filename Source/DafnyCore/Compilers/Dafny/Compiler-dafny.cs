@@ -1272,7 +1272,8 @@ namespace Microsoft.Dafny.Compilers {
       throw new InvalidOperationException();
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       throwGeneralUnsupported();
       throw new InvalidOperationException();
     }
@@ -2071,7 +2072,7 @@ namespace Microsoft.Dafny.Compilers {
         coerceE1 = false;
 
         opString = op switch {
-          BinaryExpr.ResolvedOpcode.Iff => "<==>",
+          BinaryExpr.ResolvedOpcode.Iff => "==",
           BinaryExpr.ResolvedOpcode.And => "&&",
           BinaryExpr.ResolvedOpcode.Or => "||",
           BinaryExpr.ResolvedOpcode.BitwiseAnd => "&",
