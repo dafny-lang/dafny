@@ -2072,7 +2072,7 @@ namespace Microsoft.Dafny.Compilers {
         coerceE1 = false;
 
         opString = op switch {
-          BinaryExpr.ResolvedOpcode.Iff => "==",
+          BinaryExpr.ResolvedOpcode.Iff => "<==>",
           BinaryExpr.ResolvedOpcode.And => "&&",
           BinaryExpr.ResolvedOpcode.Or => "||",
           BinaryExpr.ResolvedOpcode.BitwiseAnd => "&",
