@@ -3614,6 +3614,29 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(".IsInteger() && ");
+    }
+
+    protected override void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      wr.Write("_dafny.IsCodePoint");
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(" && ");
+    }
+
+    protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
+      wr.Write(".Cmp(");
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(") <= 0 && ");
+
+      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      wr.Write(".Cmp(");
+      EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
+      wr.Write(") < 0 && ");
+    }
+
     private static bool EqualsUpToParameters(Type type1, Type type2) {
       // TODO Consider whether Type.SameHead should return true in this case
       return Type.SameHead(type1, type2) || (type1.IsArrayType && type1.IsArrayType);
