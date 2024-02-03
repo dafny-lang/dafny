@@ -975,8 +975,7 @@ namespace Microsoft.Dafny.Compilers {
       {
         var usedOrAutoInitTypeParams = UsedTypeParameters(dt, true);
         CreateRTD(name, usedOrAutoInitTypeParams, out var wDefault, wr);
-
-        WriteRuntimeTypeDescriptorsLocals(usedOrAutoInitTypeParams, true, wDefault);
+        WriteRuntimeTypeDescriptorsLocals(usedOrAutoInitTypeParams, wDefault);
 
         var usedTypeParams = UsedTypeParameters(dt);
         var sep = typeDescriptorUses.Length != 0 && usedTypeParams.Count != 0 ? ", " : "";
@@ -1353,15 +1352,13 @@ namespace Microsoft.Dafny.Compilers {
       return count;
     }
 
-    void WriteRuntimeTypeDescriptorsLocals(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree wr) {
+    void WriteRuntimeTypeDescriptorsLocals(List<TypeParameter> typeParams, ConcreteSyntaxTree wr) {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
-          wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.GetCompileName(Options)));
-          EmitDummyVariableUse(FormatRTDName(tp.GetCompileName(Options)), wr);
-        }
+        wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.GetCompileName(Options)));
+        EmitDummyVariableUse(FormatRTDName(tp.GetCompileName(Options)), wr);
       }
     }
 
