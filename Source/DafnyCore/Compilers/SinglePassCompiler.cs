@@ -5380,7 +5380,7 @@ namespace Microsoft.Dafny.Compilers {
             out var coerceE1,
             wr);
 
-          if (truncateResult && e.Type.AsBitVectorType is {} bitvectorType) {
+          if (truncateResult && e.Type.AsBitVectorType is { } bitvectorType) {
             wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
