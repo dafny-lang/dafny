@@ -1,5 +1,5 @@
-// RUN: ! %verify "%s" --disable-nonlinear-arithmetic --resource-limit 1000 > "%t"
-// RUN: ! %verify "%s" --resource-limit 1000 >> "%t"
+// RUN: ! %verify "%s" --disable-nonlinear-arithmetic --resource-limit 1e6 > "%t"
+// RUN: ! %verify "%s" --resource-limit 1e6 >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Power0 {
@@ -28,7 +28,7 @@ module Power0 {
 
 }
 
-module {:disable_nonlinear_arithmetic} Power1 {
+module {:disableNonlinearArithmetic} Power1 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e
@@ -53,7 +53,7 @@ module {:disable_nonlinear_arithmetic} Power1 {
   }
 
 }
-module {:disable_nonlinear_arithmetic true} Power2 {
+module {:disableNonlinearArithmetic true} Power2 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e
@@ -78,7 +78,7 @@ module {:disable_nonlinear_arithmetic true} Power2 {
   }
 
 }
-module {:disable_nonlinear_arithmetic false} Power3 {
+module {:disableNonlinearArithmetic false} Power3 {
 
   opaque function Pow(b: int, e: nat): int
     decreases e

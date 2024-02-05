@@ -105,6 +105,10 @@ Usage: dafny [ option ... ] [ filename ... ]
       `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
       `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
 
+  /generalNewtypes:<value>
+      0 (default) - A newtype can only be based on numeric types or another newtype.
+      1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.
+
   /generalTraits:<value>
       legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
       datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
@@ -338,10 +342,7 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /extractCounterexample
       If verification fails, report a detailed counterexample for the
-      first failing assertion. Requires specifying the /mv:<file> option as well
-      as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-      /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-      /proverOpt:O:model.completion=true.
+      first failing assertion (experimental).
   
   ---- Compilation options ---------------------------------------------------
   
@@ -380,6 +381,16 @@ Usage: dafny [ option ... ] [ filename ... ]
   /out:<file>
       Specify the filename and location for the generated target language files.
 
+  /runAllTests:<n>
+      0 (default) - Annotates compiled methods with the {:test}
+              attribute such that they can be tested using a testing framework
+              in the target language (e.g. xUnit for C#).
+          1 - Emits a main method in the target language that will execute
+              every method in the program with the {:test} attribute. Cannot
+              be used if the program already contains a main method. Note that
+              /compile:3 or 4 must be provided as well to actually execute
+              this main method!
+
   /compile:<n>
       0 - Do not compile Dafny program.
       1 (default) - Upon successful verification of the Dafny program,
@@ -400,15 +411,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       When running a Dafny file through /compile:3 or /compile:4, '--args' provides
       all arguments after it to the Main function, at index starting at 1.
       Index 0 is used to store the executable's name if it exists.
-  /runAllTests:<n> (experimental)
-      0 (default) - Annotates compiled methods with the {:test}
-          attribute such that they can be tested using a testing framework
-          in the target language (e.g. xUnit for C#).
-      1 - Emits a main method in the target language that will execute
-          every method in the program with the {:test} attribute. Cannot
-          be used if the program already contains a main method. Note that
-          /compile:3 or 4 must be provided as well to actually execute
-          this main method!
   
   /compileVerbose:<n>
       0 - Don't print status of compilation to the console.

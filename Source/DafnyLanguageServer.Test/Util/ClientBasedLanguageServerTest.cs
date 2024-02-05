@@ -69,9 +69,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
-    if (expected != null && errorTests.Matches(expected).Count >= 2) {
-      Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
-    }
     var hover = await RequestHover(documentItem, hoverPosition);
     if (expected == null) {
       Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
@@ -208,13 +205,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
+    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
     await Task.Delay(10);
     try {
       var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
       diagnosticsReceiver.ClearQueue();
       return result;
     } catch (InvalidOperationException) {
-      await output.WriteLineAsync("GetLastDiagnosticsParams status was: " + status.Stringify());
       await output.WriteLineAsync(
         $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
       var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -424,5 +421,23 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     return documentItem;
+  }
+
+  /// <summary>
+  /// Given <paramref name="source"/> with N positions, for each K from 0 to N exclusive,
+  /// assert that a RequestDefinition at position K
+  /// returns either the Kth range, or the range with key K (as a string).
+  /// </summary>
+  protected async Task AssertPositionsLineUpWithRanges(string source, string filePath = null) {
+    MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+      out var positions, out var ranges);
+
+    var documentItem = await CreateOpenAndWaitForResolve(cleanSource, filePath);
+    for (var index = 0; index < positions.Count; index++) {
+      var position = positions[index];
+      var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+      var result = (await RequestDefinition(documentItem, position)).Single();
+      Assert.Equal(range, result.Location!.Range);
+    }
   }
 }

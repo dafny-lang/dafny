@@ -18,12 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
     private readonly IFileSystem fileSystem;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
     private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly ProgramParser programParser;
 
-    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
+    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, TelemetryPublisherBase telemetryPublisher,
       ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
       this.options = options;
       this.fileSystem = fileSystem;
@@ -39,20 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var beforeParsing = DateTime.Now;
       try {
-        var rootFiles = compilation.RootFiles!;
-        List<DafnyFile> dafnyFiles = new();
-        foreach (var rootFile in rootFiles) {
-          try {
-            dafnyFiles.Add(rootFile);
-            if (logger.IsEnabled(LogLevel.Trace)) {
-              logger.LogTrace($"Parsing file with uri {rootFile.Uri} and content\n{rootFile.GetContent().ReadToEnd()}");
-            }
-          } catch (IOException) {
-            logger.LogError($"Tried to parse file {rootFile} that could not be found");
-          }
-        }
-
-        return programParser.ParseFiles(compilation.Project.ProjectName, dafnyFiles, compilation.Reporter, cancellationToken);
+        return programParser.ParseFiles(compilation.Project.ProjectName, compilation.RootFiles, compilation.Reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);

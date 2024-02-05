@@ -191,7 +191,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public void PrintProgramLargeStack(Program prog, bool afterResolver) {
+#pragma warning disable VSTHRD002
       DafnyMain.LargeStackFactory.StartNew(() => PrintProgram(prog, afterResolver)).Wait();
+#pragma warning restore VSTHRD002
     }
 
     public void PrintProgram(Program prog, bool afterResolver) {
@@ -583,7 +585,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("{0} ", module.Name);
       if (module.Implements != null) {
-        wr.Write("refines {0} ", module.Implements.Target);
+        var kindString = module.Implements.Kind switch {
+          ImplementationKind.Refinement => "refines",
+          ImplementationKind.Replacement => "replaces",
+          _ => throw new ArgumentOutOfRangeException()
+        };
+        wr.Write($"{kindString} {module.Implements.Target} ");
       }
       if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
@@ -2690,6 +2697,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("var ");
           PrintCasePattern(e.Lhs);
           wr.Write(" :- ");
+        } else {
+          wr.Write(":- ");
         }
         PrintExpression(e.Rhs, true);
         wr.Write("; ");

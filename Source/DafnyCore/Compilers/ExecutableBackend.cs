@@ -30,26 +30,25 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-    InstantiateReplaceableModules(dafnyProgram);
+    CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
     Compiler.Compile(dafnyProgram, output);
   }
 
-  protected void InstantiateReplaceableModules(Program dafnyProgram) {
-    foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
+  protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
-        var target = compiledModule.Implements.Target.Def;
-        if (target.Replacement != null) {
-          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok, "Other replacing module:"),
-            "a replaceable module may only be replaced once");
-        } else {
-          target.Replacement = compiledModule.Replacement ?? compiledModule;
+        if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            "inside a module that replaces another, {:extern} attributes may only be used without arguments");
         }
       }
 
       if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
-        Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
-          $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        }
       }
     }
   }
@@ -90,9 +89,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override void OnPostCompile() {
-    base.OnPostCompile();
+  public override bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     Compiler.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
@@ -136,7 +135,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
 
+#pragma warning disable VSTHRD002
     errorProcessing.Wait();
+#pragma warning restore VSTHRD002
     return process.ExitCode;
   }
 

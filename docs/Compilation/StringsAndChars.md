@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Strings and Characters
+---
 
 # Strings and Characters
 

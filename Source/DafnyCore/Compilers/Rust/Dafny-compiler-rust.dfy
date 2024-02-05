@@ -444,17 +444,16 @@ module {:extern "DCOMP"} DCOMP {
 
     static method GenType(c: Type, inBinding: bool, inFn: bool) returns (s: string) {
       match c {
-        case Path(p, args, resolved) => {
+        case Path(p, args, resolved) =>
           s := GenPath(p);
 
           var typeArgs := GenTypeArgs(args, inBinding, inFn);
           s := s + typeArgs;
 
           match resolved {
-            case Datatype(_) => {
+            case Datatype(_) =>
               s := "::std::rc::Rc<" + s + ">";
-            }
-            case Trait(_) => {
+            case Trait(_) =>
               if p == [Ident.Ident("_System"), Ident.Ident("object")] {
                 s := "::std::rc::Rc<dyn ::std::any::Any>";
               } else {
@@ -465,56 +464,50 @@ module {:extern "DCOMP"} DCOMP {
                   s := "impl " + s + "";
                 }
               }
-            }
-            case Primitive => {}
+            case Primitive =>
           }
-        }
-        case Nullable(inner) => {
+
+        case Nullable(inner) =>
           var innerStr := GenType(inner, inBinding, inFn);
           s := "::std::option::Option<" + innerStr + ">";
-        }
-        case Tuple(types) => {
+
+        case Tuple(types) =>
           s := "(";
-          var i := 0;
-          while i < |types| {
+          for i := 0 to |types| {
             if i > 0 {
               s := s + " ";
             }
 
             var generated := GenType(types[i], inBinding, inFn);
             s := s + generated + ",";
-            i := i + 1;
           }
-
           s := s + ")";
-        }
-        case Array(element, dims) => {
+
+        case Array(element, dims) =>
           var elemStr := GenType(element, inBinding, inFn);
           s := elemStr;
-          var i := 0;
-          while i < dims {
+          for i := 0 to dims {
             s := "::std::rc::Rc<::std::cell::RefCell<::std::vec::Vec<" + s + ">>>";
-            i := i + 1;
           }
-        }
-        case Seq(element) => {
+
+        case Seq(element) =>
           var elemStr := GenType(element, inBinding, inFn);
           s := "::std::vec::Vec<" + elemStr + ">";
-        }
-        case Set(element) => {
+
+        case Set(element) =>
           var elemStr := GenType(element, inBinding, inFn);
           s := "::std::collections::HashSet<" + elemStr + ">";
-        }
-        case Multiset(element) => {
+
+        case Multiset(element) =>
           var elemStr := GenType(element, inBinding, inFn);
           s := "::std::collections::HashMap<" + elemStr + ", u64>";
-        }
-        case Map(key, value) => {
+
+        case Map(key, value) =>
           var keyStr := GenType(key, inBinding, inFn);
           var valueStr := GenType(value, inBinding, inFn);
           s := "::std::collections::HashMap<" + keyStr + ", " + valueStr + ">";
-        }
-        case Arrow(args, result) => {
+
+        case Arrow(args, result) =>
           // we cannot use impl until Rc<Fn> impls Fn
           // if inFn || inBinding {
           s := "::dafny_runtime::FunctionWrapper<::std::rc::Rc<dyn ::std::ops::Fn(";
@@ -522,27 +515,25 @@ module {:extern "DCOMP"} DCOMP {
           //   s := "::dafny_runtime::FunctionWrapper<impl ::std::ops::Fn(";
           // }
 
-          var i := 0;
-          while i < |args| {
+          for i := 0 to |args| {
             if i > 0 {
               s := s + ", ";
             }
 
             var generated := GenType(args[i], inBinding, true);
             s := s + "&" + generated;
-            i := i + 1;
           }
 
           var resultType := GenType(result, inBinding, inFn || inBinding);
 
           // if inFn || inBinding {
           s := s + ") -> " + resultType + " + 'static>>";
-          // } else {
-          //   s := s + ") -> " + resultType + " + Clone + 'static>";
-          // }
-        }
+        // } else {
+        //   s := s + ") -> " + resultType + " + Clone + 'static>";
+        // }
+
         case TypeArg(Ident(name)) => s := escapeIdent(name);
-        case Primitive(p) => {
+        case Primitive(p) =>
           match p {
             case Int => s := "::dafny_runtime::BigInt";
             case Real => s := "::dafny_runtime::BigRational";
@@ -550,7 +541,7 @@ module {:extern "DCOMP"} DCOMP {
             case Bool => s := "bool";
             case Char => s := "char";
           }
-        }
+
         case Passthrough(v) => s := v;
       }
     }

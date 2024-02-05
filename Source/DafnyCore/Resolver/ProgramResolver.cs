@@ -76,6 +76,7 @@ public class ProgramResolver {
 
     Type.DisableScopes();
 
+    InstantiateReplaceableModules(Program);
     CheckDuplicateModuleNames(Program);
 
     foreach (var rewriter in rewriters) {
@@ -136,7 +137,7 @@ public class ProgramResolver {
   }
 
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveSystemModule(Program program) {
-    var systemModuleResolver = new ModuleResolver(this);
+    var systemModuleResolver = new ModuleResolver(this, Options);
 
     SystemModuleManager.systemNameInfo = SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
@@ -170,7 +171,7 @@ public class ProgramResolver {
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var moduleResolver = new ModuleResolver(this);
+    var moduleResolver = new ModuleResolver(this, decl.Options);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 
@@ -213,6 +214,21 @@ public class ProgramResolver {
     }
   }
 
+  protected void InstantiateReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        var target = compiledModule.Implements.Target.Def;
+        if (target.Replacement != null) {
+          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok,
+              $"other replacing module"),
+            "a replaceable module may only be replaced once");
+        } else {
+          target.Replacement = compiledModule.Replacement ?? compiledModule;
+        }
+      }
+    }
+  }
+
   public static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
     Contract.Requires(path != null);
     Contract.Requires(0 <= i && i < path.Count);
@@ -230,7 +246,7 @@ public class ProgramResolver {
       refinementTarget.Root = other;
       if (!res) {
         Reporter.Error(MessageSource.Resolver, refinementTarget.RootToken(),
-          $"module {module.Implements} named as refinement base does not exist");
+          $"module {module.Implements.Target} named as {module.Implements.Kind.ToString().ToLower()} base does not exist");
       } else {
         declarationPointers.AddOrUpdate(other, v => refinementTarget.Root = v, Util.Concat);
         if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {

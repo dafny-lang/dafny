@@ -45,7 +45,7 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }

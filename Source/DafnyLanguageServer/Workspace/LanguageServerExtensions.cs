@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
-          provider.GetRequiredService<ITelemetryPublisher>(),
+          provider.GetRequiredService<TelemetryPublisherBase>(),
           provider.GetRequiredService<IProjectDatabase>(),
           provider.GetRequiredService<CreateCompilation>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
           return new DafnyLangParser(options,
             serviceProvider.GetRequiredService<IFileSystem>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
             serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<LegacySignatureAndCompletionTable>>(),
           changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
+        .AddSingleton<TelemetryPublisherBase, LspTelemetryPublisher>();
     }
   }
 }

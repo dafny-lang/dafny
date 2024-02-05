@@ -4,14 +4,14 @@
  *******************************************************************************/
 
 module WriteBytesToFile {
-  import DafnyStdLibs.FileIO
+  import Std.FileIO
 
   method {:test} Test() {
     // TODO: extern function for the expected error prefix
     theMain("build/../build/fileioexamples", "");
   }
 
-  method {:rlimit 2000} theMain(outputDir: string, expectedErrorPrefix: string) {
+  method {:resource_limit 2000000} theMain(outputDir: string, expectedErrorPrefix: string) {
 
       // Happy paths: write files to the output dir. (The %diff LIT commands check that we wrote the correct content.)
     {

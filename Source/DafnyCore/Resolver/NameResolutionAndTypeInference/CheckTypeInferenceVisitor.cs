@@ -28,15 +28,15 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (decl is NewtypeDecl newtypeDecl) {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
-            newtypeDecl.Var.Name);
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
+            $"{newtypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
-          "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
+          $"{subsetTypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
@@ -116,7 +116,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var n = (BigInteger)e.Value;
         var absN = n < 0 ? -n : n;
         // For bitvectors, check that the magnitude fits the width
-        if (e.Type.IsBitVectorType && ModuleResolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+        if (e.Type.IsBitVectorType && ConstantFolder.MaxBv(e.Type.AsBitVectorType.Width) < absN) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal

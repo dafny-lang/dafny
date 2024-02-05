@@ -4,10 +4,11 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
+public record PrefixNameModule(DafnyOptions Options, IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public enum ModuleKindEnum {
   Concrete,
@@ -61,8 +62,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
-  public readonly Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  public Attributes Attributes { get; set; }
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
@@ -79,7 +79,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public CallRedirector CallRedirector { get; set; }
 
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
+  public IEnumerable<TopLevelDecl> TopLevelDecls => DefaultClasses.
         Concat(SourceDecls).
         Concat(ResolvedPrefixNamedModules);
 
@@ -103,31 +103,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 
-  /// <summary>
-  /// The following class stores the relative name of any declaration that is reachable from this module
-  /// as a list of NameSegments, along with a flag for whether the Declaration is revealed or merely provided.
-  /// For example, if "A" is a module, a function "A.f()" will be stored in the AccessibleMembers dictionary as
-  /// the declaration "f" pointing to an AccessibleMember whose AccessPath list contains the NameSegments "A" and "_default".
-  /// </summary>
-  public class AccessibleMember {
-    public List<NameSegment> AccessPath;
-    public bool IsRevealed;
-
-    public AccessibleMember(List<NameSegment> accessPath, bool isRevealed = true) {
-      AccessPath = accessPath;
-      IsRevealed = isRevealed;
-    }
-
-    public AccessibleMember(bool isRevealed = true) {
-      AccessPath = new List<NameSegment>();
-      IsRevealed = isRevealed;
-    }
-
-    public AccessibleMember Clone() {
-      return new AccessibleMember(AccessPath.ToList(), IsRevealed);
-    }
-  }
-
   [FilledInDuringResolution]
   public Dictionary<Declaration, AccessibleMember> AccessibleMembers = new();
 
@@ -144,7 +119,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
     NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
-
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     ModuleKind = original.ModuleKind;
@@ -231,8 +205,8 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       return compileName;
     }
 
-    if (Replacement != null) {
-      return Replacement.GetCompileName(options);
+    if (Implements is { Kind: ImplementationKind.Replacement }) {
+      return Implements.Target.Def.GetCompileName(options);
     }
 
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
@@ -649,7 +623,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
       // Use an empty cloneId because these are empty module declarations.
       var cloneId = Guid.Empty;
-      var subDecl = new LiteralModuleDecl(modDef, this, cloneId);
+      var subDecl = new LiteralModuleDecl(prefixNameModule.Options, modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subDecl);
       // only set the range on the last submodule of the chain, since the others can be part of multiple files
       ProcessPrefixNamedModules(prefixNamedModules.ConvertAll(ShortenPrefix), subDecl);
@@ -663,7 +637,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         if (prefixModule.Parts.Count == 0) {
           // change the parent, now that we have found the right parent module for the prefix-named module
           prefixModule.Module.ModuleDef.EnclosingModule = subDecl.ModuleDef;
-          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, subDecl.ModuleDef,
+          var sm = new LiteralModuleDecl(prefixModule.Options, prefixModule.Module.ModuleDef, subDecl.ModuleDef,
             prefixModule.Module.CloneId);
           subDecl.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
@@ -713,6 +687,22 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     Contract.Requires(prefixNameModule.Parts.Count != 0);
     var rest = prefixNameModule.Parts.Skip(1).ToList();
     return prefixNameModule with { Parts = rest };
+  }
+
+  private static readonly List<(string, string)> incompatibleAttributePairs =
+    new() {
+      ("rlimit", "resource_limit")
+    };
+
+  private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes attrs) {
+    foreach (var pair in incompatibleAttributePairs) {
+      var attr1 = Attributes.Find(attrs, pair.Item1);
+      var attr2 = Attributes.Find(attrs, pair.Item2);
+      if (attr1 is not null && attr2 is not null) {
+        resolver.reporter.Error(MessageSource.Resolver, attr1.tok,
+            $"the {pair.Item1} and {pair.Item2} attributes cannot be used together");
+      }
+    }
   }
 
   public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
@@ -793,6 +783,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
         foreach (MemberDecl m in members.Values) {
           Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));
+
+          CheckIncompatibleAttributes(resolver, m.Attributes);
+
           if (m is Function or Method or ConstantField) {
             sig.StaticMembers[m.Name] = m;
           }
@@ -1053,7 +1046,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public SymbolKind Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

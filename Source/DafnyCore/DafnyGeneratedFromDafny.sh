@@ -2,7 +2,7 @@
 # Until we get proper dependency to previous Dafny, you have to generate the file GeneratedFromDafny.cs
 # To remove this manual build process, when it will be appropriate:
 # 1. Delete the file GeneratedFromDafny.cs
-# 2. Add a dependcy to 
+# 2. Add a dependency to 
 #      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
 # That's it! The same file will now be automatically generated as obj/Debug/net6.0/GeneratedFromDafny.cs
 # 3. Remove the following dependencies that are being taken care by dafny-msbuild
@@ -28,4 +28,4 @@ with open ('$output.cs', 'r' ) as f:
 with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
-dotnet format whitespace --include $output.cs 
+dotnet format whitespace --include $output.cs

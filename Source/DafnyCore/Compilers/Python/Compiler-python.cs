@@ -57,6 +57,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
+    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+      , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
+      , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
+      , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
@@ -122,53 +126,15 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      switch (name) {
-        case "False":
-        case "None":
-        case "True":
-        case "and":
-        case "as":
-        case "assert":
-        case "async":
-        case "await":
-        case "break":
-        case "class":
-        case "continue":
-        case "def":
-        case "del":
-        case "enum":
-        case "elif":
-        case "else":
-        case "except":
-        case "finally":
-        case "for":
-        case "from":
-        case "global":
-        case "if":
-        case "import":
-        case "in":
-        case "is":
-        case "lambda":
-        case "nonlocal":
-        case "not":
-        case "or":
-        case "pass":
-        case "raise":
-        case "return":
-        case "try":
-        case "while":
-        case "with":
-        case "yield":
-          name = $"{name}_";
-          break;
-        default:
-          while (name.StartsWith("_")) {
-            name = $"{name[1..]}_";
-          }
-          if (name.Length > 0 && char.IsDigit(name[0])) {
-            name = $"d_{name}";
-          }
-          break;
+      if (Keywords.Contains(name)) {
+        name = $"{name}_";
+      } else {
+        while (name.StartsWith("_")) {
+          name = $"{name[1..]}_";
+        }
+        if (name.Length > 0 && char.IsDigit(name[0])) {
+          name = $"d_{name}";
+        }
       }
       return name;
     }
@@ -181,7 +147,7 @@ namespace Microsoft.Dafny.Compilers {
         : "";
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
-      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
+      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
@@ -262,7 +228,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var DtT = dt.GetCompileName(Options);
+      var DtT = IdProtect(dt.GetCompileName(Options));
 
       var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
         ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.tok))})"
@@ -997,7 +963,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
       wr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
     }
 
@@ -1102,7 +1068,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       var vec = wr.ForkInParens();
       wr.Write($" & ((1 << {bvType.Width}) - 1)");
       return vec;
@@ -1121,7 +1088,7 @@ namespace Microsoft.Dafny.Compilers {
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
-        wr = EmitBitvectorTruncation(bv, true, wr);
+        wr = EmitBitvectorTruncation(bv, null, true, wr);
       }
       tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
@@ -1438,7 +1405,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       var functionName = ProtectedFreshId("_lambda");

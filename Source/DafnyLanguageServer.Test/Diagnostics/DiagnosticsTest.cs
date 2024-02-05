@@ -8,9 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Newtonsoft.Json;
-using NuGet.Frameworks;
 using Xunit.Abstractions;
 using Xunit;
 using Xunit.Sdk;
@@ -32,17 +29,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(13, 11, 13, 17) &&
-        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(12, 11, 12, 17) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
     }
 
@@ -127,7 +124,7 @@ function HasResolutionError(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Contains("Verification out of resource", diagnostics[0].Message);
-      Assert.Equal(new Range(0, 20, 0, 42), diagnostics[0].Range);
+      Assert.Equal(new Range(0, 31, 0, 53), diagnostics[0].Range);
     }
 
     [Fact]
@@ -280,9 +277,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("Could not prove: P(i)", relatedInformation[0].Message);
-      Assert.Equal("Could not prove: i <= 0", relatedInformation[1].Message);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      Assert.Null(relatedInformation[0].Message);
     }
 
     [Fact]
@@ -528,7 +523,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.Equal("This postcondition might not hold: product >= 0", relatedInformation.Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
       Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -850,9 +845,9 @@ class Test {
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("This postcondition might not hold: Valid()", relatedInformation[0].Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Equal("Could not prove: b < c", relatedInformation[1].Message);
+      Assert.Null(relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

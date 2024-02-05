@@ -15,6 +15,7 @@ public class Program : TokenNode {
     Contract.Invariant(DefaultModule != null);
   }
 
+  public bool HasParseErrors { get; set; }
   public readonly string FullName;
 
   // Resolution essentially flattens the module hierarchy, for
@@ -52,6 +53,7 @@ public class Program : TokenNode {
     SystemModuleManager = original.SystemModuleManager;
     Reporter = original.Reporter;
     Compilation = original.Compilation;
+    HasParseErrors = original.HasParseErrors;
 
     if (cloner.CloneResolvedFields) {
       throw new NotImplementedException();

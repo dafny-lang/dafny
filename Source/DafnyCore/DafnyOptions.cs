@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.IO;
 using System.Reflection;
@@ -35,6 +36,8 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
@@ -42,7 +45,6 @@ namespace Microsoft.Dafny {
     public IList<Uri> CliRootSourceUris = new List<Uri>();
 
     public DafnyProject DafnyProject { get; set; }
-    public Command CurrentCommand { get; set; }
 
     public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -262,7 +264,6 @@ namespace Microsoft.Dafny {
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
-    public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public uint SpillTargetCode = 0; // [0..4]
@@ -358,6 +359,10 @@ namespace Microsoft.Dafny {
               matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
             : matchResult.Groups["rawArgument"].Value
       ).ToArray();
+    }
+
+    public static bool TryParseResourceCount(string value, out uint result) {
+      return uint.TryParse(value, NumberStyles.AllowExponent, null, out result);
     }
 
     /// <summary>
@@ -465,15 +470,6 @@ namespace Microsoft.Dafny {
         case "check": {
             if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
               FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
-            }
-
-            return true;
-          }
-
-        case "runAllTests": {
-            int runAllTests = 0;
-            if (ps.GetIntArgument(ref runAllTests, 2)) {
-              RunAllTests = runAllTests != 0; // convert to boolean
             }
 
             return true;
@@ -729,11 +725,12 @@ namespace Microsoft.Dafny {
 
         case "extractCounterexample":
           ExtractCounterexample = true;
+          EnhancedErrorMessages = 1;
           return true;
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text") || args[ps.i].StartsWith("json")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
             } else {
               InvalidArgumentError(name, ps);
@@ -795,7 +792,7 @@ namespace Microsoft.Dafny {
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
-      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
+      if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath();
         SetZ3Options(z3Version);
       }
@@ -803,6 +800,10 @@ namespace Microsoft.Dafny {
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
+    }
+
+    public bool IsUsingZ3() {
+      return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
     public override string AttributeHelp =>
@@ -1148,15 +1149,17 @@ namespace Microsoft.Dafny {
       SetZ3Option("type_check", "true");
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
+      SetZ3Option("model_evaluator.completion", "true");
+      SetZ3Option("model.completion", "true");
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        SetZ3Option("model_compress", "false");
+      } else {
+        SetZ3Option("model.compact", "false");
+      }
 
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
       SetZ3Option("smt.case_split", "3");
-
-      // This option tends to lead to the best all-around arithmetic
-      // performance, though some programs can be verified more quickly
-      // (or verified at all) using a different solver.
-      SetZ3Option("smt.arith.solver", "2");
 
       if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
@@ -1419,10 +1422,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /extractCounterexample
     If verification fails, report a detailed counterexample for the
-    first failing assertion. Requires specifying the /mv:<file> option as well
-    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-    /proverOpt:O:model.completion=true.
+    first failing assertion (experimental).
 
 ---- Compilation options ---------------------------------------------------
 
@@ -1446,15 +1446,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     When running a Dafny file through /compile:3 or /compile:4, '--args' provides
     all arguments after it to the Main function, at index starting at 1.
     Index 0 is used to store the executable's name if it exists.
-/runAllTests:<n> (experimental)
-    0 (default) - Annotates compiled methods with the {{:test}}
-        attribute such that they can be tested using a testing framework
-        in the target language (e.g. xUnit for C#).
-    1 - Emits a main method in the target language that will execute
-        every method in the program with the {{:test}} attribute. Cannot
-        be used if the program already contains a main method. Note that
-        /compile:3 or 4 must be provided as well to actually execute
-        this main method!
 
 /compileVerbose:<n>
     0 - Don't print status of compilation to the console.
