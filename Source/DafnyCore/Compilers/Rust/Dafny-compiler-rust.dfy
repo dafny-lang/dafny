@@ -4,16 +4,16 @@ include "../Dafny/AST.dfy"
 // - The generated code should look idiomatic and close to the original Dafny file if possible
 
 // Rust AST
-module RAST {
+module RAST
+  // All ToString methods should produce well-formed Rust code
+{
   import opened Std.Wrappers
-  import opened Std.Strings
   import opened DAST.Format
+  import Strings = Std.Strings
 
   const IND := "  "
-  // Indentation level
-  /* trait ModDecl {} */
 
-  datatype Mod /*extends ModDecl*/ =
+  datatype Mod =
       // Rust modules
     | Mod(name: string, body: seq<ModDecl>)
     | ExternMod(name: string)
@@ -90,7 +90,7 @@ module RAST {
   }
 
   datatype NamelessFormal =
-    NamelessFormal(visibility: VISIBILITY, tpe: Type)
+    NamelessFormal(visibility: Visibility, tpe: Type)
   {
     function ToString(ind: string): string {
       (if visibility == PUB then "pub " else "") + tpe.ToString(ind)
@@ -189,7 +189,16 @@ module RAST {
     TypeApp("::std::vec::Vec", [underlying])
   }
   function NewVec(elements: seq<Expr>): Expr {
-    Call(RawExpr("vec!"), [], elements)
+    Call(Identifier("vec!"), [], elements)
+  }
+  function Clone(underlying: Expr): Expr {
+    Call(Select(underlying, "clone"), [], [])
+  }
+  function Borrow(underlying: Expr): Expr {
+    UnaryOp("&", underlying, UnOpFormat.NoFormat)
+  }
+  function BorrowMut(underlying: Expr): Expr {
+    UnaryOp("&mut", underlying, UnOpFormat.NoFormat)
   }
   
   const CloneTrait := RawType("Clone")
@@ -284,7 +293,7 @@ module RAST {
   }
   datatype ImplMember =
     | RawImplMember(content: string)
-    | FnDecl(pub: VISIBILITY, fun: Fn)
+    | FnDecl(pub: Visibility, fun: Fn)
   {
     function ToString(ind: string): string {
       if FnDecl? then
@@ -292,9 +301,7 @@ module RAST {
       else assert RawImplMember?; content
     }
   }
-  newtype VISIBILITY = x: int | 0 <= x < 2
-  const PUB := 1 as VISIBILITY
-  const PRIV := 0 as VISIBILITY
+  datatype Visibility = PUB | PRIV
 
   datatype Formal =
     Formal(name: string, tpe: Type)
@@ -376,12 +383,52 @@ module RAST {
 
   datatype Associativity = LeftToRight | RightToLeft | RequiresParentheses
   datatype PrintingInfo = 
+    | UnknownPrecedence()
     | Precedence(precedence: nat)
     | SuffixPrecedence(precedence: nat)
     | PrecedenceAssociativity(precedence: nat, associativity: Associativity)
+  {
+    predicate NeedParenthesesFor(underlying: PrintingInfo) {
+      if UnknownPrecedence? then true
+      else if underlying.UnknownPrecedence? then true
+      else if precedence <= underlying.precedence then true
+      else false
+    }
+    predicate NeedParenthesesForLeft(underlying: PrintingInfo) {
+      if UnknownPrecedence? then true
+      else if underlying.UnknownPrecedence? then true
+      else if precedence <= underlying.precedence then
+        precedence < underlying.precedence || !PrecedenceAssociativity? || !associativity.LeftToRight?
+      else false
+    }
+    predicate NeedParenthesesForRight(underlying: PrintingInfo) {
+      if UnknownPrecedence? then true
+      else if underlying.UnknownPrecedence? then true
+      else if precedence <= underlying.precedence then
+        precedence < underlying.precedence || !PrecedenceAssociativity? || !associativity.RightToLeft?
+      else false
+    }
+    lemma Tests()
+      ensures PrecedenceAssociativity(20, LeftToRight)
+        .NeedParenthesesForLeft(PrecedenceAssociativity(20, LeftToRight)) == false
+      ensures PrecedenceAssociativity(20, LeftToRight)
+        .NeedParenthesesForRight(PrecedenceAssociativity(20, LeftToRight)) == true
+      ensures PrecedenceAssociativity(20, RightToLeft)
+        .NeedParenthesesForRight(PrecedenceAssociativity(20, RightToLeft)) == false
+      ensures PrecedenceAssociativity(20, RightToLeft)
+        .NeedParenthesesForLeft(PrecedenceAssociativity(20, RightToLeft)) == true
+      ensures PrecedenceAssociativity(20, LeftToRight)
+        .NeedParenthesesForLeft(PrecedenceAssociativity(30, LeftToRight)) == true
+      ensures PrecedenceAssociativity(20, RightToLeft)
+        .NeedParenthesesForRight(PrecedenceAssociativity(30, RightToLeft)) == true
+    {
+    }
+  }
+
 
   datatype Expr =
       RawExpr(content: string)
+    | Identifier(name: string)
     | Match(matchee: Expr, cases: seq<MatchCase>)
     | StmtExpr(stmt: Expr, rhs: Expr)
     | Block(underlying: Expr)
@@ -402,7 +449,7 @@ module RAST {
     | Return(optExpr: Option<Expr>)
     | Call(obj: Expr, typeParameters: seq<Type>, arguments: seq<Expr>)
     | Select(obj: Expr, name: string)
-    | Borrow(underlying: Expr)
+    | MemberSelect(obj: Expr, name: string)
   {
     predicate NoExtraSemicolonAfter() {
       DeclareVar? || AssignVar? || Break? || Continue? || Return? || 
@@ -411,7 +458,9 @@ module RAST {
     // Taken from https://doc.rust-lang.org/reference/expressions.html
     const printingInfo: PrintingInfo := 
       match this {
-        case RawExpr(_) => Precedence(200)
+        case RawExpr(_) => UnknownPrecedence()
+        case Identifier(_) => Precedence(1)
+        case LiteralInt(_) => Precedence(1)
         // Paths => Precedence(1)
         // Method call => Precedence(2)
         // Field expression => PrecedenceAssociativity(3, LeftToRight)
@@ -420,8 +469,11 @@ module RAST {
           match op {
             case "?" => SuffixPrecedence(5)
             case "-" | "*" | "!" | "&" | "&mut" => Precedence(6)
-            case _ => Precedence(200)
+            case _ => UnknownPrecedence()
           }
+        case Select(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
+        case MemberSelect(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
+        case Call(_, _, _) => PrecedenceAssociativity(2, LeftToRight)
         case BinaryOp(op2, left, right, format) =>
           match op2 {
             case "as" => PrecedenceAssociativity(10, LeftToRight)
@@ -439,11 +491,12 @@ module RAST {
               PrecedenceAssociativity(110, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
-          case _ => Precedence(200)
+          case _ => UnknownPrecedence()
       }
 
     function Height(): nat {
       match this {
+        case Identifier(_) => 1
         case LiteralInt(_) => 1
         case ConversionNum(_, underlying) => 1 + underlying.Height()
         case Match(matchee, cases) =>
@@ -499,9 +552,9 @@ module RAST {
           1 + max(obj.Height(),
                 max(SeqToHeight(tpes, (tpe: Type) requires tpe < this => 1),
                   SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height())))
-        case Borrow(underlying) =>
-          1 + underlying.Height()
         case Select(expression, name) =>
+          1 + expression.Height()
+        case MemberSelect(expression, name) =>
           1 + expression.Height()
         case _ =>
           assert RawExpr?;
@@ -514,7 +567,13 @@ module RAST {
       ensures this == r || r.Height() < this.Height()
     {
       match this {
-         // Special cases
+        
+        case UnaryOp("&", Call(Select(underlying, "clone"), typeArgs, args), format) =>
+          if typeArgs == [] && args == [] then
+            Call(Select(underlying, "clone"), [], [])
+          else
+            this
+
         case UnaryOp("!", BinaryOp("==", left, right, format),
           CombineNotInner()) =>
           assert BinaryOp("==", left, right, format).Height()
@@ -561,25 +620,34 @@ module RAST {
     }
 
     predicate LeftRequiresParentheses(left: Expr) {
-      printingInfo.precedence <= left.printingInfo.precedence &&
-      (printingInfo.precedence == left.printingInfo.precedence ==>
-        (printingInfo.PrecedenceAssociativity? &&
-        !printingInfo.associativity.LeftToRight?))
+      printingInfo.NeedParenthesesForLeft(left.printingInfo)
+    }
+    function LeftParentheses(left: Expr): (string, string) {
+      if LeftRequiresParentheses(left) then
+        ("(", ")")
+      else
+        ("", "")
     }
 
     predicate RightRequiresParentheses(right: Expr) {
-      printingInfo.precedence <= right.printingInfo.precedence &&
-      (printingInfo.precedence == right.printingInfo.precedence ==>
-        (printingInfo.PrecedenceAssociativity? &&
-         !printingInfo.associativity.RightToLeft?))
+      printingInfo.NeedParenthesesForRight(right.printingInfo)
+    }
+
+    
+    function RightParentheses(right: Expr): (string, string) {
+      if RightRequiresParentheses(right) then
+        ("(", ")")
+      else
+        ("", "")
     }
 
     function ToString(ind: string): string
       decreases Height()
     {
       match this.Optimize() {
+        case Identifier(name) => name
         case LiteralInt(number) =>
-          "::std::rc::Rc::new(::dafny_runtime::BigInt::parse_bytes(b\"" + number + "\", 10).unwrap())"
+          "::dafny_runtime::DafnyInt::parse_bytes(b\"" + number + "\", 10)"
         case ConversionNum(tpe, expr) =>
           if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
              || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
@@ -618,20 +686,18 @@ module RAST {
 
         case UnaryOp(op, underlying, format) =>
           var (leftP, rightP) :=
-            if printingInfo.precedence < underlying.printingInfo.precedence then
+            if printingInfo.NeedParenthesesFor(underlying.printingInfo) then
               ("(", ")")
             else
               ("", "");
-          var leftOp := if op == "&mut" then op + " " else if op == "?" then "" else op;
+          var leftOp := if op == "&mut" && leftP != "(" then op + " " else if op == "?" then "" else op;
           var rightOp := if op == "?" then op else "";
 
           leftOp + leftP  + underlying.ToString(ind) + rightP + rightOp
         case BinaryOp(op2, left, right, format) =>
-          var (leftLeftP, leftRighP) :=
-            if LeftRequiresParentheses(left) then ("(", ")") else ("", "");
-          var (rightLeftP, rightRightP) :=
-            if RightRequiresParentheses(right) then ("(", ")") else ("", "");
-          var opRendered := if op2 == "as" then " " + op2 + " " else op2;
+          var (leftLeftP, leftRighP) := LeftParentheses(left);
+          var (rightLeftP, rightRightP) := RightParentheses(right);
+          var opRendered := " " + op2 + " ";
           var indLeft := if leftLeftP == "(" then ind + IND else ind;
           var indRight := if rightLeftP == "(" then ind + IND else ind;
           leftLeftP + left.ToString(indLeft) + leftRighP + opRendered + rightLeftP + right.ToString(indRight) + rightRightP
@@ -664,15 +730,18 @@ module RAST {
         case Return(optExpr) =>
           "return" + (if optExpr.Some? then " " + optExpr.value.ToString(ind + IND) else "") + ";"
         case Call(expr, tpes, args) =>
-          expr.ToString(ind) + (
+          var (leftP, rightP) := LeftParentheses(expr);
+          leftP + expr.ToString(ind) + rightP + (
             if |tpes| == 0 then ""
             else
               "::<" + SeqToString(tpes, (tpe: Type) => tpe.ToString(ind + IND), ", ") +">"
           ) + "("+SeqToString(args, (arg: Expr) requires arg.Height() < this.Height() => arg.ToString(ind + IND), ", ")+")"
-        case Borrow(underlying) =>
-          "&(" + underlying.ToString(ind) + ")"
         case Select(expression, name) =>
-          "("+expression.ToString(ind)+")." + name        
+          var (leftP, rightP) := LeftParentheses(expression);
+          leftP + expression.ToString(ind) + rightP + "." + name
+        case MemberSelect(expression, name) =>
+          var (leftP, rightP) := LeftParentheses(expression);
+          leftP + expression.ToString(ind) + rightP + "::" + name
         case r =>
           assert r.RawExpr?; AddIndent(r.content, ind)
       }
@@ -707,7 +776,7 @@ module RAST {
   }
 }
 
-module {:extern "DCOMP"} DCOMP {
+module {:extern "DCOMP"} DafnyToRustCompiler {
   import opened DAST
   import Strings = Std.Strings
   import Std
@@ -768,7 +837,9 @@ module {:extern "DCOMP"} DCOMP {
       [i[0]] + replaceDots(i[1..])
   }
 
-  predicate is_tuple_builder(i: string) {
+  predicate is_tuple_builder(i: string)
+    // A tuple builder identifier looks like ___hMake0 to ___hMake99
+  {
     && |i| >= 9
     && i[..8] == "___hMake"
     && i[8] in "0123456789"
@@ -786,7 +857,7 @@ module {:extern "DCOMP"} DCOMP {
     && (|i| >= 2 ==> i[1] != 'T') // To avoid conflict with tuple builders _T<digits>
   }
 
-  predicate is_idiomatic_rust(i: string) {
+  predicate is_idiomatic_rust_id(i: string) {
     0 < |i| && !has_special(i) && i !in reserved_rust
   }
 
@@ -797,7 +868,7 @@ module {:extern "DCOMP"} DCOMP {
       better_tuple_builder_name(i)
     else if i in reserved_rust then
       "r#" + i
-    else if is_idiomatic_rust(i) then
+    else if is_idiomatic_rust_id(i) then
       idiomatic_rust(i)
     else if is_dafny_generated_id(i) then
       i // Dafny-generated identifiers like "_module", cannot be written in Dafny itself
@@ -805,6 +876,8 @@ module {:extern "DCOMP"} DCOMP {
       var r := replaceDots(i);
       "r#_" + r
   }
+
+  datatype Ownership = OwnershipOwned | OwnershipBorrowed | OwnershipBorrowedMut | OwnershipAny
 
   class COMP {
     static method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: R.Mod) {
@@ -882,7 +955,7 @@ module {:extern "DCOMP"} DCOMP {
 
         match field.defaultValue {
           case Some(e) => {
-            var eStr, _, _ := GenExpr(e, None, [], true);
+            var eStr, _, _ := GenExpr(e, None, [], OwnershipOwned);
             fieldInits := fieldInits + [
               R.AssignIdentifier(
                 escapeIdent(field.formal.name),
@@ -1074,7 +1147,7 @@ module {:extern "DCOMP"} DCOMP {
       match c.witnessExpr {
         case Some(e) => {
           // TODO(shadaj): generate statements
-          var eStr, _, _ := GenExpr(e, None, [], true);
+          var eStr, _, _ := GenExpr(e, None, [], OwnershipOwned);
           fnBody := fnBody + escapeIdent(c.name) + "(" + eStr.ToString(IND) + ")\n";
         }
         case None => {
@@ -1456,7 +1529,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Seq(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.Rc(R.TypeApp("::dafny_runtime::Sequence", [elem]));
+          s := R.Rc(R.TypeApp("::dafny_runtime::DafnySequence", [elem]));
         }
         case Set(element) => {
           var elem := GenType(element, inBinding, inFn);
@@ -1470,6 +1543,15 @@ module {:extern "DCOMP"} DCOMP {
           var keyType := GenType(key, inBinding, inFn);
           var valueType := GenType(value, inBinding, inFn);
           s := R.Rc(R.TypeApp("::dafny_runtime::Map", [keyType, valueType]));
+        }
+        case MapBuilder(key, value) => {
+          var keyType := GenType(key, inBinding, inFn);
+          var valueType := GenType(value, inBinding, inFn);
+          s := R.TypeApp("::dafny_runtime::MapBuilder", [keyType, valueType]);
+        }
+        case SetBuilder(elem) => {
+          var elemType := GenType(elem, inBinding, inFn);
+          s := R.TypeApp("::dafny_runtime::SetBuilder", [elemType]);
         }
         case Arrow(args, result) => {
           // we cannot use impl until Rc<Fn> impls Fn
@@ -1501,8 +1583,8 @@ module {:extern "DCOMP"} DCOMP {
         case TypeArg(Ident(name)) => s := R.RawType(escapeIdent(name));
         case Primitive(p) => {
           match p {
-            case Int => s := R.Rc(R.RawType("::dafny_runtime::BigInt"));
-            case Real => s := R.Rc(R.RawType("::dafny_runtime::BigRational"));
+            case Int => s := R.RawType("::dafny_runtime::DafnyInt");
+            case Real => s := R.RawType("::dafny_runtime::BigRational");
             case String => s := R.Vec(R.RawType("char"));
             case Bool => s := R.RawType("bool");
             case Char => s := R.RawType("char");
@@ -1636,7 +1718,7 @@ module {:extern "DCOMP"} DCOMP {
             while outI < |outVars| {
 
               var outVar := outVars[outI];
-              tupleArgs := tupleArgs + [R.RawExpr(escapeIdent(outVar.id))];
+              tupleArgs := tupleArgs + [R.Identifier(escapeIdent(outVar.id))];
 
               outI := outI + 1;
             }
@@ -1700,21 +1782,21 @@ module {:extern "DCOMP"} DCOMP {
         }
 
         case Select(on, field) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           generated := "*(" + onExpr.ToString(IND) + "." + field + ".borrow_mut()) = " + rhs + ";";
           readIdents := recIdents;
           needsIIFE := true;
         }
 
         case Index(on, indices) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           readIdents := recIdents;
 
           generated := "{\n";
 
           var i := 0;
           while i < |indices| {
-            var idx, _, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
+            var idx, _, recIdentsIdx := GenExpr(indices[i], selfIdent, params, OwnershipOwned);
 
             generated := generated + "let __idx" + Strings.OfNat(i) + " = <usize as ::dafny_runtime::NumCast>::from(" + idx.ToString(IND) + ").unwrap();\n";
 
@@ -1740,7 +1822,7 @@ module {:extern "DCOMP"} DCOMP {
       match stmt {
         case DeclareVar(name, typ, Some(expression)) => {
           var typeString := GenType(typ, true, false);
-          var expr, _, recIdents := GenExpr(expression, selfIdent, params, true);
+          var expr, _, recIdents := GenExpr(expression, selfIdent, params, OwnershipOwned);
 
           generated := R.DeclareVar(R.MUT, escapeIdent(name), Some(typeString), Some(expr));
           readIdents := recIdents;
@@ -1752,7 +1834,7 @@ module {:extern "DCOMP"} DCOMP {
         }
         case Assign(lhs, expression) => {
           var lhsGen, needsIIFE, recIdents := GenAssignLhs(lhs, "__rhs", selfIdent, params);
-          var exprGen, _, exprIdents := GenExpr(expression, selfIdent, params, true);
+          var exprGen, _, exprIdents := GenExpr(expression, selfIdent, params, OwnershipOwned);
 
           if needsIIFE {
             generated := R.Block(
@@ -1768,7 +1850,7 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := recIdents + exprIdents;
         }
         case If(cond, thn, els) => {
-          var cond, _, recIdents := GenExpr(cond, selfIdent, params, true);
+          var cond, _, recIdents := GenExpr(cond, selfIdent, params, OwnershipOwned);
           var condString := cond.ToString(IND);
 
           readIdents := recIdents;
@@ -1784,7 +1866,7 @@ module {:extern "DCOMP"} DCOMP {
           generated := R.Labelled("label_" + lbl, R.Loop(None, R.StmtExpr(body, R.Break(None))));
         }
         case While(cond, body) => {
-          var cond, _, recIdents := GenExpr(cond, selfIdent, params, true);
+          var cond, _, recIdents := GenExpr(cond, selfIdent, params, OwnershipOwned);
 
           readIdents := recIdents;
           var body, bodyIdents := GenStmts(body, selfIdent, params, false, earlyReturn);
@@ -1793,7 +1875,7 @@ module {:extern "DCOMP"} DCOMP {
           generated := R.Loop(Some(cond), body);
         }
         case Foreach(boundName, boundType, over, body) => {
-          var over, _, recIdents := GenExpr(over, selfIdent, params, true);
+          var over, _, recIdents := GenExpr(over, selfIdent, params, OwnershipOwned);
 
           var boundTypeStr := GenType(boundType, false, false);
 
@@ -1825,7 +1907,7 @@ module {:extern "DCOMP"} DCOMP {
           var paramI := 0;
           while paramI < |params| {
             var param := params[paramI];
-            generated := generated.Then(R.DeclareVar(R.MUT, escapeIdent(param), None, Some(R.RawExpr(escapeIdent(param) + ".clone()"))));
+            generated := generated.Then(R.DeclareVar(R.MUT, escapeIdent(param), None, Some(R.Clone(R.Identifier(escapeIdent(param))))));
             paramI := paramI + 1;
           }
 
@@ -1861,11 +1943,11 @@ module {:extern "DCOMP"} DCOMP {
               argString := argString + ", ";
             }
 
-            var argExpr, isOwned, argIdents := GenExpr(args[i], selfIdent, params, false);
-            var argExprString := argExpr.ToString(IND);
-            if isOwned {
-              argExprString := "&" + argExprString;
+            var argExpr, ownership, argIdents := GenExpr(args[i], selfIdent, params, OwnershipBorrowed);
+            if ownership == OwnershipOwned {
+              argExpr := R.Borrow(argExpr);
             }
+            var argExprString := argExpr.ToString(IND);
 
             argString := argString + argExprString;
             readIdents := readIdents + argIdents;
@@ -1873,7 +1955,7 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var enclosingExpr, _, enclosingIdents := GenExpr(on, selfIdent, params, false);
+          var enclosingExpr, _, enclosingIdents := GenExpr(on, selfIdent, params, OwnershipAny);
           readIdents := readIdents + enclosingIdents;
           var enclosingString := enclosingExpr.ToString(IND);
           match on {
@@ -1920,7 +2002,7 @@ module {:extern "DCOMP"} DCOMP {
             enclosingString + renderedName + typeArgString + "(" + argString + ");");
         }
         case Return(expr) => {
-          var expr, _, recIdents := GenExpr(expr, selfIdent, params, true);
+          var expr, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
           readIdents := recIdents;
 
           if isLast {
@@ -1938,11 +2020,11 @@ module {:extern "DCOMP"} DCOMP {
           readIdents := {};
         }
         case Print(e) => {
-          var printedExpr, isOwned, recIdents := GenExpr(e, selfIdent, params, false);
-          var printedExprString := printedExpr.ToString(IND);
-          if isOwned {
-            printedExprString := "&(" + printedExprString + ")";
+          var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, params, OwnershipBorrowed);
+          if recOwnership == OwnershipOwned {
+            printedExpr := R.Borrow(printedExpr);
           }
+          var printedExprString := printedExpr.ToString(IND);
           generated := R.RawExpr("print!(\"{}\", ::dafny_runtime::DafnyPrintWrapper(" + printedExprString + "));");
           readIdents := recIdents;
         }
@@ -1985,18 +2067,24 @@ module {:extern "DCOMP"} DCOMP {
       }
     }
 
-    static method GenExpr(e: Expression, selfIdent: Option<string>, params: seq<string>, mustOwn: bool) returns (r: R.Expr, isOwned: bool, readIdents: set<string>)
-      ensures mustOwn ==> isOwned
+    static method GenExpr(
+      e: Expression,
+      selfIdent: Option<string>,
+      params: seq<string>,
+      expectedOwnership: Ownership
+    ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
+      ensures expectedOwnership == OwnershipOwned
+          ==> resultingOwnership == OwnershipOwned
       decreases e {
       match e {
         case Literal(BoolLiteral(false)) => {
           r := R.RawExpr("false");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(BoolLiteral(true)) => {
           r := R.RawExpr("true");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(IntLiteral(i, t)) => {
@@ -2010,7 +2098,7 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(DecLiteral(n, d, t)) => {
@@ -2024,54 +2112,60 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(StringLiteral(l)) => {
           // TODO(shadaj): handle unicode properly
           r := R.RawExpr("\"" + l + "\".chars().collect::<Vec<char>>()");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(CharLiteral(c)) => {
           r := R.RawExpr("::std::primitive::char::from_u32(" + Strings.OfNat(c as nat) + ").unwrap()");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Literal(Null(tpe)) => {
           // TODO: Mikael. Null will be std::ptr::null, not Option::None.
           var tpeGen := GenType(tpe, false, false);
           r := R.RawExpr("(None as " + tpeGen.ToString(IND) + ")");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Ident(name) => {
-          var s := escapeIdent(name);
-          if !(name in params) { // TODO(mikael) have a table to know which names are borrowed
-            r := R.RawExpr("(&" + s + ")");
-          }
-
-          if mustOwn {
-            s := s + ".clone()";
-            isOwned := true;
+          r := R.Identifier(escapeIdent(name));
+          var currentlyBorrowed := name in params; // Otherwise names are owned  // TODO(mikael) have a table to know which names are borrowed
+          resultingOwnership := OwnershipOwned;
+          if expectedOwnership == OwnershipAny {
+            // No need to do anything
+          } else if expectedOwnership == OwnershipBorrowedMut {
+            r := R.BorrowMut(r); // Needs to be explicit for out-parameters on methods
+          } else if expectedOwnership == OwnershipOwned {
+              r := R.Clone(r); // We don't transfer the ownership of an identifier
+          } else if currentlyBorrowed {
+            if expectedOwnership == OwnershipBorrowed {
+              resultingOwnership := OwnershipBorrowed;
+            }
           } else {
-            isOwned := false;
+            // It's currently owned.
+            if expectedOwnership == OwnershipBorrowed {
+              r := R.Borrow(r);
+              resultingOwnership := OwnershipBorrowed;
+            }
           }
-          r := R.RawExpr(s);
-
           readIdents := {name};
         }
         case Companion(path) => {
           var p := GenPath(path);
           r := R.RawExpr(p);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case InitializationValue(typ) => {
-          // TODO (Mikael): Make InitializationValue disappear.
           var typExpr := GenType(typ, false, false);
           r := R.RawExpr("<" + typExpr.ToString(IND) + " as std::default::Default>::default()");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case Tuple(values) => {
@@ -2084,7 +2178,7 @@ module {:extern "DCOMP"} DCOMP {
               s := s + " ";
             }
 
-            var recursiveGen, _, recIdents := GenExpr(values[i], selfIdent, params, true);
+            var recursiveGen, _, recIdents := GenExpr(values[i], selfIdent, params, OwnershipOwned);
 
             s := s + recursiveGen.ToString(IND) + ",";
             readIdents := readIdents + recIdents;
@@ -2094,7 +2188,7 @@ module {:extern "DCOMP"} DCOMP {
           s := s + ")";
           r := R.RawExpr(s);
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case New(path, typeArgs, args) => {
           var path := GenPath(path);
@@ -2119,7 +2213,7 @@ module {:extern "DCOMP"} DCOMP {
               s := s + ", ";
             }
 
-            var recursiveGen, _, recIdents := GenExpr(args[i], selfIdent, params, true);
+            var recursiveGen, _, recIdents := GenExpr(args[i], selfIdent, params, OwnershipOwned);
             s := s + recursiveGen.ToString(IND);
             readIdents := readIdents + recIdents;
 
@@ -2127,7 +2221,7 @@ module {:extern "DCOMP"} DCOMP {
           }
           s := s + "))";
           r := R.RawExpr(s);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case NewArray(dims, typ) => {
           var i := |dims| - 1;
@@ -2136,7 +2230,7 @@ module {:extern "DCOMP"} DCOMP {
           var s := "<" + genTyp.ToString(IND) + " as ::std::default::Default>::default()";
           readIdents := {};
           while i >= 0 {
-            var recursiveGen, _, recIdents := GenExpr(dims[i], selfIdent, params, true);
+            var recursiveGen, _, recIdents := GenExpr(dims[i], selfIdent, params, OwnershipOwned);
 
             s := "::std::rc::Rc::new(::std::cell::RefCell::new(vec![" + s + "; <usize as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap()]))";
             readIdents := readIdents + recIdents;
@@ -2145,7 +2239,7 @@ module {:extern "DCOMP"} DCOMP {
           }
 
           r := R.RawExpr(s);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case DatatypeValue(path, typeArgs, variant, isCo, values) => {
           var path := GenPath(path);
@@ -2177,7 +2271,7 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             if isCo {
-              var recursiveGen, _, recIdents := GenExpr(value, selfIdent, [], true);
+              var recursiveGen, _, recIdents := GenExpr(value, selfIdent, [], OwnershipOwned);
 
               readIdents := readIdents + recIdents;
               var allReadCloned := "";
@@ -2188,7 +2282,7 @@ module {:extern "DCOMP"} DCOMP {
               }
               s := s + escapeIdent(name) + ": ::dafny_runtime::LazyFieldWrapper(::dafny_runtime::Lazy::new(::std::boxed::Box::new({\n" + allReadCloned + "move || (" + recursiveGen.ToString(IND) + ")})))";
             } else {
-              var recursiveGen, _, recIdents := GenExpr(value, selfIdent, params, true);
+              var recursiveGen, _, recIdents := GenExpr(value, selfIdent, params, OwnershipOwned);
 
               s := s + escapeIdent(name) + ": " + "(" + recursiveGen.ToString(IND) + ")";
               readIdents := readIdents + recIdents;
@@ -2198,50 +2292,50 @@ module {:extern "DCOMP"} DCOMP {
           s := s + " })";
 
           r := R.RawExpr(s);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case Convert(expr, fromTpe, toTpe) => {
           assert {:split_here} true;
           if fromTpe == toTpe {
-            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
             r := recursiveGen;
-            isOwned := recOwned;
+            resultingOwnership := recOwned;
             readIdents := recIdents;
           } else {
             match (fromTpe, toTpe) {
               case (Nullable(_), _) => {
-                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
                 var s := recursiveGen.ToString(IND);
-                if !recOwned {
+                if recOwned == OwnershipOwned {
                   s := s + ".as_ref()";
                 }
 
                 s := s + ".unwrap()";
                 r := R.RawExpr(s);
-                isOwned := recOwned;
+                resultingOwnership := recOwned;
                 readIdents := recIdents;
               }
               case (_, Nullable(_)) => {
-                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
                 var s := recursiveGen.ToString(IND);
-                if !recOwned {
+                if recOwned == OwnershipOwned {
                   s := s + ".clone()";
                 }
 
                 s := "Some(" + s + ")";
                 r := R.RawExpr(s);
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (_, Path(_, _, Newtype(b, range, erase))) => {
                 if fromTpe == b {
-                  var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+                  var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
 
                   var potentialRhsType := NewtypeToRustType(b, range);
                   match potentialRhsType {
                     case Some(v) =>
                       r := R.ConversionNum(v, recursiveGen);
-                      isOwned := true;
+                      resultingOwnership := OwnershipOwned;
                     case None =>
                       if erase {
                         r := recursiveGen;
@@ -2249,95 +2343,95 @@ module {:extern "DCOMP"} DCOMP {
                         var rhsType := GenType(toTpe, true, false);
                         r := R.RawExpr(rhsType.ToString(IND) + "(" + recursiveGen.ToString(IND) + ")");
                       }
-                      isOwned := recOwned;
+                      resultingOwnership := recOwned;
                   }
                   readIdents := recIdents;
                 } else {
                   assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
-                  r, isOwned, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, mustOwn);
+                  r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, expectedOwnership);
                 }
               }
               case (Path(_, _, Newtype(b, range, erase)), _) => {
                 if b == toTpe {
-                  var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+                  var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
                   if erase {
                     r := recursiveGen;
                   } else {
                     r := R.RawExpr(recursiveGen.ToString(IND) + ".0");
                   }
-                  isOwned := recOwned;
+                  resultingOwnership := recOwned;
                   readIdents := recIdents;
                 } else {
                   assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
-                  r, isOwned, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, mustOwn);
+                  r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, expectedOwnership);
                 }
               }
               case (Primitive(Int), Primitive(Real)) => {
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
                 r := R.RcNew(R.RawExpr("::dafny_runtime::BigRational::from_integer(" + recursiveGen.ToString(IND) + ")"));
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Primitive(Real), Primitive(Int)) => {
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, false);
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipBorrowed);
                 r := R.RawExpr("::dafny_runtime::dafny_rational_to_int(" + recursiveGen.ToString(IND) + ")");
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Primitive(Int), Passthrough(_)) => {
                 var rhsType := GenType(toTpe, true, false);
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
                 r := R.RawExpr("<" + rhsType.ToString(IND) + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap()");
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Passthrough(_), Primitive(Int)) => {
                 var rhsType := GenType(fromTpe, true, false);
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
-                r := R.RcNew(R.RawExpr("::dafny_runtime::BigInt::from(" + recursiveGen.ToString(IND) + ")"));
-                isOwned := true;
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
+                r := R.RawExpr("::dafny_runtime::DafnyInt{data: ::dafny_runtime::BigInt::from(" + recursiveGen.ToString(IND) + ")}");
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Primitive(Int), Primitive(Char)) => {
                 var rhsType := GenType(toTpe, true, false);
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
                 r := R.RawExpr("char::from_u32(<u32 as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap()).unwrap()");
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Primitive(Char), Primitive(Int)) => {
                 var rhsType := GenType(fromTpe, true, false);
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
-                r := R.RcNew(R.RawExpr("::dafny_runtime::BigInt::from(" + recursiveGen.ToString(IND) + " as u32)"));
-                isOwned := true;
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
+                r := R.RawExpr("::dafny_runtime::DafnyInt{data: ::BigInt::from(" + recursiveGen.ToString(IND) + " as u32)}");
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case (Passthrough(_), Passthrough(_)) => {
-                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+                var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
                 var toTpeGen := GenType(toTpe, true, false);
 
                 r := R.RawExpr("((" + recursiveGen.ToString(IND) + ") as " + toTpeGen.ToString(IND) + ")");
 
-                isOwned := true;
+                resultingOwnership := OwnershipOwned;
                 readIdents := recIdents;
               }
               case _ => {
-                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, mustOwn);
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, params, expectedOwnership);
                 r := R.RawExpr("(" + recursiveGen.ToString(IND) + "/* conversion not yet implemented */)");
-                isOwned := recOwned;
+                resultingOwnership := recOwned;
                 readIdents := recIdents;
               }
             }
           }
         }
         case SeqConstruct(length, expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
-          var lengthGen, _, lengthIdents := GenExpr(length, selfIdent, params, true);
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
+          var lengthGen, _, lengthIdents := GenExpr(length, selfIdent, params, OwnershipOwned);
 
           r := R.RawExpr("{\nlet _initializer = " + recursiveGen.ToString(IND) + ";\n::dafny_runtime::integer_range(::dafny_runtime::Zero::zero(), " + lengthGen.ToString(IND) + ").map(|i| _initializer.0(&i)).collect::<Vec<_>>()\n}");
 
           readIdents := recIdents + lengthIdents;
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case SeqValue(exprs, typ) => {
           readIdents := {};
@@ -2352,7 +2446,7 @@ module {:extern "DCOMP"} DCOMP {
               s := s + ", ";
             }
 
-            var recursiveGen, _, recIdents := GenExpr(exprs[i], selfIdent, params, true);
+            var recursiveGen, _, recIdents := GenExpr(exprs[i], selfIdent, params, OwnershipOwned);
             readIdents := readIdents + recIdents;
 
             s := s + recursiveGen.ToString(IND);
@@ -2361,43 +2455,32 @@ module {:extern "DCOMP"} DCOMP {
           s := s + "] as Vec<" + genTpe.ToString(IND) + ">)";
           r := R.RawExpr(s);
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case SetValue(exprs) => {
           var generatedValues := [];
           readIdents := {};
           var i := 0;
           while i < |exprs| {
-            var recursiveGen, _, recIdents := GenExpr(exprs[i], selfIdent, params, true);
+            var recursiveGen, _, recIdents := GenExpr(exprs[i], selfIdent, params, OwnershipOwned);
 
             generatedValues := generatedValues + [recursiveGen];
             readIdents := readIdents + recIdents;
             i := i + 1;
           }
+          r := R.Call(R.RawExpr("::dafny_runtime::Set::from_array"), [], 
+            [R.Borrow(R.NewVec(generatedValues))]
+          );
 
-          var s := "vec![";
-          i := 0;
-          while i < |generatedValues| {
-            if i > 0 {
-              s := s + ", ";
-            }
-
-            var gen := generatedValues[i];
-            s := s + gen.ToString(IND);
-            i := i + 1;
-          }
-          s := s + "].into_iter().collect::<std::collections::HashSet<_>>()";
-          r := R.RawExpr(s);
-
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case MapValue(mapElems) => {
           var generatedValues := [];
           readIdents := {};
           var i := 0;
           while i < |mapElems| {
-            var recursiveGenKey, _, recIdentsKey := GenExpr(mapElems[i].0, selfIdent, params, true);
-            var recursiveGenValue, _, recIdentsValue := GenExpr(mapElems[i].1, selfIdent, params, true);
+            var recursiveGenKey, _, recIdentsKey := GenExpr(mapElems[i].0, selfIdent, params, OwnershipOwned);
+            var recursiveGenValue, _, recIdentsValue := GenExpr(mapElems[i].1, selfIdent, params, OwnershipOwned);
 
             generatedValues := generatedValues + [(recursiveGenKey, recursiveGenValue)];
             readIdents := readIdents + recIdentsKey + recIdentsValue;
@@ -2417,71 +2500,70 @@ module {:extern "DCOMP"} DCOMP {
             R.NewVec(arguments)
           ]);
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case This() => {
           match selfIdent {
             case Some(id) => {
-              if mustOwn {
-                r := R.RawExpr(id + ".clone()");
-                isOwned := true;
+              r := R.RawExpr(id);
+              if expectedOwnership == OwnershipOwned {
+                r := R.Clone(r);
+                resultingOwnership := OwnershipOwned;
               } else {
-                if id == "self" {
-                  r := R.RawExpr("self");
-                } else {
-                  r := R.RawExpr("&" + id);
+                if id != "self" {
+                  r := R.Borrow(r);
                 }
-                isOwned := false;
+                resultingOwnership := OwnershipBorrowed;
               }
 
               readIdents := {id};
             }
             case None => {
               r := R.RawExpr("panic!(\"this outside of a method\")");
-              isOwned := true;
+              resultingOwnership := OwnershipOwned;
               readIdents := {};
             }
           }
         }
         case Ite(cond, t, f) => {
           assert {:split_here} true;
-          var cond, _, recIdentsCond := GenExpr(cond, selfIdent, params, true);
+          var cond, _, recIdentsCond := GenExpr(cond, selfIdent, params, OwnershipOwned);
           var condString := cond.ToString(IND);
 
-          var _, tHasToBeOwned, _ := GenExpr(t, selfIdent, params, mustOwn); // check if t has to be owned even if not requested
+          var _, tHasToBeOwned, _ := GenExpr(t, selfIdent, params, expectedOwnership); // check if t has to be owned even if not requested
           var fExpr, fOwned, recIdentsF := GenExpr(f, selfIdent, params, tHasToBeOwned);
           var fString := fExpr.ToString(IND);
           var tExpr, _, recIdentsT := GenExpr(t, selfIdent, params, fOwned); // there's a chance that f forced ownership
           var tString := tExpr.ToString(IND);
 
           r := R.RawExpr("(if " + condString + " {\n" + tString + "\n} else {\n" + fString + "\n})");
-          isOwned := fOwned;
+          resultingOwnership := fOwned;
           readIdents := recIdentsCond + recIdentsT + recIdentsF;
         }
         case UnOp(Not, e, format) => {
-          var recursiveGen, _, recIdents := GenExpr(e, selfIdent, params, true);
+          var recursiveGen, _, recIdents := GenExpr(e, selfIdent, params, OwnershipOwned);
 
           r := R.RawExpr("!(" + recursiveGen.ToString(IND) + ")");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case UnOp(BitwiseNot, e, format) => {
-          var recursiveGen, _, recIdents := GenExpr(e, selfIdent, params, true);
+          var recursiveGen, _, recIdents := GenExpr(e, selfIdent, params, OwnershipOwned);
 
           r := R.RawExpr("~(" + recursiveGen.ToString(IND) + ")");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case UnOp(Cardinality, e, format) => {
-          var recursiveGen, recOwned, recIdents := GenExpr(e, selfIdent, params, false);
+          var recursiveGen, recOwned, recIdents := GenExpr(e, selfIdent, params, OwnershipBorrowed);
 
-          r := R.RcNew(R.RawExpr("::dafny_runtime::BigInt::from((" + recursiveGen.ToString(IND) + ").len())"));
-          isOwned := true;
+          r := R.Call(R.Select(recursiveGen, "cardinality"), [], []);
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case BinOp(op, lExpr, rExpr, format) => {
-          var left, _, recIdentsL := GenExpr(lExpr, selfIdent, params, true);
-          var right, _, recIdentsR := GenExpr(rExpr, selfIdent, params, true);
+          var left, _, recIdentsL := GenExpr(lExpr, selfIdent, params, OwnershipOwned);
+          var right, _, recIdentsR := GenExpr(rExpr, selfIdent, params, OwnershipOwned);
 
           match op {
             case In() => {
@@ -2537,11 +2619,11 @@ module {:extern "DCOMP"} DCOMP {
             }
           }
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdentsL + recIdentsR;
         }
         case ArrayLen(expr, dim) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
 
           if dim == 0 {
             r := R.RawExpr("::dafny_runtime::BigInt::from((" + recursiveGen.ToString(IND) + ").borrow().len())");
@@ -2556,23 +2638,23 @@ module {:extern "DCOMP"} DCOMP {
             r := R.RcNew(R.RawExpr("(" + recursiveGen.ToString(IND) + ")" + ".borrow().get(0).map(|m| " + s + ").unwrap_or(::dafny_runtime::BigInt::from(0))"));
           }
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case MapKeys(expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
-          isOwned := true;
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
           r := R.Call(R.Select(recursiveGen, "keys"), [], []);
         }
         case MapValues(expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, true);
-          isOwned := true;
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
           r := R.Call(R.Select(recursiveGen, "values"), [], []);
         }
         case SelectFn(on, field, isDatatype, isStatic, arity) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           var s: string;
           var onString := onExpr.ToString(IND);
 
@@ -2580,7 +2662,7 @@ module {:extern "DCOMP"} DCOMP {
             s := onString + "::" + escapeIdent(field);
           } else {
             s := "{\n";
-            s := s + "let callTarget = (" + onString + (if onOwned then ")" else ").clone()") + ";\n";
+            s := s + "let callTarget = (" + onString + (if onOwned == OwnershipOwned then ")" else ").clone()") + ";\n";
             var args := "";
             var i := 0;
             while i < arity {
@@ -2611,42 +2693,42 @@ module {:extern "DCOMP"} DCOMP {
           s := "::dafny_runtime::FunctionWrapper(::std::rc::Rc::new(" + s + ") as ::std::rc::Rc<" + typeShape + ">)";
           r := R.RawExpr(s);
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case Select(Companion(c), field, isConstant, isDatatype) => {
-          var onExpr, onOwned, recIdents := GenExpr(Companion(c), selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(Companion(c), selfIdent, params, OwnershipBorrowed);
 
           r := R.RawExpr(onExpr.ToString(IND) + "::" + escapeIdent(field) + "()");
 
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case Select(on, field, isConstant, isDatatype) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
-          var s: string;
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           if isDatatype || isConstant {
-            s := "(" + onExpr.ToString(IND) + ")" + "." + escapeIdent(field) + "()";
+            r := R.Call(R.Select(onExpr, escapeIdent(field)), [], []);
             if isConstant {
-              s := "&" + s;
+              r := R.Borrow(r);
             }
 
-            if mustOwn {
-              s := "(" + s + ").clone()";
-              isOwned := true;
+            if expectedOwnership == OwnershipOwned {
+              r := R.Clone(r);
+              resultingOwnership := OwnershipOwned;
             } else {
-              isOwned := false;
+              resultingOwnership := OwnershipBorrowed;
             }
           } else {
+            var s: string;
             s := "::std::ops::Deref::deref(&((" + onExpr.ToString(IND) + ")" + "." + escapeIdent(field) + ".borrow()))";
             s := "(" + s + ").clone()"; // TODO(shadaj): think through when we can avoid cloning
-            isOwned := true;
+            resultingOwnership := OwnershipOwned;
+            r := R.RawExpr(s);
           }
-          r := R.RawExpr(s);
           readIdents := recIdents;
         }
         case Index(on, collKind, indices) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           readIdents := recIdents;
 
           var s := onExpr.ToString(IND);
@@ -2658,30 +2740,30 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             if collKind == CollKind.Map {
-              var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, params, false);
-              s := "(" + s + ")[" + (if idxOwned then "&" else "") + idx.ToString(IND) + "]";
+              var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, params, OwnershipBorrowed);
+              s := "(" + s + ").get(" + (if idxOwned == OwnershipOwned then "&" else "") + idx.ToString(IND) + ")";
               readIdents := readIdents + recIdentsIdx;
             } else {
-              var idx, _, recIdentsIdx := GenExpr(indices[i], selfIdent, params, true);
+              var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, params, OwnershipOwned);
 
-              s := "(" + s + ")[<usize as ::dafny_runtime::NumCast>::from(" + idx.ToString(IND) + ").unwrap()]";
+              s := "(" + s + ").get(" + (if idxOwned == OwnershipOwned then "&" else "") + idx.ToString(IND) + ")";
               readIdents := readIdents + recIdentsIdx;
             }
 
             i := i + 1;
           }
-
-          if mustOwn {
-            s := "(" + s + ").clone()";
-            isOwned := true;
-          } else {
-            s := "(&" + s + ")";
-            isOwned := false;
-          }
           r := R.RawExpr(s);
+
+          if expectedOwnership == OwnershipOwned {
+            r := R.Clone(r);
+            resultingOwnership := OwnershipOwned;
+          } else {
+            r := R.Borrow(r);
+            resultingOwnership := OwnershipBorrowed;
+          }
         }
         case IndexRange(on, isArray, low, high) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, false);
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           readIdents := recIdents;
 
           var s := onExpr.ToString(IND);
@@ -2689,7 +2771,7 @@ module {:extern "DCOMP"} DCOMP {
           var lowString := None;
           match low {
             case Some(l) => {
-              var lString, _, recIdentsL := GenExpr(l, selfIdent, params, true);
+              var lString, _, recIdentsL := GenExpr(l, selfIdent, params, OwnershipOwned);
 
               lowString := Some(lString);
               readIdents := readIdents + recIdentsL;
@@ -2700,7 +2782,7 @@ module {:extern "DCOMP"} DCOMP {
           var highString := None;
           match high {
             case Some(h) => {
-              var hString, _, recIdentsH := GenExpr(h, selfIdent, params, true);
+              var hString, _, recIdentsH := GenExpr(h, selfIdent, params, OwnershipOwned);
 
               highString := Some(hString);
               readIdents := readIdents + recIdentsH;
@@ -2726,19 +2808,18 @@ module {:extern "DCOMP"} DCOMP {
 
           s := "(" + s + ".to_vec())";
           r := R.RawExpr(s);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case TupleSelect(on, idx) => {
-          var onExpr, _, recIdents := GenExpr(on, selfIdent, params, false);
-          var s := "(" + onExpr.ToString(IND) + ")." + Strings.OfNat(idx);
-          if mustOwn {
-            s := "(" + s + ")" + ".clone()";
-            isOwned := true;
+          var onExpr, _, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
+          r := R.Select(onExpr, Strings.OfNat(idx));
+          if expectedOwnership == OwnershipOwned {
+            r := R.Clone(r);
+            resultingOwnership := OwnershipOwned;
           } else {
-            s := "&" + s;
-            isOwned := false;
+            r := R.Borrow(r);
+            resultingOwnership := OwnershipBorrowed;
           }
-          r := R.RawExpr(s);
           readIdents := recIdents;
         }
         case Call(on, name, typeArgs, args) => {
@@ -2759,8 +2840,8 @@ module {:extern "DCOMP"} DCOMP {
           var argExprs := [];
           var i := 0;
           while i < |args| {
-            var argExpr, isOwned, argIdents := GenExpr(args[i], selfIdent, params, false);
-            if isOwned {
+            var argExpr, argOwnership, argIdents := GenExpr(args[i], selfIdent, params, OwnershipBorrowed);
+            if argOwnership == OwnershipOwned {
               argExpr := R.Borrow(argExpr);
             }
 
@@ -2770,9 +2851,8 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var enclosingExpr, _, recIdents := GenExpr(on, selfIdent, params, false);
+          var enclosingExpr, _, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           readIdents := readIdents + recIdents;
-          var enclosingString := enclosingExpr.ToString(IND);
           var renderedName := match name {
             case Name(ident) => escapeIdent(ident)
             case MapBuilderAdd | SetBuilderAdd => "add"
@@ -2780,15 +2860,15 @@ module {:extern "DCOMP"} DCOMP {
           };
           match on {
             case Companion(_) => {
-              enclosingString := enclosingString + "::" + renderedName;
+              enclosingExpr := R.MemberSelect(enclosingExpr, renderedName);
             }
             case _ => {
-              enclosingString := "(" + enclosingString + ")." + renderedName;
+              enclosingExpr := R.Select(enclosingExpr, renderedName);
             }
           }
 
-          r := R.Call(R.RawExpr(enclosingString), typeExprs, argExprs);
-          isOwned := true;
+          r := R.Call(enclosingExpr, typeExprs, argExprs);
+          resultingOwnership := OwnershipOwned;
         }
         case Lambda(params, retType, body) => {
           var paramNames := [];
@@ -2835,7 +2915,7 @@ module {:extern "DCOMP"} DCOMP {
           var retTypeGen := GenType(retType, false, true);
 
           r := R.RawExpr("::dafny_runtime::FunctionWrapper::<::std::rc::Rc<dyn ::std::ops::Fn(" + paramTypes + ") -> " + retTypeGen.ToString(IND) + ">>({\n" + allReadCloned + "::std::rc::Rc::new(move |" + paramsString + "| -> " + retTypeGen.ToString(IND) + " {\n" + recursiveGen.ToString(IND) + "\n})})");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case BetaRedex(values, retType, expr) => {
           var paramNames := [];
@@ -2859,7 +2939,7 @@ module {:extern "DCOMP"} DCOMP {
 
             var typStr := GenType(values[i].0.typ, false, true);
 
-            var valueGen, _, recIdents := GenExpr(values[i].1, selfIdent, params, true);
+            var valueGen, _, recIdents := GenExpr(values[i].1, selfIdent, params, OwnershipOwned);
             s := s + "let " + escapeIdent(values[i].0.name) + ": " + typStr.ToString(IND) + " = ";
             readIdents := readIdents + recIdents;
 
@@ -2867,26 +2947,26 @@ module {:extern "DCOMP"} DCOMP {
             i := i + 1;
           }
 
-          var recGen, recOwned, recIdents := GenExpr(expr, selfIdent, paramNames, mustOwn);
+          var recGen, recOwned, recIdents := GenExpr(expr, selfIdent, paramNames, expectedOwnership);
           readIdents := recIdents - paramNamesSet;
 
           s := s  + recGen.ToString(IND) + "\n}";
           r := R.RawExpr(s);
-          isOwned := recOwned;
+          resultingOwnership := recOwned;
         }
         case IIFE(name, tpe, value, iifeBody) => {
-          var valueGen, _, recIdents := GenExpr(value, selfIdent, params, true);
+          var valueGen, _, recIdents := GenExpr(value, selfIdent, params, OwnershipOwned);
 
           readIdents := recIdents;
           var valueTypeGen := GenType(tpe, false, true);
-          var bodyGen, _, bodyIdents := GenExpr(iifeBody, selfIdent, params, true);
+          var bodyGen, _, bodyIdents := GenExpr(iifeBody, selfIdent, params, OwnershipOwned);
           readIdents := readIdents + (bodyIdents - {name.id});
 
           r := R.RawExpr("{\nlet " + escapeIdent(name.id) + ": " + valueTypeGen.ToString(IND) + " = " + valueGen.ToString(IND) + ";\n" + bodyGen.ToString(IND) + "\n}");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case Apply(func, args) => {
-          var funcExpr, _, recIdents := GenExpr(func, selfIdent, params, false);
+          var funcExpr, _, recIdents := GenExpr(func, selfIdent, params, OwnershipBorrowed);
           readIdents := recIdents;
 
           var argString := "";
@@ -2896,9 +2976,9 @@ module {:extern "DCOMP"} DCOMP {
               argString := argString + ", ";
             }
 
-            var argExpr, isOwned, argIdents := GenExpr(args[i], selfIdent, params, false);
+            var argExpr, argOwned, argIdents := GenExpr(args[i], selfIdent, params, OwnershipBorrowed);
             var argExprString := argExpr.ToString(IND);
-            if isOwned {
+            if argOwned == OwnershipOwned {
               argExprString := "&" + argExprString;
             }
 
@@ -2909,54 +2989,54 @@ module {:extern "DCOMP"} DCOMP {
           }
 
           r := R.RawExpr("((" + funcExpr.ToString(IND) + ").0" + "(" + argString + "))");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
         }
         case TypeTest(on, dType, variant) => {
-          var exprGen, _, recIdents := GenExpr(on, selfIdent, params, false);
+          var exprGen, _, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
           var dTypePath := GenPath(dType);
           r := R.RawExpr("matches!(" + exprGen.ToString(IND) + ".as_ref(), " + dTypePath + "::" + escapeIdent(variant) + "{ .. })");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case BoolBoundedPool() => {
           r := R.RawExpr("[false, true]");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
         }
         case SetBoundedPool(of) => {
-          var exprGen, _, recIdents := GenExpr(of, selfIdent, params, false);
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, params, OwnershipBorrowed);
           r := R.RawExpr("(" + exprGen.ToString(IND) + ").iter()");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case SeqBoundedPool(of, includeDuplicates) => {
-          var exprGen, _, recIdents := GenExpr(of, selfIdent, params, false);
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, params, OwnershipBorrowed);
           var s := "(" + exprGen.ToString(IND) + ").iter()";
           if !includeDuplicates {
             s := "::dafny_runtime::itertools::Itertools::unique(" + s + ")";
           }
           r := R.RawExpr(s);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdents;
         }
         case IntRange(lo, hi) => {
-          var lo, _, recIdentsLo := GenExpr(lo, selfIdent, params, true);
-          var hi, _, recIdentsHi := GenExpr(hi, selfIdent, params, true);
+          var lo, _, recIdentsLo := GenExpr(lo, selfIdent, params, OwnershipOwned);
+          var hi, _, recIdentsHi := GenExpr(hi, selfIdent, params, OwnershipOwned);
 
           r := R.RawExpr("::dafny_runtime::integer_range(" + lo.ToString(IND) + ", " + hi.ToString(IND) + ")");
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := recIdentsLo + recIdentsHi;
         }
         case MapBuilder(keyType, valueType) => {
           var kType := GenType(keyType, false, false);
           var vType := GenType(valueType, false, false);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
           r := R.RawExpr("::dafny_runtime::MapBuilder::<" + kType.ToString(IND) + ", " + vType.ToString(IND) + ">::new()");
         }
         case SetBuilder(elemType) => {
           var eType := GenType(elemType, false, false);
-          isOwned := true;
+          resultingOwnership := OwnershipOwned;
           readIdents := {};
           r := R.RawExpr("::dafny_runtime::SetBuilder::<" + eType.ToString(IND) + ">::new()");
         }

@@ -17,14 +17,6 @@ if [ "$#" != 0 ] && [ "$1" == "--no-verify" ]; then
 else
   noverify=""
 fi
-
-# If the argument --no-format is passed to the script, we pop it and won't format the resulting cs
-if [ "$#" != 0 ] && [ "$1" == "--no-format" ]; then
-  noformat="true"
-  shift
-else
-  noformat="false"
-fi
   
 # If an argument is passed to the script, store it in this variable. Otherwise use the default "GeneratedFromDafny.cs"
 # Something like output = if no arguments then  "GeneratedFromDafny.cs" else first argument
@@ -48,7 +40,3 @@ with open ('$output.cs', 'r' ) as f:
 with open('$output.cs', 'w') as w:
   w.write(content_new)
 "
-
-if [ "$noformat" == "false" ]; then
-  dotnet format whitespace --include $output.cs 
-fi

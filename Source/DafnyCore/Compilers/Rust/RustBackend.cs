@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
+  protected override bool PreventShadowing => false;
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";

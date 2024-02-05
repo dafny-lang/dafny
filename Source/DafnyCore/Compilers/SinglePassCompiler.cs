@@ -959,9 +959,12 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tp != null);
       return IdProtect(tp.GetCompileName(Options));
     }
+    protected virtual string GetCompileNameNotProtected(IVariable v) {
+      return v.CompileName;
+    }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
-      return IdProtect(v.CompileName);
+      return IdProtect(GetCompileNameNotProtected(v));
     }
     protected virtual string IdMemberName(MemberSelectExpr mse) {
       Contract.Requires(mse != null);
@@ -2786,7 +2789,7 @@ namespace Microsoft.Dafny.Compilers {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           var wStmts = wr.Fork();
-          var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
+          var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
@@ -3663,7 +3666,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_bodyless_modify_statement_forbidden, s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
-        EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
+        EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -5914,7 +5917,7 @@ namespace Microsoft.Dafny.Compilers {
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
+          CreateIIFE(IdName(bv), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
           wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
           rhs(wrRhs);
           return wrBody;

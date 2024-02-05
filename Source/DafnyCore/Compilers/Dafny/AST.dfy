@@ -38,6 +38,8 @@ module {:extern "DAST"} DAST {
     Set(element: Type) |
     Multiset(element: Type) |
     Map(key: Type, value: Type) |
+    SetBuilder(element: Type) |
+    MapBuilder(key: Type, value: Type) |
     Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident)

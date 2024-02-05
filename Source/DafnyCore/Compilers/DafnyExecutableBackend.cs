@@ -11,6 +11,8 @@ namespace Microsoft.Dafny.Compilers;
 
 public abstract class DafnyExecutableBackend : ExecutableBackend {
 
+  protected virtual bool PreventShadowing => true;
+
   protected DafnyWrittenCompiler dafnyCompiler;
 
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
@@ -18,7 +20,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected override SinglePassCompiler CreateCompiler() {
     // becomes this.compiler
-    return new DafnyCompiler(Options, Reporter);
+    return new DafnyCompiler(Options, Reporter, PreventShadowing);
   }
 
   protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();

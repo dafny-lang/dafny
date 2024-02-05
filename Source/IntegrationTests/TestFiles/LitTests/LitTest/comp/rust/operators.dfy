@@ -209,6 +209,10 @@ method {:resource_limit "200e3"}  Main() {
   if 2 <= 3 && 2 < 3 && 3 >= 2 && 3 > 2 && 3 != 2 && 2 == 2 {
     print "<= < >= > != ==\n";
   }
+
+  if 2 + 2 == 4 && 2 * 2 == 4 && 2 - 2 == 0 && -1 / 2 == -1 && 5 % 2 == 1 {
+    print "+ * - / %\n";
+  }
   TestU8();
   TestU16();
   TestU32();
@@ -287,6 +291,15 @@ method {:resource_limit "200e3"}  Main() {
     print "union equality ";
   }
   if 1 in h && h[1] == 3 && |h| == 3 {
-    print "access and cardinality";
-  }*/
+    print "access and cardinality\n";
+  }
+  
+  var seq1 := [1, 2, 3, 4];
+  var seq2 := seq1[0];
+  var seq3 := seq1[1..4];
+  var seq4 := seq3 + seq2;
+  if seq4[0] == 2 && seq4[3] == 1 && seq4[0..3] == seq3 {
+    print "Sequence index slice comparison"
+  }
+  */
 }

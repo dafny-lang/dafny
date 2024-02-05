@@ -12,7 +12,7 @@ dfyprod:
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 dfydev:
-	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe

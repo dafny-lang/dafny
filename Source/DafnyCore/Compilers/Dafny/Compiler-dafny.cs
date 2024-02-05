@@ -46,6 +46,7 @@ namespace Microsoft.Dafny.Compilers {
     ProgramBuilder items;
     public object currentBuilder;
     public bool testing;
+    public bool preventShadowing;
 
     public void Start() {
       if (items != null) {
@@ -63,13 +64,18 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+    public DafnyCompiler(DafnyOptions options, ErrorReporter reporter, bool preventShadowing = true) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
 
       testing = Environment.GetEnvironmentVariable("TEST_DAFNY") == "true";
+      this.preventShadowing = preventShadowing;
+    }
+
+    protected override string GetCompileNameNotProtected(IVariable v) {
+      return preventShadowing ? v.CompileName : v.SanitizedNameShadowable;
     }
 
     public void throwGeneralUnsupported(string why) {
@@ -2488,8 +2494,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
-      throwGeneralUnsupported("<i>EmitSetBuilder_New</i>");
-      //throw new InvalidOperationException();
+      if (wr is BuilderSyntaxTree<StatementContainer> builder) {
+        var eType = e.Type.AsSetType;
+        var elemType = GenType(eType.Arg);
+        var setBuilderType = DAST.Type.create_SetBuilder(elemType);
+        builder.Builder.AddStatement(
+          (DAST.Statement)DAST.Statement.create_DeclareVar(
+            Sequence<Rune>.UnicodeFromString(collectionName),
+            setBuilderType,
+            Option<_IExpression>.create_Some(
+              DAST.Expression.create_SetBuilder(elemType)
+            )
+          ));
+      } else {
+        throwGeneralUnsupported("<i>EmitSetBuilder_New</i>");
+      }
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
@@ -2497,7 +2516,7 @@ namespace Microsoft.Dafny.Compilers {
         var eType = e.Type.AsMapType;
         var keyType = GenType(eType.Range);
         var valueType = GenType(eType.Domain);
-        var mapType = DAST.Type.create_Map(keyType, valueType);
+        var mapType = DAST.Type.create_MapBuilder(keyType, valueType);
         builder.Builder.AddStatement(
           (DAST.Statement)DAST.Statement.create_DeclareVar(
             Sequence<Rune>.UnicodeFromString(collectionName),

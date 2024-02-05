@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
-use std::{any::Any, borrow::Borrow, cell::RefCell, collections::{HashSet, HashMap}, fmt::{Display, Formatter}, hash::Hash, ops::{Add, Deref}, rc::Rc};
-use num::{Integer, Signed, One};
+use std::{any::Any, borrow::Borrow, cell::RefCell, cmp::Ordering, collections::{HashMap, HashSet}, fmt::{Display, Formatter}, hash::Hash, ops::{Add, Deref, Div, Index, Mul, Neg, Rem, Sub}, rc::Rc};
+use num::{bigint::ParseBigIntError, Integer, Num, One, Signed, ToPrimitive};
 
 pub use once_cell::unsync::Lazy;
 
@@ -26,15 +26,14 @@ pub type SizeT = usize;
 // We use the named version using {...}, and use snake_case format
 
 // The T must be either a *const T (allocated) OR a Reference Counting (immutable)
-#[allow(dead_code)]
-mod dafny_runtime_conversions {
-    type DafnyInt = Rc<BigInt>;
-    type DafnySequence<T> = Rc<Sequence<T>>;
-    type DafnyMap<K, V> = Rc<Map<K, V>>;
-    type DafnySet<T> = Rc<Set<T>>;
-    type DafnyMultiset<T> = Rc<Multiset<T>>;
-    type DafnyBool = bool;
-    type DafnyString = String;
+pub mod dafny_runtime_conversions {
+    pub type DafnyInt = crate::DafnyInt;
+    pub type DafnySequence<T> = crate::DafnySequence<T>;
+    pub type DafnyMap<K, V> = Rc<Map<K, V>>;
+    pub type DafnySet<T> = Rc<Set<T>>;
+    pub type DafnyMultiset<T> = Rc<Multiset<T>>;
+    pub type DafnyBool = bool;
+    pub type DafnyString = String;
 
     use num::BigInt;
 
@@ -48,10 +47,10 @@ mod dafny_runtime_conversions {
     use std::hash::Hash;
 
     pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
-        i.as_ref().clone()
+        i.data.as_ref().clone()
     }
     pub fn bigint_to_dafny_int(i: &BigInt) -> DafnyInt {
-        Rc::new(i.clone())
+        DafnyInt{data: Rc::new(i.clone())}
     }
 
     pub fn dafny_sequence_to_vec<T, X>(
@@ -59,8 +58,8 @@ mod dafny_runtime_conversions {
         elem_converter: fn(&T) -> X) -> Vec<X>
       where T: Clone
     {
-        let mut array: Vec<T> = Vec::with_capacity(s.cardinality());
-        Sequence::<T>::append_recursive(&mut array, s);
+        let mut array: Vec<T> = Vec::with_capacity(s.cardinality_usize());
+        Sequence::<T>::append_recursive(&mut array, s.data.as_ref());
         array.iter().map(|x| elem_converter(x)).collect()
     }
 
@@ -73,7 +72,7 @@ mod dafny_runtime_conversions {
         for elem in array.iter() {
             result.push(elem_converter(elem));
         }
-        Sequence::<T>::new_array_sequence(&Rc::new(result))
+        DafnySequence {data: Sequence::<T>::from_array_owned(result) }
     }
     
     pub fn dafny_map_to_hashmap<K, V, K2, V2>(m: &DafnyMap<K, V>, converter_k: fn(&K)->K2, converter_v: fn(&V)->V2) -> HashMap<K2, V2>
@@ -95,32 +94,30 @@ mod dafny_runtime_conversions {
 
     // --unicode-chars:true
     pub mod unicode_chars_true {
-        use crate::Sequence;
-        use std::rc::Rc;
+        use crate::DafnySequence;
 
-        type DafnyString = Rc<Sequence<char>>;
+        type DafnyString = DafnySequence<char>;
 
         pub fn string_to_dafny_string(s: &str) -> DafnyString {
-            Sequence::new_array_sequence_is_string(&Rc::new(s.chars().collect()), true)
+            DafnySequence::from_array_owned(s.chars().collect())
         }
         pub fn dafny_string_to_string(s: &DafnyString) -> String {
-            let characters = s.to_array();
+            let characters = s.data.to_array();
             characters.iter().collect::<String>()
         }
     }
     
     // --unicode-chars:false
     pub mod unicode_chars_false {
-        use crate::Sequence;
-        use std::rc::Rc;
+        use crate::DafnySequence;
 
-        type DafnyString = Rc<Sequence<u16>>;
+        type DafnyString = DafnySequence<u16>;
 
         pub fn string_to_dafny_string(s: &str) -> DafnyString {
-            Sequence::new_array_sequence_is_string(&Rc::new(s.encode_utf16().collect()), false)
+            DafnySequence::from_array_owned(s.encode_utf16().collect())
         }
         pub fn dafny_string_to_string(s: &DafnyString) -> String {
-            let characters = s.to_array();
+            let characters = s.data.as_ref().to_array();
             String::from_utf16_lossy(&characters)
         }
     }
@@ -161,106 +158,278 @@ mod dafny_runtime_conversions {
     pub fn vec_to_dafny_multiset<T, U>(vec: &Vec<U>, converter: fn(&U) -> T) -> DafnyMultiset<T>
         where T: Clone + Eq + Hash + super::DafnyPrint, U: Clone + Eq + Hash
     {
-        Multiset::from_owned_array(
+        Multiset::from_array_owned(
             vec.into_iter().map(|u: &U| converter(u)).collect()
         )
     }
 
 }
 
-#[allow(dead_code)]
-enum Sequence<T>
+// Zero-cost abstraction over a Rc<BigInt>
+pub struct DafnyInt {
+    data: Rc<BigInt>
+}
+
+impl Clone for DafnyInt {
+    fn clone(&self) -> Self {
+        DafnyInt{data: Rc::clone(&self.data)}
+    }
+}
+
+impl Default for DafnyInt {
+    fn default() -> Self {
+        DafnyInt{data: Rc::new(BigInt::zero())}
+    }
+}
+
+impl PartialEq<DafnyInt> for DafnyInt {
+    fn eq(&self, other: &DafnyInt) -> bool {
+        self.data.eq(&other.data)
+    }
+}
+impl Eq for DafnyInt {}
+impl Hash for DafnyInt {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+    }
+}
+
+impl DafnyPrint for DafnyInt {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "{}", self.data)
+    }
+}
+
+impl Add<DafnyInt> for DafnyInt {
+    type Output = DafnyInt;
+
+    fn add(self, rhs: DafnyInt) -> Self::Output {
+        DafnyInt{data: Rc::new(self.data.as_ref() + rhs.data.as_ref())}
+    }
+}
+
+impl Mul<DafnyInt> for DafnyInt {
+    type Output = DafnyInt;
+
+    fn mul(self, rhs: DafnyInt) -> Self::Output {
+        DafnyInt{data: Rc::new(self.data.as_ref() * rhs.data.as_ref())}
+    }
+}
+
+impl Div<DafnyInt> for DafnyInt {
+    type Output = DafnyInt;
+
+    fn div(self, rhs: DafnyInt) -> Self::Output {
+        DafnyInt{data: Rc::new(self.data.as_ref() / rhs.data.as_ref())}
+    }
+}
+
+impl Sub<DafnyInt> for DafnyInt {
+    type Output = DafnyInt;
+
+    fn sub(self, rhs: DafnyInt) -> Self::Output {
+        DafnyInt{data: Rc::new(self.data.as_ref() - rhs.data.as_ref())}
+    }
+}
+impl Rem<DafnyInt> for DafnyInt {
+    type Output = DafnyInt;
+
+    fn rem(self, rhs: DafnyInt) -> Self::Output {
+        DafnyInt{data: Rc::new(self.data.as_ref() % rhs.data.as_ref())}
+    }
+}
+impl Neg for DafnyInt {
+    type Output = DafnyInt;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        DafnyInt{data: Rc::new(-self.data.as_ref())}
+    }
+}
+impl Zero for DafnyInt {
+    #[inline]
+    fn zero() -> Self {
+        DafnyInt{data: Rc::new(BigInt::zero())}
+    }
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.data.is_zero()
+    }
+}
+impl One for DafnyInt {
+    #[inline]
+    fn one() -> Self {
+        DafnyInt{data: Rc::new(BigInt::one())}
+    }
+}
+impl Num for DafnyInt {
+    type FromStrRadixErr = ParseBigIntError;
+
+    #[inline]
+    fn from_str_radix(s: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        Ok(DafnyInt{data: Rc::new(BigInt::from_str_radix(s, radix)?)})
+    }
+}
+impl Ord for DafnyInt {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.data.cmp(&other.data)
+    }
+}
+impl Signed for DafnyInt {
+    #[inline]
+    fn abs(&self) -> Self {
+        DafnyInt{data: Rc::new(self.data.as_ref().abs())}
+    }
+
+    #[inline]
+    fn abs_sub(&self, other: &Self) -> Self {
+        DafnyInt{data: Rc::new(self.data.as_ref().abs_sub(other.data.as_ref()))}
+    }
+
+    #[inline]
+    fn signum(&self) -> Self {
+        DafnyInt{data: Rc::new(self.data.as_ref().signum())}
+    }
+
+    #[inline]
+    fn is_positive(&self) -> bool {
+        self.data.as_ref().is_positive()
+    }
+
+    #[inline]
+    fn is_negative(&self) -> bool {
+        self.data.as_ref().is_negative()
+    }
+}
+
+// Comparison
+impl PartialOrd<DafnyInt> for DafnyInt {
+    #[inline]
+    fn partial_cmp(&self, other: &DafnyInt) -> Option<Ordering> {
+        self.data.partial_cmp(&other.data)
+    }
+}
+
+impl DafnyInt {
+    #[inline]
+    pub fn parse_bytes(number: &[u8], radix: u32) -> DafnyInt {
+        DafnyInt{data: ::std::rc::Rc::new(BigInt::parse_bytes(number, radix).unwrap())}
+    }
+}
+
+pub struct DafnySequence<T>
+  where T: Clone
+{
+    data: Rc<Sequence<T>>
+}
+
+// Inlined wrappers around Rc<Sequence<T>>
+impl <T: Clone> DafnySequence<T> {
+    #[inline]
+    pub fn cardinality(&self) -> DafnyInt {
+        self.data.cardinality()
+    }
+    #[inline]
+    pub fn cardinality_usize(&self) -> usize {
+        self.data.cardinality_usize()
+    }
+    #[inline]
+    pub fn from_array_owned(values: Vec<T>) -> DafnySequence<T> {
+        DafnySequence{data: Sequence::from_array_owned(values)}
+    }
+    #[inline]
+    pub fn concat(&self, other: &DafnySequence<T>) -> DafnySequence<T> {
+        DafnySequence{data: 
+            Sequence::new_lazy_sequence(
+            &Sequence::new_concat_sequence(&self.data, &other.data))}
+    }
+    #[inline]
+    pub fn slice(&self, start: &DafnyInt, end: &DafnyInt) -> DafnySequence<T> {
+        DafnySequence{data: Sequence::slice(&self.data, start, end)}
+    }
+}
+
+impl <T> Add<&DafnySequence<T>> for &DafnySequence<T>
+  where T: Clone
+{
+    type Output = DafnySequence<T>;
+
+    fn add(self, rhs: &DafnySequence<T>) -> Self::Output {
+        self.concat(rhs)
+    }
+}
+
+impl <T> Index<&DafnyInt> for DafnySequence<T>
+  where T: Clone
+{
+    type Output = T;
+
+    fn index(&self, index: &DafnyInt) -> &T {
+        self.data.select_borrow(index.data.as_ref().to_usize().unwrap())
+    }
+}
+
+pub enum Sequence<T>
   where T: Clone,
 {
     ArraySequence {
-        is_string: bool,
-        node_count: usize,
         // Values could be a native array because we will know statically that all 
         // accesses are in bounds when using this data structure
         values: Rc<Vec<T>>,
     },
     ConcatSequence {
-        is_string: bool,
-        node_count: usize,
         left: Rc<Sequence<T>>,
         right: Rc<Sequence<T>>,
         length: SizeT,
     },
     LazySequence {
-        is_string: bool,
-        node_count: usize,
         length: SizeT,
         boxed: RefCell<Rc<Sequence<T>>>
     }
 }
 
-#[allow(dead_code)]
 impl <T> Sequence<T>
 where T: Clone {
-    pub fn is_string(&self) -> bool {
-        match self {
-            Sequence::ArraySequence { is_string, .. } => *is_string,
-            Sequence::ConcatSequence { is_string, .. } => *is_string,
-            Sequence::LazySequence { is_string, .. } => *is_string,
-        }
-    }
-    pub fn from_array_owned(values: Vec<T>) -> Rc<Sequence<T>> {        
-        Sequence::<T>::new_array_sequence(&Rc::new(values))
-    }
-    pub fn new_array_sequence(values: &Rc<Vec<T>>) -> Rc<Sequence<T>> {        
-        Sequence::<T>::new_array_sequence_is_string(values, false)
-    }
-    pub fn new_array_sequence_is_string(values: &Rc<Vec<T>>, is_string: bool) -> Rc<Sequence<T>> {        
+    pub fn from_array_owned(values: Vec<T>) -> Rc<Sequence<T>> {
         Rc::new(Sequence::ArraySequence {
-            is_string,
-            node_count: 1,
-            values: Rc::clone(values),
+            values: Rc::new(values),
         })
     }
     pub fn new_concat_sequence(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
-        Sequence::<T>::new_concat_sequence_is_string(left, right, false)
-    }
-    pub fn new_concat_sequence_is_string(left: &Rc<Sequence<T>>, right: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
         Rc::new(Sequence::ConcatSequence {
-            is_string: is_string || (left.is_string() && right.is_string()),
-            node_count: 1 + left.node_count() + right.node_count(),
             left: Rc::clone(&left),
             right: Rc::clone(&right),
-            length: left.cardinality() + right.cardinality(),
+            length: left.cardinality_usize() + right.cardinality_usize(),
         })
     }
-    pub fn new_lazy_sequence(boxed: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
-        Sequence::<T>::new_lazy_sequence_is_string(boxed, false)
-    }
-    pub fn new_lazy_sequence_is_string(underlying: &Rc<Sequence<T>>, is_string: bool) -> Rc<Sequence<T>> {
+    pub fn new_lazy_sequence(underlying: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
         Rc::new(Sequence::LazySequence {
-            is_string: is_string || underlying.is_string(),
-            node_count: underlying.node_count() + 1,
-            length: underlying.cardinality(),
+            length: underlying.cardinality_usize(),
             boxed: RefCell::new(Rc::clone(underlying)),
         })
     }
-
     pub fn to_array(&self) -> Rc<Vec<T>> {
-        // We convert the match above to statements using the Rust "it" idiom
-        if let Sequence::ArraySequence { values, .. } = self {
-            // The length of the elements
-            Rc::clone(values)
-        } else if let Sequence::ConcatSequence { length, .. } = self {
-            let mut array: Vec<T> = Vec::with_capacity(*length);
-            Sequence::<T>::append_recursive(&mut array, self);
-            Rc::new(array)
-        } else if let Sequence::LazySequence { boxed, is_string, ..  } = self {
-            let result = boxed.borrow().to_array();
-            // Put the value back into boxed
-            boxed.replace(Rc::clone(
-                &Sequence::<T>::new_array_sequence_is_string(&result, *is_string)));
-            result
-        } else {
-            panic!("This should never happen")
+        // Let's convert the if then else below to a proper match statement
+        match self {
+            Sequence::ArraySequence { values, .. } =>
+              // The length of the elements
+              Rc::clone(values),
+            Sequence::ConcatSequence { length, .. } => {
+              // Let's create an array of size length and fill it up recursively
+                let mut array: Vec<T> = Vec::with_capacity(*length);
+                Sequence::<T>::append_recursive(&mut array, self);
+                Rc::new(array)
+            },
+            Sequence::LazySequence { boxed,.. } => {
+                let result: Rc<Vec<T>> = boxed.borrow().to_array();
+                // Put the value back into boxed
+                boxed.replace(Rc::new(
+                    Sequence::<T>::ArraySequence{values: result.clone()}));
+                result
+            }
         }
     }
-
     pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
         match this {
             Sequence::ArraySequence { values, .. } =>
@@ -278,22 +447,9 @@ where T: Clone {
             Sequence::<T>::append_recursive(array, boxed.borrow().as_ref()),
         }
     }
-
-    pub fn node_count(&self) -> usize {
-        match self {
-            Sequence::ArraySequence { node_count, .. } =>
-              // The length of the elements
-              *node_count,
-            Sequence::ConcatSequence { node_count, ..  } =>
-              *node_count,
-            Sequence::LazySequence { node_count, .. } =>
-              *node_count,
-        }
-    
-    }
     /// Returns the cardinality of this [`Sequence<T>`].
     // The cardinality returns the length of the sequence
-    pub fn cardinality(&self) -> SizeT {
+    pub fn cardinality_usize(&self) -> SizeT {
         match self {
             Sequence::ArraySequence { values, .. } =>
               // The length of the elements
@@ -304,14 +460,39 @@ where T: Clone {
               *length,
         }
     }
+    pub fn cardinality(&self) -> DafnyInt {
+        DafnyInt{data: Rc::new(BigInt::from_usize(self.cardinality_usize()).unwrap())}
+    }
     pub fn select(&self, index: SizeT) -> T {
         let array = self.to_array();
         array[index].clone()
     }
+    pub fn select_borrow<'a>(&'a self, index: SizeT) -> &'a T {
+        match self {
+            Sequence::ArraySequence { values, .. } =>
+                &values[index],
+              
+            Sequence::ConcatSequence { .. } => {
+              panic!("ConcatSequence should have been wrapped in a LazySequence")
+            },
+            Sequence::LazySequence { boxed, .. } => {
+                let result = boxed.borrow().to_array();
+                // Put the value back into boxed
+                boxed.replace(Rc::new(
+                    Sequence::<T>::ArraySequence{values: result}));
+                unsafe{ std::mem::transmute::<&Sequence<T>, &'a Sequence<T>>( boxed.borrow().as_ref())}.select_borrow(index)
+            }
+        }
+    }
+
+    pub fn slice(&self, start: &DafnyInt, end: &DafnyInt) -> Rc<Sequence<T>> {
+        let start_index = start.data.as_ref().to_usize().unwrap();
+        let end_index = end.data.as_ref().to_usize().unwrap();
+        let new_data = Sequence::from_array_owned(self.to_array()[start_index..end_index].to_vec());
+        new_data
+    }
 }
 
-
-#[allow(dead_code)]
 impl <T> Sequence<T> where T: Eq + Clone {
     pub fn contains(&self, value: &T) -> bool {
         self.to_array().contains(value)
@@ -356,7 +537,7 @@ impl <V> DafnyPrint for Sequence<V>
 // Immutable maps
 // **************
 
-#[allow(dead_code)]
+// TODO: Find how to not depend on Hash, by default
 pub struct Map<K, V> 
   where K: Clone + Eq + std::hash::Hash, V: Clone
 {
@@ -365,14 +546,13 @@ pub struct Map<K, V>
     cache: RefCell<Option<HashMap<K, V>>>
 }
 
-// TODO: Allow supporting no hash?
 impl <K, V> PartialEq<Map<K, V>> for Map<K, V>
   where K: Clone + Eq + Hash + DafnyPrint, V: Clone + Eq
 {
     fn eq(&self, other: &Map<K, V>) -> bool {
         // 1. Same cardinality
         // 2. All the elements of self are in the other
-        if self.cardinality() != other.cardinality() {
+        if self.cardinality_usize() != other.cardinality_usize() {
             false
         } else {
             for (k, v) in self.data.to_array().iter() {
@@ -387,13 +567,12 @@ impl <K, V> PartialEq<Map<K, V>> for Map<K, V>
     }
 }
 
-#[allow(dead_code)]
 impl <K, V> Map<K, V>
   where K: Clone + Eq + std::hash::Hash + DafnyPrint, V: Clone + Eq
 {
     pub fn new_empty() -> Rc<Map<K, V>> {
         Rc::new(Map {
-            data: Sequence::new_array_sequence(&Rc::new(Vec::new())),
+            data: Sequence::from_array_owned(Vec::new()),
             cache: RefCell::new(None)
         })
     }
@@ -437,7 +616,10 @@ impl <K, V> Map<K, V>
             ));
         }
     }
-    pub fn cardinality(&self) -> SizeT {
+    pub fn cardinality_usize(&self) -> usize {
+        self.data.cardinality_usize()
+    }
+    pub fn cardinality(&self) -> DafnyInt {
         self.data.cardinality()
     }
     pub fn contains(&self, key: &K) -> bool {
@@ -454,8 +636,8 @@ impl <K, V> Map<K, V>
         self.cache.borrow_mut().as_ref().unwrap().get(key).unwrap().clone()
     }
     pub fn add(&self, key: K, value: V) -> Rc<Map<K, V>> {
-        let new_data = Sequence::<(K, V)>::new_array_sequence(
-            &Rc::new(vec![(key, value)]));
+        let new_data = Sequence::<(K, V)>::from_array_owned(
+            vec![(key, value)]);
         let combined_data = Sequence::<(K, V)>::new_concat_sequence(
             &self.data, &new_data);
         Rc::new(Map {
@@ -492,7 +674,7 @@ impl <K, V> Map<K, V>
         for (k, v) in map.iter() {
             result.push((converter_k(k), converter_v(v)));
         }
-        let s = Sequence::<(K, V)>::new_array_sequence(&Rc::new(result));
+        let s = Sequence::<(K, V)>::from_array_owned(result);
         Rc::new(Map {
             data: s,
             cache: RefCell::new(None)
@@ -515,14 +697,12 @@ impl <K, V> Map<K, V>
 }
 
 
-#[allow(dead_code)]
 pub struct MapBuilder<K, V>
   where K: Clone + Eq + std::hash::Hash, V: Clone
 {
     data: HashMap<K, V>
 }
 
-#[allow(dead_code)]
 impl <K, V> MapBuilder<K, V>
   where K: Clone + Eq + std::hash::Hash + DafnyPrint, V: Clone + Eq
 {
@@ -535,7 +715,7 @@ impl <K, V> MapBuilder<K, V>
         // Dafny will prove that overriding has the same value anyway
         self.data.insert(key.clone(), value.clone());
     }
-    pub fn build(self) -> Rc<Map<K, V>> {
+    pub fn build(&self) -> Rc<Map<K, V>> {
         // Iterate over all the key values of the hashmap and add them to an array
         let mut result: Vec<(K, V)> = Vec::new();
         for (k, v) in self.data.iter() {
@@ -585,7 +765,7 @@ impl <V> PartialEq<Set<V>> for Set<V>
     fn eq(&self, other: &Set<V>) -> bool {
         // 1. Same cardinality
         // 2. All the elements of self are in the other
-        if self.cardinality() != other.cardinality() {
+        if self.cardinality_usize() != other.cardinality_usize() {
             false
         } else {
             for value in self.data.to_array().iter() {
@@ -603,7 +783,6 @@ impl <V> PartialEq<Set<V>> for Set<V>
     }
 }
 
-#[allow(dead_code)]
 impl <V> Set<V> where V: Clone + Eq {
     pub fn new_empty() -> Rc<Set<V>> {
         Self::from_array_owned_unique(Vec::new())
@@ -622,29 +801,28 @@ impl <V> Set<V> where V: Clone + Eq {
     }
     pub fn from_array_owned_unique(unique_array: Vec<V>) -> Rc<Set<V>> {
         Rc::new(Set {
-            data: Sequence::new_array_sequence(&Rc::new(unique_array))
+            data: Sequence::from_array_owned(unique_array)
         })
     }
 }
 
-#[allow(dead_code)]
 impl <V> Set<V>
   where V: Clone + Eq + DafnyPrint
 {
-    pub fn cardinality(&self) -> SizeT {
-        self.data.cardinality()
+    pub fn cardinality_usize(&self) -> usize {
+        self.data.cardinality_usize()
     }
-    pub fn cardinality_int(&self) -> Rc<BigInt> {
-        Rc::new(BigInt::from(self.cardinality() as i64))
+    pub fn cardinality(&self) -> DafnyInt {
+        self.data.cardinality()
     }
     pub fn contains(&self, value: &V) -> bool {
         self.data.contains(value)
     }
     pub fn union(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
-        if self.cardinality() == 0 {
+        if self.cardinality_usize() == 0 {
             return Rc::clone(other);
         }
-        if other.cardinality() == 0 {
+        if other.cardinality_usize() == 0 {
             return Rc::clone(self);
         }
         let mut result = Rc::clone(&self.data);
@@ -652,23 +830,24 @@ impl <V> Set<V>
         for value in other.data.to_array().iter() {
             if !result.contains(value) {
                 result = Sequence::<V>::new_concat_sequence(&result,
-                     &Sequence::new_array_sequence(&Rc::new(vec![value.clone()])));
+                     &Sequence::from_array_owned(vec![value.clone()]));
             }
         }
-        Set::from_sequence(&result)
+        let result_lazy = Sequence::<V>::new_lazy_sequence(&result);
+        Set::from_sequence(&result_lazy)
     }
 
     pub fn intersection(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
-        if self.cardinality() == 0 {
+        if self.cardinality_usize() == 0 {
             return Rc::clone(self);
         }
-        if other.cardinality() == 0 {
+        if other.cardinality_usize() == 0 {
             return Rc::clone(other);
         }
         // Start with an empty vec with capacity the smallest of both sets
         let mut result =
             Vec::with_capacity(
-                std::cmp::min(self.cardinality(), other.cardinality()));
+                std::cmp::min(self.cardinality_usize(), other.cardinality_usize()));
           
         // iterate over the other, take only elements in common
         for value in other.data.to_array().iter() {
@@ -680,15 +859,15 @@ impl <V> Set<V>
     }
 
     pub fn difference(self: &Rc<Self>, other: &Rc<Set<V>>) -> Rc<Set<V>> {
-        if self.cardinality() == 0 {
+        if self.cardinality_usize() == 0 {
             return Rc::clone(self);
         }
-        if other.cardinality() == 0 {
+        if other.cardinality_usize() == 0 {
             return Rc::clone(self);
         }
         // Start with a vec the size of the first one
         let mut result =
-            Vec::with_capacity(self.cardinality());
+            Vec::with_capacity(self.cardinality_usize());
           
         // iterate over the other, take only elements not in second
         for value in other.data.to_array().iter() {
@@ -700,10 +879,10 @@ impl <V> Set<V>
     }
 
     pub fn is_disjoint_from(&self, other: &Rc<Set<V>>) -> bool {
-        if self.cardinality() == 0 {
+        if self.cardinality_usize() == 0 {
             return true;
         }
-        if other.cardinality() == 0 {
+        if other.cardinality_usize() == 0 {
             return true;
         }
         // iterate over the other, take only elements not in second
@@ -716,7 +895,7 @@ impl <V> Set<V>
     }
 
     pub fn equals(&self, other: &Rc<Set<V>>) -> bool {
-        if self.cardinality() != other.cardinality() {
+        if self.cardinality_usize() != other.cardinality_usize() {
             return false;
         }
         // iterate over the other, take only elements not in second
@@ -729,10 +908,10 @@ impl <V> Set<V>
     }
 
     pub fn is_subset_of(&self, other: &Rc<Set<V>>) -> bool {
-        if self.cardinality() == 0 {
+        if self.cardinality_usize() == 0 {
             return true;
         }
-        if other.cardinality() == 0 {
+        if other.cardinality_usize() == 0 {
             return false;
         }
         // iterate over the other, take only elements not in second
@@ -745,7 +924,7 @@ impl <V> Set<V>
     }
     
     pub fn is_proper_subset_of(&self, other: &Rc<Set<V>>) -> bool {
-        self.is_subset_of(other) && self.cardinality() != other.cardinality()
+        self.is_subset_of(other) && self.cardinality_usize() != other.cardinality_usize()
     }
 
     pub fn elements(self: &Rc<Self>) -> Rc<Set<V>> {
@@ -753,14 +932,12 @@ impl <V> Set<V>
     }
 }
 
-#[allow(dead_code)]
-struct SetBuilder<T>
+pub struct SetBuilder<T>
   where T: Clone + Eq + std::hash::Hash
 {
     data: HashMap<T, bool>
 }
 
-#[allow(dead_code)]
 impl <T> SetBuilder<T>
   where T: Clone + Eq + std::hash::Hash
 {
@@ -805,7 +982,6 @@ impl <V> DafnyPrint for Set<V>
 // Immutable multisets
 // *******************
 
-#[allow(dead_code)]
 pub struct Multiset<V>
   where V: Clone + Eq + Hash
 {
@@ -822,7 +998,6 @@ pub struct Multiset<V>
     }
 }*/
 
-#[allow(dead_code)]
 impl <V> Multiset<V>
   where V: Clone + Eq + Hash + DafnyPrint
 {
@@ -834,9 +1009,9 @@ impl <V> Multiset<V>
             data: data.clone()
         })
     }
-    pub fn from_owned_array(data: Vec<V>) -> Rc<Multiset<V>> {
+    pub fn from_array_owned(data: Vec<V>) -> Rc<Multiset<V>> {
         // Create an ArraySequence from the data
-        let seq = Sequence::<V>::new_array_sequence(&Rc::new(data));
+        let seq = Sequence::<V>::from_array_owned(data);
         // Create a Map from the ArraySequence
         Self::from_seq(&seq)
     }
@@ -911,19 +1086,18 @@ pub fn deallocate<T : ?Sized>(pointer: *const T) {
         let _ = Box::from_raw(pointer as *mut T);
     }
 }
-pub fn is_instance_of<T: ?Sized + AsAny, U: 'static>(theobject: *const T) -> bool {
-    unsafe { &*theobject }.as_any().downcast_ref::<U>().is_some()
-}
-
-trait DafnyUpdowncast<U: ?Sized> {
-    fn updowncast(&self) -> U;
-    fn is_instance_of(&self) -> bool;
-}
 // Define the AsAny trait
 pub trait AsAny {
   fn as_any(&self) -> &dyn Any;
 }
-impl <T: AsAny, U: 'static> DafnyUpdowncast<*const U> for T
+pub fn is_instance_of<C: ?Sized + AsAny, U: 'static>(theobject: *const C) -> bool {
+    unsafe { &*theobject }.as_any().downcast_ref::<U>().is_some()
+}
+trait DafnyUpdowncast<U: ?Sized> {
+    fn updowncast(&self) -> U;
+    fn is_instance_of(&self) -> bool;
+}
+/*impl <T: ?Sized + AsAny, U: 'static> DafnyUpdowncast<*const U> for T
 {
     fn updowncast(&self) -> *const U {
         self.as_any().downcast_ref::<U>().unwrap()
@@ -933,7 +1107,7 @@ impl <T: AsAny, U: 'static> DafnyUpdowncast<*const U> for T
         is_instance_of::<T, U>(self)
         //self.as_any().downcast_ref::<U>().is_some()
     }
-}
+}*/
 impl <T: ?Sized + AsAny, U: 'static> DafnyUpdowncast<*const U> for *const T
 {
     fn updowncast(&self) -> *const U {
@@ -945,7 +1119,7 @@ impl <T: ?Sized + AsAny, U: 'static> DafnyUpdowncast<*const U> for *const T
         //self.as_any().downcast_ref::<U>().is_some()
     }
 }
-impl <T: AsAny, U: 'static> DafnyUpdowncast<*const U> for Rc<T>
+impl <T: ?Sized + AsAny, U: 'static> DafnyUpdowncast<*const U> for Rc<T>
 {
     fn updowncast(&self) -> *const U {
         self.as_any().downcast_ref::<U>().unwrap()
@@ -1064,28 +1238,6 @@ impl <A: Clone> Clone for FunctionWrapper<A> {
     }
 }
 
-impl <A> DafnyErasable for FunctionWrapper<A> {
-    type Erased = FunctionWrapper<A>;
-
-    fn erase(&self) -> &Self::Erased {
-        self
-    }
-
-    fn erase_owned(self) -> Self::Erased {
-        self
-    }
-}
-
-impl <A> DafnyUnerasable<FunctionWrapper<A>> for FunctionWrapper<A> {
-    fn unerase(v: &FunctionWrapper<A>) -> &Self {
-        v
-    }
-
-    fn unerase_owned(v: FunctionWrapper<A>) -> Self {
-        v
-    }
-}
-
 impl <A: ?Sized> PartialEq for FunctionWrapper<Rc<A>> {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
@@ -1099,281 +1251,14 @@ impl <T: DafnyPrint> Display for DafnyPrintWrapper<&T> {
     }
 }
 
-pub trait DafnyErasable: DafnyUnerasable<Self::Erased>
-where Self: Sized {
-    type Erased;
-
-    fn erase(&self) -> &Self::Erased {
-        unsafe { &*(self as *const Self as *const Self::Erased) }
-    }
-
-    fn erase_owned(self) -> Self::Erased {
-        unsafe { transmute_unchecked(self) }
-    }
-}
-
-pub trait DafnyUnerasable<T>
-where Self: Sized {
-    fn unerase(v: &T) -> &Self {
-        unsafe { &*(v as *const T as *const Self) }
-    }
-
-    fn unerase_owned(v: T) -> Self {
-        unsafe { transmute_unchecked(v) }
-    }
-}
-
-impl <T: DafnyErasable> DafnyErasable for Option<T> {
-    type Erased = Option<T::Erased>;
-
-    #[inline]
-    fn erase(&self) -> &Self::Erased {
-        unsafe { &*(self as *const Self as *const Self::Erased) }
-    }
-
-    #[inline]
-    fn erase_owned(self) -> Self::Erased {
-        unsafe { transmute_unchecked(self) }
-    }
-}
-
-impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Option<U>> for Option<T> {
-    #[inline]
-    fn unerase(v: &Option<U>) -> &Self {
-        unsafe { &*(v as *const Option<U> as *const Self) }
-    }
-
-    #[inline]
-    fn unerase_owned(v: Option<U>) -> Self {
-        unsafe { transmute_unchecked(v) }
-    }
-}
-
-impl <T: DafnyErasable> DafnyErasable for Rc<T> {
-    type Erased = Rc<T::Erased>;
-
-    #[inline]
-    fn erase(&self) -> &Self::Erased {
-        unsafe { &*(self as *const Self as *const Self::Erased) }
-    }
-
-    #[inline]
-    fn erase_owned(self) -> Self::Erased {
-        unsafe { transmute_unchecked(self) }
-    }
-}
-
-impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Rc<U>> for Rc<T> {
-    #[inline]
-    fn unerase(v: &Rc<U>) -> &Self {
-        unsafe { &*(v as *const Rc<U> as *const Self) }
-    }
-
-    #[inline]
-    fn unerase_owned(v: Rc<U>) -> Self {
-        unsafe { transmute_unchecked(v) }
-    }
-}
-
-impl <T: DafnyErasable> DafnyErasable for Vec<T> {
-    type Erased = Vec<T::Erased>;
-}
-
-impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<Vec<U>> for Vec<T> {}
-
-impl <T> DafnyErasable for HashSet<T> {
-    type Erased = HashSet<T>;
-
-    #[inline]
-    fn erase(&self) -> &Self::Erased {
-        self
-    }
-
-    #[inline]
-    fn erase_owned(self) -> Self::Erased {
-        self
-    }
-}
-
-impl <T> DafnyUnerasable<HashSet<T>> for HashSet<T> {
-    #[inline]
-    fn unerase(v: &HashSet<T>) -> &Self {
-        v
-    }
-
-    #[inline]
-    fn unerase_owned(v: HashSet<T>) -> Self {
-        v
-    }
-}
-
-impl <K, V> DafnyErasable for HashMap<K, V> {
-    type Erased = HashMap<K, V>;
-
-    #[inline]
-    fn erase(&self) -> &Self::Erased {
-        self
-    }
-
-    #[inline]
-    fn erase_owned(self) -> Self::Erased {
-        self
-    }
-}
-
-impl <K, V> DafnyUnerasable<HashMap<K, V>> for HashMap<K, V> {
-    #[inline]
-    fn unerase(v: &HashMap<K, V>) -> &Self {
-        v
-    }
-
-    #[inline]
-    fn unerase_owned(v: HashMap<K, V>) -> Self {
-        v
-    }
-}
-
-impl <T> DafnyErasable for Box<T> {
-    type Erased = Box<T>;
-
-    #[inline]
-    fn erase(&self) -> &Self::Erased {
-        self
-    }
-
-    #[inline]
-    fn erase_owned(self) -> Self::Erased {
-        self
-    }
-}
-
-impl <T> DafnyUnerasable<Box<T>> for Box<T> {
-    #[inline]
-    fn unerase(v: &Box<T>) -> &Self {
-        v
-    }
-
-    #[inline]
-    fn unerase_owned(v: Box<T>) -> Self {
-        v
-    }
-}
-
-impl <T: DafnyErasable> DafnyErasable for RefCell<T> {
-    type Erased = RefCell<T::Erased>;
-}
-
-impl <T: DafnyUnerasable<U>, U> DafnyUnerasable<RefCell<U>> for RefCell<T> {}
-
-macro_rules! impl_already_erased {
-    ($name:ty) => {
-        impl DafnyErasable for $name {
-            type Erased = $name;
-
-            #[inline]
-            fn erase(&self) -> &Self::Erased {
-                self
-            }
-
-            #[inline]
-            fn erase_owned(self) -> Self::Erased {
-                self
-            }
-        }
-
-        impl DafnyUnerasable<$name> for $name {
-            #[inline]
-            fn unerase(v: &$name) -> &Self {
-                v
-            }
-        
-            #[inline]
-            fn unerase_owned(v: $name) -> Self {
-                v
-            }
-        }
-    };
-}
-
-impl_already_erased! { String }
-impl_already_erased! { char }
-impl_already_erased! { bool }
-impl_already_erased! { u8 }
-impl_already_erased! { u16 }
-impl_already_erased! { u32 }
-impl_already_erased! { u64 }
-impl_already_erased! { u128 }
-impl_already_erased! { i8 }
-impl_already_erased! { i16 }
-impl_already_erased! { i32 }
-impl_already_erased! { i64 }
-impl_already_erased! { i128 }
-impl_already_erased! { f32 }
-impl_already_erased! { f64 }
-impl_already_erased! { () }
-impl_already_erased! { BigInt }
-impl_already_erased! { BigRational }
-
 // from gazebo
 #[inline]
-unsafe fn transmute_unchecked<A, B>(x: A) -> B {
+pub unsafe fn transmute_unchecked<A, B>(x: A) -> B {
     assert_eq!(std::mem::size_of::<A>(), std::mem::size_of::<B>());
     debug_assert_eq!(0, (&x as *const A).align_offset(std::mem::align_of::<B>()));
     let b = std::ptr::read(&x as *const A as *const B);
     std::mem::forget(x);
     b
-}
-
-macro_rules! impl_tuple_erased {
-    ($($items:ident)*) => {
-        impl <$($items,)*> DafnyErasable for ($($items,)*)
-        where
-            $($items: DafnyErasable,)*
-        {
-            type Erased = ($($items::Erased,)*);
-
-            #[inline]
-            fn erase(&self) -> &Self::Erased {
-                unsafe { &*(self as *const Self as *const Self::Erased) }
-            }
-
-            #[inline]
-            fn erase_owned(self) -> Self::Erased {
-                unsafe { transmute_unchecked(self) }
-            }
-        }
-
-        paste::item! {
-            impl <$([<T $items>],)* $($items: DafnyUnerasable<[<T $items>]>,)*> DafnyUnerasable<($([<T $items>],)*)> for ($($items,)*)
-            {
-                #[inline]
-                fn unerase(v: &($([<T $items>],)*)) -> &Self {
-                    unsafe { &*(v as *const ($([<T $items>],)*) as *const Self) }
-                }
-
-                #[inline]
-                fn unerase_owned(v: ($([<T $items>],)*)) -> Self {
-                    unsafe { transmute_unchecked(v) }
-                }
-            }
-        }
-    };
-}
-
-macro_rules! impl_tuple_erased_loop {
-    () => {};
-    ($first:ident $($rest:ident)*) => {
-        impl_tuple_erased_loop! { $($rest)* }
-        impl_tuple_erased! { $first $($rest)* }
-    };
-}
-
-// 32 elements ought to be enough for everyone
-impl_tuple_erased_loop! {
-    A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10
-    A11 A12 A13 A14 A15 A16 A17 A18 A19 A20
-    A21 A22 A23 A24 A25 A26 A27 A28 A29 A30
-    A31
 }
 
 pub trait DafnyPrint {
@@ -1541,6 +1426,13 @@ impl DafnyPrint for BigRational {
 impl <T: DafnyPrint> DafnyPrint for Rc<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
         self.as_ref().fmt_print(f, in_seq)
+    }
+}
+
+impl <T: DafnyPrint + Clone> DafnyPrint for DafnySequence<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+        let result = self.data.to_array();
+        result.fmt_print(f, in_seq)
     }
 }
 

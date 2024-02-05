@@ -24,6 +24,9 @@ public interface IVariable : ISymbol {
   string SanitizedName {
     get;
   }
+  string SanitizedNameShadowable {
+    get;
+  }
   string CompileName {
     get;
   }

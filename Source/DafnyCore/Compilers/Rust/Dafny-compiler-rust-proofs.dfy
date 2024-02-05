@@ -2,7 +2,7 @@ include "../Dafny/AST.dfy"
 
 /*This module does not contain any compiled code because it
   only proves properties about DCOMP. In a sense, it's a test file. */
-module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
+module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs refines DafnyToRustCompiler {
   ghost predicate IsDafnyId(s: string) {
     && |s| > 0 && s[0] in "aqkhd" &&
        IsDafnyIdTail(s[1..])
@@ -277,7 +277,7 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
     requires !is_tuple_numeric(i)
     requires !is_tuple_builder(i)
     requires i !in reserved_rust
-    requires is_idiomatic_rust(i)
+    requires is_idiomatic_rust_id(i)
     ensures UnescapeIdent(escapeIdent(i)) == i
   {
     var s := idiomatic_rust(i);
@@ -302,7 +302,7 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
     requires !is_tuple_numeric(s)
     requires !is_tuple_builder(s)
     requires s !in reserved_rust
-    requires !is_idiomatic_rust(s)
+    requires !is_idiomatic_rust_id(s)
     requires is_dafny_generated_id(s)
     ensures UnescapeIdent(escapeIdent(s)) == s
   {
@@ -313,7 +313,7 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
     requires !is_tuple_numeric(i)
     requires !is_tuple_builder(i)
     requires i !in reserved_rust
-    requires !is_idiomatic_rust(i)
+    requires !is_idiomatic_rust_id(i)
     requires !is_dafny_generated_id(i)
     ensures UnescapeIdent(escapeIdent(i)) == i
   {
@@ -347,7 +347,7 @@ module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
       TupleBuilderInvertible(i);
     } else if i in reserved_rust {
       assert UnescapeIdent(escapeIdent(i)) == i;
-    } else if is_idiomatic_rust(i) {
+    } else if is_idiomatic_rust_id(i) {
       EscapeIdentInvertibleForIdiomaticRust(i);
     } else if is_dafny_generated_id(i) { // TODO: Mov up so that we can put it in specifications
       EscapeIdentInvertibleForDafnyGeneratedId(i);
