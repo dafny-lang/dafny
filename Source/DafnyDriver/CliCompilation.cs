@@ -14,6 +14,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Token = Microsoft.Dafny.Token;
+using Util = Microsoft.Dafny.Util;
 
 namespace DafnyDriver.Commands;
 
@@ -124,7 +125,7 @@ public class CliCompilation {
   }
 
   public async Task VerifyAllAndPrintSummary() {
-    var statSum = new PipelineStatistics();
+    var statistics = new VerificationStatistics();
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
@@ -153,22 +154,26 @@ public class CliCompilation {
           switch (completed.Result.Outcome) {
             case SolverOutcome.Valid:
             case SolverOutcome.Bounded:
-              Interlocked.Increment(ref statSum.VerifiedCount);
+              Interlocked.Increment(ref statistics.VerifiedSymbols);
+              Interlocked.Add(ref statistics.VerifiedAssertions, completed.Result.Asserts.Count);
               break;
             case SolverOutcome.Invalid:
-              Interlocked.Add(ref statSum.ErrorCount, completed.Result.CounterExamples.Count);
+              var total = completed.Result.Asserts.Count;
+              var errors = completed.Result.CounterExamples.Count;
+              Interlocked.Add(ref statistics.VerifiedAssertions, total - errors);
+              Interlocked.Add(ref statistics.ErrorCount, errors);
               break;
             case SolverOutcome.TimeOut:
-              Interlocked.Increment(ref statSum.TimeoutCount);
+              Interlocked.Increment(ref statistics.TimeoutCount);
               break;
             case SolverOutcome.OutOfMemory:
-              Interlocked.Increment(ref statSum.OutOfMemoryCount);
+              Interlocked.Increment(ref statistics.OutOfMemoryCount);
               break;
             case SolverOutcome.OutOfResource:
-              Interlocked.Increment(ref statSum.OutOfResourceCount);
+              Interlocked.Increment(ref statistics.OutOfResourceCount);
               break;
             case SolverOutcome.Undetermined:
-              Interlocked.Increment(ref statSum.InconclusiveCount);
+              Interlocked.Increment(ref statistics.InconclusiveCount);
               break;
             default:
               throw new ArgumentOutOfRangeException();
@@ -189,8 +194,10 @@ public class CliCompilation {
 
       var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
+      var verifiedAssertions = false;
       if (canVerifies != null) {
         canVerifies = FilterCanVerifies(canVerifies, out var line);
+        verifiedAssertions = line != null;
 
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
@@ -233,17 +240,17 @@ public class CliCompilation {
               resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
 
           } catch (ProverException e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref statistics.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
           } catch (Exception e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref statistics.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
               $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
           }
         }
       }
 
-      SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+      WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, verifiedAssertions, statistics);
 
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
@@ -281,4 +288,56 @@ public class CliCompilation {
     return fileFiltered.Where(c =>
         c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
   }
+
+  static void WriteTrailer(DafnyOptions options, TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
+    if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
+      return;
+    }
+
+    output.WriteLine();
+
+    if (reportAssertions) {
+      output.Write("{0} finished with {1} assertions verified, {2} error{3}", options.DescriptiveToolName,
+        statistics.VerifiedAssertions, statistics.ErrorCount,
+        Util.Plural(statistics.ErrorCount));
+
+    } else {
+      output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName,
+        statistics.VerifiedSymbols, statistics.ErrorCount,
+        Util.Plural(statistics.ErrorCount));
+    };
+    if (statistics.InconclusiveCount != 0) {
+      output.Write(", {0} inconclusive{1}", statistics.InconclusiveCount, Util.Plural(statistics.InconclusiveCount));
+    }
+
+    if (statistics.TimeoutCount != 0) {
+      output.Write(", {0} time out{1}", statistics.TimeoutCount, Util.Plural(statistics.TimeoutCount));
+    }
+
+    if (statistics.OutOfMemoryCount != 0) {
+      output.Write(", {0} out of memory", statistics.OutOfMemoryCount);
+    }
+
+    if (statistics.OutOfResourceCount != 0) {
+      output.Write(", {0} out of resource", statistics.OutOfResourceCount);
+    }
+
+    if (statistics.SolverExceptionCount != 0) {
+      output.Write(", {0} solver exceptions", statistics.SolverExceptionCount);
+    }
+
+    output.WriteLine();
+    output.Flush();
+  }
+}
+
+record VerificationStatistics {
+  public int ErrorCount;
+  public int VerifiedAssertions;
+  public int VerifiedSymbols;
+  public int InconclusiveCount;
+  public int TimeoutCount;
+  public int OutOfResourceCount;
+  public int OutOfMemoryCount;
+  public int SolverExceptionCount;
 }
