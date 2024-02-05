@@ -54,8 +54,15 @@ namespace XUnitExtensions.Lit {
       return Parse(filePath, config);
     }
 
-    public static Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      return Read(filePath, config).Execute(outputHelper);
+    public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(5);
+    public static async Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+      var timeLimit = Task.Delay(MaxTestCaseRuntime);
+      var task = Read(filePath, config).Execute(outputHelper);
+      await Task.WhenAny(timeLimit, task);
+      if (!task.IsCompleted) {
+        throw new Exception($"Test case {filePath} did not complete in {MaxTestCaseRuntime}");
+      }
+      await task;
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
@@ -68,6 +75,7 @@ namespace XUnitExtensions.Lit {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(FilePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
+
 
       foreach (var command in Commands) {
         int exitCode;
