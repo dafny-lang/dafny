@@ -1290,7 +1290,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
       wr.WriteLine("{0}{1} = {2};", introduceBoundVar ? "let " : "", boundVarName, tmpVarName);
     }
 
@@ -1445,37 +1445,26 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
-      }
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
 
-      if (bvType.NativeType == null) {
-        wr.Write("(");
-        var middle = wr.Fork();
-        wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
-        return middle;
-      } else if (bvType.NativeType.Bitwidth != bvType.Width) {
-        // no truncation needed
+      Contract.Assert(nativeType == null || bvType.Width == 0); // JavaScript only supports "number" as a native type, and it is used just for bv0
+
+      if (bvType.Width == 0) {
         return wr;
-      } else {
-        wr.Write("((");
-        var middle = wr.Fork();
-        // print in hex, because that looks nice
-        wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
-        return middle;
       }
+      wr.Write("(");
+      var middle = wr.Fork();
+      wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
+      return middle;
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
 
       var bv = e0.Type.AsBitVectorType;
