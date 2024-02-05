@@ -54,8 +54,8 @@ jobs:
         sudo gem install rouge -v 3.30.0
     - name: Install Tectonic
       uses: wtfjoke/setup-tectonic@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
