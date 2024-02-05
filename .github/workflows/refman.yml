@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-latest ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
