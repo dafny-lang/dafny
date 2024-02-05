@@ -47,12 +47,6 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
       dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
-      dafnyOptions.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-
-      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-      //      A dash means write to the textwriter instead of a file.
-      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      dafnyOptions.ModelViewFile = "-";
     }
 
     public static async Task Start(DafnyOptions dafnyOptions) {
