@@ -173,6 +173,15 @@ public abstract class Type : TokenNode {
     ExpandSynonymsAndSubsetTypes
   }
 
+  public NativeType AsNativeType() {
+    if (AsNewtype != null) {
+      return AsNewtype.NativeType;
+    } else if (IsBitVectorType) {
+      return AsBitVectorType.NativeType;
+    }
+    return null;
+  }
+
   /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
   ///

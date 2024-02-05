@@ -584,9 +584,9 @@ MethodSignature_(isGhost, isExtreme) =
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, 
+  "(" [ { Attribute } GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
                    allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
+        { "," { Attribute } GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword,
                          allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
@@ -1823,6 +1823,7 @@ LocalIdentTypeOptional = WildIdent [ ":" Type ]
 IdentTypeOptional = WildIdent [ ":" Type ]
 
 TypeIdentOptional =
+  { Attribute }
   { "ghost" | "nameonly" } [ NoUSIdentOrDigits ":" ] Type
   [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 

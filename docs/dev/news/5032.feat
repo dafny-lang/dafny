@@ -1,0 +1,1 @@
+Function and method parameters and return types, and datatype constructor arguments, can now have attributes. By default, there are no attributes that Dafny recognizes in these positions, but custom back-ends can use this feature to get extra information from the source files.
