@@ -216,6 +216,7 @@ public class CliCompilation {
                 "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
               continue;
             }
+            await results.Finished.Task;
 
             // We use an intermediate reporter so we can sort the diagnostics from all parts by token
             var batchReporter = new BatchErrorReporter(options);
