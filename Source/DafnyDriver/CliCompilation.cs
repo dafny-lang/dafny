@@ -206,7 +206,20 @@ public class CliCompilation {
           if (line != null) {
             results.TaskFilter = t => KeepVerificationTask(t, line.Value);
           }
-          await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
+
+          var queueVerificationTask = Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
+          var tasks = new List<Task>() { queueVerificationTask };
+          var timeLimitSeconds = TimeSpan.FromSeconds(options.Get(BoogieOptionBag.VerificationTimeLimit));
+          if (timeLimitSeconds.Seconds != 0) {
+            tasks.Add(Task.Delay(timeLimitSeconds));
+          }
+          await Task.WhenAny(tasks);
+          if (!queueVerificationTask.IsCompleted) {
+            Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
+              "Dafny encountered an internal error during verification. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
+            break;
+          }
+          await queueVerificationTask;
         }
 
         foreach (var canVerify in orderedCanVerifies) {
