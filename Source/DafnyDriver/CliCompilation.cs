@@ -213,8 +213,8 @@ public class CliCompilation {
             await Task.WhenAny(tasks);
             if (!results.Finished.Task.IsCompleted) {
               Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
-                "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
-              continue;
+                "Dafny encountered an internal error during verification. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
+              break;
             }
             await results.Finished.Task;
 
