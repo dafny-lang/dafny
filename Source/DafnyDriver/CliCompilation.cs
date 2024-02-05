@@ -205,7 +205,17 @@ public class CliCompilation {
         foreach (var canVerify in orderedCanVerifies) {
           var results = canVerifyResults[canVerify];
           try {
-            await results.Finished.Task;
+            var timeLimitSeconds = TimeSpan.FromSeconds(options.Get(BoogieOptionBag.VerificationTimeLimit));
+            var tasks = new List<Task>() { results.Finished.Task };
+            if (timeLimitSeconds.Seconds != 0) {
+              tasks.Add(Task.Delay(timeLimitSeconds));
+            }
+            await Task.WhenAny(tasks);
+            if (!results.Finished.Task.IsCompleted) {
+              Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
+                "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
+              continue;
+            }
 
             // We use an intermediate reporter so we can sort the diagnostics from all parts by token
             var batchReporter = new BatchErrorReporter(options);
