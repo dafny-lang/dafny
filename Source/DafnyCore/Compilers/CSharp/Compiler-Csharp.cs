@@ -3082,28 +3082,28 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.LeftShift: {
-          var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
-          if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
-            // In C#, "<< 32" on "int" and "<< 64" on "long" are the same as "<< 0".
-            staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftLeft";
-          } else {
-            opString = "<<";
+            var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
+            if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
+              // In C#, "<< 32" on "int" and "<< 64" on "long" are the same as "<< 0".
+              staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftLeft";
+            } else {
+              opString = "<<";
+            }
+            convertE1_to_int = true;
+            truncateResult = true;
+            break;
           }
-          convertE1_to_int = true;
-          truncateResult = true;
-          break;
-        }
         case BinaryExpr.ResolvedOpcode.RightShift: {
-          var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
-          if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
-            // In C#, ">> 32" on "int" and ">> 64" on "long" are the same as ">> 0".
-            staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftRight";
-          } else {
-            opString = ">>";
+            var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
+            if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
+              // In C#, ">> 32" on "int" and ">> 64" on "long" are the same as ">> 0".
+              staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftRight";
+            } else {
+              opString = ">>";
+            }
+            convertE1_to_int = true;
+            break;
           }
-          convertE1_to_int = true;
-          break;
-        }
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType) {
             if (CharIsRune) {

@@ -960,7 +960,7 @@ namespace Microsoft.Dafny {
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                   var w = e.Type.NormalizeToAncestorType().AsBitVectorType.Width;
                   var upperDesc = new PODesc.ShiftUpperBound(w, true);
-                  if (e.E1.Type.NormalizeToAncestorType().AsBitVectorType is {} bitvectorType) {
+                  if (e.E1.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
                     // Known to be non-negative, so we don't need to check lower bound.
                     // Check upper bound, that is, check "E1 <= w"
                     var e1Width = bitvectorType.Width;

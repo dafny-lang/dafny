@@ -2011,21 +2011,21 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.BitwiseNot: {
-          var exprType = expr.Type.NormalizeToAncestorType();
-          if (AsNativeType(exprType) != null) {
-            // JavaScript bitwise operators are weird (numeric operands are first converted into
-            // signed 32-bit values), and it could be easy to forget how weird they are.
-            // Therefore, as a protective measure, the following assert is here to catch against any future
-            // change that would render this translation incorrect.
-            Contract.Assert(exprType.AsBitVectorType.Width == 0);
-            wr.Write("0");
-          } else {
-            wr.Write("_dafny.BitwiseNot(");
-            wr.Append(Expr(expr, inLetExprBody, wStmts));
-            wr.Write(", {0})", exprType.AsBitVectorType.Width);
+            var exprType = expr.Type.NormalizeToAncestorType();
+            if (AsNativeType(exprType) != null) {
+              // JavaScript bitwise operators are weird (numeric operands are first converted into
+              // signed 32-bit values), and it could be easy to forget how weird they are.
+              // Therefore, as a protective measure, the following assert is here to catch against any future
+              // change that would render this translation incorrect.
+              Contract.Assert(exprType.AsBitVectorType.Width == 0);
+              wr.Write("0");
+            } else {
+              wr.Write("_dafny.BitwiseNot(");
+              wr.Append(Expr(expr, inLetExprBody, wStmts));
+              wr.Write(", {0})", exprType.AsBitVectorType.Width);
+            }
+            break;
           }
-          break;
-        }
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr("new BigNumber(", expr, wr, inLetExprBody, wStmts);
           if (expr.Type.AsMultiSetType != null) {
