@@ -435,26 +435,23 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     sig.VisibilityScope.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
-      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
-        ModuleSignature importSig;
-        if (d is AliasModuleDecl) {
-          var alias = (AliasModuleDecl)d;
-          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
-        } else {
-          importSig = ((AbstractModuleDecl)d).OriginalSignature;
-        }
-
+      if (d is AliasModuleDecl importDecl) {
+        var importSig = importDecl.TargetQId.Root != null ? importDecl.TargetQId.Root.Signature : importDecl.Signature;
         if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
           return false;
         }
-      } else if (d is LiteralModuleDecl) {
-        var nested = (LiteralModuleDecl)d;
-        if (!nested.ModuleDef.SuccessfullyResolved) {
+      } else if (d is AbstractModuleDecl abstractImportDecl) {
+        var importSig = abstractImportDecl.OriginalSignature;
+        if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
+          return false;
+        }
+      } else if (d is LiteralModuleDecl nestedModuleDecl) {
+        if (!nestedModuleDecl.ModuleDef.SuccessfullyResolved) {
           if (!IsEssentiallyEmptyModuleBody()) {
             // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, nested,
+            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl,
               "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
-              nested.Name);
+              nestedModuleDecl.Name);
           }
 
           return false;
