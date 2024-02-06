@@ -162,12 +162,16 @@ namespace IntegrationTests {
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
-        commands["%testDafnyForEachCompiler"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
-        commands["%testDafnyForEachResolver"] = (args, config) =>
-          MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-resolver", "--dafny", dafnyCliPath }.Concat(args), config, false);
+        commands["%testDafnyForEachCompiler"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-compiler", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);;
+        };
+        commands["%testDafnyForEachResolver"] = (args, config) => {
+          var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-resolver", "--dafny", dafnyCliPath }
+            .Concat(args);
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+        };
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
