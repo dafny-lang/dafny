@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-22.04 ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -56,6 +56,7 @@ jobs:
       uses: wtfjoke/setup-tectonic@v3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        tectonic-version: 0.15
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"

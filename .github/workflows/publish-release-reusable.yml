@@ -119,6 +119,7 @@ jobs:
       uses: wtfjoke/setup-tectonic@v3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        tectonic-version: 0.15
 
     - name: Clean Dafny
       run: dotnet clean dafny/Source/Dafny.sln
