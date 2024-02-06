@@ -345,9 +345,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       first failing assertion (experimental).
   
   ---- Compilation options ---------------------------------------------------
-  
-  /compileSuffix:<value>
-      Add the suffix _Compile to module names without :extern
 
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
