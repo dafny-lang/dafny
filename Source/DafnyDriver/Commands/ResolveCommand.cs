@@ -19,10 +19,6 @@ static class ResolveCommand {
         await compilation.Resolution;
       } catch (OperationCanceledException) {
       }
-
-      if (compilation.ExitValue == ExitValue.SUCCESS) {
-        await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
-      }
       return compilation.ExitCode;
     });
     return result;

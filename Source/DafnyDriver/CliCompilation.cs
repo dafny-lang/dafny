@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using VC;
 using IToken = Microsoft.Dafny.IToken;
 using Token = Microsoft.Dafny.Token;
+using Util = Microsoft.Dafny.Util;
 
 namespace DafnyDriver.Commands;
 
@@ -127,7 +128,7 @@ public class CliCompilation {
   }
 
   public async Task VerifyAllAndPrintSummary() {
-    var statSum = new PipelineStatistics();
+    var stats = new PipelineStatistics();
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
     Compilation.Updates.Subscribe(ev => {
@@ -149,34 +150,38 @@ public class CliCompilation {
       }
 
       if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
-
-          switch (completed.Result.Outcome) {
-            case ConditionGeneration.Outcome.Correct:
-            case ConditionGeneration.Outcome.ReachedBound:
-              Interlocked.Increment(ref statSum.VerifiedCount);
+        if (boogieUpdate.BoogieStatus is BatchCompleted batchCompleted) {
+          switch (batchCompleted.VcResult.outcome) {
+            case ProverInterface.Outcome.Valid:
+            case ProverInterface.Outcome.Bounded:
+              Interlocked.Add(ref stats.VerifiedCount, batchCompleted.VcResult.asserts.Count);
               break;
-            case ConditionGeneration.Outcome.Errors:
-              Interlocked.Add(ref statSum.ErrorCount, completed.Result.Errors.Count);
+            case ProverInterface.Outcome.Invalid:
+              var total = batchCompleted.VcResult.asserts.Count;
+              var errors = batchCompleted.VcResult.counterExamples.Count;
+              Interlocked.Add(ref stats.VerifiedCount, total - errors);
+              Interlocked.Add(ref stats.ErrorCount, errors);
               break;
-            case ConditionGeneration.Outcome.TimedOut:
-              Interlocked.Increment(ref statSum.TimeoutCount);
+            case ProverInterface.Outcome.TimeOut:
+              Interlocked.Increment(ref stats.TimeoutCount);
               break;
-            case ConditionGeneration.Outcome.OutOfMemory:
-              Interlocked.Increment(ref statSum.OutOfMemoryCount);
+            case ProverInterface.Outcome.OutOfMemory:
+              Interlocked.Increment(ref stats.OutOfMemoryCount);
               break;
-            case ConditionGeneration.Outcome.OutOfResource:
-              Interlocked.Increment(ref statSum.OutOfResourceCount);
+            case ProverInterface.Outcome.OutOfResource:
+              Interlocked.Increment(ref stats.OutOfResourceCount);
               break;
-            case ConditionGeneration.Outcome.Inconclusive:
-              Interlocked.Increment(ref statSum.InconclusiveCount);
+            case ProverInterface.Outcome.Undetermined:
+              Interlocked.Increment(ref stats.InconclusiveCount);
               break;
             default:
               throw new ArgumentOutOfRangeException();
           }
+        }
 
+        if (boogieUpdate.BoogieStatus is Completed completed) {
+          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
           if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
             canVerifyResult.Finished.TrySetResult();
           }
@@ -218,17 +223,17 @@ public class CliCompilation {
                 DafnyConsolePrinter.DistillVerificationResult(completed.Result));
             }
           } catch (ProverException e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref stats.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
           } catch (Exception e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
+            Interlocked.Increment(ref stats.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
               $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
           }
         }
       }
 
-      SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+      WriteTrailer(options, options.OutputWriter, stats);
 
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
@@ -257,5 +262,38 @@ public class CliCompilation {
     var line = int.Parse(linePart);
     return fileFiltered.Where(c =>
         c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
+  }
+
+  static void WriteTrailer(DafnyOptions options, TextWriter output, PipelineStatistics stats) {
+    if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
+      return;
+    }
+
+    output.WriteLine();
+
+    output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName, stats.VerifiedCount, stats.ErrorCount,
+      Util.Plural(stats.ErrorCount));
+    if (stats.InconclusiveCount != 0) {
+      output.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
+    }
+
+    if (stats.TimeoutCount != 0) {
+      output.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
+    }
+
+    if (stats.OutOfMemoryCount != 0) {
+      output.Write(", {0} out of memory", stats.OutOfMemoryCount);
+    }
+
+    if (stats.OutOfResourceCount != 0) {
+      output.Write(", {0} out of resource", stats.OutOfResourceCount);
+    }
+
+    if (stats.SolverExceptionCount != 0) {
+      output.Write(", {0} solver exceptions", stats.SolverExceptionCount);
+    }
+
+    output.WriteLine();
+    output.Flush();
   }
 }
