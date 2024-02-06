@@ -107,7 +107,7 @@ Usage: dafny [ option ... ] [ filename ... ]
 
   /generalNewtypes:<value>
       0 (default) - A newtype can only be based on numeric types or another newtype.
-      1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.
+      1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.
 
   /generalTraits:<value>
       legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
