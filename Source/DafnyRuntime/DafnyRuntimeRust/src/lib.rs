@@ -5,7 +5,7 @@ use std::{fmt::{Display, Formatter},
           collections::{HashSet, HashMap},
           cell::RefCell, any::Any};
 use num::{Integer, Signed, One};
-use as_any::{AsAny};
+use as_any::AsAny;
 
 pub use once_cell::unsync::Lazy;
 
@@ -98,7 +98,7 @@ mod dafny_runtime_conversions {
         use std::rc::Rc;
 
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<char>> {
-            Sequence::new_array_sequence(&Rc::new(s.chars().collect()), false)
+            Sequence::new_array_sequence(&Rc::new(s.chars().collect()))
         }
         pub fn dafny_string_to_string(s: &Rc<Sequence<char>>) -> String {
             let characters = s.to_array();
@@ -111,7 +111,7 @@ mod dafny_runtime_conversions {
         use crate::Sequence;
         use std::rc::Rc;
         pub fn string_to_dafny_string(s: &str) -> Rc<Sequence<u16>> {
-            Sequence::new_array_sequence(&Rc::new(s.encode_utf16().collect()), false)
+            Sequence::new_array_sequence(&Rc::new(s.encode_utf16().collect()))
         }
         pub fn dafny_string_to_string(s: &Rc<Sequence<u16>>) -> String {
             let characters = s.to_array();
@@ -158,8 +158,8 @@ where T: Clone {
     }
     fn new_lazy_sequence(boxed: &Rc<Sequence<T>>) -> Rc<Sequence<T>> {
         Rc::new(Sequence::LazySequence {
-            length: underlying.cardinality(),
-            boxed: RefCell::new(Rc::clone(underlying)),
+            length: boxed.cardinality(),
+            boxed: RefCell::new(Rc::clone(boxed)),
         })
     }
 
@@ -201,18 +201,6 @@ where T: Clone {
         }
     }
 
-    fn node_count(&self) -> usize {
-        match self {
-            Sequence::ArraySequence { node_count, .. } =>
-              // The length of the elements
-              *node_count,
-            Sequence::ConcatSequence { node_count, ..  } =>
-              *node_count,
-            Sequence::LazySequence { node_count, .. } =>
-              *node_count,
-        }
-    
-    }
     /// Returns the cardinality of this [`Sequence<T>`].
     // The cardinality returns the length of the sequence
     fn cardinality(&self) -> SizeT {
