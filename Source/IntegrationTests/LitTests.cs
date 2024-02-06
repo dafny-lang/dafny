@@ -196,7 +196,7 @@ namespace IntegrationTests {
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       if (invokeDirectly) {
-        return new DafnyDriverLitCommand(arguments);
+        return new MainWithWritersCommand(arguments, DafnyBackwardsCompatibleCli.MainWithWriters);
       }
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
@@ -258,7 +258,7 @@ namespace IntegrationTests {
           return false;
         }
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => allOtherFileExtensions.Any(arg.EndsWith))) {
@@ -279,7 +279,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
 
-        if (leafCommand is ShellLitCommand or DafnyDriverLitCommand) {
+        if (leafCommand is ShellLitCommand or MainWithWritersCommand) {
           var arguments = GetDafnyArguments(leafCommand);
           if (arguments != null) {
             if (arguments.Any(arg => arg is "for-each-compiler")) {
@@ -342,7 +342,7 @@ namespace IntegrationTests {
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
-          case ShellLitCommand or DafnyDriverLitCommand: {
+          case ShellLitCommand or MainWithWritersCommand: {
               var arguments = GetDafnyArguments(leafCommand);
               if (arguments == null) {
                 throw new ArgumentException();
@@ -512,7 +512,7 @@ namespace IntegrationTests {
           } else {
             return null;
           }
-        case DafnyDriverLitCommand ddlc:
+        case MainWithWritersCommand ddlc:
           return ddlc.Arguments;
         default:
           return null;

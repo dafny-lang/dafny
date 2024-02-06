@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
 using System.Threading.Tasks;
-using Microsoft.Dafny;
 using XUnitExtensions.Lit;
 
 namespace IntegrationTests;
@@ -22,24 +19,5 @@ class MainWithWritersCommand : ILitCommand {
 
   public Task<int> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
     return main(outputWriter, errorWriter, inputReader, Arguments);
-  }
-}
-
-// TODO replace with MainWithWritersCommand
-class DafnyDriverLitCommand : ILitCommand {
-  public string[] Arguments { get; }
-
-  public DafnyDriverLitCommand(IEnumerable<string> arguments) {
-    this.Arguments = arguments.ToArray();
-  }
-
-  public Task<int> Execute(TextReader inputReader,
-    TextWriter outputWriter,
-    TextWriter errorWriter) {
-    return DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
-  }
-
-  public override string ToString() {
-    return $"dafny {string.Join(" ", Arguments)}";
   }
 }

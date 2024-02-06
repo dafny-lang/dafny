@@ -56,9 +56,8 @@ namespace XUnitExtensions.Lit {
 
     public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(5);
     public static async Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      var timeLimit = Task.Delay(MaxTestCaseRuntime);
       var task = Read(filePath, config).Execute(outputHelper);
-      await Task.WhenAny(timeLimit, task);
+      await Task.WhenAny(Task.Delay(MaxTestCaseRuntime), task);
       if (!task.IsCompleted) {
         throw new Exception($"Test case {filePath} did not complete in {MaxTestCaseRuntime}");
       }
