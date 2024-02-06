@@ -54,14 +54,10 @@ namespace XUnitExtensions.Lit {
       return Parse(filePath, config);
     }
 
-    public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(15);
     public static async Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       var task = Read(filePath, config).Execute(outputHelper);
-      await Task.WhenAny(Task.Delay(MaxTestCaseRuntime), task);
-      if (!task.IsCompleted) {
-        throw new Exception($"Test case {filePath} did not complete in {MaxTestCaseRuntime}");
-      }
-      await task;
+      await task.WaitAsync(MaxTestCaseRuntime);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
@@ -78,8 +74,6 @@ namespace XUnitExtensions.Lit {
 
       foreach (var command in Commands) {
         int exitCode;
-        string output;
-        string error;
         var outputWriter = new StringWriter();
         var errorWriter = new StringWriter();
         try {

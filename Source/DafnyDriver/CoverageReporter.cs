@@ -180,18 +180,31 @@ public class CoverageReporter {
       var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..].TrimStart('/') ?? "");
       var pathToRoot = Path.GetRelativePath(directoryForFile, sessionDirectory);
       Directory.CreateDirectory(directoryForFile);
-      for (int i = 0; i < reports.Count; i++) {
-        var linksToOtherReports = GetHtmlLinksToOtherReports(reports[i], Path.GetFileName(fileName), reports);
-        var reportForFile = HtmlReportForFile(reports[i], uri, pathToRoot, linksToOtherReports);
-        sourceFileToCoverageReport[uri] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
-        File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueSuffix}.html", reportForFile);
+      foreach (var report in reports)
+      {
+        var outputPath = GetFreshPath(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{report.Suffix}", "html");
+        report.ActualPath = outputPath;
+        var linksToOtherReports = GetHtmlLinksToOtherReports(report, reports);
+        var reportForFile = HtmlReportForFile(report, uri, pathToRoot, linksToOtherReports);
+        sourceFileToCoverageReport[uri] = outputPath;
+        File.WriteAllText(outputPath, reportForFile);
       }
     }
 
     foreach (var report in reports) {
-      var linksToOtherReports = GetHtmlLinksToOtherReports(report, "index", reports);
+      var linksToOtherReports = GetHtmlLinksToOtherReports(report, reports);
       CreateIndexFile(report, sourceFileToCoverageReport, sessionDirectory, linksToOtherReports);
     }
+  }
+
+  public string GetFreshPath(string attempt, string extension, int suffix = 0) {
+    var path = attempt + "." + extension;
+    while (File.Exists(path)) {
+      suffix++;
+      path = attempt + "_" + suffix + "." + extension;
+    }
+
+    return path;
   }
 
   private string MakeIndexFileTableRow(List<object> row) {
@@ -228,7 +241,7 @@ public class CoverageReporter {
       var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
 
       body.Add(new() {
-        $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
+        $"<a href = \"{relativePath}\"" +
         $"class = \"el_package\">{relativePath}</a>",
         "All modules"
       });
@@ -268,20 +281,22 @@ public class CoverageReporter {
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
     templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"), templateText);
+    var path = GetFreshPath(Path.Combine(baseDirectory, $"index{report.Suffix}"), "html");
+    report.ActualIndexPath = path;
+    File.WriteAllText(path, templateText);
   }
 
   /// <summary>
   /// Creates a set of links to be inserted in <param name="thisReport"></param> that point to corresponding
   /// report files for the same <param name="sourceFileName"></param>
   /// </summary>
-  private static string GetHtmlLinksToOtherReports(CoverageReport thisReport, string sourceFileName, List<CoverageReport> allReports) {
+  private static string GetHtmlLinksToOtherReports(CoverageReport thisReport, List<CoverageReport> allReports) {
     var result = new StringBuilder();
     foreach (var report in allReports) {
       if (report == thisReport) {
         continue;
       }
-      result.Append($"<a href=\"{sourceFileName}{report.UniqueSuffix}.html\" class=\"el_report\">{report.Name}</a>");
+      result.Append($"<a href=\"{Path.GetFileName(report.ActualPath)}\" class=\"el_report\">{report.Name}</a>");
     }
     return result.ToString();
   }
@@ -373,7 +388,7 @@ public class CoverageReporter {
     var templateText = new StreamReader(templateStream).ReadToEnd();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
-    templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
+    templateText = IndexLinkRegex.Replace(templateText, $"index{report.Suffix}.html");
     templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(uri.LocalPath)}, {report.Name}");
     templateText = UriRegex.Replace(templateText, uri.ToString());
     return LabeledCodeRegex.Replace(templateText, labeledCode);
