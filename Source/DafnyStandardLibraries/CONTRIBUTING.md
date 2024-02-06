@@ -97,6 +97,8 @@ just like the contents of each backend's runtime.
 See [Makefile](Makefile) and [src/Std/TargetSpecific/Makefile](src/Std/TargetSpecific/Makefile) for more details.
 
 
+For GoLang, there's an attribute `{:dummyImportMember <string>, <bool>}` which has to be used on modules that are marked `{:extern}`. The attribute's first argument should point to a value or type in the module, and the second should be set to true only if it is a type. Without this attribute, Dafny currently can not prevent GoLang code that uses {:extern} from running correctly, as GoLang execution will fail with an unused import error.
+
 ### On brittleness
 
 There are two sides to brittleness relevant to this project:

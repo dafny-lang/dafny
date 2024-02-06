@@ -63,17 +63,18 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"static Main({argsParameterName})");
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
+      ModuleDefinition module,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      if (externModule == null || libraryName != null) {
+      if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
 
       string footer = ")(); // end of module " + moduleName;
       var block = wr.NewBlock("(function()", footer);
       var beforeReturnBody = block.Fork(0);
-      if (externModule == null) {
+      if (!isExtern) {
         // create new module here
         beforeReturnBody.WriteLine("let $module = {};");
       } else if (libraryName == null) {

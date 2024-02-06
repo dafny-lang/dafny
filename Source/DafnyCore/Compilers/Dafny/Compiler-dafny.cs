@@ -115,10 +115,11 @@ namespace Microsoft.Dafny.Compilers {
       throw new InvalidOperationException();
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
+      ModuleDefinition module,
       string libraryName, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
-        currentBuilder = moduleBuilder.Module(moduleName, externModule != null);
+        currentBuilder = moduleBuilder.Module(moduleName, isExtern);
       } else {
         throw new InvalidOperationException();
       }
