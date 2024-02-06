@@ -439,7 +439,7 @@ module BitvectorCharConversion {
 
 module NativeTypePreference {
   newtype {:nativeType "int"} RR = x: real | 0.0 <= x <= 3.0 // error: not integer or bitvector type
-  newtype {:nativeType "int"} TT = x: (int, int) | x.0 == x.1 // error: not integer or bitvector type
+//SOON:  newtype {:nativeType "int"} TT = x: (int, int) | x.0 == x.1 // error: not integer or bitvector type
   newtype {:nativeType "uint"} BB0 = x: bv325 | 0 <= x < 300 // error (with hint): does not fit into bv325
   newtype {:nativeType "uint"} BB1 = bv325 // error: does not fit into bv325
 

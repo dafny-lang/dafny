@@ -87,7 +87,6 @@ GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to
 GeneralNewtypeResolution.dfy(408,10): Error: a newtype must be based on some numeric type (got bv17)
 GeneralNewtypeResolution.dfy(409,10): Error: a newtype must be based on some numeric type (got bv32)
 GeneralNewtypeResolution.dfy(411,10): Error: a newtype must be based on some numeric type (got bv109)
-GeneralNewtypeResolution.dfy(442,30): Error: a newtype must be based on some numeric type (got (int, int))
 GeneralNewtypeResolution.dfy(443,31): Error: a newtype must be based on some numeric type (got bv325)
 GeneralNewtypeResolution.dfy(444,31): Error: a newtype must be based on some numeric type (got bv325)
 GeneralNewtypeResolution.dfy(452,31): Error: a newtype must be based on some numeric type (got bv0)
@@ -107,18 +106,18 @@ GeneralNewtypeResolution.dfy(518,12): Error: an expression of type 'int' is not 
 GeneralNewtypeResolution.dfy(519,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral3'
 GeneralNewtypeResolution.dfy(520,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral4'
 GeneralNewtypeResolution.dfy(533,4): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-109 resolution/type errors detected in GeneralNewtypeResolution.dfy
-GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ORDINAL)
-GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got object)
-GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Trait)
-GeneralNewtypeResolution.dfy(42,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got ReferenceTrait)
-GeneralNewtypeResolution.dfy(43,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Cell?)
-GeneralNewtypeResolution.dfy(44,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got Cell)
-GeneralNewtypeResolution.dfy(75,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveOrdinal)
-GeneralNewtypeResolution.dfy(85,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveTrait)
-GeneralNewtypeResolution.dfy(86,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveReferenceTrait)
-GeneralNewtypeResolution.dfy(87,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveCell?)
-GeneralNewtypeResolution.dfy(88,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got NonFiveCell)
+108 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(34,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got ORDINAL)
+GeneralNewtypeResolution.dfy(40,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got object)
+GeneralNewtypeResolution.dfy(41,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got Trait)
+GeneralNewtypeResolution.dfy(42,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got ReferenceTrait)
+GeneralNewtypeResolution.dfy(43,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got Cell?)
+GeneralNewtypeResolution.dfy(44,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got Cell)
+GeneralNewtypeResolution.dfy(75,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got NonFiveOrdinal)
+GeneralNewtypeResolution.dfy(85,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got NonFiveTrait)
+GeneralNewtypeResolution.dfy(86,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got NonFiveReferenceTrait)
+GeneralNewtypeResolution.dfy(87,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got NonFiveCell?)
+GeneralNewtypeResolution.dfy(88,10): Error: a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got NonFiveCell)
 GeneralNewtypeResolution.dfy(106,6): Error: RHS (of type FalseBool) not assignable to LHS (of type TrueBool)
 GeneralNewtypeResolution.dfy(107,6): Error: RHS (of type bool) not assignable to LHS (of type TrueBool)
 GeneralNewtypeResolution.dfy(110,6): Error: RHS (of type FalseBool) not assignable to LHS (of type TrueBool)
@@ -181,7 +180,6 @@ GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its cons
 GeneralNewtypeResolution.dfy(411,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 GeneralNewtypeResolution.dfy(434,13): Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got bv5)
 GeneralNewtypeResolution.dfy(441,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors
-GeneralNewtypeResolution.dfy(442,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors
 GeneralNewtypeResolution.dfy(443,31): Error: The width of bitvector type bv325 cannot fit into native type 'uint'. Note: constraints of bitvector-based newtypes are not considered when determining native types.
 GeneralNewtypeResolution.dfy(444,31): Error: The width of bitvector type bv325 cannot fit into native type 'uint'.
 GeneralNewtypeResolution.dfy(452,31): Error: A newtype based on a bitvector type (bv0) cannot use a native type that admits negative values ('long'). Hint: Try using the unsigned native type 'ulong'.
@@ -199,4 +197,4 @@ GeneralNewtypeResolution.dfy(518,12): Error: an expression of type 'int' is not 
 GeneralNewtypeResolution.dfy(519,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral3'
 GeneralNewtypeResolution.dfy(520,12): Error: an expression of type 'int' is not run-time checkable to be a 'QSpiral4'
 GeneralNewtypeResolution.dfy(533,4): Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-90 resolution/type errors detected in GeneralNewtypeResolution.dfy
+89 resolution/type errors detected in GeneralNewtypeResolution.dfy

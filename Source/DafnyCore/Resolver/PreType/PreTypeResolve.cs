@@ -831,7 +831,12 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})", onProxyAction);
+#if SOON
+            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})",
+#else
+            "a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got {0})",
+#endif
+            onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
             "a newtype must be based on some numeric type (got {0})", onProxyAction);

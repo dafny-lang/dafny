@@ -653,6 +653,10 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
           return pt.Decl is NewtypeDecl || pt.Decl.Name == "int" || pt.Decl.Name == "real";
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
+          if (familyDeclName is "set" or "iset" or "seq" or "multiset" or "map" or "imap" || pt.Decl is DatatypeDecl) {
+            // These base types are not yet supported, but they will be soon.
+            return false;
+          }
           return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != "ORDINAL");
 
         default:
