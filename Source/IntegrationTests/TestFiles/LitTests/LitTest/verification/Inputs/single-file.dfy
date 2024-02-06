@@ -19,3 +19,7 @@ method Loop() {
   }
   assert false;
 }
+
+method DoubleAssertOneLine(x: int) {
+  assert x > 2; assert x > 3;
+}

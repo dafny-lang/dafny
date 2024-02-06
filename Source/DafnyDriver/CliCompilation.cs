@@ -281,7 +281,7 @@ public class CliCompilation {
       return canVerifies;
     }
 
-    var regex = new Regex(@"(.+)(?::(\d+))?", RegexOptions.RightToLeft);
+    var regex = new Regex(@"(.*)(?::(\d+))?", RegexOptions.RightToLeft);
     var result = regex.Match(filterPosition);
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");

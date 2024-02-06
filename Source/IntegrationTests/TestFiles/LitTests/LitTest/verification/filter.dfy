@@ -10,5 +10,6 @@
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:8' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:9' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:16' %S/Inputs/single-file.dfy >> %t
-// RUN: %verify --isolate-assertions --filter-position='e.dfy:20' %S/Inputs/single-file.dfy >> %t
+// RUN: %verify --isolate-assertions --filter-position='y:20' %S/Inputs/single-file.dfy >> %t
+// RUN: ! %verify --isolate-assertions --filter-position=':24' %S/Inputs/single-file.dfy >> %t
 // RUN: %diff "%s.expect" "%t"
