@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
+      CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 
@@ -195,13 +195,16 @@ namespace Microsoft.Dafny {
     }
 
     protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
-      return new ParseState(args, ToolName, ErrorWriter);
+      return new TextWriterParseState(args, ToolName, ErrorWriter);
     }
 
-    class ParseState : Bpl.CommandLineParseState {
+    /// <summary>
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    class TextWriterParseState : Bpl.CommandLineParseState {
       private readonly TextWriter errorWriter;
 
-      public ParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+      public TextWriterParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
         this.errorWriter = errorWriter;
       }
 
@@ -211,8 +214,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
     private bool BaseParse(string[] args) {
-      this.Environment = this.Environment + "Command Line Options: " + string.Join(" ", args);
+      Environment = Environment + "Command Line Options: " + string.Join(" ", args);
       args = cce.NonNull<string[]>((string[])args.Clone());
       Bpl.CommandLineParseState state;
       for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
@@ -231,22 +238,22 @@ namespace Microsoft.Dafny {
         }
         state.nextIndex = state.i;
         if (flag) {
-          if (!this.ParseOption(state.s.Substring(1), state)) {
+          if (!ParseOption(state.s.Substring(1), state)) {
             if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
-              this.AddFile(file, state);
+              AddFile(file, state);
             } else {
-              this.UnknownSwitch(state);
+              UnknownSwitch(state);
             }
           }
         } else {
-          this.AddFile(file, state);
+          AddFile(file, state);
         }
       }
       if (state.EncounteredErrors) {
         ErrorWriter.WriteLine("Use /help for available options");
         return false;
       }
-      this.ApplyDefaultOptions();
+      ApplyDefaultOptions();
       return true;
     }
 
@@ -266,7 +273,7 @@ namespace Microsoft.Dafny {
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo
+        return FileVersionInfo
           .GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
