@@ -46,10 +46,10 @@ namespace XUnitExtensions.Lit {
       var diffMessage = Run(ExpectedPath, actual);
       if (diffMessage != null) {
         outputWriter.Write(diffMessage);
-        return Task.FromResult(0);
+        return Task.FromResult(1);
       }
 
-      return Task.FromResult(1);
+      return Task.FromResult(0);
     }
 
     public override string ToString() {
