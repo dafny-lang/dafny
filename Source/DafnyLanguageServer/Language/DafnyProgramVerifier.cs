@@ -61,18 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        var tasksFromBoogie = engine.GetVerificationTasks(boogieProgram);
-
-        // Ordering is required to let gutter icon tests behave more deterministically
-        // In situations where there are multiple valid orders of execution
-        // In particular, GitIssue3821GutterIgnoredProblem fails without this
-        // We can consider turning off that test so we do not need this hack
-        // Better would be to compute gutter icons on the client
-        var ordered = tasksFromBoogie.
-          OrderBy(s => s.ScopeToken).
-          ThenByDescending(s => s.ScopeId).
-          ThenBy(s => s.Token).ToList();
-        return ordered;
+        return engine.GetVerificationTasks(boogieProgram);
       }
       finally {
         mutex.Release();
