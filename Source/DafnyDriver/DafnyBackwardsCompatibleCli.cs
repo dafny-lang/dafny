@@ -22,6 +22,12 @@ public static class DafnyBackwardsCompatibleCli {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
 
+  static DafnyBackwardsCompatibleCli() {
+    // Force all calls to RegisterLegacyUi to be done
+    CommonOptionBag.ForceInit();
+    TestCommand.ForceInit();
+  }
+
   public static Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
     string[] args) {
     // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel

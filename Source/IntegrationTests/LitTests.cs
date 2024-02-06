@@ -22,7 +22,7 @@ namespace IntegrationTests {
     private static readonly bool InvokeMainMethodsDirectly;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
@@ -41,6 +41,7 @@ namespace IntegrationTests {
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
+      
       // Set this to true in order to debug the execution of commands like %dafny.
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
@@ -99,21 +100,21 @@ namespace IntegrationTests {
         }, {
           "%testDafnyForEachCompiler", (args, config) => {
             var fullArguments = new[] { "for-each-compiler" }.Concat(args);
-            return InvokeMainMethodsDirectly
-              ? new MultiBackendLitCommand(fullArguments, config)
-              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config,
-                false);
+            return MainCommand(fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a), 
+              TestDafnyAssembly,
+              config);
           }
         }, {
           "%testDafnyForEachResolver", (args, config) => {
             var fullArguments = new[] { "for-each-resolver" }.Concat(args);
-            return InvokeMainMethodsDirectly
-              ? new MultiBackendLitCommand(fullArguments, config)
-              : MainMethodLitCommand.Parse(TestDafnyAssembly, fullArguments, config, false);
+            return MainCommand(fullArguments,
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a), 
+              TestDafnyAssembly,
+              config);
           }
         }, {
-          "%server", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+          "%server", (args, config) => MainCommand(args, Server.MainWithWriters, DafnyServerAssembly, config)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -179,9 +180,20 @@ namespace IntegrationTests {
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyCliTests.ReferencedEnvironmentVariables);
     }
 
+    private static ILitCommand MainCommand(IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
+      LitTestConfiguration config)
+    {
+      if (InvokeMainMethodsDirectly) {
+        return new MainWithWritersCommand( args, mainWithWriters);
+      }
+
+      var shellArguments = new[] { assembly.Location }.Concat(args);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+    }
+
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       if (invokeDirectly) {
-        return new DafnyDriverLitCommand(arguments, config);
+        return new DafnyDriverLitCommand(arguments);
       }
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
@@ -522,55 +534,6 @@ namespace IntegrationTests {
       }
 
       return "cs";
-    }
-  }
-
-  class DafnyDriverLitCommand : ILitCommand {
-    public string[] Arguments { get; }
-
-    public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.Arguments = arguments.ToArray();
-    }
-
-    public async Task<(int, string, string)> Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
-      return (exitCode, "", "");
-    }
-
-    public override string ToString() {
-      return $"dafny {string.Join(" ", Arguments)}";
-    }
-  }
-
-  class MultiBackendLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiBackendLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public async Task<(int, string, string)> Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = await new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments);
-      return (exitCode, "", "");
-    }
-  }
-
-  class MultiResolverLitCommand : ILitCommand {
-    private readonly string[] arguments;
-
-    public MultiResolverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
-    }
-
-    public async Task<(int, string, string)> Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      var exitCode = await new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-resolver"));
-      return (exitCode, "", "");
     }
   }
 }

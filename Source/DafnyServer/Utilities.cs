@@ -5,9 +5,11 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Threading;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -17,20 +19,20 @@ namespace Microsoft.Dafny {
     internal static string SERVER_EOM_TAG = "[[DAFNY-SERVER: EOM]]";
     internal static string CLIENT_EOM_TAG = "[[DAFNY-CLIENT: EOM]]";
 
-    internal static void EOM(string header, string msg) {
+    internal static void Eom(TextWriter outputWriter, string header, string msg) {
       var trailer = (msg == null) ? "" : "\n";
-      Console.Write("{0}{1}[{2}] {3}\n", msg ?? "", trailer, header, SERVER_EOM_TAG);
-      Console.Out.Flush();
+      outputWriter.Write("{0}{1}[{2}] {3}\n", msg ?? "", trailer, header, SERVER_EOM_TAG);
+      outputWriter.Flush();
     }
 
-    internal static void EOM(string header, Exception ex, string subHeader = "") {
+    internal static void Eom(TextWriter outputWriter, string header, Exception ex, string subHeader = "") {
       var aggregate = ex as AggregateException;
       subHeader = String.IsNullOrEmpty(subHeader) ? "" : subHeader + " ";
 
       if (aggregate == null) {
-        EOM(header, subHeader + ex.Message);
+        Eom(outputWriter, header, subHeader + ex.Message);
       } else {
-        EOM(header, subHeader + String.Join(", ", aggregate.InnerExceptions.Select(e => e.Message)));
+        Eom(outputWriter, header, subHeader + String.Join(", ", aggregate.InnerExceptions.Select(e => e.Message)));
       }
     }
   }

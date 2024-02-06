@@ -149,12 +149,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static readonly List<LegacyUiForOption> legacyUis = new();
+    private static readonly List<LegacyUiForOption> LegacyUis = new();
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
       string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
-      legacyUis.Add(new LegacyUiForOption(
+      LegacyUis.Add(new LegacyUiForOption(
         option,
         (state, options) => parse(option, state, options),
         category,
@@ -184,16 +184,79 @@ namespace Microsoft.Dafny {
 
       try {
         if (i >= arguments.Length) {
-          return base.Parse(arguments);
+          return BaseParse(arguments);
         }
         MainArgs = arguments.Skip(i + 1).ToList();
-        return base.Parse(arguments.Take(i).ToArray());
+        return BaseParse(arguments.Take(i).ToArray());
       } catch (Exception e) {
         ErrorWriter.WriteLine("Invalid filename: " + e.Message);
         return false;
       }
     }
 
+    protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+      return new ParseState(args, ToolName, ErrorWriter);
+    }
+
+    class ParseState : Bpl.CommandLineParseState {
+      private readonly TextWriter errorWriter;
+
+      public ParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+        this.errorWriter = errorWriter;
+      }
+
+      public override void Error(string message, params string[] args) {
+        errorWriter.WriteLine("{0}: Error: {1}", ToolName, string.Format(message, args));
+        EncounteredErrors = true;
+      }
+    }
+    
+    private bool BaseParse(string[] args) {
+      this.Environment = this.Environment + "Command Line Options: " + string.Join(" ", args);
+      args = cce.NonNull<string[]>((string[]) args.Clone());
+      Bpl.CommandLineParseState state;
+      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex)
+      {
+        cce.LoopInvariant(state.args == args);
+        string file = args[state.i];
+        state.s = file.Trim();
+        bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");
+        int length = state.s.IndexOf(':');
+        if (0 <= length & flag)
+        {
+          state.hasColonArgument = true;
+          args[state.i] = state.s.Substring(length + 1);
+          state.s = state.s.Substring(0, length);
+        }
+        else
+        {
+          ++state.i;
+          state.hasColonArgument = false;
+        }
+        state.nextIndex = state.i;
+        if (flag)
+        {
+          if (!this.ParseOption(state.s.Substring(1), state))
+          {
+            if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
+              this.AddFile(file, state);
+            } else {
+              this.UnknownSwitch(state);
+            }
+          }
+        }
+        else {
+          this.AddFile(file, state);
+        }
+      }
+      if (state.EncounteredErrors) {
+        ErrorWriter.WriteLine("Use /help for available options");
+        return false;
+      }
+      this.ApplyDefaultOptions();
+      return true;
+    }
+    
     public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
       : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       Input = inputReader;
@@ -402,7 +465,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in legacyUis.Where(o => o.Name == name)) {
+      foreach (var option in LegacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -415,7 +478,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
+      LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -772,7 +835,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var legacyUiOption in legacyUis) {
+      foreach (var legacyUiOption in LegacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
           Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }

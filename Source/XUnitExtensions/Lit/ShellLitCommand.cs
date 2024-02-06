@@ -104,20 +104,18 @@ namespace XUnitExtensions.Lit {
       // needed because that is also what C# will use to decode the output of `process`.
 
       process.Start();
-      if (inputReader != null) {
-        string input = await inputReader.ReadToEndAsync();
-        inputReader.Close();
-        await process.StandardInput.WriteAsync(input);
-        process.StandardInput.Close();
-      }
+      string input = await inputReader.ReadToEndAsync();
+      inputReader.Close();
+      await process.StandardInput.WriteAsync(input);
+      process.StandardInput.Close();
 
       // FIXME the code below will deadlock if process fills the stderr buffer.
       string output = await process.StandardOutput.ReadToEndAsync();
       await outputWriter.WriteAsync(output);
-      outputWriter?.Close();
+      outputWriter.Close();
       string error = await process.StandardError.ReadToEndAsync();
       await errorWriter.WriteAsync(error);
-      errorWriter?.Close();
+      errorWriter.Close();
       await process.WaitForExitAsync();
 
       return (process.ExitCode, output, error);
