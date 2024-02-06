@@ -24,8 +24,8 @@ public static class DafnyBackwardsCompatibleCli {
 
   static DafnyBackwardsCompatibleCli() {
     // Force all calls to RegisterLegacyUi to be done
-    CommonOptionBag.ForceInit();
-    TestCommand.ForceInit();
+    CommonOptionBag.EnsureStaticConstructorHasRun();
+    TestCommand.EnsureStaticConstructorHasRun();
   }
 
   public static Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,

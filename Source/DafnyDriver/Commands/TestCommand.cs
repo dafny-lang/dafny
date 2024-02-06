@@ -51,5 +51,5 @@ static class TestCommand {
     return result;
   }
 
-  public static void ForceInit() { }
+  public static void EnsureStaticConstructorHasRun() { }
 }

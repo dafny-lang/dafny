@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
-  public static void ForceInit() { }
+  public static void EnsureStaticConstructorHasRun() { }
 
   public static readonly Option<bool> ManualTriggerOption =
     new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
