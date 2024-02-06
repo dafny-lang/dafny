@@ -27,17 +27,6 @@ namespace IntegrationTests {
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
-    private static readonly string[] DefaultBoogieArguments = new[] {
-      "/infer:j",
-      "/proverOpt:O:auto_config=false",
-      "/proverOpt:O:type_check=true",
-      "/proverOpt:O:smt.case_split=3",
-      "/proverOpt:O:smt.qi.eager_threshold=100",
-      "/proverOpt:O:smt.delay_units=true",
-      "/proverOpt:O:smt.arith.solver=2",
-      "/proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}"
-    };
-
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
@@ -73,6 +62,12 @@ namespace IntegrationTests {
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
+
+      var defaultBoogieArguments =
+        File.ReadAllLines(RepositoryRoot + "Source/boogie-args.cfg")
+          .Select(arg => "-" + arg)
+          .Append("-proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}")
+          .ToArray();
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
@@ -117,7 +112,7 @@ namespace IntegrationTests {
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
-              args.Concat(DefaultBoogieArguments),
+              args.Concat(defaultBoogieArguments),
               config.PassthroughEnvironmentVariables)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
@@ -171,7 +166,7 @@ namespace IntegrationTests {
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
           new DotnetToolCommand("boogie",
-            args.Concat(DefaultBoogieArguments),
+            args.Concat(defaultBoogieArguments),
             config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}");
       }
