@@ -2139,6 +2139,18 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.TypeTests);
     }
 
+    protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+    }
+
+    protected override void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+    }
+
+    protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
