@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
+    private static readonly TimeSpan IndividualTestTimeout = TimeSpan.FromMinutes(15);
     public string FilePath { get; }
     public IEnumerable<ILitCommand> Commands { get; }
     public bool ExpectFailure { get; }
@@ -54,7 +56,8 @@ namespace XUnitExtensions.Lit {
     }
 
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      Read(filePath, config).Execute(outputHelper);
+      var task = Task.Run(() => Read(filePath, config).Execute(outputHelper));
+      task.Wait(IndividualTestTimeout);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
