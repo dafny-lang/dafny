@@ -42,7 +42,7 @@ jobs:
         mv z3-* dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-*
     - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln
+      run: make exe
     - name: Check generated error catalog
       run: |
         which java

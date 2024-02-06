@@ -1,30 +1,22 @@
 
 # Invoking the CLI this way just to stay platform-independent
-DAFNY = dotnet run --project ../Dafny --no-build --
+DAFNY_DRIVER = dotnet run --project ../DafnyDriver --no-build --
+DAFNY = dotnet run --project ../DafnyDriver --no-build --
 
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
-all: check-binary test check-format check-examples
+all: test check-format check-examples
 
 verify:
-	$(DAFNY) verify src/Std/dfyconfig.toml
+	$(DAFNY_DRIVER) verify src/Std/dfyconfig.toml
 	make -C src/Std/TargetSpecific verify-all
 
 build-binary:
-	$(DAFNY) build -t:lib src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
-
-check-binary: build-binary
-	unzip -o ${DOO_FILE_SOURCE} -d build/current
-	unzip -o ${DOO_FILE_TARGET} -d build/rebuilt
-	diff build/current build/rebuilt
-	make -C src/Std/TargetSpecific check-binary-all
-
-update-binary: build-binary
-	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
-	make -C src/Std/TargetSpecific update-binary-all
-# Rebuild Dafny to pick up the new embedded assets
-	dotnet build ../Dafny.sln
+	mkdir -p binaries
+	$(DAFNY_DRIVER) build -t:lib src/Std/dfyconfig.toml --output:$(DOO_FILE_SOURCE)
+	cp $(DOO_FILE_SOURCE) $(DOO_FILE_TARGET)
+	make -C src/Std/TargetSpecific build-binary-all
 
 # For now we only have examples and no dedicated tests.
 # We will likely want a test directory as well,
@@ -51,13 +43,14 @@ test: test-cs test-java test-go test-py test-js
 coverage: test-cs
 
 format:
-	$(DAFNY) format .
+	$(DAFNY_DRIVER) format .
 
 check-format:
-	$(DAFNY) format . --check
+	$(DAFNY_DRIVER) format . --check
 
 check-examples:
-	cd build && ../scripts/check-examples `find .. -name '*.md'`
+	../scripts/check-examples `find .. -name '*.md'`
 
 clean:
+	rm -rf binaries
 	rm -rf build

@@ -30,7 +30,7 @@ sudo tlmgr install framed tcolorbox environ trimspaces
 mkdir -p $1
 cd $1
 git clone https://github.com/dafny-lang/dafny.git --recurse-submodules
-dotnet build dafny/Source/Dafny.sln
+make -C dafny exe
 
 cd dafny
 pip install git+git://github.com/pre-commit/pre-commit.git@d56fdca618197c68937387292de0dcc19224068d

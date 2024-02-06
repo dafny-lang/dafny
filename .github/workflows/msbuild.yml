@@ -53,7 +53,7 @@ jobs:
         ref: v${{ env.boogieVersion }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
-      run: dotnet build Source/Dafny.sln
+      run: make exe
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
