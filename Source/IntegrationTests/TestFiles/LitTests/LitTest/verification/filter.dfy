@@ -3,7 +3,7 @@
 // RUN: %verify --filter-position='src/source1.dfy:1' %S/Inputs/dfyconfig.toml >> %t
 // RUN: ! %verify --filter-position='e.dfy' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --filter-position='e.dfy:2' %S/Inputs/single-file.dfy >> %t
-// RUN: %verify --filter-position='blaergaerga' %S/inputs/single-file.dfy >> %t
+// RUN: %verify --filter-position='blaergaerga' %S/Inputs/single-file.dfy >> %t
 // RUN: ! %verify --isolate-assertions --filter-position='e.dfy:5' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:6' %S/Inputs/single-file.dfy >> %t
 // RUN: %verify --isolate-assertions --filter-position='e.dfy:7' %S/Inputs/single-file.dfy >> %t
