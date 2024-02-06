@@ -2113,17 +2113,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               break;
             case BinaryExpr.ResolvedOpcode.EqCommon:
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
-              Boogie.Expr r = Boogie.Expr.True;
-              if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
-                var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
-                r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
+                Boogie.Expr r = Boogie.Expr.True;
+                if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
+                }
+                if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
+                }
+                return BplAnd(r, BplAnd(t0, t1));
               }
-              if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
-                var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
-                r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
-              }
-              return BplAnd(r, BplAnd(t0, t1));
-            }
             case BinaryExpr.ResolvedOpcode.Mul:
               if (7 <= BoogieGenerator.options.ArithMode) {
                 if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && !BoogieGenerator.DisableNonLinearArithmetic) {
