@@ -19,14 +19,13 @@ class MainWithWritersCommand : ILitCommand {
     this.main = main;
     Arguments = arguments.ToArray();
   }
-  
-  public async Task<(int, string, string)> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
-    var exitCode = await main(outputWriter, errorWriter, inputReader, Arguments);
-    return (exitCode, "", "");
+
+  public Task<int> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
+    return main(outputWriter, errorWriter, inputReader, Arguments);
   }
 }
 
-
+// TODO replace with MainWithWritersCommand
 class DafnyDriverLitCommand : ILitCommand {
   public string[] Arguments { get; }
 
@@ -34,11 +33,10 @@ class DafnyDriverLitCommand : ILitCommand {
     this.Arguments = arguments.ToArray();
   }
 
-  public async Task<(int, string, string)> Execute(TextReader inputReader,
+  public Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter,
     TextWriter errorWriter) {
-    var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
-    return (exitCode, "", "");
+    return DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
   }
 
   public override string ToString() {

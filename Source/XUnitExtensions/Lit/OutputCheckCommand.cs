@@ -199,23 +199,23 @@ namespace XUnitExtensions.Lit {
       return result;
     }
 
-    public Task<(int, string, string)> Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       if (options.FileToCheck == null) {
-        return Task.FromResult((0, "", ""));
+        return Task.FromResult(0);
       }
 
       var linesToCheck = File.ReadAllLines(options.FileToCheck).ToList();
       var fileName = options.CheckFile;
       if (fileName == null) {
-        return Task.FromResult((0, "", ""));
+        return Task.FromResult(0);
       }
       var checkDirectives = ParseCheckFile(options.CheckFile!);
 
-      return Execute(linesToCheck, checkDirectives);
+      return Task.FromResult(Execute(errorWriter, linesToCheck, checkDirectives));
     }
 
-    public static Task<(int, string, string)> Execute(IEnumerable<string> linesToCheck, IEnumerable<CheckDirective> checkDirectives) {
+    public static int Execute(TextWriter errorWriter, IEnumerable<string> linesToCheck, IEnumerable<CheckDirective> checkDirectives) {
       IEnumerator<string> lineEnumerator = linesToCheck.GetEnumerator();
       IEnumerator<string>? notCheckingEnumerator = null;
       foreach (var directive in checkDirectives) {
@@ -236,7 +236,8 @@ namespace XUnitExtensions.Lit {
         } else {
           var enumerator = notCheckingEnumerator ?? lineEnumerator;
           if (!directive.FindMatch(enumerator)) {
-            return Task.FromResult((1, "", $"ERROR: Could not find a match for {directive}"));
+            errorWriter.WriteLine($"ERROR: Could not find a match for {directive}");
+            return 1;
           }
 
           notCheckingEnumerator = null;
@@ -248,7 +249,7 @@ namespace XUnitExtensions.Lit {
         while (notCheckingEnumerator.MoveNext()) { }
       }
 
-      return Task.FromResult((0, "", ""));
+      return 0;
     }
 
     public override string ToString() {

@@ -41,7 +41,7 @@ namespace IntegrationTests {
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
-      
+
       // Set this to true in order to debug the execution of commands like %dafny.
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
@@ -101,7 +101,7 @@ namespace IntegrationTests {
           "%testDafnyForEachCompiler", (args, config) => {
             var fullArguments = new[] { "for-each-compiler" }.Concat(args);
             return MainCommand(fullArguments,
-              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a), 
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
               TestDafnyAssembly,
               config);
           }
@@ -109,7 +109,7 @@ namespace IntegrationTests {
           "%testDafnyForEachResolver", (args, config) => {
             var fullArguments = new[] { "for-each-resolver" }.Concat(args);
             return MainCommand(fullArguments,
-              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a), 
+              (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
               TestDafnyAssembly,
               config);
           }
@@ -165,7 +165,7 @@ namespace IntegrationTests {
         commands["%testDafnyForEachCompiler"] = (args, config) => {
           var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-compiler", "--dafny", dafnyCliPath }
             .Concat(args);
-          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);;
+          return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables); ;
         };
         commands["%testDafnyForEachResolver"] = (args, config) => {
           var shellArguments = new[] { TestDafnyAssembly.Location, "for-each-resolver", "--dafny", dafnyCliPath }
@@ -185,10 +185,9 @@ namespace IntegrationTests {
     }
 
     private static ILitCommand MainCommand(IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
-      LitTestConfiguration config)
-    {
+      LitTestConfiguration config) {
       if (InvokeMainMethodsDirectly) {
-        return new MainWithWritersCommand( args, mainWithWriters);
+        return new MainWithWritersCommand(args, mainWithWriters);
       }
 
       var shellArguments = new[] { assembly.Location }.Concat(args);

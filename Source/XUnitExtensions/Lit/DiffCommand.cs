@@ -40,11 +40,16 @@ namespace XUnitExtensions.Lit {
       return AssertWithDiff.GetDiffMessage(expected, actualOutput);
     }
 
-    public Task<(int, string, string)> Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       var actual = File.ReadAllText(ActualPath);
       var diffMessage = Run(ExpectedPath, actual);
-      return Task.FromResult(diffMessage == null ? (0, "", "") : (1, diffMessage, ""));
+      if (diffMessage != null) {
+        outputWriter.Write(diffMessage);
+        return Task.FromResult(0);
+      }
+
+      return Task.FromResult(1);
     }
 
     public override string ToString() {

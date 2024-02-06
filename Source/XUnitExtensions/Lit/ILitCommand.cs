@@ -23,7 +23,7 @@ namespace XUnitExtensions.Lit {
       this.Factory = factory;
     }
 
-    public Task<(int, string, string)> Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
       if (command == null) {
@@ -99,6 +99,6 @@ namespace XUnitExtensions.Lit {
       return result.ToArray();
     }
 
-    public Task<(int, string, string)> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
+    public Task<int> Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
   }
 }

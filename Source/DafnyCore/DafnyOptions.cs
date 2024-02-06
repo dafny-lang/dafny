@@ -210,42 +210,35 @@ namespace Microsoft.Dafny {
         EncounteredErrors = true;
       }
     }
-    
+
     private bool BaseParse(string[] args) {
       this.Environment = this.Environment + "Command Line Options: " + string.Join(" ", args);
-      args = cce.NonNull<string[]>((string[]) args.Clone());
+      args = cce.NonNull<string[]>((string[])args.Clone());
       Bpl.CommandLineParseState state;
-      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex)
-      {
+      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
         cce.LoopInvariant(state.args == args);
         string file = args[state.i];
         state.s = file.Trim();
         bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");
         int length = state.s.IndexOf(':');
-        if (0 <= length & flag)
-        {
+        if (0 <= length & flag) {
           state.hasColonArgument = true;
           args[state.i] = state.s.Substring(length + 1);
           state.s = state.s.Substring(0, length);
-        }
-        else
-        {
+        } else {
           ++state.i;
           state.hasColonArgument = false;
         }
         state.nextIndex = state.i;
-        if (flag)
-        {
-          if (!this.ParseOption(state.s.Substring(1), state))
-          {
+        if (flag) {
+          if (!this.ParseOption(state.s.Substring(1), state)) {
             if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
               this.AddFile(file, state);
             } else {
               this.UnknownSwitch(state);
             }
           }
-        }
-        else {
+        } else {
           this.AddFile(file, state);
         }
       }
@@ -256,7 +249,7 @@ namespace Microsoft.Dafny {
       this.ApplyDefaultOptions();
       return true;
     }
-    
+
     public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
       : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       Input = inputReader;

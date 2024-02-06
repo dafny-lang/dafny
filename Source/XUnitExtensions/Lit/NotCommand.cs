@@ -11,10 +11,10 @@ public class NotCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public async Task<(int, string, string)> Execute(TextReader inputReader,
+  public async Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
-    var (exitCode, output, error) = await operand.Execute(inputReader, outputWriter, errorWriter);
-    return (exitCode == 0 ? 1 : 0, output, error);
+    var exitCode = await operand.Execute(inputReader, outputWriter, errorWriter);
+    return exitCode == 0 ? 1 : 0;
   }
 
   public override string ToString() {

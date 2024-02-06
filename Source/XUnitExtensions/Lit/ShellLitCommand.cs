@@ -19,7 +19,7 @@ namespace XUnitExtensions.Lit {
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public async Task<(int, string, string)> Execute(TextReader inputReader,
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
@@ -118,7 +118,7 @@ namespace XUnitExtensions.Lit {
       errorWriter.Close();
       await process.WaitForExitAsync();
 
-      return (process.ExitCode, output, error);
+      return process.ExitCode;
     }
 
     public override string ToString() {

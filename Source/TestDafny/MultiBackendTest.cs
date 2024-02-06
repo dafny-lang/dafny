@@ -366,12 +366,10 @@ public class MultiBackendTest {
       outputLines.AddRange(ReadAllLines(outputString));
       outputLines.AddRange(ReadAllLines(error));
       var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
-      var (checkResult, checkOutput, checkError) = await OutputCheckCommand.Execute(outputLines, checkDirectives);
+      var checkResult = OutputCheckCommand.Execute(errorWriter, outputLines, checkDirectives);
       if (checkResult != 0) {
         await output.WriteLineAsync($"OutputCheck on {checkFile} failed:");
-        await output.WriteLineAsync(checkOutput);
         await output.WriteLineAsync("Error:");
-        await output.WriteLineAsync(checkError);
       }
 
       return checkResult;
@@ -403,15 +401,18 @@ public class MultiBackendTest {
     return (exitCode, outputString, error);
   }
 
-  private static Task<(int, string, string)> RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
-    if (dafnyCLIPath == null) {
-      return RunDafny(arguments);
+  private static async Task<(int, string, string)> RunDafny(string? dafnyCliPath, IEnumerable<string> arguments) {
+    if (dafnyCliPath == null) {
+      return await RunDafny(arguments);
     }
 
     var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
+    ILitCommand command = new ShellLitCommand(dafnyCliPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
 
-    return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);
+    var outputWriter = new StringWriter();
+    var errorWriter = new StringWriter();
+    var exitCode = await command.Execute(TextReader.Null, outputWriter, errorWriter);
+    return (exitCode, outputWriter.ToString(), errorWriter.ToString());
   }
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {

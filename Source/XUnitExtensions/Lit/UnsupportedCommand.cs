@@ -20,9 +20,9 @@ namespace XUnitExtensions.Lit {
       Features = features;
     }
 
-    public Task<(int, string, string)> Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      return Task.FromResult((0, "", ""));
+      return Task.FromResult(0);
     }
   }
 }

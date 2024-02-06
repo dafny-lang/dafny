@@ -14,7 +14,7 @@ public class StdInCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public Task<(int, string, string)> Execute(TextReader inputReader,
+  public Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     inputReader = new StringReader(stdin);
     return operand.Execute(inputReader, outputWriter, errorWriter);
