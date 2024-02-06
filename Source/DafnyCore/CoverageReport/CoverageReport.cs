@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -16,9 +17,24 @@ public class CoverageReport {
 
   public string Suffix { get; }
 
-  public string ActualPath { get; set; }
+  public void SetDirectory(string directory) {
+    ActualPath = GetFreshPath(Path.Combine(directory, Suffix), "html");
+    ActualIndexPath = GetFreshPath(Path.Combine(directory, "index" + Suffix), "html");
+  }
 
-  public string ActualIndexPath { get; set; }
+  private static string GetFreshPath(string attempt, string extension, int suffix = 0) {
+    var path = attempt + "." + extension;
+    while (File.Exists(path)) {
+      suffix++;
+      path = attempt + "_" + suffix + "." + extension;
+    }
+
+    return path;
+  }
+
+  public string ActualPath { get; private set; }
+
+  public string ActualIndexPath { get; private set; }
 
   /// <summary>
   /// Generate a new empty coverage report for a given program.
