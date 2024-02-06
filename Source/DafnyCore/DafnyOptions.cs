@@ -123,6 +123,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static void ParseImplicitEnable(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      options.Set(option, true);
+    }
+
     public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       int result = 0;
       if (ps.GetIntArgument(ref result, 2)) {
@@ -578,16 +582,6 @@ namespace Microsoft.Dafny {
 
         case "warnShadowing":
           WarnShadowing = true;
-          return true;
-
-        case "warnContradictoryAssumptions":
-          Set(CommonOptionBag.WarnContradictoryAssumptions, true);
-          TrackVerificationCoverage = true;
-          return true;
-
-        case "warnRedundantAssumptions":
-          Set(CommonOptionBag.WarnRedundantAssumptions, true);
-          TrackVerificationCoverage = true;
           return true;
 
         case "verifyAllModules":
