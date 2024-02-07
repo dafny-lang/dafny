@@ -33,36 +33,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Plugins ---------------------------------------------------------------
   
-  /plugin:<path-to-one-assembly[,argument]*>
-      
-      (experimental) One path to an assembly that contains at least one
-      instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
-      can also extend Microsoft.Dafny.Plugins.PluginConfiguration to
-      receive arguments. More information about what plugins do and how
-      to define them:
-      
-      https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
-
   ---- Overall reporting and printing ----------------------------------------
   
-  /dprint:<file>
-      Print Dafny program after parsing it.
-      (Use - as <file> to print to console.)
-
-  /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-      Everything (default) - Print everything listed below.
-      DllEmbed - print the source that will be included in a compiled dll.
-      NoIncludes - disable printing of {:verify false} methods
-          incorporated via the include mechanism, as well as datatypes and
-          fields included from other files.
-      NoGhost - disable printing of functions, ghost methods, and proof
-          statements in implementation methods. It also disables anything
-          NoIncludes disables.
-
-  /rprint:<file>
-      Print Dafny program after resolving it.
-      (use - as <file> to print to console.)
-
   /showSnippets:<value>
       0 (default) - Don't show source code snippets for Dafny messages.
       1 - Show a source code snippet for each Dafny message.
@@ -105,19 +77,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       `autoRevealDependencies` makes all functions not explicitly labelled as opaque to be opaque but reveals them automatically in scopes which do not have `{:autoRevealDependencies false}`. 
       `opaque` means functions are always opaque so the opaque keyword is not needed, and functions must be revealed everywhere needed for a proof.
 
-  /generalNewtypes:<value>
-      0 (default) - A newtype can only be based on numeric types or another newtype.
-      1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.
-
-  /generalTraits:<value>
-      legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
-      datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
-      full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.
-
-  /ntitrace:<value>
-      0 (default) - Don't print debug information for the new type system.
-      1 - Print debug information for the new type system.
-
   /readsClausesOnMethods:<value>
       0 (default) - Reads clauses on methods are forbidden.
       1 - Reads clauses on methods are permitted (with a default of 'reads *').
@@ -127,14 +86,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
       See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
       Not compatible with the /unicodeChar:0 option.
-
-  /titrace:<value>
-      0 (default) - Don't print type-inference debug information.
-      1 - Print type-inference debug information.
-
-  /typeSystemRefresh:<value>
-      0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-      1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.
 
   /unicodeChar:<value>
       0 - The char type represents any UTF-16 code unit.
@@ -346,9 +297,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Compilation options ---------------------------------------------------
   
-  /compileSuffix:<value>
-      Add the suffix _Compile to module names without :extern
-
   /compileTarget:<language>
       cs (default) - Compile to .NET via C#.
       go - Compile to Go.
