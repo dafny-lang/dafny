@@ -515,8 +515,8 @@ namespace Microsoft.Dafny {
     ///
     /// If "forAsOrIs", then "X ::> Y" means
     ///     X' :> Y', or
-    ///     (X' and Y' are various bv types), or
-    ///     (X' is int and Y' is in {int, char, bv, ORDINAL, real}.
+    ///     X' and Y' are various bv types, or
+    ///     X' is int and Y' is in {int, char, bv, ORDINAL, real}.
     /// where X' and Y' are the newtype ancestors of X and Y, respectively.
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
