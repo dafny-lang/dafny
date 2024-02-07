@@ -377,10 +377,6 @@ module RAST
 
   datatype DeclareType = MUT | CONST
 
-  function RcNew(underlying: Expr): Expr {
-    Call(RawExpr("::std::rc::Rc::new"), [], [underlying])
-  }
-
   datatype Associativity = LeftToRight | RightToLeft | RequiresParentheses
   datatype PrintingInfo = 
     | UnknownPrecedence()
@@ -428,7 +424,7 @@ module RAST
 
   datatype Expr =
       RawExpr(content: string)
-    | Identifier(name: string)
+    | Identifier(name: string) // Can be empty for global in MemberSelect
     | Match(matchee: Expr, cases: seq<MatchCase>)
     | StmtExpr(stmt: Expr, rhs: Expr)
     | Block(underlying: Expr)
@@ -563,14 +559,17 @@ module RAST
     }
 
     // Wish: Prove that Optimize() preserves semantics, if any
+    // TODO: Ensure that even without Optimize(), tests pass
     opaque function Optimize(): (r: Expr)
       ensures this == r || r.Height() < this.Height()
     {
       match this {
-        
         case UnaryOp("&", Call(Select(underlying, "clone"), typeArgs, args), format) =>
           if typeArgs == [] && args == [] then
-            Call(Select(underlying, "clone"), [], [])
+            assert Select(underlying, "clone").Height() == 1 + underlying.Height();
+            assert Call(Select(underlying, "clone"), typeArgs, args).Height() == 2 + underlying.Height();
+            assert UnaryOp("&", underlying, format).Height() == 1 + underlying.Height();
+            UnaryOp("&", underlying, format)
           else
             this
 
@@ -754,6 +753,22 @@ module RAST
     }
   }
 
+  const dafny_runtime := MemberSelect(Identifier(""), "dafny_runtime")
+  const dafny_runtime_Set := MemberSelect(dafny_runtime, "Set")
+  const dafny_runtime_Set_from_array := MemberSelect(dafny_runtime_Set, "from_array")
+
+  const std := MemberSelect(Identifier(""), "std")
+
+  const std_rc := MemberSelect(std, "rc")
+
+  const std_rc_Rc := MemberSelect(std_rc, "Rc")
+
+  const std_rc_Rc_new := MemberSelect(std_rc_Rc, "new")
+
+  function RcNew(underlying: Expr): Expr {
+    Call(std_rc_Rc_new, [], [underlying])
+  }
+  
   datatype Fn =
     Fn(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
        returnType: Option<Type>,
@@ -1529,20 +1544,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Seq(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.Rc(R.TypeApp("::dafny_runtime::DafnySequence", [elem]));
+          s := R.TypeApp("::dafny_runtime::Sequence", [elem]);
         }
         case Set(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.Rc(R.TypeApp("::dafny_runtime::Set", [elem]));
+          s := R.TypeApp("::dafny_runtime::Set", [elem]);
         }
         case Multiset(element) => {
           var elem := GenType(element, inBinding, inFn);
-          s := R.Rc(R.TypeApp("::dafny_runtime::Multiset", [elem]));
+          s := R.TypeApp("::dafny_runtime::Multiset", [elem]);
         }
         case Map(key, value) => {
           var keyType := GenType(key, inBinding, inFn);
           var valueType := GenType(value, inBinding, inFn);
-          s := R.Rc(R.TypeApp("::dafny_runtime::Map", [keyType, valueType]));
+          s := R.TypeApp("::dafny_runtime::Map", [keyType, valueType]);
         }
         case MapBuilder(key, value) => {
           var keyType := GenType(key, inBinding, inFn);
@@ -1955,9 +1970,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             i := i + 1;
           }
 
-          var enclosingExpr, _, enclosingIdents := GenExpr(on, selfIdent, params, OwnershipAny);
+          var onExpr, _, enclosingIdents := GenExpr(on, selfIdent, params, OwnershipAny);
           readIdents := readIdents + enclosingIdents;
-          var enclosingString := enclosingExpr.ToString(IND);
+          var enclosingString := onExpr.ToString(IND);
           match on {
             case Companion(_) => {
               enclosingString := enclosingString + "::";
@@ -2468,7 +2483,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             readIdents := readIdents + recIdents;
             i := i + 1;
           }
-          r := R.Call(R.RawExpr("::dafny_runtime::Set::from_array"), [], 
+          r := R.Call(R.dafny_runtime_Set_from_array, [], 
             [R.Borrow(R.NewVec(generatedValues))]
           );
 
@@ -2569,14 +2584,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case In() => {
               r := R.Call(R.Select(right, "contains"), [], [R.Borrow(left)]);
             }
-            case SetDifference() => {
-              r := R.Call(R.Select(left, "difference"), [], [R.Borrow(right)]);
+            case SetSubtraction() => {
+              r := R.Call(R.Select(left, "subtract"), [], [R.Borrow(right)]);
+            }
+            case SetMerge() => {
+              r := R.Call(R.Select(left, "merge"), [], [R.Borrow(right)]);
+            }
+            case SetIntersection() => {
+              r := R.Call(R.Select(left, "intersect"), [], [R.Borrow(right)]);
             }
             case MapMerge() => {
-              r := R.Call(R.Select(left, "add_multiple"), [], [R.Borrow(right)]);
+              r := R.Call(R.Select(left, "merge"), [], [R.Borrow(right)]);
             }
             case MapSubtraction() => {
-              r := R.Call(R.Select(left, "substract"), [], [R.Borrow(right)]);
+              r := R.Call(R.Select(left, "subtract"), [], [R.Borrow(right)]);
             }
             case Concat() => {
               r := R.RawExpr("[" + left.ToString(IND) + ", " + right.ToString(IND) + "].concat()");
@@ -2851,7 +2872,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             i := i + 1;
           }
 
-          var enclosingExpr, _, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
+          var onExpr, _, recIdents := GenExpr(on, selfIdent, params, OwnershipAny);
           readIdents := readIdents + recIdents;
           var renderedName := match name {
             case Name(ident) => escapeIdent(ident)
@@ -2860,14 +2881,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           };
           match on {
             case Companion(_) => {
-              enclosingExpr := R.MemberSelect(enclosingExpr, renderedName);
+              onExpr := R.MemberSelect(onExpr, renderedName);
             }
             case _ => {
-              enclosingExpr := R.Select(enclosingExpr, renderedName);
+              onExpr := R.Select(onExpr, renderedName);
             }
           }
 
-          r := R.Call(enclosingExpr, typeExprs, argExprs);
+          r := R.Call(onExpr, typeExprs, argExprs);
           resultingOwnership := OwnershipOwned;
         }
         case Lambda(params, retType, body) => {

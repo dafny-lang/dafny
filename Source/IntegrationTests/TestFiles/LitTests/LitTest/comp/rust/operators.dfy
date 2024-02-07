@@ -249,8 +249,6 @@ method {:resource_limit "200e3"}  Main() {
     print ".Keys and .Values\n";
   }
 
-  // TODO: Map.Keys and Map.Values
-  /*
   var st := {1};
   if 1 in st && 2 !in st {
     print "set contains ";
@@ -266,6 +264,7 @@ method {:resource_limit "200e3"}  Main() {
   if t2 != t3 && t2 * t3 == {} {
     print "inequality and intersection\n";
   }
+  /*
   var s1 := [1, 2];
   var s2 := s1 + [3];
   if s1 <= s2 && s1 < s2 && s1 != s2 && !(s2 <= s1)

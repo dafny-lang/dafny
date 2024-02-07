@@ -113,7 +113,8 @@ module {:extern "DAST"} DAST {
     BitwiseShiftRight() | BitwiseShiftLeft() |
     And() | Or() |
     In() |
-    SetDifference() | MapMerge() | MapSubtraction() |
+    SetMerge() | SetSubtraction() | SetIntersection() |
+    MapMerge() | MapSubtraction() |
     Concat() |
     Passthrough(string)
 

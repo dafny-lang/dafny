@@ -2306,6 +2306,14 @@ namespace Microsoft.Dafny.Compilers {
                 e0.Type.IsRefType,
                 !e0.Type.IsNonNullRefType
               ), left, right))),
+          BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
+            Not(BinaryOp(
+              BinOp.create_Eq(
+                false,
+                false
+              ), left, right))),
+          BinaryExpr.ResolvedOpcode.Intersection =>
+            B(DAST.BinOp.create_SetIntersection()),
           BinaryExpr.ResolvedOpcode.Div =>
             B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianDiv() : BinOp.create_Div()),
           BinaryExpr.ResolvedOpcode.Mod =>
@@ -2329,6 +2337,11 @@ namespace Microsoft.Dafny.Compilers {
             B(DAST.BinOp.create_MapMerge()),
           BinaryExpr.ResolvedOpcode.MapSubtraction =>
           B(DAST.BinOp.create_MapSubtraction()),
+          
+          BinaryExpr.ResolvedOpcode.Union =>
+            B(DAST.BinOp.create_SetMerge()),
+          BinaryExpr.ResolvedOpcode.SetDifference =>
+            B(DAST.BinOp.create_SetSubtraction()),
 
           BinaryExpr.ResolvedOpcode.NotInMap =>
             C((left, right) =>
@@ -2339,7 +2352,6 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NotInSeq =>
             C((left, right) =>
               Not(BinaryOp(new BinOp_In(), left, right))),
-          BinaryExpr.ResolvedOpcode.SetDifference => B(BinOp.create_SetDifference()),
           BinaryExpr.ResolvedOpcode.Concat => B(BinOp.create_Concat()),
           BinaryExpr.ResolvedOpcode.And => B(BinOp.create_And()),
           BinaryExpr.ResolvedOpcode.Or => B(BinOp.create_Or()),

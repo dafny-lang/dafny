@@ -1,8 +1,7 @@
-
 // Test module
 #[cfg(test)]
 mod experimental {
-    use std::{any::Any, borrow::Borrow, cell::RefCell, fmt::Formatter, mem::{transmute, MaybeUninit}, rc::{Rc, Weak}};
+    use std::{any::Any, cell::RefCell, fmt::Formatter, mem::{transmute, MaybeUninit}, rc::{Rc, Weak}};
     use as_any::Downcast;
     use num::{BigInt, One, Zero};
     use once_cell::unsync::Lazy;
@@ -352,45 +351,6 @@ mod experimental {
     }
 
     #[test]
-    fn test_sequence() {
-        let values = vec![1, 2, 3];
-        let seq = Sequence::<i32>::from_array_owned(values.clone());
-        assert_eq!(seq.cardinality_usize(), 3);
-        assert_eq!(seq.to_array(), values.into());
-    
-        // Create a concat array, wrap it into a lazy one, get the i-th element,
-        // and verify that this operation flattened the array
-        let left = Sequence::<i32>::from_array_owned(vec![1, 2, 3]);
-        let right = Sequence::<i32>::from_array_owned(vec![4, 5, 6]);
-        let concat = Sequence::<i32>::new_concat_sequence(&left, &right);
-
-        let lazy = Sequence::<i32>::new_lazy_sequence(&concat);
-        assert_eq!(lazy.cardinality_usize(), 6);
-        match lazy.borrow() {
-            Sequence::LazySequence { boxed, .. } =>
-            match (&*boxed.borrow()).borrow() {
-                Sequence::ConcatSequence { length, .. } =>
-                {
-                    assert_eq!(*length, 6);
-                },
-                _ => panic!("This should never happen")
-            },
-            _ => panic!("This should never happen")        
-        }
-        let value = lazy.select(0);
-        assert_eq!(value, 1);
-        match lazy.borrow() {
-            Sequence::LazySequence { boxed, .. } =>
-            match (&*boxed.borrow()).borrow() {
-                Sequence::ArraySequence { values, .. } =>
-                  assert_eq!(values, &Rc::new(vec![1, 2, 3, 4, 5, 6])),
-                _ => panic!("This should never happen")
-            },
-            _ => panic!("This should never happen")        
-        }
-    }
-
-    #[test]
     fn test_native_array_pointer() {
         let values: *const Vec<i32> = Box::into_raw(Box::new(vec![1, 2, 3]));
         // allocate another vec of size 100
@@ -677,7 +637,7 @@ mod experimental {
         let five_u16: u16 = num::ToPrimitive::to_u16(five_bigint.as_ref()).unwrap();
     }
 
-    trait object {
+    trait object: Any {
         fn as_object(self: Box<Self>) -> *mut dyn object;
         //fn is_<T>(self: Box<Self>) -> bool;
     }
@@ -736,21 +696,23 @@ mod experimental {
         }
     }
 
+    // This test passes in mod.rs but not in this file. Why is that?
+    #[test]
+    fn test_downcast_mut() {
+        let v: i32 = 42;
+        let mut value: Box<dyn Any> = Box::new(v);
+        assert!(value.downcast_mut::<i32>().is_some());
+        return;
+    }
+
     #[test]
     fn test_covariance() {
-        // trait X {}
-        // class A extends X {}
-        // method Test() {
-        //   var a := new A;
-        //   var x: Option<X> := Some(a);
-        // }
-
         let mut c: *mut Class = Box::into_raw(Box::new(Class{}));
         let mut c_t: *mut dyn Trait = c;
         let mut c_t_o: *mut dyn object = unsafe{Box::<dyn Trait>::from_raw(c_t)}.as_object();
         let mut c_o: *mut dyn object = c;
         //let mut c_o_t: *mut dyn Trait = c_o;
-        let mut c_o_c: *mut Class = c_o.downcast_mut::<Class>().unwrap();
+        let mut c_o_c: *mut Class = unsafe { Box::from_raw(c_o) }.downcast_mut::<Class>().unwrap();
         let mut c_t_c: *mut Class = c_t.downcast_mut::<Class>().unwrap();
 
         // Now let's put a c into an Option<*mut class> and upcast it to an Option<*mut dyn object>
