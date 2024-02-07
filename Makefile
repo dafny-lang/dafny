@@ -1,4 +1,4 @@
-DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
@@ -7,9 +7,20 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-dfydev:
-	(cd ${DIR}/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
-	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
+dfyprodformat:
+	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
+
+dfyprodinit: 
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
+
+dfyprod: dfyprodformat dfyprodinit
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
+dfydevinit:
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+
+dfydev: dfydevinit
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
@@ -29,7 +40,7 @@ refman-release: exe
 	make -C ${DIR}/docs/DafnyRef release
 
 z3-mac:
-	mkdir -p ${DIR}Binaries/z3/bin
+	mkdir -p ${DIR}/Binaries/z3/bin
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-macos-11-bin.zip
 	unzip z3-4.12.1-x64-macos-11-bin.zip
 	rm z3-4.12.1-x64-macos-11-bin.zip
@@ -40,7 +51,7 @@ z3-mac:
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 z3-mac-arm:
-	mkdir -p ${DIR}Binaries/z3/bin
+	mkdir -p ${DIR}/Binaries/z3/bin
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-arm64-macos-11-bin.zip
 	unzip z3-4.12.1-arm64-macos-11-bin.zip
 	rm z3-4.12.1-arm64-macos-11-bin.zip
@@ -51,7 +62,7 @@ z3-mac-arm:
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
-	mkdir -p ${DIR}Binaries/z3/bin
+	mkdir -p ${DIR}/Binaries/z3/bin
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip

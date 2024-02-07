@@ -1,7 +1,14 @@
 module {:extern "DAST"} DAST {
+  import opened Std.Wrappers
+
   datatype Module = Module(name: string, isExtern: bool, body: seq<ModuleItem>)
 
-  datatype ModuleItem = Module(Module) | Class(Class) | Trait(Trait) | Newtype(Newtype) | Datatype(Datatype)
+  datatype ModuleItem =
+    | Module(Module)
+    | Class(Class)
+    | Trait(Trait)
+    | Newtype(Newtype)
+    | Datatype(Datatype)
 
   datatype Type =
     Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
@@ -30,29 +37,27 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Optional<Expression>)
+  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>)
 
   datatype ClassItem = Method(Method)
 
-  datatype Field = Field(formal: Formal, defaultValue: Optional<Expression>)
+  datatype Field = Field(formal: Formal, defaultValue: Option<Expression>)
 
   datatype Formal = Formal(name: string, typ: Type)
 
-  datatype Method = Method(isStatic: bool, hasBody: bool, overridingPath: Optional<seq<Ident>>, name: string, typeParams: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Optional<seq<Ident>>)
-
-  datatype Optional<T> = Some(T) | None
+  datatype Method = Method(isStatic: bool, hasBody: bool, overridingPath: Option<seq<Ident>>, name: string, typeParams: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Option<seq<Ident>>)
 
   datatype Statement =
-    DeclareVar(name: string, typ: Type, maybeValue: Optional<Expression>) |
+    DeclareVar(name: string, typ: Type, maybeValue: Option<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
     Foreach(boundName: string, boundType: Type, over: Expression, body: seq<Statement>) |
-    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Optional<seq<Ident>>) |
+    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
-    Break(toLabel: Optional<string>) |
+    Break(toLabel: Option<string>) |
     TailRecursive(body: seq<Statement>) |
     JumpTailCallStart() |
     Halt() |
@@ -70,9 +75,9 @@ module {:extern "DAST"} DAST {
     Neq(referential: bool, nullable: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
-    Implies() |
+    Implies() | // TODO: REplace by Not Or
     In() |
-    NotIn() |
+    NotIn() | // TODO: Replace by Not In
     SetDifference() |
     Concat() |
     Passthrough(string)
@@ -98,7 +103,7 @@ module {:extern "DAST"} DAST {
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
-    IndexRange(expr: Expression, isArray: bool, low: Optional<Expression>, high: Optional<Expression>) |
+    IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat) |
     Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
