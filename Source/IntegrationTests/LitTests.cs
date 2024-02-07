@@ -219,7 +219,7 @@ namespace IntegrationTests {
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
               })]
-    public Task LitTest(string path) {
+    public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
       var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");
       switch (mode) {
@@ -228,18 +228,20 @@ namespace IntegrationTests {
           // not the copy in the output directory of this project.
           var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"), testPath);
           ConvertToMultiBackendTestIfNecessary(sourcePath);
-          return Task.CompletedTask;
+          break;
         case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
             Assert.Fail($"Non-uniform test case that exercises backends: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NONUNIFORM: <reason>' command");
           }
-          return Task.CompletedTask;
+          break;
         case "only-multi-backend":
           Skip.IfNot(IsMultiBackend(LitTestCase.Read(path, Config)));
-          return LitTestCase.Run(path, Config, output);
+          LitTestCase.Run(path, Config, output);
+          break;
         case null or "":
-          return LitTestCase.Run(path, Config, output);
+          LitTestCase.Run(path, Config, output);
+          break;
         default:
           throw new ArgumentException(
             $"Unrecognized value of DAFNY_INTEGRATION_TESTS_MODE environment variable: {mode}");
