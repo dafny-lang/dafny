@@ -57,48 +57,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             result.TryAdd(new SymbolInformation {
               Name = name,
               ContainerName = def.Kind.ToString(),
-              Kind = FromDafnySymbolKind(def.Kind),
-              Location = Workspace.Util.CreateLocation(def.NameToken)
+              Kind = def.Kind,
+              Location = DiagnosticUtil.CreateLocation(def.NameToken)
             }, matchDistance);
           }
         }
       }
 
       return result.OrderBy(kvPair => kvPair.Value).Select(kvPair => kvPair.Key).ToImmutableList();
-    }
-
-    private SymbolKind FromDafnySymbolKind(DafnySymbolKind dafnySymbolKind) {
-      // DafnySymbolKind is a copy of SymbolKind as described in its documentation.
-      // This conversion function can be removed once it is no longer a copy.
-      switch (dafnySymbolKind) {
-        case DafnySymbolKind.File: return SymbolKind.File;
-        case DafnySymbolKind.Module: return SymbolKind.Module;
-        case DafnySymbolKind.Namespace: return SymbolKind.Namespace;
-        case DafnySymbolKind.Package: return SymbolKind.Package;
-        case DafnySymbolKind.Class: return SymbolKind.Class;
-        case DafnySymbolKind.Method: return SymbolKind.Method;
-        case DafnySymbolKind.Property: return SymbolKind.Property;
-        case DafnySymbolKind.Field: return SymbolKind.Field;
-        case DafnySymbolKind.Constructor: return SymbolKind.Constructor;
-        case DafnySymbolKind.Enum: return SymbolKind.Enum;
-        case DafnySymbolKind.Interface: return SymbolKind.Interface;
-        case DafnySymbolKind.Function: return SymbolKind.Function;
-        case DafnySymbolKind.Variable: return SymbolKind.Variable;
-        case DafnySymbolKind.Constant: return SymbolKind.Constant;
-        case DafnySymbolKind.String: return SymbolKind.String;
-        case DafnySymbolKind.Number: return SymbolKind.Number;
-        case DafnySymbolKind.Boolean: return SymbolKind.Boolean;
-        case DafnySymbolKind.Array: return SymbolKind.Array;
-        case DafnySymbolKind.Object: return SymbolKind.Object;
-        case DafnySymbolKind.Key: return SymbolKind.Key;
-        case DafnySymbolKind.Null: return SymbolKind.Null;
-        case DafnySymbolKind.EnumMember: return SymbolKind.EnumMember;
-        case DafnySymbolKind.Struct: return SymbolKind.Struct;
-        case DafnySymbolKind.Event: return SymbolKind.Event;
-        case DafnySymbolKind.Operator: return SymbolKind.Operator;
-        case DafnySymbolKind.TypeParameter: return SymbolKind.TypeParameter;
-        default: throw new ArgumentException($"Unknown Dafny symbol kind: {dafnySymbolKind}");
-      }
     }
   }
 }

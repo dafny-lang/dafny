@@ -1166,6 +1166,25 @@ namespace Microsoft.Dafny {
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
+          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
+            var constraintIsCompilable = true;
+
+            // Check base type
+            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
+            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
+              CheckIfCompilable(baseDecl);
+              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
+            }
+
+            // Check the type's constraint
+            if (declWithConstraint.Constraint != null) {
+              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
+                new CodeContextWrapper(declWithConstraint, true));
+            }
+
+            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
@@ -1177,9 +1196,7 @@ namespace Microsoft.Dafny {
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1193,13 +1210,15 @@ namespace Microsoft.Dafny {
             if (newtypeDecl.Var != null) {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
-              if (newtypeDecl.Witness != null) {
-                CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              }
             }
-            if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+            CheckIfCompilable(newtypeDecl);
+
+            if (newtypeDecl.Witness != null) {
+              CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+                var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+                ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+              }
             }
 
             FigureOutNativeType(newtypeDecl);
@@ -1253,19 +1272,43 @@ namespace Microsoft.Dafny {
         FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
       }
 
+      // An inductive datatype is allowed to be defined as an empty type. For example, in
+      //     predicate P(x: int) { false }
+      //     type Subset = x: int | P(x) witness *
+      //     datatype Record = Record(Subset)
+      // Record is an empty type, because Subset is, since P(x) is always false. But if P(x)
+      // was instead defined to be true for some x's, then Record would be nonempty. Determining whether or
+      // not Record is empty goes well beyond the syntactic checks of the type system.
+      //
+      // However, if a datatype is empty because of some "obvious" cycle among datatype definitions, then
+      // that is both detectable by syntactic checks and likely unintended by the programmer. Therefore,
+      // we search for such type declarations and give error messages if something is found.
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null && dtd.Ctors.Count != 0)) {
+          if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.tok, dtd), new HashSet<IndDatatypeDecl>())) {
+            reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.r_empty_cyclic_datatype, dtd.tok,
+              $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
+          }
+        }
+      }
+
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
-      foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
-        if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
-          // do the following check once per SCC, so call it on each SCC representative
-          SccStratosphereCheck(dtd, datatypeDependencies);
-          DetermineEqualitySupport(dtd, datatypeDependencies);
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) { // because SccStratosphereCheck depends on subset-type/newtype base types being successfully resolved
+        foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
+          if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
+            // do the following check once per SCC, so call it on each SCC representative
+            SccStratosphereCheck(dtd, datatypeDependencies);
+            DetermineEqualitySupport(dtd, datatypeDependencies);
+          }
         }
       }
 
       // Set the SccRepr field of codatatypes
-      foreach (var repr in codatatypeDependencies.TopologicallySortedComponents()) {
-        foreach (var codt in codatatypeDependencies.GetSCC(repr)) {
-          codt.SscRepr = repr;
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        foreach (var repr in codatatypeDependencies.TopologicallySortedComponents()) {
+          foreach (var codt in codatatypeDependencies.GetSCC(repr)) {
+            codt.SscRepr = repr;
+          }
         }
       }
 
@@ -1325,108 +1368,14 @@ namespace Microsoft.Dafny {
           }
         }
 
-        InferEqualitySupport(declarations);
+        TypeCharacteristicChecker.InferAndCheck(declarations, isAnExport, reporter);
 
         // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
           new Abstemious(reporter).Check(fn);
           CheckOlderParameters(fn);
         }
-        // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
-        // Note that this check can only be done after determining which expressions are ghosts.
-        foreach (var d in declarations) {
-          for (var attr = d.Attributes; attr != null; attr = attr.Prev) {
-            attr.Args.ForEach(e => CheckTypeCharacteristics_Expr(e, true));
-          }
 
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            foreach (var p in iter.Ins) {
-              CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
-            }
-            foreach (var p in iter.Outs) {
-              CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
-            }
-            if (iter.Body != null) {
-              CheckTypeCharacteristics_Stmt(iter.Body, false);
-            }
-          } else if (d is ClassLikeDecl) {
-            var cl = (TopLevelDeclWithMembers)d;
-            foreach (var parentTrait in cl.ParentTraits) {
-              CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);
-            }
-          } else if (d is DatatypeDecl) {
-            var dt = (DatatypeDecl)d;
-            foreach (var ctor in dt.Ctors) {
-              foreach (var p in ctor.Formals) {
-                CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
-              }
-            }
-          } else if (d is TypeSynonymDecl) {
-            var syn = (TypeSynonymDecl)d;
-            CheckTypeCharacteristics_Type(syn.tok, syn.Rhs, false);
-            if (!isAnExport) {
-              if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
-                reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not",
-                  syn.Name, syn.Rhs);
-              }
-              if (syn.Characteristics.IsNonempty && !syn.Rhs.IsNonempty) {
-                reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as being nonempty, but the RHS type ({1}) may be empty",
-                  syn.Name, syn.Rhs);
-              } else if (syn.Characteristics.HasCompiledValue && !syn.Rhs.HasCompilableValue) {
-                reporter.Error(MessageSource.Resolver, syn.tok,
-                  "type '{0}' declared as auto-initialization type, but the RHS type ({1}) does not support auto-initialization", syn.Name, syn.Rhs);
-              }
-              if (syn.Characteristics.ContainsNoReferenceTypes && syn.Rhs.MayInvolveReferences) {
-                reporter.Error(MessageSource.Resolver, syn.tok,
-                  "type '{0}' declared as containing no reference types, but the RHS type ({1}) may contain reference types", syn.Name, syn.Rhs);
-              }
-            }
-          }
-
-          if (d is RedirectingTypeDecl) {
-            var rtd = (RedirectingTypeDecl)d;
-            if (rtd.Constraint != null) {
-              CheckTypeCharacteristics_Expr(rtd.Constraint, true);
-            }
-            if (rtd.Witness != null) {
-              CheckTypeCharacteristics_Expr(rtd.Witness, rtd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-            }
-          }
-
-          if (d is TopLevelDeclWithMembers) {
-            var cl = (TopLevelDeclWithMembers)d;
-            foreach (var member in cl.Members) {
-              if (member is Field) {
-                var f = (Field)member;
-                CheckTypeCharacteristics_Type(f.tok, f.Type, f.IsGhost);
-                if (f is ConstantField cf && cf.Rhs != null) {
-                  CheckTypeCharacteristics_Expr(cf.Rhs, cf.IsGhost);
-                }
-              } else if (member is Function) {
-                var f = (Function)member;
-                foreach (var p in f.Formals) {
-                  CheckTypeCharacteristics_Type(p.tok, p.Type, f.IsGhost || p.IsGhost);
-                }
-                CheckTypeCharacteristics_Type(f.Result?.tok ?? f.tok, f.ResultType, f.IsGhost);
-                if (f.Body != null) {
-                  CheckTypeCharacteristics_Expr(f.Body, f.IsGhost);
-                }
-              } else if (member is Method) {
-                var m = (Method)member;
-                foreach (var p in m.Ins) {
-                  CheckTypeCharacteristics_Type(p.tok, p.Type, m.IsGhost || p.IsGhost);
-                }
-                foreach (var p in m.Outs) {
-                  CheckTypeCharacteristics_Type(p.tok, p.Type, m.IsGhost || p.IsGhost);
-                }
-                if (m.Body != null) {
-                  CheckTypeCharacteristics_Stmt(m.Body, m.IsGhost);
-                }
-              }
-            }
-          }
-        }
         // Check that extreme predicates are not recursive with non-extreme-predicate functions (and only
         // with extreme predicates of the same polarity), and
         // check that greatest lemmas are not recursive with non-greatest-lemma methods.
@@ -1628,140 +1577,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
-    }
 
-    /// <summary>
-    /// Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
-    /// </summary>
-    /// <param name="declarations"></param>
-    private void InferEqualitySupport(List<TopLevelDecl> declarations) {
-      /// First, do datatypes and type synonyms until a fixpoint is reached.
-      bool inferredSomething;
-      do {
-        inferredSomething = false;
-        foreach (var d in declarations) {
-          if (Attributes.Contains(d.Attributes, "_provided")) {
-            // Don't infer required-equality-support for the type parameters, since there are
-            // scopes that see the name of the declaration but not its body.
-          } else if (d is DatatypeDecl) {
-            var dt = (DatatypeDecl)d;
-            foreach (var tp in dt.TypeArgs) {
-              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                foreach (var ctor in dt.Ctors) {
-                  foreach (var arg in ctor.Formals) {
-                    if (InferRequiredEqualitySupport(tp, arg.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                      inferredSomething = true;
-                      goto DONE_DT; // break out of the doubly-nested loop
-                    }
-                  }
-                }
-              DONE_DT:;
-              }
-            }
-          } else if (d is TypeSynonymDecl) {
-            var syn = (TypeSynonymDecl)d;
-            foreach (var tp in syn.TypeArgs) {
-              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  inferredSomething = true;
-                }
-              }
-            }
-          }
-        }
-      } while (inferredSomething);
-
-      // Now do it for Function and Method signatures.
-      foreach (var d in declarations) {
-        if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          var done = false;
-          var nonnullIter = iter.NonNullTypeDecl;
-          Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
-          for (var i = 0; i < iter.TypeArgs.Count; i++) {
-            var tp = iter.TypeArgs[i];
-            var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
-            if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-              // here's our chance to infer the need for equality support
-              foreach (var p in iter.Ins) {
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
-                  done = true;
-                  break;
-                }
-              }
-              foreach (var p in iter.Outs) {
-                if (done) {
-                  break;
-                }
-
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
-                  break;
-                }
-              }
-            }
-          }
-        } else if (d is ClassLikeDecl or DefaultClassDecl) {
-          var cl = (TopLevelDeclWithMembers)d;
-          foreach (var member in cl.Members) {
-            if (!member.IsGhost) {
-              if (member is Function) {
-                var f = (Function)member;
-                foreach (var tp in f.TypeArgs) {
-                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                    // here's our chance to infer the need for equality support
-                    if (InferRequiredEqualitySupport(tp, f.ResultType)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    } else {
-                      foreach (var p in f.Formals) {
-                        if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-              } else if (member is Method) {
-                var m = (Method)member;
-                bool done = false;
-                foreach (var tp in m.TypeArgs) {
-                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                    // here's our chance to infer the need for equality support
-                    foreach (var p in m.Ins) {
-                      if (InferRequiredEqualitySupport(tp, p.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                        done = true;
-                        break;
-                      }
-                    }
-                    foreach (var p in m.Outs) {
-                      if (done) {
-                        break;
-                      }
-
-                      if (InferRequiredEqualitySupport(tp, p.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                        break;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+        new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
       }
     }
 
@@ -2107,11 +1926,13 @@ namespace Microsoft.Dafny {
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
       List<ComprehensionExpr.BoundedPool> bounds;
+      bool constraintConsistsSolelyOfRangeConstraints;
       if (ddVar == null) {
         // There are no bounds at all
         bounds = new List<ComprehensionExpr.BoundedPool>();
+        constraintConsistsSolelyOfRangeConstraints = true;
       } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
       }
 
       // Find which among the allowable native types can hold "dd". Give an
@@ -2161,6 +1982,13 @@ namespace Microsoft.Dafny {
       foreach (var nativeT in bigEnoughNativeTypes) {
         if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
+          if (constraintConsistsSolelyOfRangeConstraints) {
+            dd.NativeTypeRangeImpliesAllConstraints = true;
+          }
+          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
+              lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound) {
+            dd.TargetTypeCoversAllBitPatterns = true;
+          }
           break;
         }
       }
@@ -2169,8 +1997,13 @@ namespace Microsoft.Dafny {
         // one particular native type, in which case that must have been the one picked.
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+          if (dd.TargetTypeCoversAllBitPatterns) {
+            reporter.Info(MessageSource.Resolver, dd.tok,
+              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
+          }
         } else {
           var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
+          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
           reporter.Info(MessageSource.Resolver, dd.tok,
             $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
         }
@@ -2287,23 +2120,6 @@ namespace Microsoft.Dafny {
       v.Visit(expr);
     }
 
-    void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
-      Contract.Requires(stmt != null);
-      var v = new CheckTypeCharacteristics_Visitor(reporter);
-      v.Visit(stmt, isGhost);
-    }
-    void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
-      Contract.Requires(expr != null);
-      var v = new CheckTypeCharacteristics_Visitor(reporter);
-      v.Visit(expr, isGhost);
-    }
-    public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-      var v = new CheckTypeCharacteristics_Visitor(reporter);
-      v.VisitType(tok, type, isGhost);
-    }
-
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
@@ -2343,49 +2159,6 @@ namespace Microsoft.Dafny {
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-
-    bool InferRequiredEqualitySupport(TypeParameter tp, Type type) {
-      Contract.Requires(tp != null);
-      Contract.Requires(type != null);
-
-      type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
-      if (type is BasicType) {
-      } else if (type is SetType) {
-        var st = (SetType)type;
-        return st.Arg.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, st.Arg);
-      } else if (type is MultiSetType) {
-        var ms = (MultiSetType)type;
-        return ms.Arg.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, ms.Arg);
-      } else if (type is MapType) {
-        var mt = (MapType)type;
-        return mt.Domain.AsTypeParameter == tp || InferRequiredEqualitySupport(tp, mt.Domain) || InferRequiredEqualitySupport(tp, mt.Range);
-      } else if (type is SeqType) {
-        var sq = (SeqType)type;
-        return InferRequiredEqualitySupport(tp, sq.Arg);
-      } else if (type is UserDefinedType) {
-        var udt = (UserDefinedType)type;
-        List<TypeParameter> formalTypeArgs = udt.ResolvedClass.TypeArgs;
-        Contract.Assert(formalTypeArgs != null);
-        Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
-        var i = 0;
-        foreach (var argType in udt.TypeArgs) {
-          var formalTypeArg = formalTypeArgs[i];
-          if ((formalTypeArg.SupportsEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
-            return true;
-          }
-          i++;
-        }
-        if (udt.ResolvedClass is TypeSynonymDecl) {
-          var syn = (TypeSynonymDecl)udt.ResolvedClass;
-          if (syn.IsRevealedInScope(Type.GetScope())) {
-            return InferRequiredEqualitySupport(tp, syn.RhsWithArgument(udt.TypeArgs));
-          }
-        }
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
-      return false;
-    }
 
     private TopLevelDeclWithMembers currentClass;
     public Scope<TypeParameter>/*!*/ allTypeParameters;
@@ -2810,6 +2583,35 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private bool AreThereAnyObviousSignsOfEmptiness(Type type, ISet<IndDatatypeDecl> beingVisited) {
+      type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
+      if (type is UserDefinedType { ResolvedClass: var cl } udt) {
+        Contract.Assert(cl != null);
+        if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
+          return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);
+        } else if (cl is SubsetTypeDecl subsetTypeDecl) {
+          return AreThereAnyObviousSignsOfEmptiness(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
+        } else if (cl is NewtypeDecl newtypeDecl) {
+          return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
+        }
+        if (cl is IndDatatypeDecl datatypeDecl) {
+          if (beingVisited.Contains(datatypeDecl)) {
+            // This datatype may be empty, but it's definitely empty if we consider only the constructors that have been visited
+            // since AreThereAnyObviousSignsOfEmptiness was called from IsObviouslyEmpty.
+            return true;
+          }
+          beingVisited.Add(datatypeDecl);
+          var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
+          var isEmpty = datatypeDecl.Ctors.TrueForAll(ctor =>
+            ctor.Formals.Exists(formal => AreThereAnyObviousSignsOfEmptiness(formal.Type.Subst(typeMap), beingVisited)));
+          beingVisited.Remove(datatypeDecl);
+          return isEmpty;
+        }
+      }
+
+      return false;
+    }
+
     /// <summary>
     /// Check that the SCC of 'startingPoint' can be carved up into stratospheres in such a way that each
     /// datatype has some value that can be constructed from datatypes in lower stratospheres only.
@@ -2839,7 +2641,7 @@ namespace Microsoft.Dafny {
           if (dt.GroundingCtor != null) {
             // previously cleared
           } else if (ComputeGroundingCtor(dt)) {
-            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to StratosphereCheck)
+            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to ComputeGroundingCtor)
             clearedThisRound++;
             totalCleared++;
           }
@@ -2850,19 +2652,13 @@ namespace Microsoft.Dafny {
         } else if (clearedThisRound != 0) {
           // some progress was made, so let's keep going
         } else {
-          // whatever is in scc-cleared now failed to pass the test
-          foreach (var dt in scc) {
-            if (dt.GroundingCtor == null) {
-              reporter.Error(MessageSource.Resolver, dt, "because of cyclic dependencies among constructor argument types, no instances of datatype '{0}' can be constructed", dt.Name);
-            }
-          }
           return;
         }
       }
     }
 
     /// <summary>
-    /// Check that the datatype has some constructor all whose argument types can be constructed.
+    /// Check if the datatype has some constructor all whose argument types can be constructed.
     /// Returns 'true' and sets dt.GroundingCtor if that is the case.
     /// </summary>
     bool ComputeGroundingCtor(IndDatatypeDecl dt) {
@@ -2870,7 +2666,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt.GroundingCtor == null);  // the intention is that this method be called only when GroundingCtor hasn't already been set
       Contract.Ensures(!Contract.Result<bool>() || dt.GroundingCtor != null);
 
-      // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
+      // Stated differently, check that there is some constructor where no argument type goes to the same stratum.
       DatatypeCtor groundingCtor = null;
       ISet<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {

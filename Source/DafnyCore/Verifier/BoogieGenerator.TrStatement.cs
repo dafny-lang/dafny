@@ -200,7 +200,7 @@ namespace Microsoft.Dafny {
         }
 
         // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them
-        // in this order, they type antecedents will in effect be assumed.
+        // in this order, the type antecedents will in effect be assumed.
         var bHavocLHSs = new List<Bpl.IdentifierExpr>();
         foreach (var lhs in simpleLHSs) {
           MarkDefiniteAssignmentTracker(lhs, builder);
@@ -320,8 +320,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
-        var tru = new LiteralExpr(s.Tok, true);
-        tru.Type = Type.Bool; // resolve here
+        var tru = Expression.CreateBoolLiteral(s.Tok, true);
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
@@ -597,14 +596,14 @@ namespace Microsoft.Dafny {
       var splits = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
         var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-        var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
+        var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
         (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-            var desc = new PODesc.AssertStatement(stmt.Expr, errorMessage, successMessage);
+            var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
             (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
@@ -2402,7 +2401,7 @@ namespace Microsoft.Dafny {
               bldr.Add(cmd);
             }
 
-            if (!origRhsIsHavoc || ie.Type.IsNonempty) {
+            if (!origRhsIsHavoc || ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
               MarkDefiniteAssignmentTracker(ie, bldr);
             }
           });
@@ -2434,7 +2433,7 @@ namespace Microsoft.Dafny {
                 bldr.Add(cmd);
               }
 
-              if (!origRhsIsHavoc || field.Type.IsNonempty) {
+              if (!origRhsIsHavoc || field.Type.HavocCountsAsDefiniteAssignment(field.IsGhost)) {
                 MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
               }
             });

@@ -85,7 +85,7 @@ lemma ExtractorTheorem<T(00)>(xs: List)
 
 // lemmas about length
 
-lemma XtrLength(mp: List<int>, lst: List)
+lemma XtrLength<T(00)>(mp: List<int>, lst: List)
   ensures length(xtr(mp, lst)) == length(mp);
 {
 }

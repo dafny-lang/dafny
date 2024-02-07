@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -46,7 +47,7 @@ public static class DafnyBackwardsCompatibleCli {
     switch (legacyResult) {
       case ParsedOptions success:
         var options = success.DafnyOptions;
-        return CompilerDriver.Run(options);
+        return SynchronousCliCompilation.Run(options);
       case ExitImmediately failure:
         return Task.FromResult((int)failure.ExitValue);
       default: throw new Exception("unreachable");

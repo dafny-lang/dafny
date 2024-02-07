@@ -45,6 +45,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
+    CommonOptionBag.ExtractCounterexample,
     CommonOptionBag.ShowInference,
     CommonOptionBag.ManualTriggerOption
   }.ToList();
@@ -88,6 +89,7 @@ public static class DafnyCommands {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.GeneralTraits,
+    CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,

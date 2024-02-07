@@ -89,6 +89,23 @@ This option is useful in a diamond dependency situation,
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
 
+  public static IEnumerable<string> SplitOptionValueIntoFiles(IEnumerable<string> inputs) {
+    var result = new HashSet<string>();
+    foreach (var input in inputs) {
+      var values = input.Split(',');
+      foreach (var slice in values) {
+        var name = slice.Trim();
+        if (Directory.Exists(name)) {
+          var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+          foreach (var file in files) { result.Add(file); }
+        } else {
+          result.Add(name);
+        }
+      }
+    }
+    return result;
+  }
+
   public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
     "Specify the filepath that determines where to place and how to name build files.") {
     ArgumentHelpName = "file",
@@ -184,6 +201,13 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
     IsHidden = true
   };
 
+  public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
+    @"
+false - A newtype can only be based on numeric types or another newtype.
+true - (requires --type-system-refresh to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
     @"
 false - Don't print type-inference debug information.
@@ -214,13 +238,14 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
   public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
 (experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
-May slow down verification slightly.
-May produce spurious warnings.") {
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.") {
     IsHidden = true
   };
   public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
 (experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
-May slow down verification slightly.
+May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
@@ -301,6 +326,11 @@ See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibrarie
 Not compatible with the --unicode-char:false option.
 ");
 
+  public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
+    @"
+If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
+  };
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
@@ -343,6 +373,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+    DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
+0 (default) - A newtype can only be based on numeric types or another newtype.
+1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -378,6 +411,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       defaultValue: PrintModes.Everything);
 
     DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
+    DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -465,7 +501,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
+      (options, value) => { options.LibraryFiles = SplitOptionValueIntoFiles(value.Select(fi => fi.FullName)).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
@@ -492,6 +528,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
+
+    DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
+      options.ExtractCounterexample = value;
+      options.EnhancedErrorMessages = 1;
+    });
 
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
@@ -522,6 +563,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ManualLemmaInduction,
       TypeInferenceDebug,
       GeneralTraits,
+      GeneralNewtypes,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
@@ -542,8 +584,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       OptimizeErasableDatatypeWrapper,
       AddCompileSuffix,
       SystemModule,
-      ExecutionCoverageReport
-    );
+      ExecutionCoverageReport,
+      ExtractCounterexample
+      );
   }
 
   public static readonly Option<bool> FormatPrint = new("--print",
