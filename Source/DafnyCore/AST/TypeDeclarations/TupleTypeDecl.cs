@@ -39,6 +39,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
       new List<Type>(), new List<MemberDecl>(), attributes, false) {
     Contract.Requires(systemModule != null);
     Contract.Requires(typeArgs != null);
+    Contract.Assert(Ctors.Count == 1);
     ArgumentGhostness = argumentGhostness;
     foreach (var ctor in Ctors) {
       ctor.EnclosingDatatype = this;  // resolve here
@@ -63,6 +64,10 @@ public class TupleTypeDecl : IndDatatypeDecl {
     }
     return ts;
   }
+
+  /// <summary>
+  /// Creates the one and only constructor of the tuple type.
+  /// </summary>
   private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
     Contract.Requires(typeArgs != null);
     var formals = new List<Formal>();

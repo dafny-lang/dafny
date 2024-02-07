@@ -128,9 +128,9 @@ public abstract class IExecutableBackend {
   }
 
   /// <summary>
-  /// Perform any required cleanups after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
+  /// Perform any required processing after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
   /// </summary>
-  public virtual void OnPostCompile() { }
+  public abstract bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter);
 
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate

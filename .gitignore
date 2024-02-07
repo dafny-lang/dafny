@@ -73,3 +73,9 @@ docs/dev/*.fix
 docs/dev/*.feat
 docs/dev/*.break
 
+Source/IntegrationTests/TestFiles/LitTests/LitTest/server/*.bvd
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/separate-verification/Inputs/wrappers3.doo
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/replaceables/complex/Build1
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/separate-verification/assumptions-lib
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/log.smt2
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/model

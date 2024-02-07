@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols;
 
-class SymbolDeclarationResolver {
+internal class SymbolDeclarationResolver {
   private readonly ILogger logger;
   private readonly CancellationToken cancellationToken;
 

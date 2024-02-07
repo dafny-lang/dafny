@@ -357,10 +357,10 @@ public class RemoveShortCircuitingRewriter : Cloner {
           new UnaryOpExpr(binaryExpr.E0.StartToken, UnaryOpExpr.Opcode.Not, identifierExpr), binaryExpr.E1, new IdentifierExpr(binaryExpr.E0.EndToken, tmpVarName), binaryExpr);
       case BinaryExpr { Op: BinaryExpr.Opcode.Imp } binaryExpr:
         return CreateIf(tmpVarName, Type.Bool, binaryExpr.E0, identifierExpr, binaryExpr.E1,
-          new LiteralExpr(binaryExpr.E0.EndToken, true), binaryExpr);
+          Expression.CreateBoolLiteral(binaryExpr.E0.EndToken, true), binaryExpr);
       case BinaryExpr { Op: BinaryExpr.Opcode.Exp } binaryExpr:
         return CreateIf(tmpVarName, Type.Bool, binaryExpr.E1, identifierExpr, binaryExpr.E0,
-          new LiteralExpr(binaryExpr.E1.EndToken, true), binaryExpr);
+          Expression.CreateBoolLiteral(binaryExpr.E1.EndToken, true), binaryExpr);
       case StmtExpr stmtExpr:
         newStmtStack.Last().Add(varDecl);
         updateStmt = new UpdateStmt(stmtExpr.E.RangeToken, new List<Expression> { identifierExpr },

@@ -12,11 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
 
   public CachingParser(ILogger<ProgramParser> logger,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher) : base(logger, fileSystem) {
+    TelemetryPublisherBase telemetryPublisher) : base(logger, fileSystem) {
     this.telemetryPublisher = telemetryPublisher;
   }
 
