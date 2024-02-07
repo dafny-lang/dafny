@@ -10,11 +10,14 @@ all: exe refman
 # that doesn't include these assets,
 # then building them using the DafnyDriver CLI,
 # then building the whole solution.
-exe:
+exe: assets
+	cd ${DIR}
+	dotnet build Source/Dafny.sln
+
+assets:
 	cd ${DIR}
 	dotnet build Source/DafnyDriver/DafnyDriver.csproj ## includes parser
 	make -C Source/DafnyStandardLibraries build-binary
-	dotnet build Source/Dafny.sln
 
 dfydev:
 	(cd ${DIR}/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
