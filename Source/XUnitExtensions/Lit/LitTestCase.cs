@@ -56,7 +56,8 @@ namespace XUnitExtensions.Lit {
     }
 
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      var task = Task.Run(() => Read(filePath, config).Execute(outputHelper));
+      var litTestCase = Read(filePath, config);
+      var task = Task.Run(() => litTestCase.Execute(outputHelper));
       task.Wait(IndividualTestTimeout);
     }
 
@@ -86,8 +87,8 @@ namespace XUnitExtensions.Lit {
 
         if (ExpectFailure) {
           if (exitCode != 0) {
-            throw new SkipException(
-              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
+            results.Add((output + outputWriter, error + errorWriter));
+            return;
           }
         }
 
