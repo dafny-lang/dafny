@@ -52,10 +52,11 @@ jobs:
         path: dafny/boogie
         ref: v${{ env.boogieVersion }}
     - name: Get Z3
-      run: make -C dafny z3-ubuntu
+      working-directory: dafny
+      run: make z3-ubuntu
     - name: Build Dafny with local Boogie
       working-directory: dafny
-      run: make -C dafny exe
+      run: make exe
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends

@@ -1,7 +1,11 @@
 
 # Invoking the CLI this way just to stay platform-independent
+# The standard libraries are embedded in the DafnyPipeline C# project itself,
+# so we use DafnyDriver to build them to avoid the circular dependency.
+# But we also use the full Dafny project (i.e. the actual `dafny` CLI)
+# to test the bundled libraries.
 DAFNY_DRIVER = dotnet run --project ../DafnyDriver --no-build --
-DAFNY = dotnet run --project ../DafnyDriver --no-build --
+DAFNY = dotnet run --project ../Dafny --no-build --
 
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
