@@ -2052,7 +2052,7 @@ namespace Microsoft.Dafny {
       } else if (hasNativeTypePreference == true) {
         reporter.Error(MessageSource.Resolver, dd,
           "Dafny's heuristics cannot find a compatible native type. " +
-          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.");
       }
     }
 
