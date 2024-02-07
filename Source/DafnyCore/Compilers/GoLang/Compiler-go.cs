@@ -2068,7 +2068,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("for {0} := _dafny.IntOf({1}); ; {0} = {0}.Times(_dafny.Two)", indexVar, start);
+      return wr.NewNamedBlock("for {0} := {1}IntOf({2}); ; {0} = {0}.Times(_dafny.Two)", indexVar, HelperModulePrefix, start);
     }
 
     protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
@@ -2239,7 +2239,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (long.MinValue <= i && i <= long.MaxValue) {
         wr.Write($"{HelperModulePrefix}IntOfInt64({i})");
       } else {
-        wr.Write("_dafny.IntOfString(\"{0}\")", i);
+        wr.Write($"{HelperModulePrefix}IntOfString(\"{i}\")");
       }
     }
 
@@ -2340,7 +2340,7 @@ namespace Microsoft.Dafny.Compilers {
       if (nativeType == null) {
         wr.Write('(');
         var middle = wr.Fork();
-        wr.Write(").Modulo(_dafny.One.Lsh(_dafny.IntOf({0})))", bvType.Width);
+        wr.Write($").Modulo(_dafny.One.Lsh({HelperModulePrefix}IntOf({bvType.Width})))");
         return middle;
       } else if (bvType.Width < nativeType.Bitwidth) {
         wr.Write("((");
@@ -2894,7 +2894,7 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wRhs);
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) => $"_dafny.IntOf({arrayIndex})";
+    protected override string ArrayIndexToInt(string arrayIndex) => $"{HelperModulePrefix}IntOf({arrayIndex})";
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {
@@ -3040,30 +3040,31 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var nativeType = AsNativeType(e.Type);
       if (nativeType != null) {
+        wr.Write(HelperModulePrefix);
         switch (nativeType.Sel) {
           case NativeType.Selection.Byte:
-            wr.Write("_dafny.IntOfUint8(");
+            wr.Write("IntOfUint8(");
             break;
           case NativeType.Selection.UShort:
-            wr.Write("_dafny.IntOfUint16(");
+            wr.Write("IntOfUint16(");
             break;
           case NativeType.Selection.UInt:
-            wr.Write("_dafny.IntOfUint32(");
+            wr.Write("IntOfUint32(");
             break;
           case NativeType.Selection.ULong:
-            wr.Write("_dafny.IntOfUint64(");
+            wr.Write("IntOfUint64(");
             break;
           case NativeType.Selection.SByte:
-            wr.Write("_dafny.IntOfInt8(");
+            wr.Write("IntOfInt8(");
             break;
           case NativeType.Selection.Short:
-            wr.Write("_dafny.IntOfInt16(");
+            wr.Write("IntOfInt16(");
             break;
           case NativeType.Selection.Int:
-            wr.Write("_dafny.IntOfInt32(");
+            wr.Write("IntOfInt32(");
             break;
           case NativeType.Selection.Long:
-            wr.Write($"{HelperModulePrefix}IntOfInt64(");
+            wr.Write($"IntOfInt64(");
             break;
           default:
             throw new cce.UnreachableException();  // unexpected nativeType.Selection value
@@ -3519,11 +3520,11 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("_dafny.RealOfFrac(");
           ConcreteSyntaxTree w;
           if (fromType.IsCharType) {
-            wr.Write("_dafny.IntOfInt32(rune");
+            wr.Write($"{HelperModulePrefix}IntOfInt32(rune");
             w = wr.Fork();
             wr.Write(")");
           } else if (AsNativeType(fromType) is NativeType nt) {
-            wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(nt)));
+            wr.Write($"{HelperModulePrefix}IntOf{Capitalize(GetNativeTypeName(nt))}(");
             w = wr.Fork();
             wr.Write(")");
           } else {
@@ -3554,7 +3555,7 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOfInt32(rune(");
+              wr.Write($"{HelperModulePrefix}IntOfInt32(rune(");
               wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
               wr.Write("))");
             } else {
@@ -3568,7 +3569,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (fromNative != null) {
             Contract.Assert(toNative == null); // follows from other checks
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
+            wr.Write($"{HelperModulePrefix}IntOf{Capitalize(GetNativeTypeName(fromNative))}(");
             wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
             wr.Write(')');
           } else {

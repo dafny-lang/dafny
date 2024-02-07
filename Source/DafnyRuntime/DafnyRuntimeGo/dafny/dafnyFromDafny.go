@@ -162,9 +162,6 @@ TAIL_CALL_START:
 		}
 	}
 }
-func (_static *CompanionStruct_Default___) MIN__SIZE__T__LIMIT() Int {
-	return IntOfInt64(128)
-}
 func (_static *CompanionStruct_Default___) SIZE__T__LIMIT() Int {
 	return IntOfInt64(2147483648)
 }
@@ -558,12 +555,9 @@ func (_this type_Size__t_) String() string {
 	return "dafny.Size__t"
 }
 func (_this *CompanionStruct_Size__t_) Is_(__source uint32) bool {
-	var _27_x Int = _dafny.IntOfUint32(__source)
+	var _27_x Int = IntOfUint32(__source)
 	_ = _27_x
-	if _System.Companion_Nat_.Is_(_27_x) {
-		return (_27_x).Cmp(Companion_Default___.SIZE__T__LIMIT()) < 0
-	}
-	return false
+	return ((_27_x).Sign() != -1) && ((_27_x).Cmp(Companion_Default___.SIZE__T__LIMIT()) < 0)
 }
 
 // Definition of trait NativeArray
