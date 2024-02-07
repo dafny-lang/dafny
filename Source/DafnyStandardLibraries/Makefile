@@ -53,7 +53,7 @@ check-format:
 	$(DAFNY_DRIVER) format . --check
 
 check-examples:
-	../scripts/check-examples `find .. -name '*.md'`
+	cd build && ../scripts/check-examples `find .. -name '*.md'`
 
 clean:
 	rm -rf binaries
