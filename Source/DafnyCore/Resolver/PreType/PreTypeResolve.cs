@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
     public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
       var argumentType = resolver.SystemModuleManager.Nat();
       var formals = new List<Formal> {
-        new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
+        new Formal(Token.NoToken, "w", argumentType, true, false, null) {
           PreType = Type2PreType(argumentType)
         }
       };
@@ -476,8 +476,8 @@ namespace Microsoft.Dafny {
       Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
     }
 
-    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
-      Constraints.AddConfirmation(check, preType, tok, errorFormatString);
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
+      Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
     void AddComparableConstraint(PreType a, PreType b, IToken tok, string errorFormatString) {
@@ -691,12 +691,16 @@ namespace Microsoft.Dafny {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
           nd.Var.PreType = nd.BasePreType;
         }
+        var onProxyAction = () => {
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.tok,
+            $"{nd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
+        };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})");
+            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})", onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
-            "a newtype must be based on some numeric type (got {0})");
+            "a newtype must be based on some numeric type (got {0})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
 

@@ -843,14 +843,14 @@ namespace Microsoft.Dafny {
               int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false); // let TrInMultiSet translate e.E1
+                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInMultiSet) {
-                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false);  // let TrInMultiSet translate e.E1
+                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false);  // let TrInMultiSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               }
               Boogie.Expr e1 = TrExpr(e.E1);
@@ -1180,10 +1180,10 @@ namespace Microsoft.Dafny {
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend, BoogieGenerator.TrType(binaryExpr.Type.AsSeqType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.InSeq:
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                 case BinaryExpr.ResolvedOpcode.NotInSeq:
                   Boogie.Expr arg = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     bool finite = e.E1.Type.AsMapType.Finite;
@@ -1551,7 +1551,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Contract.Requires(let != null);
         var substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < let.LHSs.Count; i++) {
-          BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], TrExpr(let.RHSs[i]), substMap);
+          var rhs = TrExpr(let.RHSs[i]);
+          var toType = let.LHSs[i].Var?.Type ?? let.LHSs[i].Expr.Type;
+          rhs = BoogieGenerator.CondApplyBox(rhs.tok, rhs, let.RHSs[i].Type, toType);
+          BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], rhs, substMap);
         }
         lhss = new List<Boogie.Variable>();
         rhss = new List<Boogie.Expr>();
@@ -1958,6 +1961,19 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               litExpr.tok,
               BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
               litExpr.Immutable);
+          }
+
+          // Do this after the above multiplication because :resource_limit should not be multiplied.
+          if (name == "resource_limit") {
+            name = "rlimit";
+            if (parms[0] is string str) {
+              if (DafnyOptions.TryParseResourceCount(str, out var resourceLimit)) {
+                parms[0] = new Boogie.LiteralExpr(attr.tok, BigNum.FromUInt(resourceLimit), true);
+              } else {
+                BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.tok,
+                  $"failed to parse resource count: {parms[0]}");
+              }
+            }
           }
           kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }

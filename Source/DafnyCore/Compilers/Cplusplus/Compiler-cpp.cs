@@ -1385,7 +1385,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
       var typeName = TypeName(boundVarType, wr, tok);
       wr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
     }
@@ -1506,24 +1506,24 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+      string literalSuffix = null;
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out _, out literalSuffix, out _);
       }
 
-      if (bvType.NativeType == null) {
+      if (nativeType == null) {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
-      } else if (bvType.NativeType.Bitwidth == bvType.Width) {
-        // no truncation needed
-        return wr;
-      } else {
+      } else if (bvType.Width < nativeType.Bitwidth) {
         wr.Write("((");
         var middle = wr.Fork();
         // print in hex, because that looks nice
         wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
         return middle;
+      } else {
+        // no truncation needed
+        return wr;
       }
     }
 

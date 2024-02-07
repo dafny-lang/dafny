@@ -1,10 +1,10 @@
 ---
-title: Why can't I write 'forall t: Test :: t.i == 1' for an object t?
+title: "Why can't I write `forall t: Test :: t.i == 1` for an object `t`?"
 ---
 
 ## Question:
 
-Why can't I write `forall t: Test :: t.i == 1` for an object t?
+Why can\'t I write `forall t: Test :: t.i == 1` for an object `t`?
 
 ## Answer:
 

@@ -615,7 +615,7 @@ abstract module M0 {
     var _, _ := EvalLemma(expr, st, env, useCache);
   }
 
-  lemma {:induction false} {:timeLimit 30} EvalLemma(expr: Expression, st: State, env: Env, useCache: bool) returns (outExpr: Expression, outSt: State)
+  lemma {:induction false} {:resource_limit "30e6"} EvalLemma(expr: Expression, st: State, env: Env, useCache: bool) returns (outExpr: Expression, outSt: State)
     requires ValidState(st) && ValidEnv(env)
     requires useCache ==> ConsistentCache(st)
     ensures
@@ -1196,7 +1196,7 @@ abstract module M0 {
       }
     }
   }
-  lemma {:timeLimit 15} StateCorrespondence_Ctor(stOrig: State, st: State, sts: set<State>, stC: State, stsC: set<State>)
+  lemma {:resource_limit "15e6"} StateCorrespondence_Ctor(stOrig: State, st: State, sts: set<State>, stC: State, stsC: set<State>)
     requires ValidState(st) && forall s :: s in sts ==> ValidState(s)
     requires Extends(stOrig, st) && forall s :: s in sts ==> Extends(stOrig, s)
     requires StateCorrespondence(st, stC)

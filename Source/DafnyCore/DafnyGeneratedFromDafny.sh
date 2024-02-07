@@ -2,7 +2,7 @@
 # Until we get proper dependency to previous Dafny, you have to generate the file GeneratedFromDafny.cs
 # To remove this manual build process, when it will be appropriate:
 # 1. Delete the file GeneratedFromDafny.cs
-# 2. Add a dependcy to 
+# 2. Add a dependency to 
 #      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
 # That's it! The same file will now be automatically generated as obj/Debug/net6.0/GeneratedFromDafny.cs
 # 3. Remove the following dependencies that are being taken care by dafny-msbuild
@@ -29,7 +29,7 @@ fi
 
 ../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs $noverify
 
-# We remove all the standard libraries except Std.Wrappers, Std.Strings, Std.Collections.Seq, Std.Arithmetic and Std.Math
+# We will remove all the namespaces Std.* except Std.Wrappers
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:

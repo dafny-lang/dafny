@@ -70,7 +70,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  | :  if n <= 1 then n else fib(n-1) + fib(n-2)
  | :}
  | :
-[ ]:method {:rlimit 1} Test(s: seq<nat>)
+[ ]:method {:resource_limit 1000} Test(s: seq<nat>)
 [=]:  requires |s| >= 1 && s[0] >= 0 { assert fib(10) == 1; assert {:split_here} s[0] >= 0;
 [ ]:}", true, intermediates: false);
   }

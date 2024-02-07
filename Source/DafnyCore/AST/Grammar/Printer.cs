@@ -191,7 +191,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public void PrintProgramLargeStack(Program prog, bool afterResolver) {
+#pragma warning disable VSTHRD002
       DafnyMain.LargeStackFactory.StartNew(() => PrintProgram(prog, afterResolver)).Wait();
+#pragma warning restore VSTHRD002
     }
 
     public void PrintProgram(Program prog, bool afterResolver) {

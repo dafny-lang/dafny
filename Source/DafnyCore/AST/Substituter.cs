@@ -519,7 +519,9 @@ namespace Microsoft.Dafny {
         return bound;  // nothing to substitute
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
-        return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
+        return new ComprehensionExpr.IntBoundedPool(
+          b.LowerBound == null ? null : Substitute(b.LowerBound),
+          b.UpperBound == null ? null : Substitute(b.UpperBound));
       } else if (bound is ComprehensionExpr.SetBoundedPool) {
         var b = (ComprehensionExpr.SetBoundedPool)bound;
         return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);

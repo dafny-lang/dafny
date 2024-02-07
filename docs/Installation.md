@@ -210,7 +210,9 @@ To set up Dafny to compile to Go:
 * Install Go from [https://golang.org/dl](https://golang.org/dl) or
    * Linux: `sudo apt install golang`
    * Mac: `brew install golang`
-* Make sure `go` is on your path
+* Install `goimports` from [https://pkg.go.dev/golang.org/x/tools/cmd/goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+   * `go install golang.org/x/tools/cmd/goimports@latest`
+* Make sure `go` and `goimports` are on your path
 
 To separately compile and run your program for Go:
 - `dafny build --target:go MyProgram.dfy`
@@ -239,7 +241,7 @@ To setup Dafny to compile to python3:
 
 To separately compile and run your program for Python:
 - `dafny build -t:py MyProgram.dfy`
-- `python3 MyProgram-py/MyProgram.py
+- `python3 MyProgram-py/MyProgram.py`
 
 ### Rust
 

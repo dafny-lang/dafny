@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -61,8 +62,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
-  public readonly Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  public Attributes Attributes { get; set; }
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
@@ -689,6 +689,22 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return prefixNameModule with { Parts = rest };
   }
 
+  private static readonly List<(string, string)> incompatibleAttributePairs =
+    new() {
+      ("rlimit", "resource_limit")
+    };
+
+  private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes attrs) {
+    foreach (var pair in incompatibleAttributePairs) {
+      var attr1 = Attributes.Find(attrs, pair.Item1);
+      var attr2 = Attributes.Find(attrs, pair.Item2);
+      if (attr1 is not null && attr2 is not null) {
+        resolver.reporter.Error(MessageSource.Resolver, attr1.tok,
+            $"the {pair.Item1} and {pair.Item2} attributes cannot be used together");
+      }
+    }
+  }
+
   public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
@@ -767,6 +783,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
         foreach (MemberDecl m in members.Values) {
           Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));
+
+          CheckIncompatibleAttributes(resolver, m.Attributes);
+
           if (m is Function or Method or ConstantField) {
             sig.StaticMembers[m.Name] = m;
           }
@@ -1027,7 +1046,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public SymbolKind Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

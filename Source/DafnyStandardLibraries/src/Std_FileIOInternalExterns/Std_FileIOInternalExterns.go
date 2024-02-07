@@ -2,7 +2,7 @@ package Std_FileIOInternalExterns
 
 import (
 	_dafny "dafny"
-	os "os"
+	ioutil "io/ioutil"
 	filepath "path/filepath"
 )
 
@@ -15,7 +15,7 @@ var Companion_Default___ = CompanionStruct_Default___ {
 
 func (_static *CompanionStruct_Default___) INTERNAL__ReadBytesFromFile(path _dafny.Sequence) (isError bool, bytesRead _dafny.Sequence, errorMsg _dafny.Sequence) {
 	p := _dafny.SequenceVerbatimString(path, false)
-	dat, err := os.ReadFile(p)
+	dat, err := ioutil.ReadFile(p)
 	if err != nil {
 		errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
 		return true, _dafny.EmptySeq, errAsSequence
@@ -31,7 +31,7 @@ func (_static *CompanionStruct_Default___) INTERNAL__WriteBytesToFile(path _dafn
 	os.MkdirAll(filepath.Dir(p), os.ModePerm)
 
 	bytesArray := _dafny.ToByteArray(bytes)
-	err := os.WriteFile(p, bytesArray, 0644)
+	err := ioutil.WriteFile(p, bytesArray, 0644)
 	if err != nil {
 		errAsSequence := _dafny.UnicodeSeqOfUtf8Bytes(err.Error())
 		return true, errAsSequence

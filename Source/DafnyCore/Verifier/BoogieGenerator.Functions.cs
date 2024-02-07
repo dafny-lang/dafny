@@ -876,7 +876,7 @@ public partial class BoogieGenerator {
       }
 
       var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
-      var trbody = etranBody.TrExpr(bodyWithSubst);
+      var trbody = CondApplyBox(f.tok, etranBody.TrExpr(bodyWithSubst), f.Body.Type, f.ResultType);
       tastyVegetarianOption = BplAnd(etranBody.CanCallAssumption(bodyWithSubst),
         BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
     }
