@@ -33,6 +33,12 @@ jobs:
       with:
         submodules: recursive
         path: dafny
+    - name: Get Z3 (Linux)
+      if: runner.os == 'Linux'
+      run: make z3-ubuntu
+    - name: Get Z3 (Mac)
+      if: runner.os == 'MacOS'
+      run: make z3-mac
     - name: Build Dafny
       run: make -C dafny exe
     - name: Install pandoc - Linux

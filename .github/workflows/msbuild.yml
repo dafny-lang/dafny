@@ -51,6 +51,8 @@ jobs:
         repository: boogie-org/boogie
         path: dafny/boogie
         ref: v${{ env.boogieVersion }}
+    - name: Get Z3
+      run: make z3-ubuntu
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: make exe
