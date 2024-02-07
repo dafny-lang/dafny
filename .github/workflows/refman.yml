@@ -34,7 +34,7 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Build Dafny
-      run: make exe
+      run: make -C dafny exe
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'
       run: |
