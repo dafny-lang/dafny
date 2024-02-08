@@ -58,7 +58,15 @@ namespace XUnitExtensions.Lit {
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       var litTestCase = Read(filePath, config);
       var task = Task.Run(() => litTestCase.Execute(outputHelper));
-      task.Wait(MaxTestCaseRuntime);
+      try {
+        task.Wait(MaxTestCaseRuntime);
+      } catch (AggregateException e) {
+        if (e.InnerException is SkipException skipException) {
+          throw skipException;
+        }
+
+        throw;
+      }
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
