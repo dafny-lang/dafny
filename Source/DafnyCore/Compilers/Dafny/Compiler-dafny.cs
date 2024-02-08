@@ -1796,7 +1796,11 @@ namespace Microsoft.Dafny.Compilers {
         EmitExpr(expr.Initializer, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(elem), wStmts);
 
         var n = new ExprBuffer(null);
-        EmitExpr(expr.N, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(n), wStmts);
+        var size = expr.N;
+        if (size.Type.AsNewtype is { }) {
+          size = new ConversionExpr(expr.N.tok, size, new IntType());
+        }
+        EmitExpr(size, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(n), wStmts);
 
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqConstruct(
           n.Finish(),
