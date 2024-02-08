@@ -1,0 +1,1 @@
+Don't emit an error message for a `function-by-method` with unused type parameters.
