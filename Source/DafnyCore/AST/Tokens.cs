@@ -109,6 +109,13 @@ public class Token : IToken {
     };
   }
 
+  public int CompareTo(Boogie.IToken other) {
+    if (line != other.line) {
+      return line.CompareTo(other.line);
+    }
+    return col.CompareTo(other.col);
+  }
+
   public override int GetHashCode() {
     return pos;
   }
@@ -187,6 +194,10 @@ public abstract class TokenWrapper : IToken {
   }
 
   public int CompareTo(IToken other) {
+    return WrappedToken.CompareTo(other);
+  }
+
+  public int CompareTo(Boogie.IToken other) {
     return WrappedToken.CompareTo(other);
   }
 }
