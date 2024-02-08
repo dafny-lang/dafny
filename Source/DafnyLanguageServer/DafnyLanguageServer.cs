@@ -67,20 +67,11 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void HandleZ3Version(DafnyOptions options, TelemetryPublisherBase telemetryPublisher, SMTLibSolverOptions proverOptions) {
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+      if (z3Version is null) {
         return;
       }
 
       telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
-
-      var toReplace = "O:model_compress=false";
-      var i = options.ProverOptions.IndexOf(toReplace);
-      if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", options.ProverOptions)));
-        return;
-      }
-
-      options.ProverOptions[i] = "O:model.compact=false";
     }
 
     /// <summary>
