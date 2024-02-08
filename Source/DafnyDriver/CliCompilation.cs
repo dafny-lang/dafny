@@ -263,7 +263,7 @@ public class CliCompilation {
     if (symbolFilter != null) {
       canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
     }
-    
+
     var filterPosition = options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
       line = null;
@@ -294,7 +294,7 @@ public class CliCompilation {
   private bool KeepVerificationTask(IVerificationTask task, int line) {
     return task.ScopeToken.line == line || task.Token.line == line;
   }
-  
+
   static void WriteTrailer(DafnyOptions options, TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
     if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
       return;
