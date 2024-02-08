@@ -320,6 +320,7 @@ public record IdeState(
     return previousState with {
       StaticDiagnostics = finishedResolution.Diagnostics,
       Status = status,
+      Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
       SymbolTable = symbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = signatureAndCompletionTable,
@@ -455,7 +456,6 @@ public record IdeState(
     var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
     if (boogieUpdate.BoogieStatus is Running) {
       diagnostics = Array.Empty<Diagnostic>();
-      counterExamples = Array.Empty<Counterexample>();
       hitErrorLimit = false;
     }
 
@@ -470,7 +470,7 @@ public record IdeState(
         Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, completed.Result);
       diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
       logger.LogTrace(
-        $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics.");
+        $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
     }
 
     var newCanVerifyDiagnostics = new List<Diagnostic>();
