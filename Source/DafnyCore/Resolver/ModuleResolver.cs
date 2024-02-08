@@ -408,8 +408,7 @@ namespace Microsoft.Dafny {
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
-          if (decl.Value is ModuleDecl && !(decl.Value is ModuleExportDecl)) {
-            var modDecl = (ModuleDecl)decl.Value;
+          if (decl.Value is ModuleDecl modDecl and not ModuleExportDecl) {
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
         }
@@ -428,7 +427,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (e.Opaque && (decl is DatatypeDecl || decl is TypeSynonymDecl)) {
+        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl)) {
           // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
           // declaration is never provided, then either it isn't visible outside the module at all or its whole
           // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
