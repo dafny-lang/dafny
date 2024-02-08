@@ -258,11 +258,12 @@ public class CliCompilation {
     }
   }
 
-  private bool KeepVerificationTask(IVerificationTask task, int line) {
-    return task.ScopeToken.line == line || task.Token.line == line;
-  }
-
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
+    var symbolFilter = options.Get(VerifyCommand.FilterSymbol);
+    if (symbolFilter != null) {
+      canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+    }
+
     var filterPosition = options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
       line = null;
@@ -288,6 +289,10 @@ public class CliCompilation {
     line = parsedLine;
     return fileFiltered.Where(c =>
         c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
+  }
+
+  private bool KeepVerificationTask(IVerificationTask task, int line) {
+    return task.ScopeToken.line == line || task.Token.line == line;
   }
 
   static void WriteTrailer(DafnyOptions options, TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
