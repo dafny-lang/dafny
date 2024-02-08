@@ -2885,7 +2885,7 @@ namespace Microsoft.Dafny {
     enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
-      new Dictionary<MethodTranslationKind, string>() {
+      new() {
         {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
         {MethodTranslationKind.Call, "Call"},
         {MethodTranslationKind.CoCall, "CoCall"},
