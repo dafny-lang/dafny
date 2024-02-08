@@ -55,9 +55,10 @@ namespace XUnitExtensions.Lit {
     }
 
     public static readonly TimeSpan MaxTestCaseRuntime = TimeSpan.FromMinutes(15);
-    public static Task Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+    public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       var litTestCase = Read(filePath, config);
-      return litTestCase.Execute(outputHelper);
+      var task = Task.Run(() => litTestCase.Execute(outputHelper));
+      task.Wait(MaxTestCaseRuntime);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
