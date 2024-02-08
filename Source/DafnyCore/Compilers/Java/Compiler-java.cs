@@ -4027,7 +4027,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnySeqClass}.Create({TypeDescriptor(expr.Type.AsCollectionType.Arg, wr, expr.tok)}, ");
-      wr.Append(Expr(expr.N, inLetExprBody, wStmts));
+      var size = expr.N;
+      if (AsJavaNativeType(size.Type) is { }) {
+        size = new ConversionExpr(expr.N.tok, size, new IntType());
+      }
+      var sizeWr = Expr(size, inLetExprBody, wStmts);
+      wr.Append(sizeWr);
       wr.Write(", ");
       wr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");
