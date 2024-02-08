@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
+    private static readonly TimeSpan IndividualTestTimeout = TimeSpan.FromMinutes(15);
     public string FilePath { get; }
     public IEnumerable<ILitCommand> Commands { get; }
     public bool ExpectFailure { get; }
@@ -58,15 +59,7 @@ namespace XUnitExtensions.Lit {
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       var litTestCase = Read(filePath, config);
       var task = Task.Run(() => litTestCase.Execute(outputHelper));
-      try {
-        task.Wait(MaxTestCaseRuntime);
-      } catch (AggregateException e) {
-        if (e.InnerException is SkipException skipException) {
-          throw skipException;
-        }
-
-        throw;
-      }
+      task.Wait(IndividualTestTimeout);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
@@ -94,8 +87,8 @@ namespace XUnitExtensions.Lit {
 
         if (ExpectFailure) {
           if (exitCode != 0) {
-            throw new SkipException(
-              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{outputWriter}\nError:\n{errorWriter}");
+            results.Add((outputWriter.ToString(), errorWriter.ToString()));
+            return;
           }
         }
 
