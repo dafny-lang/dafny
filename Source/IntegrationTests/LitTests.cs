@@ -41,7 +41,6 @@ namespace IntegrationTests {
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
-
       // Set this to true in order to debug the execution of commands like %dafny.
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.

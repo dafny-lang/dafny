@@ -243,11 +243,11 @@ public class CoverageReporter {
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var desiredPath = sourceFileToCoverageReportFile[sourceFile] + $"{report.Suffix}.html";
       var relativePath = Path.GetRelativePath(baseDirectory, GetPath(report, desiredPath));
-      var relativePath2 = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+      var linkName = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
 
       body.Add(new() {
         $"<a href = \"{relativePath}\"" +
-        $"class = \"el_package\">{relativePath2}</a>",
+        $"class = \"el_package\">{linkName}</a>",
         "All modules"
       });
 
