@@ -93,6 +93,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
         Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
@@ -105,6 +106,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     }
 
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Stale) > 1) {
         Assert.Fail("May not become stale after both being queued. ");
