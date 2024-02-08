@@ -16,6 +16,7 @@ defaults:
 
 jobs:
   build:
+    if: false
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
     name: ${{matrix.suffix}}

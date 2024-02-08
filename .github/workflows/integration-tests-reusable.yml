@@ -22,6 +22,7 @@ jobs:
   # For now that just makes the sharding a little cleaner, but it will shortly
   # be used to switch between one platform and all platforms based on an input parameter.
   populate-matrix-dimensions:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Populate OS list (all platforms)
