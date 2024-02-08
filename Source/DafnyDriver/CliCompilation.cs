@@ -236,6 +236,11 @@ public class CliCompilation {
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies) {
+    var symbolFilter = options.Get(VerifyCommand.FilterSymbol);
+    if (symbolFilter != null) {
+      canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+    }
+
     var filterPosition = options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
       return canVerifies;
