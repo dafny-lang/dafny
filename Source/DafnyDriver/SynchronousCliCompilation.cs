@@ -295,6 +295,8 @@ namespace Microsoft.Dafny {
           }
         }
 
+        var postVerificationErrorCount = dafnyProgram.Reporter.ErrorCount;
+
         bool compiled;
         try {
           compiled = await Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
@@ -306,7 +308,15 @@ namespace Microsoft.Dafny {
           compiled = false;
         }
 
-        exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
+        var postCompilationErrorCount = dafnyProgram.Reporter.ErrorCount;
+
+        if (verified && compiled && postCompilationErrorCount == 0) {
+          exitValue = ExitValue.SUCCESS;
+        } else if (postVerificationErrorCount > 0 || !verified) {
+          exitValue = ExitValue.VERIFICATION_ERROR;
+        } else if (postCompilationErrorCount > postVerificationErrorCount || !compiled) {
+          exitValue = ExitValue.COMPILE_ERROR;
+        }
       }
 
       if (err == null && dafnyProgram != null && options.PrintStats) {
