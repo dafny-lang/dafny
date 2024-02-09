@@ -4,23 +4,38 @@ default: exe
 
 all: exe refman
 
-exe:
-	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
+# The Dafny distribution includes some assets that are built using Dafny itself,
+# such as the standard libraries.
+# Therefore we build in multiple phases, first building the core DafnyDriver CLI
+# that doesn't include these assets,
+# then building them using the DafnyDriver CLI,
+# then building the whole solution.
+exe: assets
+	cd ${DIR}
+	dotnet build Source/Dafny.sln
+
+assets:
+	cd ${DIR}
+	dotnet build Source/DafnyDriver/DafnyDriver.csproj ## includes parser
+	make -C Source/DafnyStandardLibraries build-binary
 
 dfyprodformat:
 	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
 
 dfyprodinit: 
-	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh )
+	make assets
 
 dfyprod: dfyprodformat dfyprodinit
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+	(cd "${DIR}" ; make exe ) ## includes parser
 
 dfydevinit:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+	# TODO: skip verification
+	make assets
 
 dfydev: dfydevinit
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+	(cd "${DIR}" ; make exe ) ## includes parser
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
@@ -78,6 +93,7 @@ format:
 clean:
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	(cd ${DIR} ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
+	make -C Source/DafnyStandardLibraries clean
 	make -C ${DIR}/Source/DafnyCore -f Makefile clean
 	(cd ${DIR}/Source/Dafny && rm -rf Scanner.cs Parser.cs obj )
 	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)

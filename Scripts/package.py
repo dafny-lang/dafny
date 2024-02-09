@@ -298,6 +298,9 @@ def main():
         releases = list(filter(lambda release: release.platform == args.platform, releases))
     download_z3(releases)
 
+    flush("* Building Dafny assets (e.g. standard libraries)")
+    run(["make", "--quiet", "assets"])
+
     flush("* Building and packaging Dafny")
     pack(args, releases)
 

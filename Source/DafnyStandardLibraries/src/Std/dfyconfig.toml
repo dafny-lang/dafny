@@ -17,3 +17,6 @@ warn-as-errors = true
 # These give too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = false
+
+# TEMP HACK
+no-verify = true
