@@ -1,0 +1,1 @@
+The new `{:contradiction}` attribute can be placed on an `assert` statement to indicate that it forms part of an intentional proof by contradiction and therefore shouldn't be warned about when `--warn-contradictory-assumptions` is turned on.

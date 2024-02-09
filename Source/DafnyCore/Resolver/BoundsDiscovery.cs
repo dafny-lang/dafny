@@ -775,10 +775,9 @@ namespace Microsoft.Dafny {
       var fvThatSide = FreeVariables(thatSide);
       for (int j = boundVars.Count; bvi + 1 <= --j;) {
         if (fvThatSide.Contains(boundVars[j])) {
-          if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
-            var jBounds = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
+          if (knownBounds[j] is ComprehensionExpr.IntBoundedPool jBounds) {
             Expression u = null;
-            if (op == BinaryExpr.ResolvedOpcode.Lt || op == BinaryExpr.ResolvedOpcode.Le) {
+            if (op is BinaryExpr.ResolvedOpcode.Lt or BinaryExpr.ResolvedOpcode.Le) {
               u = whereIsBv == 0 ? jBounds.UpperBound : jBounds.LowerBound;
             } else if (op == BinaryExpr.ResolvedOpcode.Gt || op == BinaryExpr.ResolvedOpcode.Ge) {
               u = whereIsBv == 0 ? jBounds.LowerBound : jBounds.UpperBound;

@@ -418,8 +418,9 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
     Contract.Requires(tok != null);
-    var lit = new LiteralExpr(tok, b);
-    lit.Type = Type.Bool;  // resolve here
+    var lit = new LiteralExpr(tok, b) {
+      Type = Type.Bool
+    };
     return lit;
   }
 
@@ -429,8 +430,9 @@ public abstract class Expression : TokenNode {
   public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
-    var lit = new StringLiteralExpr(tok, s, true);
-    lit.Type = new SeqType(new CharType());  // resolve here
+    var lit = new StringLiteralExpr(tok, s, true) {
+      Type = new SeqType(new CharType())
+    };
     return lit;
   }
 
@@ -440,8 +442,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression StripParens(Expression expr) {
     while (true) {
-      var e = expr as ParensExpression;
-      if (e == null) {
+      if (expr is not ParensExpression e) {
         return expr;
       }
       expr = e.E;
@@ -493,11 +494,11 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static bool IsIntLiteral(Expression expr, out BigInteger value) {
     Contract.Requires(expr != null);
-    var e = StripParens(expr) as LiteralExpr;
-    if (e != null && e.Value is int x) {
+    var e = StripParensAndCasts(expr) as LiteralExpr;
+    if (e is { Value: int x }) {
       value = new BigInteger(x);
       return true;
-    } else if (e != null && e.Value is BigInteger xx) {
+    } else if (e is { Value: BigInteger xx }) {
       value = xx;
       return true;
     } else {

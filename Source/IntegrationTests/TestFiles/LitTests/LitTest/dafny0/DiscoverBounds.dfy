@@ -38,6 +38,8 @@ method Main()
   print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
   x0, x1, x2, x3, x4, x5 := OtherEq(true, {}, [], map[198 := 200], multiset{}, iset{}, imap[]);
   print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
+
+  EnumerateOverInfiniteCollections();
 }
 
 predicate P(x: int)
@@ -68,4 +70,36 @@ method OtherEq<U,V(==)>(b: bool, s: set<int>, t: seq<real>, u: map<U,V>, v: mult
     w' := var w'' :| w'' == w; w'';
     x' := var x'' :| x'' == x; x'';
   }
+}
+
+predicate LessThanFour(x: int) {
+  x < 4
+}
+
+method EnumerateOverInfiniteCollections() {
+  // ===== iset
+  
+  var s := {3, 3, 3, 5};
+
+  // Once, the following RHS caused "u" to be auto-ghost. (Oddly enough, when using the same RHS as a
+  // separate assignment, the RHS was not considered to be ghost. So, we test both here.)
+  var u := iset x | x in s;
+  u := iset x | x in s;
+
+  // Once, the compilation of the following was rejected, because an iset was not considered enumerable. But it is.
+  var y :| y in u && LessThanFour(y); // an iset is enumerable, so it's compilable
+  print y, "\n"; // 3
+
+  // ===== imap
+  
+  var m := map[3 := true, 5 := false];
+
+  // Once, the following RHS caused "u" to be auto-ghost.  (Oddly enough, when using the same RHS as a
+  // separate assignment, the RHS was not considered to be ghost. So, we test both here.)
+  var w := imap x | x in m :: true;
+  w := imap x | x in m :: true;
+
+  // Once, the compilation of the following was rejected, because an imap was not considered enumerable. But it is.
+  var z :| z in w && LessThanFour(z); // an imap is enumerable, so it's compilable
+  print z, "\n"; // 3
 }

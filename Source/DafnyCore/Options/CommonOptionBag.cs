@@ -3,7 +3,6 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -238,13 +237,14 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
   public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
 (experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
-May slow down verification slightly.
-May produce spurious warnings.") {
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.") {
     IsHidden = true
   };
   public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
 (experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
-May slow down verification slightly.
+May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
@@ -410,6 +410,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       defaultValue: PrintModes.Everything);
 
     DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
+    DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
