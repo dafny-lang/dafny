@@ -230,7 +230,7 @@ true - Print debug information for the new type system.".TrimStart()) {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
 
-  public static readonly Option<bool> SucceedOnWarnings = new("--succeed-on-warnings",
+  public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
     "Succeed compilation when warnings but no errors occur.");
 
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
@@ -462,7 +462,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(SucceedOnWarnings, (options, value) => { options.FailOnWarnings = !value; });
+    DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -538,7 +538,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { SucceedOnWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
               return true;
             }

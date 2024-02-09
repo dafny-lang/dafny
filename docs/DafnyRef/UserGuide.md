@@ -233,7 +233,7 @@ implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--succeed-on-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
+   - `--allow-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
@@ -356,7 +356,7 @@ the `--input` option on the command-line.
 is an argument to the program being run (and not to dafny itself).
 - If the `--` option is used, then anything after that option is a command-line argument to the program being run.
 
-During development, users must use `dafny run --succeed-on-warnings` if they want to run their Dafny code when it contains warnings.
+During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
 
 Here are some examples:
   - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments

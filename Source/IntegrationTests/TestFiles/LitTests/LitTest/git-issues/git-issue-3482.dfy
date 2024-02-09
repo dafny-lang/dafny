@@ -1,4 +1,4 @@
-// RUN: %verify "%s" --succeed-on-warnings > "%t"
+// RUN: %verify "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype X = X
