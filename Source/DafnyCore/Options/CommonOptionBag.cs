@@ -231,7 +231,7 @@ true - Print debug information for the new type system.".TrimStart()) {
   };
 
   public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
-    "Succeed compilation when warnings but no errors occur.");
+    "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
 
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
