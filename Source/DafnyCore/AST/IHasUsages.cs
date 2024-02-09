@@ -24,6 +24,8 @@ public interface ICanVerify : ISymbol {
   /// If true is incorrectly returned, the IDE will allow the user to verify this but it'll pass immediately.
   /// </summary>
   bool ShouldVerify { get; }
+
+  string FullDafnyName { get; }
 }
 
 public static class AstExtensions {

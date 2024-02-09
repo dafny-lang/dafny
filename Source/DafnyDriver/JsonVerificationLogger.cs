@@ -67,17 +67,17 @@ public class JsonVerificationLogger {
     return timeSpan.ToString();
   }
 
-  private static JsonNode SerializeOutcome(ProverInterface.Outcome outcome) {
+  private static JsonNode SerializeOutcome(SolverOutcome outcome) {
     return outcome.ToString();
   }
-  private static JsonNode SerializeOutcome(ConditionGeneration.Outcome outcome) {
+  private static JsonNode SerializeOutcome(VcOutcome outcome) {
     return outcome.ToString();
   }
 
   private JsonNode SerializeVerificationResult(DafnyConsolePrinter.ConsoleLogEntry logEntry) {
     var (impl, verificationResult) = logEntry;
     var trackProofDependencies =
-      verificationResult.Outcome == ConditionGeneration.Outcome.Correct &&
+      verificationResult.Outcome == VcOutcome.Correct &&
       verificationResult.VCResults.Any(vcResult => vcResult.CoveredElements.Any());
     var potentialDependencies =
       trackProofDependencies ? depManager.GetPotentialDependenciesForDefinition(impl.Name) : null;
