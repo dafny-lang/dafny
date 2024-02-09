@@ -1,0 +1,5 @@
+A parent trait that is a reference type can now be named via `import opened`.
+
+Implicit conversions between a datatype and its parent traits no longer crashes the verifier.
+
+(Dis)equality expressions of a (co)datatype and its parent traits no longer crashes the verifier.

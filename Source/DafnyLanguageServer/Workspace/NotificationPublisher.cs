@@ -96,13 +96,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             OrderBy(s => s.NameRange.Start).ToList());
     }
 
-    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeVerificationResult result) {
+    private static NamedVerifiableStatus GetNamedVerifiableStatuses(Range canVerify, IdeCanVerifyState result) {
       const PublishedVerificationStatus nothingToVerifyStatus = PublishedVerificationStatus.Correct;
       var status = result.PreparationProgress switch {
         VerificationPreparationState.NotStarted => PublishedVerificationStatus.Stale,
         VerificationPreparationState.InProgress => PublishedVerificationStatus.Queued,
         VerificationPreparationState.Done =>
-          result.Implementations.Values.Select(v => v.Status).Aggregate(nothingToVerifyStatus, Combine),
+          result.VerificationTasks.Values.Any()
+            ? result.VerificationTasks.Values.Select(v => v.Status).Aggregate(Combine)
+            : nothingToVerifyStatus,
         _ => throw new ArgumentOutOfRangeException()
       };
 
@@ -112,7 +114,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
       var max = new[] { first, second }.Max();
       var min = new[] { first, second }.Min();
-      return max >= PublishedVerificationStatus.Error ? min : max;
+
+      if (max >= PublishedVerificationStatus.Error) {
+        if (min == PublishedVerificationStatus.Queued) {
+          // If one task is completed, we do not allowed queued as a status.
+          return PublishedVerificationStatus.Running;
+        }
+
+        return min;
+      } else {
+        return max;
+      }
     }
 
     private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
