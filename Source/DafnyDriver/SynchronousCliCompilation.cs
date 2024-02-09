@@ -691,6 +691,11 @@ namespace Microsoft.Dafny {
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
+      var postGenerateFailed = !compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      if (postGenerateFailed) {
+        return false;
+      }
+      
       // If we got here, compilation succeeded
       if (!invokeCompiler) {
         return true; // If we're not asked to invoke the target compiler, we can report success
@@ -699,10 +704,6 @@ namespace Microsoft.Dafny {
       // compile the program into an assembly
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
         hasMain && options.RunAfterCompile, outputWriter, out var compilationResult);
-      var postCompileFailed = !compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
-      if (postCompileFailed) {
-        return false;
-      }
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.Verbose) {

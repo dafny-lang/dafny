@@ -23,8 +23,8 @@ public class GoBackend : ExecutableBackend {
     return new GoCompiler(Options, Reporter);
   }
 
-  public override bool OnPostCompile(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
-    return base.OnPostCompile(dafnyProgramName, targetDirectory, outputWriter) && OptimizeImports(targetDirectory, outputWriter);
+  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+    return base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter) && OptimizeImports(targetDirectory, outputWriter);
   }
 
   private bool OptimizeImports(string targetFilename, TextWriter outputWriter) {
