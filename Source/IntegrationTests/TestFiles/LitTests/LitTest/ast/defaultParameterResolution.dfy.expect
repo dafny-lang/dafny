@@ -1,0 +1,5 @@
+defaultParameterResolution.dfy(5,59): Error: a required parameter must precede all optional parameters
+defaultParameterResolution.dfy(8,23): Error: function parameter 'end' at index 2 requires an argument of type nat
+2 resolution/type errors detected in defaultParameterResolution.dfy
+defaultParameterResolution.dfy(8,23): Error: function parameter 'end' at index 2 requires an argument of type nat
+1 resolution/type errors detected in defaultParameterResolution.dfy
