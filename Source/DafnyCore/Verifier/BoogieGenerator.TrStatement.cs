@@ -320,8 +320,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
-        var tru = new LiteralExpr(s.Tok, true);
-        tru.Type = Type.Bool; // resolve here
+        var tru = Expression.CreateBoolLiteral(s.Tok, true);
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);

@@ -3,7 +3,6 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -411,6 +410,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       defaultValue: PrintModes.Everything);
 
     DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
+    DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {

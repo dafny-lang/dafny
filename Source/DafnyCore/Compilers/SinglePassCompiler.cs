@@ -687,22 +687,22 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Emit an upcast or (already verified) downcast assignment like:
-    /// 
+    ///
     ///     var boundVarName:boundVarType := tmpVarName as boundVarType;
     ///     [[bodyWriter]]
-    /// 
+    ///
     /// where
     ///   * "[[bodyWriter]]" is where the writer wr's position will be next
     /// </summary>
     /// <param name="boundVarName">Name of the variable after casting</param>
     /// <param name="boundVarType">Expected variable type</param>
     /// <param name="tmpVarName">The collection's variable name</param>
-    /// <param name="collectionElementType">type this variable is casted from, in case it is useful</param>
+    /// <param name="sourceType"></param>
     /// <param name="introduceBoundVar">Whether or not to declare the variable, in languages requiring declarations</param>
     /// <param name="tok">A position in the AST</param>
     /// <param name="wr">The concrete syntax tree writer</param>
     protected abstract void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr);
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr);
 
     /// <summary>
     /// Emit a simple foreach loop over the elements (which are known as "ingredients") of a collection assembled for
@@ -775,7 +775,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
-    protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
 
     protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -1242,7 +1243,6 @@ namespace Microsoft.Dafny.Compilers {
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
     protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
-    protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 
@@ -3364,7 +3364,7 @@ namespace Microsoft.Dafny.Compilers {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
             Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
-            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, new LiteralExpr(s.Thn.Tok, false));
+            var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, Expression.CreateBoolLiteral(s.Thn.Tok, false));
             var thenWriter = EmitIf(out guardWriter, false, wr);
             EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
             Coverage.Instrument(s.Tok, "implicit else branch", wr);
@@ -3374,9 +3374,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             // let's compile the "then" branch
             wr = EmitIf(out guardWriter, false, wr);
-            EmitExpr(new LiteralExpr(null, true) {
-              Type = Type.Bool
-            }, false, guardWriter, wStmts);
+            EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), false, guardWriter, wStmts);
             Coverage.Instrument(s.Thn.Tok, "then branch", wr);
             TrStmtList(s.Thn.Body, wr);
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -3439,9 +3437,7 @@ namespace Microsoft.Dafny.Compilers {
           // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
           // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
           var wBody = CreateWhileLoop(out var guardWriter, wr);
-          EmitExpr(new LiteralExpr(null, true) {
-            Type = Type.Bool
-          }, false, guardWriter, wStmts);
+          EmitExpr(Expression.CreateBoolLiteral(s.Body.tok, true), false, guardWriter, wStmts);
           EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
@@ -3455,9 +3451,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         if (loopStmt.Alternatives.Count != 0) {
           var w = CreateWhileLoop(out var whileGuardWriter, wr);
-          EmitExpr(new LiteralExpr(null, true) {
-            Type = Type.Bool
-          }, false, whileGuardWriter, wStmts);
+          EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
           w = EmitContinueLabel(loopStmt.Labels, w);
           foreach (var alternative in loopStmt.Alternatives) {
             var thn = EmitIf(out var guardWriter, true, w);
@@ -5122,8 +5116,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
-      var wr = result;
-      EmitExpr(expr, inLetExprBody, wr, wStmts);
+      EmitExpr(expr, inLetExprBody, result, wStmts);
       return result;
     }
 
@@ -5339,7 +5332,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
-          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, false, wr);
+          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, e.Type.AsNativeType(), true, wr);
         }
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
@@ -5387,8 +5380,8 @@ namespace Microsoft.Dafny.Compilers {
             out var coerceE1,
             wr);
 
-          if (truncateResult && e.Type.IsBitVectorType) {
-            wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
+          if (truncateResult && e.Type.AsBitVectorType is { } bitvectorType) {
+            wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;

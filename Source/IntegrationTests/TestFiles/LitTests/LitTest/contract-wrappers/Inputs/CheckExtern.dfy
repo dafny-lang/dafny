@@ -75,3 +75,16 @@ method {:test} BazTest()
   // already ensure that y == 3.
   expect y != 7;
 }
+
+predicate UnusedTypeParameterForFunctionByMethod<A(0)>() {
+  true
+} by method {
+  var a: A := *;
+  var b: A := a;
+  return true;
+}
+
+method {:test} CallFunctionByMethod() {
+  var t := UnusedTypeParameterForFunctionByMethod<real>();
+  expect t;
+}

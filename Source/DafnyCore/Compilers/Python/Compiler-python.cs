@@ -147,7 +147,7 @@ namespace Microsoft.Dafny.Compilers {
         : "";
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
-      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
+      var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor).ToList();
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
@@ -963,7 +963,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
       wr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
     }
 
@@ -1068,7 +1068,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       var vec = wr.ForkInParens();
       wr.Write($" & ((1 << {bvType.Width}) - 1)");
       return vec;
@@ -1087,7 +1088,7 @@ namespace Microsoft.Dafny.Compilers {
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
-        wr = EmitBitvectorTruncation(bv, true, wr);
+        wr = EmitBitvectorTruncation(bv, null, true, wr);
       }
       tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
@@ -1404,7 +1405,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       var functionName = ProtectedFreshId("_lambda");

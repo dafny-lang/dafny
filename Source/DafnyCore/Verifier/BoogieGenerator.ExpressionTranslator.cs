@@ -843,14 +843,14 @@ namespace Microsoft.Dafny {
               int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false); // let TrInMultiSet translate e.E1
+                return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false); // let TrInMultiSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInMultiSet) {
-                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false);  // let TrInMultiSet translate e.E1
+                Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false);  // let TrInMultiSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               }
               Boogie.Expr e1 = TrExpr(e.E1);
@@ -893,17 +893,18 @@ namespace Microsoft.Dafny {
                     e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
                     oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
                   }
-                  var cot = e.E0.Type.AsCoDatatype;
-                  if (cot != null) {
+                  if (e.E0.Type.IsCoDatatype && e.E1.Type.IsCoDatatype) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
                     var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
-                    return BoogieGenerator.CoEqualCall(cot, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
+                    return BoogieGenerator.CoEqualCall(e.E0.Type.AsCoDatatype, e0args, e1args, null,
+                      this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
                   }
-                  if (e.E0.Type.IsIndDatatype) {
+                  if (e.E0.Type.IsIndDatatype && e.E1.Type.IsIndDatatype) {
                     return BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), e.E0.Type, e0, e1);
                   }
                   typ = Boogie.Type.Bool;
-                  bOpcode = BinaryOperator.Opcode.Eq; break;
+                  bOpcode = BinaryOperator.Opcode.Eq;
+                  break;
                 case BinaryExpr.ResolvedOpcode.NeqCommon:
                   if (ModeledAsBoxType(e.E0.Type)) {
                     e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
@@ -912,19 +913,20 @@ namespace Microsoft.Dafny {
                     e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
                     oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
                   }
-                  var cotx = e.E0.Type.AsCoDatatype;
-                  if (cotx != null) {
+                  if (e.E0.Type.IsCoDatatype && e.E1.Type.IsCoDatatype) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
                     var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
-                    var eq = BoogieGenerator.CoEqualCall(cotx, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
+                    var eq = BoogieGenerator.CoEqualCall(e.E0.Type.AsCoDatatype, e0args, e1args, null,
+                      this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, eq);
                   }
-                  if (e.E0.Type.IsIndDatatype) {
+                  if (e.E0.Type.IsIndDatatype && e.E1.Type.IsIndDatatype) {
                     var eq = BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), e.E0.Type, e0, e1);
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, eq);
                   }
                   typ = Boogie.Type.Bool;
-                  bOpcode = BinaryOperator.Opcode.Neq; break;
+                  bOpcode = BinaryOperator.Opcode.Neq;
+                  break;
                 case BinaryExpr.ResolvedOpcode.Lt:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
@@ -1180,10 +1182,10 @@ namespace Microsoft.Dafny {
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend, BoogieGenerator.TrType(binaryExpr.Type.AsSeqType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.InSeq:
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                 case BinaryExpr.ResolvedOpcode.NotInSeq:
                   Boogie.Expr arg = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-                    BoxIfNecessary(GetToken(binaryExpr), e0, cce.NonNull(e.E0.Type)));
+                    BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
                 case BinaryExpr.ResolvedOpcode.InMap: {
                     bool finite = e.E1.Type.AsMapType.Finite;
@@ -2112,15 +2114,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             case BinaryExpr.ResolvedOpcode.EqCommon:
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
                 Boogie.Expr r = Boogie.Expr.True;
-                var dt = e.E0.Type.AsDatatype;
-                if (dt != null) {
-                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt.FullSanitizedName, Boogie.Type.Bool));
-                  if (!(e.E0.Resolved is DatatypeValue)) {
-                    r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
-                  }
-                  if (!(e.E1.Resolved is DatatypeValue)) {
-                    r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
-                  }
+                if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
+                }
+                if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
+                  var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
+                  r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
                 }
                 return BplAnd(r, BplAnd(t0, t1));
               }
