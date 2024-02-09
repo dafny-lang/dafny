@@ -87,8 +87,8 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
-      var limit = options.TestGenOptions.SeqLengthLimit;
-      Parser.Parse($"axiom (forall<T> y: Seq T :: " +
+      var limit = (uint)options.TestGenOptions.SeqLengthLimit;
+      Parser.Parse($"axiom (forall y: Seq :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
       program.AddTopLevelDeclaration(
