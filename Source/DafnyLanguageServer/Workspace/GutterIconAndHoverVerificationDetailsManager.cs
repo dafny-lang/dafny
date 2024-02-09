@@ -2,12 +2,10 @@
 using System.CommandLine;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
-using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -177,11 +175,9 @@ Send notifications about the verification status of each line in the program.
 
     canVerifyNode.ResetNewChildren();
 
-    TopLevelDeclMemberVerificationTree? targetMethodNode;
-    ImplementationVerificationTree newImplementationNode;
     foreach (var implementation in implementations) {
 
-      targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
+      var targetMethodNode = GetTargetMethodTree(tree, implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
         NoMethodNodeAtLogging(tree, "ReportImplementationsBeforeVerification", state, implementation);
         continue;
@@ -189,7 +185,7 @@ Send notifications about the verification status of each line in the program.
 
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                            implementation.Name;
-      newImplementationNode = new ImplementationVerificationTree(
+      var newImplementationNode = new ImplementationVerificationTree(
         newDisplayName,
         implementation.VerboseName,
         implementation.Name,
@@ -249,7 +245,9 @@ Send notifications about the verification status of each line in the program.
   /// <summary>
   /// Called when the verifier finished to visit an implementation
   /// </summary>
-  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation, VerificationResult verificationResult) {
+  public void ReportEndVerifyImplementation(IdeState state, Implementation implementation,
+    int implementationResourceCount,
+    VcOutcome implementationOutcome) {
 
     var uri = ((IToken)implementation.tok).Uri;
     var tree = state.VerificationTrees[uri];
@@ -262,18 +260,18 @@ Send notifications about the verification status of each line in the program.
     } else {
       lock (LockProcessing) {
         implementationNode.Stop();
-        implementationNode.ResourceCount = verificationResult.ResourceCount;
-        targetMethodNode.ResourceCount += verificationResult.ResourceCount;
-        var finalOutcome = verificationResult.Outcome switch {
-          ConditionGeneration.Outcome.Correct => GutterVerificationStatus.Verified,
+        implementationNode.ResourceCount = implementationResourceCount;
+        targetMethodNode.ResourceCount += implementationResourceCount;
+        var finalOutcome = implementationOutcome switch {
+          VcOutcome.Correct => GutterVerificationStatus.Verified,
           _ => GutterVerificationStatus.Error
         };
 
         implementationNode.StatusVerification = finalOutcome;
         // Will be only executed by the last instance.
         if (!targetMethodNode.Children.All(child => child.Finished)) {
-          targetMethodNode.StatusVerification = verificationResult.Outcome switch {
-            ConditionGeneration.Outcome.Correct => targetMethodNode.StatusVerification,
+          targetMethodNode.StatusVerification = implementationOutcome switch {
+            VcOutcome.Correct => targetMethodNode.StatusVerification,
             _ => GutterVerificationStatus.Error
           };
         } else {
@@ -317,16 +315,16 @@ Send notifications about the verification status of each line in the program.
       } else {
         var wasAlreadyProcessed = implementationNode.NewChildren.Any(assertNode =>
           assertNode is AssertionVerificationTree assertionNode
-          && assertionNode.AssertionBatchNum == result.vcNum);
+          && assertionNode.AssertionBatchNum == result.VcNum);
         if (wasAlreadyProcessed) {
           return;
         }
 
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
 
-        var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
-        var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount, result.coveredElements.ToList());
+        var assertionBatchTime = (int)result.RunTime.TotalMilliseconds;
+        var assertionBatchResourceCount = result.ResourceCount;
+        implementationNode.AddAssertionBatchMetrics(result.VcNum, assertionBatchTime, assertionBatchResourceCount, result.CoveredElements.ToList());
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -354,7 +352,7 @@ Send notifications about the verification status of each line in the program.
           ) {
             StatusVerification = status,
             StatusCurrent = CurrentStatus.Current,
-            AssertionBatchNum = result.vcNum,
+            AssertionBatchNum = result.VcNum,
             Started = true,
             Finished = true
           }.WithDuration(implementationNode.StartTime, assertionBatchTime)
@@ -435,15 +433,15 @@ Send notifications about the verification status of each line in the program.
   /// </summary>
   /// <param name="outcome">The outcome set by the split result</param>
   /// <returns>The matching verification status</returns>
-  private static GutterVerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
+  private static GutterVerificationStatus GetNodeStatus(SolverOutcome outcome) {
     return outcome switch {
-      ProverInterface.Outcome.Valid => GutterVerificationStatus.Verified,
-      ProverInterface.Outcome.Invalid => GutterVerificationStatus.Error,
-      ProverInterface.Outcome.Undetermined => GutterVerificationStatus.Inconclusive,
-      ProverInterface.Outcome.TimeOut => GutterVerificationStatus.Error,
-      ProverInterface.Outcome.OutOfMemory => GutterVerificationStatus.Error,
-      ProverInterface.Outcome.OutOfResource => GutterVerificationStatus.Error,
-      ProverInterface.Outcome.Bounded => GutterVerificationStatus.Error,
+      SolverOutcome.Valid => GutterVerificationStatus.Verified,
+      SolverOutcome.Invalid => GutterVerificationStatus.Error,
+      SolverOutcome.Undetermined => GutterVerificationStatus.Inconclusive,
+      SolverOutcome.TimeOut => GutterVerificationStatus.Error,
+      SolverOutcome.OutOfMemory => GutterVerificationStatus.Error,
+      SolverOutcome.OutOfResource => GutterVerificationStatus.Error,
+      SolverOutcome.Bounded => GutterVerificationStatus.Error,
       _ => GutterVerificationStatus.Error
     };
   }

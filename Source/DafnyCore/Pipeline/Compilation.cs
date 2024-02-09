@@ -50,10 +50,10 @@ public class Compilation : IDisposable {
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
   private readonly LazyConcurrentDictionary<ModuleDefinition,
-    Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>>>> translatedModules = new();
+    Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>>>> translatedModules = new();
 
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
-  private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IImplementationTask>> implementationsPerVerifiable = new();
+  private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
 
   private DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
@@ -237,12 +237,12 @@ public class Compilation : IDisposable {
     }
   }
 
-  public static string GetImplementationName(Implementation implementation) {
-    var prefix = implementation.Name.Split(BoogieGenerator.NameSeparator)[0];
+  public static string GetTaskName(IVerificationTask task) {
+    var prefix = task.ScopeId + task.Split.SplitIndex;
 
     // Refining declarations get the token of what they're refining, so to distinguish them we need to
     // add the refining module name to the prefix.
-    if (implementation.tok is RefinementToken refinementToken) {
+    if (task.ScopeToken is RefinementToken refinementToken) {
       prefix += "." + refinementToken.InheritingModule.Name;
     }
 
@@ -276,10 +276,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, _ => true, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, bool onlyPrepareVerificationForGutterTests) {
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+    bool onlyPrepareVerificationForGutterTests = false) {
     var resolution = await Resolution;
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
@@ -293,22 +294,22 @@ public class Compilation : IDisposable {
     updates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
     return true;
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution) {
+    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
       var containingModule = canVerify.ContainingModule;
 
-      IReadOnlyDictionary<FilePosition, IReadOnlyList<IImplementationTask>> tasksForModule;
+      IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>> tasksForModule;
       try {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
@@ -317,9 +318,9 @@ public class Compilation : IDisposable {
             cancellationSource.Token.Register(task.Cancel);
           }
 
-          return result.GroupBy(t => ((IToken)t.Implementation.tok).GetFilePosition()).ToDictionary(
+          return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
-            g => (IReadOnlyList<IImplementationTask>)g.ToList());
+            g => (IReadOnlyList<IVerificationTask>)g.ToList());
         });
       } catch (OperationCanceledException) {
         throw;
@@ -328,26 +329,26 @@ public class Compilation : IDisposable {
         throw;
       }
 
-      // For updated to be reliable, ImplementationsPerVerifiable must be Lazy
+      // For updated to be reliable, tasksPerVerifiable must be Lazy
       var updated = false;
-      var tasks = implementationsPerVerifiable.GetOrAdd(canVerify, () => {
+      var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
-          new List<IImplementationTask>(0);
+          new List<IVerificationTask>(0);
 
         updated = true;
         return result;
       });
       if (updated) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
-          implementationsPerVerifiable[canVerify].ToList()));
+          tasksPerVerifiable[canVerify].ToList()));
       }
 
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
       if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in tasks) {
+        foreach (var task in tasks.Where(taskFilter)) {
           VerifyTask(canVerify, task);
         }
       }
@@ -358,16 +359,10 @@ public class Compilation : IDisposable {
     }
   }
 
-  private void VerifyTask(ICanVerify canVerify, IImplementationTask task) {
+  private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
       if (task.CacheStatus is Completed completedCache) {
-        foreach (var result in completedCache.Result.VCResults) {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-          HandleStatusUpdate(canVerify, task, new BatchCompleted(null /* unused */, result));
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-        }
-
         HandleStatusUpdate(canVerify, task, completedCache);
       }
 
@@ -399,8 +394,8 @@ public class Compilation : IDisposable {
     var resolution = await Resolution;
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
-      var implementations = implementationsPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
-        ? implementationsPerName! : Enumerable.Empty<IImplementationTask>();
+      var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
+        ? implementationsPerName! : Enumerable.Empty<IVerificationTask>();
       foreach (var view in implementations) {
         view.Cancel();
       }
@@ -408,12 +403,12 @@ public class Compilation : IDisposable {
     }
   }
 
-  private void HandleStatusUpdate(ICanVerify canVerify, IImplementationTask implementationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, implementationTask.Implementation.tok).TokenToString(Options);
+  private void HandleStatusUpdate(ICanVerify canVerify, IVerificationTask verificationTask, IVerificationStatus boogieStatus) {
+    var tokenString = BoogieGenerator.ToDafnyToken(true, verificationTask.Split.Token).TokenToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     updates.OnNext(new BoogieUpdate(transformedProgram!.ProofDependencyManager, canVerify,
-      implementationTask,
+      verificationTask,
       boogieStatus));
   }
 
@@ -461,7 +456,7 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, IImplementationTask task, VCResult result) {
+  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, IVerificationTask task, VerificationRunResult result) {
     var errorReporter = new ObservableErrorReporter(options, uri);
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
@@ -471,11 +466,11 @@ public class Compilation : IDisposable {
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, IImplementationTask task, VCResult result,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, IVerificationTask task, VerificationRunResult result,
     ErrorReporter errorReporter) {
-    var outcome = GetOutcome(result.outcome);
-    result.counterExamples.Sort(new CounterexampleComparer());
-    foreach (var counterExample in result.counterExamples) //.OrderBy(d => d.GetLocation()))
+    var outcome = GetOutcome(result.Outcome);
+    result.CounterExamples.Sort(new CounterexampleComparer());
+    foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
     }
@@ -484,28 +479,28 @@ public class Compilation : IDisposable {
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    var implementation = task.Implementation;
+    var implementation = task.Split.Implementation;
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
-      implementation.GetTimeLimit(options), result.counterExamples);
+      implementation.GetTimeLimit(options), result.CounterExamples);
   }
 
-  private static ConditionGeneration.Outcome GetOutcome(ProverInterface.Outcome outcome) {
+  public static VcOutcome GetOutcome(SolverOutcome outcome) {
     switch (outcome) {
-      case ProverInterface.Outcome.Valid:
-        return ConditionGeneration.Outcome.Correct;
-      case ProverInterface.Outcome.Invalid:
-        return ConditionGeneration.Outcome.Errors;
-      case ProverInterface.Outcome.TimeOut:
-        return ConditionGeneration.Outcome.TimedOut;
-      case ProverInterface.Outcome.OutOfMemory:
-        return ConditionGeneration.Outcome.OutOfMemory;
-      case ProverInterface.Outcome.OutOfResource:
-        return ConditionGeneration.Outcome.OutOfResource;
-      case ProverInterface.Outcome.Undetermined:
-        return ConditionGeneration.Outcome.Inconclusive;
-      case ProverInterface.Outcome.Bounded:
-        return ConditionGeneration.Outcome.ReachedBound;
+      case SolverOutcome.Valid:
+        return VcOutcome.Correct;
+      case SolverOutcome.Invalid:
+        return VcOutcome.Errors;
+      case SolverOutcome.TimeOut:
+        return VcOutcome.TimedOut;
+      case SolverOutcome.OutOfMemory:
+        return VcOutcome.OutOfMemory;
+      case SolverOutcome.OutOfResource:
+        return VcOutcome.OutOfResource;
+      case SolverOutcome.Undetermined:
+        return VcOutcome.Inconclusive;
+      case SolverOutcome.Bounded:
+        return VcOutcome.ReachedBound;
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }

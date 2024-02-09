@@ -280,7 +280,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems'
     }
 
-    lemma {:resource_limit 10000000} AboutTryStructural(cs: FreshCursor)
+    lemma {:resource_limit "10e6"} {:vcs_split_on_every_assert} AboutTryStructural(cs: FreshCursor)
       ensures
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
