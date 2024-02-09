@@ -1,33 +1,59 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using DafnyCore.Verifier;
+using Microsoft.Boogie;
 using Microsoft.Dafny.ProofObligationDescription;
 using VC;
 
 namespace Microsoft.Dafny;
 
 public class ProofDependencyWarnings {
+
+
+  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts,
+    ErrorReporter reporter, ProofDependencyManager manager) {
+    foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
+      WarnAboutSuspiciousDependenciesForImplementation(options,
+        reporter,
+        manager,
+        resultsForScope.Key,
+        resultsForScope.Select(p => p.Result.Result).ToList());
+    }
+  }
+
   public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
     var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
     var orderedResults =
       verificationResults.OrderBy(vr =>
         (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));
+
     foreach (var (implementation, result) in orderedResults) {
-      WarnAboutSuspiciousDependenciesForImplementation(dafnyOptions, reporter, depManager, implementation, result);
+      if (result.Outcome != VcOutcome.Correct) {
+        continue;
+      }
+      Warn(dafnyOptions, reporter, depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements));
     }
   }
 
   public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter,
-    ProofDependencyManager depManager, DafnyConsolePrinter.ImplementationLogEntry logEntry,
-    DafnyConsolePrinter.VerificationResultLogEntry result) {
-    if (result.Outcome != ConditionGeneration.Outcome.Correct) {
+    ProofDependencyManager depManager, string name,
+    IReadOnlyList<VerificationRunResult> results) {
+    if (results.Any(r => r.Outcome != SolverOutcome.Valid)) {
       return;
     }
 
-    var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(logEntry.Name);
+    var coveredElements = results.SelectMany(r => r.CoveredElements);
+
+    Warn(dafnyOptions, reporter, depManager, name, coveredElements);
+  }
+
+  private static void Warn(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager,
+    string scopeName, IEnumerable<TrackedNodeComponent> coveredElements) {
+    var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(scopeName);
     var usedDependencies =
-      result
-        .VCResults
-        .SelectMany(vcResult => vcResult.CoveredElements.Select(depManager.GetFullIdDependency))
+      coveredElements
+        .Select(depManager.GetFullIdDependency)
         .OrderBy(dep => dep.Range)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
@@ -39,17 +65,17 @@ public class ProofDependencyWarnings {
     foreach (var unusedDependency in unusedDependencies) {
       if (dafnyOptions.Get(CommonOptionBag.WarnContradictoryAssumptions)) {
         if (unusedDependency is ProofObligationDependency obligation) {
-          if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, obligation)) {
-            var msg = $"proved using contradictory assumptions: {obligation.Description}";
-            var rest = obligation.ProofObligation is AssertStatementDescription
-                     ? ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
-                     : "";
-            reporter.Warning(MessageSource.Verifier, "", obligation.Range, msg + rest);
+          if (ShouldWarnVacuous(dafnyOptions, scopeName, obligation)) {
+            var message = $"proved using contradictory assumptions: {obligation.Description}";
+            if (obligation.ProofObligation is AssertStatementDescription) {
+              message += ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)";
+            }
+            reporter.Warning(MessageSource.Verifier, "", obligation.Range, message);
           }
         }
 
         if (unusedDependency is EnsuresDependency ensures) {
-          if (ShouldWarnVacuous(dafnyOptions, logEntry.Name, ensures)) {
+          if (ShouldWarnVacuous(dafnyOptions, scopeName, ensures)) {
             reporter.Warning(MessageSource.Verifier, "", ensures.Range,
               $"ensures clause proved using contradictory assumptions");
           }

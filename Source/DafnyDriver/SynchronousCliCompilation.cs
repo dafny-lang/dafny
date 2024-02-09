@@ -335,7 +335,7 @@ namespace Microsoft.Dafny {
     private static void PrintCounterexample(DafnyOptions options) {
       var firstCounterexample = (options.Printer as DafnyConsolePrinter).VerificationResults
         .Select(result => result.Result)
-        .Where(result => result.Outcome == ConditionGeneration.Outcome.Errors)
+        .Where(result => result.Outcome == VcOutcome.Errors)
         .Select(result => result.Counterexamples)
         .Where(counterexampleList => counterexampleList != null)
         .Select(counterexampleList => counterexampleList.FirstOrDefault(counterexample => counterexample.Model != null))
