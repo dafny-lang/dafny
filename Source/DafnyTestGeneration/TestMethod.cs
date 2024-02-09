@@ -358,13 +358,13 @@ namespace DafnyTestGeneration {
             return GetClassTypeInstance(userDefinedType, asType, variable);
           }
 
-          if (variable.DatatypeConstructorName == "") {
+          if (variable.DatatypeConstructorName() == "") {
             getDefaultValueParams = new();
             return GetDefaultValue(userDefinedType, asType);
           }
-          var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.DatatypeConstructorName, null);
+          var ctor = DafnyInfo.Datatypes[basicType.Name].Ctors.FirstOrDefault(ctor => ctor.Name == variable.DatatypeConstructorName(), null);
           if (ctor == null) {
-            errorMessages.Add($"// Failed: Cannot find constructor {variable.DatatypeConstructorName} for datatype {basicType}");
+            errorMessages.Add($"// Failed: Cannot find constructor {variable.DatatypeConstructorName()} for datatype {basicType}");
             return basicType.ToString();
           }
           List<string> fields = new();
@@ -377,7 +377,7 @@ namespace DafnyTestGeneration {
             if (!variable.Fields().ContainsKey(fieldName)) {
               errorMessages.Add($"// Failed: Cannot find destructor " +
                                 $"{ctor.Destructors[i].Name} of constructor " +
-                                $"{variable.DatatypeConstructorName} for datatype " +
+                                $"{variable.DatatypeConstructorName()} for datatype " +
                                 $"{basicType}. Available destructors are: " +
                                 string.Join(",", variable.Fields().Keys.ToList()));
               return basicType.ToString();
@@ -396,9 +396,9 @@ namespace DafnyTestGeneration {
 
           var value = basicType.ToString();
           if (fields.Count == 0) {
-            value += "." + variable.DatatypeConstructorName;
+            value += "." + variable.DatatypeConstructorName();
           } else {
-            value += "." + variable.DatatypeConstructorName + "(" +
+            value += "." + variable.DatatypeConstructorName() + "(" +
                      string.Join(",", fields) + ")";
           }
           return AddValue(asType ?? userDefinedType, value);

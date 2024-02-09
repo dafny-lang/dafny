@@ -338,9 +338,9 @@ namespace Microsoft.Dafny {
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      if (model.loopGuards.Count > 0) {
+      if (model.LoopGuards.Count > 0) {
         options.OutputWriter.WriteLine("Temporary variables to describe counterexamples: ");
-        foreach (var loopGuard in model.loopGuards) {
+        foreach (var loopGuard in model.LoopGuards) {
           options.OutputWriter.WriteLine($"ghost var {loopGuard} : bool := false;");
         }
       }

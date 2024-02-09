@@ -115,8 +115,7 @@ public class PartialState {
     }
 
     var constraintsAsExpressions = constraints
-      .Select(constraint => constraint.AsExpression(allVariableNames, true))
-      .Where(constraint => constraint != null).ToList();
+      .Select(constraint => constraint.AsExpression(allVariableNames, true)).ToList();
 
     Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
@@ -164,7 +163,7 @@ public class PartialState {
       }
     }
     foreach (var v in names) {
-      if (!DafnyModel.IsUserVariableName(v) || notDefinitelyAssigned.Contains(v)) {
+      if (!IsUserVariableName(v) || notDefinitelyAssigned.Contains(v)) {
         continue;
       }
       var val = State.TryGet(v);
@@ -174,13 +173,20 @@ public class PartialState {
 
       var value = PartialValue.Get(val, this);
       initialPartialValues.Add(value);
-      value.AddName(new IdentifierExpr(Token.NoToken, v.Split("#").First()));
+      value.AddConstraint(new IdentifierExprConstraint(value, v.Split("#").First()));
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new List<string>();
       }
       knownVariableNames[value].Add(v.Split("#").First());
     }
   }
+  
+  /// <summary>
+  /// Return True iff the variable name is referring to a variable that has
+  /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)
+  /// </summary>
+  private static bool IsUserVariableName(string name) =>
+    !name.Contains("$") && name.Count(c => c == '#') <= 1;
 
   /// <summary>
   /// Instantiate BoundVariables
@@ -201,7 +207,7 @@ public class PartialState {
 
       var value = PartialValue.Get(f.GetConstant(), this);
       initialPartialValues.Add(value);
-      value.AddName(new IdentifierExpr(Token.NoToken, name));
+      value.AddConstraint(new IdentifierExprConstraint(value, name));
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new();
       }

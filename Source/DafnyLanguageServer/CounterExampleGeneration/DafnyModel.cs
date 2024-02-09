@@ -1,4 +1,4 @@
-﻿// Copyright by the contributors to the Dafny Project
+// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
 #nullable disable
@@ -243,13 +243,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     /// <summary>
-    /// Return True iff the variable name is referring to a variable that has
-    /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)
-    /// </summary>
-    public static bool IsUserVariableName(string name) =>
-      !name.Contains("$") && name.Count(c => c == '#') <= 1;
-
-    /// <summary>
     /// Return the name of a 0-arity type function that maps to the element if such
     /// a function exists and is unique. Return null otherwise.
     /// If the name is also aliased by a type parameter, return the name of the concrete type. 
@@ -283,7 +276,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var typeElement in GetIsResults(partialValue.Element)) {
         var reconstructedType = DafnyModelTypeUtils.GetInDafnyFormat(ReconstructType(typeElement));
         if (reconstructedType.ToString() != partialValue.Type.ToString()) {
-          partialValue.AddConstraint(new TypeTestExpr(Token.NoToken, partialValue.ElementIdentifier, reconstructedType), new List<PartialValue> { partialValue });
+          partialValue.AddConstraint(new TypeTestConstraint(partialValue, reconstructedType));
         }
       }
     }
@@ -402,7 +395,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public IEnumerable<PartialValue> GetExpansion(PartialState state, PartialValue value) {
       var literalExpr = GetLiteralExpression(value.Element, value.Type);
       if (literalExpr != null) {
-        value.AddDefinition(literalExpr, new(), new());
+        value.AddConstraint(new LiteralExprConstraint(value, literalExpr));
         yield break;
       }
 
@@ -411,11 +404,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           var elementType = GetFormattedDafnyType(element);
           if (elementType.ToString() == value.Type.ToString()) {
             var partialValue = PartialValue.Get(element, state);
-            value.AddConstraint(new BinaryExpr(
-              Token.NoToken,
-              BinaryExpr.Opcode.Neq,
-              value.ElementIdentifier,
-              partialValue.ElementIdentifier), new List<PartialValue>() { partialValue });
+            value.AddConstraint(new NeqConstraint(value, partialValue));
             yield return partialValue;
           }
         }
@@ -423,9 +412,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
 
       if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
-        value.AddConstraint(
-          new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fnTuple.Func.Name.Split(".").Last() + "?"),
-          new());
+        value.AddConstraint(new DatatypeConstructorCheckConstraint(value, fnTuple.Func.Name.Split(".").Last() + "?"));
         // Elt is a datatype value
         var destructors = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
         if (destructors.Count > fnTuple.Args.Length) {
@@ -441,8 +428,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           foreach (var func in destructors) {
             var element = PartialValue.Get(Unbox(func.OptEval(value.Element)), state);
             var elementName = UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_");
-            element.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, elementName),
-              new() { value }, new());
+            element.AddConstraint(new MemberSelectExprDatatypeConstraint(element, value, elementName));
             yield return element;
           }
         } else {
@@ -454,11 +440,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             yield return element;
           }
 
-          var datatypeValue = new DatatypeValue(Token.NoToken, value.Type.ToString(),
-            fnTuple.Func.Name.Split(".").Last(),
-            elements.ConvertAll(element => element.ElementIdentifier).OfType<Expression>().ToList());
-          datatypeValue.Type = value.Type;
-          value.AddDefinition(datatypeValue, elements, new());
+          value.AddConstraint(new DatatypeValueConstraint(value, value.Type.ToString(),
+            fnTuple.Func.Name.Split(".").Last(), elements));
         }
 
         yield break;
@@ -471,8 +454,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             if (lenghtTuple != null) {
               var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
               BigNum.TryParse(GetLiteralExpression(lengthValue.Element, lengthValue.Type).ToString(), out seqLength);
-              lengthValue.AddDefinition(
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), new() { value }, new());
+              lengthValue.AddConstraint(new CardinalityConstraint(lengthValue, value));
               yield return lengthValue;
             }
 
@@ -488,15 +470,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             for (int i = 0; i < elements.Count; i++) {
               var index = new LiteralExpr(Token.NoToken, i);
               index.Type = Type.Int;
-              var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), index), new() { value });
-              elements[i].AddDefinition(new SeqSelectExpr(
-                  Token.NoToken,
-                  true,
-                  value.ElementIdentifier,
-                  index,
-                  null,
-                  Token.NoToken),
-                new() { value, elements[i] }, new List<Constraint>() { lengthConstraint });
+              elements[i].AddConstraint(new SeqSelectExprWithLiteralConstraint(elements[i], value, index));
               yield return elements[i];
             }
 
@@ -512,23 +486,13 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                     continue; // element out of bounds for sequence
                   }
                 }
-                var lengthConstraint = value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier), elementId.ElementIdentifier), new() { value, elementId });
                 var element = PartialValue.Get(Unbox(funcTuple.Result), state);
-                element.AddDefinition(new SeqSelectExpr(
-                    Token.NoToken,
-                    true,
-                    value.ElementIdentifier,
-                    elementId.ElementIdentifier,
-                    null,
-                    Token.NoToken),
-                  new() { value, elementId, element }, new List<Constraint>() { lengthConstraint });
+                element.AddConstraint(new SeqSelectExprConstraint(element, value, elementId));
                 yield return element;
                 yield return elementId;
               }
             } else {
-              value.AddDefinition(
-                new SeqDisplayExpr(Token.NoToken,
-                  elements.ConvertAll(element => element.ElementIdentifier as Expression)), elements, new());
+              value.AddConstraint(new SeqDisplayConstraint(value, elements));
             }
 
             yield break;
@@ -537,7 +501,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             if (fMapDomain.AppsWithResult(value.Element).Any()) {
               foreach (var map in fMapDomain.AppsWithResult(value.Element)) {
                 var mapValue = PartialValue.Get(map.Args[0], state);
-                value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Keys"), new List<PartialValue> { mapValue }, new List<Constraint>());
+                value.AddConstraint(new MemberSelectExprDatatypeConstraint(value, mapValue, "Keys"));
                 yield return mapValue;
               }
               yield break;
@@ -545,17 +509,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             if (fMapValues.AppsWithResult(value.Element).Any()) {
               foreach (var map in fMapValues.AppsWithResult(value.Element)) {
                 var mapValue = PartialValue.Get(map.Args[0], state);
-                value.AddDefinition(new MemberSelectExpr(Token.NoToken, mapValue.ElementIdentifier, "Values"), new List<PartialValue> { mapValue }, new List<Constraint>());
+                value.AddConstraint(new MemberSelectExprDatatypeConstraint(value, mapValue, "Values"));
                 yield return mapValue;
               }
             }
             if (fSetEmpty.AppWithResult(value.Element) != null) {
-              var zero = new LiteralExpr(Token.NoToken, 0);
-              zero.Type = Type.Int;
-              var cardinalityExpr =
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
-              cardinalityExpr.Type = Type.Int;
-              value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
+              value.AddConstraint(new EmptyConstraint(value));
               yield break;
             }
 
@@ -565,11 +524,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               if (containment.Kind != Model.ElementKind.Boolean) {
                 continue;
               }
-
-              var opcode = (containment as Model.Boolean).Value ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn;
-              var constraint = new BinaryExpr(Token.NoToken, opcode, setElement.ElementIdentifier,
-                value.ElementIdentifier);
-              value.AddConstraint(constraint, new() { value, setElement });
+              value.AddConstraint(new ContainmentConstraint(setElement, value, (containment as Model.Boolean).Value));
               yield return setElement;
             }
 
@@ -626,12 +581,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             }
 
             if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
-              var zero = new LiteralExpr(Token.NoToken, 0);
-              zero.Type = Type.Int;
-              var cardinalityExpr =
-                new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, value.ElementIdentifier);
-              cardinalityExpr.Type = Type.Int;
-              value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, cardinalityExpr, zero), new() { value });
+              value.AddConstraint(new EmptyConstraint(value));
             }
 
             yield break;
@@ -647,18 +597,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var constantFields = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
             var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
 
-            var notNullConstraints = new List<Constraint>();
-            if ((fields.Any() || constantFields.Any()) && value.Nullable) {
-              var nullValue = new LiteralExpr(Token.NoToken);
-              nullValue.Type = new InferredTypeProxy();
-              notNullConstraints.Add(value.AddConstraint(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, value.ElementIdentifier, nullValue), new List<PartialValue> { value }));
-            }
-
             foreach (var fieldFunc in constantFields) {
               var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
               var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
-              field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-                new() { value }, notNullConstraints);
+              field.AddConstraint(new MemberSelectExprClassConstraint(field, value, fieldName));
               yield return field;
             }
 
@@ -672,12 +614,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                   var field = PartialValue.Get(Unbox(tpl.Result), state);
                   // TODO: WellFormedNess of arrays!
                   if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
-                    field.AddDefinition(
-                      new SeqSelectExpr(Token.NoToken, true, value.ElementIdentifier,
-                        new NameSegment(Token.NoToken, fieldName[1..^1], null), null, Token.NoToken), new() { value }, notNullConstraints);
+                    field.AddConstraint(new SeqSelectExprArrayConstraint(field, value, fieldName[1..^1]));
                   } else {
-                    field.AddDefinition(new MemberSelectExpr(Token.NoToken, value.ElementIdentifier, fieldName),
-                      new() { value }, notNullConstraints);
+                    field.AddConstraint(new MemberSelectExprClassConstraint(field, value, fieldName));
                   }
 
                   yield return field;
@@ -839,19 +778,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
       var key = PartialValue.Get(keyElement, state);
       var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
-      var constraint = new BinaryExpr(Token.NoToken, opcode, key.ElementIdentifier, mapVariable.ElementIdentifier);
-      var containsConstraints = new List<Constraint>();
-      containsConstraints.Add(mapVariable.AddConstraint(constraint, new() { key }));
+      mapVariable.AddConstraint(new ContainmentConstraint(key, mapVariable, opcode == BinaryExpr.Opcode.In));
       if (valueElement != null) {
         var value = PartialValue.Get(valueElement, state);
-        var seqSelectExpression = new SeqSelectExpr(
-          Token.NoToken,
-          true,
-          mapVariable.ElementIdentifier,
-          key.ElementIdentifier,
-          null,
-          Token.NoToken);
-        value.AddDefinition(seqSelectExpression, new() { mapVariable, key }, containsConstraints);
+        value.AddConstraint(new MapSelectExprConstraint(value, mapVariable, key));
         yield return value;
       }
       keySet.Add(keyElement);
