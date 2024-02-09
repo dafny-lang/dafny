@@ -1037,14 +1037,14 @@ public partial class BoogieGenerator {
         // Box and its [Unbox]args
         var fe = BplBoundVar(fm_name, predef.BoxType, bvars);
         lhs_args.Add(fe);
-        var be = UnboxIfBoxed(fe, fm.Type);
+        var be = UnboxUnlessInherentlyBoxed(fe, fm.Type);
         rhs_args.Add(be);
 
         rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
         // args and its [Box]args
         var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
         func_args.Add(arg);
-        var boxed = BoxIfUnboxed(arg, fm.Type);
+        var boxed = BoxIfNotNormallyBoxed(arg.tok, arg, fm.Type);
         boxed_func_args.Add(boxed);
       }
 
@@ -1061,7 +1061,7 @@ public partial class BoogieGenerator {
           Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
         var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
         var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
-        var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
+        var rhs_boxed = BoxIfNotNormallyBoxed(rhs.tok, rhs, f.ResultType);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
           BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
@@ -1135,7 +1135,7 @@ public partial class BoogieGenerator {
         var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
         var lhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), func_args));
         var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, boxed_func_args))));
-        var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
+        var rhs_unboxed = UnboxUnlessInherentlyBoxed(rhs, f.ResultType);
         var tr = BplTriggerHeap(this, f.tok, lhs, f.ReadsHeap ? null : h);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
@@ -1153,7 +1153,7 @@ public partial class BoogieGenerator {
   ///        heaps are well-formed and [formals are allocated AND]
   ///        IsHeapAnchor(h0) AND HeapSucc(h0,h1)
   ///        AND
-  ///        (forall(alpha) o: ref, f: Field alpha ::
+  ///        (forall o: ref, f: Field ::
   ///            o != null [AND h0[o,alloc] AND]  // note that HeapSucc(h0,h1) && h0[o,alloc] ==> h1[o,alloc]
   ///            o in reads clause of formals in h0
   ///            IMPLIES h0[o,f] == h1[o,f])
@@ -1196,17 +1196,16 @@ public partial class BoogieGenerator {
       FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
       FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
 
-    Bpl.TypeVariable alpha = new Bpl.TypeVariable(f.tok, "alpha");
     Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
-    Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, alpha), out field);
+    Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok), out field);
     Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
     Bpl.Expr oNotNullAlloced = oNotNull;
-    Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field, alpha), ReadHeap(f.tok, h1, o, field, alpha));
+    Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
 
     Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
     Bpl.Expr heapSucc = HeapSucc(h0, h1);
     Bpl.Expr r0 = InRWClause(f.tok, o, field, f.Reads.Expressions, etran0, null, null);
-    Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fieldVar },
+    Bpl.Expr q0 = new Bpl.ForallExpr(f.tok, new List<TypeVariable> { }, new List<Variable> { oVar, fieldVar },
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
     List<Bpl.Expr> tyexprs;

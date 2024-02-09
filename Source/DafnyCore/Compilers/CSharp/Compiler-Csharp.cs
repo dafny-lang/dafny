@@ -2066,7 +2066,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      Type sourceType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
       var typeName = TypeName(boundVarType, wr, tok);
       wr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
     }
@@ -2205,8 +2205,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
-      } else if (AsNativeType(e.Type) != null) {
-        GetNativeInfo(AsNativeType(e.Type).Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+      } else if (AsNativeType(e.Type) is { } nativeType) {
+        GetNativeInfo(nativeType.Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
         if (needsCastAfterArithmetic) {
           wr = wr.Write($"({nativeName})").ForkInParens();
         }
@@ -2255,14 +2255,15 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{(isVerbatim ? "@" : "")}\"{Util.ExpandUnicodeEscapes(str, false)}\"");
     }
 
-    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
+      bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string nativeName = null, literalSuffix = null;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out var needsCastAfterArithmetic);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out _);
       }
 
       // --- Before
-      if (bvType.NativeType != null) {
+      if (nativeType != null) {
         if (surroundByUnchecked) {
           // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
           // shouldn't ever be any problem with this, but stylistically it would have been nice to have
@@ -2276,13 +2277,11 @@ namespace Microsoft.Dafny.Compilers {
       var middle = wr.ForkInParens();
       // --- After
       // do the truncation, if needed
-      if (bvType.NativeType == null) {
+      if (nativeType == null) {
         wr.Write(" & ((new BigInteger(1) << {0}) - 1)", bvType.Width);
-      } else {
-        if (bvType.NativeType.Bitwidth != bvType.Width) {
-          // print in hex, because that looks nice
-          wr.Write(" & ({2})0x{0:X}{1}", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
-        }
+      } else if (bvType.Width < nativeType.Bitwidth) {
+        // print in hex, because that looks nice
+        wr.Write(" & ({2})0x{0:X}{1}", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
       }
 
       return middle;
@@ -2290,11 +2289,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
+      string nativeName = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
       }
 
       // ( e0 op1 e1) | (e0 op2 (width - e1))
@@ -2308,11 +2307,11 @@ namespace Microsoft.Dafny.Compilers {
       EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr.ForkInParens(), inLetExprBody, wStmts, tr);
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+    private void EmitShift(Expression e0, Expression e1, string op, bool truncate, [CanBeNull] NativeType nativeType, bool firstOp,
         ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
-        wr = EmitBitvectorTruncation(bv, true, wr);
+        wr = EmitBitvectorTruncation(bv, nativeType, true, wr);
       }
       tr(e0, wr, inLetExprBody, wStmts);
       wr.Write(" {0} ", op);

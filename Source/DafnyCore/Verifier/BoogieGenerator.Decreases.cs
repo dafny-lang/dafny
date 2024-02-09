@@ -287,8 +287,8 @@ public partial class BoogieGenerator {
         b1 = e1;
       } else {
         // for maps, compare their domains as sets
-        b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e0);
-        b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e1);
+        b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e0);
+        b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
       less = ProperSubset(tok, b0, b1);
@@ -303,8 +303,8 @@ public partial class BoogieGenerator {
       } else {
         Contract.Assert(!((MapType)ty0).Finite);
         // for maps, compare their domains as sets
-        b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e0);
-        b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e1);
+        b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType, e0);
+        b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType, e1);
       }
       eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
       less = Bpl.Expr.False;
