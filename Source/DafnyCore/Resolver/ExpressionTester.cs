@@ -386,7 +386,7 @@ public class ExpressionTester {
     // A<X> value is a B<Y> value by checking if the value is of type B<...>.
     var B = udtTo.ResolvedClass; // important that this includes any constraints of tte.ToType, so no type parameters are lost
     var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
-    var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
+    var tps = new HashSet<TypeParameter>(); // These are going to be the type parameters of fromType (that is, T in the discussion above)
     if (fromType.TypeArgs.Count != 0) {
       // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
       var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
@@ -405,8 +405,6 @@ public class ExpressionTester {
     foreach (var tp in B.TypeArgs) {
       if (!tps.Contains(tp)) {
         // type test cannot be performed at run time, so this is a ghost operation
-        // TODO: If "tp" is a type parameter for which there is a run-time type descriptor, then we would still be able to perform
-        // the type test at run time.
         return false;
       }
     }
