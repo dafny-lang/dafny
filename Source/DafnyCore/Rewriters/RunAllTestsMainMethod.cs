@@ -150,6 +150,12 @@ public class RunAllTestsMainMethod : IRewriter {
             continue;
           }
 
+          if (method.TypeArgs.Count != 0) {
+            ReportError(ErrorId.rw_test_methods_may_not_have_type_parameters, method.tok,
+              "Methods with the :test attribute may not have type parameters");
+            continue;
+          }
+
           Expression resultVarExpr = null;
           var lhss = new List<Expression>();
 

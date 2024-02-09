@@ -18,8 +18,10 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly SystemModuleManager systemModuleManager;
 
-  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
+  public ExpectContracts(ErrorReporter reporter, SystemModuleManager systemModuleManager) : base(reporter) {
+    this.systemModuleManager = systemModuleManager;
   }
 
   /// <summary>
@@ -112,12 +114,8 @@ public class ExpectContracts : IRewriter {
 
     var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
     var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
-    var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
-      Function = origFunc,
-      TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      Type = newFunc.ResultType,
-    };
+    var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
+      newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
 
     newFunc.Body = callExpr;
 
@@ -185,7 +183,7 @@ public class ExpectContracts : IRewriter {
   }
 
 
-  private static void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
+  private void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
 
     var tok = f.ByMethodTok;
     var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
@@ -195,8 +193,8 @@ public class ExpectContracts : IRewriter {
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
     var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
     var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-    var fn = new FunctionCallExpr(tok, f.Name, receiver, null, null,
-      f.Formals.ConvertAll(Expression.CreateIdentExpr));
+    var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Formals.ConvertAll(Expression.CreateIdentExpr),
+      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
