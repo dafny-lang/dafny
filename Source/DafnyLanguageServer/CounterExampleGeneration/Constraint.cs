@@ -14,7 +14,10 @@ public abstract class Constraint {
     }
   }
 
-  public Expression AsExpression(Dictionary<PartialValue, Expression> definitions, bool wrapDefinitions) {
+  public Expression? AsExpression(Dictionary<PartialValue, Expression> definitions, bool wrapDefinitions) {
+    if (referencedValues.Any(value => !definitions.ContainsKey(value))) {
+      return null;
+    }
     var expression = AsExpression(definitions);
     if (this is not DefinitionConstraint definitionConstraint) {
       expression.Type = Type.Bool;
@@ -23,6 +26,10 @@ public abstract class Constraint {
     expression.Type = definitionConstraint.DefinedValue.Type;
     if (!wrapDefinitions) {
       return expression;
+    }
+
+    if (!definitions.ContainsKey(definitionConstraint.DefinedValue)) {
+      return null;
     }
     return definitionConstraint.WrapDefinition(definitions, expression);
   }

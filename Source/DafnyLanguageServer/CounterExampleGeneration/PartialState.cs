@@ -116,6 +116,9 @@ public class PartialState {
     var constraintsAsStrings = new HashSet<String>();
     foreach (var constraint in constraints) {
       var constraintAsExpression = constraint.AsExpression(allVariableNames, true);
+      if (constraintAsExpression == null) {
+        continue;
+      }
       var constraintAsString = constraintAsExpression.ToString();
       if (constraintsAsStrings.Contains(constraintAsString)) {
         continue;
