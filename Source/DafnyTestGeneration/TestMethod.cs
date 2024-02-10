@@ -149,12 +149,13 @@ namespace DafnyTestGeneration {
     private List<string> ExtractInputs(PartialState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(-1);
-      var constraints = new List<Constraint>();
+      var constraintSet = new List<Constraint>();
       foreach (var variable in vars) {
         foreach (var constraint in variable.Constraints) {
-          constraints.Add(constraint);
+          constraintSet.Add(constraint);
         }
       }
+      var constraints = constraintSet.ToList();
       Constraint.FindDefinitions(constraintContext, constraints, false);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
       for (var i = 0; i < printOutput.Count; i++) {
@@ -279,13 +280,13 @@ namespace DafnyTestGeneration {
           return GetPrimitiveAsType(variable.PrimitiveLiteral, asType);
         case SeqType seqType:
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
-          if (variable?.Cardinality(constraintContext) == -1) {
+          if (variable?.Cardinality() == -1) {
             if (seqType.Arg is CharType) {
               return "\"\"";
             }
             return AddValue(asType ?? variableType, "[]");
           }
-          for (var i = 0; i < variable?.Cardinality(constraintContext); i++) {
+          for (var i = 0; i < variable?.Cardinality(); i++) {
             var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();
@@ -325,7 +326,7 @@ namespace DafnyTestGeneration {
         case MapType:
           var asBasicMapType = GetBasicType(asType, type => type is MapType) as MapType;
           List<string> mappingStrings = new();
-          foreach (var mapping in variable?.Mappings ?? new()) {
+          foreach (var mapping in variable?.Mappings()) {
             var asTypeTypeArgs =
               asBasicMapType?.TypeArgs?.Count == 2 ? asBasicMapType.TypeArgs : null;
             mappingStrings.Add($"{ExtractVariable(mapping.Key, asTypeTypeArgs?[0])} := {ExtractVariable(mapping.Value, asTypeTypeArgs?[1])}");

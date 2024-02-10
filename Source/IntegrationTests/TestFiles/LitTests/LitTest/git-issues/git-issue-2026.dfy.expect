@@ -6,14 +6,14 @@ Counterexample for first failing assertion:
 Temporary variables to describe counterexamples: 
 ghost var loopGuard0 : bool := false;
 git-issue-2026.dfy(12,0): initial state:
-assume n is int && ret is array<seq<char>> && ret is array?<seq<char>> && ret != null && n == 2;
+assume 2 == n;
 git-issue-2026.dfy(13,24):
-assume n is int && ret is array?<seq<char>> && ret != null && 3 is int && 'o' is char && 'd' is char && ret[(- 7720)] is seq<char> && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && n == 2 && n == ret.Length && ret[(- 7720)] == ret[0] && ret[(- 7720)] == ['o', 'd', 'd'] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2];
+assume ret != null && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && 2 == n && 2 == ret.Length && ret[(- 7720)] == ret[0] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2] && ret[(- 7720)] == ['o', 'd', 'd'];
 git-issue-2026.dfy(15,14):
-assume n is int && ret is array?<seq<char>> && ret != null && i is int && 3 is int && 'o' is char && 'd' is char && ret[(- 7720)] is seq<char> && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && n == 2 && n == ret.Length && i == 0 && ret[(- 7720)] == ret[0] && ret[(- 7720)] == ['o', 'd', 'd'] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2];
+assume ret != null && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && 2 == n && 2 == ret.Length && ret[(- 7720)] == ret[0] && 0 == i && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2] && ret[(- 7720)] == ['o', 'd', 'd'];
 git-issue-2026.dfy(16,4): after some loop iterations:
-loopGuard0 := n is int && ret is array?<seq<char>> && ret != null && i is int && 3 is int && 'o' is char && 'd' is char && ret[(- 7720)] is seq<char> && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && n == 2 && n == ret.Length && i == 0 && ret[(- 7720)] == ['o', 'd', 'd'] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2];
+loopGuard0 := ret != null && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && 2 == n && 2 == ret.Length && 0 == i && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2] && ret[(- 7720)] == ['o', 'd', 'd'];
 git-issue-2026.dfy(22,27):
-assume loopGuard0 ==> n is int && ret is array?<seq<char>> && ret != null && i is int && 3 is int && 'o' is char && 'd' is char && ret[(- 7720)] is seq<char> && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && n == 2 && n == ret.Length && i == 0 && ret[(- 7720)] == ret[0] && ret[(- 7720)] == ['o', 'd', 'd'] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2];
+assume loopGuard0 ==> ret != null && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && 2 == n && 2 == ret.Length && ret[(- 7720)] == ret[0] && 0 == i && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2] && ret[(- 7720)] == ['o', 'd', 'd'];
 git-issue-2026.dfy(26,18):
-assume loopGuard0 ==> n is int && ret is array?<seq<char>> && ret != null && i is int && 3 is int && 'o' is char && 'd' is char && ret[(- 7720)] is seq<char> && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && n == 2 && n == ret.Length && i == 1 && ret[(- 7720)] == ret[0] && ret[(- 7720)] == ['o', 'd', 'd'] && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2];
+assume loopGuard0 ==> ret != null && |ret[(- 7720)]| > 0 && |ret[(- 7720)]| > 1 && |ret[(- 7720)]| > 2 && 2 == n && 2 == ret.Length && ret[(- 7720)] == ret[0] && 1 == i && 3 == |ret[(- 7720)]| && 'o' == ret[(- 7720)][0] && 'd' == ret[(- 7720)][1] && 'd' == ret[(- 7720)][2] && ret[(- 7720)] == ['o', 'd', 'd'];

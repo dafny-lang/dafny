@@ -92,17 +92,15 @@ public class PartialState {
 
   public Statement AsAssumption() {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
-    foreach (var partialValue in knownVariableNames.Keys) {
-      allVariableNames[partialValue] = new IdentifierExpr(Token.NoToken, knownVariableNames[partialValue].First());
-      allVariableNames[partialValue].Type = partialValue.Type;
-    }
     var variables = ExpandedVariableSet(-1).ToArray();
-    var constraints = new List<Constraint>();
+    var constraintSet = new HashSet<Constraint>();
     foreach (var variable in variables) {
       foreach (var constraint in variable.Constraints) {
-        constraints.Add(constraint);
+        constraintSet.Add(constraint);
       }
     }
+
+    var constraints = constraintSet.Where(constraint => constraint is not TypeTestConstraint).ToList();
     Constraint.FindDefinitions(allVariableNames, constraints, true);
 
     var boundVars = new List<BoundVar>();
@@ -114,12 +112,22 @@ public class PartialState {
       }
     }
 
-    var constraintsAsExpressions = constraints
-      .Select(constraint => constraint.AsExpression(allVariableNames, true)).ToList();
+    var constraintsAsExpressions = new List<Expression>();
+    var constraintsAsStrings = new HashSet<String>();
+    foreach (var constraint in constraints) {
+      var constraintAsExpression = constraint.AsExpression(allVariableNames, true);
+      var constraintAsString = constraintAsExpression.ToString();
+      if (constraintsAsStrings.Contains(constraintAsString)) {
+        continue;
+      }
 
+      constraintsAsStrings.Add(constraintAsString);
+      constraintsAsExpressions.Add(constraintAsExpression);
+    }
+    
     Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
-    if (constraintsAsExpressions.Count > 1 && boundVars.Count > 0) {
+    if (constraintsAsExpressions.Count > 0 && boundVars.Count > 0) {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
     }
 
@@ -173,7 +181,7 @@ public class PartialState {
 
       var value = PartialValue.Get(val, this);
       initialPartialValues.Add(value);
-      value.AddConstraint(new IdentifierExprConstraint(value, v.Split("#").First()));
+      new IdentifierExprConstraint(value, v.Split("#").First());
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new List<string>();
       }
@@ -207,7 +215,7 @@ public class PartialState {
 
       var value = PartialValue.Get(f.GetConstant(), this);
       initialPartialValues.Add(value);
-      value.AddConstraint(new IdentifierExprConstraint(value, name));
+      new IdentifierExprConstraint(value, name);
       if (!knownVariableNames.ContainsKey(value)) {
         knownVariableNames[value] = new();
       }
