@@ -627,7 +627,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args[1]))) { return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1]))); }
       seqOperation = fSeqCreate.AppWithResult(element);
       if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
-      // if (fSeqEmpty.AppWithResult(element) != null) { return new SeqType(null); }
+      if (fSeqEmpty.AppWithResult(element) != null) { return new SeqType(null); }
       var setOperation = fSetUnion.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetIntersection.AppWithResult(element);
@@ -636,7 +636,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetUnionOne.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[1])) { return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1]))); }
-      // if (fSetEmpty.AppWithResult(element) != null) { return new SetType(true, null); }
+      if (fSetEmpty.AppWithResult(element) != null) { return new SetType(true, null); }
       var mapOperation = fMapBuild.AppWithResult(element);
       if (mapOperation != null) {
         return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
@@ -777,11 +777,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       return result;
     }
 
-    private const string PleaseEnableModelCompressFalse =
-      "Please enable /proverOpt:O:model_compress=false (for z3 version < 4.8.7)" +
-      " or /proverOpt:O:model.compact=false (for z3 version >= 4.8.7)," +
-      " otherwise you'll get unexpected values.";
-
     /// <summary>
     /// Return the name of the field represented by the given element.
     /// Special care is required if the element represents an array index
@@ -805,14 +800,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
           if (dimTuple == null) {
-            options.OutputWriter.WriteLine(PleaseEnableModelCompressFalse);
             continue;
           }
           indices[i] = dimTuple.Args[0];
         } else {
           dimTuple = fMultiIndexField.AppWithResult(elt);
           if (dimTuple == null) {
-            options.OutputWriter.WriteLine(PleaseEnableModelCompressFalse);
             continue;
           }
           indices[i] = dimTuple.Args[1];

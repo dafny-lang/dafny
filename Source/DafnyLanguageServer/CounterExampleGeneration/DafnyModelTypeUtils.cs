@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
@@ -28,7 +29,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     public static Type ReplaceTypeVariables(Type type, Type with) {
-      return ReplaceType(type, t => t.Name.Contains('$'), _ => with);
+      var result = ReplaceType(type, t => t.Name.Contains('$'), _ => with);
+      FillInTypeArgs(result, with);
+      return result;
     }
 
     /// <summary>
@@ -84,15 +87,15 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       switch (type) {
         case BasicType:
           return type;
-        case MapType mapType:
+        case MapType mapType when mapType.HasTypeArg():
           return new MapType(mapType.Finite,
             TransformType(mapType.Domain, transform),
             TransformType(mapType.Range, transform));
-        case SeqType seqType:
+        case SeqType seqType when seqType.HasTypeArg():
           return new SeqType(TransformType(seqType.Arg, transform));
-        case SetType setType:
+        case SetType setType when setType.HasTypeArg():
           return new SetType(setType.Finite, TransformType(setType.Arg, transform));
-        case MultiSetType multiSetType:
+        case MultiSetType multiSetType when multiSetType.HasTypeArg():
           return new MultiSetType(TransformType(multiSetType, transform));
         case UserDefinedType userDefinedType:
           return transform(userDefinedType);
@@ -102,6 +105,34 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           return tmp;
       }
       return type;
+    }
+
+    /// <summary>
+    /// Whenever a collection type does not have an argument, fill it in with the provided arg type
+    /// </summary>
+    private static void FillInTypeArgs(Type type, Type arg) {
+      switch (type) {
+        case BasicType:
+          return;
+        case MapType mapType when !mapType.HasTypeArg():
+          mapType.SetTypeArgs(arg, arg);
+          return;
+        case SeqType seqType when !seqType.HasTypeArg():
+          seqType.SetTypeArg(arg);
+          return;
+        case SetType setType when !setType.HasTypeArg():
+          setType.SetTypeArg(arg);
+          return;
+        case MultiSetType multiSetType when !multiSetType.HasTypeArg():
+          multiSetType.SetTypeArg(arg);
+          return;
+        case UserDefinedType userDefinedType:
+          userDefinedType.TypeArgs.ForEach(typ => FillInTypeArgs(typ, arg));
+          return;
+        case InferredTypeProxy inferredTypeProxy:
+          FillInTypeArgs(inferredTypeProxy.T, arg);
+          return;
+      }
     }
   }
 }
