@@ -766,7 +766,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       var key = PartialValue.Get(keyElement, state);
       var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
       new ContainmentConstraint(key, mapVariable, opcode == BinaryExpr.Opcode.In);
-      if (valueElement != null) {
+      // Note that it is possible for valueElement to not be null while the element is not present in the set!
+      if (valueElement != null && !keyNotPresent) { 
         var value = PartialValue.Get(valueElement, state);
         new MapSelectExprConstraint(value, mapVariable, key);
         yield return value;

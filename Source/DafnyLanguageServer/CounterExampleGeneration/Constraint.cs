@@ -33,7 +33,15 @@ public abstract class Constraint {
     }
     return definitionConstraint.WrapDefinition(definitions, expression);
   }
-  
+
+  public override string ToString() {
+    var temporaryIds = new Dictionary<PartialValue, Expression>();
+    foreach (var partialValue in referencedValues) {
+      temporaryIds[partialValue] = new IdentifierExpr(Token.NoToken, "E#" + partialValue.Element.Id);
+    }
+    return AsExpression(temporaryIds, false)?.ToString() ?? "";
+  }
+
   protected abstract Expression AsExpression(Dictionary<PartialValue, Expression> definitions);
   
 
