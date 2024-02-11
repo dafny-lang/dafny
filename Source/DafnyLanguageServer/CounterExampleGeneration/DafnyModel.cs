@@ -627,8 +627,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args[1]))) { return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1]))); }
       seqOperation = fSeqCreate.AppWithResult(element);
       if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
-      seqOperation = fSeqEmpty.AppWithResult(element);
-      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
+      // if (fSeqEmpty.AppWithResult(element) != null) { return new SeqType(null); }
       var setOperation = fSetUnion.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetIntersection.AppWithResult(element);
@@ -637,15 +636,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetUnionOne.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[1])) { return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1]))); }
-      setOperation = fSetEmpty.AppWithResult(element);
-      if (setOperation != null) {
-        var setElement = fSetSelect.AppWithArg(0, element);
-        if (setElement != null) {
-          return new SetType(true, GetDafnyType(setElement.Args[1]));
-        }
-        // not possible to infer the type argument in this case if type encoding is Arguments
-        return new SetType(true, UnknownType);
-      }
+      // if (fSetEmpty.AppWithResult(element) != null) { return new SetType(true, null); }
       var mapOperation = fMapBuild.AppWithResult(element);
       if (mapOperation != null) {
         return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
