@@ -43,7 +43,7 @@ public abstract class Constraint {
   }
 
   protected abstract Expression AsExpression(Dictionary<PartialValue, Expression> definitions);
-  
+
 
   public static void FindDefinitions(Dictionary<PartialValue, Expression> knownDefinitions, List<Constraint> constraints, bool allowNewIdentifiers) {
     Constraint? newConstraint = null;
@@ -54,7 +54,7 @@ public abstract class Constraint {
       if (newConstraint != null) {
         oldConstraints.Remove(newConstraint);
       }
-      
+
       var litConstraint = oldConstraints.OfType<LiteralExprConstraint>()
         .FirstOrDefault(definition => !knownDefinitions.ContainsKey(definition.DefinedValue));
       if (litConstraint != null) {
@@ -63,16 +63,16 @@ public abstract class Constraint {
         continue;
       }
 
-      newConstraint = oldConstraints.FirstOrDefault(constraint => 
-        constraint is not DefinitionConstraint && 
+      newConstraint = oldConstraints.FirstOrDefault(constraint =>
+        constraint is not DefinitionConstraint &&
         constraint.ReferencedValues.All(knownDefinitions.ContainsKey));
       if (newConstraint != null) {
         constraints.Add(newConstraint);
         continue;
       }
-      
-      var definition = oldConstraints.OfType<DefinitionConstraint>().FirstOrDefault(definition => 
-        !knownDefinitions.ContainsKey(definition.DefinedValue) && 
+
+      var definition = oldConstraints.OfType<DefinitionConstraint>().FirstOrDefault(definition =>
+        !knownDefinitions.ContainsKey(definition.DefinedValue) &&
         definition.ReferencedValues.All(knownDefinitions.ContainsKey));
       if (definition != null) {
         if (definition.WellFormed != null) {
@@ -116,7 +116,7 @@ public abstract class DefinitionConstraint : Constraint {
 
 public class IdentifierExprConstraint : DefinitionConstraint {
   private readonly string name;
-  
+
   public IdentifierExprConstraint(PartialValue definedValue, string name) : base(new List<PartialValue>(), definedValue, null) {
     this.name = name;
   }
@@ -143,7 +143,7 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
   public readonly PartialValue Obj;
   public readonly string MemberName;
 
-  protected MemberSelectExprConstraint(PartialValue definedValue, PartialValue obj, string memberName, Constraint? constraint) : base(new List<PartialValue> {obj}, definedValue, constraint) {
+  protected MemberSelectExprConstraint(PartialValue definedValue, PartialValue obj, string memberName, Constraint? constraint) : base(new List<PartialValue> { obj }, definedValue, constraint) {
     Obj = obj;
     MemberName = memberName;
   }
@@ -188,9 +188,9 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
 
   public readonly PartialValue Seq;
   public readonly PartialValue Index;
-  
 
-  public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(new List<PartialValue> {seq, index}, definedValue, new CardinalityGtThanConstraint(seq, index)) {
+
+  public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(new List<PartialValue> { seq, index }, definedValue, new CardinalityGtThanConstraint(seq, index)) {
     Seq = seq;
     Index = index;
   }
@@ -203,10 +203,10 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
 public class SeqSelectExprArrayConstraint : DefinitionConstraint {
   private readonly PartialValue array;
   private readonly string index;
-  
+
 
   // TODO: Add well-formed-ness constraint for array indexing!
-  public SeqSelectExprArrayConstraint(PartialValue definedValue, PartialValue array, string index) : base(new List<PartialValue> {array}, definedValue, null) {
+  public SeqSelectExprArrayConstraint(PartialValue definedValue, PartialValue array, string index) : base(new List<PartialValue> { array }, definedValue, null) {
     this.array = array;
     this.index = index;
   }
@@ -253,9 +253,9 @@ public class SeqSelectExprWithLiteralConstraint : DefinitionConstraint {
 public class CardinalityConstraint : DefinitionConstraint {
 
   public readonly PartialValue Collection;
-  
 
-  public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(new List<PartialValue> {collection}, definedValue, null) {
+
+  public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(new List<PartialValue> { collection }, definedValue, null) {
     Collection = collection;
   }
 
@@ -266,7 +266,7 @@ public class CardinalityConstraint : DefinitionConstraint {
 
 public class SeqDisplayConstraint : DefinitionConstraint {
   private readonly List<PartialValue> elements;
-  
+
 
   public SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue, null) {
     this.elements = elements;
@@ -281,7 +281,7 @@ public class ContainmentConstraint : Constraint {
 
   public readonly PartialValue Element, Set;
   private readonly bool isIn;
-  public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn) : base(new List<PartialValue> {element, set}) {
+  public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn) : base(new List<PartialValue> { element, set }) {
     Element = element;
     Set = set;
     this.isIn = isIn;
@@ -299,7 +299,7 @@ public class ContainmentConstraint : Constraint {
 public class NeqConstraint : Constraint {
   private readonly PartialValue value;
   private readonly PartialValue neq;
-  public NeqConstraint(PartialValue value, PartialValue neq) : base(new List<PartialValue> {value, neq}) {
+  public NeqConstraint(PartialValue value, PartialValue neq) : base(new List<PartialValue> { value, neq }) {
     this.value = value;
     this.neq = neq;
   }
@@ -318,7 +318,7 @@ public class DatatypeConstructorCheckConstraint : Constraint {
   private readonly PartialValue obj;
   public readonly string ConstructorName;
 
-  public DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName) : base(new List<PartialValue> {obj}) {
+  public DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName) : base(new List<PartialValue> { obj }) {
     this.obj = obj;
     ConstructorName = constructorName;
   }
@@ -331,7 +331,7 @@ public class DatatypeConstructorCheckConstraint : Constraint {
 public class EmptyConstraint : Constraint {
   private readonly PartialValue collection;
 
-  public EmptyConstraint(PartialValue collection) : base(new List<PartialValue> {collection}) {
+  public EmptyConstraint(PartialValue collection) : base(new List<PartialValue> { collection }) {
     this.collection = collection;
   }
 
@@ -351,7 +351,7 @@ public class CardinalityGtThanConstraint : Constraint {
   private readonly PartialValue collection;
   private readonly PartialValue bound;
 
-  public CardinalityGtThanConstraint(PartialValue collection, PartialValue bound) : base(new List<PartialValue> {collection, bound}) {
+  public CardinalityGtThanConstraint(PartialValue collection, PartialValue bound) : base(new List<PartialValue> { collection, bound }) {
     this.collection = collection;
     this.bound = bound;
   }
@@ -368,7 +368,7 @@ public class CardinalityGtThanLiteralConstraint : Constraint {
   private readonly PartialValue collection;
   private readonly LiteralExpr bound;
 
-  public CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound) : base(new List<PartialValue> {collection}) {
+  public CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound) : base(new List<PartialValue> { collection }) {
     this.collection = collection;
     this.bound = bound;
   }
@@ -384,7 +384,7 @@ public class CardinalityGtThanLiteralConstraint : Constraint {
 public class TypeTestConstraint : Constraint {
   private readonly Type type;
   private readonly PartialValue value;
-  public TypeTestConstraint(PartialValue value, Type type) : base(new List<PartialValue> {value}) {
+  public TypeTestConstraint(PartialValue value, Type type) : base(new List<PartialValue> { value }) {
     this.type = type;
     this.value = value;
   }
@@ -396,7 +396,7 @@ public class TypeTestConstraint : Constraint {
 
 public class NotNullConstraint : Constraint {
   private readonly PartialValue value;
-  public NotNullConstraint(PartialValue value) : base(new List<PartialValue> {value}) {
+  public NotNullConstraint(PartialValue value) : base(new List<PartialValue> { value }) {
     this.value = value;
   }
 

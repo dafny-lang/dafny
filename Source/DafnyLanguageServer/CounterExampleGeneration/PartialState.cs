@@ -127,7 +127,7 @@ public class PartialState {
       constraintsAsStrings.Add(constraintAsString);
       constraintsAsExpressions.Add(constraintAsExpression);
     }
-    
+
     Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
     if (constraintsAsExpressions.Count > 0 && boundVars.Count > 0) {
@@ -191,7 +191,7 @@ public class PartialState {
       knownVariableNames[value].Add(v.Split("#").First());
     }
   }
-  
+
   /// <summary>
   /// Return True iff the variable name is referring to a variable that has
   /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)

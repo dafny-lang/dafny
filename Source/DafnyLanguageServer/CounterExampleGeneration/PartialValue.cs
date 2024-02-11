@@ -39,7 +39,7 @@ public class PartialValue {
   }
 
   public IEnumerable<PartialValue> GetRelatedValues() {
-    var relatedValues = new HashSet<PartialValue>() {this};
+    var relatedValues = new HashSet<PartialValue>() { this };
     if (!haveExpanded) {
       state.Model.GetExpansion(state, this);
       haveExpanded = true;
@@ -74,7 +74,7 @@ public class PartialValue {
   public Dictionary<string, PartialValue> Fields() {
     var fields = new Dictionary<string, PartialValue>();
     foreach (var memberSelectExpr in Constraints.OfType<MemberSelectExprConstraint>().Where(constraint => constraint.Obj == this)) {
-        fields[memberSelectExpr.MemberName] = memberSelectExpr.DefinedValue;
+      fields[memberSelectExpr.MemberName] = memberSelectExpr.DefinedValue;
     }
     return fields;
   }
@@ -113,7 +113,7 @@ public class PartialValue {
     if (Constraints.OfType<EmptyConstraint>().Any()) {
       return 0;
     }
-  
+
     var cardinality = Constraints.OfType<CardinalityConstraint>().FirstOrDefault(constraint => constraint.Collection == this)?.DefinedValue;
     if (cardinality == null) {
       return -1;
