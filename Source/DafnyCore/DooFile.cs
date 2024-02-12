@@ -277,7 +277,7 @@ public class DooFile {
     try {
       return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
-      return false;
+      throw new Exception("Comparing options of Doo files created by different Dafny versions");
     }
   }
 
