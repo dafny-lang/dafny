@@ -95,7 +95,6 @@ Path - Generate tests targeting path-coverage.");
       }
     }
     if (options.TestGenOptions.CoverageReport != null) {
-      coverageReport.SetDirectory(options.TestGenOptions.CoverageReport);
       new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
     }
     if (DafnyTestGeneration.Main.SetNonZeroExitCode) {

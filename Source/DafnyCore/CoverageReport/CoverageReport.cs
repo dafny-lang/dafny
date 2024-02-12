@@ -17,21 +17,6 @@ public class CoverageReport {
 
   public string Suffix { get; }
 
-  public void SetDirectory(string directory) {
-    ActualPath = GetFreshPath(Path.Combine(directory, Suffix), "html");
-    ActualIndexPath = GetFreshPath(Path.Combine(directory, "index" + Suffix), "html");
-  }
-
-  private static string GetFreshPath(string attempt, string extension, int suffix = 0) {
-    var path = attempt + "." + extension;
-    while (File.Exists(path)) {
-      suffix++;
-      path = attempt + "_" + suffix + "." + extension;
-    }
-
-    return path;
-  }
-
   public string ActualPath { get; private set; }
 
   public string ActualIndexPath { get; private set; }
