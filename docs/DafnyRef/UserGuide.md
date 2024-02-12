@@ -233,7 +233,7 @@ implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
+   - `--allow-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
@@ -356,8 +356,7 @@ the `--input` option on the command-line.
 is an argument to the program being run (and not to dafny itself).
 - If the `--` option is used, then anything after that option is a command-line argument to the program being run.
 
-If more complex build configurations are required, then use `dafny build` and then execute the compiled program, as two separate steps. 
-`dafny run` is primarily intended as a convenient way to run relatively simple Dafny programs.
+During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
 
 Here are some examples:
   - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments
@@ -369,6 +368,9 @@ then runs it with the four command-line arguments `1 2 3 B.dfy`
 then runs it with the three command-line arguments `1 2 3`
   - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
 
+Each time `dafny run` is invoked, the input Dafny program is compiled before it is executed.
+If a Dafny program should be run more than once, it can be faster to use `dafny build`,
+which enables compiling a Dafny program once and then running it multiple times.
 
 **Note:** `dafny run` will typically produce the same results as the executables produced by `dafny build`.  The only expected differences are these:
 - performance --- `dafny run` may not optimize as much as `dafny build`

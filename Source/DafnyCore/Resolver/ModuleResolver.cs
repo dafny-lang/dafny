@@ -1805,7 +1805,7 @@ namespace Microsoft.Dafny {
               } else {
                 // m should not be null, unless an error has been reported
                 // (e.g. function-by-method and method with the same name) 
-                Contract.Assert(reporter.ErrorCount > 0);
+                Contract.Assert(reporter.HasErrors);
               }
             }
 

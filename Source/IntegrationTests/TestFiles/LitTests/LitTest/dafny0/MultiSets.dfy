@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --warn-deprecation false --manual-triggers "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method test1()

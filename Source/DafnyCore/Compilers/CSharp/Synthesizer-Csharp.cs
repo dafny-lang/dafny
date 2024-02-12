@@ -179,11 +179,12 @@ public class CsharpSynthesizer {
     var methodName = method.GetCompileName(Options);
 
     if (((Function)method).Ens.Count != 0) {
-      compiler.Error(CompilerErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.tok,
+      compiler.Reporter.Warning(MessageSource.Compiler,
+        CompilerErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.tok,
         "Post-conditions on function {0} might " +
         "be unsatisfied when synthesizing code " +
         "for method {1}",
-        ErrorWriter, methodName, lastSynthesizedMethod.Name);
+        methodName, lastSynthesizedMethod.Name);
     }
 
     var tmpId = compiler.idGenerator.FreshId("tmp");
@@ -223,9 +224,10 @@ public class CsharpSynthesizer {
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
       var fieldName = field.GetCompileName(Options);
-      compiler.Error(CompilerErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.tok,
+      compiler.Reporter.Warning(MessageSource.Compiler,
+        CompilerErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.tok,
         "Stubbing fields is not recommended (field {0} of object {1} inside method {2})",
-        ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
+        fieldName, obj.Name, lastSynthesizedMethod.Name);
       var tmpId = compiler.idGenerator.FreshId("tmp");
       wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
       wr.Append(compiler.Expr(binaryExpr.E1, false, wStmts));
