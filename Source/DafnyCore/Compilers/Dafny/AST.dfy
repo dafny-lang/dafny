@@ -113,8 +113,12 @@ module {:extern "DAST"} DAST {
     BitwiseShiftRight() | BitwiseShiftLeft() |
     And() | Or() |
     In() |
+    SeqProperPrefix() | SeqPrefix() |
     SetMerge() | SetSubtraction() | SetIntersection() |
+    Subset() | ProperSubset() | SetDisjoint() |
     MapMerge() | MapSubtraction() |
+    MultisetMerge() | MultisetSubtraction() | MultisetIntersection() |
+    Submultiset() | ProperSubmultiset() | MultisetDisjoint() |
     Concat() |
     Passthrough(string)
 
@@ -130,9 +134,13 @@ module {:extern "DAST"} DAST {
     SeqConstruct(length: Expression, elem: Expression) |
     SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
+    MultisetValue(elements: seq<Expression>) |
     MapValue(mapElems: seq<(Expression, Expression)>) |
     MapBuilder(keyType: Type, valueType: Type) |
+    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
+    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
     SetBuilder(elemType: Type) |
+    ToMultiset(Expression) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnOpFormat) |

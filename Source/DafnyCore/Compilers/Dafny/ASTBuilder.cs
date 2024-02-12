@@ -1247,8 +1247,6 @@ namespace Microsoft.Dafny.Compilers {
         builtOperands.Insert(0, ExprContainer.UnsupportedToExpr(op + " with not 2 elements"));
         return (DAST.Expression)DAST.Expression.create_SetValue(
           Sequence<DAST.Expression>.FromElements(builtOperands.ToArray()));
-        //Throw for later 
-        //throw new InvalidOperationException("Expected exactly two operands, got " + operands.Comma(o => o.ToString()));
       }
 
       return internalBuilder(builtOperands[0], builtOperands[1]);

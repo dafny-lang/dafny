@@ -196,7 +196,7 @@ method TestI128() {
     print "operators(i128)\n";
   }
 }
-method {:resource_limit "200e3"}  Main() {
+method {:resource_limit "1e6"}  Main() {
   var t := true;
   var f := false;
   if ((t && f) || f) ==> f {
@@ -236,7 +236,7 @@ method {:resource_limit "200e3"}  Main() {
   if 1 in m && 2 !in m && m[1] == 2{
     print "map contains acccess ";
   }
-  var m2 := m + map[2 := 4] - {1};
+  var m2 := m[2 := 4] - {1};
   if 1 !in m2 && 2 in m2 {
     print "update union diff ";
   }
@@ -258,21 +258,21 @@ method {:resource_limit "200e3"}  Main() {
     print "union diff ";
   }
   var t3 := set k | 2 <= k < 4 :: 2*k;
-  if t3 == {6, 4} && |t3| == 2 {
+  if t3 == {6, 4} && |t3| == 2 && {4, 6} <= t3 && {4} < t3 && t3 >= {4, 6} && t3 > {6} {
     print "comprehension equality cardinality ";
   }
-  if t2 != t3 && t2 * t3 == {} {
+  if t2 != t3 && t2 * t3 == {} && t2 !! t3{
     print "inequality and intersection\n";
   }
-  /*
-  var s1 := [1, 2];
+  
+  var s1 := seq(2, i => 1 + i);
   var s2 := s1 + [3];
   if s1 <= s2 && s1 < s2 && s1 != s2 && !(s2 <= s1)
   && !(s2 < s1) && s2 != s1 && !(s1 == s2) {
     print "sequence prefix ";
   }
   var s3 := if |s2| == 3 then s2[2 := 4] else s2;
-  if s3 == [1, 2, 4] && |s3| == 3 {
+  if s3[1] == 2 && s3 == [1, 2, 4] && |s3| == 3 {
     print "sequence update cardinality ";
   }
 
@@ -282,7 +282,7 @@ method {:resource_limit "200e3"}  Main() {
   }
 
   var h := multiset{1, 1, 2};
-  var k := multiset{1, 2};
+  var k := multiset([1, 2]);
   if k < h && k <= h && h > k && h >= k {
     print "multiset comparison ";
   }
@@ -293,12 +293,11 @@ method {:resource_limit "200e3"}  Main() {
     print "access and cardinality\n";
   }
   
-  var seq1 := [1, 2, 3, 4];
-  var seq2 := seq1[0];
-  var seq3 := seq1[1..4];
-  var seq4 := seq3 + seq2;
+  var seq1: seq<int> := [1, 2, 3, 4];
+  var seq2: int := seq1[0];
+  var seq3: seq<int> := seq1[1..4];
+  var seq4: seq<int> := seq3 + [seq2];
   if seq4[0] == 2 && seq4[3] == 1 && seq4[0..3] == seq3 {
-    print "Sequence index slice comparison"
+    print "Sequence index slice comparison";
   }
-  */
 }
