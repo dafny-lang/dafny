@@ -50,8 +50,8 @@ true - In the compiled target code, transform any non-extern
   public static readonly Option<bool> Verbose = new("--verbose",
     "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
-    "Warn about the use of deprecated features (default true).") {
+  public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
+    "Do not warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -231,8 +231,10 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
-    "Treat warnings as errors.");
+
+  public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
+    "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
+
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
@@ -465,7 +467,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -507,7 +509,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
-    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
+    DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
@@ -541,6 +543,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+            if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
+              return true;
+            }
+            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
+            return false;
+          }
+        }
       }
     );
     DooFile.RegisterNoChecksNeeded(
@@ -553,7 +564,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prelude,
       Target,
       Verbose,
-      WarnDeprecation,
+      AllowDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
@@ -568,7 +579,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,

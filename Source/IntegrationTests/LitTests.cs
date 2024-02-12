@@ -456,7 +456,7 @@ namespace IntegrationTests {
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
           "/verifyAllModules" => "--verify-included-files",
           "/errorLimit:0" => "--error-limit:0",
-          "/deprecation:0" => "--warn-deprecation:false",
+          "/deprecation:0" => "--allow-deprecation",
           _ => extraOption
         });
       }

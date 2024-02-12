@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       var program = new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
         reporter, CancellationToken.None);
 
-      var success = reporter.ErrorCount == 0;
+      var success = !reporter.HasErrors;
       if (success) {
         dafnyProgram = program;
       }

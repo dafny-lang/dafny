@@ -374,7 +374,7 @@ namespace Microsoft.Dafny {
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public bool UseStdin = false;
-    public bool WarningsAsErrors = false;
+    public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
@@ -787,7 +787,7 @@ namespace Microsoft.Dafny {
           }
 
         case "warningsAsErrors":
-          WarningsAsErrors = true;
+          FailOnWarnings = true;
           return true;
 
         case "extractCounterexample":
