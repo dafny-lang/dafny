@@ -2773,6 +2773,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override void EmitSeqBoundedPool(Expression of, bool includeDuplicates, string _, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(of, wr, inLetExprBody, wStmts);
+      wr.Write(includeDuplicates ? ".CloneAsArray()" : ".UniqueElements");
+    }
+
+
     // Construct a sequence for the Dafny expression seq(N, F) in the common
     // case that f is a lambda expression.  In that case, rather than
     // something like
