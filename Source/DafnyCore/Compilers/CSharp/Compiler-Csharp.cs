@@ -2778,7 +2778,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(includeDuplicates ? ".CloneAsArray()" : ".UniqueElements");
     }
 
-
     // Construct a sequence for the Dafny expression seq(N, F) in the common
     // case that f is a lambda expression.  In that case, rather than
     // something like
