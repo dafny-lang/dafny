@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 && || ==> <==> <= < >= > != ==
 + * - / %
 operators(u8) operators(u16) operators(u32) operators(u64) operators(u128)
@@ -7,6 +7,7 @@ operators(i8) operators(i16) operators(i32) operators(i64) operators(i128)
 char comparison
 map contains acccess update union diff comprehension equality cardinality .Keys
 and .Values
-set contains comprehension equality cardinality inequality and intersection
-sequence prefix sequence update cardinality sequence slice
-multiset comparison union equality access and cardinality
+set contains union diff comprehension equality cardinality inequality and inters
+ection
+sequence update cardinality sequence slice
+multiset comparison union equality Sequence index slice comparison

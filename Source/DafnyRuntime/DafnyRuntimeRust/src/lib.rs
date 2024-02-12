@@ -1125,8 +1125,8 @@ impl <V> Debug for Set<V>
 #[derive(Clone)]
 pub struct Multiset<V: DafnyTypeEq>
 {
-    data: HashMap<V, DafnyInt>,
-    size: DafnyInt
+    pub data: HashMap<V, DafnyInt>,
+    pub size: DafnyInt
 }
 
 impl <V: DafnyTypeEq> Multiset<V>
@@ -1954,14 +1954,13 @@ macro_rules! multiset {
             )*
             $crate::Multiset {
                 data: temp_hash,
-                size: DafnyInt::from(total_size),
+                size: $crate::DafnyInt::from(total_size),
             }
         }
     }
 }
 
 // we enable the syntax map![k1 => v1, k2 => v2]
-// We rewrite this to let mut elems = HashMap::new(); elems.insert(k1.clone(), v1.clone()); elems.insert(k2.clone(), v2.clone()); Map::from_hashmap_owned(elems)
 #[macro_export]
 macro_rules! map {
     ($($k:expr => $v:expr), *) => {
@@ -1975,3 +1974,11 @@ macro_rules! map {
         }
     }
 }
+
+#[macro_export]
+macro_rules! int {
+    ($x:expr) => {
+        $crate::DafnyInt::from($x)
+    }
+}
+
