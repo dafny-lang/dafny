@@ -535,3 +535,11 @@ module MethodFrameClausesNotAllowed {
   {
   }
 }
+
+module Additions {
+  datatype Blar<T> = Niz | Zons({:custom 3 } T, {:custom 3 } Blar<T>)
+
+  function Parameters({:custom} list: Blar<int>): int {
+    3
+  }
+}
