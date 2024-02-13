@@ -1,4 +1,3 @@
-// RUN: %baredafny translate rs %args "%s"
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 ghost const TWO_TO_THE_8:   int := 0x100
