@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
@@ -15,8 +16,8 @@ namespace DafnyPipeline.Test {
     }
 
     [Fact]
-    public void Test() {
-      Assert.Equal(0, DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
+    public async Task Test() {
+      Assert.Equal(0, await DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
         TextReader.Null, new[] { "/spillTargetCode:3", "testFile2.dfy" }));
     }
 
