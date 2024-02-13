@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
       if (level == ErrorLevel.Warning) {
         return false;
       }
-      
+
       base.MessageCore(source, level, errorId, tok, msg);
       return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
     }
