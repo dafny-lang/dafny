@@ -1,10 +1,10 @@
-// RUN: %exits-with 3 %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
+// RUN: %translate cs --include-runtime --allow-warnings "%s" > "%t"
 // RUN: ! dotnet test -v:q %S/TestAttribute.csproj 2>> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
-// CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method MockField\).*
-// CHECK: .*Error: Stubbing fields is not recommended \(field value of object e inside method ParametrizedMock\).*
+// CHECK: .*Warning: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
+// CHECK: .*Warning: Stubbing fields is not recommended \(field value of object e inside method MockField\).*
+// CHECK: .*Warning: Stubbing fields is not recommended \(field value of object e inside method ParametrizedMock\).*
 // CHECK: .*_module.__default.FailingTestUsingMock.*
 // CHECK: .*_module.__default.FailingTestUsingNoLHSAssignOrHalt.*
 // CHECK: .*_module.__default.FailingTestUsingExpectWithMessage.*

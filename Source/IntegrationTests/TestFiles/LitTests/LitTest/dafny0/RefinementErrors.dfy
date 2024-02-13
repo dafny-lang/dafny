@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-deprecation
 
 
 module A {

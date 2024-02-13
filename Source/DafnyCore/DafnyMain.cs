@@ -89,9 +89,9 @@ namespace Microsoft.Dafny {
 #pragma warning restore VSTHRD002
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (program.Reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error),
-          program.Name);
+      var errorCount = program.Reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error);
+      if (errorCount != 0) {
+        return $"{errorCount} resolution/type errors detected in {program.Name}";
       }
 
       return null; // success
