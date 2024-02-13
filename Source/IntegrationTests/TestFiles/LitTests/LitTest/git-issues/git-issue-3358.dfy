@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype MyResult = Ok | Err(error: set<string>)

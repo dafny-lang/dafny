@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
             Duration = vcResult.RunTime
           };
           testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
-          if (vcResult.Outcome == ProverInterface.Outcome.Valid) {
+          if (vcResult.Outcome == SolverOutcome.Valid) {
             testResult.Outcome = TestOutcome.Passed;
           } else {
             testResult.Outcome = TestOutcome.Failed;

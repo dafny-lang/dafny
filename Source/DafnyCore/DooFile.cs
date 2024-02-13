@@ -240,7 +240,7 @@ public class DooFile {
   /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
   /// Generally the right check for options that weaken guarantees.
   public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, libraryValue, localValue)) {
+    if (OptionValuesImplied(libraryValue, localValue)) {
       return true;
     }
 
@@ -252,7 +252,7 @@ public class DooFile {
   /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
   /// Generally the right check for options that strengthen guarantees.
   public static bool CheckOptionLocalImpliesLibrary(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, localValue, libraryValue)) {
+    if (OptionValuesImplied(localValue, libraryValue)) {
       return true;
     }
     reporter.Error(MessageSource.Project, origin, LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue));
@@ -275,11 +275,11 @@ public class DooFile {
     return false;
   }
 
-  public static bool OptionValuesImplied(Option option, object first, object second) {
+  public static bool OptionValuesImplied(object first, object second) {
     try {
       return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
-      return false;
+      throw new Exception("Comparing options of Doo files created by different Dafny versions");
     }
   }
 

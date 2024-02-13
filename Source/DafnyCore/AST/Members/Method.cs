@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -382,7 +383,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual DafnySymbolKind Kind => DafnySymbolKind.Method;
+  public virtual SymbolKind Kind => SymbolKind.Method;
   public string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
@@ -443,9 +444,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(Tok, true) {
-        Type = Type.Bool
-      };
+      Expression reqExpr = Expression.CreateBoolLiteral(Tok, true);
 
       foreach (var revealStmt in addedReveals) {
         if (revealStmt.Depth <= autoRevealDepth) {

@@ -76,52 +76,84 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma LemmaDivAddDenominator(n: int, x: int)
+  lemma {:vcs_split_on_every_assert} LemmaDivAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
-    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulAuto(); }
-    if (zp > 0) { LemmaMulInequality(1, zp, n); }
-    if (zp < 0) { LemmaMulInequality(zp, -1, n); }
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulDistributes(); }
+    if (zp > 0) {
+      assert (x + n) / n == x / n + 1 by {
+        LemmaMulInequality(1, zp, n);
+      }
+    }
+    if (zp < 0) {
+      assert (x + n) / n == x / n + 1 by {
+        LemmaMulInequality(zp, -1, n);
+      }
+    }
   }
 
-  lemma LemmaDivSubDenominator(n: int, x: int)
+  lemma {:vcs_split_on_every_assert} LemmaDivSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
-    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulAuto(); }
-    if (zm > 0) { LemmaMulInequality(1, zm, n); }
-    if (zm < 0) { LemmaMulInequality(zm, -1, n); }
+    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulDistributes(); }
+    if (zm > 0) {
+      assert (x - n) / n == x / n - 1 by {
+        LemmaMulInequality(1, zm, n);
+      }
+    }
+    if (zm < 0) {
+      assert (x - n) / n == x / n - 1 by {
+        LemmaMulInequality(zm, -1, n);
+      }
+    }
   }
 
-  lemma LemmaModAddDenominator(n: int, x: int)
+  lemma {:vcs_split_on_every_assert} LemmaModAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) % n == x % n
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
-    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulAuto(); }
-    if (zp > 0) { LemmaMulInequality(1, zp, n); }
-    if (zp < 0) { LemmaMulInequality(zp, -1, n); }
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulDistributes(); }
+    if (zp > 0) {
+      assert (x + n) % n == x % n by {
+        LemmaMulInequality(1, zp, n);
+      }
+    }
+    if (zp < 0) {
+      assert (x + n) % n == x % n by {
+        LemmaMulInequality(zp, -1, n);
+      }
+    }
   }
 
-  lemma LemmaModSubDenominator(n: int, x: int)
+  lemma {:vcs_split_on_every_assert} LemmaModSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) % n == x % n
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
-    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulAuto(); }
-    if (zm > 0) { LemmaMulInequality(1, zm, n); }
-    if (zm < 0) { LemmaMulInequality(zm, -1, n); }
+    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulDistributes(); }
+    if (zm > 0) {
+      assert (x - n) % n == x % n by {
+        LemmaMulInequality(1, zm, n);
+      }
+    }
+    if (zm < 0) {
+      assert (x - n) % n == x % n by {
+        LemmaMulInequality(zm, -1, n);
+      }
+    }
   }
 
   lemma LemmaModBelowDenominator(n: int, x: int)
@@ -230,7 +262,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     LemmaModAutoMinus(n);
   }
 
-  lemma {:rlimit 2000} LemmaModAutoMinus(n: int)
+  lemma {:resource_limit 2000000} LemmaModAutoMinus(n: int)
     requires n > 0
     ensures ModAutoMinus(n)
   {

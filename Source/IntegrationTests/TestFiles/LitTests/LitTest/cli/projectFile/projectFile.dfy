@@ -26,7 +26,7 @@
 // RUN: ! %resolve "%S/doesNotExist.toml" 2>> %t
 
 // Project file options must have the right type
-// RUN: ! %resolve "%S/badTypes/dfyconfig.toml" 2>> "%t"
+// RUN: ! %resolve "%S/badTypes/dfyconfig.toml" >> "%t"
 
 // A project file without includes will take all .dfy files as input
 // RUN: %resolve "%S/noIncludes/dfyconfig.toml" >> "%t"

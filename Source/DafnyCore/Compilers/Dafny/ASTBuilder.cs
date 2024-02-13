@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using Dafny;
 using DAST;
+using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.Compilers;
+using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -97,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
       fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue));
     }
 
@@ -146,7 +148,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -189,7 +191,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -199,7 +201,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         this.baseType,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
-        this.witness == null ? Optional<DAST._IExpression>.create_None() : Optional<DAST._IExpression>.create_Some(this.witness)
+        this.witness == null ? Option<DAST._IExpression>.create_None() : Option<DAST._IExpression>.create_Some(this.witness)
       ));
       return parent;
     }
@@ -235,7 +237,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -255,7 +257,7 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, _IOptional<DAST._IExpression> defaultValue);
+    void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
 
     public MethodBuilder Method(
       bool isStatic, bool hasBody,
@@ -324,13 +326,13 @@ namespace Microsoft.Dafny.Compilers {
       return (DAST.Method)DAST.Method.create(
         isStatic,
         hasBody,
-        overridingPath != null ? Optional<ISequence<ISequence<Rune>>>.create_Some(overridingPath) : Optional<ISequence<ISequence<Rune>>>.create_None(),
+        overridingPath != null ? Option<ISequence<ISequence<Rune>>>.create_Some(overridingPath) : Option<ISequence<ISequence<Rune>>>.create_None(),
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Formal>.FromArray(params_.ToArray()),
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray()),
         Sequence<DAST.Type>.FromArray(outTypes.ToArray()),
-        outVars != null ? Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outVars.ToArray())) : Optional<ISequence<ISequence<Rune>>>.create_None()
+        outVars != null ? Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outVars.ToArray())) : Option<ISequence<ISequence<Rune>>>.create_None()
       );
     }
   }
@@ -473,11 +475,11 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Statement Build() {
       if (this.value == null) {
-        return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_None());
+        return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, Option<DAST._IExpression>.create_None());
       } else {
         var builtValue = new List<DAST.Expression>();
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-        return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, DAST.Optional<DAST._IExpression>.create_Some(builtValue[0]));
+        return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, Option<DAST._IExpression>.create_Some(builtValue[0]));
       }
     }
   }
@@ -820,7 +822,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray()),
-        outs == null ? DAST.Optional<ISequence<ISequence<Rune>>>.create_None() : DAST.Optional<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
+        outs == null ? Option<ISequence<ISequence<Rune>>>.create_None() : Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
       );
     }
   }

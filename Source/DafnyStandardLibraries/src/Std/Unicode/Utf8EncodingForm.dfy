@@ -214,7 +214,7 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
   }
 
   function
-    {:rlimit 115000}
+    {:resource_limit 115000000}
   DecodeMinimalWellFormedCodeUnitSubsequenceTripleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 3
     ensures 0x800 <= v <= 0xFFFF
@@ -231,7 +231,7 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
   }
 
   function
-    {:rlimit 4000}
+    {:resource_limit 4000000}
   DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 4
     ensures 0x10000 <= v <= 0x10FFFF

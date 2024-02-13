@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -266,7 +267,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public virtual SymbolKind Kind => SymbolKind.Class;
   public virtual string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
