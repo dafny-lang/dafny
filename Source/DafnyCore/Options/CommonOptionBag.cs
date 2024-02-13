@@ -181,7 +181,6 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
-    IsHidden = true
   };
 
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,

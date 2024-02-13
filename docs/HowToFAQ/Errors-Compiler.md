@@ -209,7 +209,7 @@ This error occurs if the `Main` method that is found
 does not qualify as a main entry point because it violates one or more of the [rules](#sec-user-guide-main),
 as given by the reason in the error message.
 
-## **Error: Function _name_ has no body** {#c_function_has_no_body}
+## **Error: Function _name_ has no body so it cannot be executed** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -242,7 +242,7 @@ a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-## **Error: Method _name_ has no body** {#c_method_has_no_body}
+## **Error: Method _name_ has no body so it cannot be executed** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny
