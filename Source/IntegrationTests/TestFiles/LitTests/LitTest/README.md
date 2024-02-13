@@ -60,7 +60,7 @@ the default command for any test that compiles and/or executes a valid Dafny pro
 
 This command will run the program with each backend
 and assert that the program output matches the content of `<test file>.expect`.
-See [the TestDafny utility](../Source/TestDafny/) for more details.
+See [the TestDafny utility](../../../../TestDafny/README.md) for more details.
 
 Any test that manually compiles and/or executes a program against one or more backends
 will be flagged by CI, and should be fixed by either converting it to use
