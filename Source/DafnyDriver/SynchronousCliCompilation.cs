@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
-            if (consoleErrorReporter.HasErrors) {
+            if (consoleErrorReporter.FailCompilation) {
               return ExitValue.PREPROCESSING_ERROR;
             }
           } else {
@@ -302,11 +302,18 @@ namespace Microsoft.Dafny {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, Compilers.CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 
-        exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        if (!verified) {
+          exitValue = ExitValue.VERIFICATION_ERROR;
+        } else if (!compiled) {
+          exitValue = ExitValue.COMPILE_ERROR;
+        } else if (failBecauseOfDiagnostics) {
+          exitValue = ExitValue.DAFNY_ERROR;
+        }
       }
 
       if (err == null && dafnyProgram != null && options.PrintStats) {
@@ -328,7 +335,7 @@ namespace Microsoft.Dafny {
     private static void PrintCounterexample(DafnyOptions options) {
       var firstCounterexample = (options.Printer as DafnyConsolePrinter).VerificationResults
         .Select(result => result.Result)
-        .Where(result => result.Outcome == ConditionGeneration.Outcome.Errors)
+        .Where(result => result.Outcome == VcOutcome.Errors)
         .Select(result => result.Counterexamples)
         .Where(counterexampleList => counterexampleList != null)
         .Select(counterexampleList => counterexampleList.FirstOrDefault(counterexample => counterexample.Model != null))
@@ -397,7 +404,7 @@ namespace Microsoft.Dafny {
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t =>
-        Dafny.DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
+        DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
@@ -653,7 +660,6 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
-        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
@@ -674,17 +680,22 @@ namespace Microsoft.Dafny {
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
-      // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
+      if (dafnyProgram.Reporter.FailCompilation) {
+        return false;
+      }
+      // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       if (options.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
           (invokeCompiler && compiler.TextualTargetIsExecutable && !options.RunAfterCompile)) {
         compiler.CleanSourceDirectory(targetPaths.SourceDirectory);
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      if (targetProgramHasErrors || !compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter)) {
+      var postGenerateFailed = !compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      if (postGenerateFailed) {
         return false;
       }
+
       // If we got here, compilation succeeded
       if (!invokeCompiler) {
         return true; // If we're not asked to invoke the target compiler, we can report success

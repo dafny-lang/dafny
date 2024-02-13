@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 // A version of Turing's additive factorial program [Dr. A. Turing, "Checking a large routine",

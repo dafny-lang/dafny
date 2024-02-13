@@ -1955,8 +1955,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        var size = expr.N;
+        if (size.Type.AsNewtype is { }) {
+          size = new ConversionExpr(expr.N.tok, size, new IntType());
+        }
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqConstruct(
-          convert(expr.N),
+          convert(size),
           convert(expr.Initializer)
         ));
       } else {

@@ -408,8 +408,7 @@ namespace Microsoft.Dafny {
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
-          if (decl.Value is ModuleDecl && !(decl.Value is ModuleExportDecl)) {
-            var modDecl = (ModuleDecl)decl.Value;
+          if (decl.Value is ModuleDecl modDecl and not ModuleExportDecl) {
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
         }
@@ -428,7 +427,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (e.Opaque && (decl is DatatypeDecl || decl is TypeSynonymDecl)) {
+        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl)) {
           // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
           // declaration is never provided, then either it isn't visible outside the module at all or its whole
           // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
@@ -778,7 +777,7 @@ namespace Microsoft.Dafny {
       var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
-        new ExprDotName(tok, receiver, f.Name, null),
+        new ExprDotName(tok, receiver, f.Name, f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter))),
         new ActualBindings(f.Formals.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
         tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
@@ -1808,7 +1807,7 @@ namespace Microsoft.Dafny {
               } else {
                 // m should not be null, unless an error has been reported
                 // (e.g. function-by-method and method with the same name) 
-                Contract.Assert(reporter.ErrorCount > 0);
+                Contract.Assert(reporter.HasErrors);
               }
             }
 

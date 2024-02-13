@@ -374,8 +374,13 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
     }
 
+    string IdProtectModule(string moduleName) {
+      return string.Join(".", moduleName.Split(".").Select(IdProtect));
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      moduleName = IdProtectModule(moduleName);
       if (isDefault) {
         // Fold the default module into the main module
         moduleName = "_System";
@@ -824,7 +829,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+        return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
       }
     }
 
@@ -2248,7 +2253,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtect(dt.GetFullCompileName(Options));
+      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2657,7 +2662,9 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
-      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.GetFullCompileName(Options);
+      var dtName = dt is TupleTypeDecl tupleDecl
+        ? DafnyTupleClass(tupleDecl.NonGhostDims)
+        : IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {
@@ -4002,7 +4009,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnySeqClass}.Create({TypeDescriptor(expr.Type.AsCollectionType.Arg, wr, expr.tok)}, ");
-      wr.Append(Expr(expr.N, inLetExprBody, wStmts));
+      var size = expr.N;
+      if (AsJavaNativeType(size.Type) is { }) {
+        size = new ConversionExpr(expr.N.tok, size, new IntType());
+      }
+      var sizeWr = Expr(size, inLetExprBody, wStmts);
+      wr.Append(sizeWr);
       wr.Write(", ");
       wr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");

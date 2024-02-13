@@ -57,7 +57,7 @@ public class LibraryBackend : ExecutableBackend {
     return null;
   }
 
-  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override bool OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     // Not calling base.OnPostCompile() since it references `compiler`
     return true;
   }
