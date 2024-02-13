@@ -219,7 +219,7 @@ public class ProgramResolver {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         var target = compiledModule.Implements.Target.Def;
         if (target.Replacement != null) {
-          Reporter!.Error(MessageSource.Compiler, new NestedToken(compiledModule.Tok, target.Replacement.Tok,
+          Reporter!.Error(MessageSource.Resolver, new NestedToken(compiledModule.Tok, target.Replacement.Tok,
               $"other replacing module"),
             "a replaceable module may only be replaced once");
         } else {

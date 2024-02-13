@@ -219,7 +219,7 @@ module PriorityQueue_extrinsic {
     else
       Node(t.val, Insert(t.right, x), t.left)
   }
-  lemma AboutInsert(t: T, x: int)
+  lemma {:resource_limit "70e6"} AboutInsert(t: T, x: int)
     requires Valid(t)
     ensures var t' := Insert(t, x);
       Valid(t') &&

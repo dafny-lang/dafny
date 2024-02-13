@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

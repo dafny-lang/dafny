@@ -25,7 +25,7 @@ public class NoExecutableBackend : IExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override bool OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     throw new NotSupportedException();
   }
 
