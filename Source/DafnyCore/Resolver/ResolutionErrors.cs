@@ -10,6 +10,7 @@ public class ResolutionErrors {
   public enum ErrorId {
     // ReSharper disable once InconsistentNaming
     none,
+    r_assume_statement_without_axiom,
     r_ghost_var_only_in_specifications,
     r_only_in_specification,
     r_ghost_parameters_only_in_specification,

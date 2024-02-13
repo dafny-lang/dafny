@@ -253,7 +253,7 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)** {#c_assume_statement_may_not_be_compiled}
+## **Warning: assume statement has no {:axiom} annotation** {#r_assume_statement_without_axiom}
 
 <!-- %check-run -->
 ```dafny
