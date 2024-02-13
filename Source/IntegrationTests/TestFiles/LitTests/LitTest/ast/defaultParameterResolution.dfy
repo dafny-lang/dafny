@@ -1,6 +1,4 @@
-// RUN: ! %resolve %s --type-system-refresh > %t
-// RUN: ! %resolve %s >> %t
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s" --expect-exit-code=2
 
 function SumFromTo(sequence: nat -> real, start: nat := 0, end: nat): real
 
