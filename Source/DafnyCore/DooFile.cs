@@ -290,7 +290,7 @@ public class DooFile {
     }
 
     if (value == null) {
-      return "with a version of Dafny that does not have this option";
+      return "a version of Dafny that does not have this option";
     }
     return value.ToString();
   }

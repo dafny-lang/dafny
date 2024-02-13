@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --allow-deprecation --relax-definite-assignment --allow-warnings --print "%t.print.dfy" "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation --allow-axioms --relax-definite-assignment --allow-warnings --print "%t.print.dfy" "%s" > "%t"
 // RUN: %resolve --allow-warnings --allow-deprecation "%t.print.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

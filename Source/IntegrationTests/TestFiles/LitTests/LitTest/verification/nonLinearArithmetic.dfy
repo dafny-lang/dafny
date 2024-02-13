@@ -1,4 +1,4 @@
-// RUN: ! %verify "%s" --disable-nonlinear-arithmetic --resource-limit 1e6 > "%t"
+// RUN: ! %verify "%s" --disable-nonlinear-arithmetic --allow-axioms --resource-limit 1e6 > "%t"
 // RUN: ! %verify "%s" --resource-limit 1e6 >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
