@@ -137,7 +137,7 @@ method Main(i: int) {}
 
 <!-- INSERT-TEXT -->
 
-## **Error: Function _name_ has no body** {#c_function_has_no_body}
+## **Error: Function _name_ has no body so it cannot be executed** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -160,7 +160,7 @@ ghost function {:test} f(): int { 42 }
 <!-- TODO: Need example? -->
 <!-- INSERT-TEXT -->
 
-## **Error: Method _name_ has no body** {#c_method_has_no_body}
+## **Error: Method _name_ has no body so it cannot be executed** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny

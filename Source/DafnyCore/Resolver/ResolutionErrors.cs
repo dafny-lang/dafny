@@ -88,6 +88,8 @@ public class ResolutionErrors {
   }
 
   static ResolutionErrors() {
+    Add(ErrorId.r_assume_statement_without_axiom,
+      @"", InsertBefore("{:axiom}"));
     Add(ErrorId.r_assert_only_assumes_others,
     @"
 When annotating an assertion with the `{:only}` attribute, all other implicit and explicit assertions

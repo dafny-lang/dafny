@@ -262,14 +262,6 @@ method m(x: int) {
 }
 ```
 
-A method may be parsed and verified even if an [assume statement](../DafnyRef/DafnyRef#sec-assume-statement) is present. 
-However, the assume statement is an explicit, unchecked assumption.
-Dafny does not allow programs with unchecked assumptions, that is, incompletely verified programs, to be compiled.
-The `{:axiom}` attribute can be used to tell Dafny that the assumption is to be considered an
-externally verified _axiom_, with the program author taking responsibility for its validity.
-
-If the assumption marked with `{:axiom}` is not actually valid, then the validity of the entire program is in question.
-
 ## **Error: a forall statement without a body cannot be compiled** {#c_forall_statement_has_no_body}
 
 <!-- %no-check  FIX: now has multiple lines of error messages -->
