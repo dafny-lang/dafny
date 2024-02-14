@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
       string confirmedProverPath = null;
-      string notFoundMessage = $"Z3 not found. Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
+      string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
       
       // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny {
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
-          errorReporter.Error(MessageSource.Verifier, token, notFoundMessage);
+          errorReporter.Error(MessageSource.Verifier, token, $"Z3 not found at {proverPath}. " + nextStepsMessage);
           return null;
         }
 
@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny {
         return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
-      errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, notFoundMessage);
+      errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, "Z3 is not found. " + nextStepsMessage);
       return null;
     }
 
