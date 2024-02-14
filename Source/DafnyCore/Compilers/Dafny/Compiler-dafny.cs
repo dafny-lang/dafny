@@ -317,15 +317,6 @@ namespace Microsoft.Dafny.Compilers {
           witnessStmts = statementBuf.PopAll();
         }
 
-        EmitExpr(
-          nt.Constraint, false,
-          new BuilderSyntaxTree<ExprContainer>(buf, this),
-          new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
-        );
-        string baseName = nt.Var.CompileName;
-        DAST.Expression baseConstraint = buf.Finish();
-        var baseConstraintStmts = statementBuf.PopAll(); // TODO: Integrate in AST.
-
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), new(),
           GenType(nt.BaseType), NativeTypeToNewtypeRange(nt.NativeType), witnessStmts, witness));

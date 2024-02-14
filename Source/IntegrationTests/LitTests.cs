@@ -201,7 +201,7 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
+    [FileData(Includes = new[] { "**/*.dfy", "**/*.expect", "**/*.transcript" },
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
               })]
     public void LitTest(string path) {
@@ -273,6 +273,10 @@ namespace IntegrationTests {
               return true;
             }
           }
+        }
+
+        if (leafCommand is MultiBackendLitCommand) {
+          return true;
         }
       }
 

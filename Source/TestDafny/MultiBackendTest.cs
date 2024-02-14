@@ -181,10 +181,13 @@ public class MultiBackendTest {
     string expectFile = options.TestFile + ".expect";
     var commonExpectedOutput = File.ReadAllText(expectFile);
 
+    var onlyCompilers = 
+      (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") ?? "").Split(",");
+
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable) {
+        if (!compiler.IsStable || onlyCompilers.Any() && !onlyCompilers.Contains(compiler.TargetId)) {
           // Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
           // Such as empty constructors with ensures clauses, generated from iterators
           continue;
@@ -193,17 +196,24 @@ public class MultiBackendTest {
         // Check for backend-specific exceptions (because of known bugs or inconsistencies)
         var expectedOutput = commonExpectedOutput;
         string? checkFile = null;
-        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+        var expectedErrorCode = 0;
+        var expectFileForBackend = ExpectFileForBackend(options, compiler);
         if (File.Exists(expectFileForBackend)) {
           expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
+        } else {
+          var expectErrorFileForBackend = ExpectErrorFileForBackend(options, compiler);
+          if (File.Exists(expectErrorFileForBackend)) {
+            expectedOutput = await File.ReadAllTextAsync(expectErrorFileForBackend);
+            expectedErrorCode = 3;
+          }
         }
 
-        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+        var checkFileForBackend = CheckFileForBackend(options, compiler);
         if (File.Exists(checkFileForBackend)) {
           checkFile = checkFileForBackend;
         }
 
-        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
+        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile, expectedErrorCode);
         if (result != 0) {
           success = false;
         }
@@ -213,7 +223,7 @@ public class MultiBackendTest {
           // depending on whether it is included as source or referenced as DafnyRuntime.dll
           // (because of "#ifdef ISDAFNYRUNTIMELIB" directives - see DafnyRuntime.cs).
           // This should be enabled for any other backends that have similar divergence.
-          result = RunWithCompiler(options, compiler, expectedOutput, checkFile, false);
+          result = RunWithCompiler(options, compiler, expectedOutput, checkFile, 0, false);
           if (result != 0) {
             success = false;
           }
@@ -228,6 +238,21 @@ public class MultiBackendTest {
     }
 
     return -1;
+  }
+
+  private static string CheckFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
+  {
+    return $"{options.TestFile}.{compiler.TargetId}.check";
+  }
+
+  private static string ExpectErrorFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
+  {
+    return $"{options.TestFile}.{compiler.TargetId}.error.expect";
+  }
+
+  private static string ExpectFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
+  {
+    return $"{options.TestFile}.{compiler.TargetId}.expect";
   }
 
   public int ForEachResolver(ForEachResolverOptions options) {
@@ -306,7 +331,8 @@ public class MultiBackendTest {
     return !compileOptions.Contains(name);
   }
 
-  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile, bool includeRuntime = true) {
+  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput,
+    string? checkFile, int expectedErrorCode, bool includeRuntime = true) {
     output.Write($"Executing on {backend.TargetName}");
     if (!includeRuntime) {
       output.Write(" (with --include-runtime:false)");
@@ -318,7 +344,8 @@ public class MultiBackendTest {
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
     var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
-    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    var baseRandomDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    var tempOutputDirectory = Path.Combine(baseRandomDirectory, Path.GetFileName(options.TestFile!));
     Directory.CreateDirectory(tempOutputDirectory);
 
     IEnumerable<string> dafnyArgs = new List<string> {
@@ -345,8 +372,35 @@ public class MultiBackendTest {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
 
-    if (exitCode == 0) {
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
+    var exitCodeExpected = exitCode == expectedErrorCode;
+    var diffMessage = exitCodeExpected ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
+    if (checkFile == null && (!exitCodeExpected || diffMessage != null)) {
+      if (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE") == "true") {
+        if ((Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR") ?? "") == "") {
+          output.WriteLine(
+            "DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
+        } else {
+          // Ensure we don't accidentally do this for every compiler.
+          var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"),
+            CheckFileForBackend(options, backend));
+          var checkOutput = string.Join("\n", outputString.Split("\n").Select(line => "// CHECK-L: " + line));
+          File.WriteAllText(sourcePath, checkOutput);
+          if (diffMessage != null) {
+            output.WriteLine(diffMessage);
+          } else {
+            output.WriteLine($"Output stored at {sourcePath} so that it's recognized.");
+            output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
+            output.WriteLine(outputString);
+            output.WriteLine("Error:");
+            output.WriteLine(error);
+          }
+
+          return exitCode;
+        }
+      }
+    }
+    
+    if (exitCodeExpected) {
       if (diffMessage == null) {
         return 0;
       }
@@ -359,6 +413,7 @@ public class MultiBackendTest {
     if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
       return 0;
     }
+
 
     if (checkFile != null) {
       var outputLines = new List<string>();
