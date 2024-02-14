@@ -871,7 +871,7 @@ namespace Microsoft.Dafny {
         SetZ3Options(z3Version);
       }
     }
-    
+
     public override string AttributeHelp =>
       @"Dafny: The documentation about attributes is best viewed here:
       https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
@@ -1109,7 +1109,7 @@ namespace Microsoft.Dafny {
     private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
       string confirmedProverPath = null;
       string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
-      
+
       // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
       var proverPathOption = ProverOptions.Find(o => o.StartsWith(pp));
