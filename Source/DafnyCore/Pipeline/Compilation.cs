@@ -11,10 +11,12 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
+using Diagnostic = OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -119,6 +121,7 @@ public class Compilation : IDisposable {
 
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
+
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
   }
@@ -222,6 +225,8 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
+      PrepVerificationOptions();
+
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopy()));
@@ -235,6 +240,10 @@ public class Compilation : IDisposable {
       updates.OnNext(new InternalCompilationException(e));
       throw;
     }
+  }
+
+  private void PrepVerificationOptions() {
+    Options.PrepSolver(errorReporter);
   }
 
   public static string GetTaskName(IVerificationTask task) {
@@ -281,6 +290,7 @@ public class Compilation : IDisposable {
 
   public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     bool onlyPrepareVerificationForGutterTests = false) {
+
     var resolution = await Resolution;
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {

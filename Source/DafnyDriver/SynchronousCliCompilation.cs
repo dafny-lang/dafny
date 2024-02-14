@@ -421,7 +421,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
