@@ -225,7 +225,7 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
-      PrepVerificationOptions();
+      Options.CheckSolverOptions(errorReporter, Options.DafnyProject.StartingToken);
 
       updates.OnNext(new FinishedResolution(
         resolution,
@@ -240,10 +240,6 @@ public class Compilation : IDisposable {
       updates.OnNext(new InternalCompilationException(e));
       throw;
     }
-  }
-
-  private void PrepVerificationOptions() {
-    Options.PrepSolver(errorReporter);
   }
 
   public static string GetTaskName(IVerificationTask task) {

@@ -865,9 +865,9 @@ namespace Microsoft.Dafny {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
-    public void PrepSolver(ErrorReporter errorReporter) {
+    public void CheckSolverOptions(ErrorReporter errorReporter, IToken token) {
       if (IsUsingZ3()) {
-        var z3Version = SetZ3ExecutablePath(errorReporter);
+        var z3Version = SetZ3ExecutablePath(errorReporter, token);
         SetZ3Options(z3Version);
       }
     }
@@ -1106,7 +1106,7 @@ namespace Microsoft.Dafny {
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private Version SetZ3ExecutablePath(ErrorReporter errorReporter) {
+    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
       string confirmedProverPath = null;
       string notFoundMessage = $"Z3 not found. Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
       
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny {
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
-          errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, notFoundMessage);
+          errorReporter.Error(MessageSource.Verifier, token, notFoundMessage);
           return null;
         }
 

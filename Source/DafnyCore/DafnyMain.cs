@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
       if (options.Verify) {
-        options.PrepSolver(new ConsoleErrorReporter(options));
+        options.CheckSolverOptions(new ConsoleErrorReporter(options), Token.Cli);
       }
 
       string bplFilename;
