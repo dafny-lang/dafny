@@ -1461,8 +1461,8 @@ namespace Microsoft.Dafny {
       // Note, it is as if the trait's method is calling the class's method.
       var contextDecreases = overryd.Decreases.Expressions;
       var calleeDecreases = original.Decreases.Expressions;
-      var T = (TraitDecl)(overryd is Function f1 ? f1.EnclosingClass : ((Method)overryd).EnclosingClass);
-      var I = (TopLevelDeclWithMembers)(original is Function f2 ? f2.EnclosingClass : ((Method)original).EnclosingClass);
+      var T = (TraitDecl)((MemberDecl)overryd).EnclosingClass;
+      var I = (TopLevelDeclWithMembers)((MemberDecl)original).EnclosingClass;
 
       // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
       if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
@@ -1476,7 +1476,6 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
-
       FunctionCallSubstituter sub = null;
 
       for (int i = 0; i < N; i++) {
