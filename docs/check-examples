@@ -121,7 +121,7 @@ outdir="$dir/../Test/docexamples"
 
 coverage=0
 permOptions="--show-snippets:false "
-defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false --allow-axioms:true"
+defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
 
 while getopts 'c' opt; do
