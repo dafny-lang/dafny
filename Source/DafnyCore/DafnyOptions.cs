@@ -865,7 +865,7 @@ namespace Microsoft.Dafny {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
     }
 
-    public void CheckSolverOptions(ErrorReporter errorReporter, IToken token) {
+    public void ProcessSolverOptions(ErrorReporter errorReporter, IToken token) {
       if (IsUsingZ3()) {
         var z3Version = SetZ3ExecutablePath(errorReporter, token);
         SetZ3Options(z3Version);
