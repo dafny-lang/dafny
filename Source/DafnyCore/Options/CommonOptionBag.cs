@@ -3,12 +3,23 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Serilog.Events;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
+
+  public static readonly Option<string> LogLocation =
+    new("--log-location", "Sets the directory where to store log files") {
+      IsHidden = true
+    };
+
+  public static readonly Option<LogEventLevel> LogLevelOption =
+    new("--log-level", () => LogEventLevel.Error, "Sets the level at which events are logged") {
+      IsHidden = true
+    };
 
   public static readonly Option<bool> ManualTriggerOption =
     new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
@@ -555,6 +566,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      LogLocation,
+      LogLevelOption,
       ManualTriggerOption,
       ShowInference,
       Check,
