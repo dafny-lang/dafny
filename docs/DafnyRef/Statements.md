@@ -1527,15 +1527,16 @@ variable `i` becomes smaller each loop iteration, and is bounded below by
 zero. When `i` becomes 0, the lower bound of the well-founded order, control
 flow exits the loop.
 
-This is fine, except the loop is backwards from most loops, which
+This is fine, except the loop is backwards for most loops, which
 tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
 <!-- %check-verify -->
 ```dafny
-method m(m: nat, n: int) {
-  assume m <= n;
+method m(m: nat, n: int) 
+  requires m <= n 
+{
   var i := m;
   while i < n
     invariant 0 <= i <= n
