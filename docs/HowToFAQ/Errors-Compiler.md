@@ -262,6 +262,7 @@ method m(x: int) {
 }
 ```
 
+
 ## **Error: a forall statement without a body cannot be compiled** {#c_forall_statement_has_no_body}
 
 <!-- %no-check  FIX: now has multiple lines of error messages -->
