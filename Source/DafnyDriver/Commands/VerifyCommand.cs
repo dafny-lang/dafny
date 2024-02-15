@@ -50,7 +50,6 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
-        BoogieOptionBag.BoogieFilter,
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
