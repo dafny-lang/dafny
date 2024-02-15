@@ -106,10 +106,8 @@ namespace Microsoft.Dafny {
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
-      if (options.Verify) {
-        lock (options.ProverOptions) {
-          options.ProcessSolverOptions(new ConsoleErrorReporter(options), Token.Cli);
-        }
+      lock (options.ProverOptions) {
+        options.ProcessSolverOptions(options.Verify ? new ConsoleErrorReporter(options) : new ErrorReporterSink(options), Token.Cli);
       }
 
       string bplFilename;

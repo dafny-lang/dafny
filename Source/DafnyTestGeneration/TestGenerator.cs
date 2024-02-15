@@ -12,7 +12,7 @@ using Program = Microsoft.Dafny.Program;
 
 namespace DafnyTestGeneration {
 
-  public static class Main {
+  public static class TestGenerator {
 
     public static bool SetNonZeroExitCode = false;
 
@@ -177,6 +177,9 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache = null) {
+      lock (program.Options.ProverOptions) {
+        program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
+      }
 
       var options = program.Options;
       options.PrintMode = PrintModes.Everything;
