@@ -1937,46 +1937,6 @@ namespace Microsoft.Dafny {
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
 
-      // Look at the :nativeType attribute, if any, to determine preferences.
-      // A return of false means: don't use native type. (nativeTypes returns as null)
-      // A return of null means: no preference. (nativeTypes returns as null)
-      // A return of true means: make sure a native type is used. Furthermore,
-      //   * if nativeTypes is null, then no particular preference about which native type is picked
-      //   * if nativeTypes is non-null, then the choices of native types are restricted to those.
-      bool? ReadAttributesForNativePreferences(Attributes attributes, [CanBeNull] out List<NativeType> nativeTypes) {
-        nativeTypes = null;
-        var args = Attributes.FindExpressions(attributes, "nativeType");
-        if (args == null) {
-          // There was no :nativeType attribute
-          return null;
-        }
-        if (args.Count == 0) {
-          // {:nativeType}
-          return true;
-        }
-        if (args[0] is LiteralExpr { Value: bool and var boolValue }) {
-          return boolValue;
-        }
-
-        var choices = new List<NativeType>();
-        foreach (var arg in args) {
-          if (arg is LiteralExpr { Value: string s }) {
-            // Get the NativeType for "s"
-            var nativeType = NativeTypes.Find(nativeType => nativeType.Name == s);
-            if (nativeType == null) {
-              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
-              return false;
-            }
-            choices.Add(nativeType);
-          } else {
-            reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
-            return false;
-          }
-        }
-        nativeTypes = choices;
-        return true;
-      }
-
       // Look at the :nativeType attribute, if any
       var hasNativeTypePreference = ReadAttributesForNativePreferences(dd.Attributes, out var nativeTypeChoices);
       if (hasNativeTypePreference == false) {
@@ -2053,6 +2013,48 @@ namespace Microsoft.Dafny {
           "Dafny's heuristics cannot find a compatible native type. " +
           "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.");
       }
+    }
+
+    /// <summary>
+    /// Look at the :nativeType attribute, if any, to determine preferences.
+    /// A return of false means: don't use native type. (nativeTypes returns as null)
+    /// A return of null means: no preference. (nativeTypes returns as null)
+    /// A return of true means: make sure a native type is used. Furthermore,
+    ///   * if nativeTypes is null, then no particular preference about which native type is picked
+    ///   * if nativeTypes is non-null, then the choices of native types are restricted to those.
+    /// </summary>
+    bool? ReadAttributesForNativePreferences(Attributes attributes, [CanBeNull] out List<NativeType> nativeTypes) {
+      nativeTypes = null;
+      var args = Attributes.FindExpressions(attributes, "nativeType");
+      if (args == null) {
+        // There was no :nativeType attribute
+        return null;
+      }
+      if (args.Count == 0) {
+        // {:nativeType}
+        return true;
+      }
+      if (args[0] is LiteralExpr { Value: bool and var boolValue }) {
+        return boolValue;
+      }
+
+      var choices = new List<NativeType>();
+      foreach (var arg in args) {
+        if (arg is LiteralExpr { Value: string s }) {
+          // Get the NativeType for "s"
+          var nativeType = NativeTypes.Find(nativeType => nativeType.Name == s);
+          if (nativeType == null) {
+            reporter.Error(MessageSource.Resolver, arg.tok, ":nativeType '{0}' not known", s);
+            return false;
+          }
+          choices.Add(nativeType);
+        } else {
+          reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
+          return false;
+        }
+      }
+      nativeTypes = choices;
+      return true;
     }
 
     /// <summary>
