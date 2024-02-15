@@ -160,8 +160,7 @@ public abstract class Type : TokenNode {
     while (true) {
       result = result.NormalizeExpand();
       if (result.AsNewtype is { } newtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, result.TypeArgs);
-        result = newtypeDecl.BaseType.Subst(subst);
+        result = newtypeDecl.ConcreteBaseType(result.TypeArgs);
       } else {
         return result;
       }
@@ -204,8 +203,7 @@ public abstract class Type : TokenNode {
   public Type NormalizePastUnconstrainedTypes() {
     Type typ = NormalizeExpandKeepConstraints();
     while (typ.AsNewtype is { Constraint: null } newtypeDecl) {
-      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
-      typ = newtypeDecl.BaseType.Subst(subst).NormalizeExpandKeepConstraints();
+      typ = newtypeDecl.ConcreteBaseType(typ.TypeArgs).NormalizeExpandKeepConstraints();
     }
     return typ;
   }
