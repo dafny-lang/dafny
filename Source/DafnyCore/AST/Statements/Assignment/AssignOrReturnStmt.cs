@@ -112,8 +112,15 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// </summary>
   public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
-    // TODO Do I have any responsibilities regarding the use of resolutionContext? Is it mutable?
 
+    if (KeywordToken != null) {
+      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && KeywordToken.Token.val == "assume" && !KeywordToken.IsExplicitAxiom()) {
+        resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
+      }
+
+      resolver.ResolveAttributes(KeywordToken, resolutionContext);
+    }
+    
     // We need to figure out whether we are using a status type that has Extract or not,
     // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
     // method call we need to know which one (to inspect its first output); if RHs is a
