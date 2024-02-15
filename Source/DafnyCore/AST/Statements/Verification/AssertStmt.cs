@@ -66,14 +66,13 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
+  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
     if (Label != null) {
       if (resolver.DominatingStatementLabels.Find(Label.Name) != null) {
         resolver.Reporter.Error(MessageSource.Resolver, Label.Tok, "assert label shadows a dominating label");
       } else {
         var rr = resolver.DominatingStatementLabels.Push(Label.Name, Label);
-        Contract.Assert(rr == Scope<Label>.PushResult
-          .Success); // since we just checked for duplicates, we expect the Push to succeed
+        Contract.Assert(rr == Scope<Label>.PushResult.Success); // since we just checked for duplicates, we expect the Push to succeed
       }
     }
 
@@ -92,13 +91,13 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
     if (Proof != null) {
       // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
-      var prevLblStmts = resolver.enclosingStatementLabels;
-      var prevLoopStack = resolver.loopStack;
-      resolver.enclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.loopStack = new List<Statement>();
+      var prevLblStmts = resolver.EnclosingStatementLabels;
+      var prevLoopStack = resolver.LoopStack;
+      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      resolver.LoopStack = new List<Statement>();
       resolver.ResolveStatement(Proof, context);
-      resolver.enclosingStatementLabels = prevLblStmts;
-      resolver.loopStack = prevLoopStack;
+      resolver.EnclosingStatementLabels = prevLblStmts;
+      resolver.LoopStack = prevLoopStack;
     }
   }
 

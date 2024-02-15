@@ -33,7 +33,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
+  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
     base.Resolve(resolver, context);
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {

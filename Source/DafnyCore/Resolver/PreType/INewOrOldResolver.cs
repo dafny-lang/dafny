@@ -1,11 +1,15 @@
+using System.Collections.Generic;
+
 namespace Microsoft.Dafny;
 
-public interface GenericResolver {
-    
+public interface INewOrOldResolver {
+
   DafnyOptions Options { get; }
   ErrorReporter Reporter { get; }
   Scope<IVariable> Scope { get; }
   Scope<Label> DominatingStatementLabels { get; }
+  Scope<Statement> EnclosingStatementLabels { get; set; }
+  List<Statement> LoopStack { get; set; }
   void ResolveAttributes(IAttributeBearingDeclaration attributedToken, ResolutionContext resolutionContext, bool solveConstraints = false);
   MethodCallInformation ResolveApplySuffix(ApplySuffix applySuffix, ResolutionContext resolutionContext, bool allowMethodCall);
   void ResolveExpression(Expression expression, ResolutionContext resolutionContext);

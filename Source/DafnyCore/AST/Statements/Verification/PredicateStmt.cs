@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class PredicateStmt : Statement, ICanResolve {
+public abstract class PredicateStmt : Statement, IGenericCanResolve {
   public readonly Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -27,7 +27,7 @@ public abstract class PredicateStmt : Statement, ICanResolve {
     this.Expr = expr;
   }
 
-  public virtual void Resolve(ModuleResolver resolver, ResolutionContext context) {
+  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
     base.Resolve(resolver, context);
     resolver.ResolveExpression(Expr, context);
     Contract.Assert(Expr.Type != null); // follows from postcondition of ResolveExpression

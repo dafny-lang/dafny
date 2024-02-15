@@ -22,6 +22,17 @@ namespace Microsoft.Dafny {
   public partial class ModuleResolver {
     public List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     public Scope<Label>/*!*/ DominatingStatementLabels { get; private set; }
+
+    public Scope<Statement> EnclosingStatementLabels {
+      get => enclosingStatementLabels;
+      set => enclosingStatementLabels = value;
+    }
+
+    public List<Statement> LoopStack {
+      get => loopStack;
+      set => loopStack = value;
+    }
+
     public Scope<Statement>/*!*/ enclosingStatementLabels;
     public Method currentMethod;
 
@@ -3062,18 +3073,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
-      enclosingStatementLabels.PushMarker();
+      EnclosingStatementLabels.PushMarker();
       // push labels
       for (var l = stmt.Labels; l != null; l = l.Next) {
         var lnode = l.Data;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-        var prev = enclosingStatementLabels.Find(lnode.Name);
+        var prev = EnclosingStatementLabels.Find(lnode.Name);
         if (prev == stmt) {
           reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
         } else if (prev != null) {
           reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
         } else {
-          var r = enclosingStatementLabels.Push(lnode.Name, stmt);
+          var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           if (DominatingStatementLabels.Find(lnode.Name) != null) {
             reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
@@ -3084,7 +3095,7 @@ namespace Microsoft.Dafny {
         }
       }
       ResolveStatement(stmt, resolutionContext);
-      enclosingStatementLabels.PopMarker();
+      EnclosingStatementLabels.PopMarker();
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
@@ -3101,7 +3112,7 @@ namespace Microsoft.Dafny {
       }
 
       if (loopToCatchBreaks != null) {
-        loopStack.Add(loopToCatchBreaks);  // push
+        LoopStack.Add(loopToCatchBreaks);  // push
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
@@ -3120,7 +3131,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
       }
       if (loopToCatchBreaks != null) {
-        loopStack.RemoveAt(loopStack.Count - 1);  // pop
+        LoopStack.RemoveAt(LoopStack.Count - 1);  // pop
       }
     }
 
@@ -3495,11 +3506,11 @@ namespace Microsoft.Dafny {
     public void ResolveStatement(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
-      if (stmt is IGenericCanResolve canResolve) {
-        canResolve.Resolve(this, resolutionContext);
+      if (stmt is IGenericCanResolve genericCanResolve) {
+        genericCanResolve.Resolve(this, resolutionContext);
         return;
       }
-      
+
       if (stmt is ICanResolve canResolve) {
         canResolve.Resolve(this, resolutionContext);
         return;
@@ -3561,7 +3572,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
             reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
@@ -3574,13 +3585,13 @@ namespace Microsoft.Dafny {
           var jumpStmt = s.BreakAndContinueCount == 1 ?
             $"a non-labeled '{s.Kind}' statement" :
             $"a '{Util.Repeat(s.BreakAndContinueCount - 1, "break ")}{s.Kind}' statement";
-          if (loopStack.Count == 0) {
+          if (LoopStack.Count == 0) {
             reporter.Error(MessageSource.Resolver, s, $"{jumpStmt} is allowed only in loops");
-          } else if (loopStack.Count < s.BreakAndContinueCount) {
+          } else if (LoopStack.Count < s.BreakAndContinueCount) {
             reporter.Error(MessageSource.Resolver, s,
-              $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
+              $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {LoopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
+            Statement target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Tok, null), null);
@@ -3841,11 +3852,11 @@ namespace Microsoft.Dafny {
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
         if (s.Body != null) {
-          loopStack.Add(s);  // push
+          LoopStack.Add(s);  // push
           DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Body, resolutionContext);
           DominatingStatementLabels.PopMarker();
-          loopStack.RemoveAt(loopStack.Count - 1);  // pop
+          LoopStack.RemoveAt(LoopStack.Count - 1);  // pop
         }
 
         if (s is ForLoopStmt) {
@@ -3880,13 +3891,13 @@ namespace Microsoft.Dafny {
 
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
-          var prevLblStmts = enclosingStatementLabels;
-          var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>(Options);
-          loopStack = new List<Statement>();
+          var prevLblStmts = EnclosingStatementLabels;
+          var prevLoopStack = LoopStack;
+          EnclosingStatementLabels = new Scope<Statement>(Options);
+          LoopStack = new List<Statement>();
           ResolveStatement(s.Body, resolutionContext);
-          enclosingStatementLabels = prevLblStmts;
-          loopStack = prevLoopStack;
+          EnclosingStatementLabels = prevLblStmts;
+          LoopStack = prevLoopStack;
         }
         scope.PopMarker();
 
@@ -3991,10 +4002,10 @@ namespace Microsoft.Dafny {
           }
 
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
-          var prevLblStmts = enclosingStatementLabels;
-          var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>(Options);
-          loopStack = new List<Statement>();
+          var prevLblStmts = EnclosingStatementLabels;
+          var prevLoopStack = LoopStack;
+          EnclosingStatementLabels = new Scope<Statement>(Options);
+          LoopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {
               DominatingStatementLabels.PushMarker();
@@ -4002,8 +4013,8 @@ namespace Microsoft.Dafny {
               DominatingStatementLabels.PopMarker();
             }
           }
-          enclosingStatementLabels = prevLblStmts;
-          loopStack = prevLoopStack;
+          EnclosingStatementLabels = prevLblStmts;
+          LoopStack = prevLoopStack;
 
         }
         if (prevErrorCount == reporter.Count(ErrorLevel.Error) && s.Lines.Count > 0) {

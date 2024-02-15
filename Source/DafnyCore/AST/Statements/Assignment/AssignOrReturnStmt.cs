@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt>, IGenericCanResolve {
+public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
@@ -113,14 +113,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
 
-    if (KeywordToken != null) {
-      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && KeywordToken.Token.val == "assume" && !KeywordToken.IsExplicitAxiom()) {
-        resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
-      }
+    ResolveKeywordToken(resolver, resolutionContext);
 
-      resolver.ResolveAttributes(KeywordToken, resolutionContext);
-    }
-    
     // We need to figure out whether we are using a status type that has Extract or not,
     // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
     // method call we need to know which one (to inspect its first output); if RHs is a
@@ -242,6 +236,18 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
     resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken != null);
+  }
+
+  public void ResolveKeywordToken(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+    if (KeywordToken == null) {
+      return;
+    }
+
+    if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && KeywordToken.Token.val == "assume" && !KeywordToken.IsExplicitAxiom()) {
+      resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
+    }
+
+    resolver.ResolveAttributes(KeywordToken, resolutionContext);
   }
 
   /// <summary>
