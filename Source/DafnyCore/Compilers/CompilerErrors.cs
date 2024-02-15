@@ -123,7 +123,7 @@ Programs containing iterators without bodies can be verified.
 However, a body-less iterator is an unchecked assumption (even if it is ghost).
 Consequently, like body-less functions and loops, dafny will not
 compile a program containing an iterator without a body.
-Furthermore, if the iterator is non-ghost, it cannot be executed if it does not have a body.
+Furthermore, if the iterator is non-ghost, it cannot be compiled if it does not have a body.
 ");
 
     Add(ErrorId.c_constructorless_class_forbidden,

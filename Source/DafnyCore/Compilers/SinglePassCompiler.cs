@@ -2215,7 +2215,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileFunction(f, classWriter, false);
             }
           } else if (f.Body == null) {
-            Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body so it cannot be executed", errorWr, f.FullName);
+            Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body so it cannot be compiled", errorWr, f.FullName);
           } else if (c is NewtypeDecl && f != f.Original) {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
@@ -2250,7 +2250,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileMethod(program, m, classWriter, false);
             }
           } else if (m.Body == null) {
-            Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be executed", errorWr, m.FullName);
+            Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
@@ -2692,7 +2692,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be executed", w, m.FullName);
+          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", w, m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -3181,7 +3181,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (stmt is OneBodyLoopStmt) {
           var s = (OneBodyLoopStmt)stmt;
           if (s.Body == null) {
-            compiler.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be executed", wr);
+            compiler.Error(ErrorId.c_loop_has_no_body, stmt.Tok, "a loop without a body cannot be compiled", wr);
           }
         }
       }

@@ -6,4 +6,4 @@ TraitCompileErrors.dfy(13,36): Warning: This ensures clause is part of a bodyles
 TraitCompileErrors.dfy(14,39): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 
 Dafny program verifier finished with 2 verified, 0 errors
-TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body so it cannot be executed
+TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body so it cannot be compiled

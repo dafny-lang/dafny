@@ -106,7 +106,7 @@ Programs containing iterators without bodies can be verified.
 However, a body-less iterator is an unchecked assumption (even if it is ghost).
 Consequently, like body-less functions and loops, dafny will not
 compile a program containing an iterator without a body.
-Furthermore, if the iterator is non-ghost, it cannot be executed if it does not have a body.
+Furthermore, if the iterator is non-ghost, it cannot be compiled if it does not have a body.
 
 ## **Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option** {#c_constructorless_class_forbidden}
 
@@ -209,7 +209,7 @@ This error occurs if the `Main` method that is found
 does not qualify as a main entry point because it violates one or more of the [rules](#sec-user-guide-main),
 as given by the reason in the error message.
 
-## **Error: Function _name_ has no body so it cannot be executed** {#c_function_has_no_body}
+## **Error: Function _name_ has no body so it cannot be compiled** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -242,7 +242,7 @@ a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-## **Error: Method _name_ has no body so it cannot be executed** {#c_method_has_no_body}
+## **Error: Method _name_ has no body so it cannot be compiled** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny
