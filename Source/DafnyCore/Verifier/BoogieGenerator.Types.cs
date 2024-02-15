@@ -201,10 +201,9 @@ public partial class BoogieGenerator {
           // inner forall vars
           var ivars = new List<Bpl.Variable>();
           var o = BplBoundVar("o", predef.RefType, ivars);
-          var a = new TypeVariable(tok, "a");
-          var fld = BplBoundVar("fld", predef.FieldName(tok, a), ivars);
+          var fld = BplBoundVar("fld", predef.FieldName(tok), ivars);
 
-          var inner_forall = new Bpl.ForallExpr(tok, Singleton(a), ivars, BplImp(
+          var inner_forall = new Bpl.ForallExpr(tok, new List<TypeVariable>(), ivars, BplImp(
             BplAnd(
               Bpl.Expr.Neq(o, predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
@@ -213,7 +212,7 @@ public partial class BoogieGenerator {
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
               })
             ),
-            Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld, a), ReadHeap(tok, h1, o, fld, a))));
+            Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
           Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
@@ -1146,13 +1145,13 @@ public partial class BoogieGenerator {
       return BoxIfNecessary(r.tok, r, fromType);
     } else if (toType.IsRefType) {
       Contract.Assert(fromType.IsTraitType);
-      return UnboxIfBoxed(r, toType);
+      return UnboxUnlessInherentlyBoxed(r, toType);
     } else if (toType.IsTraitType) {
       // cast to a non-reference trait
       return BoxIfNecessary(r.tok, r, fromType);
     } else if (fromType.IsTraitType) {
       // cast from a non-reference trait
-      return UnboxIfBoxed(r, toType);
+      return UnboxUnlessInherentlyBoxed(r, toType);
     } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
       return r;
     } else {

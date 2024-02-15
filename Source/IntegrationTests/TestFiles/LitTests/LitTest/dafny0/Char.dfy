@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false --unicode-char=false
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation --unicode-char=false
 
 
 class CharChar {
