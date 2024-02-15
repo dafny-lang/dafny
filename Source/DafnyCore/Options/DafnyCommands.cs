@@ -94,7 +94,9 @@ public static class DafnyCommands {
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
     CommonOptionBag.ReadsClausesOnMethods,
-    CommonOptionBag.UseStandardLibraries
+    CommonOptionBag.UseStandardLibraries,
+    CommonOptionBag.LogLevelOption,
+    CommonOptionBag.LogLocation
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
