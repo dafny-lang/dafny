@@ -203,7 +203,7 @@ public abstract class Type : TokenNode {
   /// </summary>
   public Type NormalizePastUnconstrainedTypes() {
     Type typ = NormalizeExpandKeepConstraints();
-    while (typ.AsNewtype is { Var: null } newtypeDecl) {
+    while (typ.AsNewtype is { Constraint: null } newtypeDecl) {
       var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
       typ = newtypeDecl.BaseType.Subst(subst).NormalizeExpandKeepConstraints();
     }
