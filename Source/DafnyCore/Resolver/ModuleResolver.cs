@@ -1235,7 +1235,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        FigureOutIfTypeConstraintsAreCompilable(declarations);
+        AssignConstraintIsCompilable(declarations);
 
         // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
         // visit iterator bodies and members (which will make calls to CheckIsCompilable).
@@ -1626,7 +1626,7 @@ namespace Microsoft.Dafny {
       return output;
     }
 
-    private void FigureOutIfTypeConstraintsAreCompilable(List<TopLevelDecl> declarations) {
+    private void AssignConstraintIsCompilable(List<TopLevelDecl> declarations) {
       // It's important to do the declarations in topological order from how they depend on each other.
       declarations = TopologicallySortedTopLevelDecls(declarations);
 
