@@ -156,14 +156,14 @@ public abstract class Type : TokenNode {
   /// Call NormalizeExpand() repeatedly, also on the base type of newtype's.
   /// </summary>
   public Type NormalizeToAncestorType() {
-    Type t = this;
+    Type result = this;
     while (true) {
-      t = t.NormalizeExpand();
-      if (t.AsNewtype is { } newtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, t.TypeArgs);
-        t = newtypeDecl.BaseType.Subst(subst);
+      result = result.NormalizeExpand();
+      if (result.AsNewtype is { } newtypeDecl) {
+        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, result.TypeArgs);
+        result = newtypeDecl.BaseType.Subst(subst);
       } else {
-        return t;
+        return result;
       }
     }
   }
