@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
 
-  public interface IGenericCanResolve {
+  public interface ICanResolveNewAndOld {
     void Resolve(INewOrOldResolver resolver, ResolutionContext context);
   }
 

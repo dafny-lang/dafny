@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class PredicateStmt : Statement, IGenericCanResolve {
+public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
   public readonly Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {

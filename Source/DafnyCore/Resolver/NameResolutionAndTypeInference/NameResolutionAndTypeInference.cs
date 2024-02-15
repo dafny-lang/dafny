@@ -3506,7 +3506,7 @@ namespace Microsoft.Dafny {
     public void ResolveStatement(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
-      if (stmt is IGenericCanResolve genericCanResolve) {
+      if (stmt is ICanResolveNewAndOld genericCanResolve) {
         genericCanResolve.Resolve(this, resolutionContext);
         return;
       }

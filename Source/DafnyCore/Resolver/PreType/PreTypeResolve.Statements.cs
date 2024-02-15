@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
-      if (stmt is IGenericCanResolve canResolve) {
+      if (stmt is ICanResolveNewAndOld canResolve) {
         stmt.Resolve(this, resolutionContext);
         return;
       }
