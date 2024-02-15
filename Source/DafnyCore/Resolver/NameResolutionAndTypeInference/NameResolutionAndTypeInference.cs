@@ -21,7 +21,7 @@ using Microsoft.Dafny.Plugins;
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
     public List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
-    public readonly Scope<Label>/*!*/ DominatingStatementLabels;
+    public Scope<Label>/*!*/ DominatingStatementLabels { get; private set; }
     public Scope<Statement>/*!*/ enclosingStatementLabels;
     public Method currentMethod;
 
@@ -1196,10 +1196,10 @@ namespace Microsoft.Dafny {
       return ConstrainSubtypeRelation(super, sub, exprForToken.tok, msg, msgArgs);
     }
 
-    public void ConstrainTypeExprBool(Expression e, string msg) {
+    public void ConstrainTypeExprBool(Expression e, string message) {
       Contract.Requires(e != null);
-      Contract.Requires(msg != null);  // expected to have a {0} part
-      ConstrainSubtypeRelation(Type.Bool, e.Type, e, msg, e.Type);
+      Contract.Requires(message != null);  // expected to have a {0} part
+      ConstrainSubtypeRelation(Type.Bool, e.Type, e, message, e.Type);
     }
 
     public bool ConstrainSubtypeRelation(Type super, Type sub, IToken tok, string msg, params object[] msgArgs) {
@@ -3495,6 +3495,11 @@ namespace Microsoft.Dafny {
     public void ResolveStatement(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
+      if (stmt is IGenericCanResolve canResolve) {
+        canResolve.Resolve(this, resolutionContext);
+        return;
+      }
+      
       if (stmt is ICanResolve canResolve) {
         canResolve.Resolve(this, resolutionContext);
         return;
@@ -5866,8 +5871,6 @@ namespace Microsoft.Dafny {
       return rr;
     }
 
-    public record MethodCallInformation(IToken Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
-
     public MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);
@@ -6142,4 +6145,6 @@ namespace Microsoft.Dafny {
     }
 
   }
+
+  public record MethodCallInformation(IToken Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
 }

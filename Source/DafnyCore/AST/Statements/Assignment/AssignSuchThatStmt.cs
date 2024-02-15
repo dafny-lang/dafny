@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolve {
+public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, IGenericCanResolve {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
@@ -73,7 +73,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(GenericResolver resolver, ResolutionContext resolutionContext) {
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
@@ -92,19 +92,17 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
       if (lhs.Resolved != null) {
         resolver.CheckIsLvalue(lhs.Resolved, resolutionContext);
       } else {
-        Contract.Assert(resolver.reporter.HasErrors);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
       if (lhs.Resolved is IdentifierExpr ide) {
-        if (lhsSimpleVariables.Contains(ide.Var)) {
+        if (!lhsSimpleVariables.Add(ide.Var)) {
           // syntactically forbid duplicate simple-variables on the LHS
-          resolver.reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-        } else {
-          lhsSimpleVariables.Add(ide.Var);
+          resolver.Reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
         }
       }
       // to ease in the verification of the existence check, only allow local variables as LHSs
       if (AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-        resolver.reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
+        resolver.Reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
       }
     }
 

@@ -22,13 +22,17 @@ namespace Microsoft.Dafny {
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
 
+  public interface IGenericCanResolve {
+    void Resolve(GenericResolver resolver, ResolutionContext context);
+  }
+  
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
-  public partial class ModuleResolver {
+  public partial class ModuleResolver : GenericResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     public readonly SystemModuleManager SystemModuleManager;
@@ -37,6 +41,8 @@ namespace Microsoft.Dafny {
     public ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
+    public Scope<IVariable> Scope => scope;
+
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
 
     private bool RevealedInScope(Declaration d) {

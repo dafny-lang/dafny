@@ -7,19 +7,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Runtime.Intrinsics.X86;
 using JetBrains.Annotations;
-using Bpl = Microsoft.Boogie;
-using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
-  public partial class PreTypeResolver {
+  public partial class PreTypeResolver : GenericResolver {
     private Scope<Statement> enclosingStatementLabels;
     private readonly Scope<Label> dominatingStatementLabels;
+    public Scope<Label> DominatingStatementLabels => dominatingStatementLabels;
     private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
@@ -640,21 +636,24 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Resolve the LHSs
-      if (update != null) {
-        foreach (var lhs in update.Lhss) {
-          ResolveExpression(lhs, resolutionContext);
-        }
-      }
-
-      if (update is AssignSuchThatStmt assignSuchThatStmt) {
-        ResolveAssignSuchThatStmt(assignSuchThatStmt, resolutionContext);
-      } else if (update is UpdateStmt updateStmt) {
-        ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
-      } else if (update is AssignOrReturnStmt assignOrReturnStmt) {
-        ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
+      if (update is AssignSuchThatStmt assignSuchThatStmt)
+      {
+        assignSuchThatStmt.Resolve(this, resolutionContext);
       } else {
-        Contract.Assert(update == null);
+        // Resolve the LHSs
+        if (update != null) {
+          foreach (var lhs in update.Lhss) {
+            ResolveExpression(lhs, resolutionContext);
+          }
+        }
+
+        if (update is UpdateStmt updateStmt) {
+          ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
+        } else if (update is AssignOrReturnStmt assignOrReturnStmt) {
+          ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
+        } else {
+          Contract.Assert(update == null);
+        }
       }
     }
 
@@ -686,7 +685,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
-      ModuleResolver.MethodCallInformation methodCallInfo = null;
+      MethodCallInformation methodCallInfo = null;
       update.ResolvedStatements = new();
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
@@ -773,43 +772,6 @@ namespace Microsoft.Dafny {
       foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, resolutionContext);
       }
-    }
-
-    /// <summary>
-    /// Resolve an assign-such-that statement. It is assumed that the LHSs have already been resolved,
-    /// but not the RHSs.
-    /// </summary>
-    private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
-      Contract.Requires(s != null);
-      Contract.Requires(resolutionContext != null);
-
-      if (s.AssumeToken != null) {
-        ResolveAttributes(s.AssumeToken, resolutionContext, false);
-      }
-
-      var lhsSimpleVariables = new HashSet<IVariable>();
-      foreach (var lhs in s.Lhss) {
-        if (lhs.Resolved != null) {
-          CheckIsLvalue(lhs.Resolved, resolutionContext);
-        } else {
-          Contract.Assert(ErrorCount > 0);
-        }
-        if (lhs.Resolved is IdentifierExpr ide) {
-          if (lhsSimpleVariables.Contains(ide.Var)) {
-            // syntactically forbid duplicate simple-variables on the LHS
-            ReportError(lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-          } else {
-            lhsSimpleVariables.Add(ide.Var);
-          }
-        }
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-          ReportError(lhs, "an assign-such-that statement (without an 'assume' clause) currently supports only local-variable LHSs");
-        }
-      }
-
-      ResolveExpression(s.Expr, resolutionContext);
-      ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
     }
 
     private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants,
@@ -1213,7 +1175,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
@@ -1331,7 +1293,7 @@ namespace Microsoft.Dafny {
     /// that can be assigned to.  In particular, this means that lhs denotes a mutable variable, field,
     /// or array element.  If a violation is detected, an error is reported.
     /// </summary>
-    void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
+    public void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
       Contract.Requires(lhs != null);
       Contract.Requires(resolutionContext != null);
       if (lhs is IdentifierExpr) {

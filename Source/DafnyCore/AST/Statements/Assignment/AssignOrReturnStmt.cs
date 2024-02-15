@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
+public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt>, IGenericCanResolve {
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
@@ -110,7 +110,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// and saves the result into s.ResolvedStatements.
   /// This is also known as the "elephant operator"
   /// </summary>
-  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
 
     if (KeywordToken != null) {
@@ -139,7 +139,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         if (call.Outs.Count != 0) {
           firstType = call.Outs[0].Type.Subst(typeMap);
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
         }
       } else {
         // We're looking at a call to a function. Treat it like any other expression.
@@ -152,46 +152,46 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
 
     var method = (Method)resolutionContext.CodeContext;
     if (method.Outs.Count == 0 && KeywordToken == null) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
+      resolver.Reporter.Error(MessageSource.Resolver, Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
       return;
     }
     if (firstType != null) {
       firstType = resolver.PartiallyResolveTypeForMemberSelection(Rhs.tok, firstType);
       if (firstType.AsTopLevelTypeWithMembers != null) {
         if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "member IsFailure does not exist in {0}, in :- statement", firstType);
           return;
         }
         expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
         if (expectExtract && call == null && Lhss.Count != 1 + Rhss.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, 1 + Rhss.Count, firstType);
           return;
         } else if (expectExtract && call != null && Lhss.Count != call.Outs.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, call.Outs.Count, firstType);
           return;
 
         } else if (!expectExtract && call == null && Lhss.Count != Rhss.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", Lhss.Count, 1 + Rhss.Count, firstType);
           return;
 
         } else if (!expectExtract && call != null && Lhss.Count != call.Outs.Count - 1) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", Lhss.Count, call.Outs.Count - 1, firstType);
           return;
         }
       } else {
-        resolver.reporter.Error(MessageSource.Resolver, Tok,
+        resolver.Reporter.Error(MessageSource.Resolver, Tok,
           $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
         return;
       }
     } else {
-      resolver.reporter.Error(MessageSource.Resolver, Tok,
+      resolver.Reporter.Error(MessageSource.Resolver, Tok,
         "Internal Error: Unknown failure type in :- statement");
       return;
     }
@@ -199,7 +199,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     Expression lhsExtract = null;
     if (expectExtract) {
       if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
-        resolver.reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
+        resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
         return;
       }
 
@@ -212,7 +212,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
       } else if (lhsResolved is SeqSelectExpr lseq) {
         if (!lseq.SelectOne || lseq.E0 == null) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "Element ranges not allowed as l-values");
           return;
         }

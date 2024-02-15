@@ -67,6 +67,9 @@ namespace Microsoft.Dafny {
 
   public partial class PreTypeResolver : ResolverPass {
     private readonly Scope<IVariable> scope;
+    public ErrorReporter Reporter => resolver.Reporter;
+    public DafnyOptions Options => resolver.Options;
+    public Scope<IVariable> Scope => scope;
 
     TopLevelDeclWithMembers currentClass;
     Method currentMethod;
@@ -838,7 +841,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext opts, bool solveConstraints) {
+    public void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext opts, bool solveConstraints) {
       Contract.Requires(attributeHost != null);
       Contract.Requires(opts != null);
 

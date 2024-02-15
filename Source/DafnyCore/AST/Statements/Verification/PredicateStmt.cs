@@ -27,7 +27,7 @@ public abstract class PredicateStmt : Statement, ICanResolve {
     this.Expr = expr;
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
+  public virtual void Resolve(ModuleResolver resolver, ResolutionContext context) {
     base.Resolve(resolver, context);
     resolver.ResolveExpression(Expr, context);
     Contract.Assert(Expr.Type != null); // follows from postcondition of ResolveExpression
