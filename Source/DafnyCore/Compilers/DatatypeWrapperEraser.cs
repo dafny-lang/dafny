@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.Compilers {
         switch (expandMode) {
           case SimplifyTypeExpandMode.ExpandSynonymsOnly: return typ.NormalizeExpandKeepConstraints();
           case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypes: return typ.NormalizeExpand();
-          case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes: return typ.TrimNewtypes();
+          case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes: return typ.GetRuntimeType();
           default:
             Contract.Assert(false); // unexpected case
             throw new cce.UnreachableException();

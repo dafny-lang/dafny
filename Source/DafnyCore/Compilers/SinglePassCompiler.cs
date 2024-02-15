@@ -1385,13 +1385,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, resultType.TrimNewtypes(),
+          e1, e0, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, resultType.TrimNewtypes(),
+          e0, e1, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -5366,8 +5366,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        var fromType = e.E.Type.TrimNewtypes();
-        var toType = e.ToType.TrimNewtypes();
+        var fromType = e.E.Type.GetRuntimeType();
+        var toType = e.ToType.GetRuntimeType();
         Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || toType.IsRefType == fromType.IsRefType);
         if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
@@ -5391,7 +5391,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(negated ? " != " : " == ");
           wr.Write(sign.ToString());
         } else {
-          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type.TrimNewtypes(),
+          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type.GetRuntimeType(),
             out var opString,
             out var preOpString,
             out var postOpString,

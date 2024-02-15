@@ -201,7 +201,7 @@ public abstract class Type : TokenNode {
   /// <summary>
   /// Trim away newtypes to get to an ancestor type that either is not a newtype or is a native type.
   /// </summary>
-  public Type TrimNewtypes() {
+  public Type GetRuntimeType() {
     Type typ = this;
     while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
       var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
