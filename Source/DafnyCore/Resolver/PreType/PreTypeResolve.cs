@@ -831,11 +831,7 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-#if SOON
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})",
-#else
             "a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got {0})",
-#endif
             onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
@@ -1511,14 +1507,6 @@ namespace Microsoft.Dafny {
       foreach (var entry in typeArgumentSubstitutions) {
         subst.Add(entry.Key, entry.Value);
       }
-
-#if SOON
-      if (SelfTypeSubstitution != null) {
-        foreach (var entry in SelfTypeSubstitution) {
-          subst.Add(entry.Key, entry.Value);
-        }
-      }
-#endif
 
       if (receiverTypeBound?.Decl is TopLevelDeclWithMembers cl) {
         foreach (var entry in cl.ParentFormalTypeParametersToActuals) {

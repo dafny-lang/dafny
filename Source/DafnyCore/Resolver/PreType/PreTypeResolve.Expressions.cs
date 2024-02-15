@@ -510,7 +510,6 @@ namespace Microsoft.Dafny {
         var toPreType = Type2PreType(e.ToType);
         AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true,
           "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
-        // TODO: should the previous call make use of .NormalizeWrtScope() ?
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
