@@ -280,12 +280,12 @@ Various options control the verification process, in addition to all those descr
    - `--relax-definite-assignment`
    - `--track-print-effects`
    - `--disable-nonlinear-arithmetic`
+   - `--filter-symbol`
 
 - Control of the proof engine
    - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
-   - `--boogie-filter`
    - `--solver-path`
 
 
@@ -2642,8 +2642,6 @@ terminology.
 * `--solver-path` - specifies a custom SMT solver to use
 
 * `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external pdafny translaterocess
-
-* `--boogie-filter` - restricts the set of verification tasks (for debugging) 
 
 * `--boogie` - arguments to send to boogie
 
