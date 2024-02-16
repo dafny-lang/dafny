@@ -98,16 +98,22 @@ namespace Microsoft.Dafny {
     }
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
-      DafnyOptions options,
+      ErrorReporter errorReporter, DafnyOptions options,
       TextWriter output,
       ExecutionEngine engine,
       string baseFile,
       string moduleName,
-      Microsoft.Boogie.Program boogieProgram, string programId) {
+      Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
       lock (options.ProverOptions) {
-        options.ProcessSolverOptions(options.Verify ? new ConsoleErrorReporter(options) : new ErrorReporterSink(options), Token.Cli);
+        if (options.Verify) {
+          var before = errorReporter.ErrorCount;
+          options.ProcessSolverOptions(errorReporter, Token.Cli);
+          if (before != errorReporter.ErrorCount) {
+            return (PipelineOutcome.FatalError, new PipelineStatistics());
+          }
+        }
       }
 
       string bplFilename;
