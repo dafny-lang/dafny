@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
-    private List<ConfirmationInfo> confirmations = new();
+    private List<Confirmation> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -480,7 +480,7 @@ namespace Microsoft.Dafny {
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
-      confirmations.Add(new ConfirmationInfo(tok,
+      confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
         () => string.Format(errorFormatString, preType),
         (ResolverPass reporter) => {
@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
     }
 
     public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
-      confirmations.Add(new ConfirmationInfo(tok, check, errorMessage,
+      confirmations.Add(new Confirmation(check, errorMessage,
         (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
     }
 
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    record ConfirmationInfo(IToken Tok, Func<bool> Check, Func<string> ErrorMessage, Action<ResolverPass> OnError) {
+    record Confirmation(Func<bool> Check, Func<string> ErrorMessage, Action<ResolverPass> OnError) {
       public void Confirm(ResolverPass reporter) {
         if (!Check()) {
           OnError(reporter);
