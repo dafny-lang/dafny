@@ -122,7 +122,7 @@
       <LinkBase>DafnyRuntimePython</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" LinkBase="DafnyRuntimeRust">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeRust\**" Exclude="..\DafnyRuntime\DafnyRuntimeRust\.gitignore" LinkBase="DafnyRuntimeRust">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
