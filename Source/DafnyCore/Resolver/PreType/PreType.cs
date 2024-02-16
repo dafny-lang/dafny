@@ -250,6 +250,7 @@ namespace Microsoft.Dafny {
     public readonly DPreType PrintablePreType;
 
     public DPreType(TopLevelDecl decl, List<PreType> arguments, DPreType printablePreType = null) {
+      Contract.Requires(decl.TypeArgs.Count == arguments.Count);
       Contract.Assume(decl != null);
       Decl = decl;
       Arguments = arguments;

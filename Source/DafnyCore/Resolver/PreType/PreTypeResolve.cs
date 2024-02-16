@@ -581,7 +581,7 @@ namespace Microsoft.Dafny {
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
       if (ptA != null && ptB != null && ptA.Decl != ptB.Decl) {
-        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, allowBaseTypeCast);
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA, allowBaseTypeCast);
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
-        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, allowBaseTypeCast);
+        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB, allowBaseTypeCast);
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);

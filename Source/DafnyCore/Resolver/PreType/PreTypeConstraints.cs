@@ -666,34 +666,43 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
-    /// "super<L>" is a supertype of "sub<subArguments>".
+    /// If "super" is an ancestor of "sub.Decl", then return a list "L" of arguments for "super" such that
+    /// "super<L>" is a supertype of "sub".
     /// Otherwise, return "null".
     /// If "allowBaseTypeCast" is "true", then allow "sub" to be replaced by an ancestor type of "sub" if "sub" is a newtype.
     /// </summary>
-    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool allowBaseTypeCast) {
-      Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
+    [CanBeNull]
+    public List<PreType> GetTypeArgumentsForSuperType(TopLevelDecl super, DPreType sub, bool allowBaseTypeCast) {
+      if (super == sub.Decl) {
+        return sub.Arguments;
+      }
 
-      if (super == sub) {
-        return subArguments;
-      } else if (sub is TopLevelDeclWithMembers md) {
-        var subst = PreType.PreTypeSubstMap(md.TypeArgs, subArguments);
-        foreach (var parentType in AllParentTraits(md)) {
-          var parentPreType = (DPreType)PreTypeResolver.Type2PreType(parentType).Substitute(subst);
-          var arguments = GetTypeArgumentsForSuperType(super, parentPreType.Decl, parentPreType.Arguments, false);
-          if (arguments != null) {
-            return arguments;
-          }
-        }
-        if (allowBaseTypeCast && md is NewtypeDecl newtypeDecl) {
-          var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
-          var arguments = GetTypeArgumentsForSuperType(super, basePreType.Decl, basePreType.Arguments, true);
-          if (arguments != null) {
-            return arguments;
-          }
+      foreach (var parentPreType in ParentPreTypes(sub)) {
+        var arguments = GetTypeArgumentsForSuperType(super, parentPreType, false);
+        if (arguments != null) {
+          return arguments;
         }
       }
+
+      if (allowBaseTypeCast && sub.Decl is NewtypeDecl newtypeDecl) {
+        var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, sub.Arguments);
+        var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
+        var arguments = GetTypeArgumentsForSuperType(super, basePreType, true);
+        if (arguments != null) {
+          return arguments;
+        }
+      }
+
       return null;
+    }
+
+    public IEnumerable<DPreType> ParentPreTypes(DPreType dPreType) {
+      if (dPreType.Decl is TopLevelDeclWithMembers md) {
+        var subst = PreType.PreTypeSubstMap(md.TypeArgs, dPreType.Arguments);
+        foreach (var parentType in AllParentTraits(md)) {
+          yield return (DPreType)PreTypeResolver.Type2PreType(parentType).Substitute(subst);
+        }
+      }
     }
 
     /// <summary>
