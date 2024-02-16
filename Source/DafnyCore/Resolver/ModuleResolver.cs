@@ -3361,15 +3361,23 @@ namespace Microsoft.Dafny {
       return GetSignatureExt(sig);
     }
 
-    public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
-      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
+    public static Expression GetImpliedTypeConstraint(IVariable bv, Type type) {
+      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), type);
     }
 
-    public static Expression GetImpliedTypeConstraint(Expression e, Type ty) {
+    /// <summary>
+    /// Collects the constraints of all subset types and newtypes in "type" and applies these to "e".
+    /// For example, given
+    ///     type Even = x: int | x % 2 == 0
+    ///     newtype Div6 = y: Even | y % 3 == 0
+    /// GetImpliedTypeConstraint(e, Div6) returns
+    ///     true && ((e as Even) % 2 == 0) && e % 3 == 0
+    /// </summary>
+    public static Expression GetImpliedTypeConstraint(Expression e, Type type) {
       Contract.Requires(e != null);
-      Contract.Requires(ty != null);
-      ty = ty.NormalizeExpandKeepConstraints();
-      if (ty is UserDefinedType udt) {
+      Contract.Requires(type != null);
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is UserDefinedType udt) {
         Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
           var c = GetImpliedTypeConstraint(e, baseType);
           if (boundVar != null) {
