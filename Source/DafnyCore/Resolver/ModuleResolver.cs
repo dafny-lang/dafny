@@ -1124,6 +1124,7 @@ namespace Microsoft.Dafny {
       // This pass does the following:
       // * desugar functions used in reads clauses
       // * fills in "reads *" clauses on methods, when --reads-clauses-on-methods is used
+      // * Postconditions and bodies of prefix lemmas
       // * compute .BodySurrogate for body-less loops
       // * discovers bounds
       // * builds the module's call graph.
@@ -1160,6 +1161,10 @@ namespace Microsoft.Dafny {
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         CallGraphBuilder.Build(declarations, reporter);
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          // fill in the postconditions and bodies of prefix lemmas
+          FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
+        }
       }
 
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
@@ -1254,7 +1259,6 @@ namespace Microsoft.Dafny {
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
       // * Subset type in comprehensions have a compilable constraint 
-      // * Postconditions and bodies of prefix lemmas
       // * Compute postconditions and statement body of prefix lemmas
       // * Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       // * Set the SccRepr field of codatatypes
@@ -1265,11 +1269,6 @@ namespace Microsoft.Dafny {
       // * Extreme predicate recursivity checks
       // * Verify that subset constraints are compilable if necessary
       // ----------------------------------------------------------------------------
-
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // fill in the postconditions and bodies of prefix lemmas
-        FillInPostConditionsAndBodiesOfPrefixLemmas(declarations);
-      }
 
       // An inductive datatype is allowed to be defined as an empty type. For example, in
       //     predicate P(x: int) { false }
