@@ -391,6 +391,14 @@ namespace Microsoft.Dafny {
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
 
+      if (options.Verify) {
+        var before = errorReporter.ErrorCount;
+        options.ProcessSolverOptions(errorReporter, Token.Cli);
+        if (before != errorReporter.ErrorCount) {
+          return (false, PipelineOutcome.FatalError, concurrentModuleStats);
+        }
+      }
+
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure

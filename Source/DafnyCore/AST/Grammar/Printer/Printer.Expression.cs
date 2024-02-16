@@ -20,7 +20,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   public partial class Printer {
-    
+
     /// <summary>
     /// PrintExtendedExpr prints an expression, but formats top-level if-then-else and match expressions across several lines.
     /// Its intended use is thus to print the body of a function.
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>

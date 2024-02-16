@@ -10,6 +10,7 @@ using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -209,6 +210,7 @@ module SomeModule {
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       options.ProverLogFilePath = temp1;
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Microsoft.Dafny.Token.NoToken);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
           var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),

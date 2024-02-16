@@ -106,16 +106,6 @@ namespace Microsoft.Dafny {
       Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
-      lock (options.ProverOptions) {
-        if (options.Verify) {
-          var before = errorReporter.ErrorCount;
-          options.ProcessSolverOptions(errorReporter, Token.Cli);
-          if (before != errorReporter.ErrorCount) {
-            return (PipelineOutcome.FatalError, new PipelineStatistics());
-          }
-        }
-      }
-
       string bplFilename;
       if (options.PrintFile != null) {
         bplFilename = options.PrintFile;
