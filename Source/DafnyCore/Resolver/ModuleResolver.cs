@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     );
 
   public interface ICanResolveNewAndOld {
-    void Resolve(INewOrOldResolver resolver, ResolutionContext context);
+    void GenResolve(INewOrOldResolver resolver, ResolutionContext context);
   }
 
   interface ICanResolve {

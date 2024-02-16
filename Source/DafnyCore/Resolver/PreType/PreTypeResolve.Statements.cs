@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       if (stmt is ICanResolveNewAndOld canResolve) {
-        stmt.Resolve(this, resolutionContext);
+        canResolve.GenResolve(this, resolutionContext);
         return;
       }
 
@@ -625,7 +625,7 @@ namespace Microsoft.Dafny {
       }
 
       if (update is AssignSuchThatStmt assignSuchThatStmt) {
-        assignSuchThatStmt.Resolve(this, resolutionContext);
+        assignSuchThatStmt.GenResolve(this, resolutionContext);
       } else {
         // Resolve the LHSs
         if (update != null) {
@@ -1068,7 +1068,7 @@ namespace Microsoft.Dafny {
           // "expect !temp.IsFailure(), temp"
           ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, s.KeywordToken.Attrs);
+          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
           ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {

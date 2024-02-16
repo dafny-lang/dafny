@@ -110,7 +110,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// and saves the result into s.ResolvedStatements.
   /// This is also known as the "elephant operator"
   /// </summary>
-  public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
 
     ResolveKeywordToken(resolver, resolutionContext);
@@ -292,17 +292,18 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var notFailureExpr = new UnaryOpExpr(Tok, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var token = KeywordToken.Token;
+      var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
       Statement ss = null;
-      if (KeywordToken.Token.val == "expect") {
+      if (token.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(Tok, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
-      } else if (KeywordToken.Token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(Tok, EndToken), notFailureExpr, KeywordToken.Attrs);
-      } else if (KeywordToken.Token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(Tok, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
+        ss = new ExpectStmt(new RangeToken(token, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+      } else if (token.val == "assume") {
+        ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+      } else if (token.val == "assert") {
+        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
       } else {
-        Contract.Assert(false, $"Invalid token in :- statement: {KeywordToken.Token.val}");
+        Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
       }
       ResolvedStatements.Add(ss);
     } else {

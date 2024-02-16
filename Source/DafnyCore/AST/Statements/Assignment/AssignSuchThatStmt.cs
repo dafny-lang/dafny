@@ -73,11 +73,11 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
-    base.Resolve(resolver, resolutionContext);
+    base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
       if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !AssumeToken.IsExplicitAxiom()) {

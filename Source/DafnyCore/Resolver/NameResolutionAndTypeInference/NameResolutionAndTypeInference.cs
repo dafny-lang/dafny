@@ -3507,7 +3507,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
       if (stmt is ICanResolveNewAndOld genericCanResolve) {
-        genericCanResolve.Resolve(this, resolutionContext);
+        genericCanResolve.GenResolve(this, resolutionContext);
         return;
       }
 
@@ -3766,8 +3766,8 @@ namespace Microsoft.Dafny {
           }
         } else if (s.Rhs is TypeRhs) {
           TypeRhs rr = (TypeRhs)s.Rhs;
-          Type t = ResolveTypeRhs(rr, stmt, resolutionContext);
-          AddAssignableConstraint(stmt.Tok, lhsType, t, "type {1} is not assignable to LHS (of type {0})");
+          ResolveTypeRhs(rr, stmt, resolutionContext);
+          AddAssignableConstraint(stmt.Tok, lhsType, rr.Type, "type {1} is not assignable to LHS (of type {0})");
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
         } else {
@@ -4390,7 +4390,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public Type ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
@@ -4495,7 +4495,6 @@ namespace Microsoft.Dafny {
           rr.Type = rr.EType;
         }
       }
-      return rr.Type;
     }
 
     /// <summary>

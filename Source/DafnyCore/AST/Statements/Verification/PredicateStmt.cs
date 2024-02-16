@@ -27,10 +27,9 @@ public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
     this.Expr = expr;
   }
 
-  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
-    base.Resolve(resolver, context);
-    resolver.ResolveExpression(Expr, context);
-    Contract.Assert(Expr.Type != null); // follows from postcondition of ResolveExpression
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
+    base.GenResolve(resolver, context);
+    resolver.ResolveExpression(Expr, context);// follows from postcondition of ResolveExpression
     resolver.ConstrainTypeExprBool(Expr, "condition is expected to be of type bool, but is {0}");
   }
 }

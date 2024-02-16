@@ -33,8 +33,8 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 
-  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
-    base.Resolve(resolver, context);
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
+    base.GenResolve(resolver, context);
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {
       resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Tok, "assume statement has no {:axiom} annotation");

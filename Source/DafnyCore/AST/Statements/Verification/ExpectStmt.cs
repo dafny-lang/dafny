@@ -37,8 +37,8 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 
-  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
-    base.Resolve(resolver, context);
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
+    base.GenResolve(resolver, context);
     if (Message == null) {
       Message = new StringLiteralExpr(Tok, "expectation violation", false);
     }

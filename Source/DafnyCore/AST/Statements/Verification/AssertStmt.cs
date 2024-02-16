@@ -66,7 +66,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 
-  public override void Resolve(INewOrOldResolver resolver, ResolutionContext context) {
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
     if (Label != null) {
       if (resolver.DominatingStatementLabels.Find(Label.Name) != null) {
         resolver.Reporter.Error(MessageSource.Resolver, Label.Tok, "assert label shadows a dominating label");
@@ -87,7 +87,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
       }
     }
 
-    base.Resolve(resolver, context);
+    base.GenResolve(resolver, context);
 
     if (Proof != null) {
       // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
