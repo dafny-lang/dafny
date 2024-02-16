@@ -541,33 +541,33 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool IsConversionCompatible(DPreType a, DPreType b) {
-      var aAncestor = AncestorPreType(a);
-      var bAncestor = AncestorPreType(b);
+    bool IsConversionCompatible(DPreType fromType, DPreType toType) {
+      var fromAncestor = AncestorPreType(fromType);
+      var toAncestor = AncestorPreType(toType);
 
-      if (PreType.Same(aAncestor, bAncestor)) {
+      if (PreType.Same(fromAncestor, toAncestor)) {
         return true;
       }
-      var aFamily = aAncestor.Decl.Name;
-      var bFamily = bAncestor.Decl.Name;
-      var bName = b.Decl.Name;
+      var fromFamily = fromAncestor.Decl.Name;
+      var toFamily = toAncestor.Decl.Name;
+      var toName = toType.Decl.Name;
 
-      if (IsBitvectorName(aFamily) && (bFamily == "int" || IsBitvectorName(bFamily))) {
+      if (IsBitvectorName(fromFamily) && (toFamily == "int" || IsBitvectorName(toFamily))) {
         return true;
       }
-      if (aFamily == "int" && bName is "char" or "real" or "ORDINAL") {
+      if (fromFamily == "int" && toName is "char" or "real" or "ORDINAL") {
         return true;
       }
 
       var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
       if (legacy) {
-        if (aFamily == "real" && (bFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(bFamily))) {
+        if (fromFamily == "real" && (toFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (aFamily == "char" && (bFamily is "int" or "ORDINAL" || IsBitvectorName(bFamily))) {
+        if (fromFamily == "char" && (toFamily is "int" or "ORDINAL" || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (IsBitvectorName(aFamily) && (bFamily is "int" or "real" or "char" or "ORDINAL")) {
+        if (IsBitvectorName(fromFamily) && (toFamily is "int" or "real" or "char" or "ORDINAL")) {
           return true;
         }
       }
