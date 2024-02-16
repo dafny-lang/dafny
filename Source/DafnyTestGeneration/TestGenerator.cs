@@ -24,6 +24,9 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program, Modifications cache) {
+      lock (program.Options.ProverOptions) {
+        program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
+      }
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
