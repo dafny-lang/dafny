@@ -510,10 +510,10 @@ namespace Microsoft.Dafny {
     /// is the disjunction
     ///     A ::> B    or    B ::> A
     ///
-    /// If "!allowBaseTypeCast", then "X ::> Y" means
+    /// If "!allowConversion", then "X ::> Y" means
     ///     X :> Y
     ///
-    /// If "allowBaseTypeCast", then "X ::> Y" means
+    /// If "allowConversion", then "X ::> Y" means
     ///     X' :> Y', or
     ///     X' and Y' are various bv types, or
     ///     X' is int and Y' is in {int, char, bv, ORDINAL, real}.
@@ -521,7 +521,7 @@ namespace Microsoft.Dafny {
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
     /// </summary>
-    bool CheckComparableTypes(PreType a, PreType b, bool allowBaseTypeCast) {
+    bool CheckComparableTypes(PreType a, PreType b, bool allowConversion) {
       if (PreType.Same(a, b)) {
         // this allows the case where "a" and "b" are proxies that are equal
         return true;
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
       if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
         return true;
       }
-      if (!allowBaseTypeCast) {
+      if (!allowConversion) {
         return false;
       }
       if (IsConversionCompatible(aa, bb) || IsConversionCompatible(bb, aa)) {
