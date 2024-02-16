@@ -669,9 +669,9 @@ namespace Microsoft.Dafny {
     /// If "super" is an ancestor of "sub", then return a list "L" of arguments for "super" such that
     /// "super<L>" is a supertype of "sub<subArguments>".
     /// Otherwise, return "null".
-    /// If "forAsOrIs" is "true", then allow "sub" to be replaced by an ancestor type of "sub" if "sub" is a newtype.
+    /// If "allowBaseTypeCast" is "true", then allow "sub" to be replaced by an ancestor type of "sub" if "sub" is a newtype.
     /// </summary>
-    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool forAsOrIs) {
+    public List<PreType> /*?*/ GetTypeArgumentsForSuperType(TopLevelDecl super, TopLevelDecl sub, List<PreType> subArguments, bool allowBaseTypeCast) {
       Contract.Requires(sub.TypeArgs.Count == subArguments.Count);
 
       if (super == sub) {
@@ -685,7 +685,7 @@ namespace Microsoft.Dafny {
             return arguments;
           }
         }
-        if (forAsOrIs && md is NewtypeDecl newtypeDecl) {
+        if (allowBaseTypeCast && md is NewtypeDecl newtypeDecl) {
           var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
           var arguments = GetTypeArgumentsForSuperType(super, basePreType.Decl, basePreType.Arguments, true);
           if (arguments != null) {

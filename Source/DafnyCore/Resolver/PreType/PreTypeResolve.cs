@@ -493,13 +493,13 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString) {
+    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString) {
       // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
       // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
-      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, forAsOrIs,
+      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
         "(Duplicate error message) " + errorFormatString, false));
-      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, forAsOrIs), () => string.Format(errorFormatString, a, b));
+      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), () => string.Format(errorFormatString, a, b));
     }
 
     /// <summary>
@@ -510,10 +510,10 @@ namespace Microsoft.Dafny {
     /// is the disjunction
     ///     A ::> B    or    B ::> A
     ///
-    /// If "!forAsOrIs", then "X ::> Y" means
+    /// If "!allowBaseTypeCast", then "X ::> Y" means
     ///     X :> Y
     ///
-    /// If "forAsOrIs", then "X ::> Y" means
+    /// If "allowBaseTypeCast", then "X ::> Y" means
     ///     X' :> Y', or
     ///     X' and Y' are various bv types, or
     ///     X' is int and Y' is in {int, char, bv, ORDINAL, real}.
@@ -521,7 +521,7 @@ namespace Microsoft.Dafny {
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
     /// </summary>
-    bool CheckComparableTypes(PreType a, PreType b, bool forAsOrIs) {
+    bool CheckComparableTypes(PreType a, PreType b, bool allowBaseTypeCast) {
       if (PreType.Same(a, b)) {
         // this allows the case where "a" and "b" are proxies that are equal
         return true;
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
       if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
         return true;
       }
-      if (!forAsOrIs) {
+      if (!allowBaseTypeCast) {
         return false;
       }
       if (IsConversionCompatible(aa, bb) || IsConversionCompatible(bb, aa)) {
@@ -575,13 +575,13 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString, bool reportErrors = true) {
+    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var ptA = a.Normalize() as DPreType;
       var ptB = b.Normalize() as DPreType;
       if (ptA != null && ptB != null && ptA.Decl != ptB.Decl) {
-        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, forAsOrIs);
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, allowBaseTypeCast);
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
-        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, forAsOrIs);
+        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, allowBaseTypeCast);
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
@@ -598,7 +598,7 @@ namespace Microsoft.Dafny {
           return true;
         }
 
-        if (forAsOrIs && (IsConversionCompatible(ptA, ptB) || IsConversionCompatible(ptB, ptA))) {
+        if (allowBaseTypeCast && (IsConversionCompatible(ptA, ptB) || IsConversionCompatible(ptB, ptA))) {
           return true;
         }
 
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      if (!forAsOrIs) {
+      if (!allowBaseTypeCast) {
         if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
           // use B :> A
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
