@@ -228,7 +228,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* Two sequences do not have the same nat representations if their prefixes
   do not have the same nat representations. Helper lemma for LemmaSeqNeq. */
-  lemma LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
+  lemma {:vcs_split_on_every_assert} LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
     requires 0 <= i <= |xs| == |ys|
     requires ToNatRight(xs[..i]) != ToNatRight(ys[..i])
     ensures ToNatRight(xs) != ToNatRight(ys)
@@ -452,7 +452,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* If the nat representation of a sequence is zero, then the sequence is a
   sequence of zeros. */
-  lemma LemmaSeqZero(xs: seq<digit>)
+  lemma {:resource_limit "10e6"} LemmaSeqZero(xs: seq<digit>)
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {

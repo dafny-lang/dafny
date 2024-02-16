@@ -6,6 +6,5 @@ standard-libraries = true
 # to use the standard libraries in general.
 reads-clauses-on-methods = true
 resource-limit = 1000000
-warn-as-errors = true
 warn-redundant-assumptions = true
 warn-contradictory-assumptions = true

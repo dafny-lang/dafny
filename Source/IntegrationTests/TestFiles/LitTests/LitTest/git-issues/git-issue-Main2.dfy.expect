@@ -9,8 +9,6 @@ git-issue-Main2.dfy(16,26): Error: More than one method is marked {:main}. First
 
 Dafny program verifier did not attempt verification
 git-issue-Main2.dfy(16,26): Error: More than one method is marked {:main}. First declaration appeared at git-issue-Main2.dfy(10,19).
-Wrote textual form of partial target program to git-issue-Main2-go/src/git-issue-Main2.go
 
 Dafny program verifier did not attempt verification
 git-issue-Main2.dfy(16,26): Error: More than one method is marked {:main}. First declaration appeared at git-issue-Main2.dfy(10,19).
-Wrote textual form of partial target program to git-issue-Main2-java/git_issue_Main2.java
