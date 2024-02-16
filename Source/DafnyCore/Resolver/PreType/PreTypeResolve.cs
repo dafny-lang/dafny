@@ -578,27 +578,27 @@ namespace Microsoft.Dafny {
     bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
-      var ptA = a.Normalize() as DPreType;
-      var ptB = b.Normalize() as DPreType;
-      if (ptA != null && ptB != null && ptA.Decl != ptB.Decl) {
-        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA, allowBaseTypeCast);
+      var normalizedA = a.Normalize() as DPreType;
+      var normalizedB = b.Normalize() as DPreType;
+      if (normalizedA != null && normalizedB != null && normalizedA.Decl != normalizedB.Decl) {
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(normalizedB.Decl, normalizedA, allowBaseTypeCast);
         if (subArguments != null) {
           // use B :> A
-          var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
+          var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
-        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB, allowBaseTypeCast);
+        subArguments = Constraints.GetTypeArgumentsForSuperType(normalizedA.Decl, normalizedB, allowBaseTypeCast);
         if (subArguments != null) {
           // use A :> B
-          var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
+          var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
 
-        if (allowBaseTypeCast && (IsConversionCompatible(ptA, ptB) || IsConversionCompatible(ptB, ptA))) {
+        if (allowBaseTypeCast && (IsConversionCompatible(normalizedA, normalizedB) || IsConversionCompatible(normalizedB, normalizedA))) {
           return true;
         }
 
@@ -610,12 +610,12 @@ namespace Microsoft.Dafny {
       }
 
       if (!allowBaseTypeCast) {
-        if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
+        if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
-        } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
+        } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
@@ -623,20 +623,20 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (ptA != null && ptB != null && ptA.Decl == ptB.Decl) {
+      if (normalizedA != null && normalizedB != null && normalizedA.Decl == normalizedB.Decl) {
         // Here is where we approximate the answer. We'll only constrain that variant type parameters are *comparable*, not that
         // they are consistently comparable. For example, if ptA is C<A0, A1> and ptB is C<B0, A1> and C is declared as C<+T, +U>,
         // then "comparable types" says
         //     (A0 ::> B0 and A1 ::> B1)  or  (B0 ::> A0 and B1 ::> A1)
         // but we will use only
         //     (A0 ::> B0 or B0 ::> A0)  and  (A1 ::> B1 or B1 ::> A1)
-        Contract.Assert(ptA.Decl.TypeArgs.Count == ptA.Arguments.Count);
-        Contract.Assert(ptA.Arguments.Count == ptB.Arguments.Count);
-        for (var i = 0; i < ptA.Decl.TypeArgs.Count; i++) {
-          var aa = ptA.Arguments[i];
-          var bb = ptB.Arguments[i];
+        Contract.Assert(normalizedA.Decl.TypeArgs.Count == normalizedA.Arguments.Count);
+        Contract.Assert(normalizedA.Arguments.Count == normalizedB.Arguments.Count);
+        for (var i = 0; i < normalizedA.Decl.TypeArgs.Count; i++) {
+          var aa = normalizedA.Arguments[i];
+          var bb = normalizedB.Arguments[i];
           var msgFormat = $"{errorFormatString} (type argument {i})"; // TODO: this should be improved to use ptA/ptB
-          if (ptA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
+          if (normalizedA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
             Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
             Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
