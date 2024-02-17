@@ -5,8 +5,8 @@ NativeTypeResolution.dfy(8,42): Error: Dafny's heuristics failed to confirm 'byt
 NativeTypeResolution.dfy(10,50): Info: newtype A resolves as {:nativeType "int"} (detected range: 0 .. 256)
 NativeTypeResolution.dfy(11,50): Info: newtype B resolves as target-complete {:nativeType "byte"} (detected range: 0 .. 256)
 NativeTypeResolution.dfy(12,50): Info: newtype C resolves as {:nativeType "int"} (detected range: 0 .. 256)
-NativeTypeResolution.dfy(14,35): Error: :nativeType 'reallylong' not known
-NativeTypeResolution.dfy(15,41): Error: :nativeType 'reallylong' not known
+NativeTypeResolution.dfy(14,21): Error: :nativeType 'reallylong' not known
+NativeTypeResolution.dfy(15,27): Error: :nativeType 'reallylong' not known
 NativeTypeResolution.dfy(17,31): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
 NativeTypeResolution.dfy(18,40): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
 NativeTypeResolution.dfy(21,22): Error: Dafny's heuristics cannot find a compatible native type. Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.
