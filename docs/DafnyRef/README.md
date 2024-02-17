@@ -30,7 +30,7 @@ subfolders. In order to render files locally you must
 * set the working directly (`cd`) to the `docs` folder (Windows or Ruby 3.0 users, see below for some tweaks)
 * run the jekyll server: `bundle exec jekyll server`
 * open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyRef/DafnyRef
-* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the server process, delete all the files in the _saite folder, and restart the server.
+* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the server process, delete all the files in the _site folder, and restart the server.
 
 In order to convert markdown to pdf, you must be able to execute the Makefile, which requires installing pandoc and LaTeX, and being on a Linux-like platform.
 
@@ -65,11 +65,9 @@ definition file.
 Github uses rouge, via Jekyll. The syntax definition is a ruby-based file
 maintained in the rouge github repo.
 To modify the definition, follow the directions in
-[https://rouge-ruby.github.io/docs/file.LexerDevelopment.html]
-(https://rouge-ruby.github.io/docs/file.LexerDevelopment.html)
+https://rouge-ruby.github.io/docs/file.LexerDevelopment.html
 after setting up a development environment according to
-[https://rouge-ruby.github.io/docs/file.DevEnvironment.html]
-(https://rouge-ruby.github.io/docs/file.DevEnvironment.html).
+https://rouge-ruby.github.io/docs/file.DevEnvironment.html.
 The file itself, `dafny.rb` is in Ruby. Details of the Ruby Regular
 Expression language can be found many places online, such as
 [here](https://www.princeton.edu/~mlovett/reference/Regular-Expressions.pdf).
