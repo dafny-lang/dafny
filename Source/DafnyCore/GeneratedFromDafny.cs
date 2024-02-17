@@ -621,7 +621,7 @@ namespace Std.Collections.Seq {
     public static Dafny.ISet<__T> ToSet<__T>(Dafny.ISequence<__T> xs) {
       return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Dafny.ISet<__T>>>((_77_xs) => ((System.Func<Dafny.ISet<__T>>)(() => {
         var _coll0 = new System.Collections.Generic.List<__T>();
-        foreach (__T _compr_0 in (_77_xs).Elements) {
+        foreach (__T _compr_0 in (_77_xs).CloneAsArray()) {
           __T _78_x = (__T)_compr_0;
           if ((_77_xs).Contains(_78_x)) {
             _coll0.Add(_78_x);
