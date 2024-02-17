@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -14,8 +15,8 @@ public class LibraryBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
 
-  public override string TargetName => "Dafny Library (.doo)";
-  public override bool IsStable => false;
+  public override string TargetName => "resolved Dafny";
+  public override bool IsStable => true;
 
   public override string TargetExtension => "doo";
   public override string TargetId => "lib";
@@ -109,5 +110,9 @@ public class LibraryBackend : ExecutableBackend {
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     var dooPath = DooFilePath(dafnyProgramName);
     return RunTargetDafnyProgram(dooPath, outputWriter, errorWriter, true);
+  }
+
+  public override Command GetCommand() {
+    return new Command(TargetId, $"Print the resolved Dafny sources.");
   }
 }
