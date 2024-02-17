@@ -40,45 +40,45 @@ class AnalyzeTypeConstraints {
     }
   }
 
-    /// <summary>
-    /// Return "declarations" in sorted order, so that each declaration is preceded by those on which it depends.
-    /// It is assumed that "declarations" are all from the same module and that the call graph of that module has been constructed.
-    /// If there's some given declaration that's not in the call graph, then that's fine; it just means that the call
-    /// graph does not constrain the output order of that declaration.
-    /// </summary>
-    private static List<TopLevelDecl> TopologicallySortedTopLevelDecls(List<TopLevelDecl> declarations) {
-      // Dependency information among the declarations is stored in the enclosing module's call graph. To get to that
-      // call graph, we need to have the module declaration, which we obtain from one of the given declarations:
-      if (declarations.Count == 0) {
-        return declarations;
-      }
-      var enclosingModule = declarations[0].EnclosingModuleDefinition;
-      Contract.Assert(declarations.TrueForAll(decl => decl.EnclosingModuleDefinition == enclosingModule));
-
-      // From the module declaration, we get the components sorted according to how they depend on each other.
-      var sortedComponents = enclosingModule.CallGraph.TopologicallySortedComponents();
-
-      // But... this is a list of ICallable's (which also includes MemberDecl's and may not contain all TopLevelDecl's).
-      // So, we filter the ICallable's to consider only the given TopLevelDecl's. We also remember which declarations we
-      // have added to the output, so we later can add all the remaining ones.
-      var remainingDecls = new HashSet<TopLevelDecl>(declarations);
-      var output = new List<TopLevelDecl>();
-      foreach (var callable in sortedComponents) {
-        if (callable is TopLevelDecl topLevelDecl && remainingDecls.Contains(topLevelDecl)) {
-          output.Add(topLevelDecl);
-          remainingDecls.Remove(topLevelDecl);
-        }
-      }
-
-      // Finally, add in those TopLevelDecl's that were not in the call graph.
-      foreach (var decl in declarations) {
-        if (remainingDecls.Contains(decl)) {
-          output.Add(decl);
-        }
-      }
-      Contract.Assert(declarations.Count == output.Count); // this assumes there were no duplicates in the given declarations
-
-      return output;
+  /// <summary>
+  /// Return "declarations" in sorted order, so that each declaration is preceded by those on which it depends.
+  /// It is assumed that "declarations" are all from the same module and that the call graph of that module has been constructed.
+  /// If there's some given declaration that's not in the call graph, then that's fine; it just means that the call
+  /// graph does not constrain the output order of that declaration.
+  /// </summary>
+  private static List<TopLevelDecl> TopologicallySortedTopLevelDecls(List<TopLevelDecl> declarations) {
+    // Dependency information among the declarations is stored in the enclosing module's call graph. To get to that
+    // call graph, we need to have the module declaration, which we obtain from one of the given declarations:
+    if (declarations.Count == 0) {
+      return declarations;
     }
+    var enclosingModule = declarations[0].EnclosingModuleDefinition;
+    Contract.Assert(declarations.TrueForAll(decl => decl.EnclosingModuleDefinition == enclosingModule));
+
+    // From the module declaration, we get the components sorted according to how they depend on each other.
+    var sortedComponents = enclosingModule.CallGraph.TopologicallySortedComponents();
+
+    // But... this is a list of ICallable's (which also includes MemberDecl's and may not contain all TopLevelDecl's).
+    // So, we filter the ICallable's to consider only the given TopLevelDecl's. We also remember which declarations we
+    // have added to the output, so we later can add all the remaining ones.
+    var remainingDecls = new HashSet<TopLevelDecl>(declarations);
+    var output = new List<TopLevelDecl>();
+    foreach (var callable in sortedComponents) {
+      if (callable is TopLevelDecl topLevelDecl && remainingDecls.Contains(topLevelDecl)) {
+        output.Add(topLevelDecl);
+        remainingDecls.Remove(topLevelDecl);
+      }
+    }
+
+    // Finally, add in those TopLevelDecl's that were not in the call graph.
+    foreach (var decl in declarations) {
+      if (remainingDecls.Contains(decl)) {
+        output.Add(decl);
+      }
+    }
+    Contract.Assert(declarations.Count == output.Count); // this assumes there were no duplicates in the given declarations
+
+    return output;
+  }
 
 }
