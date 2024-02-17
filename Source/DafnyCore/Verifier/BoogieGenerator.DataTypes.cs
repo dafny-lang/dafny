@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
           cases_body = BplOr(cases_body, disj);
           tr = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { disj, isPredicate }, tr);
         }
-        var body = Bpl.Expr.Imp(isPredicate, cases_body);
+        var body = BplImp(isPredicate, cases_body);
         var ax = BplForall(boundVariables, tr, body);
         var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
         sink.AddTopLevelDeclaration(axiom);
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
           eqs = BplAnd(eqs, eq);
         }
 
-        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
+        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, BplImp(ante, BplIff(dtEqual, eqs)));
         AddOtherDefinition(constructorFunctions[ctor], new Bpl.Axiom(dt.tok, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
       }
     }
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny {
         var lhs = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
         var rhs = Bpl.Expr.Eq(a, b);
 
-        var ax = BplForall(new List<Variable> { aVar, bVar }, BplTrigger(lhs), Bpl.Expr.Iff(lhs, rhs));
+        var ax = BplForall(new List<Variable> { aVar, bVar }, BplTrigger(lhs), BplIff(lhs, rhs));
         sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, $"Datatype extensionality axiom: {dt.FullName}"));
       }
     }
@@ -423,7 +423,7 @@ namespace Microsoft.Dafny {
           var queryPredicate = FunctionCall(ctor.tok, queryField.Name, Bpl.Type.Bool, th);
           var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
           var rhs = Bpl.Expr.Eq(ctorId, constructorIdReference);
-          var body = Bpl.Expr.Iff(queryPredicate, rhs);
+          var body = BplIff(queryPredicate, rhs);
           var tr = BplTrigger(queryPredicate);
           var ax = BplForall(thVar, tr, body);
           sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
               Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
               bvs.Add(iVar);
               Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-              Bpl.Expr ante = Bpl.Expr.And(
+              Bpl.Expr ante = BplAnd(
                 Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
                 Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
               var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie);
@@ -526,7 +526,7 @@ namespace Microsoft.Dafny {
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }),
-                Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+                BplImp(ante, Bpl.Expr.Lt(lhs, rhs)));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq element rank"));
             }
 
@@ -553,7 +553,7 @@ namespace Microsoft.Dafny {
             var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
             var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inSet, ct });
-            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inSet, Bpl.Expr.Lt(lhs, rhs)));
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(inSet, Bpl.Expr.Lt(lhs, rhs)));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set element rank"));
           } else if (argType is MultiSetType) {
             // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)} :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
@@ -569,7 +569,7 @@ namespace Microsoft.Dafny {
             var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
             var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
-            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(ante, Bpl.Expr.Lt(lhs, rhs)));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
           } else if (argType is MapType) {
             var finite = ((MapType)argType).Finite;
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny {
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map key rank"));
             }
             {
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny {
               var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, BplImp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
               sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map value rank"));
             }
           }

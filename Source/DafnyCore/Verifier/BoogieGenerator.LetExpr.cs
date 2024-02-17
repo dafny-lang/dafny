@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
 
       var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
       var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-      Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+      Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
       ax = BplForall(gg, tr, ax);
       AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
     }

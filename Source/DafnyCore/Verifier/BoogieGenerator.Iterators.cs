@@ -338,7 +338,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr wh = Bpl.Expr.True;
       foreach (var ys in iter.OutsHistoryFields) {
         // add the conjunct:  _yieldCount == |this.ys|
-        wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
+        wh = BplAnd(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
             ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
               new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),

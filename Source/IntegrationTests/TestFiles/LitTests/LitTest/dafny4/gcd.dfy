@@ -64,7 +64,7 @@ ghost function FindMax(s: set<pos>): (max: pos)
     if x < y then y else x
 }
 
-ghost function Gcd(x: pos, y: pos): pos {
+opaque ghost function Gcd(x: pos, y: pos): pos {
   var common := Factors(x) * Factors(y);
   assert 1 in common by {
     FactorsContains1(x);
@@ -73,21 +73,45 @@ ghost function Gcd(x: pos, y: pos): pos {
   Max(common)
 }
 
+lemma IsFactorGcdFirst(x: pos, y: pos)
+  ensures IsFactor(Gcd(x, y), x)
+{
+  reveal Gcd();
+}
+
+lemma IsFactorGcdSecond(x: pos, y: pos)
+  ensures IsFactor(Gcd(x, y), y)
+{
+  reveal Gcd();
+}
+
+lemma IsFactorGcdLess(x: pos, y: pos)
+  ensures forall p: pos :: IsFactor(p, x) && IsFactor(p, y) ==> p <= Gcd(x, y)
+{
+  IsFactorGcdFirst(x, y);
+  IsFactorGcdSecond(x, y);
+  forall p: pos | IsFactor(p, x) && IsFactor(p, y)
+    ensures p <= Gcd(x, y)
+  {
+    reveal Gcd();
+    assert p in Factors(x) * Factors(y);
+  }
+}
+
 lemma AboutGcd(x: pos, y: pos)
   ensures IsFactor(Gcd(x, y), x)
   ensures IsFactor(Gcd(x, y), y)
   ensures forall p: pos :: IsFactor(p, x) && IsFactor(p, y) ==> p <= Gcd(x, y)
 {
-  forall p: pos | IsFactor(p, x) && IsFactor(p, y)
-    ensures p <= Gcd(x, y)
-  {
-    assert p in Factors(x) * Factors(y);
-  }
+  IsFactorGcdFirst(x, y);
+  IsFactorGcdSecond(x, y);
+  IsFactorGcdLess(x, y);
 }
 
 lemma GcdSymmetric(x: pos, y: pos)
   ensures Gcd(x, y) == Gcd(y, x)
 {
+  reveal Gcd();
   assert Factors(x) * Factors(y) == Factors(y) * Factors(x);
 }
 
@@ -95,10 +119,11 @@ lemma GcdIdempotent(x: pos)
   ensures Gcd(x, x) == x
 {
   FactorsContainsSelf(x);
+  reveal Gcd();
   assert x in Factors(x) * Factors(x);
 }
 
-lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
+lemma GcdSubtract(x: pos, y: pos)
   requires x < y
   ensures Gcd(x, y) == Gcd(x, y - x)
 {
@@ -107,6 +132,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
   // By the definition of `Gcd`, we know that p is a factor of both x and y,
   // We now show that p is also a factor of y - x.
   assert IsFactor(p, y - x) by {
+    reveal Gcd();
     var a :| p * a == x;
     var b :| p * b == y;
     calc {
@@ -120,7 +146,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
 
   // Hence, p is a common factor of x and y - x
   var common := Factors(x) * Factors(y - x);
-  assert p in common;
+  assert p in common by { reveal Gcd(); }
 
   // It remains to show that, among the common factors of x and
   // y - x, p is the greatest
@@ -128,6 +154,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
     ensures q <= p
   {
     // q is a factor of both x and y - x, so a and b exist:
+    reveal Gcd();
     var a :| q * a == x;
     var b :| q * b == y - x;
     assert IsFactor(q, y) by {
@@ -145,6 +172,7 @@ lemma {:resource_limit "500e6"} GcdSubtract(x: pos, y: pos)
     assert q in Factors(x) * Factors(y);
     // By the definition of Gcd(x, y), we then have that q <= p.
   }
+  assert Gcd(x, y) == Gcd(x, y - x) by { reveal Gcd(); }
 }
 
 method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
@@ -185,6 +213,7 @@ lemma GcdSubtractAlt(x: pos, y: pos)
   var p := Gcd(x, y);
 
   assert IsFactor(p, y - x) by {
+    reveal Gcd();
     var a :| p * a == x;
     var b :| p * b == y;
     calc {
@@ -197,10 +226,11 @@ lemma GcdSubtractAlt(x: pos, y: pos)
   }
 
   var common := Factors(x) * Factors(y - x);
-  assert p in common;
+  assert p in common by { reveal Gcd(); }
   forall q | q in common
     ensures q <= p
   {
+    reveal Gcd();
     var a :| q * a == x;
     var b :| q * b == y - x;
     assert IsFactor(q, y) by {
@@ -216,6 +246,7 @@ lemma GcdSubtractAlt(x: pos, y: pos)
     }
     assert q in Factors(x) * Factors(y);
   }
+  assert Gcd(y, x) == Gcd(x, y - x) by { reveal Gcd(); }
 }
 
 method EuclidGcdAlt(X: pos, Y: pos) returns (gcd: pos)
