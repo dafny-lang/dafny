@@ -3,17 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using DafnyCore.Backends.Python;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
-  public static class PythonExtensions {
-    public static ConcreteSyntaxTree NewBlockPy(this ConcreteSyntaxTree tree, string header = "", string footer = "",
-      BlockStyle open = BlockStyle.Newline,
-      BlockStyle close = BlockStyle.Nothing) {
-      return tree.NewBlock(header, footer, open, close);
-    }
-  }
 
   class PythonCodeGenerator : SinglePassCodeGenerator {
     public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
