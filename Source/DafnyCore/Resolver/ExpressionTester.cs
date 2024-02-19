@@ -361,19 +361,19 @@ public class ExpressionTester {
   ///
   /// What this method does falls into three parts:
   ///
-  /// If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
+  /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
   /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
   /// the run-time type tests consists simply of a non-null check.
   ///
   /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
   ///
-  /// If "toType" is a subset type or newtype that involves constraints, then those constraints have to be compilable.
+  /// 1. If "toType" is a subset type or newtype that involves constraints, then those constraints have to be compilable.
   /// (Actually, this could be improved in a future version of Dafny, because we're given that any constraints of
   /// "fromType" already hold. Thus, we really just need to check that the constraints _between_ "fromType" and "toType"
   /// are compilable.)
   ///
-  /// The third part is to check that "toType" is injective in its type parameters. That is, we want to check that the type arguments
-  /// of "toType" are uniquely determined from the type arguments of "fromType".
+  /// 2. The third part is to check that "toType" is injective in its type parameters. That is, we want to check that the
+  /// type arguments of "toType" are uniquely determined from the type arguments of "fromType".
   /// To illustrate the need for this injectivity check, suppose the "is"-operation is testing whether or not the given expression
   /// of type A<X> has type B<Y>, where X and Y are some type expressions. If the type parameterization Y is uniquely determined
   /// from X, then all we need to check at run time is whether or not the A thing is a B thing. (This happens to be supported in all
@@ -394,16 +394,19 @@ public class ExpressionTester {
   /// we can start by shaving off any subset types.
   /// </summary>
   public static bool IsTypeTestCompilable(Type fromType, Type toType) {
+    // part 0
     if (fromType.IsSubtypeOf(toType, false, true)) {
       // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
     }
 
+    // part 1
     if (toType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl { ConstraintIsCompilable: false } }) {
       // the constraint can't be evaluated at run time, so the type test cannot be compiled
       return false;
     }
 
+    // part 2
     if (toType.NormalizeExpand() is UserDefinedType udtTo) {
       // check that "udtTo" is injective in its type parameters
 
@@ -419,7 +422,7 @@ public class ExpressionTester {
       if (A is UserDefinedType udtA) {
         A_U = B_T.AsParentType(udtA.ResolvedClass);
       } else {
-        // Evidently, A is not a newtype, (co)datatype, abstract type, reference type, or trait type (except possibly "object?"). Hence:
+        // Evidently, A is not a newtype, subset type, (co)datatype, abstract type, reference type, or trait type (except possibly "object?"). Hence:
         Contract.Assert(A.NormalizeToAncestorType().Equals(A));
         // We can therefore move B_T up to its parent A by normalizing, expanding, and trimming it all the way.
         A_U = B_T.NormalizeToAncestorType();
