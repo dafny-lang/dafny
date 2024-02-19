@@ -64,10 +64,11 @@ definition file.
 ## On-line RM through github
 Github uses rouge, via Jekyll. The syntax definition is a ruby-based file
 maintained in the rouge github repo.
-To modify the definition, follow the directions in
-https://rouge-ruby.github.io/docs/file.LexerDevelopment.html
-after setting up a development environment according to
-https://rouge-ruby.github.io/docs/file.DevEnvironment.html.
+To modify the definition, follow
+[these](https://rouge-ruby.github.io/docs/file.LexerDevelopment.html)
+directions after [setting
+up](https://rouge-ruby.github.io/docs/file.DevEnvironment.html) a
+development environment.
 The file itself, `dafny.rb` is in Ruby. Details of the Ruby Regular
 Expression language can be found many places online, such as
 [here](https://www.princeton.edu/~mlovett/reference/Regular-Expressions.pdf).
