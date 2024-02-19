@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
@@ -14,9 +15,9 @@ namespace XUnitExtensions.Lit {
       throw new ArgumentException($"Unrecognized arguments to XFAIL: {line}");
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      return (0, "", "");
+      return Task.FromResult(0);
     }
   }
 }

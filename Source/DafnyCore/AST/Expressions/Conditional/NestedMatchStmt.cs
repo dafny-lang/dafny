@@ -20,7 +20,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     foreach (var c in this.Cases) {
       if (!Attributes.Contains(c.Attributes, "split")) {
         List<Expression> args = new List<Expression>();
-        args.Add(new LiteralExpr(c.Tok, splitMatch));
+        args.Add(Expression.CreateBoolLiteral(c.Tok, splitMatch));
         Attributes attrs = new Attributes("split", args, c.Attributes);
         c.Attributes = attrs;
       }

@@ -51,8 +51,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     Le,
     Ge,
     Gt,
-    Add,
-    Sub,
+    Add, // also used for char
+    Sub, // also used for char
     Mul,
     Div,
     Mod,

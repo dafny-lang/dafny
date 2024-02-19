@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
     public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
       var argumentType = resolver.SystemModuleManager.Nat();
       var formals = new List<Formal> {
-        new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
+        new Formal(Token.NoToken, "w", argumentType, true, false, null) {
           PreType = Type2PreType(argumentType)
         }
       };

@@ -65,7 +65,7 @@ abstract module M1 refines M0 {
       reads this, set a: Element | a in M
       ensures GoodCMap(Collect())
     {
-      map e | e in M :: e.c
+      map e : Element | e in M :: e.c
     }
     ghost predicate {:autocontracts false} Reaches(d: nat, e: Element, r: Element, C: CMap)
       requires GoodCMap(C)
