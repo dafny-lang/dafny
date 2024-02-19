@@ -13,7 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using static Microsoft.Dafny.Compilers.GeneratorErrors;
+using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
 

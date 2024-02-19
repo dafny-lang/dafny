@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using static Microsoft.Dafny.ErrorRegistry;
 
-namespace Microsoft.Dafny.Compilers;
+namespace Microsoft.Dafny;
 
 public class GeneratorErrors {
 
