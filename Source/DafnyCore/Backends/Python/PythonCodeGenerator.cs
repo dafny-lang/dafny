@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.Compilers {
       return tree.NewBlock(header, footer, open, close);
     }
   }
-  
+
   class PythonCodeGenerator : SinglePassCodeGenerator {
     public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       if (Options?.CoverageLegendFile != null) {
