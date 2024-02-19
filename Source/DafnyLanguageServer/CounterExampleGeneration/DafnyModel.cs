@@ -397,6 +397,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return;
       }
 
+      var valueIsDatatype = datatypeValues.TryGetValue(value.Element, out var fnTuple);
+
       var heap = state.State.TryGet("$Heap");
       var functionApplications = GetFunctionConstants(value.Element, heap);
       foreach (var functionApplication in functionApplications) {
@@ -407,10 +409,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         } else {
           args = args.Skip(1).ToList();
         }
-        new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last());
+        new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last(), !valueIsDatatype);
       }
 
-      if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
+      if (valueIsDatatype) {
         new DatatypeConstructorCheckConstraint(value, fnTuple.Func.Name.Split(".").Last());
         // Elt is a datatype value
         var destructors = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
