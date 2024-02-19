@@ -235,7 +235,7 @@ public interface IAttributeBearingDeclaration {
   Attributes Attributes { get; }
 }
 
-public static class IAttributeBearingDeclarationExtensions {
+public static class AttributeBearingDeclarationExtensions {
   public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
     if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
       attribute = attr;

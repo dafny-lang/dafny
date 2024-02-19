@@ -1,0 +1,1 @@
+The `{:rlimit N}` attribute, which multiplied `N` by 1000 before sending it to Z3, is deprecated in favor of the `{:resource_limit N}` attribute, which can accept string arguments with exponential notation for brevity.  The `--resource-limit` and `/rlimit` flags also now omit the multiplication, and the former allows exponential notation.

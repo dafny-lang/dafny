@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.IO;
 using System.Reflection;
@@ -35,6 +36,8 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments, IDictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
@@ -85,7 +88,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
+      CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 
@@ -120,6 +123,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static void ParseImplicitEnable(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      options.Set(option, true);
+    }
+
     public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       int result = 0;
       if (ps.GetIntArgument(ref result, 2)) {
@@ -146,12 +153,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static readonly List<LegacyUiForOption> legacyUis = new();
+    private static readonly List<LegacyUiForOption> LegacyUis = new();
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
       string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
-      legacyUis.Add(new LegacyUiForOption(
+      LegacyUis.Add(new LegacyUiForOption(
         option,
         (state, options) => parse(option, state, options),
         category,
@@ -181,14 +188,77 @@ namespace Microsoft.Dafny {
 
       try {
         if (i >= arguments.Length) {
-          return base.Parse(arguments);
+          return BaseParse(arguments);
         }
         MainArgs = arguments.Skip(i + 1).ToList();
-        return base.Parse(arguments.Take(i).ToArray());
+        return BaseParse(arguments.Take(i).ToArray());
       } catch (Exception e) {
         ErrorWriter.WriteLine("Invalid filename: " + e.Message);
         return false;
       }
+    }
+
+    protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+      return new TextWriterParseState(args, ToolName, ErrorWriter);
+    }
+
+    /// <summary>
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    class TextWriterParseState : Bpl.CommandLineParseState {
+      private readonly TextWriter errorWriter;
+
+      public TextWriterParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+        this.errorWriter = errorWriter;
+      }
+
+      public override void Error(string message, params string[] args) {
+        errorWriter.WriteLine("{0}: Error: {1}", ToolName, string.Format(message, args));
+        EncounteredErrors = true;
+      }
+    }
+
+    /// <summary>
+    /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    private bool BaseParse(string[] args) {
+      Environment = Environment + "Command Line Options: " + string.Join(" ", args);
+      args = cce.NonNull<string[]>((string[])args.Clone());
+      Bpl.CommandLineParseState state;
+      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
+        cce.LoopInvariant(state.args == args);
+        string file = args[state.i];
+        state.s = file.Trim();
+        bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");
+        int length = state.s.IndexOf(':');
+        if (0 <= length & flag) {
+          state.hasColonArgument = true;
+          args[state.i] = state.s.Substring(length + 1);
+          state.s = state.s.Substring(0, length);
+        } else {
+          ++state.i;
+          state.hasColonArgument = false;
+        }
+        state.nextIndex = state.i;
+        if (flag) {
+          if (!ParseOption(state.s.Substring(1), state)) {
+            if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
+              AddFile(file, state);
+            } else {
+              UnknownSwitch(state);
+            }
+          }
+        } else {
+          AddFile(file, state);
+        }
+      }
+      if (state.EncounteredErrors) {
+        ErrorWriter.WriteLine("Use /help for available options");
+        return false;
+      }
+      ApplyDefaultOptions();
+      return true;
     }
 
     public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
@@ -207,7 +277,7 @@ namespace Microsoft.Dafny {
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo
+        return FileVersionInfo
           .GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
@@ -304,7 +374,7 @@ namespace Microsoft.Dafny {
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public bool UseStdin = false;
-    public bool WarningsAsErrors = false;
+    public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
@@ -358,6 +428,10 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
+    public static bool TryParseResourceCount(string value, out uint result) {
+      return uint.TryParse(value, NumberStyles.AllowExponent, null, out result);
+    }
+
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
@@ -395,7 +469,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in legacyUis.Where(o => o.Name == name)) {
+      foreach (var option in LegacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -408,7 +482,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
+      LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -713,11 +787,12 @@ namespace Microsoft.Dafny {
           }
 
         case "warningsAsErrors":
-          WarningsAsErrors = true;
+          FailOnWarnings = true;
           return true;
 
         case "extractCounterexample":
           ExtractCounterexample = true;
+          EnhancedErrorMessages = 1;
           return true;
 
         case "verificationLogger":
@@ -764,7 +839,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var legacyUiOption in legacyUis) {
+      foreach (var legacyUiOption in LegacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
           Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
@@ -1141,6 +1216,13 @@ namespace Microsoft.Dafny {
       SetZ3Option("type_check", "true");
       SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
+      SetZ3Option("model_evaluator.completion", "true");
+      SetZ3Option("model.completion", "true");
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        SetZ3Option("model_compress", "false");
+      } else {
+        SetZ3Option("model.compact", "false");
+      }
 
       // This option helps avoid "time travelling triggers".
       // See: https://github.com/dafny-lang/dafny/discussions/3362
@@ -1407,10 +1489,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /extractCounterexample
     If verification fails, report a detailed counterexample for the
-    first failing assertion. Requires specifying the /mv:<file> option as well
-    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-    /proverOpt:O:model.completion=true.
+    first failing assertion (experimental).
 
 ---- Compilation options ---------------------------------------------------
 

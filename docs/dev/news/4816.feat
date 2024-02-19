@@ -1,0 +1,2 @@
+- Add an option `--filter-position` to the `dafny verify` command, that allows verifying a single function or method, based on a file path and a line number. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5` will only verify thing that ranges over line 5 in the file `source1.dfy`.
+- Add an option `--filter-symbol` to the `dafny verify` command, that only verifies symbols whose fully qualified contains the given argument. For example, `dafny verify dfyconfig.toml --filter-symbol=MyModule` will verify everything inside `MyModule`.

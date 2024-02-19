@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false --manual-triggers "%s" > "%t"
+// RUN: %verify --allow-deprecation --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List = Nil | Cons(Expr, List)

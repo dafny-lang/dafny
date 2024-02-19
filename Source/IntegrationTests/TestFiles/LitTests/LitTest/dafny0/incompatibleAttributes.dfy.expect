@@ -1,0 +1,2 @@
+incompatibleAttributes.dfy(4,9): Error: the rlimit and resource_limit attributes cannot be used together
+1 resolution/type errors detected in incompatibleAttributes.dfy

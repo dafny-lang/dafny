@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -10,18 +11,24 @@ namespace Microsoft.Dafny;
 public interface ILegacyParseArguments { }
 
 // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
-public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR, FORMAT_ERROR }
+public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR = 1, DAFNY_ERROR = 2, COMPILE_ERROR = 3, VERIFICATION_ERROR = 4, FORMAT_ERROR = 5 }
 
 public record ParsedOptions(DafnyOptions DafnyOptions) : ILegacyParseArguments;
 record ExitImmediately(ExitValue ExitValue) : ILegacyParseArguments;
 
 public static class DafnyBackwardsCompatibleCli {
 
-  public static int Main(string[] args) {
+  public static Task<int> Main(string[] args) {
     return MainWithWriters(Console.Out, Console.Error, Console.In, args);
   }
 
-  public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+  static DafnyBackwardsCompatibleCli() {
+    // Force all calls to RegisterLegacyUi to be done
+    CommonOptionBag.EnsureStaticConstructorHasRun();
+    TestCommand.EnsureStaticConstructorHasRun();
+  }
+
+  public static Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
     string[] args) {
     // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
     // outputWriter = new UndisposableTextWriter(outputWriter);
@@ -29,10 +36,7 @@ public static class DafnyBackwardsCompatibleCli {
     // outputWriter = TextWriter.Synchronized(outputWriter);
     // errorWriter = TextWriter.Synchronized(errorWriter);
 
-#pragma warning disable VSTHRD002
-    var exitCode = Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
-    return exitCode;
-#pragma warning restore VSTHRD002
+    return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args));
   }
 
   private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
@@ -46,7 +50,7 @@ public static class DafnyBackwardsCompatibleCli {
     switch (legacyResult) {
       case ParsedOptions success:
         var options = success.DafnyOptions;
-        return CompilerDriver.Run(options);
+        return SynchronousCliCompilation.Run(options);
       case ExitImmediately failure:
         return Task.FromResult((int)failure.ExitValue);
       default: throw new Exception("unreachable");

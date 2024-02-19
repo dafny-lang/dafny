@@ -5,10 +5,12 @@ using System.Linq;
 using System.Numerics;
 using DafnyCore;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring, ISymbol, ICanAutoRevealDependencies, ICanVerify {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring,
+  ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -463,7 +465,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         // method should have been filled in by now,
         // unless there was a function by method and a method of the same name
         // but then this error must have been reported.
-        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
     }
 
@@ -485,7 +487,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return null;
   }
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Function;
+  public SymbolKind Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {
@@ -535,8 +537,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     if (autoRevealDepth > 0) {
-      Expression reqExpr = new LiteralExpr(Tok, true);
-      reqExpr.Type = Type.Bool;
+      Expression reqExpr = Expression.CreateBoolLiteral(Tok, true);
 
       var bodyExpr = Body;
 
