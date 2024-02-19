@@ -43,6 +43,5 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
       Message = new StringLiteralExpr(Tok, "expectation violation", false);
     }
     resolver.ResolveExpression(Message, context);
-    Contract.Assert(Message.Type != null);  // follows from postcondition of ResolveExpression
   }
 }
