@@ -623,7 +623,7 @@ public abstract class Type : TokenNode {
 
     var udt = (UserDefinedType)NormalizeExpand();
     if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-      udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      udt = (UserDefinedType)isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
     }
     TopLevelDeclWithMembers cl;
     if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -639,11 +639,8 @@ public abstract class Type : TokenNode {
     var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
-  public bool IsTraitType {
-    get {
-      return AsTraitType != null;
-    }
-  }
+
+  public bool IsTraitType => AsTraitType != null;
   public TraitDecl/*?*/ AsTraitType {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
