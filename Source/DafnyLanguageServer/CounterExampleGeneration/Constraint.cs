@@ -75,9 +75,7 @@ public abstract class Constraint {
         !knownDefinitions.ContainsKey(definition.DefinedValue) &&
         definition.ReferencedValues.All(knownDefinitions.ContainsKey));
       if (definition != null) {
-        if (definition.WellFormed != null) {
-          constraints.Add(definition.WellFormed);
-        }
+        constraints.AddRange(definition.WellFormed);
         knownDefinitions[definition.DefinedValue] = definition.AsExpression(knownDefinitions, false);
         newConstraint = definition;
         continue;
@@ -85,8 +83,8 @@ public abstract class Constraint {
 
       newConstraint = oldConstraints.FirstOrDefault();
       if (newConstraint != null) {
-        if (newConstraint is DefinitionConstraint { WellFormed: not null } definitionConstraint) {
-          constraints.Add(definitionConstraint.WellFormed);
+        if (newConstraint is DefinitionConstraint definitionConstraint) {
+          constraints.AddRange(definitionConstraint.WellFormed);
         }
         constraints.Add(newConstraint);
       }
@@ -98,9 +96,9 @@ public abstract class Constraint {
 public abstract class DefinitionConstraint : Constraint {
 
   public readonly PartialValue DefinedValue;
-  public readonly Constraint? WellFormed;
+  public readonly List<Constraint> WellFormed;
 
-  protected DefinitionConstraint(IEnumerable<PartialValue> referencedValues, PartialValue definedValue, Constraint? wellFormed) : base(referencedValues) {
+  protected DefinitionConstraint(IEnumerable<PartialValue> referencedValues, PartialValue definedValue, List<Constraint> wellFormed) : base(referencedValues) {
     DefinedValue = definedValue;
     DefinedValue.Constraints.Add(this);
     WellFormed = wellFormed;
@@ -117,7 +115,7 @@ public abstract class DefinitionConstraint : Constraint {
 public class IdentifierExprConstraint : DefinitionConstraint {
   private readonly string name;
 
-  public IdentifierExprConstraint(PartialValue definedValue, string name) : base(new List<PartialValue>(), definedValue, null) {
+  public IdentifierExprConstraint(PartialValue definedValue, string name) : base(new List<PartialValue>(), definedValue, new List<Constraint>() { }) {
     this.name = name;
   }
 
@@ -129,7 +127,7 @@ public class IdentifierExprConstraint : DefinitionConstraint {
 public class LiteralExprConstraint : DefinitionConstraint {
 
   public readonly Expression LiteralExpr;
-  public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr) : base(new List<PartialValue>(), definedValue, null) {
+  public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr) : base(new List<PartialValue>(), definedValue, new List<Constraint>() { }) {
     LiteralExpr = literalExpr;
   }
 
@@ -143,7 +141,7 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
   public readonly PartialValue Obj;
   public readonly string MemberName;
 
-  protected MemberSelectExprConstraint(PartialValue definedValue, PartialValue obj, string memberName, Constraint? constraint) : base(new List<PartialValue> { obj }, definedValue, constraint) {
+  protected MemberSelectExprConstraint(PartialValue definedValue, PartialValue obj, string memberName, List<Constraint> constraint) : base(new List<PartialValue> { obj }, definedValue, constraint) {
     Obj = obj;
     MemberName = memberName;
   }
@@ -155,13 +153,13 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
 
 public class MemberSelectExprDatatypeConstraint : MemberSelectExprConstraint {
   public MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName) : base(
-    definedValue, obj, memberName, null) {
+    definedValue, obj, memberName, new List<Constraint>() { }) {
   }
 }
 
 public class MemberSelectExprClassConstraint : MemberSelectExprConstraint {
   public MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName) : base(
-    definedValue, obj, memberName, new NotNullConstraint(obj)) {
+    definedValue, obj, memberName, new List<Constraint>() { new NotNullConstraint(obj) }) {
   }
 }
 
@@ -171,7 +169,7 @@ public class DatatypeValueConstraint : DefinitionConstraint {
   private readonly string constructorName;
   private readonly string datatypeName;
 
-  public DatatypeValueConstraint(PartialValue definedValue, string datatypeName, string constructorName, IReadOnlyCollection<PartialValue> unnamedDestructors) : base(unnamedDestructors, definedValue, null) {
+  public DatatypeValueConstraint(PartialValue definedValue, string datatypeName, string constructorName, IReadOnlyCollection<PartialValue> unnamedDestructors) : base(unnamedDestructors, definedValue, new List<Constraint>() { }) {
     UnnamedDestructors = unnamedDestructors;
     this.constructorName = constructorName;
     this.datatypeName = datatypeName;
@@ -190,7 +188,7 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
   public readonly PartialValue Index;
 
 
-  public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(new List<PartialValue> { seq, index }, definedValue, new CardinalityGtThanConstraint(seq, index)) {
+  public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(new List<PartialValue> { seq, index }, definedValue, new List<Constraint>() { new CardinalityGtThanConstraint(seq, index) }) {
     Seq = seq;
     Index = index;
   }
@@ -206,7 +204,7 @@ public class SeqSelectExprArrayConstraint : DefinitionConstraint {
 
 
   // TODO: Add well-formed-ness constraint for array indexing!
-  public SeqSelectExprArrayConstraint(PartialValue definedValue, PartialValue array, string index) : base(new List<PartialValue> { array }, definedValue, null) {
+  public SeqSelectExprArrayConstraint(PartialValue definedValue, PartialValue array, string index) : base(new List<PartialValue> { array }, definedValue, new List<Constraint>() { }) {
     this.array = array;
     this.index = index;
   }
@@ -223,7 +221,7 @@ public class MapSelectExprConstraint : DefinitionConstraint {
 
 
   public MapSelectExprConstraint(PartialValue definedValue, PartialValue map, PartialValue key) : base(
-    new List<PartialValue> { map, key }, definedValue, new ContainmentConstraint(key, map, true)) {
+    new List<PartialValue> { map, key }, definedValue, new List<Constraint>() { new ContainmentConstraint(key, map, true) }) {
     Map = map;
     Key = key;
   }
@@ -240,7 +238,7 @@ public class SeqSelectExprWithLiteralConstraint : DefinitionConstraint {
 
 
   public SeqSelectExprWithLiteralConstraint(PartialValue definedValue, PartialValue seq, LiteralExpr index) : base(
-    new List<PartialValue> { seq }, definedValue, new CardinalityGtThanLiteralConstraint(seq, index)) {
+    new List<PartialValue> { seq }, definedValue, new List<Constraint>() { new CardinalityGtThanLiteralConstraint(seq, index) }) {
     Seq = seq;
     Index = index;
   }
@@ -255,7 +253,7 @@ public class CardinalityConstraint : DefinitionConstraint {
   public readonly PartialValue Collection;
 
 
-  public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(new List<PartialValue> { collection }, definedValue, null) {
+  public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(new List<PartialValue> { collection }, definedValue, new List<Constraint>() { }) {
     Collection = collection;
   }
 
@@ -268,7 +266,7 @@ public class SeqDisplayConstraint : DefinitionConstraint {
   private readonly List<PartialValue> elements;
 
 
-  public SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue, null) {
+  public SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue, new List<Constraint>() { }) {
     this.elements = elements;
   }
 
@@ -283,7 +281,13 @@ public class FunctionCallConstraint : DefinitionConstraint {
   public readonly string functionName;
 
 
-  public FunctionCallConstraint(PartialValue definedValue, PartialValue receiver, List<PartialValue> args, string functionName) : base(args.Append(receiver), definedValue, new FunctionCallRequiresConstraint(receiver, args, functionName)) {
+  public FunctionCallConstraint(
+    PartialValue definedValue,
+    PartialValue receiver,
+    List<PartialValue> args,
+    string functionName,
+    bool receiverIsReferenceType) : base(args.Append(receiver), definedValue,
+    receiverIsReferenceType ? new List<Constraint> { new NotNullConstraint(receiver), new FunctionCallRequiresConstraint(receiver, args, functionName) } : new List<Constraint>() { new FunctionCallRequiresConstraint(receiver, args, functionName) }) {
     this.args = args;
     this.receiver = receiver;
     this.functionName = functionName;
