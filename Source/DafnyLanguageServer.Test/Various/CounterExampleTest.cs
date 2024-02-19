@@ -1022,7 +1022,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Contains("0 == |m|", counterExamples[1].Assumption);
+      Assert.Matches("(map\\[\\] == m|0 == \\|m\\|)", counterExamples[1].Assumption);
     }
 
     [Theory(Skip = "This test should be re-enabled once we support traits")]
@@ -1052,7 +1052,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Fail("This test needs to be updated once we support traits");
     }
 
-    [Theory(Skip = "This test should be re-enabled once we support counterexamples that constrain function behavior")]
+    [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task ClassTypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1060,16 +1060,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       module M {
         class C {
           predicate Valid()
+          function Identity(i:int):int
+          function Sum(a:int, b:int):int
         }
         method test(c:C) {
-          assert c.Valid();
+          assert !c.Valid() || c.Identity(1) != 1 || c.Sum(1, 2) != 3;
         }
       }".TrimStart();
       var documentItem = CreateTestDocument(source, "TraitType.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.Fail("This test needs to be updated once we support counterexamples that constrain function behavior");
+      Assert.Single(counterExamples);
+      Assert.Contains("1 == c.Identity(1)", counterExamples[0].Assumption);
+      Assert.Contains("3 == c.Sum(1, 2)", counterExamples[0].Assumption);
+      Assert.Contains("true == c.Valid()", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -1146,7 +1151,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal(2, counterExamples.Length);
       // the assertion below ensures Dafny does not emit a type constraint if it cannot figure out the variable's type
       Assert.DoesNotContain("?", counterExamples[1].Assumption);
-      Assert.Contains("0 == |s|", counterExamples[1].Assumption);
+      Assert.Matches("({} == s|0 == \\|s\\|)", counterExamples[1].Assumption);
     }
 
     [Theory]
@@ -1364,7 +1369,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.True(a + b < a || a + b < b);
     }
 
-    [Theory(Skip = "This test should be re-enabled once we support counterexamples that constrain function behavior")]
+    [Theory]
     [MemberData(nameof(OptionSettings))]
     public async Task DatatypeWithPredicate(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -1385,7 +1390,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Fail("This test needs to be updated once we support counterexamples that constrain function behavior");
+      Assert.Contains("d.C?", counterExamples.First().Assumption);
+      Assert.Contains("true == d.p()", counterExamples.First().Assumption);
+      Assert.Contains("123 == d.i", counterExamples.First().Assumption);
     }
 
     /** Makes sure the counterexample lists the base type of a variable */

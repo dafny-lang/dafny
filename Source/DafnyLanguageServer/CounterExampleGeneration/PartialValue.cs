@@ -17,7 +17,7 @@ public class PartialValue {
   private readonly Type type;
   private bool haveExpanded;
 
-  private bool nullable = false;
+  private bool nullable = false; // TODO: reenable this!
   public bool Nullable => nullable;
 
   internal static PartialValue Get(Model.Element element, PartialState state) {
@@ -106,11 +106,7 @@ public class PartialValue {
   }
 
   public int? Cardinality() {
-    if (Type is not SeqType or SetType or MapType) {
-      return -1;
-    }
-
-    if (Constraints.OfType<EmptyConstraint>().Any()) {
+    if (Constraints.OfType<LiteralExprConstraint>().Any(constraint => (constraint.LiteralExpr is DisplayExpression displayExpression && !displayExpression.SubExpressions.Any()) || (constraint.LiteralExpr is MapDisplayExpr mapDisplayExpr && !mapDisplayExpr.Elements.Any()))) {
       return 0;
     }
 

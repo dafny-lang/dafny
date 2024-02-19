@@ -277,6 +277,52 @@ public class SeqDisplayConstraint : DefinitionConstraint {
   }
 }
 
+public class FunctionCallConstraint : DefinitionConstraint {
+  private readonly List<PartialValue> args;
+  private readonly PartialValue receiver;
+  public readonly string functionName;
+
+
+  public FunctionCallConstraint(PartialValue definedValue, PartialValue receiver, List<PartialValue> args, string functionName) : base(args.Append(receiver), definedValue, new FunctionCallRequiresConstraint(receiver, args, functionName)) {
+    this.args = args;
+    this.receiver = receiver;
+    this.functionName = functionName;
+  }
+
+  protected override Expression AsExpression(Dictionary<PartialValue, Expression> definitions) {
+    return new ApplySuffix(
+      Token.NoToken,
+      null,
+      new ExprDotName(Token.NoToken, definitions[receiver], functionName, null),
+      args.Select(formal =>
+        new ActualBinding(null, definitions[formal])).ToList(),
+      Token.NoToken);
+  }
+}
+
+public class FunctionCallRequiresConstraint : Constraint {
+  private readonly List<PartialValue> args;
+  private readonly PartialValue receiver;
+  public readonly string functionName;
+
+
+  public FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName) : base(args.Append(receiver)) {
+    this.args = args;
+    this.receiver = receiver;
+    this.functionName = functionName;
+  }
+
+  protected override Expression AsExpression(Dictionary<PartialValue, Expression> definitions) {
+    return new ApplySuffix(
+      Token.NoToken,
+      null,
+      new ExprDotName(Token.NoToken, definitions[receiver], functionName + ".requires", null),
+      args.Select(formal =>
+        new ActualBinding(null, definitions[formal])).ToList(),
+      Token.NoToken);
+  }
+}
+
 public class ContainmentConstraint : Constraint {
 
   public readonly PartialValue Element, Set;
@@ -325,25 +371,6 @@ public class DatatypeConstructorCheckConstraint : Constraint {
 
   protected override Expression AsExpression(Dictionary<PartialValue, Expression> definitions) {
     return new MemberSelectExpr(Token.NoToken, definitions[obj], ConstructorName + "?");
-  }
-}
-
-public class EmptyConstraint : Constraint {
-  private readonly PartialValue collection;
-
-  public EmptyConstraint(PartialValue collection) : base(new List<PartialValue> { collection }) {
-    this.collection = collection;
-  }
-
-  protected override Expression AsExpression(Dictionary<PartialValue, Expression> definitions) {
-    var zero = new LiteralExpr(Token.NoToken, 0) {
-      Type = Type.Int
-    };
-    var cardinalityExpr = new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Cardinality, definitions[collection]) {
-      Type = Type.Int
-    };
-    var binaryExpr = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, zero, cardinalityExpr);
-    return binaryExpr;
   }
 }
 

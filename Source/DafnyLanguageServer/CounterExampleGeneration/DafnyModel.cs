@@ -397,6 +397,19 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return;
       }
 
+      var heap = state.State.TryGet("$Heap");
+      var functionApplications = GetFunctionConstants(value.Element, heap);
+      foreach (var functionApplication in functionApplications) {
+        var result = PartialValue.Get(functionApplication.Result, state);
+        var args = functionApplication.Args.Select(arg => PartialValue.Get(arg, state)).ToList();
+        if (functionApplication.Args[0] == heap) {
+          args = args.Skip(2).ToList();
+        } else {
+          args = args.Skip(1).ToList();
+        }
+        new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last());
+      }
+
       if (datatypeValues.TryGetValue(value.Element, out var fnTuple)) {
         new DatatypeConstructorCheckConstraint(value, fnTuple.Func.Name.Split(".").Last());
         // Elt is a datatype value
@@ -432,6 +445,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
       switch (value.Type) {
         case SeqType: {
+            if (fSeqEmpty.AppWithResult(value.Element) != null) {
+              new LiteralExprConstraint(value, new SeqDisplayExpr(Token.NoToken, new List<Expression>()));
+              return;
+            }
             var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
             BigNum seqLength = BigNum.MINUS_ONE;
             if (lenghtTuple != null) {
@@ -491,7 +508,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               }
             }
             if (fSetEmpty.AppWithResult(value.Element) != null) {
-              new EmptyConstraint(value);
+              new LiteralExprConstraint(value, new SetDisplayExpr(Token.NoToken, true, new List<Expression>()));
               return;
             }
 
@@ -554,7 +571,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
 
             if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
-              new EmptyConstraint(value);
+              new LiteralExprConstraint(value, new MapDisplayExpr(Token.NoToken, true, new List<ExpressionPair>()));
             }
 
             return;
@@ -562,7 +579,6 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           }
         default: {
             // Elt is an array or an object:
-            var heap = state.State.TryGet("$Heap");
             if (heap == null) {
               return;
             }
@@ -752,7 +768,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     /// <summary>
-    /// Return all functions mapping an object to a destructor value.
+    /// Return all functions application relevant to an element. These can be:
+    /// 1) destructor values of a datatype
+    /// 2) constant fields of an object
+    /// 3) function applications
     /// </summary>
     private List<Model.Func> GetDestructorFunctions(Model.Element element) {
       var possibleTypeIdentifiers = GetIsResults(element);
@@ -765,6 +784,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
+      var canCallFunctions = new HashSet<string>();
       foreach (var app in element.References) {
         if (app.Func.Arity != 1 || app.Args[0] != element ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
@@ -772,9 +792,52 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             app.Func.Name.Split(".").Last().StartsWith("_")) {
           continue;
         }
-        result.Add(app.Func);
+
+        if (app.Func.Name.EndsWith("#canCall")) {
+          canCallFunctions.Add(app.Func.Name);
+        } else {
+          result.Add(app.Func);
+        }
       }
-      return result;
+      return result.Where(func => canCallFunctions.All(canCall => !canCall.StartsWith(func.Name))).ToList();
+    }
+
+    /// <summary>
+    /// Return all functions application relevant to an element. 
+    /// </summary>
+    private List<Model.FuncTuple> GetFunctionConstants(Model.Element element, Model.Element heap) {
+      var possibleTypeIdentifiers = GetIsResults(element);
+      if (fDtype.OptEval(element) != null) {
+        possibleTypeIdentifiers.Add(fDtype.OptEval(element));
+      }
+      var possiblyNullableTypes = possibleTypeIdentifiers
+        .Select(isResult => ReconstructType(isResult) as UserDefinedType)
+        .Where(type => type != null && type.Name != UnknownType.Name);
+      var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
+      List<Model.FuncTuple> applications = new();
+      List<Model.FuncTuple> wellFormed = new();
+      foreach (var app in element.References) {
+        if (app.Args.Length == 0 || (app.Args[0] != element && (heap == null || app.Args[0] != heap || app.Args.Length == 1 || app.Args[1] != element)) ||
+            !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
+            app.Func.Name.Split(".").Last().StartsWith("_")) {
+          continue;
+        }
+
+        if (app.Func.Name.EndsWith("#canCall")) {
+          if (app.Result is Model.Boolean modelBoolean && modelBoolean.Value) {
+            wellFormed.Add(app);
+          }
+        } else {
+          applications.Add(app);
+        }
+      }
+
+      return applications.Where(application =>
+        wellFormed.Any(wellFormedTuple =>
+          wellFormedTuple.Args.Length == application.Args.Length &&
+          wellFormedTuple.Func.Name == application.Func.Name + "#canCall" &&
+          wellFormedTuple.Args.SequenceEqual(application.Args))
+      ).ToList();
     }
 
     /// <summary>
