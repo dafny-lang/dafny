@@ -137,7 +137,7 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
         @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
   - #???/??? with 1 assertion  at line ???, ??? RU  
   - #???/??? with 1 assertion  at line ???, ??? RU  "
       );
@@ -223,7 +223,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`
         @"**Verification performance metrics for function `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
   - #???/2 with 2 assertions at line ???, ??? RU  
   - #???/2 with 2 assertions at line ???, ??? RU"
       );
@@ -488,7 +488,7 @@ Could not prove: `i <= 0`"
       var documentItem = await GetDocumentItem(@"
 ghost function f(i:nat, j:nat):int {if i == 0 then 0 else f(i - 1, i * j + 1) + f(i - 1, 2 * i * j)}
 
-lemma{:rlimit 10000} L()
+lemma{:resource_limit 10000000} L()
 {
   assert f(10, 5) == 0;
 } ", "testfileSlow.dfy", true);

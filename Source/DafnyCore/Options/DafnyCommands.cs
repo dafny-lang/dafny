@@ -45,6 +45,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnRedundantAssumptions,
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
+    CommonOptionBag.ExtractCounterexample,
     CommonOptionBag.ShowInference,
     CommonOptionBag.ManualTriggerOption
   }.ToList();
@@ -59,28 +60,28 @@ public static class DafnyCommands {
     CommonOptionBag.SystemModule
   }.Concat(VerificationOptions).ToList();
 
-  public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
     CommonOptionBag.SpillTranslation,
     CommonOptionBag.InternalIncludeRuntimeOptionForExecution,
     CommonOptionBag.ExecutionCoverageReport
   }.Concat(TranslationOptions).ToList();
 
-  public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
+  public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
-    CommonOptionBag.WarningAsErrors,
+    CommonOptionBag.AllowWarnings,
   });
 
-  public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
+  public static readonly IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     CommonOptionBag.StdIn,
     CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
-    CommonOptionBag.WarnDeprecation,
+    CommonOptionBag.AllowDeprecation,
     CommonOptionBag.PluginOption,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,
@@ -88,11 +89,14 @@ public static class DafnyCommands {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.GeneralTraits,
+    CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
     CommonOptionBag.ReadsClausesOnMethods,
-    CommonOptionBag.UseStandardLibraries
+    CommonOptionBag.UseStandardLibraries,
+    CommonOptionBag.LogLevelOption,
+    CommonOptionBag.LogLocation
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

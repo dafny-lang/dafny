@@ -94,8 +94,7 @@ public abstract class Type : TokenNode {
   public void AddFreeTypeParameters(ISet<TypeParameter> tps) {
     Contract.Requires(tps != null);
     var ty = this.NormalizeExpandKeepConstraints();
-    var tp = ty.AsTypeParameter;
-    if (tp != null) {
+    if (ty.AsTypeParameter is { } tp) {
       tps.Add(tp);
     }
     foreach (var ta in ty.TypeArgs) {
@@ -174,6 +173,15 @@ public abstract class Type : TokenNode {
     ExpandSynonymsAndSubsetTypes
   }
 
+  public NativeType AsNativeType() {
+    if (AsNewtype != null) {
+      return AsNewtype.NativeType;
+    } else if (IsBitVectorType) {
+      return AsBitVectorType.NativeType;
+    }
+    return null;
+  }
+
   /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
   ///
@@ -186,9 +194,7 @@ public abstract class Type : TokenNode {
 
     Type type = this;
     while (true) {
-
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
+      if (type is TypeProxy { T: not null } pt) {
         type = pt.T;
         continue;
       }
@@ -351,6 +357,10 @@ public abstract class Type : TokenNode {
   }
 
   public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
+
+  public bool HavocCountsAsDefiniteAssignment(bool inGhostContext) {
+    return inGhostContext ? IsNonempty : HasCompilableValue;
+  }
 
   /// <summary>
   /// This property returns
@@ -575,15 +585,13 @@ public abstract class Type : TokenNode {
     get {
       var t = this;
       while (true) {
-        var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
-        if (udt == null) {
+        if (t.NormalizeExpandKeepConstraints() is not UserDefinedType udt) {
           return null;
         }
         if (udt.ResolvedClass is NonNullTypeDecl) {
           return udt;
         }
-        var sst = udt.ResolvedClass as SubsetTypeDecl;
-        if (sst != null) {
+        if (udt.ResolvedClass is SubsetTypeDecl sst) {
           t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
         } else {
           return null;
@@ -1998,6 +2006,10 @@ public abstract class CollectionType : NonProxyType {
     this.TypeArgs = new List<Type> { arg, other };
   }
 
+  protected CollectionType(Cloner cloner, CollectionType original) {
+    this.arg = cloner.CloneType(original.arg);
+  }
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Arg.ComputeMayInvolveReferences(visitedDatatypes);
   }
@@ -2122,77 +2134,6 @@ public class SeqType : CollectionType {
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
   public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
     return new ComprehensionExpr.SeqBoundedPool(source, Arg, Arg);
-  }
-}
-public class MapType : CollectionType {
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-  private bool finite;
-  public Type Range {
-    get { return range; }
-  }
-  private Type range;
-  public override void SetTypeArgs(Type domain, Type range) {
-    base.SetTypeArgs(domain, range);
-    Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
-    this.range = range;
-  }
-  public MapType(bool finite, Type domain, Type range) : base(domain, range) {
-    Contract.Requires((domain == null && range == null) || (domain != null && range != null));
-    this.finite = finite;
-    this.range = range;
-  }
-  public Type Domain {
-    get { return Arg; }
-  }
-  public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
-  [System.Diagnostics.Contracts.Pure]
-  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
-    return CollectionTypeName + targs;
-  }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as MapType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var dom = Domain.Subst(subst);
-    if (dom is InferredTypeProxy) {
-      ((InferredTypeProxy)dom).KeepConstraints = true;
-    }
-    var ran = Range.Subst(subst);
-    if (ran is InferredTypeProxy) {
-      ((InferredTypeProxy)ran).KeepConstraints = true;
-    }
-    if (dom == Domain && ran == Range) {
-      return this;
-    } else {
-      return new MapType(Finite, dom, ran);
-    }
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new MapType(Finite, arguments[0], arguments[1]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // A map type supports equality if both its Keys type and Values type does.  It is checked
-      // that the Keys type always supports equality, so we only need to check the Values type here.
-      return range.SupportsEquality;
-    }
-  }
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
-  }
-
-  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMap;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MapBoundedPool(source, Domain, Domain, Finite);
   }
 }
 

@@ -14,9 +14,9 @@ The `-t` or `--target` options specifies which backend compiler to use for
 those dafny commands that compile dafny to other programming languages. 
 This error message says that the named language is not supported.
 
-## **Error: No input files were specified in command-line. Command-line arguments: _command_** {#cli_no_files}
+## **Error: no Dafny source files were specified as input** {#cli_no_files}
 
-<!-- %check-cli  %err-->
+<!-- %check-cli -->
 ```bash
 dafny resolve
 ```
@@ -49,8 +49,8 @@ command is invoked or are absolute file paths. In particular, this
 instance of this error message identifies non-.dfy files that still
 have permitted extensions (according to the target platform) but
 cannot be found in the file system.
-
-## **Error: Command-line argument '_arg_' is neither a recognized option nor a filename with a supported extension (_ext_).** {#cli_bad_option}
+    
+## **Error: command-line argument '--zzz' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).** {#cli_bad_option}
 
 <!-- %check-cli -->
 ```bash
@@ -75,7 +75,7 @@ in an unrecognized form (e.g., with no filename extension).
 
 <!-- %check-cli -->
 ```bash
-dafny resolve z.zzz
+dafny build z.zzz
 ```
 
 Dafny programs are in files with a `.dfy` extension.

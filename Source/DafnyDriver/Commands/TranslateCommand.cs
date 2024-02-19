@@ -45,8 +45,7 @@ static class TranslateCommand {
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;
         options.SpillTargetCode = noVerify ? 3U : 2U;
-        var continueCliWithOptions = await CompilerDriver.Run(options);
-        return continueCliWithOptions;
+        return await SynchronousCliCompilation.Run(options);
       });
     }
 

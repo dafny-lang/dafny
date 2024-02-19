@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DafnyCore;
 using Microsoft.Boogie;
 using VC;
@@ -19,7 +20,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private readonly ConcurrentDictionary<Uri, List<string>> fsCache = new();
+  private static readonly ConditionalWeakTable<DafnyOptions, ConcurrentDictionary<Uri, List<string>>> fsCaches = new();
+
   private DafnyOptions options;
 
   public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
@@ -27,27 +29,28 @@ public class DafnyConsolePrinter : ConsolePrinter {
     int VCNum,
     DateTime StartTime,
     TimeSpan RunTime,
-    ProverInterface.Outcome Outcome,
+    SolverOutcome Outcome,
     List<(Boogie.IToken Tok, string Description)> Asserts,
     IEnumerable<TrackedNodeComponent> CoveredElements,
     int ResourceCount);
   public record VerificationResultLogEntry(
-    ConditionGeneration.Outcome Outcome,
+    VcOutcome Outcome,
     TimeSpan RunTime,
     int ResourceCount,
-    List<VCResultLogEntry> VCResults);
+    List<VCResultLogEntry> VCResults,
+    List<Counterexample> Counterexamples);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
-  public static VerificationResultLogEntry DistillVerificationResult(VerificationResult verificationResult) {
+  public static VerificationResultLogEntry DistillVerificationResult(ImplementationRunResult verificationResult) {
     return new VerificationResultLogEntry(
-      verificationResult.Outcome, verificationResult.End - verificationResult.Start,
-      verificationResult.ResourceCount, verificationResult.VCResults.Select(DistillVCResult).ToList());
+      verificationResult.VcOutcome, verificationResult.End - verificationResult.Start,
+      verificationResult.ResourceCount, verificationResult.RunResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
   }
 
-  private static VCResultLogEntry DistillVCResult(VCResult r) {
-    return new VCResultLogEntry(r.vcNum, r.startTime, r.runTime, r.outcome,
-        r.asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.coveredElements,
-        r.resourceCount);
+  private static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
+    return new VCResultLogEntry(r.VcNum, r.StartTime, r.RunTime, r.Outcome,
+        r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.CoveredElements,
+        r.ResourceCount);
   }
 
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();
@@ -63,13 +66,14 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private string GetFileLine(Uri uri, int lineIndex) {
+  private static string GetFileLine(DafnyOptions options, Uri uri, int lineIndex) {
+    var fsCache = fsCaches.GetOrCreateValue(options)!;
     List<string> lines = fsCache.GetOrAdd(uri, key => {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
         var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken);
-        var reader = file.GetContent();
+        using var reader = file.GetContent();
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
         lines = new List<string>();
@@ -79,11 +83,15 @@ public class DafnyConsolePrinter : ConsolePrinter {
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];
     }
-    return "<nonexistent line>";
+    return null;
   }
 
-  public void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.Uri, tok.line - 1);
+  public static void WriteSourceCodeSnippet(DafnyOptions options, IToken tok, TextWriter tw) {
+    string line = GetFileLine(options, tok.Uri, tok.line - 1);
+    if (line == null) {
+      return;
+    }
+
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
@@ -134,7 +142,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
     if (Options.Get(ShowSnippets)) {
       if (tok is IToken dafnyTok) {
-        WriteSourceCodeSnippet(dafnyTok, tw);
+        WriteSourceCodeSnippet(Options, dafnyTok, tw);
       } else {
         ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
       }
@@ -145,7 +153,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  public override void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
+  public override void ReportEndVerifyImplementation(Implementation implementation, ImplementationRunResult result) {
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
     VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }

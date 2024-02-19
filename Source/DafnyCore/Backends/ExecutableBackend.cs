@@ -84,9 +84,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override void OnPostCompile() {
-    base.OnPostCompile();
+  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     CodeGenerator.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCodeGenerator CreateCodeGenerator();
@@ -130,7 +130,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
 
+#pragma warning disable VSTHRD002
     errorProcessing.Wait();
+#pragma warning restore VSTHRD002
     return process.ExitCode;
   }
 

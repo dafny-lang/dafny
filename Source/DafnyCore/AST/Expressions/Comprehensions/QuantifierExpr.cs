@@ -11,7 +11,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   private readonly int UniqueId;
   private static int currentQuantId = -1;
 
-  protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+  protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.Or;
 
   private Expression SplitQuantifierToExpression() {
     Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());

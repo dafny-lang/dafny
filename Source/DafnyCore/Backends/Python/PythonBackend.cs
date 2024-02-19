@@ -48,10 +48,10 @@ public class PythonBackend : ExecutableBackend {
   }
 
   private static readonly Dictionary<OSPlatform, string> PlatformDefaults = new() {
-    {OSPlatform.Linux, "python3"},
-    {OSPlatform.Windows, "python"},
-    {OSPlatform.FreeBSD, "python3"},
-    {OSPlatform.OSX, "python3"},
+    { OSPlatform.Linux, "python3" },
+    { OSPlatform.Windows, "python" },
+    { OSPlatform.FreeBSD, "python3" },
+    { OSPlatform.OSX, "python3" },
   };
   private static string DefaultPythonCommand => PlatformDefaults.SingleOrDefault(
       kv => RuntimeInformation.IsOSPlatform(kv.Key),
