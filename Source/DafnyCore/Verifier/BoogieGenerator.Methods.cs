@@ -1461,6 +1461,9 @@ namespace Microsoft.Dafny {
       // Note, it is as if the trait's method is calling the class's method.
       var contextDecreases = overryd.Decreases.Expressions;
       var calleeDecreases = original.Decreases.Expressions;
+      var T = (TraitDecl)((MemberDecl)overryd).EnclosingClass;
+      var I = (TopLevelDeclWithMembers)((MemberDecl)original).EnclosingClass;
+
       // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
       if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
         // no check needed
@@ -1473,10 +1476,12 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
+      FunctionCallSubstituter sub = null;
 
       for (int i = 0; i < N; i++) {
         Expression e0 = calleeDecreases[i];
-        Expression e1 = Substitute(contextDecreases[i], null, substMap, typeMap);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, T, I);
+        Expression e1 = sub.Substitute(contextDecreases[i]);
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
           break;
@@ -1486,6 +1491,10 @@ namespace Microsoft.Dafny {
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
+        var canCall = etran.CanCallAssumption(e1);
+        if (canCall != Bpl.Expr.True) {
+          builder.Add(new Bpl.AssumeCmd(e1.tok, canCall));
+        }
       }
 
       var decrCountT = contextDecreases.Count;
