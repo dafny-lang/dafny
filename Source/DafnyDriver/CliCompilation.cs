@@ -274,6 +274,8 @@ public class CliCompilation {
           Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
             $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
         }
+
+        canVerifyResults.Remove(canVerify); // Free memory
       }
       
       if (options.VerificationLoggerConfigs.Any()) {
