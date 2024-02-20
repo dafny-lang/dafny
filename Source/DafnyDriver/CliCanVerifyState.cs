@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 
 namespace DafnyDriver.Commands;
 
-public record CliCanVerifyResults {
+public record CliCanVerifyState {
   public Func<IVerificationTask, bool> TaskFilter = _ => true;
   public readonly TaskCompletionSource Finished = new();
   public readonly ConcurrentBag<(IVerificationTask Task, Completed Result)> CompletedParts = new();

@@ -124,10 +124,10 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
-  public async Task<Dictionary<ICanVerify, CliCanVerifyResults>?> VerifyAllAndPrintSummary() {
+  public async Task<Dictionary<ICanVerify, CliCanVerifyState>?> VerifyAllAndPrintSummary() {
     var statistics = new VerificationStatistics();
 
-    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
+    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
     Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
@@ -201,7 +201,7 @@ public class CliCompilation {
 
         var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
         foreach (var canVerify in orderedCanVerifies) {
-          var results = new CliCanVerifyResults();
+          var results = new CliCanVerifyState();
           canVerifyResults[canVerify] = results;
           if (line != null) {
             results.TaskFilter = t => KeepVerificationTask(t, line.Value);
