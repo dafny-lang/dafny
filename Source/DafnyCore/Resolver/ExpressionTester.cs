@@ -388,10 +388,6 @@ public class ExpressionTester {
   /// the target code. In fact, some of our target languages either don't support type parameters at all (like in Go) or don't give us
   /// a way to check them at run time (like in Java). So, even without the lofty goal of parametric polymorphism, we'd be out of luck
   /// trying to distinguish B<Y> from B<Z> at run time.
-  /// A final note about injectivity: The injectivity check is not necessary for subset types. Suppose B<Y> and B<Z> are subset types
-  /// based on A<X>. Then, if one of B<Y> and B<Z> describes the value we're performing the type test on, then both do! So, a type test
-  /// does not provide us with more information at run time than we already knew statically. Hence, in doing the injectivity check,
-  /// we can start by shaving off any subset types.
   /// </summary>
   public static bool IsTypeTestCompilable(Type fromType, Type toType) {
     // part 0
@@ -407,7 +403,7 @@ public class ExpressionTester {
     }
 
     // part 2
-    if (toType.NormalizeExpand() is UserDefinedType udtTo) {
+    if (toType.NormalizeExpandKeepConstraints() is UserDefinedType udtTo) {
       // check that "udtTo" is injective in its type parameters
 
       // Suppose "fromType" is A<...> and that "udtTo" is B<...>. Let T be a list of type parameters (in particular, we will use the formal
