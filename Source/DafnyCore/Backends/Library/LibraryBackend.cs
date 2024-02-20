@@ -51,7 +51,7 @@ public class LibraryBackend : ExecutableBackend {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
-  internal DooFile DooFile { get; set; }
+  internal Program ProgramAfterParsing { get; set; }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;
@@ -78,10 +78,8 @@ public class LibraryBackend : ExecutableBackend {
       Reporter.Error(MessageSource.Compiler, assumption.tok, message, message);
     }
 
-    // var dooFile = new DooFile(dafnyProgram);
-    // dooFile.Write(output);
-    DooFile.Write(output);
-    DooFile = null;
+    var dooFile = new DooFile(ProgramAfterParsing);
+    dooFile.Write(output);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {

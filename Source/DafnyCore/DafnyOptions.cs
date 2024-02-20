@@ -856,14 +856,6 @@ namespace Microsoft.Dafny {
       base.ApplyDefaultOptions();
 
       Backend ??= new CsharpBackend(this);
-
-      // expand macros in filenames, now that LogPrefix is fully determined
-
-      if (IsUsingZ3()) {
-        var z3Version = SetZ3ExecutablePath();
-        SetZ3Options(z3Version);
-      }
-
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
@@ -871,6 +863,13 @@ namespace Microsoft.Dafny {
 
     public bool IsUsingZ3() {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
+    }
+
+    public void ProcessSolverOptions(ErrorReporter errorReporter, IToken token) {
+      if (IsUsingZ3()) {
+        var z3Version = SetZ3ExecutablePath(errorReporter, token);
+        SetZ3Options(z3Version);
+      }
     }
 
     public override string AttributeHelp =>
@@ -1101,14 +1100,15 @@ namespace Microsoft.Dafny {
       TODO".Replace("%SUPPORTED_OPTIONS%",
         string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
-    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new ConcurrentDictionary<string, Version>();
+    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private Version SetZ3ExecutablePath() {
+    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
       string confirmedProverPath = null;
+      string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
 
       // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
@@ -1119,6 +1119,7 @@ namespace Microsoft.Dafny {
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
+          errorReporter.Error(MessageSource.Verifier, token, $"Z3 not found at {proverPath}. " + nextStepsMessage);
           return null;
         }
 
@@ -1156,6 +1157,7 @@ namespace Microsoft.Dafny {
         return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
+      errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, "Z3 is not found. " + nextStepsMessage);
       return null;
     }
 
