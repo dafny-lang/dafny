@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
@@ -23,12 +24,12 @@ public class JsonVerificationLogger {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
-  private static JsonNode SerializeAssertion(Microsoft.Boogie.IToken tok, string description) {
+  private static JsonNode SerializeAssertion(AssertCmd assertion) {
     return new JsonObject {
-      ["filename"] = tok.filename,
-      ["line"] = tok.line,
-      ["col"] = tok.col,
-      ["description"] = description
+      ["filename"] = assertion.tok.filename,
+      ["line"] = assertion.tok.line,
+      ["col"] = assertion.tok.col,
+      ["description"] = assertion.Description.SuccessDescription
     };
   }
 
@@ -45,13 +46,13 @@ public class JsonVerificationLogger {
     };
   }
 
-  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VCResultLogEntry vcResult) {
+  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
     var result = new JsonObject {
-      ["vcNum"] = vcResult.VCNum,
+      ["vcNum"] = vcResult.VcNum,
       ["outcome"] = SerializeOutcome(vcResult.Outcome),
       ["runTime"] = SerializeTimeSpan(vcResult.RunTime),
       ["resourceCount"] = vcResult.ResourceCount,
-      ["assertions"] = new JsonArray(vcResult.Asserts.Select(x => SerializeAssertion(x.Tok, x.Description)).ToArray()),
+      ["assertions"] = new JsonArray(vcResult.Asserts.Select(SerializeAssertion).ToArray()),
     };
     if (potentialDependencies is not null) {
       var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
@@ -74,19 +75,18 @@ public class JsonVerificationLogger {
     return outcome.ToString();
   }
 
-  private JsonNode SerializeVerificationResult(DafnyConsolePrinter.ConsoleLogEntry logEntry) {
-    var (impl, verificationResult) = logEntry;
+  private JsonNode SerializeVerificationResult(Implementation impl, ImplementationRunResult verificationResult) {
     var trackProofDependencies =
-      verificationResult.Outcome == VcOutcome.Correct &&
-      verificationResult.VCResults.Any(vcResult => vcResult.CoveredElements.Any());
+      verificationResult.VcOutcome == VcOutcome.Correct &&
+      verificationResult.RunResults.Any(vcResult => vcResult.CoveredElements.Any());
     var potentialDependencies =
       trackProofDependencies ? depManager.GetPotentialDependenciesForDefinition(impl.Name) : null;
     var result = new JsonObject {
       ["name"] = impl.Name,
-      ["outcome"] = SerializeOutcome(verificationResult.Outcome),
-      ["runTime"] = SerializeTimeSpan(verificationResult.RunTime),
+      ["outcome"] = SerializeOutcome(verificationResult.VcOutcome),
+      ["runTime"] = SerializeTimeSpan(verificationResult.End - verificationResult.Start),
       ["resourceCount"] = verificationResult.ResourceCount,
-      ["vcResults"] = new JsonArray(verificationResult.VCResults.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
+      ["vcResults"] = new JsonArray(verificationResult.RunResults.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
       result["programElements"] = new JsonArray(potentialDependencies.Select(SerializeProofDependency).ToArray());
@@ -94,13 +94,13 @@ public class JsonVerificationLogger {
     return result;
   }
 
-  private JsonObject SerializeVerificationResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
+  private JsonObject SerializeVerificationResults(IEnumerable<ImplementationRunResult> verificationResults) {
     return new JsonObject {
       ["verificationResults"] = new JsonArray(verificationResults.Select(SerializeVerificationResult).ToArray())
     };
   }
 
-  public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
+  public void LogResults(IEnumerable<ImplementationRunResult> verificationResults) {
     tw.Write(SerializeVerificationResults(verificationResults).ToJsonString());
   }
 }

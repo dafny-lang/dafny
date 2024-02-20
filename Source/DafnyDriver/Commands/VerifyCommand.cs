@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -33,6 +34,17 @@ public static class VerifyCommand {
         options.TrackVerificationCoverage = true;
       }
 
+
+      ProofDependencyManager depManager = new();
+      if (options.VerificationLoggerConfigs.Any()) {
+        try {
+          VerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
+        } catch (ArgumentException ae) {
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
+          return (int)ExitValue.PREPROCESSING_ERROR;
+        }
+      }
+      
       if (options.Get(CommonOptionBag.VerificationLogFormat).Any() || options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
         // --log-format and --verification-coverage-report are not yet supported by CliCompilation
         options.Compile = false;
