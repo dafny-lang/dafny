@@ -13,10 +13,16 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using VC;
 using Token = Microsoft.Dafny.Token;
 using Util = Microsoft.Dafny.Util;
 
 namespace DafnyDriver.Commands;
+
+
+public record VerificationTaskResult(IVerificationTask Task, VerificationRunResult Result);
+
+public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
 public class CliCompilation {
   private readonly DafnyOptions options;
@@ -123,8 +129,8 @@ public class CliCompilation {
           new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), factory.CreateLogger<CachingResolver>(), telemetryPublisher)),
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
-
-  public async Task<Dictionary<ICanVerify, CliCanVerifyState>?> VerifyAllAndPrintSummary() {
+  
+  public async Task VerifyAllAndPrintSummary() {
     var statistics = new VerificationStatistics();
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
@@ -186,78 +192,105 @@ public class CliCompilation {
       }
     });
 
+    ResolutionResult resolution;
     try {
-      var resolution = await Compilation.Resolution;
-      if (errorCount > 0) {
-        return null;
-      }
-
-      var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
-
-      var verifiedAssertions = false;
-      if (canVerifies != null) {
-        canVerifies = FilterCanVerifies(canVerifies, out var line);
-        verifiedAssertions = line != null;
-
-        var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-        foreach (var canVerify in orderedCanVerifies) {
-          var results = new CliCanVerifyState();
-          canVerifyResults[canVerify] = results;
-          if (line != null) {
-            results.TaskFilter = t => KeepVerificationTask(t, line.Value);
-          }
-
-          await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
-        }
-
-        foreach (var canVerify in orderedCanVerifies) {
-          var results = canVerifyResults[canVerify];
-          try {
-            var timeLimitSeconds = TimeSpan.FromSeconds(options.Get(BoogieOptionBag.VerificationTimeLimit));
-            var tasks = new List<Task>() { results.Finished.Task };
-            if (timeLimitSeconds.Seconds != 0) {
-              tasks.Add(Task.Delay(timeLimitSeconds));
-            }
-            await Task.WhenAny(tasks);
-            if (!results.Finished.Task.IsCompleted) {
-              Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
-                "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
-              break;
-            }
-            await results.Finished.Task;
-
-            // We use an intermediate reporter so we can sort the diagnostics from all parts by token
-            var batchReporter = new BatchErrorReporter(options);
-            foreach (var (task, completed) in results.CompletedParts) {
-              Compilation.ReportDiagnosticsInResult(options, task, completed.Result, batchReporter);
-            }
-
-            foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-              Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
-            }
-
-            var parts = results.CompletedParts;
-            ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts,
-              resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
-
-          } catch (ProverException e) {
-            Interlocked.Increment(ref statistics.SolverExceptionCount);
-            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-          } catch (Exception e) {
-            Interlocked.Increment(ref statistics.SolverExceptionCount);
-            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
-              $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
-          }
-        }
-      }
-
-      WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, verifiedAssertions, statistics);
-
+      resolution = await Compilation.Resolution;
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
+      return;
     }
 
-    return canVerifyResults;
+    if (errorCount > 0) {
+      return;
+    }
+
+    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+
+    var verifiedAssertions = false;
+    if (canVerifies != null) {
+      canVerifies = FilterCanVerifies(canVerifies, out var line);
+      verifiedAssertions = line != null;
+
+      var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = new CliCanVerifyState();
+        canVerifyResults[canVerify] = results;
+        if (line != null) {
+          results.TaskFilter = t => KeepVerificationTask(t, line.Value);
+        }
+
+        await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
+      }
+
+      var usedDependencies = new HashSet<TrackedNodeComponent>();
+      var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
+      VerificationResultLogger verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
+      
+      foreach (var canVerify in orderedCanVerifies) {
+        var results = canVerifyResults[canVerify];
+        try {
+          var timeLimitSeconds = TimeSpan.FromSeconds(options.Get(BoogieOptionBag.VerificationTimeLimit));
+          var tasks = new List<Task>() { results.Finished.Task };
+          if (timeLimitSeconds.Seconds != 0) {
+            tasks.Add(Task.Delay(timeLimitSeconds));
+          }
+          await Task.WhenAny(tasks);
+          if (!results.Finished.Task.IsCompleted) {
+            Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
+              "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
+            break;
+          }
+          await results.Finished.Task;
+
+          // We use an intermediate reporter so we can sort the diagnostics from all parts by token
+          var batchReporter = new BatchErrorReporter(options);
+          foreach (var (task, completed) in results.CompletedParts) {
+            Compilation.ReportDiagnosticsInResult(options, task, completed.Result, batchReporter);
+          }
+
+          foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+            Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+          }
+
+          var parts = results.CompletedParts;
+          ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts,
+            resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
+
+          if (options.VerificationLoggerConfigs.Any()) {
+            verificationResultLogger.Report(new CanVerifyResult(canVerify, results.CompletedParts.Select(t => new VerificationTaskResult(t.Task, t.Result.Result)).
+              OrderBy(t => t.Result.VcNum).ToList()));
+          }
+
+          foreach (var used in results.CompletedParts.SelectMany(part => part.Result.Result.CoveredElements)) {
+            usedDependencies.Add(used);
+          }
+
+          
+        } catch (ProverException e) {
+          Interlocked.Increment(ref statistics.SolverExceptionCount);
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+        } catch (Exception e) {
+          Interlocked.Increment(ref statistics.SolverExceptionCount);
+          Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
+            $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
+        }
+      }
+      
+      if (options.VerificationLoggerConfigs.Any()) {
+        verificationResultLogger.Finish();
+      }
+      
+      var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+      if (coverageReportDir != null) {
+        new CoverageReporter(options).SerializeVerificationCoverageReport(
+          proofDependencyManager, resolution.ResolvedProgram,
+          usedDependencies,
+          coverageReportDir);
+      }
+    }
+
+    
+    WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, verifiedAssertions, statistics);
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {

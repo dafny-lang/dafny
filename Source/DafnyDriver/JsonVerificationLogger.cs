@@ -11,18 +11,18 @@ using VC;
 
 namespace Microsoft.Dafny;
 
-public class JsonVerificationLogger {
-  private TextWriter tw;
-  private readonly TextWriter outWriter;
+public class JsonVerificationLogger : IVerificationResultFormatLogger {
+  private TextWriter output;
+  private readonly TextWriter fallbackOutput;
   private readonly ProofDependencyManager depManager;
 
-  public JsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+  public JsonVerificationLogger(ProofDependencyManager depManager, TextWriter fallbackOutput) {
     this.depManager = depManager;
-    this.outWriter = outWriter;
+    this.fallbackOutput = fallbackOutput;
   }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
+    output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackOutput;
   }
 
   private static JsonNode SerializeAssertion(AssertCmd assertion) {
@@ -133,14 +133,16 @@ public class JsonVerificationLogger {
     }
   }
 
-  private JsonObject SerializeVerificationResults(IEnumerable<IGrouping<VerificationScope, VerificationRunResult>> implementationResults) {
-    return new JsonObject {
-      ["verificationResults"] = new JsonArray(implementationResults.Select(k =>
-        SerializeVerificationResult(k.Key, k.ToList())).ToArray())
-    };
+  public void LogScopeResults(VerificationScopeResult scopeResult) {
+    verificationResultNode.Add(SerializeVerificationResult(scopeResult.Scope, scopeResult.Results.Select(r => r.Result).ToList()));
   }
 
-  public void LogResults(IEnumerable<IGrouping<VerificationScope, VerificationRunResult>> verificationResults) {
-    tw.Write(SerializeVerificationResults(verificationResults).ToJsonString());
+  private readonly IList<JsonNode> verificationResultNode = new List<JsonNode>();
+  
+  public void Flush() {
+    output.Write(new JsonObject {
+      ["verificationResults"] = new JsonArray(verificationResultNode.ToArray())
+    }.ToJsonString());
+    output.Flush();
   }
 }
