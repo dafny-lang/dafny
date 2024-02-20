@@ -137,7 +137,7 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
         @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
   - #???/??? with 1 assertion  at line ???, ??? RU  
   - #???/??? with 1 assertion  at line ???, ??? RU  "
       );
@@ -223,7 +223,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`
         @"**Verification performance metrics for function `f`**:
 
 - Total resource usage: ??? RU  
-- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches):  
   - #???/2 with 2 assertions at line ???, ??? RU  
   - #???/2 with 2 assertions at line ???, ??? RU"
       );

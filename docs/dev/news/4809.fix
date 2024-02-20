@@ -1,0 +1,1 @@
+Dafny no longer crashes when required parameters occur after optional ones.
