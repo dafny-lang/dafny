@@ -16,7 +16,7 @@ jobs:
   build:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
       - name: Checkout Dafny
@@ -31,11 +31,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.15'
+          go-version: '1.16'
       - name: Set up goimports
         env:
           GO111MODULE: on
-        run: go get golang.org/x/tools/cmd/goimports@release-branch.go1.15
+        run: go get golang.org/x/tools/cmd/goimports@internal-branch.go1.16-vendor
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
