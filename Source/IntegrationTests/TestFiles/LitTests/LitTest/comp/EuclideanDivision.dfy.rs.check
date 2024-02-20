@@ -1,2 +1,2 @@
 // CHECK-L: error[E0308]: mismatched types
-// CHECK-L: expected `I1`, found `DafnyInt`
+// CHECK: .*expected `I1`, found `DafnyInt`.*

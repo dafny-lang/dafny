@@ -1,0 +1,2 @@
+// CHECK-L: error[E0277]: the trait bound `Sequence<DafnyInt>: Default` is not satisfied
+// CHECK-L: error[E0277]: the trait bound `Sequence<DafnyInt>: Default` is not satisfied

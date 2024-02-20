@@ -195,24 +195,20 @@ public class MultiBackendTest {
         // Check for backend-specific exceptions (because of known bugs or inconsistencies)
         var expectedOutput = commonExpectedOutput;
         string? checkFile = null;
-        var expectedErrorCode = 0;
         var expectFileForBackend = ExpectFileForBackend(options, compiler);
         if (File.Exists(expectFileForBackend)) {
           expectedOutput = await File.ReadAllTextAsync(expectFileForBackend);
-        } else {
-          var expectErrorFileForBackend = ExpectErrorFileForBackend(options, compiler);
-          if (File.Exists(expectErrorFileForBackend)) {
-            expectedOutput = await File.ReadAllTextAsync(expectErrorFileForBackend);
-            expectedErrorCode = 3;
-          }
         }
 
         var checkFileForBackend = CheckFileForBackend(options, compiler);
         if (File.Exists(checkFileForBackend)) {
           checkFile = checkFileForBackend;
+        } else if (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR") is var x && (x ?? "") != ""
+                   && Path.Combine(x, checkFileForBackend) is var originalCheckFile && File.Exists(originalCheckFile)) {
+          checkFile = originalCheckFile;
         }
 
-        var result = await RunWithCompiler(options, compiler, expectedOutput, checkFile, expectedErrorCode);
+        var result = await RunWithCompiler(options, compiler, expectedOutput, checkFile);
         if (result != 0) {
           success = false;
         }
@@ -222,7 +218,7 @@ public class MultiBackendTest {
           // depending on whether it is included as source or referenced as DafnyRuntime.dll
           // (because of "#ifdef ISDAFNYRUNTIMELIB" directives - see DafnyRuntime.cs).
           // This should be enabled for any other backends that have similar divergence.
-          result = await RunWithCompiler(options, compiler, expectedOutput, checkFile, 0, false);
+          result = await RunWithCompiler(options, compiler, expectedOutput, checkFile, false);
           if (result != 0) {
             success = false;
           }
@@ -243,12 +239,7 @@ public class MultiBackendTest {
   {
     return $"{options.TestFile}.{compiler.TargetId}.check";
   }
-
-  private static string ExpectErrorFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
-  {
-    return $"{options.TestFile}.{compiler.TargetId}.error.expect";
-  }
-
+  
   private static string ExpectFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
   {
     return $"{options.TestFile}.{compiler.TargetId}.expect";
@@ -332,7 +323,7 @@ public class MultiBackendTest {
   }
 
   private async Task<int> RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput,
-    string? checkFile, int expectedErrorCode, bool includeRuntime = true) {
+    string? checkFile, bool includeRuntime = true) {
     await output.WriteAsync($"Executing on {backend.TargetName}");
     if (!includeRuntime) {
       await output.WriteAsync(" (with --include-runtime:false)");
@@ -366,15 +357,22 @@ public class MultiBackendTest {
       dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false", "--input", runtimePath });
     }
 
-    var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
+    int exitCode;
+    string outputString;
+    string error;
+    try {
+      (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
+    } catch (Exception e) {
+      (exitCode, outputString, error) = (3, e.ToString(), e.ToString());
+    }
+
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
     if (compilationOutputPrior.Success) {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
 
-    var exitCodeExpected = exitCode == expectedErrorCode;
-    var diffMessage = exitCodeExpected ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
-    if (checkFile == null && (!exitCodeExpected || diffMessage != null)) {
+    var diffMessage = exitCode == 0 ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
+    if (checkFile == null && exitCode != 0) {
       if (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE") == "true") {
         if ((Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR") ?? "") == "") {
           await output.WriteLineAsync(
@@ -383,25 +381,46 @@ public class MultiBackendTest {
           // Ensure we don't accidentally do this for every compiler.
           var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"),
             CheckFileForBackend(options, backend));
-          var checkOutput = string.Join("\n", outputString.Split("\n").Select(line => "// CHECK-L: " + line));
-          await File.WriteAllTextAsync(sourcePath, checkOutput);
-          if (diffMessage != null) {
-            await output.WriteLineAsync(diffMessage);
+          var contentCheck = (outputString + "\n" + error).Trim();
+          var checkOutput = "";
+          if (contentCheck == "") {
+            checkOutput = string.Join("\n", expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
           } else {
-            await output.WriteLineAsync($"Output stored at {sourcePath} so that it's recognized.");
-            await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
-            await output.WriteLineAsync(outputString);
-            await output.WriteLineAsync("Error:");
-            await output.WriteLineAsync(error);
+            checkOutput = string.Join("\n",
+              contentCheck.Split("\n").Select(line => "// CHECK-L: " + line));
           }
+
+          if (!File.Exists(sourcePath)) {
+            await File.WriteAllTextAsync(sourcePath, checkOutput);
+          } else {
+            await output.WriteLineAsync($"Check file existed but was not imported yet. Ignoring.");
+          }
+
+          await output.WriteLineAsync($"Please modify the new check file {sourcePath} so that it's valid no matter what.");
+          await output.WriteLineAsync(outputString);
+          await output.WriteLineAsync("Error:");
+          await output.WriteLineAsync(error);
 
           return exitCode;
         }
       }
     }
     
-    if (exitCodeExpected) {
+    if (exitCode == 0) {
       if (diffMessage == null) {
+        if (checkFile != null) {
+          // The test now works, we delete the check file
+          if (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE") == "true") {
+            if ((Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR") ?? "") == "") {
+              await output.WriteLineAsync(
+                "DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
+            } else {
+              var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"),
+                CheckFileForBackend(options, backend));
+              File.Delete(sourcePath);
+            }
+          }
+        }
         return 0;
       }
 
@@ -423,7 +442,8 @@ public class MultiBackendTest {
       var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
       var checkResult = OutputCheckCommand.Execute(errorWriter, outputLines, checkDirectives);
       if (checkResult != 0) {
-        await output.WriteLineAsync($"OutputCheck on {checkFile} failed:");
+        await output.WriteLineAsync($"OutputCheck on {checkFile} failed. Output was:");
+        await output.WriteLineAsync(string.Join("\n", outputLines.Take(5)));
         await output.WriteLineAsync("Error:");
       }
 

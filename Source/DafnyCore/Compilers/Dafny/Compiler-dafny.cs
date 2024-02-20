@@ -82,8 +82,7 @@ namespace Microsoft.Dafny.Compilers {
       if (!testing && currentBuilder is UnsupportedContainer container) {
         container.AddUnsupported(why);
       } else {
-        // throw new InvalidOperationException(); // (useful for debugging)
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+        throw new InvalidOperationException(why);
       }
     }
 
@@ -91,7 +90,6 @@ namespace Microsoft.Dafny.Compilers {
       if (!testing && currentBuilder is UnsupportedContainer container) {
         container.AddUnsupported("<i>" + feature.ToString() + "</i>");
       } else {
-        // throw new InvalidOperationException(); // (useful for debugging)
         throw new UnsupportedFeatureException(token, feature);
       }
     }

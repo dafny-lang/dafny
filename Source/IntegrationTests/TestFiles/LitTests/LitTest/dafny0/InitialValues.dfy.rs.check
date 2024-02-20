@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: cannot add `Rc<num_rational::Ratio<BigInt>>` to `num_rational::Ratio<BigInt>`

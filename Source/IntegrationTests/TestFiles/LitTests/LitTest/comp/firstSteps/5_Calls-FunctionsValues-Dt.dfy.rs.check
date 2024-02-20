@@ -1,0 +1,1 @@
+// CHECK-L: error[E0782]: trait objects must include the `dyn` keyword
