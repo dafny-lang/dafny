@@ -37,7 +37,7 @@ public abstract class MethodOrFunction : MemberDecl {
     if (Bodyless && !IsVirtual && !IsAbstract && !this.IsExtern(resolver.Options) && !this.IsExplicitAxiom()) {
       foreach (var ensures in Ens) {
         if (!ensures.IsExplicitAxiom() && !resolver.Options.Get(CommonOptionBag.AllowAxioms)) {
-          resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, ensures.Tok,
+          resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, ensures.Tok,
             $"This ensures clause is part of a bodyless {TypeName}. Add the {{:axiom}} attribute to it or the enclosing {TypeName} to suppress this warning");
         }
       }
