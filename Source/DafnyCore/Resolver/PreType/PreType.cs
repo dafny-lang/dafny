@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
 
-      /// <summary>
+    /// <summary>
     /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
     /// </summary>
     public PreType Normalize() {
