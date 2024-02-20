@@ -2437,6 +2437,9 @@ namespace Microsoft.Dafny {
         } else if (member.IsGhost != traitMember.IsGhost) {
           reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
             traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+        } else if (!member.IsOpaque && traitMember.IsOpaque) {
+          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' must be 'opaque' since the member is 'opaque' in trait '{3}'",
+            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
         } else {
           // Copy trait member's extern attribute onto class member if class does not provide one
           if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
