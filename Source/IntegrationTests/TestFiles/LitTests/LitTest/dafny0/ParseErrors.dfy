@@ -273,6 +273,26 @@ module ArrowTypes {
   }
 }
 
+// ---------------------- missing parentheses for `predicate` -----------------------------------
+
+module MissingPredicateParens0 {
+  predicate P<A>
+} // error: expecting open paren
+
+module MissingPredicateParens1 {
+  predicate P<A> { // error: expecting open paren
+    true
+  }
+}
+
+module MissingPredicateParens2 {
+  predicate P<A> { // error: expecting open paren
+    true
+  } by method {
+    return true;
+  }
+}
+
 // ---------------------- invalid newtype definition -----------------------------------
 
 newtype T {} // error: newtype is expected to have an '='
