@@ -1939,6 +1939,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
       });
 
       private static readonly HashSet<string> StringAttributesToCopy = new(new[] {
+        "captureState",
         "error"
       });
 
@@ -1964,11 +1965,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         foreach (var attr in attrs.AsEnumerable()) {
           var name = attr.Name;
           if ((name == skipThisAttribute) ||
-              // TODO: argument(s) to extern?
               // omit the extern attribute when /noExterns option is specified.
-              (name == "extern" && options.DisallowExterns) ||
-              (name == "timeLimit" && hasNewTimeLimit) ||
-              (name == "rlimit" && hasNewRLimit)
+              (name is "extern" && options.DisallowExterns) ||
+              (name is "timeLimit" && hasNewTimeLimit) ||
+              (name is "rlimit" && hasNewRLimit)
           ) {
             continue;
           }
@@ -1979,15 +1979,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             kv = TrIntegerAttribute(name, attr.Args[0], kv);
           } else if (StringAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
             kv = TrStringAttribute(name, attr.Args[0], kv);
-          } else if (name == "_timeLimit") {
+          } else if (name is "_timeLimit") {
             kv = TrIntegerAttribute("timeLimit", attr.Args[0], kv);
-          } else if (name == "_rlimit") {
+          } else if (name is "_rlimit") {
             kv = TrIntegerAttribute("rlimit", attr.Args[0], kv);
-          } else if (name == "synthesize") {
-            // TODO: argument?
+          } else if (name is "synthesize" or "extern") {
             kv = new QKeyValue(attr.tok, "extern", new List<object>(), kv);
-          } else if (!hasNewRLimit && name == "rlimit" && attr.Args.Count == 1) {
-            // TODO: the !hasNewRLimit above shouldn't be necessary
+          } else if (name is "rlimit" && attr.Args.Count == 1) {
             // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
             // derived from command-line rlimit settings. Values for rlimit still need to be multiplied.
             if (RemoveLit(TrExpr(attr.Args[0])) is not Boogie.LiteralExpr { isBigNum: true } litExpr) {
@@ -1999,9 +1997,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
               litExpr.Immutable);
             kv = new QKeyValue(attr.tok, name, new List<object> { limit }, kv);
-          } else if (name == "resource_limit" && attr.Args.Count == 1) {
+          } else if (name is "resource_limit" && attr.Args.Count == 1) {
             // Do this after the above multiplication because :resource_limit should not be multiplied.
-            Expr limit = null;
+            Expr limit;
             var arg = attr.Args[0];
             var strArg = arg.AsStringLiteral();
             if (strArg != null) {
@@ -2010,6 +2008,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               } else {
                 BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.tok,
                   $"failed to parse resource count: {strArg}");
+                continue;
               }
             } else {
               limit = RemoveLit(TrExpr(arg));
