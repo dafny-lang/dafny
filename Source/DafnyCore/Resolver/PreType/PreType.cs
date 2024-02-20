@@ -31,6 +31,7 @@ namespace Microsoft.Dafny {
     public const string TypeNameInt = "int";
     public const string TypeNameReal = "real";
     public const string TypeNameORDINAL = "ORDINAL";
+    public const string TypeNameBvPrefix = "bv";
     public const string TypeNameSet = "set";
     public const string TypeNameIset = "iset";
     public const string TypeNameSeq = "seq";
@@ -38,6 +39,7 @@ namespace Microsoft.Dafny {
     public const string TypeNameMap = "map";
     public const string TypeNameImap = "imap";
     public const string TypeNameObjectQ = "object?";
+    public const string TypeNameArray = "array";
 
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;

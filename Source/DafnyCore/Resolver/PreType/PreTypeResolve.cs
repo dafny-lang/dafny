@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
 
     DPreType BuiltInArrayType(int dims, PreType elementPreType) {
       Contract.Requires(1 <= dims);
-      var arrayName = dims == 1 ? "array" : $"array{dims}";
+      var arrayName = dims == 1 ? PreType.TypeNameArray : $"{PreType.TypeNameArray}{dims}";
       return new DPreType(BuiltInTypeDecl(arrayName), new List<PreType>() { elementPreType });
     }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
       } else if (type is BigOrdinalType) {
         decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
-        decl = BuiltInTypeDecl("bv" + bitvectorType.Width);
+        decl = BuiltInTypeDecl(PreType.TypeNameBvPrefix + bitvectorType.Width);
       } else if (type is CollectionType) {
         var name =
           type is SetType st ? PreType.SetTypeName(st.Finite) :
@@ -386,7 +386,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsBitvectorName(string name, out int width) {
       Contract.Requires(name != null);
-      if (name.StartsWith("bv")) {
+      if (name.StartsWith(PreType.TypeNameBvPrefix)) {
         var bits = name.Substring(2);
         width = 0; // set to 0, in case the first disjunct of the next line evaluates to true
         return bits == "0" || (bits.Length != 0 && bits[0] != '0' && int.TryParse(bits, out width));
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsArrayName(string name, out int dimensions) {
       Contract.Requires(name != null);
-      if (name.StartsWith("array")) {
+      if (name.StartsWith(PreType.TypeNameArray)) {
         var dims = name.Substring(5);
         if (dims.Length == 0) {
           dimensions = 1;
@@ -552,22 +552,24 @@ namespace Microsoft.Dafny {
       var toFamily = toAncestor.Decl.Name;
       var toName = toType.Decl.Name;
 
-      if (IsBitvectorName(fromFamily) && (toFamily == "int" || IsBitvectorName(toFamily))) {
+      if (IsBitvectorName(fromFamily) && (toFamily == PreType.TypeNameInt || IsBitvectorName(toFamily))) {
         return true;
       }
-      if (fromFamily == "int" && toName is "char" or "real" or "ORDINAL") {
+      if (fromFamily == PreType.TypeNameInt && toName is PreType.TypeNameChar or PreType.TypeNameReal or PreType.TypeNameORDINAL) {
         return true;
       }
 
       var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
       if (legacy) {
-        if (fromFamily == "real" && (toFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(toFamily))) {
+        if (fromFamily == PreType.TypeNameReal &&
+            (toFamily is PreType.TypeNameInt or PreType.TypeNameChar or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (fromFamily == "char" && (toFamily is "int" or "ORDINAL" || IsBitvectorName(toFamily))) {
+        if (fromFamily == PreType.TypeNameChar && (toFamily is PreType.TypeNameInt or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (IsBitvectorName(fromFamily) && (toFamily is "int" or "real" or "char" or "ORDINAL")) {
+        if (IsBitvectorName(fromFamily) &&
+            (toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL)) {
           return true;
         }
       }
@@ -1453,7 +1455,7 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        if (dp.Decl.Name == "set" || dp.Decl.Name == "iset" || dp.Decl.Name == "seq" || dp.Decl.Name == "multiset") {
+        if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
           hasCollectionType = true;
           var elementType = dp.Arguments[0].Normalize();
           dp = elementType as DPreType;

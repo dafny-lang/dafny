@@ -862,12 +862,12 @@ namespace Microsoft.Dafny {
             var familyDeclNameRight = AncestorName(a1);
             if (familyDeclNameLeft is PreType.TypeNameMap or PreType.TypeNameImap) {
               Contract.Assert(left.Arguments.Count == 2);
-              var st = new DPreType(BuiltInTypeDecl("set"), new List<PreType>() { left.Arguments[0] });
+              var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), new List<PreType>() { left.Arguments[0] });
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
               AddSubtypeConstraint(st, a1, tok,
                 "map subtraction expects right-hand operand to have type {0} (instead got {1})");
               return true;
-            } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != "set")) {
+            } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != PreType.TypeNameSet)) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
               AddSubtypeConstraint(a0, a1, tok,
                 "type of right argument to - ({0}) must agree with the result type ({1})");
@@ -2036,17 +2036,17 @@ namespace Microsoft.Dafny {
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
-            case "array":
-            case "seq":
+            case PreType.TypeNameArray:
+            case PreType.TypeNameSeq:
               ConstrainToIntFamilyOrBitvector(index.PreType, index.tok, "index expression must have an integer or bitvector type (got {0})");
               AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
-            case "multiset":
+            case PreType.TypeNameMultiset:
               AddSubtypeConstraint(sourcePreType.Arguments[0], index.PreType, index.tok, "type does not agree with element type {0} (got {1})");
               ConstrainToIntFamily(resultPreType, tok, "multiset multiplicity must have an integer type (got {0})");
               break;
-            case "map":
-            case "imap":
+            case PreType.TypeNameMap:
+            case PreType.TypeNameImap:
               AddSubtypeConstraint(sourcePreType.Arguments[0], index.PreType, index.tok, "type does not agree with domain type {0} (got {1})");
               AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[1], tok, "type does not agree with value type of {1} (got {0})");
               break;
@@ -2063,7 +2063,7 @@ namespace Microsoft.Dafny {
 
     PreType ResolveRangeSelectionExpr(IToken tok, PreType collectionPreType, Expression e0, Expression e1) {
       var resultElementPreType = CreatePreTypeProxy("multi-index selection");
-      var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { resultElementPreType });
+      var resultPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), new List<PreType>() { resultElementPreType });
       if (e0 != null) {
         ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
@@ -2077,8 +2077,8 @@ namespace Microsoft.Dafny {
         if (sourcePreType != null) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
-            case "seq":
-            case "array":
+            case PreType.TypeNameSeq:
+            case PreType.TypeNameArray:
               AddSubtypeConstraint(resultElementPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
             default:
