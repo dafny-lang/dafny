@@ -244,7 +244,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && KeywordToken.Token.val == "assume" && !KeywordToken.IsExplicitAxiom()) {
-      resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
     }
 
     resolver.ResolveAttributes(KeywordToken, resolutionContext);
