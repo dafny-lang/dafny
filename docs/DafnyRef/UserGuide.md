@@ -1530,7 +1530,7 @@ and `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
-### 13.7.6. Debugging brittle verification
+### 13.7.6. Debugging brittle verification {#sec-brittle-verification}
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
