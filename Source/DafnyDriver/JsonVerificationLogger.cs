@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using DafnyCore.Verifier;
+using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using VC;
 
@@ -46,7 +47,7 @@ public class JsonVerificationLogger {
     };
   }
 
-  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
+  private JsonNode SerializeVcResult(IReadOnlyList<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
     var result = new JsonObject {
       ["vcNum"] = vcResult.VcNum,
       ["outcome"] = SerializeOutcome(vcResult.Outcome),
@@ -55,10 +56,9 @@ public class JsonVerificationLogger {
       ["assertions"] = new JsonArray(vcResult.Asserts.Select(SerializeAssertion).ToArray()),
     };
     if (potentialDependencies is not null) {
-      var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
-      var fullDependencySet = fullDependencies.ToHashSet();
+      var fullDependencySet = depManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToHashSet();
       var unusedDependencies = potentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
-      result["coveredElements"] = new JsonArray(fullDependencies.Select(SerializeProofDependency).ToArray());
+      result["coveredElements"] = new JsonArray(fullDependencySet.Select(SerializeProofDependency).ToArray());
       result["uncoveredElements"] = new JsonArray(unusedDependencies.Select(SerializeProofDependency).ToArray());
     }
     return result;
@@ -75,18 +75,18 @@ public class JsonVerificationLogger {
     return outcome.ToString();
   }
 
-  private JsonNode SerializeVerificationResult(Implementation impl, ImplementationRunResult verificationResult) {
+  private JsonNode SerializeVerificationResult(VerificationScope scope, IReadOnlyList<VerificationRunResult> results) {
     var trackProofDependencies =
-      verificationResult.VcOutcome == VcOutcome.Correct &&
-      verificationResult.RunResults.Any(vcResult => vcResult.CoveredElements.Any());
+      results.All(o => o.Outcome == SolverOutcome.Valid) &&
+      results.Any(vcResult => vcResult.CoveredElements.Any());
     var potentialDependencies =
-      trackProofDependencies ? depManager.GetPotentialDependenciesForDefinition(impl.Name) : null;
+      trackProofDependencies ? depManager.GetPotentialDependenciesForDefinition(scope.Name).ToList() : null;
     var result = new JsonObject {
-      ["name"] = impl.Name,
-      ["outcome"] = SerializeOutcome(verificationResult.VcOutcome),
-      ["runTime"] = SerializeTimeSpan(verificationResult.End - verificationResult.Start),
-      ["resourceCount"] = verificationResult.ResourceCount,
-      ["vcResults"] = new JsonArray(verificationResult.RunResults.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
+      ["name"] = scope.Name,
+      ["outcome"] = SerializeOutcome(results.Aggregate(VcOutcome.Correct, (o, r) => MergeOutcomes(o, r.Outcome))),
+      ["runTime"] = SerializeTimeSpan(TimeSpan.FromSeconds(results.Sum(r => r.RunTime.Seconds))),
+      ["resourceCount"] = results.Sum(r => r.ResourceCount),
+      ["vcResults"] = new JsonArray(results.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
       result["programElements"] = new JsonArray(potentialDependencies.Select(SerializeProofDependency).ToArray());
@@ -94,13 +94,59 @@ public class JsonVerificationLogger {
     return result;
   }
 
-  private JsonObject SerializeVerificationResults(IEnumerable<ImplementationRunResult> verificationResults) {
+  /// <summary>
+  /// This method is copy pasted from a private Boogie method. It will be public Boogie version > 3.0.11
+  /// Then this method can be removed
+  public static VcOutcome MergeOutcomes(VcOutcome currentVcOutcome, SolverOutcome newOutcome)
+  {
+    switch (newOutcome)
+    {
+      case SolverOutcome.Valid:
+        return currentVcOutcome;
+      case SolverOutcome.Invalid:
+        return VcOutcome.Errors;
+      case SolverOutcome.OutOfMemory:
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
+        {
+          return VcOutcome.OutOfMemory;
+        }
+
+        return currentVcOutcome;
+      case SolverOutcome.TimeOut:
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
+        {
+          return VcOutcome.TimedOut;
+        }
+
+        return currentVcOutcome;
+      case SolverOutcome.OutOfResource:
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
+        {
+          return VcOutcome.OutOfResource;
+        }
+
+        return currentVcOutcome;
+      case SolverOutcome.Undetermined:
+        if (currentVcOutcome != VcOutcome.Errors)
+        {
+          return VcOutcome.Inconclusive;
+        }
+
+        return currentVcOutcome;
+      default:
+        Contract.Assert(false);
+        throw new cce.UnreachableException();
+    }
+  }
+  
+  private JsonObject SerializeVerificationResults(IEnumerable<IGrouping<VerificationScope, VerificationRunResult>> implementationResults) {
     return new JsonObject {
-      ["verificationResults"] = new JsonArray(verificationResults.Select(SerializeVerificationResult).ToArray())
+      ["verificationResults"] = new JsonArray(implementationResults.Select(k => 
+        SerializeVerificationResult(k.Key, k.ToList())).ToArray())
     };
   }
 
-  public void LogResults(IEnumerable<ImplementationRunResult> verificationResults) {
+  public void LogResults(IEnumerable<IGrouping<VerificationScope, VerificationRunResult>> verificationResults) {
     tw.Write(SerializeVerificationResults(verificationResults).ToJsonString());
   }
 }

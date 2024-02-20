@@ -8,14 +8,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
+using VC;
 
 namespace Microsoft.Dafny {
-
+  public record VerificationScope(string Name, Boogie.IToken Token);
+  
   /// <summary>
   /// Utility to translate verification results into logs in several formats:
   ///  * TRX files, which can be understood and visualized by various .NET tools.
@@ -26,15 +29,18 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(DafnyOptions options, ProofDependencyManager depManager) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options, Dictionary<ICanVerify, CliCanVerifyResults> verificationResults, ProofDependencyManager depManager) {
       var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
-
+      
+      var implementationResults =
+        verificationResults.Values.SelectMany(x => x.CompletedParts).
+          GroupBy(v => new VerificationScope(v.Task.ScopeId, v.Task.ScopeToken), t => t.Result.Result).ToList();
+      
       var events = new LocalTestLoggerEvents();
-      var verificationResults = (options.Printer as DafnyConsolePrinter).VerificationResults.ToList();
       foreach (var loggerConfig in loggerConfigs) {
         string loggerName;
         int semiColonIndex = loggerConfig.IndexOf(";");
@@ -64,13 +70,13 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var jsonLogger = new JsonVerificationLogger(depManager, options.OutputWriter);
           jsonLogger.Initialize(parameters);
-          jsonLogger.LogResults(verificationResults);
+          jsonLogger.LogResults(implementationResults);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextVerificationLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults);
+          textLogger.LogResults(implementationResults);
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
         }
@@ -79,7 +85,7 @@ namespace Microsoft.Dafny {
 
       // Sort failures to the top, and then slower procedures first.
       // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults.Select(e => (e.Implementation, e.Result.VCResults)))
+      var results = VerificationToTestResults(implementationResults)
         .OrderBy(r => r.Outcome == TestOutcome.Passed)
         .ThenByDescending(r => r.Duration);
       foreach (var result in results) {
@@ -92,18 +98,20 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<DafnyConsolePrinter.VCResultLogEntry>)> verificationResults) {
+    private static IEnumerable<TestResult> VerificationToTestResults(List<IGrouping<VerificationScope, VerificationRunResult>> verificationResults) {
       var testResults = new List<TestResult>();
 
-      foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
-        foreach (var vcResult in vcResults.OrderBy(r => r.VCNum)) {
+      foreach (var group in verificationResults) {
+        var vcResults = group;
+        var verificationScope = group.Key;
+        foreach (var vcResult in vcResults.OrderBy(r => r.VcNum)) {
           var name = vcResults.Count() > 1
-            ? verbName + $" (assertion batch {vcResult.VCNum})"
-            : verbName;
+            ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
+            : verificationScope.Name;
           var testCase = new TestCase {
             FullyQualifiedName = name,
             ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = ((IToken)currentFile).Uri.LocalPath
+            Source = ((IToken)verificationScope.Token).Uri.LocalPath
           };
           var testResult = new TestResult(testCase) {
             StartTime = vcResult.StartTime,

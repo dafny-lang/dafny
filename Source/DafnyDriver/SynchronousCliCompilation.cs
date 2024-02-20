@@ -58,7 +58,7 @@ namespace Microsoft.Dafny {
       }
 
       using var driver = new SynchronousCliCompilation(options);
-      var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
+      var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, new ProofDependencyManager());
 
       options.XmlSink?.Close();
 

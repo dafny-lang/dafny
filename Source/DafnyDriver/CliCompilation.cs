@@ -124,7 +124,7 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
-  public async Task VerifyAllAndPrintSummary() {
+  public async Task<Dictionary<ICanVerify, CliCanVerifyResults>?> VerifyAllAndPrintSummary() {
     var statistics = new VerificationStatistics();
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
@@ -189,7 +189,7 @@ public class CliCompilation {
     try {
       var resolution = await Compilation.Resolution;
       if (errorCount > 0) {
-        return;
+        return null;
       }
 
       var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
@@ -256,6 +256,8 @@ public class CliCompilation {
     } catch (OperationCanceledException) {
       // Failed to resolve the program due to a user error.
     }
+
+    return canVerifyResults;
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
