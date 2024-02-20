@@ -2015,8 +2015,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               limit = RemoveLit(TrExpr(arg));
             }
             kv = new QKeyValue(attr.tok, "rlimit", new List<object> { limit }, kv);
-          } else {
-            Console.WriteLine($"Skipping attribute {name}"); // TODO: remove
           }
         }
         return kv;
