@@ -44,7 +44,7 @@ public class TextVerificationLogger {
             $"      {cmd.Tok.filename}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
         }
 
-        if (vcResult.CoveredElements.Any() && vcResult.Outcome == ProverInterface.Outcome.Valid) {
+        if (vcResult.CoveredElements.Any() && vcResult.Outcome == SolverOutcome.Valid) {
           tw.WriteLine("");
           tw.WriteLine("    Proof dependencies:");
           var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);

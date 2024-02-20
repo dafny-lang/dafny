@@ -26,7 +26,7 @@ public static class RewriterCollection {
     }
 
     if (reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
-      result.Add(new ExpectContracts(reporter));
+      result.Add(new ExpectContracts(reporter, program.SystemModuleManager));
     }
 
     if (reporter.Options.Get(RunAllTestsMainMethod.IncludeTestRunner)) {
