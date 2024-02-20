@@ -31,38 +31,15 @@ class NativeTypeAnalysis {
       return;
     }
 
-    // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
-    // in the case .Var is null, these can be computed from the .BaseType recursively.
-    var ddVar = dd.Var;
-    var ddConstraint = dd.Constraint;
-    for (var ddWhereConstraintsAre = dd; ddVar == null;) {
-      ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
-      if (ddWhereConstraintsAre == null) {
-        break;
-      }
-      ddVar = ddWhereConstraintsAre.Var;
-      ddConstraint = ddWhereConstraintsAre.Constraint;
-    }
-
-    List<(NativeType, bool coversEntireIntegerRange)> bigEnoughNativeTypes;
     var detectedRange = "";
-    if (dd.BaseType.NormalizeToAncestorType() is BitvectorType bitvectorAncestorType) {
-      bigEnoughNativeTypes = FigureOutNativeTypeForBitvectorNewtype(dd, bitvectorAncestorType, ddVar == null,
-        nativeTypeChoices ?? ModuleResolver.NativeTypes, nativeTypeChoices != null);
-    } else if (dd.BaseType.NormalizeToAncestorType() is IntType) {
-      bigEnoughNativeTypes = FigureOutNativeTypeForIntegerNewtype(dd, ddVar, ddConstraint,
-        nativeTypeChoices ?? ModuleResolver.NativeTypes, nativeTypeChoices != null, out detectedRange);
-    } else {
-      // No native type available
-      bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
-    }
-    if (bigEnoughNativeTypes == null) {
-      // An error occurred while computing "bigEnoughNativeTypes"
+    List<(NativeType, bool coversEntireIntegerRange)> possibleNativeTypes = GetPossibleNativeTypes(dd, nativeTypeChoices, ref detectedRange);
+    if (possibleNativeTypes == null) {
+      // An error occurred while computing "possibleNativeTypes"
       return;
     }
 
     // Finally, of the big-enough native types, pick the first one that is supported by the selected target compiler.
-    foreach (var (nativeT, coversEntireIntegerRange) in bigEnoughNativeTypes) {
+    foreach (var (nativeT, coversEntireIntegerRange) in possibleNativeTypes) {
       if (options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
         // Pick this one!
         dd.NativeType = nativeT;
@@ -95,6 +72,41 @@ class NativeTypeAnalysis {
       reporter.Error(MessageSource.Resolver, dd,
         "Dafny's heuristics cannot find a compatible native type. " +
         "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.");
+    }
+  }
+
+  /// <summary>
+  /// Return the native types that are big enough to hold values of for "newtypeDecl". If "nativeTypeChoices" is given, then the
+  /// search is restricted to those native types.
+  ///
+  /// For each native type returned, also indicate if that native type covers the entire integer range of "newtypeDecl".
+  /// </summary>
+  private List<(NativeType, bool coversEntireIntegerRange)> GetPossibleNativeTypes(NewtypeDecl newtypeDecl,
+    [CanBeNull] List<NativeType> nativeTypeChoices, ref string detectedRange) {
+
+    // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
+    // in the case .Var/.Constraint are null, these can be computed from the .BaseType recursively.
+    var ddVar = newtypeDecl.Var;
+    var ddConstraint = newtypeDecl.Constraint;
+    for (var ddWhereConstraintsAre = newtypeDecl; ddVar == null;) {
+      ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
+      if (ddWhereConstraintsAre == null) {
+        break;
+      }
+      ddVar = ddWhereConstraintsAre.Var;
+      ddConstraint = ddWhereConstraintsAre.Constraint;
+    }
+
+    var ancestorType = newtypeDecl.BaseType.NormalizeToAncestorType();
+    if (ancestorType is BitvectorType bitvectorAncestorType) {
+      return FigureOutNativeTypeForBitvectorNewtype(newtypeDecl, bitvectorAncestorType, ddVar == null,
+        nativeTypeChoices ?? ModuleResolver.NativeTypes, nativeTypeChoices != null);
+    } else if (ancestorType is IntType) {
+      return FigureOutNativeTypeForIntegerNewtype(newtypeDecl, ddVar, ddConstraint,
+        nativeTypeChoices ?? ModuleResolver.NativeTypes, nativeTypeChoices != null, out detectedRange);
+    } else {
+      // No native type available
+      return new List<(NativeType, bool coversEntireIntegerRange)>();
     }
   }
 
