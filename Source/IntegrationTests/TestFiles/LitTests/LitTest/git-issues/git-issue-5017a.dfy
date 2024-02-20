@@ -104,6 +104,10 @@ module StayOpaque {
     opaque predicate Valid() { true }
   }
 
+  trait C extends A {
+    opaque predicate Valid() { true }
+  }
+
   method TestByRequires(b: B)
     requires b.Valid()
   {
@@ -115,6 +119,20 @@ module StayOpaque {
     var a: A := b;
     assert a.Valid() by {
       reveal b.Valid();
+    }
+  }
+
+  method TestIndependence0(b: B, c: C) {
+    var a: A := b;
+    assert b.Valid() by { // error: revealing for C should not affect B
+      reveal c.Valid();
+    }
+  }
+
+  method TestIndependence1(b: B, c: C) {
+    var a: A := b;
+    assert a.Valid() by { // fine: revealing for C also reveals for all A's
+      reveal c.Valid();
     }
   }
 }
