@@ -27,16 +27,15 @@ method {:verify false} TestU8() {
   var z8: uint8 := 21 as uint8;
   var m8: uint8 := 24 as uint8;
   var t8: uint8 := 16 as uint8;
-  if x8 + y8 == z8
-     && y8 - x8 == w8
-     && x8 as bv8 & y8 as bv8 == x8 as bv8
-     && x8 as bv8 | y8 as bv8 == y8 as bv8
-     && x8 as bv8 ^ y8 as bv8 == w8 as bv8
-     && x8 * 3 == m8
-     && x8 as bv8 >> s8 == s8 as bv8
-     && x8 as bv8 << o8 == t8 as bv8 {
-    print "operators(u8) ";
-  }
+  expect x8 + y8 == z8;
+  expect y8 - x8 == w8;
+  expect x8 as bv8 & y8 as bv8 == x8 as bv8;
+  expect x8 as bv8 | y8 as bv8 == y8 as bv8;
+  expect x8 as bv8 ^ y8 as bv8 == w8 as bv8;
+  expect x8 * 3 == m8;
+  expect x8 as bv8 >> s8 == s8 as bv8;
+  expect x8 as bv8 << o8 == t8 as bv8;
+  print "operators(u8) ";
 }
 method TestI8() {
   var o8: int8 := 1 as int8;
@@ -47,11 +46,10 @@ method TestI8() {
   var z8: int8 := 21 as int8;
   var m8: int8 := 24 as int8;
   var t8: int8 := 16 as int8;
-  if x8 + y8 == z8
-     && x8 - y8 == -w8
-     && x8 * 3 == m8 {
-    print "operators(i8) ";
-  }
+  expect x8 + y8 == z8;
+  expect x8 - y8 == -w8;
+  expect x8 * 3 == m8;
+  print "operators(i8) ";
 }
 method {:verify false} TestU16() {
   var o16: uint16 := 1 as uint16;
@@ -62,16 +60,15 @@ method {:verify false} TestU16() {
   var z16: uint16 := 21 as uint16;
   var m16: uint16 := 24 as uint16;
   var t16: uint16 := 16 as uint16;
-  if x16 + y16 == z16
-     && y16 - x16 == w16
-     && x16 as bv16 & y16 as bv16 == x16 as bv16
-     && x16 as bv16 | y16 as bv16 == y16 as bv16
-     && x16 as bv16 ^ y16 as bv16 == w16 as bv16
-     && x16 * 3 == m16
-     && x16 as bv16 >> s16 as bv16 == s16 as bv16
-     && x16 as bv16 << o16 as bv16 == t16 as bv16 {
-    print "operators(u16) ";
-  }
+  expect x16 + y16 == z16;
+  expect y16 - x16 == w16;
+  expect x16 as bv16 & y16 as bv16 == x16 as bv16;
+  expect x16 as bv16 | y16 as bv16 == y16 as bv16;
+  expect x16 as bv16 ^ y16 as bv16 == w16 as bv16;
+  expect x16 * 3 == m16;
+  expect x16 as bv16 >> s16 as bv16 == s16 as bv16;
+  expect x16 as bv16 << o16 as bv16 == t16 as bv16;
+  print "operators(u16) ";
 }
 
 method TestI16() {
@@ -83,11 +80,10 @@ method TestI16() {
   var z16: int16 := 21 as int16;
   var m16: int16 := 24 as int16;
   var t16: int16 := 16 as int16;
-  if x16 + y16 == z16
-     && x16 - y16 == -w16
-     && x16 * 3 == m16 {
-    print "operators(i16) ";
-  }
+  expect x16 + y16 == z16;
+  expect x16 - y16 == -w16;
+  expect x16 * 3 == m16;
+  print "operators(i16) ";
 }
 method {:verify false} TestU32() {
   var o32: uint32 := 1 as uint32;
@@ -98,16 +94,15 @@ method {:verify false} TestU32() {
   var z32: uint32 := 21 as uint32;
   var m32: uint32 := 24 as uint32;
   var t32: uint32 := 16 as uint32;
-  if x32 + y32 == z32
-     && y32 - x32 == w32
-     && x32 as bv32 & y32 as bv32 == x32 as bv32
-     && x32 as bv32 | y32 as bv32 == y32 as bv32
-     && x32 as bv32 ^ y32 as bv32 == w32 as bv32
-     && x32 * 3 == m32
-     && x32 as bv32 >> s32 as bv32 == s32 as bv32
-     && x32 as bv32 << o32 as bv32 == t32 as bv32 {
-    print "operators(u32) ";
-  }
+  expect x32 + y32 == z32;
+  expect y32 - x32 == w32;
+  expect x32 as bv32 & y32 as bv32 == x32 as bv32;
+  expect x32 as bv32 | y32 as bv32 == y32 as bv32;
+  expect x32 as bv32 ^ y32 as bv32 == w32 as bv32;
+  expect x32 * 3 == m32;
+  expect x32 as bv32 >> s32 as bv32 == s32 as bv32;
+  expect x32 as bv32 << o32 as bv32 == t32 as bv32;
+  print "operators(u32) ";
 }
 
 method TestI32() {
@@ -119,11 +114,10 @@ method TestI32() {
   var z32: int32 := 21 as int32;
   var m32: int32 := 24 as int32;
   var t32: int32 := 16 as int32;
-  if x32 + y32 == z32
-     && x32 - y32 == -w32
-     && x32 * 3 == m32 {
-    print "operators(i32) ";
-  }
+  expect x32 + y32 == z32;
+  expect x32 - y32 == -w32;
+  expect x32 * 3 == m32;
+  print "operators(i32) ";
 }
 method {:verify false} TestU64() {
   var o64: uint64 := 1 as uint64;
@@ -134,16 +128,15 @@ method {:verify false} TestU64() {
   var z64: uint64 := 21 as uint64;
   var m64: uint64 := 24 as uint64;
   var t64: uint64 := 16 as uint64;
-  if x64 + y64 == z64
-     && y64 - x64 == w64
-     && x64 as bv64 & y64 as bv64 == x64 as bv64
-     && x64 as bv64 | y64 as bv64 == y64 as bv64
-     && x64 as bv64 ^ y64 as bv64 == w64 as bv64
-     && x64 * 3 == m64
-     && x64 as bv64 >> s64 as bv64 == s64 as bv64
-     && x64 as bv64 << o64 as bv64 == t64 as bv64 {
-    print "operators(u64) ";
-  }
+  expect x64 + y64 == z64;
+  expect y64 - x64 == w64;
+  expect x64 as bv64 & y64 as bv64 == x64 as bv64;
+  expect x64 as bv64 | y64 as bv64 == y64 as bv64;
+  expect x64 as bv64 ^ y64 as bv64 == w64 as bv64;
+  expect x64 * 3 == m64;
+  expect x64 as bv64 >> s64 as bv64 == s64 as bv64;
+  expect x64 as bv64 << o64 as bv64 == t64 as bv64;
+  print "operators(u64) ";
 }
 method TestI64() {
   var o64: int64 := 1 as int64;
@@ -154,11 +147,10 @@ method TestI64() {
   var z64: int64 := 21 as int64;
   var m64: int64 := 24 as int64;
   var t64: int64 := 16 as int64;
-  if x64 + y64 == z64
-     && x64 - y64 == -w64
-     && x64 * 3 == m64 {
-    print "operators(i64) ";
-  }
+  expect x64 + y64 == z64;
+  expect x64 - y64 == -w64;
+  expect x64 * 3 == m64;
+  print "operators(i64) ";
 }
 method {:verify false} TestU128() {
   var o128: uint128 := 1 as uint128;
@@ -169,16 +161,15 @@ method {:verify false} TestU128() {
   var z128: uint128 := 21 as uint128;
   var m128: uint128 := 24 as uint128;
   var t128: uint128 := 16 as uint128;
-  if x128 + y128 == z128
-     && y128 - x128 == w128
-     && x128 as bv128 & y128 as bv128 == x128 as bv128
-     && x128 as bv128 | y128 as bv128 == y128 as bv128
-     && x128 as bv128 ^ y128 as bv128 == w128 as bv128
-     && x128 * 3 == m128
-     && x128 as bv128 >> s128 as bv128 == s128 as bv128
-     && x128 as bv128 << o128 as bv128 == t128 as bv128 {
-    print "operators(u128)\n";
-  }
+  expect x128 + y128 == z128;
+  expect y128 - x128 == w128;
+  expect x128 as bv128 & y128 as bv128 == x128 as bv128;
+  expect x128 as bv128 | y128 as bv128 == y128 as bv128;
+  expect x128 as bv128 ^ y128 as bv128 == w128 as bv128;
+  expect x128 * 3 == m128;
+  expect x128 as bv128 >> s128 as bv128 == s128 as bv128;
+  expect x128 as bv128 << o128 as bv128 == t128 as bv128;
+  print "operators(u128)\n";
 }
 
 method TestI128() {
@@ -190,29 +181,33 @@ method TestI128() {
   var z128: int128 := 21 as int128;
   var m128: int128 := 24 as int128;
   var t128: int128 := 16 as int128;
-  if x128 + y128 == z128
-     && x128 - y128 == -w128
-     && x128 * 3 == m128 {
-    print "operators(i128)\n";
-  }
+  expect x128 + y128 == z128;
+  expect x128 - y128 == -w128;
+  expect x128 * 3 == m128;
+  print "operators(i128)\n";
 }
 method {:resource_limit "1e6"}  Main() {
   var t := true;
   var f := false;
-  if ((t && f) || f) ==> f {
-    print "&& || ==> ";
-  }
-  if t && f <==> f && t {
-    print "<==> ";
-  }
+  expect ((t && f) || f) ==> f;
+  print "&& || ==> ";
+  expect t && f <==> f && t;
+  print "<==> ";
 
-  if 2 <= 3 && 2 < 3 && 3 >= 2 && 3 > 2 && 3 != 2 && 2 == 2 {
-    print "<= < >= > != ==\n";
-  }
+  expect 2 <= 3;
+  expect 2 < 3;
+  expect 3 >= 2;
+  expect 3 > 2;
+  expect 3 != 2;
+  expect 2 == 2;
+  print "<= < >= > != ==\n";
 
-  if 2 + 2 == 4 && 2 * 2 == 4 && 2 - 2 == 0 && -1 / 2 == -1 && 5 % 2 == 1 {
-    print "+ * - / %\n";
-  }
+  expect 2 + 2 == 4;
+  expect 2 * 2 == 4;
+  expect 2 - 2 == 0;
+  expect -1 / 2 == -1;
+  expect 5 % 2 == 1;
+  print "+ * - / %\n";
   TestU8();
   TestU16();
   TestU32();
@@ -226,78 +221,97 @@ method {:resource_limit "1e6"}  Main() {
   
   var a := 'a';
   var z := 'z';
-  if a < z && z > a && a <= a && a >= a && a != z && a == a
-  && !(a < a) && !(z < a) && !(z <= a) && !(a >= z)
-   {
-    print "char comparison\n";
-  }
+  expect a < z;
+  expect z > a;
+  expect a <= a;
+  expect a >= a;
+  expect a != z;
+  expect a == a;
+  expect !(a < a);
+  expect !(z < a);
+  expect !(z <= a);
+  expect !(a >= z);
+  print "char comparison\n";
   
   var m := map[1 := 2];
-  if 1 in m && 2 !in m && m[1] == 2{
-    print "map contains acccess ";
-  }
+  expect 1 in m;
+  expect 2 !in m;
+  expect m[1] == 2;
+  print "map contains acccess ";
   var m2 := m[2 := 4] - {1};
-  if 1 !in m2 && 2 in m2 {
-    print "update union diff ";
-  }
+  expect 1 !in m2;
+  expect 2 in m2;
+  print "update union diff ";
   var m3 := map k | 2 <= k < 4 :: k := 2*k;
-  if m3 == map[3 := 6, 2 := 4] && |m3| == 2 {
-    print "comprehension equality cardinality ";
-  }
+  expect m3 == map[3 := 6, 2 := 4];
+  expect |m3| == 2;
+  print "comprehension equality cardinality ";
   
-  if m3.Keys == {2, 3} && m3.Values == {4, 6} {
-    print ".Keys and .Values\n";
-  }
+  expect m3.Keys == {2, 3};
+  expect m3.Values == {4, 6};
+  print ".Keys and .Values\n";
 
   var st := {1};
-  if 1 in st && 2 !in st {
-    print "set contains ";
-  }
+  expect 1 in st;
+  expect 2 !in st;
+  print "set contains ";
   var t2 := st + {2} - {1};
-  if 1 !in t2 && 2 in t2 {
-    print "union diff ";
-  }
+  expect 1 !in t2;
+  expect 2 in t2;
+  print "union diff ";
   var t3 := set k | 2 <= k < 4 :: 2*k;
-  if t3 == {6, 4} && |t3| == 2 && {4, 6} <= t3 && {4} < t3 && t3 >= {4, 6} && t3 > {6} {
-    print "comprehension equality cardinality ";
-  }
-  if t2 != t3 && t2 * t3 == {} && t2 !! t3{
-    print "inequality and intersection\n";
-  }
+  expect t3 == {6, 4};
+  expect |t3| == 2;
+  expect {4, 6} <= t3;
+  expect {4} < t3;
+  expect t3 >= {4, 6};
+  expect t3 > {6};
+  print "comprehension equality cardinality ";
+  expect t2 != t3;
+  expect t2 * t3 == {};
+  expect t2 !! t3;
+  print "inequality and intersection\n";
   
   var s1 := seq(2, i => 1 + i);
   var s2 := s1 + [3];
-  if s1 <= s2 && s1 < s2 && s1 != s2 && !(s2 <= s1)
-  && !(s2 < s1) && s2 != s1 && !(s1 == s2) {
-    print "sequence prefix ";
-  }
+  expect s1 <= s2;
+  expect s1 < s2;
+  expect s1 != s2;
+  expect !(s2 <= s1);
+  expect !(s2 < s1);
+  expect s2 != s1;
+  expect !(s1 == s2);
+  print "sequence prefix ";
   var s3 := if |s2| == 3 then s2[2 := 4] else s2;
-  if s3[1] == 2 && s3 == [1, 2, 4] && |s3| == 3 {
-    print "sequence update cardinality ";
-  }
+  expect s3[1] == 2;
+  expect s3 == [1, 2, 4];
+  expect |s3| == 3;
+  print "sequence update cardinality ";
 
   var s4 := if |s3| >= 3 then s3[1..3] else s3;
-  if s4 == [2, 4] {
-    print "sequence slice\n";
-  }
+  expect s4 == [2, 4];
+  print "sequence slice\n";
 
   var h := multiset{1, 1, 2};
   var k := multiset([1, 2]);
-  if k < h && k <= h && h > k && h >= k {
-    print "multiset comparison ";
-  }
-  if k + h == multiset{1, 1, 1, 2, 2} {
-    print "union equality ";
-  }
-  if 1 in h && h[1] == 3 && |h| == 3 {
-    print "access and cardinality\n";
-  }
+  expect k < h;
+  expect k <= h;
+  expect h > k;
+  expect h >= k;
+  print "multiset comparison ";
+  expect k + h == multiset{1, 1, 1, 2, 2};
+  print "union equality ";
+  expect 1 in h;
+  expect h[1] == 2;
+  expect |h| == 3;
+  print "access and cardinality\n";
   
   var seq1: seq<int> := [1, 2, 3, 4];
   var seq2: int := seq1[0];
   var seq3: seq<int> := seq1[1..4];
   var seq4: seq<int> := seq3 + [seq2];
-  if seq4[0] == 2 && seq4[3] == 1 && seq4[0..3] == seq3 {
-    print "Sequence index slice comparison";
-  }
+  expect seq4[0] == 2;
+  expect seq4[3] == 1;
+  expect seq4[0..3] == seq3;
+  print "Sequence index slice comparison";
 }

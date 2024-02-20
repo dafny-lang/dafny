@@ -1,7 +1,7 @@
 include "../Dafny/AST.dfy"
-// Dafny to Rust compilation tenets:
-// - The Compiled Dafny AST should be minimal
-// - The generated code should look idiomatic and close to the original Dafny file if possible
+  // Dafny to Rust compilation tenets:
+  // - The Compiled Dafny AST should be minimal
+  // - The generated code should look idiomatic and close to the original Dafny file if possible
 
 // Rust AST
 module RAST
@@ -200,7 +200,7 @@ module RAST
   function BorrowMut(underlying: Expr): Expr {
     UnaryOp("&mut", underlying, UnOpFormat.NoFormat)
   }
-  
+
   const CloneTrait := RawType("Clone")
   const DafnyPrintTrait := RawType("::dafny_runtime::DafnyPrint")
   const DefaultTrait := RawType("::std::default::Default")
@@ -232,29 +232,29 @@ module RAST
         case BorrowedMut(underlying) => "&mut " + underlying.ToString(ind)
         case ImplType(underlying) => "impl " + underlying.ToString(ind)
         case DynType(underlying) => "dyn " + underlying.ToString(ind)
-        case FnType(arguments, returnType) => 
+        case FnType(arguments, returnType) =>
           "::std::ops::Fn("+
-            SeqToString(arguments, (arg: Type) requires arg < this =>
-              arg.ToString(ind + IND), ", ")
+          SeqToString(arguments, (arg: Type) requires arg < this =>
+                        arg.ToString(ind + IND), ", ")
           +") -> " + returnType.ToString(ind + IND)
         case IntersectionType(left, right) =>
           left.ToString(ind) + " + " + right.ToString(ind)
         case TupleType(args) =>
           (if args == [] then
-            "()"
+             "()"
            else
-            "(" +
-            SeqToString(args, (arg: Type) requires arg < this => arg.ToString(ind + IND), ", ")
-            + ")")
+             "(" +
+             SeqToString(args, (arg: Type) requires arg < this => arg.ToString(ind + IND), ", ")
+             + ")")
         case TypeApp(base, args) =>
           base.ToString(ind) +
           (if args == [] then
-            ""
+             ""
            else
-            "<" +
-            SeqToString(args, (arg: Type) requires arg < this => arg.ToString(ind + IND), ", ")
-            + ">")
-            
+             "<" +
+             SeqToString(args, (arg: Type) requires arg < this => arg.ToString(ind + IND), ", ")
+             + ">")
+
         case SelfOwned() => "Self"
         case U8() => "u8"
         case U16() => "u16"
@@ -396,7 +396,7 @@ module RAST
   datatype DeclareType = MUT | CONST
 
   datatype Associativity = LeftToRight | RightToLeft | RequiresParentheses
-  datatype PrintingInfo = 
+  datatype PrintingInfo =
     | UnknownPrecedence()
     | Precedence(precedence: nat)
     | SuffixPrecedence(precedence: nat)
@@ -424,17 +424,17 @@ module RAST
     }
     lemma Tests()
       ensures PrecedenceAssociativity(20, LeftToRight)
-        .NeedParenthesesForLeft(PrecedenceAssociativity(20, LeftToRight)) == false
+              .NeedParenthesesForLeft(PrecedenceAssociativity(20, LeftToRight)) == false
       ensures PrecedenceAssociativity(20, LeftToRight)
-        .NeedParenthesesForRight(PrecedenceAssociativity(20, LeftToRight)) == true
+              .NeedParenthesesForRight(PrecedenceAssociativity(20, LeftToRight)) == true
       ensures PrecedenceAssociativity(20, RightToLeft)
-        .NeedParenthesesForRight(PrecedenceAssociativity(20, RightToLeft)) == false
+              .NeedParenthesesForRight(PrecedenceAssociativity(20, RightToLeft)) == false
       ensures PrecedenceAssociativity(20, RightToLeft)
-        .NeedParenthesesForLeft(PrecedenceAssociativity(20, RightToLeft)) == true
+              .NeedParenthesesForLeft(PrecedenceAssociativity(20, RightToLeft)) == true
       ensures PrecedenceAssociativity(20, LeftToRight)
-        .NeedParenthesesForLeft(PrecedenceAssociativity(30, LeftToRight)) == true
+              .NeedParenthesesForLeft(PrecedenceAssociativity(30, LeftToRight)) == true
       ensures PrecedenceAssociativity(20, RightToLeft)
-        .NeedParenthesesForRight(PrecedenceAssociativity(30, RightToLeft)) == true
+              .NeedParenthesesForRight(PrecedenceAssociativity(30, RightToLeft)) == true
     {
     }
   }
@@ -468,11 +468,11 @@ module RAST
     | MemberSelect(obj: Expr, name: string)
   {
     predicate NoExtraSemicolonAfter() {
-      DeclareVar? || AssignVar? || Break? || Continue? || Return? || 
-        (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
+      DeclareVar? || AssignVar? || Break? || Continue? || Return? ||
+      (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
     }
     // Taken from https://doc.rust-lang.org/reference/expressions.html
-    const printingInfo: PrintingInfo := 
+    const printingInfo: PrintingInfo :=
       match this {
         case RawExpr(_) => UnknownPrecedence()
         case Identifier(_) => Precedence(1)
@@ -509,7 +509,7 @@ module RAST
               PrecedenceAssociativity(110, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
-          case _ => UnknownPrecedence()
+        case _ => UnknownPrecedence()
       }
 
     function Height(): nat {
@@ -532,7 +532,7 @@ module RAST
               else default
             case _ => default
           }
-          
+
         case Block(underlying) =>
           1 + underlying.Height()
         case StructBuild(name, assignments) =>
@@ -552,9 +552,9 @@ module RAST
           1 + max(cond.Height(), max(thn.Height(), els.Height()))
         case DeclareVar(declareType, name, tpe, expr) =>
           1 + (match expr {
-            case Some(e) => e.Height()
-            case None => 0
-          })
+                 case Some(e) => e.Height()
+                 case None => 0
+               })
         case AssignVar(name, expr) =>
           1 + expr.Height()
         case Loop(optCond, underlying) =>
@@ -569,8 +569,8 @@ module RAST
           if optExpr.Some? then 1 + optExpr.value.Height() else 1
         case Call(obj, tpes, args) =>
           1 + max(obj.Height(),
-                max(SeqToHeight(tpes, (tpe: Type) requires tpe < this => 1),
-                  SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height())))
+                  max(SeqToHeight(tpes, (tpe: Type) requires tpe < this => 1),
+                      SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height())))
         case Select(expression, name) =>
           1 + expression.Height()
         case MemberSelect(expression, name) =>
@@ -637,8 +637,8 @@ module RAST
             var rewriting := StmtExpr(DeclareVar(mod, name, Some(tpe), Some(rhs)), last);
             assert rewriting.Height() < this.Height() by {
               assert StmtExpr(AssignVar(name2, rhs), last).Height() ==
-                1 + max(AssignVar(name2, rhs).Height(), last.Height()) ==
-                1 + max(1 + rhs.Height(), last.Height());
+                     1 + max(AssignVar(name2, rhs).Height(), last.Height()) ==
+                     1 + max(1 + rhs.Height(), last.Height());
               assert this.Height() == 2 + max(1, 1 + max(1 + rhs.Height(), last.Height()));
               assert rewriting.Height() == 1 + max(1 + rhs.Height(), last.Height());
             }
@@ -663,7 +663,7 @@ module RAST
       printingInfo.NeedParenthesesForRight(right.printingInfo)
     }
 
-    
+
     function RightParentheses(right: Expr): (string, string) {
       if RightRequiresParentheses(right) then
         ("(", ")")
@@ -746,17 +746,17 @@ module RAST
         case DeclareVar(declareType, name, optType, optExpr) =>
           "let " + (if declareType == MUT then "mut " else "") +
           name + (if optType.Some? then ": " + optType.value.ToString(ind + IND) else "") +
-          
+
           (if optExpr.Some? then
-            var optExprString := optExpr.value.ToString(ind + IND);
-            if optExprString == "" then
-              "= /*issue with empty RHS*/" + match optExpr.value {
-                case RawExpr(_) => "Empty Raw expr"
-                case LiteralString(_, _) => "Empty string literal"
-                case LiteralInt(_) => "Empty int literal"
-                case _ => "Another case"
-              }
-            else " = " + optExprString else "") + ";"
+             var optExprString := optExpr.value.ToString(ind + IND);
+             if optExprString == "" then
+               "= /*issue with empty RHS*/" + match optExpr.value {
+                 case RawExpr(_) => "Empty Raw expr"
+                 case LiteralString(_, _) => "Empty string literal"
+                 case LiteralInt(_) => "Empty int literal"
+                 case _ => "Another case"
+               }
+             else " = " + optExprString else "") + ";"
         case AssignVar(name, expr) =>
           name + " = " + expr.ToString(ind + IND) + ";"
         case Labelled(name, underlying) =>
@@ -773,9 +773,9 @@ module RAST
           }
         case Loop(optCond, underlying) =>
           (match optCond {
-            case None => "loop"
-            case Some(c) => "while " + c.ToString(ind + IND)
-          }) + " {\n" + ind + IND + underlying.ToString(ind + IND) + "\n" + ind + "}"
+             case None => "loop"
+             case Some(c) => "while " + c.ToString(ind + IND)
+           }) + " {\n" + ind + IND + underlying.ToString(ind + IND) + "\n" + ind + "}"
         case For(name, range, body) =>
           "for "+ name +" in " + range.ToString(ind + IND) + " {\n" + ind + IND +
           body.ToString(ind + IND) + "\n" + ind + "}"
@@ -788,8 +788,8 @@ module RAST
               ("[","]")
             case Some("set!") | Some("multiset!") =>
               ("{","}")
-            case _ => 
-              ("(", ")")                
+            case _ =>
+              ("(", ")")
           };
           leftP + expr.ToString(ind) + rightP + (
             if |tpes| == 0 then ""
@@ -825,7 +825,7 @@ module RAST
     function Apply(typeParameters: seq<Type>, arguments: seq<Expr>): Expr {
       Call(this, typeParameters, arguments)
     }
-    
+
     function Apply1(argument: Expr): Expr {
       Call(this, [], [argument])
     }
@@ -853,7 +853,7 @@ module RAST
   function RcNew(underlying: Expr): Expr {
     Call(std_rc_Rc_new, [], [underlying])
   }
-  
+
   datatype Fn =
     Fn(name: string, typeParams: seq<TypeParam>, formals: seq<Formal>,
        returnType: Option<Type>,
@@ -1089,7 +1089,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       }
 
       var struct := R.Struct([], escapeIdent(c.name), sTypeParams, R.NamedFormals(fields));
-      var typeParamsAsTypes := 
+      var typeParamsAsTypes :=
         Std.Collections.Seq.Map((typeParam: R.TypeParam) => R.RawType(typeParam.content), sTypeParams);
 
       s := [R.StructDecl(struct)];
@@ -1223,7 +1223,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
 
     static method GenNewtype(c: Newtype) returns (s: seq<R.ModDecl>) {
       var typeParamsSet, sTypeParams, sConstrainedTypeParams, whereConstraints := GenTypeParameters(c.typeParams);
-      var typeParamsAsTypes := 
+      var typeParamsAsTypes :=
         Std.Collections.Seq.Map((t: R.TypeParam) => R.RawType(t.content), sTypeParams);
       var constrainedTypeParams := R.TypeParam.ToStringMultiple(sConstrainedTypeParams, R.IND + R.IND);
 
@@ -1306,7 +1306,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
 
     static method GenDatatype(c: Datatype) returns (s: seq<R.ModDecl>) {
       var typeParamsSet, sTypeParams, sConstrainedTypeParams, whereConstraints := GenTypeParameters(c.typeParams);
-      var typeParamsAsTypes := 
+      var typeParamsAsTypes :=
         Std.Collections.Seq.Map((t: R.TypeParam) => R.RawType(t.content), sTypeParams);
       var constrainedTypeParams := R.TypeParam.ToStringMultiple(sConstrainedTypeParams, IND + IND);
 
@@ -1322,7 +1322,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           if c.isCo {
             ctorArgs := ctorArgs + [
               R.Formal(escapeIdent(formal.name),
-              R.TypeApp(R.dafny_runtime_type.MSel("LazyFieldWrapper"), [formalType]))];
+                       R.TypeApp(R.dafny_runtime_type.MSel("LazyFieldWrapper"), [formalType]))];
           } else {
             ctorArgs := ctorArgs + [
               R.Formal(escapeIdent(formal.name), formalType)];
@@ -1421,7 +1421,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
         }
         ctors := ctors + [R.EnumCase("_PhantomVariant",
                                      R.NamelessFormals(Std.Collections.Seq.Map(
-                                      tpe => R.NamelessFormal(R.PRIV, tpe), types))
+                                                         tpe => R.NamelessFormal(R.PRIV, tpe), types))
                           )];
       }
 
@@ -1690,7 +1690,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
             case Int => s := R.dafny_runtime_type.MSel("DafnyInt");
             case Real => s := R.dafny_runtime_type.MSel("BigRational");
             case String => s := R.TypeApp(R.dafny_runtime_type.MSel("Sequence"),
-              [R.dafny_runtime_type.MSel(DafnyChar)]);
+                                          [R.dafny_runtime_type.MSel(DafnyChar)]);
             case Bool => s := R.RawType("bool");
             case Char => s := R.dafny_runtime_type.MSel(DafnyChar);
           }
@@ -2024,8 +2024,8 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
 
           var body, bodyIdents := GenStmts(body, if selfIdent != None then Some("_this") else None, [], false, earlyReturn);
           readIdents := bodyIdents;
-          generated := generated.Then(R.Labelled("TAIL_CALL_START", 
-            R.Loop(None, body)));
+          generated := generated.Then(R.Labelled("TAIL_CALL_START",
+                                                 R.Loop(None, body)));
         }
         case JumpTailCallStart() => {
           generated := R.Continue(Some("TAIL_CALL_START"));
@@ -2137,8 +2137,8 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
     }
 
     static const OpTable: map<BinOp, string>
-    := 
-    map[
+      :=
+      map[
         Mod() := "%",
         And() := "&&",
         Or() := "||",
@@ -2177,7 +2177,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       returns (out: R.Expr, resultingOwnership: Ownership)
       ensures resultingOwnership != OwnershipAutoBorrowed
       ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
+              ==> resultingOwnership == expectedOwnership
     {
       if expectedOwnership == OwnershipOwned || expectedOwnership == OwnershipAutoBorrowed {
         out := r;
@@ -2197,7 +2197,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       requires ownership != OwnershipAutoBorrowed
       ensures resultingOwnership != OwnershipAutoBorrowed
       ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
+              ==> resultingOwnership == expectedOwnership
     {
       if ownership == OwnershipOwned {
         out, resultingOwnership := FromOwned(r, expectedOwnership);
@@ -2207,7 +2207,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           resultingOwnership := OwnershipOwned;
           out := R.Clone(r);
         } else if expectedOwnership == ownership
-               || expectedOwnership == OwnershipAutoBorrowed {
+                  || expectedOwnership == OwnershipAutoBorrowed {
           resultingOwnership := ownership;
           out := r;
         } else if expectedOwnership == OwnershipBorrowed
@@ -2224,6 +2224,12 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       }
     }
 
+    static predicate OwnershipGuarantee(expectedOwnership: Ownership, resultingOwnership: Ownership) {
+      && (expectedOwnership != OwnershipAutoBorrowed ==>
+            resultingOwnership == expectedOwnership)
+      && resultingOwnership != OwnershipAutoBorrowed // We know what's going on
+    }
+
     static method GenExprLiteral(
       e: Expression,
       selfIdent: Option<string>,
@@ -2231,9 +2237,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.Literal?
-      ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
-      ensures resultingOwnership != OwnershipAutoBorrowed // We know what's going on
+      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
     {
       match e {
@@ -2292,12 +2296,12 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
         case Literal(CharLiteral(c)) => {
           r := R.LiteralInt(Strings.OfNat(c as nat));
           if !UnicodeChars {
-            r := 
+            r :=
               R.global.MSel("std").MSel("primitive")
               .MSel("char").MSel("from_u16")
               .Apply1(r).Sel("unwrap").Apply([], []);
           } else {
-            r := 
+            r :=
               R.global.MSel("std").MSel("primitive")
               .MSel("char").MSel("from_u32")
               .Apply1(r).Sel("unwrap").Apply([], []);
@@ -2325,24 +2329,22 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.BinOp?
-      ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
-      ensures resultingOwnership != OwnershipAutoBorrowed // We know what's going on
+      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
     {
       var BinOp(op, lExpr, rExpr, format) := e;
       var becomesLeftCallsRight := match op {
         case SetMerge()
-            | SetSubtraction()
-            | SetIntersection()
-            | SetDisjoint()
-            | MapMerge()
-            | MapSubtraction()
-            | MultisetMerge()
-            | MultisetSubtraction()
-            | MultisetIntersection()
-            | MultisetDisjoint()
-            | Concat()
+          | SetSubtraction()
+          | SetIntersection()
+          | SetDisjoint()
+          | MapMerge()
+          | MapSubtraction()
+          | MultisetMerge()
+          | MultisetSubtraction()
+          | MultisetIntersection()
+          | MultisetDisjoint()
+          | Concat()
           => true
         case _ => false
       };
@@ -2423,9 +2425,9 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           if op in OpTable {
             r := R.Expr.BinaryOp(
               OpTable[op],
-                                  left,
-                                  right,
-                                  format);
+              left,
+              right,
+              format);
           } else {
             match op {
               case Eq(referential, nullable) => {
@@ -2465,9 +2467,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.Convert?
-      ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
-      ensures resultingOwnership != OwnershipAutoBorrowed // We know what's going on
+      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
     {
       var Convert(expr, fromTpe, toTpe) := e;
@@ -2602,19 +2602,17 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       }
       return;
     }
-    static method {:vcs_split_on_every_assert} GenExpr(
+    static method GenExpr(
       e: Expression,
       selfIdent: Option<string>,
       params: seq<string>,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
-      ensures expectedOwnership != OwnershipAutoBorrowed
-          ==> resultingOwnership == expectedOwnership
-      ensures resultingOwnership != OwnershipAutoBorrowed // We know what's going on
+      ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 1 {
       match e {
         case Literal(_) =>
-          r, resultingOwnership, readIdents := 
+          r, resultingOwnership, readIdents :=
             GenExprLiteral(e, selfIdent, params, expectedOwnership);
         case Ident(name) => {
           r := R.Identifier(escapeIdent(name));
@@ -2784,7 +2782,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           return;
         }
         case Convert(_, _, _) => {
-          r, resultingOwnership, readIdents := 
+          r, resultingOwnership, readIdents :=
             GenExprConvert(e, selfIdent, params, expectedOwnership);
         }
         case SeqConstruct(length, expr) => {
@@ -2814,7 +2812,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           r := R.dafny_runtime.MSel("seq!").Apply([], args);
           if |args| == 0 {
             r := R.TypeAscription(r,
-              R.dafny_runtime_type.MSel("Sequence").Apply1(genTpe));
+                                  R.dafny_runtime_type.MSel("Sequence").Apply1(genTpe));
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
@@ -2845,7 +2843,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
             readIdents := readIdents + recIdents;
             i := i + 1;
           }
-           r := R.dafny_runtime.MSel("multiset!").Apply([], generatedValues);
+          r := R.dafny_runtime.MSel("multiset!").Apply([], generatedValues);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
@@ -2878,8 +2876,8 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
             arguments := arguments + [R.BinaryOp("=>", genKey, genValue, DAST.Format.BinOpFormat.NoFormat())];
             i := i + 1;
           }
-          r := R.dafny_runtime.MSel("map!").Apply([], 
-            arguments
+          r := R.dafny_runtime.MSel("map!").Apply([],
+                                                  arguments
           );
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
@@ -2944,7 +2942,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           var tString := tExpr.ToString(IND);
 
           r := R.RawExpr("(if " + condString + " {\n" + tString + "\n} else {\n" + fString + "\n})");
-          
+
           r, resultingOwnership := FromOwnership(r, fOwned, expectedOwnership);
           readIdents := recIdentsCond + recIdentsT + recIdentsF;
           return;
@@ -2974,7 +2972,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
           return;
         }
         case BinOp(_, _, _, _) =>
-          r, resultingOwnership, readIdents := 
+          r, resultingOwnership, readIdents :=
             GenExprBinary(e, selfIdent, params, expectedOwnership);
         case ArrayLen(expr, dim) => {
           var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
@@ -3096,10 +3094,10 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
         case IndexRange(on, isArray, low, high) => {
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipAutoBorrowed);
           readIdents := recIdents;
-          
+
           var methodName := if low.Some? then
             if high.Some? then "slice" else "drop"
-            else if high.Some? then "take" else "";
+          else if high.Some? then "take" else "";
 
           var arguments := [];
           match low {
@@ -3409,6 +3407,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler refines DafnyToRustCompilerAbstract
   const UnicodeChars := true
 }
 module {:extern "DCOMPUTF16"} DafnyToRustCompilerUTF16 refines DafnyToRustCompilerAbstract {
-  const UnicodeChars := true
+  const UnicodeChars := false
 }
 

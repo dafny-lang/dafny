@@ -630,7 +630,7 @@ namespace Std.Collections.Seq {
     public static Dafny.ISet<__T> ToSet<__T>(Dafny.ISequence<__T> xs) {
       return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Dafny.ISet<__T>>>((_77_xs) => ((System.Func<Dafny.ISet<__T>>)(() => {
         var _coll0 = new System.Collections.Generic.List<__T>();
-        foreach (__T _compr_0 in (_77_xs).Elements) {
+        foreach (__T _compr_0 in (_77_xs).CloneAsArray()) {
           __T _78_x = (__T)_compr_0;
           if ((_77_xs).Contains(_78_x)) {
             _coll0.Add(_78_x);
@@ -951,7 +951,7 @@ namespace Std.Collections.Seq {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7231)");
+        throw new System.Exception("assign-such-that search produced no value (line 7247)");
       after__ASSIGN_SUCH_THAT_0: ;
         _105_left = Dafny.Set<__T>.Difference(_105_left, Dafny.Set<__T>.FromElements(_106_x));
         xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_106_x));
@@ -17949,6 +17949,10 @@ namespace DCOMP {
       } else {
       }
     }
+    public static bool OwnershipGuarantee(DCOMP._IOwnership expectedOwnership, DCOMP._IOwnership resultingOwnership)
+    {
+      return (!(!object.Equals(expectedOwnership, DCOMP.Ownership.create_OwnershipAutoBorrowed())) || (object.Equals(resultingOwnership, expectedOwnership))) && (!object.Equals(resultingOwnership, DCOMP.Ownership.create_OwnershipAutoBorrowed()));
+    }
     public static void GenExprLiteral(DAST._IExpression e, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> selfIdent, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> @params, DCOMP._IOwnership expectedOwnership, out RAST._IExpr r, out DCOMP._IOwnership resultingOwnership, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents)
     {
       r = RAST.Expr.Default();
@@ -28302,7 +28306,7 @@ namespace DCOMP {
                     goto after__ASSIGN_SUCH_THAT_2;
                   }
                 }
-                throw new System.Exception("assign-such-that search produced no value (line 2767)");
+                throw new System.Exception("assign-such-that search produced no value (line 2765)");
               after__ASSIGN_SUCH_THAT_2: ;
                 _4775_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_4775_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), DCOMP.__default.escapeIdent(_4776_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), DCOMP.__default.escapeIdent(_4776_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                 _4774_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_4774_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_4776_next));
@@ -31082,7 +31086,7 @@ namespace DCOMP {
                 goto after__ASSIGN_SUCH_THAT_3;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 3201)");
+            throw new System.Exception("assign-such-that search produced no value (line 3199)");
           after__ASSIGN_SUCH_THAT_3: ;
             if ((!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_5546_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) {
@@ -31579,7 +31583,7 @@ namespace DCOMPUTF16 {
       return Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("async"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("await"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("break"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("const"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("continue"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("crate"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dyn"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("else"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("enum"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("extern"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("false"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fn"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("for"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("if"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("impl"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("in"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("loop"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("match"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mod"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("move"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mut"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ref"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("return"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Self"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("static"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("struct"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("super"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("trait"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("true"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("type"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("union"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("unsafe"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("use"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("where"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("while"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Keywords"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("The"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("abstract"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("become"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("box"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("do"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("final"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("macro"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("override"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("priv"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("try"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("typeof"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("unsized"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("virtual"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("yield"));
     } }
     public static bool UnicodeChars { get {
-      return true;
+      return false;
     } }
     public static Dafny.ISequence<Dafny.Rune> DafnyChar { get {
       if (DCOMPUTF16.__default.UnicodeChars) {
@@ -33630,6 +33634,10 @@ namespace DCOMPUTF16 {
         }
       } else {
       }
+    }
+    public static bool OwnershipGuarantee(DCOMPUTF16._IOwnership expectedOwnership, DCOMPUTF16._IOwnership resultingOwnership)
+    {
+      return (!(!object.Equals(expectedOwnership, DCOMPUTF16.Ownership.create_OwnershipAutoBorrowed())) || (object.Equals(resultingOwnership, expectedOwnership))) && (!object.Equals(resultingOwnership, DCOMPUTF16.Ownership.create_OwnershipAutoBorrowed()));
     }
     public static void GenExprLiteral(DAST._IExpression e, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> selfIdent, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> @params, DCOMPUTF16._IOwnership expectedOwnership, out RAST._IExpr r, out DCOMPUTF16._IOwnership resultingOwnership, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents)
     {
@@ -43984,7 +43992,7 @@ namespace DCOMPUTF16 {
                     goto after__ASSIGN_SUCH_THAT_4;
                   }
                 }
-                throw new System.Exception("assign-such-that search produced no value (line 2767)");
+                throw new System.Exception("assign-such-that search produced no value (line 2765)");
               after__ASSIGN_SUCH_THAT_4: ;
                 _8250_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_8250_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), DCOMPUTF16.__default.escapeIdent(_8251_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), DCOMPUTF16.__default.escapeIdent(_8251_next)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                 _8249_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_8249_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_8251_next));
@@ -46764,7 +46772,7 @@ namespace DCOMPUTF16 {
                 goto after__ASSIGN_SUCH_THAT_5;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 3201)");
+            throw new System.Exception("assign-such-that search produced no value (line 3199)");
           after__ASSIGN_SUCH_THAT_5: ;
             if ((!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_9021_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) {

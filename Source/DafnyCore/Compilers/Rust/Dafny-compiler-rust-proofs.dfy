@@ -334,11 +334,11 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
   // That's the lemma that shows
   lemma EscapeIdentInvertible(i: string)
     requires is_tuple_numeric(i) // _0 _1 ...                 => _0, _1 ...
-          || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
-          || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
-          || IsDafnyEncodedId(i) // i                         => i
-                                 // create_struct             => create_struct
-                                //  c#ons.tant?'              => r#_c_hons_dtant_q_k
+             || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
+             || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
+             || IsDafnyEncodedId(i) // i                         => i
+                                    // create_struct             => create_struct
+    //  c#ons.tant?'              => r#_c_hons_dtant_q_k
     ensures UnescapeIdent(escapeIdent(i)) == i
   {
     if is_tuple_numeric(i) {

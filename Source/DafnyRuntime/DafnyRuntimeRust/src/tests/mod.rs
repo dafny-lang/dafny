@@ -59,6 +59,7 @@ mod tests {
     #[test]
     fn test_dafny_sequence() {
         let s = seq![55, 56, 57];
+        assert_eq!(seq![55, 56] != s, true);
         assert_eq!(s.cardinality_usize(), 3);
         assert_eq!(s.cardinality(), int!(3));
         assert_eq!(s.get(&int!(1)), 56);

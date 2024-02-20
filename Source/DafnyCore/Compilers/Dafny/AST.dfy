@@ -1,6 +1,6 @@
 module {:extern "DAST.Format"} DAST.Format
-/* Cues about how to format different AST elements if necessary,
-   e.g. to generate idiomatic code when needed. */
+  /* Cues about how to format different AST elements if necessary,
+     e.g. to generate idiomatic code when needed. */
 {
   // Dafny AST compilation tenets:
   // - The Compiled Dafny AST should be minimal
@@ -8,13 +8,13 @@ module {:extern "DAST.Format"} DAST.Format
   // Since the two might conflict, the second one is taken care of by adding formatting information
 
   datatype UnOpFormat =
-    NoFormat()
-    | CombineNotInner()
-  datatype BinOpFormat = 
-    NoFormat()
-    | ImpliesFormat()
-    | Equivalence()
-    | ReverseOperands()
+    | NoFormat
+    | CombineNotInner
+  datatype BinOpFormat =
+    | NoFormat
+    | ImpliesFormat
+    | Equivalence
+    | ReverseOperands
 }
 
 module {:extern "DAST"} DAST {
