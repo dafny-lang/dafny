@@ -1926,11 +1926,18 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         "split",
         "split_here",
         "start_checking_here",
+        "testEntry",
+        "testInline",
         "vcs_split_on_every_assert",
+      });
+
+      private static readonly HashSet<string> BooleanAttributesToCopy = new(new[] {
+        "verify"
       });
 
       private static readonly HashSet<string> IntegerAttributesToCopy = new(new[] {
         "subsumption",
+        "testInline",
         "timeLimit",
         "vcs_max_cost",
         "vcs_max_keep_going_splits",
@@ -1942,6 +1949,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         "captureState",
         "error"
       });
+
+      private QKeyValue TrBooleanAttribute(string name, Expression arg, QKeyValue rest) {
+        var boolArg = RemoveLit(TrExpr(arg));
+        return boolArg is Boogie.LiteralExpr { IsTrue: true } or Boogie.LiteralExpr { IsFalse: true }
+          ? new QKeyValue(arg.tok, name, new List<object> { boolArg }, rest)
+          : rest;
+      }
 
       private QKeyValue TrIntegerAttribute(string name, Expression arg, QKeyValue rest) {
         var intArg = RemoveLit(TrExpr(arg));
@@ -1975,6 +1989,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
           if (NullaryAttributesToCopy.Contains(name) && attr.Args.Count == 0) {
             kv = new QKeyValue(attr.tok, name, new List<object>(), kv);
+          } else if (BooleanAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
+            kv = TrBooleanAttribute(name, attr.Args[0], kv);
           } else if (IntegerAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
             kv = TrIntegerAttribute(name, attr.Args[0], kv);
           } else if (StringAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
