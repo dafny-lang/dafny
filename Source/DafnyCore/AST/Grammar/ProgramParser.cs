@@ -96,7 +96,7 @@ public class ProgramParser {
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.
       if (program.Options.Backend is LibraryBackend libBackend) {
-        libBackend.DooFile = new DooFile(program);
+        libBackend.ProgramAfterParsing = new Program(new Cloner(true), program);
       }
     }
 
