@@ -555,75 +555,76 @@ namespace Microsoft.Dafny {
       var familyDeclName = ancestorDecl.Name;
       switch (check) {
         case CommonConfirmationBag.InIntFamily:
-          return familyDeclName == "int";
+          return familyDeclName == PreType.TypeNameInt;
         case CommonConfirmationBag.InRealFamily:
-          return familyDeclName == "real";
+          return familyDeclName == PreType.TypeNameReal;
         case CommonConfirmationBag.InBoolFamily:
-          return familyDeclName == "bool";
+          return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
-          return familyDeclName == "char";
+          return familyDeclName == PreType.TypeNameChar;
         case CommonConfirmationBag.InSeqFamily:
-          return familyDeclName == "seq";
+          return familyDeclName == PreType.TypeNameSeq;
         case CommonConfirmationBag.IsNullableRefType:
           return DPreType.IsReferenceTypeDecl(pt.Decl);
         case CommonConfirmationBag.IsBitvector:
           return PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.IntLikeOrBitvector:
-          return familyDeclName == "int" || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName == PreType.TypeNameInt || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvector:
-          return familyDeclName is "int" or "real" || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait:
-          if (familyDeclName is "int" or "real" or "char" or "ORDINAL" || PreTypeResolver.IsBitvectorName(familyDeclName)) {
+          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
+              PreTypeResolver.IsBitvectorName(familyDeclName)) {
             return true;
           }
           return PreTypeResolver.IsSuperPreTypeOf(pt, auxPreType);
         case CommonConfirmationBag.BooleanBits:
-          return familyDeclName == "bool" || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName == PreType.TypeNameBool || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.IntOrORDINAL:
-          return familyDeclName == "int" || familyDeclName == "ORDINAL";
+          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameORDINAL;
         case CommonConfirmationBag.IntOrBitvectorOrORDINAL:
-          return familyDeclName == "int" || PreTypeResolver.IsBitvectorName(familyDeclName) || familyDeclName == "ORDINAL";
+          return familyDeclName == PreType.TypeNameInt || PreTypeResolver.IsBitvectorName(familyDeclName) || familyDeclName == PreType.TypeNameORDINAL;
         case CommonConfirmationBag.Plussable:
           switch (familyDeclName) {
-            case "int":
-            case "real":
-            case "ORDINAL":
-            case "char":
-            case "seq":
-            case "set":
-            case "iset":
-            case "multiset":
-            case "map":
-            case "imap":
+            case PreType.TypeNameInt:
+            case PreType.TypeNameReal:
+            case PreType.TypeNameORDINAL:
+            case PreType.TypeNameChar:
+            case PreType.TypeNameSeq:
+            case PreType.TypeNameSet:
+            case PreType.TypeNameIset:
+            case PreType.TypeNameMultiset:
+            case PreType.TypeNameMap:
+            case PreType.TypeNameImap:
               return true;
             default:
               return PreTypeResolver.IsBitvectorName(familyDeclName);
           }
         case CommonConfirmationBag.Mullable:
           switch (familyDeclName) {
-            case "int":
-            case "real":
-            case "set":
-            case "iset":
-            case "multiset":
+            case PreType.TypeNameInt:
+            case PreType.TypeNameReal:
+            case PreType.TypeNameSet:
+            case PreType.TypeNameIset:
+            case PreType.TypeNameMultiset:
               return true;
             default:
               return PreTypeResolver.IsBitvectorName(familyDeclName);
           }
         case CommonConfirmationBag.Disjointable:
-          return familyDeclName == "set" || familyDeclName == "iset" || familyDeclName == "multiset";
+          return familyDeclName is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameMultiset;
         case CommonConfirmationBag.OrderableLess:
         case CommonConfirmationBag.OrderableGreater:
           switch (familyDeclName) {
-            case "int":
-            case "real":
-            case "ORDINAL":
-            case "char":
-            case "set":
-            case "iset":
-            case "multiset":
+            case PreType.TypeNameInt:
+            case PreType.TypeNameReal:
+            case PreType.TypeNameORDINAL:
+            case PreType.TypeNameChar:
+            case PreType.TypeNameSet:
+            case PreType.TypeNameIset:
+            case PreType.TypeNameMultiset:
               return true;
-            case "seq":
+            case PreType.TypeNameSeq:
               return check == CommonConfirmationBag.OrderableLess;
             default:
               return PreTypeResolver.IsBitvectorName(familyDeclName);
@@ -634,16 +635,16 @@ namespace Microsoft.Dafny {
           return ancestorDecl is IndDatatypeDecl || ancestorDecl is TypeParameter;
         case CommonConfirmationBag.Sizeable:
           switch (familyDeclName) {
-            case "set": // but not "iset"
-            case "multiset":
-            case "seq":
-            case "map": // but not "imap"
+            case PreType.TypeNameSet: // but not "iset"
+            case PreType.TypeNameMultiset:
+            case PreType.TypeNameSeq:
+            case PreType.TypeNameMap: // but not "imap"
               return true;
             default:
               return false;
           }
         case CommonConfirmationBag.Freshable: {
-            var t = familyDeclName == "set" || familyDeclName == "iset" || familyDeclName == "seq"
+            var t = familyDeclName is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
               ? ancestorPt.Arguments[0].Normalize() as DPreType
               : ancestorPt;
             return t != null && DPreType.IsReferenceTypeDecl(t.Decl);
@@ -651,13 +652,14 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsCoDatatype:
           return ancestorDecl is CoDatatypeDecl;
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
-          return pt.Decl is NewtypeDecl || pt.Decl.Name == "int" || pt.Decl.Name == "real";
+          return pt.Decl is NewtypeDecl || pt.Decl.Name is PreType.TypeNameInt or PreType.TypeNameReal;
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
-          if (familyDeclName is "set" or "iset" or "seq" or "multiset" or "map" or "imap" || pt.Decl is DatatypeDecl) {
+          if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset or PreType.TypeNameMap
+                or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
             // These base types are not yet supported, but they will be soon.
             return false;
           }
-          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != "ORDINAL");
+          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != PreType.TypeNameORDINAL);
 
         default:
           Contract.Assert(false); // unexpected case

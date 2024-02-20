@@ -104,13 +104,13 @@ namespace Microsoft.Dafny {
           }
         }
         if (decl == null) {
-          if (name == "set" || name == "seq" || name == "multiset") {
+          if (name is PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
-          } else if (name == "iset") {
+          } else if (name == PreType.TypeNameIset) {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
-          } else if (name == "object?") {
+          } else if (name == PreType.TypeNameObjectQ) {
             decl = resolver.SystemModuleManager.ObjectDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
@@ -229,23 +229,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;
       if (type is BoolType) {
-        decl = BuiltInTypeDecl("bool");
+        decl = BuiltInTypeDecl(PreType.TypeNameBool);
       } else if (type is CharType) {
-        decl = BuiltInTypeDecl("char");
+        decl = BuiltInTypeDecl(PreType.TypeNameChar);
       } else if (type is IntType) {
-        decl = BuiltInTypeDecl("int");
+        decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
-        decl = BuiltInTypeDecl("real");
+        decl = BuiltInTypeDecl(PreType.TypeNameReal);
       } else if (type is BigOrdinalType) {
-        decl = BuiltInTypeDecl("ORDINAL");
+        decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
         decl = BuiltInTypeDecl("bv" + bitvectorType.Width);
       } else if (type is CollectionType) {
         var name =
-          type is SetType st ? (st.Finite ? "set" : "iset") :
-          type is MultiSetType ? "multiset" :
-          type is MapType mt ? (mt.Finite ? "map" : "imap") :
-          "seq";
+          type is SetType st ? PreType.SetTypeName(st.Finite) :
+          type is MultiSetType ? PreType.TypeNameMultiset :
+          type is MapType mt ? PreType.MapTypeName(mt.Finite) :
+          PreType.TypeNameSeq;
         decl = BuiltInTypeDecl(name);
       } else if (type is ArrowType at) {
         decl = BuiltInArrowTypeDecl(at.Arity);
