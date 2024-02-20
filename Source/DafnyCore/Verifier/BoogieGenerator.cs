@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     private bool filterOnlyMembers;
+    private SystemModuleManager systemModuleManager;
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -69,11 +70,12 @@ namespace Microsoft.Dafny {
     }
 
     [NotDelayed]
-    public BoogieGenerator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
+    public BoogieGenerator(ErrorReporter reporter, ProofDependencyManager depManager, SystemModuleManager systemModuleManager, TranslatorFlags flags = null) {
       this.options = reporter.Options;
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
       this.reporter = reporter;
+      this.systemModuleManager = systemModuleManager;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
           ReportRanges = options.Get(DafnyConsolePrinter.ShowSnippets)
@@ -858,7 +860,7 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       foreach (ModuleDefinition outerModule in VerifiableModules(p)) {
-        var translator = new BoogieGenerator(reporter, p.ProofDependencyManager, flags);
+        var translator = new BoogieGenerator(reporter, p.ProofDependencyManager, p.SystemModuleManager,flags);
 
         if (translator.sink == null || translator.sink == null) {
           // something went wrong during construction, which reads the prelude; an error has

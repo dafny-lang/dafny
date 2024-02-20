@@ -310,6 +310,16 @@ public abstract class Expression : TokenNode {
     return s;
   }
 
+  public static Expression CreateDisjoint(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Disjoint, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Disjoint;  // resolve here
+    s.Type = Type.Bool;  // resolve here
+    return s;
+  }
+
   /// <summary>
   /// Create a resolved expression of the form "e0 - e1".
   /// Optimization: If either "e0" or "e1" is the literal denoting the empty multiset, then just return "e0".
@@ -329,6 +339,24 @@ public abstract class Expression : TokenNode {
       Type = e0.Type.NormalizeExpand() // important to remove any constraints
     };
     return s;
+  }
+
+  public static Expression CreateMapSubtract(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.MapSubtraction;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
+  public static Expression CreateResolvedFieldSelect(IToken tok, Expression receiver, Field field) {
+    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
+    return new ExprDotName(tok, receiver, field.Name, null) {
+      ResolvedExpression = memberSelectExpr,
+      Type = memberSelectExpr.Type
+    };
   }
 
   /// <summary>

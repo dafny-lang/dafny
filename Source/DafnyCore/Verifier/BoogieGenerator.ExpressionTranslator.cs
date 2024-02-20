@@ -2151,6 +2151,18 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
                 }
               }
               break;
+            case BinaryExpr.ResolvedOpcode.MapMerge:
+              if(!(e.E0.Type.IsIMapType && e.E1.Type.IsIMapType)) {
+                // (A.keys !! B.keys) ==> A == A + B - B.keys && B == A+B - A.keys 
+                var keys = (Field)(BoogieGenerator.systemModuleManager.getMap()).Members.Find(member => member.Name == "Keys");
+                Contract.Assert(keys != null); //we expect that map has Keys field
+                var disjoint = Expression.CreateDisjoint(Expression.CreateResolvedFieldSelect(e.tok, e.E0, keys), Expression.CreateResolvedFieldSelect(e.tok, e.E1, keys));
+                var eq1 = Expression.CreateEq(e.E0, Expression.CreateMapSubtract(e, Expression.CreateResolvedFieldSelect(e.tok, e.E1, keys)), e.E0.Type);
+                var eq2 = Expression.CreateEq(e.E1, Expression.CreateMapSubtract(e, Expression.CreateResolvedFieldSelect(e.tok, e.E0, keys)), e.E0.Type);
+
+                return BplImp(TrExpr(disjoint), BplAnd(TrExpr(eq1), TrExpr(eq2)));
+              }
+              break;
             default:
               break;
           }

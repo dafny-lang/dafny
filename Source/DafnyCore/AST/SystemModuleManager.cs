@@ -525,6 +525,10 @@ needed: {allNeededArities.Comma()}
 declared: {allDeclaredArities.Comma()}");
     }
   }
+
+  public ValuetypeDecl getMap() {
+    return valuetypeDecls[(int)ValuetypeVariety.Map];
+  }
 }
 
 enum ValuetypeVariety {
