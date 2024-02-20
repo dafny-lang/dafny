@@ -97,38 +97,32 @@ public class JsonVerificationLogger {
   /// <summary>
   /// This method is copy pasted from a private Boogie method. It will be public Boogie version > 3.0.11
   /// Then this method can be removed
-  public static VcOutcome MergeOutcomes(VcOutcome currentVcOutcome, SolverOutcome newOutcome)
-  {
-    switch (newOutcome)
-    {
+  public static VcOutcome MergeOutcomes(VcOutcome currentVcOutcome, SolverOutcome newOutcome) {
+    switch (newOutcome) {
       case SolverOutcome.Valid:
         return currentVcOutcome;
       case SolverOutcome.Invalid:
         return VcOutcome.Errors;
       case SolverOutcome.OutOfMemory:
-        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
-        {
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive) {
           return VcOutcome.OutOfMemory;
         }
 
         return currentVcOutcome;
       case SolverOutcome.TimeOut:
-        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
-        {
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive) {
           return VcOutcome.TimedOut;
         }
 
         return currentVcOutcome;
       case SolverOutcome.OutOfResource:
-        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive)
-        {
+        if (currentVcOutcome != VcOutcome.Errors && currentVcOutcome != VcOutcome.Inconclusive) {
           return VcOutcome.OutOfResource;
         }
 
         return currentVcOutcome;
       case SolverOutcome.Undetermined:
-        if (currentVcOutcome != VcOutcome.Errors)
-        {
+        if (currentVcOutcome != VcOutcome.Errors) {
           return VcOutcome.Inconclusive;
         }
 
@@ -138,10 +132,10 @@ public class JsonVerificationLogger {
         throw new cce.UnreachableException();
     }
   }
-  
+
   private JsonObject SerializeVerificationResults(IEnumerable<IGrouping<VerificationScope, VerificationRunResult>> implementationResults) {
     return new JsonObject {
-      ["verificationResults"] = new JsonArray(implementationResults.Select(k => 
+      ["verificationResults"] = new JsonArray(implementationResults.Select(k =>
         SerializeVerificationResult(k.Key, k.ToList())).ToArray())
     };
   }

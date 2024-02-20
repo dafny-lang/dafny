@@ -29,36 +29,37 @@ public static class VerifyCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
-      if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
-        options.TrackVerificationCoverage = true;
-      }
-
-
-      
-      if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
-        // --log-format and --verification-coverage-report are not yet supported by CliCompilation
-        options.Compile = false;
-        return await SynchronousCliCompilation.Run(options);
-      }
-      
-      ProofDependencyManager depManager = new();
-      var compilation = CliCompilation.Create(options);
-      compilation.Start();
-      var verificationResults = await compilation.VerifyAllAndPrintSummary();
-      
-      if (options.VerificationLoggerConfigs.Any()) {
-        try {
-          VerificationResultLogger.RaiseTestLoggerEvents(options, verificationResults, depManager);
-        } catch (ArgumentException ae) {
-          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
-          return (int)ExitValue.PREPROCESSING_ERROR;
-        }
-      }
-      
-      return compilation.ExitCode;
-    });
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => await HandleVerification(options));
     return result;
+  }
+
+  public static async Task<int> HandleVerification(DafnyOptions options) {
+    if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+      options.TrackVerificationCoverage = true;
+    }
+
+    if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+      // --log-format and --verification-coverage-report are not yet supported by CliCompilation
+      options.Compile = false;
+      return await SynchronousCliCompilation.Run(options);
+    }
+
+
+    ProofDependencyManager depManager = new();
+    var compilation = CliCompilation.Create(options);
+    compilation.Start();
+    var verificationResults = await compilation.VerifyAllAndPrintSummary();
+
+    if (options.VerificationLoggerConfigs.Any()) {
+      try {
+        VerificationResultLogger.RaiseTestLoggerEvents(options, verificationResults, depManager);
+      } catch (ArgumentException ae) {
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
+        return (int)ExitValue.PREPROCESSING_ERROR;
+      }
+    }
+
+    return compilation.ExitCode;
   }
 
   private static IReadOnlyList<Option> Options =>

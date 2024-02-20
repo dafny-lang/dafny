@@ -18,7 +18,7 @@ using VC;
 
 namespace Microsoft.Dafny {
   public record VerificationScope(string Name, Boogie.IToken Token);
-  
+
   /// <summary>
   /// Utility to translate verification results into logs in several formats:
   ///  * TRX files, which can be understood and visualized by various .NET tools.
@@ -35,11 +35,11 @@ namespace Microsoft.Dafny {
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
-      
+
       var implementationResults =
         verificationResults.Values.SelectMany(x => x.CompletedParts).
           GroupBy(v => new VerificationScope(v.Task.ScopeId, v.Task.ScopeToken), t => t.Result.Result).ToList();
-      
+
       var events = new LocalTestLoggerEvents();
       foreach (var loggerConfig in loggerConfigs) {
         string loggerName;
