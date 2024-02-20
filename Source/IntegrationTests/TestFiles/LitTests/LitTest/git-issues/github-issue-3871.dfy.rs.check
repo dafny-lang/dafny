@@ -1,0 +1,2 @@
+// CHECK-L: error[E0070]: invalid left-hand side of assignment
+// CHECK-L: error[E0070]: invalid left-hand side of assignment
