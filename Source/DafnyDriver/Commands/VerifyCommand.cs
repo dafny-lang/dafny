@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -38,24 +36,30 @@ public static class VerifyCommand {
       options.TrackVerificationCoverage = true;
     }
 
-    if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
-      // --log-format and --verification-coverage-report are not yet supported by CliCompilation
-      options.Compile = false;
-      return await SynchronousCliCompilation.Run(options);
-    }
-
-
-    ProofDependencyManager depManager = new();
     var compilation = CliCompilation.Create(options);
     compilation.Start();
     var verificationResults = await compilation.VerifyAllAndPrintSummary();
 
-    if (options.VerificationLoggerConfigs.Any()) {
-      try {
-        VerificationResultLogger.RaiseTestLoggerEvents(options, verificationResults, depManager);
-      } catch (ArgumentException ae) {
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
-        return (int)ExitValue.PREPROCESSING_ERROR;
+    if (verificationResults != null) {
+      var resolution = await compilation.Resolution;
+      var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
+      if (options.VerificationLoggerConfigs.Any()) {
+        try {
+          VerificationResultLogger.RaiseTestLoggerEvents(options, verificationResults, proofDependencyManager);
+        } catch (ArgumentException ae) {
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
+          return (int)ExitValue.PREPROCESSING_ERROR;
+        }
+      }
+
+      var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+      if (coverageReportDir != null) {
+        new CoverageReporter(options).SerializeVerificationCoverageReport(
+          proofDependencyManager, resolution.ResolvedProgram,
+          verificationResults.Values.
+            SelectMany(v => v.CompletedParts).
+            SelectMany(v => v.Result.Result.CoveredElements).ToHashSet(),
+          coverageReportDir);
       }
     }
 
