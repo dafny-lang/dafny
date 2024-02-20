@@ -1321,6 +1321,11 @@ axiom (forall m: Map, m': Map ::
   { Map#Disjoint(m, m') }
     Map#Disjoint(m, m') <==> (forall o: Box :: {Map#Domain(m)[o]} {Map#Domain(m')[o]} !Map#Domain(m)[o] || !Map#Domain(m')[o]));
 
+    //free fact map as axiom
+    axiom (forall m:Map, n: Map::
+    {Map#Merge(m,n)}
+    Set#Disjoint(Map#Domain(m), Map#Domain(n)) ==> Map#Equal(m, Map#Subtract(Map#Merge(m,n), Map#Domain(n))) && Map#Equal(n, Map#Subtract(Map#Merge(m,n), Map#Domain(m))));
+
 // ---------------------------------------------------------------
 // -- Axiomatization of IMaps ------------------------------------
 // ---------------------------------------------------------------
