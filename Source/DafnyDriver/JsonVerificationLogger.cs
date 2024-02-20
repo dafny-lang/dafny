@@ -138,7 +138,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
   }
 
   private readonly IList<JsonNode> verificationResultNode = new List<JsonNode>();
-  
+
   public void Flush() {
     output.Write(new JsonObject {
       ["verificationResults"] = new JsonArray(verificationResultNode.ToArray())

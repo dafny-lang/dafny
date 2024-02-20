@@ -129,7 +129,7 @@ public class CliCompilation {
           new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), factory.CreateLogger<CachingResolver>(), telemetryPublisher)),
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
-  
+
   public async Task VerifyAllAndPrintSummary() {
     var statistics = new VerificationStatistics();
 
@@ -225,7 +225,7 @@ public class CliCompilation {
       var usedDependencies = new HashSet<TrackedNodeComponent>();
       var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
       VerificationResultLogger verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
-      
+
       foreach (var canVerify in orderedCanVerifies) {
         var results = canVerifyResults[canVerify];
         try {
@@ -265,7 +265,7 @@ public class CliCompilation {
             usedDependencies.Add(used);
           }
 
-          
+
         } catch (ProverException e) {
           Interlocked.Increment(ref statistics.SolverExceptionCount);
           Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
@@ -277,11 +277,11 @@ public class CliCompilation {
 
         canVerifyResults.Remove(canVerify); // Free memory
       }
-      
+
       if (options.VerificationLoggerConfigs.Any()) {
         verificationResultLogger.Finish();
       }
-      
+
       var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
       if (coverageReportDir != null) {
         new CoverageReporter(options).SerializeVerificationCoverageReport(
@@ -291,7 +291,7 @@ public class CliCompilation {
       }
     }
 
-    
+
     WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, verifiedAssertions, statistics);
   }
 

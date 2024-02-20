@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     void LogScopeResults(VerificationScopeResult result);
     void Flush();
   }
-  
+
   /// <summary>
   /// Utility to translate verification results into logs in several formats:
   ///  * TRX files, which can be understood and visualized by various .NET tools.
@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
-      
+
       events = new LocalTestLoggerEvents();
       events.EnableEvents();
       foreach (var loggerConfig in loggerConfigs) {
