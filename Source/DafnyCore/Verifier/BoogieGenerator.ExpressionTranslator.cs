@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Dafny;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
@@ -1919,66 +1920,118 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         return false;
       }
 
-      public Boogie.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
-        Boogie.QKeyValue kv = null;
-        bool hasNewTimeLimit = Attributes.Contains(attrs, "_timeLimit");
-        bool hasNewRLimit = Attributes.Contains(attrs, "_rlimit");
+      private static readonly HashSet<string> NullaryAttributesToCopy = new(new[] {
+        "focus",
+        "ignore",
+        "selective_checking",
+        "split",
+        "split_here",
+        "start_checking_here",
+        "testEntry",
+        "testInline",
+        "vcs_split_on_every_assert",
+      });
+
+      private static readonly HashSet<string> BooleanAttributesToCopy = new(new[] {
+        "verify"
+      });
+
+      private static readonly HashSet<string> IntegerAttributesToCopy = new(new[] {
+        "subsumption",
+        "testInline",
+        "timeLimit",
+        "vcs_max_cost",
+        "vcs_max_keep_going_splits",
+        "vcs_max_splits",
+        "weight"
+      });
+
+      private static readonly HashSet<string> StringAttributesToCopy = new(new[] {
+        "captureState",
+        "error"
+      });
+
+      private QKeyValue TrBooleanAttribute(string name, Expression arg, QKeyValue rest) {
+        var boolArg = RemoveLit(TrExpr(arg));
+        return boolArg is Boogie.LiteralExpr { IsTrue: true } or Boogie.LiteralExpr { IsFalse: true }
+          ? new QKeyValue(arg.tok, name, new List<object> { boolArg }, rest)
+          : rest;
+      }
+
+      private QKeyValue TrIntegerAttribute(string name, Expression arg, QKeyValue rest) {
+        var intArg = RemoveLit(TrExpr(arg));
+        return intArg is Boogie.LiteralExpr { isBigNum: true }
+          ? new QKeyValue(arg.tok, name, new List<object> { intArg }, rest)
+          : rest;
+      }
+
+      private QKeyValue TrStringAttribute(string name, Expression arg, QKeyValue rest) {
+        // pass string literals down to Boogie as string literals, not as their expression translation
+        var strArg = arg.AsStringLiteral();
+        return strArg is not null
+          ? new QKeyValue(arg.tok, name, new List<object> { strArg }, rest)
+          : rest;
+      }
+
+      public QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
+        QKeyValue kv = null;
+        var hasNewTimeLimit = Attributes.Contains(attrs, "_timeLimit");
+        var hasNewRLimit = Attributes.Contains(attrs, "_rlimit");
         foreach (var attr in attrs.AsEnumerable()) {
-          if (attr.Name == skipThisAttribute
-              || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
-              || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
-              || (options.DisallowExterns && attr.Name == "extern") // omit the extern attribute when /noExterns option is specified.
-              || attr.Name == "timeLimitMultiplier"  // This is a Dafny-specific attribute
-              || (attr.Name == "timeLimit" && hasNewTimeLimit)
-              || (attr.Name == "rlimit" && hasNewRLimit)
-              || (attr.Name == "revealedFunction")
+          var name = attr.Name;
+          if ((name == skipThisAttribute) ||
+              // omit the extern attribute when /noExterns option is specified.
+              (name is "extern" && options.DisallowExterns) ||
+              (name is "timeLimit" && hasNewTimeLimit) ||
+              (name is "rlimit" && hasNewRLimit)
           ) {
             continue;
           }
-          List<object> parms = new List<object>();
-          foreach (var arg in attr.Args) {
-            var s = arg.AsStringLiteral();
-            if (s != null) {
-              // pass string literals down to Boogie as string literals, not as their expression translation
-              parms.Add(s);
-            } else {
-              var e = TrExpr(arg);
-              e = BoogieGenerator.RemoveLit(e);
-              parms.Add(e);
+
+          if (NullaryAttributesToCopy.Contains(name) && attr.Args.Count == 0) {
+            kv = new QKeyValue(attr.tok, name, new List<object>(), kv);
+          } else if (BooleanAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
+            kv = TrBooleanAttribute(name, attr.Args[0], kv);
+          } else if (IntegerAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
+            kv = TrIntegerAttribute(name, attr.Args[0], kv);
+          } else if (StringAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
+            kv = TrStringAttribute(name, attr.Args[0], kv);
+          } else if (name is "_timeLimit") {
+            kv = TrIntegerAttribute("timeLimit", attr.Args[0], kv);
+          } else if (name is "_rlimit") {
+            kv = TrIntegerAttribute("rlimit", attr.Args[0], kv);
+          } else if (name is "synthesize" or "extern") {
+            kv = new QKeyValue(attr.tok, "extern", new List<object>(), kv);
+          } else if (name is "rlimit" && attr.Args.Count == 1) {
+            // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
+            // derived from command-line rlimit settings. Values for rlimit still need to be multiplied.
+            if (RemoveLit(TrExpr(attr.Args[0])) is not Boogie.LiteralExpr { isBigNum: true } litExpr) {
+              continue;
             }
-          }
 
-          var name = attr.Name;
-          if (name == "_timeLimit") {
-            name = "timeLimit";
-          } else if (name == "_rlimit") {
-            name = "rlimit";
-          } else if (name == "synthesize") {
-            name = "extern";
-          }
-
-          // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
-          // derived from command-line rlimit settings.
-          if (!hasNewRLimit && name == "rlimit" && parms.Count > 0 && parms[0] is Boogie.LiteralExpr litExpr && litExpr.isBigNum) {
-            parms[0] = new Boogie.LiteralExpr(
+            var limit = new Boogie.LiteralExpr(
               litExpr.tok,
               BigNum.FromUInt(Boogie.Util.BoundedMultiply((uint)litExpr.asBigNum.ToIntSafe, 1000)),
               litExpr.Immutable);
-          }
-
-          // Do this after the above multiplication because :resource_limit should not be multiplied.
-          if (name == "resource_limit") {
-            name = "rlimit";
-            if (parms[0] is string str) {
-              if (DafnyOptions.TryParseResourceCount(str, out var resourceLimit)) {
-                parms[0] = new Boogie.LiteralExpr(attr.tok, BigNum.FromUInt(resourceLimit), true);
+            kv = new QKeyValue(attr.tok, name, new List<object> { limit }, kv);
+          } else if (name is "resource_limit" && attr.Args.Count == 1) {
+            // Do this after the above multiplication because :resource_limit should not be multiplied.
+            Expr limit;
+            var arg = attr.Args[0];
+            var strArg = arg.AsStringLiteral();
+            if (strArg != null) {
+              if (DafnyOptions.TryParseResourceCount(strArg, out var resourceLimit)) {
+                limit = new Boogie.LiteralExpr(attr.tok, BigNum.FromUInt(resourceLimit), true);
               } else {
                 BoogieGenerator.reporter.Error(MessageSource.Verifier, attr.tok,
-                  $"failed to parse resource count: {parms[0]}");
+                  $"failed to parse resource count: {strArg}");
+                continue;
               }
+            } else {
+              limit = RemoveLit(TrExpr(arg));
             }
+            kv = new QKeyValue(attr.tok, "rlimit", new List<object> { limit }, kv);
           }
-          kv = new Boogie.QKeyValue(Token.NoToken, name, parms, kv);
         }
         return kv;
       }
