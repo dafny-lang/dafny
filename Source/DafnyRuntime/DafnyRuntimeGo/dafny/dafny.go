@@ -297,7 +297,11 @@ func (cp CodePoint) String() string {
   return fmt.Sprintf("'%s'", cp.Escape())
 }
 
-
+func IsCodePoint(i Int) bool {
+  return (
+    (i.Sign() != -1 && i.Cmp(IntOfInt32(0xD800)) < 0) ||
+    (IntOfInt32(0xE000).Cmp(i) <= 0 && i.Cmp(IntOfInt32(0x11_0000)) < 0))
+}
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
 func AllUnicodeChars() Iterator {
@@ -2732,6 +2736,10 @@ func (x Real) Int() Int {
     a.Add(a, One.impl)
     return intOf(a.Quo(a, x.impl.Denom())) // note: *truncated* division
   }
+}
+
+func (x Real) IsInteger() bool {
+  return RealOfFrac(x.Int(), One).Cmp(x) == 0
 }
 
 // Num returns the given Real's numerator as an Int

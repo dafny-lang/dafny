@@ -132,6 +132,11 @@ public class BigRational {
         }
     }
 
+    public boolean isInteger() {
+      BigRational floored = new BigRational(this.ToBigInteger(), BigInteger.ONE);
+      return this.equals(floored);
+    }
+
     // In order to compare, add, and subtract fractions, they must have the same denominator. This computes the
     // common denominator of the fractions, and returns a tuple containing:
     // aa: the numerator for a when multiplied by the common denominator

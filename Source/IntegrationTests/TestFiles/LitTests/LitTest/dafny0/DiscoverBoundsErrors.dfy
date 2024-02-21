@@ -96,3 +96,12 @@ method EnumerateOverInfiniteCollections() {
   l := map x | x in s && LessThanFour(x) :: PlusOne(x) := x;
   print l, "\n"; // map[3 := 3]
 }
+
+newtype MyInt = x: int | -0x8000_0000 <= x
+
+method Casts() {
+  // casts around just the variable is fine, but around any other expression is more complicated (so we don't handle it, for now)
+  print forall x: MyInt :: -12 <= x && (x as int - 2) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+  print forall x: MyInt :: 12 <= x && (x as int - 20) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+  print forall x: int :: 11 <= x && (x as real - 20.0) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+}
