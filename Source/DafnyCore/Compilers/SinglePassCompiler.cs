@@ -5180,19 +5180,19 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (expr is SetDisplayExpr) {
         var e = (SetDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MultiSetDisplayExpr) {
         var e = (MultiSetDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is SeqDisplayExpr) {
         var e = (SeqDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsSeqType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsSeqType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MapDisplayExpr) {
         var e = (MapDisplayExpr)expr;
-        EmitMapDisplay(e.Type.AsMapType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitMapDisplay(e.Type.NormalizeToAncestorType().AsMapType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;

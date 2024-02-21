@@ -304,8 +304,9 @@ namespace Microsoft.Dafny {
           }
         case DisplayExpression expression: {
             DisplayExpression e = expression;
-            Contract.Assert(e.Type is CollectionType);
-            var elementType = ((CollectionType)e.Type).Arg;
+            var type = e.Type.NormalizeToAncestorType();
+            Contract.Assert(type is CollectionType);
+            var elementType = ((CollectionType)type).Arg;
             foreach (Expression el in e.Elements) {
               CheckWellformed(el, wfOptions, locals, builder, etran);
               CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
@@ -315,9 +316,10 @@ namespace Microsoft.Dafny {
           }
         case MapDisplayExpr displayExpr: {
             MapDisplayExpr e = displayExpr;
-            Contract.Assert(e.Type is MapType);
-            var keyType = ((MapType)e.Type).Domain;
-            var valType = ((MapType)e.Type).Range;
+            var type = e.Type.NormalizeToAncestorType();
+            Contract.Assert(type is MapType);
+            var keyType = ((MapType)type).Domain;
+            var valType = ((MapType)type).Range;
             foreach (ExpressionPair p in e.Elements) {
               CheckWellformed(p.A, wfOptions, locals, builder, etran);
               CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
