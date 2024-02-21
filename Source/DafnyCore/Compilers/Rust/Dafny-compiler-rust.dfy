@@ -1536,6 +1536,9 @@ module {:extern "DCOMP"} DCOMP {
             }
 
             var argExpr, isOwned, argErased, argIdents := GenExpr(args[i], selfIdent, params, false);
+            if argErased {
+              argExpr := "::dafny_runtime::DafnyUnerasable::<_>::unerase_owned(" + argExpr + ")";
+            }
             if isOwned {
               argExpr := "&" + argExpr;
             }
@@ -2185,6 +2188,12 @@ module {:extern "DCOMP"} DCOMP {
 
           match op {
             case Implies() => {
+              if !leftErased {
+                left := "::dafny_runtime::DafnyErasable::erase_owned(" + left + ")";
+              }
+              if !rightErased {
+                right := "::dafny_runtime::DafnyErasable::erase_owned(" + right + ")";
+              }
               s := "!(" + left + ") || " + right;
             }
             case In() => {

@@ -48,6 +48,10 @@ namespace Dafny {
       _value = value;
     }
 
+    public static bool IsRune(BigInteger i) {
+      return (0 <= i && i < 0xD800) || (0xE000 <= i && i < 0x11_0000);
+    }
+
     public int Value => (int)_value;
 
     public bool Equals(Rune other) => this == other;
@@ -1656,17 +1660,17 @@ namespace Dafny {
     }
 
     public static uint Bv32ShiftLeft(uint a, int amount) {
-      return amount == 32 ? 0 : a << amount;
+      return 32 <= amount ? 0 : a << amount;
     }
     public static ulong Bv64ShiftLeft(ulong a, int amount) {
-      return amount == 64 ? 0 : a << amount;
+      return 64 <= amount ? 0 : a << amount;
     }
 
     public static uint Bv32ShiftRight(uint a, int amount) {
-      return amount == 32 ? 0 : a >> amount;
+      return 32 <= amount ? 0 : a >> amount;
     }
     public static ulong Bv64ShiftRight(ulong a, int amount) {
-      return amount == 64 ? 0 : a >> amount;
+      return 64 <= amount ? 0 : a >> amount;
     }
   }
 
@@ -1845,6 +1849,12 @@ namespace Dafny {
         return (num - den + 1) / den;
       }
     }
+
+    public bool IsInteger() {
+      var floored = new BigRational(this.ToBigInteger(), BigInteger.One);
+      return this == floored;
+    }
+
     /// <summary>
     /// Returns values such that aa/dd == a and bb/dd == b.
     /// </summary>

@@ -11,7 +11,7 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  class SubtypeConstraint : PreTypeConstraint {
+  class SubtypeConstraint : OptionalErrorPreTypeConstraint {
     public readonly PreType Super;
     public readonly PreType Sub;
 
@@ -19,16 +19,16 @@ namespace Microsoft.Dafny {
       return string.Format(ErrorFormatString, Super, Sub);
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null)
-      : base(tok, errorFormatString, baseError) {
+    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true)
+      : base(tok, errorFormatString, baseError, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
       Super = super.Normalize();
       Sub = sub.Normalize();
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer)
-      : base(tok, errorFormatStringProducer) {
+    public SubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer, bool reportErrors = true)
+      : base(tok, errorFormatStringProducer, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
       Super = super.Normalize();
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
       if (object.ReferenceEquals(super, Super) && object.ReferenceEquals(sub, Sub)) {
         return this;
       } else {
-        return new SubtypeConstraint(super, sub, Token.NoToken, ErrorFormatString);
+        return new SubtypeConstraint(super, sub, Token.NoToken, ErrorFormatString, null, ReportErrors);
       }
     }
 
@@ -59,12 +59,12 @@ namespace Microsoft.Dafny {
         //     Constrain g(x,y) :> b
         //     Constrain c == h(x,y)
         // else report an error
-        var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub.Decl, ptSub.Arguments);
+        var arguments = constraints.GetTypeArgumentsForSuperType(ptSuper.Decl, ptSub, false);
         if (arguments != null) {
           Contract.Assert(arguments.Count == ptSuper.Decl.TypeArgs.Count);
           ConstrainTypeArguments(ptSuper.Decl.TypeArgs, ptSuper.Arguments, arguments, tok, this, constraints);
           return true;
-        } else {
+        } else if (ReportErrors) {
           constraints.PreTypeResolver.ReportError(tok, ErrorMessage());
           return true;
         }
@@ -77,9 +77,9 @@ namespace Microsoft.Dafny {
         //     Constrain beta :> b
         // else do nothing for now
         if (ptSuper.Decl is not TraitDecl) {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, constraints);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, constraints);
           var pt = new DPreType(ptSuper.Decl, arguments);
-          constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString);
+          constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
       } else if (ptSub != null) {
@@ -93,9 +93,9 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.HasTraitSupertypes(ptSub)) {
           // there are parent traits
         } else {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, constraints);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, constraints);
           var pt = new DPreType(ptSub.Decl, arguments);
-          constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString);
+          constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
       } else {
@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
     static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
-      PreTypeConstraint baseError, PreTypeConstraints constraints) {
+      OptionalErrorPreTypeConstraint baseError, PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
       for (var i = 0; i < parameters.Count; i++) {
@@ -119,13 +119,13 @@ namespace Microsoft.Dafny {
         var arg1 = subArguments[i];
         if (tp.Variance == TypeParameter.TPVariance.Non) {
           constraints.AddEqualityConstraint(arg0, arg1, tok,
-            $"non-variant type parameter '{tp.Name}' would require {{0}} = {{1}}", baseError);
+            $"non-variant type parameter '{tp.Name}' would require {{0}} = {{1}}", baseError, baseError.ReportErrors);
         } else if (tp.Variance == TypeParameter.TPVariance.Co) {
           constraints.AddSubtypeConstraint(arg0, arg1, tok,
-            $"covariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError);
+            $"covariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError, baseError.ReportErrors);
         } else {
           constraints.AddSubtypeConstraint(arg1, arg0, tok,
-            $"contravariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError);
+            $"contravariant type parameter '{tp.Name}' would require {{0}} :> {{1}}", baseError, baseError.ReportErrors);
         }
       }
     }
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
     static List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
-      bool proxiesAreSupertypes, PreTypeConstraints state) {
+      bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {
@@ -157,9 +157,9 @@ namespace Microsoft.Dafny {
           var proxy = state.PreTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad"); // TODO: improve error message
+            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad", null, reportErrors); // TODO: improve error message
           } else {
-            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad"); // TODO: improve error message
+            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad", null, reportErrors); // TODO: improve error message
           }
         }
       }
