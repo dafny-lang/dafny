@@ -25,11 +25,10 @@ public class DocumentationCommand {
     return result;
   }
 
-  private static void CreateDocumentation(InvocationContext context)
-  {
+  private static void CreateDocumentation(InvocationContext context) {
     var file = context.ParseResult.GetValueForArgument(FileInfoArgument);
-      
-    var outputPath = file.FullName.Replace("template","tmp");
+
+    var outputPath = file.FullName.Replace("template", "tmp");
     using var reader = file.OpenRead();
     var textReader = new StreamReader(reader);
     using var writer = File.OpenWrite(outputPath);
@@ -46,7 +45,7 @@ public class DocumentationCommand {
           context.ExitCode = 1;
           return;
         }
-        errorId = line.Substring(k+2, kk - (k+2));
+        errorId = line.Substring(k + 2, kk - (k + 2));
         textWriter.WriteLine(line);
         continue;
       }
