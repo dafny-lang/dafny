@@ -1771,8 +1771,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                   "a formal [ ] declaration is only allowed for least and greatest predicates");
         .)
       ]
-      [ Formals<true, true, isTwoState, true, formals>
-      ]
+      Formals<true, true, isTwoState, true, formals>
       [ PredicateResult<"predicate", out result> ]
     | ellipsis   (. signatureEllipsis = t; .)
     )

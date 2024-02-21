@@ -28,15 +28,15 @@ ParameterResolution.dfy(68,30): Error: default-valued expressions are cyclicly d
 ParameterResolution.dfy(68,45): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(73,62): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
 ParameterResolution.dfy(74,54): Error: default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion
+ParameterResolution.dfy(99,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
+ParameterResolution.dfy(109,32): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(79,22): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(86,52): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(88,58): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ParameterResolution.dfy(95,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(97,82): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(99,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(101,89): Error: ghost variables such as x are allowed only in specification contexts. x was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(104,27): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ParameterResolution.dfy(109,32): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ParameterResolution.dfy(127,14): Error: wrong number of arguments (got 0, but function 'N' expects 1: (x: int))
 ParameterResolution.dfy(133,14): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
 ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))

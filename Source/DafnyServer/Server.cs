@@ -23,6 +23,7 @@ namespace Microsoft.Dafny {
       var options = DafnyOptions.Create(outputWriter);
       Console.SetError(outputWriter);
       ServerUtils.ApplyArgs(args, options);
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Token.NoToken);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
 
       // read the optional flag (only one flag is allowed)
