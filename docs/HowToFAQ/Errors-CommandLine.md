@@ -204,9 +204,9 @@ It is also recommended to use the new CLI, with the option `--quantifier-syntax`
 
 ## **Error: Invalid argument _argument_ to option verificationLogger_help_** {#cli_verification_logger}
 
-<!-- %check-cli %err %first -->
+<!-- %verify %err %first -->
 ```bash 
-dafny verify --log-format:z
+--log-format:z
 ```
 
 The `--log-format` option has these alternatives: trx, csv, text.
