@@ -47,28 +47,41 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "shift amount is always non-negative";
+public abstract class ShiftOrRotateBound : ProofObligationDescription {
+  protected readonly string shiftOrRotate;
 
-  public override string FailureDescription =>
-    "shift amount must be non-negative";
-
-  public override string ShortDescription => "shift lower bound";
+  public ShiftOrRotateBound(bool shift) {
+    shiftOrRotate = shift ? "shift" : "rotate";
+  }
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftLowerBound : ShiftOrRotateBound {
   public override string SuccessDescription =>
-    $"shift amount is always within the width of the result ({width})";
+    $"{shiftOrRotate} amount is always non-negative";
 
   public override string FailureDescription =>
-    $"shift amount must not exceed the width of the result ({width})";
+    $"{shiftOrRotate} amount must be non-negative";
 
-  public override string ShortDescription => "shift upper bound";
+  public override string ShortDescription => $"{shiftOrRotate} lower bound";
+
+  public ShiftLowerBound(bool shift)
+    : base(shift) {
+  }
+}
+
+public class ShiftUpperBound : ShiftOrRotateBound {
+  public override string SuccessDescription =>
+    $"{shiftOrRotate} amount is always within the width of the result ({width})";
+
+  public override string FailureDescription =>
+    $"{shiftOrRotate} amount must not exceed the width of the result ({width})";
+
+  public override string ShortDescription => $"{shiftOrRotate} upper bound";
 
   private readonly int width;
 
-  public ShiftUpperBound(int width) {
+  public ShiftUpperBound(int width, bool shift)
+    : base(shift) {
     this.width = width;
   }
 }
