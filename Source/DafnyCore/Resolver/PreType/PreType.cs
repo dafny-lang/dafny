@@ -26,6 +26,23 @@ namespace Microsoft.Dafny {
   /// See also the description of https://github.com/dafny-lang/dafny/pull/3795.
   /// </summary>
   public abstract class PreType {
+    public const string TypeNameBool = "bool";
+    public const string TypeNameChar = "char";
+    public const string TypeNameInt = "int";
+    public const string TypeNameReal = "real";
+    public const string TypeNameORDINAL = "ORDINAL";
+    public const string TypeNameBvPrefix = "bv";
+    public const string TypeNameSet = "set";
+    public const string TypeNameIset = "iset";
+    public const string TypeNameSeq = "seq";
+    public const string TypeNameMultiset = "multiset";
+    public const string TypeNameMap = "map";
+    public const string TypeNameImap = "imap";
+    public const string TypeNameObjectQ = "object?";
+    public const string TypeNameArray = "array";
+
+    public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
+    public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
 
     /// <summary>
     /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
@@ -96,12 +113,12 @@ namespace Microsoft.Dafny {
     public DPreType AsCollectionPreType() {
       if (Normalize() is DPreType dp) {
         switch (dp.Decl.Name) {
-          case "set":
-          case "iset":
-          case "seq":
-          case "multiset":
-          case "map":
-          case "imap":
+          case TypeNameSet:
+          case TypeNameIset:
+          case TypeNameSeq:
+          case TypeNameMultiset:
+          case TypeNameMap:
+          case TypeNameImap:
             return dp;
           default:
             break;
@@ -250,6 +267,7 @@ namespace Microsoft.Dafny {
     public readonly DPreType PrintablePreType;
 
     public DPreType(TopLevelDecl decl, List<PreType> arguments, DPreType printablePreType = null) {
+      Contract.Requires(decl.TypeArgs.Count == arguments.Count);
       Contract.Assume(decl != null);
       Decl = decl;
       Arguments = arguments;
