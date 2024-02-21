@@ -90,7 +90,7 @@ public class ResolutionErrors {
   static ResolutionErrors() {
     Add(ErrorId.r_assume_statement_without_axiom,
       @"
-", InsertBefore("{:axiom}"));
+".TrimStart(), InsertBefore("{:axiom}"));
     Add(ErrorId.r_assert_only_assumes_others,
     @"
 When annotating an assertion with the `{:only}` attribute, all other implicit and explicit assertions
@@ -113,5 +113,8 @@ This warning is a reminder about it.
 The `{:only}` attribute on members does not accept optional argument like ""after"" or ""before"" like the `{:only}` attribute on assertions can.
 ",
         Remove(true, "Remove this unused argument"));
+  }
+
+  public static void RunStaticConstructor() {
   }
 }
