@@ -3357,7 +3357,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".IsInteger() && ");
     }
 
-    protected override void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("Dafny.Rune.IsRune");
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(" && ");

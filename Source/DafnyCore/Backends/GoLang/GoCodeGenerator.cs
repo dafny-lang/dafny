@@ -3651,7 +3651,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".IsInteger() && ");
     }
 
-    protected override void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("_dafny.IsCodePoint");
       EmitExpr(source, false, wr.ForkInParens(), wStmts);
       wr.Write(" && ");
