@@ -1,8 +1,5 @@
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Dafny;
-using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
 
