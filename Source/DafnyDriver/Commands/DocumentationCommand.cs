@@ -17,7 +17,7 @@ public class DocumentationCommand {
     ParseErrors.RunStaticConstructor();
   }
   public static Command Create() {
-    var result = new Command("documentation", "Generates someDafny documentation files for errors based on a template");
+    var result = new Command("documentation", "Generates some Dafny documentation files for errors based on a template");
     result.IsHidden = true;
 
     result.AddArgument(FileInfoArgument);
