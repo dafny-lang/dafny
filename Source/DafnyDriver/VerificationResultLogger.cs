@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     private readonly LocalTestLoggerEvents events;
 
     public VerificationResultLogger(DafnyOptions options, ProofDependencyManager depManager) {
-      var loggerConfigs = options.VerificationLoggerConfigs;
+      var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory

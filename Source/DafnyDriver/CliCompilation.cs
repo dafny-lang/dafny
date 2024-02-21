@@ -224,7 +224,12 @@ public class CliCompilation {
 
       var usedDependencies = new HashSet<TrackedNodeComponent>();
       var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
-      VerificationResultLogger verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
+      VerificationResultLogger? verificationResultLogger = null;
+      try {
+        verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
+      } catch (ArgumentException e) {
+        Compilation.Reporter.Error(MessageSource.Verifier, Compilation.Project.StartingToken, e.Message);
+      }
 
       foreach (var canVerify in orderedCanVerifies) {
         var results = canVerifyResults[canVerify];
@@ -256,10 +261,8 @@ public class CliCompilation {
           ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts,
             resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
 
-          if (options.VerificationLoggerConfigs.Any()) {
-            verificationResultLogger.Report(new CanVerifyResult(canVerify, results.CompletedParts.Select(t => new VerificationTaskResult(t.Task, t.Result.Result)).
-              OrderBy(t => t.Result.VcNum).ToList()));
-          }
+          verificationResultLogger?.Report(new CanVerifyResult(canVerify, results.CompletedParts.Select(t => new VerificationTaskResult(t.Task, t.Result.Result)).
+            OrderBy(t => t.Result.VcNum).ToList()));
 
           foreach (var used in results.CompletedParts.SelectMany(part => part.Result.Result.CoveredElements)) {
             usedDependencies.Add(used);
@@ -278,9 +281,7 @@ public class CliCompilation {
         canVerifyResults.Remove(canVerify); // Free memory
       }
 
-      if (options.VerificationLoggerConfigs.Any()) {
-        verificationResultLogger.Finish();
-      }
+      verificationResultLogger?.Finish();
 
       var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
       if (coverageReportDir != null) {

@@ -522,7 +522,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
     DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
-    DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
