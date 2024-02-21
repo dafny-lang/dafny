@@ -385,4 +385,7 @@ _Documentation of the Go compiler errors is in progress._
 _Documentation of the Go compiler errors is in progress._
 ");
   }
+
+  public static void RunStaticConstructor() {
+  }
 }

@@ -3,13 +3,13 @@ dir=$(dirname "${BASH_SOURCE[0]}")
 cd "$dir"
 
 FAIL=0
-dotnet ../../Scripts/dafny documentation Errors-Compiler.template
+../../Scripts/dafny documentation Errors-Compiler.template
 if [ "$?" != "0" ] ; then echo "Java build-run failed"; exit 1; fi
 
 diff Errors-Compiler.tmp Errors-Compiler.md || \
    { echo "Errors-Compiler.md has been altered -- check and commit the edits"; FAIL=1; }
 
-dotnet ../../Scripts/dafny documentation Errors-Compiler.template
+../../Scripts/dafny documentation Errors-Compiler.template
 if [ "$?" != "0" ] ; then echo "Java build-run failed"; exit 1; fi
 
 diff Errors-Parser.tmp Errors-Parser.md || \
