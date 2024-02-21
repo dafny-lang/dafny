@@ -59,7 +59,7 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.");
+      "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
     "Do not warn about the use of deprecated features.") {
@@ -190,6 +190,10 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+  };
+
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
+    "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
   };
 
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
@@ -346,6 +350,7 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
     });
@@ -554,6 +559,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
               return true;
