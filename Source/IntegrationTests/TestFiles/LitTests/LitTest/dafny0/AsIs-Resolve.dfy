@@ -269,8 +269,8 @@ module IsRuntimeTestable {
     b := d1 is E<X, X>;
     b := d1 is F<X, X>; // error: cannot be tested at run time, so this is a ghost expression
     b := d2 is G<X, X>;
-    b := d2 is H<X, X>; // error: subset types are not tested at run time, so this is a ghost expression
-    b := ti is I<X>; // error: cannot be tested at run time, so this is a ghost expression
+    b := d2 is H<X, X>;
+    b := ti is I<X>; // error: cannot be tested at run time ("I" is not injective), so this is a ghost expression
   }
 
   method Test1(tx: T<real>, ty: T<(int, seq<real>)>, ti: T<int>, d1: D<real>, d2: D<(real, real)>) returns (b: bool) {
@@ -279,8 +279,8 @@ module IsRuntimeTestable {
     b := d1 is E<real, real>;
     b := d1 is F<real, real>; // error: cannot be tested at run time, so this is a ghost expression
     b := d2 is G<real, real>;
-    b := d2 is H<real, real>; // error: subset types are not tested at run time, so this is a ghost expression
-    b := ti is I<real>; // error: cannot be tested at run time, so this is a ghost expression
+    b := d2 is H<real, real>;
+    b := ti is I<real>; // error: cannot be tested at run time ("I" is not injective), so this is a ghost expression
   }
 
   // simple synonym

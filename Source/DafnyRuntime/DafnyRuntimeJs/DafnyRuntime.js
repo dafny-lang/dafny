@@ -488,6 +488,11 @@ let _dafny = (function() {
     toString() {
       return "'" + $module.escapeCharacter(this) + "'";
     }
+    static isCodePoint(i) {
+      return (
+        (_dafny.ZERO.isLessThanOrEqualTo(i) && i.isLessThan(new BigNumber(0xD800))) ||
+        (new BigNumber(0xE000).isLessThanOrEqualTo(i) && i.isLessThan(new BigNumber(0x11_0000))))
+    }
   }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
@@ -819,7 +824,7 @@ let _dafny = (function() {
       } else {
         return undefined;
       }
-}
+    }
     toBigNumber() {
       if (this.num.isZero() || this.den.isEqualTo(1)) {
         return this.num;
@@ -828,6 +833,9 @@ let _dafny = (function() {
       } else {
         return this.num.minus(this.den).plus(1).dividedToIntegerBy(this.den);
       }
+    }
+    isInteger() {
+      return this.equals(new _dafny.BigRational(this.toBigNumber(), _dafny.ONE));
     }
     // Returns values such that aa/dd == a and bb/dd == b.
     normalize(b) {

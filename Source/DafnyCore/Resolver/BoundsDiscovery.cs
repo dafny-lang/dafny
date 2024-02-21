@@ -218,7 +218,8 @@ namespace Microsoft.Dafny {
                 // resolution), the resolver will generate an error about that later.
               } else {
                 // we cannot be sure that the set/map really is finite
-                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
+                foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
+                           ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
                   Reporter.Error(MessageSource.Resolver, e,
                     "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'",
                     e.WhatKind, bv.Name);
@@ -244,7 +245,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
       foreach (var bv in bvars) {
         var c = GetImpliedTypeConstraint(bv, bv.Type);
-        expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
+        expr = polarity ? Expression.CreateAnd(c, expr, false) : Expression.CreateImplies(c, expr, false);
       }
       var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity);
       return bests;
@@ -340,18 +341,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(knownBounds != null);
       Contract.Requires(knownBounds.Count == bvars.Count);
       var bv = bvars[j];
+      var bvType = bv.Type.NormalizeToAncestorType();
       var bounds = new List<ComprehensionExpr.BoundedPool>();
 
       // Maybe the type itself gives a bound
-      if (bv.Type.IsBoolType) {
+      if (bvType.IsBoolType) {
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
-      } else if (bv.Type.IsCharType) {
+      } else if (bvType.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
-      } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
-        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
-      } else if (bv.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+      } else if (bvType.IsDatatype && bvType.AsDatatype.HasFinitePossibleValues) {
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bvType.AsDatatype));
+      } else if (bvType.IsNumericBased(Type.NumericPersuasion.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-      } else if (!bv.Type.MayInvolveReferences) {
+      } else if (!bvType.MayInvolveReferences) {
+        // in the next line, use bv.Type, even though we compared with bvType
         bounds.Add(new ComprehensionExpr.AllocFreeBoundedPool(bv.Type));
       }
 
@@ -367,7 +370,7 @@ namespace Microsoft.Dafny {
         if (conjunct is IdentifierExpr) {
           var ide = (IdentifierExpr)conjunct;
           if (ide.Var == (IVariable)bv) {
-            Contract.Assert(bv.Type.IsBoolType);
+            Contract.Assert(bvType.IsBoolType);
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, true)));
           }
           continue;
@@ -698,7 +701,12 @@ namespace Microsoft.Dafny {
           while (true) {
             var bin = thisSide as BinaryExpr;
             if (bin == null) {
-              break; // done simplifying
+              if (thisSide is ConversionExpr conversionExpr &&
+                  thisSide.Type.NormalizeExpand().Equals(conversionExpr.E.Type.NormalizeExpand())) {
+                thisSide = conversionExpr.E.Resolved;
+              } else {
+                break; // done simplifying
+              }
 
             } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
@@ -747,7 +755,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(!FreeVariables(thatSide).Contains(bv));
 
       // Now, see if the interesting side is simply bv itself
-      if (thisSide is IdentifierExpr && ((IdentifierExpr)thisSide).Var == bv) {
+      if (Expression.StripParensAndCasts(thisSide) is IdentifierExpr { Var: var thisSideVar } && thisSideVar == bv) {
         // we're cool
       } else {
         // no, the situation is more complicated than we care to understand

@@ -3,10 +3,23 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Serilog.Events;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public static void EnsureStaticConstructorHasRun() { }
+
+  public static readonly Option<string> LogLocation =
+    new("--log-location", "Sets the directory where to store log files") {
+      IsHidden = true
+    };
+
+  public static readonly Option<LogEventLevel> LogLevelOption =
+    new("--log-level", () => LogEventLevel.Error, "Sets the level at which events are logged") {
+      IsHidden = true
+    };
 
   public static readonly Option<bool> ManualTriggerOption =
     new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
@@ -203,7 +216,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
   public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
     @"
 false - A newtype can only be based on numeric types or another newtype.
-true - (requires --type-system-refresh to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
 
@@ -376,7 +389,7 @@ datatype - A trait is a reference type only if it or one of its ancestor traits 
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
-1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
+1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -553,6 +566,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      LogLocation,
+      LogLevelOption,
       ManualTriggerOption,
       ShowInference,
       Check,
