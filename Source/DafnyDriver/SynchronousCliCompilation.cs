@@ -282,7 +282,8 @@ namespace Microsoft.Dafny {
           await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+        var (verified, outcome, moduleStats) =
+          await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 
         if (options.TrackVerificationCoverage) {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
@@ -382,18 +383,27 @@ namespace Microsoft.Dafny {
     }
 
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      BoogieAsync(DafnyOptions options,
+      BoogieAsync(
+        ErrorReporter errorReporter,
+        DafnyOptions options,
         string baseName,
         IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
-
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
+
+      if (options.Verify) {
+        var before = errorReporter.ErrorCount;
+        options.ProcessSolverOptions(errorReporter, Token.Cli);
+        if (before != errorReporter.ErrorCount) {
+          return (false, PipelineOutcome.FatalError, concurrentModuleStats);
+        }
+      }
 
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure
         var result = await Task.Run(() =>
-          BoogieOnceWithTimerAsync(moduleWriter, options, baseName, programId, program.Item1, program.Item2));
+          BoogieOnceWithTimerAsync(errorReporter, moduleWriter, options, baseName, programId, program.Item1, program.Item2));
         concurrentModuleStats.TryAdd(program.Item1, result.Stats);
         return result;
       }).ToList();
@@ -409,6 +419,7 @@ namespace Microsoft.Dafny {
     }
 
     private async Task<(PipelineOutcome Outcome, PipelineStatistics Stats)> BoogieOnceWithTimerAsync(
+      ErrorReporter errorReporter,
       TextWriter output,
       DafnyOptions options,
       string baseName, string programId,
@@ -421,7 +432,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
