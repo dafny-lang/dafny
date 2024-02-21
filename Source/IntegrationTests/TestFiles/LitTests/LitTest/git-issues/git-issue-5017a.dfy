@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --general-traits=datatype
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --general-traits=datatype
 
 module True {
   trait A {
