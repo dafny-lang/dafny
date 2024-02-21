@@ -2148,7 +2148,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
     }
 
-    protected override void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       throw new UnsupportedFeatureException(source.Tok, Feature.TypeTests);
     }
 
