@@ -458,8 +458,12 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    public void AddDefaultAdvice(PreType preType, Advice.Target advice) {
-      defaultAdvice.Add(new Advice(preType, advice));
+    public void AddDefaultAdvice(PreType preType, CommonAdvice.Target advice) {
+      defaultAdvice.Add(new CommonAdvice(preType, advice));
+    }
+
+    public void AddDefaultAdvice(PreType preType, PreType adviceType) {
+      defaultAdvice.Add(new TypeAdvice(preType, adviceType));
     }
 
     bool TryApplyDefaultAdvice() {

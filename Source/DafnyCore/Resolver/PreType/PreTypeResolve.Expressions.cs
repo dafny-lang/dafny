@@ -55,27 +55,27 @@ namespace Microsoft.Dafny {
         } else {
           if (e.Value == null) {
             e.PreType = CreatePreTypeProxy("literal 'null'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Object);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Object);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.PreType, e.tok, "type of 'null' is a reference type, but it is used as {0}");
           } else if (e.Value is BigInteger) {
             e.PreType = CreatePreTypeProxy($"integer literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Int);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Int);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrBitvectorOrORDINAL, e.PreType, e.tok, "integer literal used as if it had type {0}");
           } else if (e.Value is BaseTypes.BigDec) {
             e.PreType = CreatePreTypeProxy($"real literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Real);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Real);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.tok, "type of real literal is used as {0}"); // TODO: make this error message have the same form as the one for integers above
           } else if (e.Value is bool) {
             e.PreType = CreatePreTypeProxy($"boolean literal '{e.Value.ToString().ToLower()}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, e.PreType, e.tok, "boolean literal used as if it had type {0}");
           } else if (e is CharLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"character literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Char);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Char);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, e.PreType, e.tok, "character literal used as if it had type {0}");
           } else if (e is StringLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"string literal \"{e.Value}\"");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.String);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.String);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSeqFamily, e.PreType, e.tok, "string literal used as if it had type {0}");
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
@@ -446,7 +446,7 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Not:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.BooleanBits, e.E.PreType, expr.tok, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
             expr.PreType = e.E.PreType;
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
             break;
           case UnaryOpExpr.Opcode.Cardinality:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Sizeable, e.E.PreType, expr.tok, "size operator expects a collection argument (instead got {0})");
@@ -911,7 +911,7 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.Div:
           resultPreType = CreatePreTypeProxy("result of / operation");
-          Constraints.AddDefaultAdvice(resultPreType, Advice.Target.Int);
+          Constraints.AddDefaultAdvice(resultPreType, CommonAdvice.Target.Int);
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
@@ -966,24 +966,24 @@ namespace Microsoft.Dafny {
 
     private PreType ConstrainResultToBoolFamily(IToken tok, string proxyDescription, string errorFormat) {
       var pt = CreatePreTypeProxy(proxyDescription);
-      Constraints.AddDefaultAdvice(pt, Advice.Target.Bool);
+      Constraints.AddDefaultAdvice(pt, CommonAdvice.Target.Bool);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, pt, tok, errorFormat);
       return pt;
     }
 
     private void ConstrainExpressionToBoolFamily(Expression expr, string errorFormat) {
       Contract.Assert(expr.PreType != null);
-      Constraints.AddDefaultAdvice(expr.PreType, Advice.Target.Bool);
+      Constraints.AddDefaultAdvice(expr.PreType, CommonAdvice.Target.Bool);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, expr.PreType, expr.tok, errorFormat);
     }
 
     private void ConstrainToIntFamily(PreType preType, IToken tok, string errorFormat) {
-      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, preType, tok, errorFormat);
     }
 
     private void ConstrainToIntFamilyOrBitvector(PreType preType, IToken tok, string errorFormat) {
-      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, preType, tok, errorFormat);
     }
 

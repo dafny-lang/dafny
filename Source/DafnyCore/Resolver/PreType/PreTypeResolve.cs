@@ -1461,7 +1461,7 @@ namespace Microsoft.Dafny {
           dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, Advice.Target.Object);
+            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
             return false;
           }
         }
