@@ -14,6 +14,7 @@ public class DocumentationCommand {
   static DocumentationCommand() {
     CompilerErrors.RunStaticConstructor();
     ResolutionErrors.RunStaticConstructor();
+    ParseErrors.RunStaticConstructor();
   }
   public static Command Create() {
     var result = new Command("documentation", "Generates someDafny documentation files for errors based on a template");
@@ -31,7 +32,7 @@ public class DocumentationCommand {
     var outputPath = file.FullName.Replace("template", "tmp");
     using var reader = file.OpenRead();
     var textReader = new StreamReader(reader);
-    using var writer = File.OpenWrite(outputPath);
+    using var writer = File.Create(outputPath);
     var textWriter = new StreamWriter(writer);
     string errorId = null;
     int number = 0;
@@ -61,5 +62,6 @@ public class DocumentationCommand {
         textWriter.WriteLine(line);
       }
     }
+    textWriter.Flush();
   }
 }
