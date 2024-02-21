@@ -2,7 +2,7 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // The code in this file demonstrates complications in sorting out covariance in some
-// translation target languages.
+// compilation target languages.
 //
 // Part of the solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
 // a "Dafny.Sequence<? extends T>".
