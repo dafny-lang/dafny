@@ -106,4 +106,7 @@ This warning is a reminder about it.", Remove(true, "Finish focusing and remove 
 The `{:only}` attribute on members does not accept optional argument like ""after"" or ""before"" like the `{:only}` attribute on assertions can.",
         Remove(true, "Remove this unused argument"));
   }
+
+  public static void RunStaticConstructor() {
+  }
 }

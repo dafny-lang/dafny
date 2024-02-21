@@ -2853,11 +2853,11 @@ namespace Microsoft.Dafny {
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
-        {MethodTranslationKind.SpecWellformedness, "CheckWellFormed"},
-        {MethodTranslationKind.Call, "Call"},
-        {MethodTranslationKind.CoCall, "CoCall"},
-        {MethodTranslationKind.Implementation, "Impl"},
-        {MethodTranslationKind.OverrideCheck, "OverrideCheck"},
+        { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
+        { MethodTranslationKind.Call, "Call" },
+        { MethodTranslationKind.CoCall, "CoCall" },
+        { MethodTranslationKind.Implementation, "Impl" },
+        { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
 
     static string MethodName(ICodeContext m, MethodTranslationKind kind) {

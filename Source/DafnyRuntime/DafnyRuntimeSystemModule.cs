@@ -564,6 +564,10 @@ namespace _System {
     public static Dafny.TypeDescriptor<BigInteger> _TypeDescriptor() {
       return _TYPE;
     }
+    public static bool _Is(BigInteger __source) {
+      BigInteger _0_x = __source;
+      return (_0_x).Sign != -1;
+    }
   }
 
   public interface _ITuple2<out T0, out T1> {
