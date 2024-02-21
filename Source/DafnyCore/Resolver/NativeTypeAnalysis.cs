@@ -217,14 +217,14 @@ class NativeTypeAnalysis {
           }
         }
 
-        if (bound is ComprehensionExpr.IntBoundedPool range) {
+        if (bound is IntBoundedPool range) {
           if (range.LowerBound != null && ConstantFolder.TryFoldInteger(range.LowerBound) is not null and var lo) {
             UpdateBounds(lo, null);
           }
           if (range.UpperBound != null && ConstantFolder.TryFoldInteger(range.UpperBound) is not null and var hi) {
             UpdateBounds(null, hi);
           }
-        } else if (bound is ComprehensionExpr.ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
+        } else if (bound is ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
           UpdateBounds(value, value + 1);
         }
       }
