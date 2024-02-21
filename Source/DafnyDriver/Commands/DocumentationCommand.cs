@@ -32,21 +32,20 @@ public class DocumentationCommand {
     var outputPath = file.FullName.Replace("template", "tmp");
     using var reader = file.OpenRead();
     var textReader = new StreamReader(reader);
-    using var writer = File.Create(outputPath);
-    var textWriter = new StreamWriter(writer);
+    using var textWriter = new StreamWriter(outputPath);
     string errorId = null;
-    int number = 0;
+    int lineNumber = 0;
     while (textReader.ReadLine() is { } line) {
-      number++;
+      lineNumber++;
       if (line.StartsWith("## **")) {
-        int k = line.IndexOf("{#", StringComparison.Ordinal);
-        int kk = line.LastIndexOf("}", StringComparison.Ordinal);
-        if (k == -1 || kk == -1) {
-          Console.WriteLine("SYNTAX ERROR IN TEMPLATE LINE " + number + ": no errorid");
+        int errorIdStart = line.IndexOf("{#", StringComparison.Ordinal);
+        int errorIdEnd = line.LastIndexOf("}", StringComparison.Ordinal);
+        if (errorIdStart == -1 || errorIdEnd == -1) {
+          Console.WriteLine("SYNTAX ERROR IN TEMPLATE LINE " + lineNumber + ": no errorid");
           context.ExitCode = 1;
           return;
         }
-        errorId = line.Substring(k + 2, kk - (k + 2));
+        errorId = line.Substring(errorIdStart + 2, errorIdEnd - (errorIdStart + 2));
         textWriter.WriteLine(line);
         continue;
       }
@@ -56,7 +55,7 @@ public class DocumentationCommand {
           textWriter.Write(text); // text already has trailing newline
         } else {
           textWriter.WriteLine(line);
-          Console.Out.WriteLine("Unknown errorid: " + errorId);
+          Console.Out.WriteLine("Unknown errorId: " + errorId);
         }
       } else {
         textWriter.WriteLine(line);
