@@ -1417,10 +1417,10 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Emit a conjunct that tests if the Dafny integer "source" is a character, like:
-    ///     "TestIsRune(source) && "
+    ///     "TestIsUnicodeScalarValue(source) && "
     /// It is fine for the target code to repeat the mention of "source", if necessary.
     /// </summary>
-    protected abstract void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+    protected abstract void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     /// <summary>
     /// Emit conjuncts that test if the Dafny integer "source" is in the range lo..hi, like:
@@ -5761,7 +5761,7 @@ namespace Microsoft.Dafny.Compilers {
       if (needsCharCheck) {
         var fromAsInt = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
         if (UnicodeCharEnabled) {
-          EmitIsRuneTest(fromAsInt, wr, wStmts);
+          EmitIsUnicodeScalarValueTest(fromAsInt, wr, wStmts);
         } else {
           EmitIsInIntegerRange(fromAsInt, 0, 0x1_0000, wr, wStmts);
         }
