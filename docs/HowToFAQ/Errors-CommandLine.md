@@ -206,11 +206,10 @@ It is also recommended to use the new CLI, with the option `--quantifier-syntax`
 
 <!-- %check-cli %err %first -->
 ```bash 
-dafny -verificationLogger:z
+dafny verify --log-format:z
 ```
 
-The `verificationLogger` option has these alternatives: trx, csv, text.
-The option name in the new CLI is `--log-format`.
+The `--log-format` option has these alternatives: trx, csv, text.
 
 ## **Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
