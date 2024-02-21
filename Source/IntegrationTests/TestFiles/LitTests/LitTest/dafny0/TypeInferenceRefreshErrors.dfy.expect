@@ -3,8 +3,8 @@ TypeInferenceRefreshErrors.dfy(19,10): Error: a reads-clause expression must den
 TypeInferenceRefreshErrors.dfy(20,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<real>)
 TypeInferenceRefreshErrors.dfy(21,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> set<real>)
 TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () ~> map<object, object>)
-TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression assignable to it (got 'D')
-TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression assignable to it (got 'C')
+TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression of a compatible type (got 'D')
+TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression of a compatible type (got 'C')
 TypeInferenceRefreshErrors.dfy(49,8): Error: the type ('E?<?0>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(50,16): Error: the type ('E<?2>') of this expression is underspecified
 TypeInferenceRefreshErrors.dfy(51,16): Error: the type ('E<set<?6>>') of this expression is underspecified

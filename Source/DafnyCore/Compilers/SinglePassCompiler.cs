@@ -54,6 +54,7 @@ namespace Microsoft.Dafny.Compilers {
     public virtual string ModuleSeparator => ".";
     protected virtual string StaticClassAccessor => ".";
     protected virtual string InstanceClassAccessor => ".";
+    protected virtual string IsMethodName => "_Is";
 
     public ErrorReporter Reporter;
 
@@ -316,6 +317,12 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
+      var wrTarget = wr.ForkInParens();
+      wr.Write(testIsNull ? " == null" : " != null");
+      return wrTarget;
+    }
+
     /// <summary>
     /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
     /// for tail calls (see EmitJumpToTailCallStart).
@@ -397,6 +404,10 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type ?? rhs.Type, tok, wr);
       EmitExpr(rhs, inLetExprBody, w, wStmts);
+    }
+
+    protected virtual void EmitDummyVariableUse(string variableName, ConcreteSyntaxTree wr) {
+      // by default, do nothing
     }
 
     /// <summary>
@@ -1374,13 +1385,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, resultType,
+          e1, e0, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, resultType,
+          e0, e1, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -1388,12 +1399,36 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected abstract void EmitIsZero(string varName, ConcreteSyntaxTree wr);
-    protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+    protected abstract void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
     /// <summary>
     /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
     /// reference types or subset types thereof.
+    /// This method is used only for traits and reference types.
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr);
+
+    /// <summary>
+    /// Emit a conjunct that tests if the Dafny real number "source" is an integer, like:
+    ///    "TestIsInteger(source) && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected abstract void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    /// <summary>
+    /// Emit a conjunct that tests if the Dafny integer "source" is a character, like:
+    ///     "TestIsRune(source) && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected abstract void EmitIsRuneTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
+    /// <summary>
+    /// Emit conjuncts that test if the Dafny integer "source" is in the range lo..hi, like:
+    ///     "lo <= source && source < hi && "
+    /// It is fine for the target code to repeat the mention of "source", if necessary.
+    /// </summary>
+    protected abstract void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
+
     protected abstract void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
@@ -3066,13 +3101,7 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Type ---------------------------------------------------------------------------------
 
     protected NativeType AsNativeType(Type typ) {
-      Contract.Requires(typ != null);
-      if (typ.AsNewtype != null) {
-        return typ.AsNewtype.NativeType;
-      } else if (typ.IsBitVectorType) {
-        return typ.AsBitVectorType.NativeType;
-      }
-      return null;
+      return typ.AsNativeType();
     }
 
     protected bool NeedsEuclideanDivision(Type typ) {
@@ -3142,7 +3171,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      type = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, type);
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -3152,14 +3181,14 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for DatatypeWrapperEraser.SimplifyType(type, true).
-      // Otherwise, get default value for DatatypeWrapperEraser.SimplifyType(type, true), which may itself have a ghost grounding constructor, in
+      // If "type" is a datatype with a ghost grounding constructor, then compile as a placebo for DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(type).
+      // Otherwise, get default value for DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(type), which may itself have a ghost grounding constructor, in
       // which case the value we produce is a placebo.
       bool HasGhostGroundingCtor(Type ty) {
         return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
       }
 
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
+      var simplifiedType = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, type);
       var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
@@ -5332,30 +5361,24 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
-          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, e.Type.AsNativeType(), true, wr);
+          wr = EmitBitvectorTruncation(e.Type.NormalizeToAncestorType().AsBitVectorType, e.Type.AsNativeType(), true, wr);
         }
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || e.ToType.IsRefType == e.E.Type.IsRefType);
-        if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
+        var fromType = e.E.Type.GetRuntimeType();
+        var toType = e.ToType.GetRuntimeType();
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || toType.IsRefType == fromType.IsRefType);
+        if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           EmitExpr(e.E, inLetExprBody, w, wStmts);
         } else {
-          EmitConversionExpr(e, inLetExprBody, wr, wStmts);
+          EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
         }
 
-      } else if (expr is TypeTestExpr) {
-        var e = (TypeTestExpr)expr;
-        var fromType = e.E.Type;
-        if (fromType.IsSubtypeOf(e.ToType, false, false)) {
-          EmitExpr(Expression.CreateBoolLiteral(e.tok, true), inLetExprBody, wr, wStmts);
-        } else {
-          var name = $"_is_{GetUniqueAstNumber(e)}";
-          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, ref wStmts);
-          EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
-        }
+      } else if (expr is TypeTestExpr typeTestExpr) {
+        CompileTypeTest(typeTestExpr, inLetExprBody, wr, ref wStmts);
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
@@ -5368,7 +5391,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(negated ? " != " : " == ");
           wr.Write(sign.ToString());
         } else {
-          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
+          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type.GetRuntimeType(),
             out var opString,
             out var preOpString,
             out var postOpString,
@@ -5380,7 +5403,7 @@ namespace Microsoft.Dafny.Compilers {
             out var coerceE1,
             wr);
 
-          if (truncateResult && e.Type.AsBitVectorType is { } bitvectorType) {
+          if (truncateResult && e.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
             wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
@@ -5670,6 +5693,119 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private void CompileTypeTest(TypeTestExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var fromType = expr.E.Type;
+      if (fromType.IsSubtypeOf(expr.ToType, false, false)) {
+        // This is a special case; no checks need to be done
+        EmitExpr(Expression.CreateBoolLiteral(expr.tok, true), inLetExprBody, wr, wStmts);
+        return;
+      }
+
+      var toType = expr.ToType;
+      var from = expr.E;
+
+      // The "is" check consists of two parts. First, check that "expr.E" can be represented in the target representation of
+      // "expr.ToType". Then, check that the constraints of "expr.ToType" are satisfied by "expr.E as expr.ToType". Note that
+      // this "expr.E as expr.ToType" does a conversion to the target representation of "expr.ToType", even if the value so
+      // produced does not satisfy the constraint of an "expr.ToType"; but this representation conversion has to be done before
+      // the "_Is" can be called.
+
+      // In the following, "ancestor of T" for a type "T" refers to the normalized (that is, following type proxies), expanded
+      // (that is, following type synonyms and subset types), and newtype-trimmed (that is, following newtypes) base type of T.
+      // "Ancestor" does not follow to trait parents.
+      //
+      // If the ancestor of "fromType" is a trait or a reference type, then:
+      //   0. Check if "from" is of the ancestor type of "toType".
+      //      Notes:
+      //       a) Suppose "toType" is "C<X, Y>". Then, because of Dafny's injectivity requirement, this can be done by checking
+      //          if "from" is of some type "C<_, _>". That is, there is no need to check the type arguments "X" and "Y".
+      //       b) "C" can be a trait, a class, a datatype/codatatype, or (when supported by --general-traits=full) a newtype.
+      //       c) In the target language, this test is typically done by an operation like "instanceof". In most cases, the test
+      //          can be done by "from instanceof C", but if "toType" is a reference type, then the test needs to be
+      //          "from == null || from instanceof C". However, the "from == null" disjunct can still be omitted if
+      //            -- "fromType" is a non-null reference type, or
+      //            -- "instanceof" in already checks non-nullness and "toType" is a non-null reference type.
+      //   1. Check that the subset-type constraints of "toType" (from "toType.NormalizeExpand()" to "toType" -- there is no need
+      //      to check any newtype constraints that "toType.NormalizeExpand()" may have, since those are effectively checked already
+      //      by the "instanceof" check performed in step (0)) hold of "from as toType.NormalizeExpand()".
+      //      Notes:
+      //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
+      if (fromType.IsTraitType || fromType.IsRefType) {
+        var name = $"_is_{GetUniqueAstNumber(expr)}";
+        wr = CreateIIFE_ExprBody(name, fromType, expr.tok, expr.E, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+        EmitTypeTest(name, fromType, expr.ToType, expr.tok, wr);
+        return;
+      }
+
+      var needsIntegralCheck = fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real);
+      var needsCharCheck = fromType.NormalizeToAncestorType() is not CharType && toType.NormalizeToAncestorType() is CharType;
+      var needsRangeCheck =
+        (toType.NormalizeToAncestorType().AsBitVectorType is { } toBitvectorType &&
+         (fromType.NormalizeExpandKeepConstraints().AsBitVectorType is not { } fromBitvectorType ||
+          toBitvectorType.Width < fromBitvectorType.Width)) ||
+        (toType.AsNativeType() != null && fromType.AsNativeType()?.Sel != toType.AsNativeType().Sel);
+
+      if (needsIntegralCheck || needsCharCheck || needsRangeCheck) {
+        // Introduce a name for "from", to make sure "from" is computed just once
+        var boundVariableDecl = new BoundVar(from.tok, $"_is_{GetUniqueAstNumber(from)}", fromType);
+        var name = IdName(boundVariableDecl);
+        wr = CreateIIFE_ExprBody(name, fromType, expr.tok, expr.E, inLetExprBody, Type.Bool, expr.tok, wr, ref wStmts);
+        from = new IdentifierExpr(boundVariableDecl.tok, boundVariableDecl);
+      }
+
+      if (needsIntegralCheck) {
+        EmitIsIntegerTest(from, wr, wStmts);
+        from = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+      }
+
+      if (needsCharCheck) {
+        var fromAsInt = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+        if (UnicodeCharEnabled) {
+          EmitIsRuneTest(fromAsInt, wr, wStmts);
+        } else {
+          EmitIsInIntegerRange(fromAsInt, 0, 0x1_0000, wr, wStmts);
+        }
+        from = new ConversionExpr(from.tok, from, Type.Char) { Type = Type.Char };
+      }
+
+      if (needsRangeCheck) {
+        var nativeType = toType.AsNativeType();
+        var bitvectorType = toType.NormalizeToAncestorType().AsBitVectorType;
+        Contract.Assert(nativeType != null || bitvectorType != null);
+
+        BigInteger lo;
+        BigInteger hi;
+        if (bitvectorType == null) {
+          lo = nativeType.LowerBound;
+          hi = nativeType.UpperBound;
+        } else {
+          lo = 0;
+          hi = BigInteger.One << bitvectorType.Width;
+          if (nativeType != null) {
+            Contract.Assert(nativeType.LowerBound <= 0);
+            if (nativeType.UpperBound < hi) {
+              hi = nativeType.UpperBound;
+            }
+          }
+        }
+
+        var fromAsInt = new ConversionExpr(from.tok, from, Type.Int) { Type = Type.Int };
+        EmitIsInIntegerRange(fromAsInt, lo, hi, wr, wStmts);
+        from = new ConversionExpr(from.tok, from, toType) { Type = toType };
+      }
+
+      if (toType.NormalizeExpandKeepConstraints() is UserDefinedType toUdt &&
+          toUdt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
+        var declWithConstraints = (RedirectingTypeDecl)toUdt.ResolvedClass;
+        // check the constraints, by calling the _Is method
+        var wrArgument = EmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
+        var targetRepresentationOfFrom = new ConversionExpr(from.tok, from, toType) { Type = toType };
+        EmitExpr(targetRepresentationOfFrom, false, wrArgument, wStmts);
+      } else {
+        EmitExpr(Expression.CreateBoolLiteral(expr.tok, true), inLetExprBody, wr, wStmts);
+      }
+    }
+
     protected virtual ConcreteSyntaxTree EmitQuantifierExpr(Action<ConcreteSyntaxTree> collection, bool isForall, Type collectionElementType, BoundVar bv, ConcreteSyntaxTree wr) {
       wr.Write("{0}(", GetQuantifierName(TypeName(collectionElementType, wr, bv.tok)));
       collection(wr);
@@ -5754,49 +5890,121 @@ namespace Microsoft.Dafny.Compilers {
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr,
-      bool isReturning = false, bool elseReturnValue = false, bool isSubfiltering = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false) {
 
-      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl and var declWithConstraint } udt) {
-        if (declWithConstraint is SubsetTypeDecl or NewtypeDecl { NativeTypeRangeImpliesAllConstraints: false }) {
-          // the type is a subset type or newtype with non-trivial constraints
+      if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
+        var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-          var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
-          if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } normalizedVariableType) {
-            wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType,
-              inLetExprBody, tok, wr, isReturning: isReturning, elseReturnValue: elseReturnValue, isSubfiltering: true);
-          }
+        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-          if (declWithConstraint.Var != null) {
-            var typeMap = TypeParameter.SubstitutionMap(declWithConstraint.TypeArgs, udt.TypeArgs);
-            var instantiatedBaseType = baseType.Subst(typeMap);
-            var theValue = new ConversionExpr(tok, new IdentifierExpr(tok, boundVar), instantiatedBaseType) { Type = instantiatedBaseType };
-            var subContract = new Substituter(null,
-              new Dictionary<IVariable, Expression>() {
-                {declWithConstraint.Var, theValue}
-              },
-              typeMap
-            );
-            var constraintInContext = subContract.Substitute(declWithConstraint.Constraint);
-            var wStmts = wr.Fork();
-            var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-            EmitExpr(constraintInContext, inLetExprBody, guardWriter, wStmts);
-            if (isReturning) {
-              var elseBranch = wr;
-              elseBranch = EmitBlock(elseBranch);
-              elseBranch = EmitReturnExpr(elseBranch);
-              wStmts = elseBranch.Fork();
-              EmitExpr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
-            }
-            wr = thenWriter;
-          }
+        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+
+        if (isReturning) {
+          var elseBranch = wr;
+          elseBranch = EmitBlock(elseBranch);
+          elseBranch = EmitReturnExpr(elseBranch);
+          var wStmts = elseBranch.Fork();
+          EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
         }
+        wr = thenWriter;
       }
 
-      if (isReturning && !isSubfiltering) {
+      if (isReturning) {
         wr = EmitReturnExpr(wr);
       }
       return wr;
+    }
+
+    /// <summary>
+    /// Generates the body of an _Is method for a subset type or newtype.
+    /// "wr" is the writer the for body.
+    /// It is assumed that the caller has declared an enclosing method body that includes a parameter "sourceFormal" and having the type
+    /// "declWithConstraints" (with its type parameters as type arguments).
+    /// It is also assumed that the type has a compilable constraint (otherwise, no "_Is" method should be generated).
+    /// </summary>
+    protected void GenerateIsMethodBody(RedirectingTypeDecl declWithConstraints, Formal sourceFormal, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+      Contract.Requires(declWithConstraints.ConstraintIsCompilable);
+
+      void ReturnBoolLiteral(ConcreteSyntaxTree writer, bool value) {
+        var wrReturn = EmitReturnExpr(writer);
+        EmitLiteralExpr(wrReturn, Expression.CreateBoolLiteral(declWithConstraints.tok, value));
+      }
+
+      if (declWithConstraints is NewtypeDecl { TargetTypeCoversAllBitPatterns: true }) {
+        // newtype has trivial constraint
+        ReturnBoolLiteral(wr, true);
+        return;
+      }
+
+      IVariable baseTypeVarDecl;
+      Type baseType;
+      if (declWithConstraints.Var != null) {
+        baseTypeVarDecl = declWithConstraints.Var;
+        baseType = baseTypeVarDecl.Type;
+      } else {
+        baseType = ((NewtypeDecl)declWithConstraints).BaseType;
+        baseTypeVarDecl = new BoundVar(declWithConstraints.RangeToken, "_base", baseType);
+      }
+      baseType = baseType.NormalizeExpandKeepConstraints();
+      var baseTypeVar = new IdentifierExpr(declWithConstraints.tok, baseTypeVarDecl);
+
+      // var _base = (BaseType)source;
+      var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints);
+      var wStmts = wr.Fork();
+      DeclareLocalVar(IdName(baseTypeVarDecl), baseType, declWithConstraints.tok, true, null, wr);
+      var wRhs = EmitAssignmentRhs(wr);
+      var source = new IdentifierExpr(sourceFormal.tok, sourceFormal);
+      EmitConversionExpr(source, type, baseType, false, wRhs, wStmts);
+      EmitDummyVariableUse(IdName(baseTypeVarDecl), wr);
+
+      if (baseType is UserDefinedType { ResolvedClass: SubsetTypeDecl or NewtypeDecl } baseTypeUdt) {
+        wStmts = wr.Fork();
+        var thenWriter = EmitIf(out var guardWriter, hasElse: false, wr);
+        ReturnBoolLiteral(wr, false);
+
+        var wrArgument = EmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
+        EmitExpr(baseTypeVar, false, wrArgument, wStmts);
+
+        wr = thenWriter;
+      }
+
+      if (declWithConstraints.Var == null) {
+        ReturnBoolLiteral(wr, true);
+      } else {
+        var wStmtsReturn = wr.Fork();
+        var wrReturn = EmitReturnExpr(wr);
+        EmitExpr(declWithConstraints.Constraint, false, wrReturn, wStmtsReturn);
+      }
+    }
+
+    protected ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+      Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
+      Contract.Requires(declWithConstraints.ConstraintIsCompilable);
+
+      if (declWithConstraints is NonNullTypeDecl) {
+        // Non-null types don't have a special target class, so we just do the non-null constraint check here.
+        return EmitNullTest(false, wr);
+      }
+
+      if (declWithConstraints is NewtypeDecl { TargetTypeCoversAllBitPatterns: true }) {
+        EmitLiteralExpr(wr, Expression.CreateBoolLiteral(declWithConstraints.tok, true));
+        var abyssWriter = new ConcreteSyntaxTree();
+        return abyssWriter;
+      }
+
+      // in mind that type parameters are not accessible in static methods in some target languages).
+      var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
+      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
+      wr.Write(StaticClassAccessor);
+      wr.Write(IsMethodName);
+      var wrArguments = wr.ForkInParens();
+      var sep = "";
+      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
+        declWithConstraints.tok, wrArguments, ref sep);
+      wrArguments.Write(sep);
+      return wrArguments;
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage,

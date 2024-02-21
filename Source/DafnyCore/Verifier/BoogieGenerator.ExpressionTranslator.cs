@@ -344,8 +344,8 @@ namespace Microsoft.Dafny {
                 return MaybeLit(seq, BoogieGenerator.TrType(new SeqType(Type.Char)));
               } else if (e.Value is BigInteger) {
                 var n = Microsoft.BaseTypes.BigNum.FromBigInt((BigInteger)e.Value);
-                if (e.Type is BitvectorType) {
-                  return MaybeLit(BoogieGenerator.BplBvLiteralExpr(GetToken(e), n, e.Type.AsBitVectorType));
+                if (e.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
+                  return MaybeLit(BoogieGenerator.BplBvLiteralExpr(GetToken(e), n, bitvectorType));
                 } else if (e.Type.IsBigOrdinalType) {
                   var fromNat = FunctionCall(GetToken(literalExpr), "ORD#FromNat", predef.BigOrdinalType, Boogie.Expr.Literal(n));
                   return MaybeLit(fromNat, predef.BigOrdinalType);
@@ -758,7 +758,7 @@ namespace Microsoft.Dafny {
                 case UnaryOpExpr.ResolvedOpcode.Lit:
                   return MaybeLit(arg);
                 case UnaryOpExpr.ResolvedOpcode.BVNot:
-                  var bvWidth = opExpr.Type.AsBitVectorType.Width;
+                  var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
                   var bvType = BoogieGenerator.BplBvType(bvWidth);
                   Boogie.Expr r = FunctionCall(GetToken(opExpr), "not_bv" + bvWidth, bvType, arg);
                   if (BoogieGenerator.IsLit(arg)) {
@@ -839,8 +839,9 @@ namespace Microsoft.Dafny {
             }
           case BinaryExpr binaryExpr: {
               BinaryExpr e = binaryExpr;
-              bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
-              int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
+              var e0Type = e.E0.Type.NormalizeToAncestorType(); // used when making decisions about what Boogie operator/functions to use
+              bool isReal = e0Type.IsNumericBased(Type.NumericPersuasion.Real);
+              int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
                 return TrInSet(GetToken(binaryExpr), e0, e.E1, e.E0.Type, false, out var pr);  // let TrInSet translate e.E1
@@ -930,7 +931,7 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Lt:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
                   } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
@@ -945,7 +946,7 @@ namespace Microsoft.Dafny {
                   keepLits = true;
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "le_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
                     var eq = Boogie.Expr.Eq(e0, e1);
                     return BplOr(eq, less);
@@ -960,7 +961,7 @@ namespace Microsoft.Dafny {
                   keepLits = true;
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "ge_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
                     var eq = Boogie.Expr.Eq(e1, e0);
                     return BplOr(eq, less);
@@ -974,7 +975,7 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Gt:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
                   } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
                     typ = Boogie.Type.Bool;
@@ -987,9 +988,9 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Add:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "add_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
-                  } else if (e.E0.Type.IsCharType) {
+                  } else if (e0Type.IsCharType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "char#Plus", predef.CharType, e0, e1, liftLit);
                   } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_add_boogie", Boogie.Type.Int, e0, e1, liftLit);
@@ -1003,9 +1004,9 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Sub:
                   if (0 <= bvWidth) {
                     return TrToFunctionCall(GetToken(binaryExpr), "sub_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-                  } else if (e.E0.Type.IsBigOrdinalType) {
+                  } else if (e0Type.IsBigOrdinalType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
-                  } else if (e.E0.Type.IsCharType) {
+                  } else if (e0Type.IsCharType) {
                     return TrToFunctionCall(GetToken(binaryExpr), "char#Minus", predef.CharType, e0, e1, liftLit);
                   } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
                     return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_sub_boogie", Boogie.Type.Int, e0, e1, liftLit);
@@ -1201,19 +1202,19 @@ namespace Microsoft.Dafny {
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, inMap);
                   }
                 case BinaryExpr.ResolvedOpcode.MapMerge: {
-                    bool finite = e.E0.Type.AsMapType.Finite;
+                    bool finite = e0Type.AsMapType.Finite;
                     var f = finite ? "Map#Merge" : "IMap#Merge";
                     return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.MapSubtraction: {
-                    bool finite = e.E0.Type.AsMapType.Finite;
+                    bool finite = e0Type.AsMapType.Finite;
                     var f = finite ? "Map#Subtract" : "IMap#Subtract";
                     return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
                   }
 
                 case BinaryExpr.ResolvedOpcode.RankLt:
                   return Boogie.Expr.Binary(GetToken(binaryExpr), BinaryOperator.Opcode.Lt,
-                    BoogieGenerator.FunctionCall(GetToken(binaryExpr), e.E0.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e0),
+                    BoogieGenerator.FunctionCall(GetToken(binaryExpr), e0Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e0),
                     BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.DtRank, null, e1));
                 case BinaryExpr.ResolvedOpcode.RankGt:
                   return Boogie.Expr.Binary(GetToken(binaryExpr), BinaryOperator.Opcode.Gt,
