@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using System.Numerics;
 using System.IO;
@@ -2229,25 +2230,12 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (member is Function) {
           var f = (Function)member;
-          if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
-            // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (Attributes.Contains(f.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
-              // suppress error message
-            } else {
-              Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body", errorWr, f.FullName);
-            }
-          } else if (f.IsGhost) {
-            // nothing to compile, but we do check for assumes
-            if (f.Body == null) {
-              Contract.Assert((c is TraitDecl && !f.IsStatic) || Attributes.Contains(f.Attributes, "extern"));
-            }
-
+          if (f.IsGhost) {
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(ErrorId.c_test_function_must_be_compilable, f.tok,
                 "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
-          } else if (c is TraitDecl && !f.IsStatic) {
+          } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
               Contract.Assert(w == null); // since we requested no body
@@ -2257,6 +2245,12 @@ namespace Microsoft.Dafny.Compilers {
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
             }
+          } else if (f.IsExtern(Options)) {
+            if (IncludeExternMembers) {
+              CompileFunction(f, classWriter, false);
+            }
+          } else if (f.Body == null) {
+            Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body so it cannot be compiled", errorWr, f.FullName);
           } else if (c is NewtypeDecl && f != f.Original) {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
@@ -2275,19 +2269,8 @@ namespace Microsoft.Dafny.Compilers {
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 errorWr, m.FullName);
             }
-          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
-            // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (Attributes.Contains(m.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
-              // suppress error message
-            } else {
-              Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body", errorWr, m.FullName);
-            }
           } else if (m.IsGhost) {
-            if (m.Body == null) {
-              Contract.Assert(c is TraitDecl && !m.IsStatic);
-            }
-          } else if (c is TraitDecl && !m.IsStatic) {
+          } else if (m.IsVirtual) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
               Contract.Assert(w == null); // since we requested no body
@@ -2297,6 +2280,12 @@ namespace Microsoft.Dafny.Compilers {
             if (m.Body != null) {
               CompileMethod(program, m, classWriter, true);
             }
+          } else if (m.IsExtern(Options)) {
+            if (IncludeExternMembers) {
+              CompileMethod(program, m, classWriter, false);
+            }
+          } else if (m.Body == null) {
+            Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
@@ -2738,8 +2727,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          // Is this feasible? -- note the expression m.Body.Tok above
-          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body", w, m.FullName);
+          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", w, m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -3212,17 +3200,9 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
-      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
-        if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(ErrorId.c_assume_statement_may_not_be_compiled, tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
-        }
-      }
+
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is AssumeStmt) {
-          RejectAssume(stmt.Tok, stmt.Attributes, wr);
-        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
-          RejectAssume(stmt.Tok, attrs, wr);
-        } else if (stmt is ForallStmt) {
+        if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
             compiler.Error(ErrorId.c_forall_statement_has_no_body, stmt.Tok, "a forall statement without a body cannot be compiled", wr);
