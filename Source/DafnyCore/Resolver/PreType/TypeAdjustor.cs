@@ -141,7 +141,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is SetDisplayExpr setDisplayExpr) {
       foreach (var element in setDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
       }
 
     } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {

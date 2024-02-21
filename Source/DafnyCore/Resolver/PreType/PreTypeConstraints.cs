@@ -525,6 +525,8 @@ namespace Microsoft.Dafny {
       InBoolFamily,
       InCharFamily,
       InSeqFamily,
+      InSetFamily,
+      InIsetFamily,
       IsNullableRefType,
       IsBitvector,
       IntLikeOrBitvector,
@@ -566,6 +568,10 @@ namespace Microsoft.Dafny {
           return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
           return familyDeclName == PreType.TypeNameChar;
+        case CommonConfirmationBag.InSetFamily:
+          return familyDeclName == PreType.TypeNameSet;
+        case CommonConfirmationBag.InIsetFamily:
+          return familyDeclName == PreType.TypeNameIset;
         case CommonConfirmationBag.InSeqFamily:
           return familyDeclName == PreType.TypeNameSeq;
         case CommonConfirmationBag.IsNullableRefType:

@@ -129,7 +129,25 @@ namespace Microsoft.Dafny {
         }
         var argTypes = new List<PreType>() { elementPreType };
         if (expr is SetDisplayExpr setDisplayExpr) {
-          expr.PreType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(setDisplayExpr.Finite)), argTypes);
+          e.PreType = CreatePreTypeProxy("set display");
+          var plainOlSetType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(setDisplayExpr.Finite)), argTypes);
+          Constraints.AddDefaultAdvice(e.PreType, plainOlSetType);
+          Constraints.AddGuardedConstraint(() => {
+            if (setDisplayExpr.PreType.UrAncestor(this) is DPreType dPreType) {
+              if (dPreType.Decl.Name == PreType.SetTypeName(setDisplayExpr.Finite)) {
+                AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, setDisplayExpr.tok,
+                  "element type of set display expected to be {0} (got {1})");
+              } else {
+                ReportError(setDisplayExpr, "set display used as if it had type {0}", setDisplayExpr.PreType);
+              }
+              return true;
+            }
+            return false;
+          });
+          var check = setDisplayExpr.Finite
+            ? PreTypeConstraints.CommonConfirmationBag.InSetFamily
+            : PreTypeConstraints.CommonConfirmationBag.InIsetFamily;
+          AddConfirmation(check, e.PreType, e.tok, "set display used as if it had type {0}");
         } else if (expr is MultiSetDisplayExpr) {
           expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameMultiset), argTypes);
         } else {
