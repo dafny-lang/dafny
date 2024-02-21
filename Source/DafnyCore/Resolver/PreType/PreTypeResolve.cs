@@ -104,13 +104,13 @@ namespace Microsoft.Dafny {
           }
         }
         if (decl == null) {
-          if (name == "set" || name == "seq" || name == "multiset") {
+          if (name is PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
-          } else if (name == "iset") {
+          } else if (name == PreType.TypeNameIset) {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
-          } else if (name == "object?") {
+          } else if (name == PreType.TypeNameObjectQ) {
             decl = resolver.SystemModuleManager.ObjectDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
 
     DPreType BuiltInArrayType(int dims, PreType elementPreType) {
       Contract.Requires(1 <= dims);
-      var arrayName = dims == 1 ? "array" : $"array{dims}";
+      var arrayName = dims == 1 ? PreType.TypeNameArray : $"{PreType.TypeNameArray}{dims}";
       return new DPreType(BuiltInTypeDecl(arrayName), new List<PreType>() { elementPreType });
     }
 
@@ -229,23 +229,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;
       if (type is BoolType) {
-        decl = BuiltInTypeDecl("bool");
+        decl = BuiltInTypeDecl(PreType.TypeNameBool);
       } else if (type is CharType) {
-        decl = BuiltInTypeDecl("char");
+        decl = BuiltInTypeDecl(PreType.TypeNameChar);
       } else if (type is IntType) {
-        decl = BuiltInTypeDecl("int");
+        decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
-        decl = BuiltInTypeDecl("real");
+        decl = BuiltInTypeDecl(PreType.TypeNameReal);
       } else if (type is BigOrdinalType) {
-        decl = BuiltInTypeDecl("ORDINAL");
+        decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
-        decl = BuiltInTypeDecl("bv" + bitvectorType.Width);
+        decl = BuiltInTypeDecl(PreType.TypeNameBvPrefix + bitvectorType.Width);
       } else if (type is CollectionType) {
         var name =
-          type is SetType st ? (st.Finite ? "set" : "iset") :
-          type is MultiSetType ? "multiset" :
-          type is MapType mt ? (mt.Finite ? "map" : "imap") :
-          "seq";
+          type is SetType st ? PreType.SetTypeName(st.Finite) :
+          type is MultiSetType ? PreType.TypeNameMultiset :
+          type is MapType mt ? PreType.MapTypeName(mt.Finite) :
+          PreType.TypeNameSeq;
         decl = BuiltInTypeDecl(name);
       } else if (type is ArrowType at) {
         decl = BuiltInArrowTypeDecl(at.Arity);
@@ -386,7 +386,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsBitvectorName(string name, out int width) {
       Contract.Requires(name != null);
-      if (name.StartsWith("bv")) {
+      if (name.StartsWith(PreType.TypeNameBvPrefix)) {
         var bits = name.Substring(2);
         width = 0; // set to 0, in case the first disjunct of the next line evaluates to true
         return bits == "0" || (bits.Length != 0 && bits[0] != '0' && int.TryParse(bits, out width));
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsArrayName(string name, out int dimensions) {
       Contract.Requires(name != null);
-      if (name.StartsWith("array")) {
+      if (name.StartsWith(PreType.TypeNameArray)) {
         var dims = name.Substring(5);
         if (dims.Length == 0) {
           dimensions = 1;
@@ -493,13 +493,13 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString) {
+    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString) {
       // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
       // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
-      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, forAsOrIs,
+      Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
         "(Duplicate error message) " + errorFormatString, false));
-      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, forAsOrIs), () => string.Format(errorFormatString, a, b));
+      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), () => string.Format(errorFormatString, a, b));
     }
 
     /// <summary>
@@ -510,10 +510,10 @@ namespace Microsoft.Dafny {
     /// is the disjunction
     ///     A ::> B    or    B ::> A
     ///
-    /// If "!forAsOrIs", then "X ::> Y" means
+    /// If "!allowConversion", then "X ::> Y" means
     ///     X :> Y
     ///
-    /// If "forAsOrIs", then "X ::> Y" means
+    /// If "allowConversion", then "X ::> Y" means
     ///     X' :> Y', or
     ///     X' and Y' are various bv types, or
     ///     X' is int and Y' is in {int, char, bv, ORDINAL, real}.
@@ -521,7 +521,7 @@ namespace Microsoft.Dafny {
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
     /// </summary>
-    bool CheckComparableTypes(PreType a, PreType b, bool forAsOrIs) {
+    bool CheckComparableTypes(PreType a, PreType b, bool allowConversion) {
       if (PreType.Same(a, b)) {
         // this allows the case where "a" and "b" are proxies that are equal
         return true;
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
       if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
         return true;
       }
-      if (!forAsOrIs) {
+      if (!allowConversion) {
         return false;
       }
       if (IsConversionCompatible(aa, bb) || IsConversionCompatible(bb, aa)) {
@@ -541,33 +541,35 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool IsConversionCompatible(DPreType a, DPreType b) {
-      var aAncestor = AncestorPreType(a);
-      var bAncestor = AncestorPreType(b);
+    bool IsConversionCompatible(DPreType fromType, DPreType toType) {
+      var fromAncestor = AncestorPreType(fromType);
+      var toAncestor = AncestorPreType(toType);
 
-      if (PreType.Same(aAncestor, bAncestor)) {
+      if (PreType.Same(fromAncestor, toAncestor)) {
         return true;
       }
-      var aFamily = aAncestor.Decl.Name;
-      var bFamily = bAncestor.Decl.Name;
-      var bName = b.Decl.Name;
+      var fromFamily = fromAncestor.Decl.Name;
+      var toFamily = toAncestor.Decl.Name;
+      var toName = toType.Decl.Name;
 
-      if (IsBitvectorName(aFamily) && (bFamily == "int" || IsBitvectorName(bFamily))) {
+      if (IsBitvectorName(fromFamily) && (toFamily == PreType.TypeNameInt || IsBitvectorName(toFamily))) {
         return true;
       }
-      if (aFamily == "int" && bName is "char" or "real" or "ORDINAL") {
+      if (fromFamily == PreType.TypeNameInt && toName is PreType.TypeNameChar or PreType.TypeNameReal or PreType.TypeNameORDINAL) {
         return true;
       }
 
       var legacy = !resolver.Options.Get(CommonOptionBag.GeneralNewtypes);
       if (legacy) {
-        if (aFamily == "real" && (bFamily is "int" or "char" or "ORDINAL" || IsBitvectorName(bFamily))) {
+        if (fromFamily == PreType.TypeNameReal &&
+            (toFamily is PreType.TypeNameInt or PreType.TypeNameChar or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (aFamily == "char" && (bFamily is "int" or "ORDINAL" || IsBitvectorName(bFamily))) {
+        if (fromFamily == PreType.TypeNameChar && (toFamily is PreType.TypeNameInt or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
           return true;
         }
-        if (IsBitvectorName(aFamily) && (bFamily is "int" or "real" or "char" or "ORDINAL")) {
+        if (IsBitvectorName(fromFamily) &&
+            (toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL)) {
           return true;
         }
       }
@@ -575,30 +577,30 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool forAsOrIs, string errorFormatString, bool reportErrors = true) {
+    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
-      var ptA = a.Normalize() as DPreType;
-      var ptB = b.Normalize() as DPreType;
-      if (ptA != null && ptB != null && ptA.Decl != ptB.Decl) {
-        var subArguments = Constraints.GetTypeArgumentsForSuperType(ptB.Decl, ptA.Decl, ptA.Arguments, forAsOrIs);
+      var normalizedA = a.Normalize() as DPreType;
+      var normalizedB = b.Normalize() as DPreType;
+      if (normalizedA != null && normalizedB != null && normalizedA.Decl != normalizedB.Decl) {
+        var subArguments = Constraints.GetTypeArgumentsForSuperType(normalizedB.Decl, normalizedA, allowBaseTypeCast);
         if (subArguments != null) {
           // use B :> A
-          var aa = new DPreType(ptB.Decl, subArguments, ptA.PrintablePreType);
+          var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
-        subArguments = Constraints.GetTypeArgumentsForSuperType(ptA.Decl, ptB.Decl, ptB.Arguments, forAsOrIs);
+        subArguments = Constraints.GetTypeArgumentsForSuperType(normalizedA.Decl, normalizedB, allowBaseTypeCast);
         if (subArguments != null) {
           // use A :> B
-          var bb = new DPreType(ptA.Decl, subArguments, ptB.PrintablePreType);
+          var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
 
-        if (forAsOrIs && (IsConversionCompatible(ptA, ptB) || IsConversionCompatible(ptB, ptA))) {
+        if (allowBaseTypeCast && (IsConversionCompatible(normalizedA, normalizedB) || IsConversionCompatible(normalizedB, normalizedA))) {
           return true;
         }
 
@@ -609,13 +611,13 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      if (!forAsOrIs) {
-        if ((ptA != null && ptA.IsLeafType()) || (ptB != null && ptB.IsRootType())) {
+      if (!allowBaseTypeCast) {
+        if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
-        } else if ((ptA != null && ptA.IsRootType()) || (ptB != null && ptB.IsLeafType())) {
+        } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
           Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
@@ -623,20 +625,20 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (ptA != null && ptB != null && ptA.Decl == ptB.Decl) {
+      if (normalizedA != null && normalizedB != null && normalizedA.Decl == normalizedB.Decl) {
         // Here is where we approximate the answer. We'll only constrain that variant type parameters are *comparable*, not that
         // they are consistently comparable. For example, if ptA is C<A0, A1> and ptB is C<B0, A1> and C is declared as C<+T, +U>,
         // then "comparable types" says
         //     (A0 ::> B0 and A1 ::> B1)  or  (B0 ::> A0 and B1 ::> A1)
         // but we will use only
         //     (A0 ::> B0 or B0 ::> A0)  and  (A1 ::> B1 or B1 ::> A1)
-        Contract.Assert(ptA.Decl.TypeArgs.Count == ptA.Arguments.Count);
-        Contract.Assert(ptA.Arguments.Count == ptB.Arguments.Count);
-        for (var i = 0; i < ptA.Decl.TypeArgs.Count; i++) {
-          var aa = ptA.Arguments[i];
-          var bb = ptB.Arguments[i];
+        Contract.Assert(normalizedA.Decl.TypeArgs.Count == normalizedA.Arguments.Count);
+        Contract.Assert(normalizedA.Arguments.Count == normalizedB.Arguments.Count);
+        for (var i = 0; i < normalizedA.Decl.TypeArgs.Count; i++) {
+          var aa = normalizedA.Arguments[i];
+          var bb = normalizedB.Arguments[i];
           var msgFormat = $"{errorFormatString} (type argument {i})"; // TODO: this should be improved to use ptA/ptB
-          if (ptA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
+          if (normalizedA.Decl.TypeArgs[i].Variance == TypeParameter.TPVariance.Non) {
             Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
             Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
@@ -831,11 +833,7 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-#if SOON
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL type (got {0})",
-#else
             "a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got {0})",
-#endif
             onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
@@ -1457,7 +1455,7 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        if (dp.Decl.Name == "set" || dp.Decl.Name == "iset" || dp.Decl.Name == "seq" || dp.Decl.Name == "multiset") {
+        if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
           hasCollectionType = true;
           var elementType = dp.Arguments[0].Normalize();
           dp = elementType as DPreType;
@@ -1511,14 +1509,6 @@ namespace Microsoft.Dafny {
       foreach (var entry in typeArgumentSubstitutions) {
         subst.Add(entry.Key, entry.Value);
       }
-
-#if SOON
-      if (SelfTypeSubstitution != null) {
-        foreach (var entry in SelfTypeSubstitution) {
-          subst.Add(entry.Key, entry.Value);
-        }
-      }
-#endif
 
       if (receiverTypeBound?.Decl is TopLevelDeclWithMembers cl) {
         foreach (var entry in cl.ParentFormalTypeParametersToActuals) {

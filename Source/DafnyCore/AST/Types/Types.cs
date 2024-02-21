@@ -156,14 +156,13 @@ public abstract class Type : TokenNode {
   /// Call NormalizeExpand() repeatedly, also on the base type of newtype's.
   /// </summary>
   public Type NormalizeToAncestorType() {
-    Type t = this;
+    Type result = this;
     while (true) {
-      t = t.NormalizeExpand();
-      if (t.AsNewtype is { } newtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, t.TypeArgs);
-        t = newtypeDecl.BaseType.Subst(subst);
+      result = result.NormalizeExpand();
+      if (result.AsNewtype is { } newtypeDecl) {
+        result = newtypeDecl.ConcreteBaseType(result.TypeArgs);
       } else {
-        return t;
+        return result;
       }
     }
   }
@@ -196,30 +195,6 @@ public abstract class Type : TokenNode {
       return AsBitVectorType.NativeType;
     }
     return null;
-  }
-
-  /// <summary>
-  /// Trim away newtypes to get to an ancestor type that either is not a newtype or is a native type.
-  /// </summary>
-  public Type TrimNewtypes() {
-    Type typ = this;
-    while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
-      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
-      typ = newtypeDecl.BaseType.Subst(subst);
-    }
-    return typ.NormalizeExpand();
-  }
-
-  /// <summary>
-  /// Normalize proxies, expand synonyms, and expand unconstrained newtypes.
-  /// </summary>
-  public Type NormalizePastUnconstrainedTypes() {
-    Type typ = NormalizeExpandKeepConstraints();
-    while (typ.AsNewtype is { Var: null } newtypeDecl) {
-      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
-      typ = newtypeDecl.BaseType.Subst(subst).NormalizeExpandKeepConstraints();
-    }
-    return typ;
   }
 
   /// <summary>
@@ -648,7 +623,7 @@ public abstract class Type : TokenNode {
 
     var udt = (UserDefinedType)NormalizeExpand();
     if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-      udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      udt = (UserDefinedType)isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
     }
     TopLevelDeclWithMembers cl;
     if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -664,11 +639,8 @@ public abstract class Type : TokenNode {
     var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
-  public bool IsTraitType {
-    get {
-      return AsTraitType != null;
-    }
-  }
+
+  public bool IsTraitType => AsTraitType != null;
   public TraitDecl/*?*/ AsTraitType {
     get {
       var udt = NormalizeExpand() as UserDefinedType;

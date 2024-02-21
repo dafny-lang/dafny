@@ -51,13 +51,13 @@ public class LibraryBackend : ExecutableBackend {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
-  internal DooFile DooFile { get; set; }
+  internal Program ProgramAfterParsing { get; set; }
 
   protected override SinglePassCompiler CreateCompiler() {
     return null;
   }
 
-  public override bool OnPostCompile(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override bool OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     // Not calling base.OnPostCompile() since it references `compiler`
     return true;
   }
@@ -78,10 +78,8 @@ public class LibraryBackend : ExecutableBackend {
       Reporter.Error(MessageSource.Compiler, assumption.tok, message, message);
     }
 
-    // var dooFile = new DooFile(dafnyProgram);
-    // dooFile.Write(output);
-    DooFile.Write(output);
-    DooFile = null;
+    var dooFile = new DooFile(ProgramAfterParsing);
+    dooFile.Write(output);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {

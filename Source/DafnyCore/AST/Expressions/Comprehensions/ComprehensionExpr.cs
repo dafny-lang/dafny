@@ -114,8 +114,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       return a;
     }
 
-    public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds,
-      PoolVirtues requiredVirtues, bool countNonCompilableAsMissing) where VT : IVariable {
+    public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues) where VT : IVariable {
       Contract.Requires(vars != null);
       Contract.Requires(bounds == null || vars.Count == bounds.Count);
       Contract.Ensures(Contract.Result<List<VT>>() != null);
@@ -123,7 +122,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
       for (var i = 0; i < vars.Count; i++) {
         if (bounds == null || bounds[i] == null ||
             (bounds[i].Virtues & requiredVirtues) != requiredVirtues ||
-            (countNonCompilableAsMissing && !bounds[i].IsCompilable(vars[i].Type))) {
+            ((requiredVirtues & PoolVirtues.Enumerable) != 0 && !bounds[i].IsCompilable(vars[i].Type))) {
           missing.Add(vars[i]);
         }
       }
@@ -423,7 +422,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public List<BoundVar> UncompilableBoundVars() {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
     var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v, true);
+    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
   public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)

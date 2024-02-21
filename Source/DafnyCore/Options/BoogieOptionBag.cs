@@ -11,9 +11,10 @@ namespace Microsoft.Dafny;
 
 public static class BoogieOptionBag {
   public static readonly Option<IEnumerable<string>> BoogieFilter = new("--boogie-filter", @"
-(experimental) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names."
+(obsolete, use --filter-symbol instead) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names."
     .TrimStart()) {
     ArgumentHelpName = "pattern",
+    IsHidden = true,
   };
 
   public static readonly Option<IEnumerable<string>> BoogieArguments = new("--boogie",

@@ -58,6 +58,12 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     this.NewSelfSynonym();
   }
 
+  public Type ConcreteBaseType(List<Type> typeArguments) {
+    Contract.Requires(TypeArgs.Count == typeArguments.Count);
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArguments);
+    return BaseType.Subst(subst);
+  }
+
   /// <summary>  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
   /// </summary>
   public Type RhsWithArgument(List<Type> typeArgs) {
@@ -85,8 +91,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
       // this optimization seems worthwhile
       return BaseType;
     } else {
-      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-      return BaseType.Subst(subst);
+      return ConcreteBaseType(typeArgs);
     }
   }
 

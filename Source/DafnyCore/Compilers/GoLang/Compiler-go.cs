@@ -3222,20 +3222,20 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsDirectlyComparable(Type t) {
-      t = t.TrimNewtypes();
+      t = t.GetRuntimeType();
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
              t is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {
-      t = t.TrimNewtypes();
+      t = t.GetRuntimeType();
       return t.IsIntegerType || t.IsRealType || t.IsBigOrdinalType ||
              (t.AsBitVectorType is { NativeType: null }) ||
              (t.AsNewtype is { NativeType: null });
     }
 
     private bool IsComparedByEquals(Type t) {
-      t = t.TrimNewtypes();
+      t = t.GetRuntimeType();
       return t.IsIndDatatype || t is CollectionType;
     }
 

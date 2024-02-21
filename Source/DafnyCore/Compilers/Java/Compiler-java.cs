@@ -374,8 +374,13 @@ namespace Microsoft.Dafny.Compilers {
       importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
     }
 
+    string IdProtectModule(string moduleName) {
+      return string.Join(".", moduleName.Split(".").Select(IdProtect));
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      moduleName = IdProtectModule(moduleName);
       if (isDefault) {
         // Fold the default module into the main module
         moduleName = "_System";
@@ -826,7 +831,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+        return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
       }
     }
 
@@ -1024,7 +1029,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(targetTypeName == null);
         var enclosingTypeWithItsOwnTypeArguments = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
         var targetType = DatatypeWrapperEraser.SimplifyTypeAndTrimSubsetTypes(Options, enclosingTypeWithItsOwnTypeArguments);
-        var targetTypeIgnoringConstraints = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments).TrimNewtypes();
+        var targetTypeIgnoringConstraints = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments).GetRuntimeType();
         targetTypeName = BoxedTypeName(targetTypeIgnoringConstraints, wr, enclosingTypeDecl.tok);
         var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
         switch (AsJavaNativeType(targetType)) {
@@ -2250,7 +2255,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtect(dt.GetFullCompileName(Options));
+      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2659,7 +2664,9 @@ namespace Microsoft.Dafny.Compilers {
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall,
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
-      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.GetFullCompileName(Options);
+      var dtName = dt is TupleTypeDecl tupleDecl
+        ? DafnyTupleClass(tupleDecl.NonGhostDims)
+        : IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {

@@ -621,7 +621,7 @@ namespace Std.Collections.Seq {
     public static Dafny.ISet<__T> ToSet<__T>(Dafny.ISequence<__T> xs) {
       return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Dafny.ISet<__T>>>((_85_xs) => ((System.Func<Dafny.ISet<__T>>)(() => {
         var _coll0 = new System.Collections.Generic.List<__T>();
-        foreach (__T _compr_0 in (_85_xs).Elements) {
+        foreach (__T _compr_0 in (_85_xs).CloneAsArray()) {
           __T _86_x = (__T)_compr_0;
           if ((_85_xs).Contains(_86_x)) {
             _coll0.Add(_86_x);
@@ -921,7 +921,7 @@ namespace Std.Collections.Seq {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7231)");
+        throw new System.Exception("assign-such-that search produced no value (line 7247)");
       after__ASSIGN_SUCH_THAT_0:;
         _113_left = Dafny.Set<__T>.Difference(_113_left, Dafny.Set<__T>.FromElements(_114_x));
         xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_114_x));

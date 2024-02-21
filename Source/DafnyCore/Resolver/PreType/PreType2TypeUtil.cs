@@ -51,27 +51,27 @@ public static class PreType2TypeUtil {
     }
 
     switch (pt.Decl.Name) {
-      case "bool":
+      case PreType.TypeNameBool:
         return Type.Bool;
-      case "char":
+      case PreType.TypeNameChar:
         return Type.Char;
-      case "int":
+      case PreType.TypeNameInt:
         return Type.Int;
-      case "real":
+      case PreType.TypeNameReal:
         return Type.Real;
-      case "ORDINAL":
+      case PreType.TypeNameORDINAL:
         return Type.BigOrdinal;
-      case "set":
+      case PreType.TypeNameSet:
         return new SetType(true, ArgumentAsCo(0));
-      case "iset":
+      case PreType.TypeNameIset:
         return new SetType(false, ArgumentAsCo(0));
-      case "multiset":
+      case PreType.TypeNameMultiset:
         return new MultiSetType(ArgumentAsCo(0));
-      case "seq":
+      case PreType.TypeNameSeq:
         return new SeqType(ArgumentAsCo(0));
-      case "map":
+      case PreType.TypeNameMap:
         return new MapType(true, ArgumentAsCo(0), ArgumentAsCo(1));
-      case "imap":
+      case PreType.TypeNameImap:
         return new MapType(false, ArgumentAsCo(0), ArgumentAsCo(1));
       default:
         break;

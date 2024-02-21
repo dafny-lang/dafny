@@ -266,9 +266,14 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock($"public static void _StaticMain(Dafny.ISequence<Dafny.ISequence<{CharTypeName}>> {argsParameterName})");
     }
 
+    string IdProtectModule(string moduleName) {
+      return string.Join(".", moduleName.Split(".").Select(IdProtect));
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
-      return wr.NewBlock($"namespace {IdProtect(moduleName)}", " // end of " + $"namespace {IdProtect(moduleName)}");
+      moduleName = IdProtectModule(moduleName);
+      return wr.NewBlock($"namespace {moduleName}", " // end of " + $"namespace {moduleName}");
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
@@ -1213,7 +1218,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.EnclosingModuleDefinition.TryToAvoidName ? IdName(dt) : dt.GetFullCompileName(Options);
+      var dtName = IdName(dt);
+      if (!dt.EnclosingModuleDefinition.TryToAvoidName) {
+        dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + dtName;
+      }
+
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
 
@@ -2495,7 +2504,7 @@ namespace Microsoft.Dafny.Compilers {
       if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
+        return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
       if (cl.EnclosingModuleDefinition.TryToAvoidName) {
@@ -2505,7 +2514,7 @@ namespace Microsoft.Dafny.Compilers {
       if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.GetCompileName(Options);
       }
-      return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+      return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
@@ -2519,7 +2528,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.GetFullCompileName(Options);
+      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
@@ -2785,6 +2794,11 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{DafnySeqClass}<{TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok)}>.Create");
         wr.Append(ParensList(Expr(expr.N, inLetExprBody, wStmts), Expr(expr.Initializer, inLetExprBody, wStmts)));
       }
+    }
+
+    protected override void EmitSeqBoundedPool(Expression of, bool includeDuplicates, string _, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      TrParenExpr(of, wr, inLetExprBody, wStmts);
+      wr.Write(includeDuplicates ? ".CloneAsArray()" : ".UniqueElements");
     }
 
     // Construct a sequence for the Dafny expression seq(N, F) in the common

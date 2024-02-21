@@ -1209,7 +1209,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            FigureOutNativeType(newtypeDecl);
+            new NativeTypeAnalysis(reporter).FigureOutNativeType(newtypeDecl, Options);
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
@@ -1235,7 +1235,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        FigureOutIfTypeConstraintsAreCompilable(declarations);
+        AnalyzeTypeConstraints.AssignConstraintIsCompilable(declarations, Options);
 
         // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
         // visit iterator bodies and members (which will make calls to CheckIsCompilable).
@@ -1578,76 +1578,10 @@ namespace Microsoft.Dafny {
         if (cycleErrorHasBeenReported.Contains(r)) {
           // An error has already been reported for this cycle, so don't report another.
           // Note, the representative, "r", may itself not be a const.
-        } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
+        } else if (dd is NewtypeDecl or SubsetTypeDecl) {
           ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
           cycleErrorHasBeenReported.Add(r);
         }
-      }
-    }
-
-    /// <summary>
-    /// Return "declarations" in sorted order, so that each declaration is preceded by those on which it depends.
-    /// It is assumed that "declarations" are all from the same module and that the call graph of that module has been constructed.
-    /// If there's some given declaration that's not in the call graph, then that's fine; it just means that the call
-    /// graph does not constrain the output order of that declaration.
-    /// </summary>
-    private List<TopLevelDecl> TopologicallySortedTopLevelDecls(List<TopLevelDecl> declarations) {
-      // Dependency information among the declarations is stored in the enclosing module's call graph. To get to that
-      // call graph, we need to have the module declaration, which we obtain from one of the given declarations:
-      if (declarations.Count == 0) {
-        return declarations;
-      }
-      var enclosingModule = declarations[0].EnclosingModuleDefinition;
-      Contract.Assert(declarations.TrueForAll(decl => decl.EnclosingModuleDefinition == enclosingModule));
-
-      // From the module declaration, we get the components sorted according to how they depend on each other.
-      var sortedComponents = enclosingModule.CallGraph.TopologicallySortedComponents();
-
-      // But... this is a list of ICallable's (which also includes MemberDecl's and may not contain all TopLevelDecl's).
-      // So, we filter the ICallable's to consider only the given TopLevelDecl's. We also remember which declarations we
-      // have added to the output, so we later can add all the remaining ones.
-      var remainingDecls = new HashSet<TopLevelDecl>(declarations);
-      var output = new List<TopLevelDecl>();
-      foreach (var callable in sortedComponents) {
-        if (callable is TopLevelDecl topLevelDecl && remainingDecls.Contains(topLevelDecl)) {
-          output.Add(topLevelDecl);
-          remainingDecls.Remove(topLevelDecl);
-        }
-      }
-
-      // Finally, add in those TopLevelDecl's that were not in the call graph.
-      foreach (var decl in declarations) {
-        if (remainingDecls.Contains(decl)) {
-          output.Add(decl);
-        }
-      }
-      Contract.Assert(declarations.Count == output.Count); // this assumes there were no duplicates in the given declarations
-
-      return output;
-    }
-
-    private void FigureOutIfTypeConstraintsAreCompilable(List<TopLevelDecl> declarations) {
-      // It's important to do the declarations in topological order from how they depend on each other.
-      declarations = TopologicallySortedTopLevelDecls(declarations);
-
-      foreach (var d in declarations.Where(decl => decl is SubsetTypeDecl or NewtypeDecl)) {
-        var declWithConstraints = (RedirectingTypeDecl)d;
-
-        var constraintIsCompilable = true;
-
-        // Check base type
-        var baseType = (declWithConstraints.Var?.Type ?? ((NewtypeDecl)declWithConstraints).BaseType).NormalizeExpandKeepConstraints();
-        if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
-          constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
-        }
-
-        // Check the type's constraint
-        if (declWithConstraints.Constraint != null) {
-          constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraints.Constraint,
-            new CodeContextWrapper(declWithConstraints, true));
-        }
-
-        declWithConstraints.ConstraintIsCompilable = constraintIsCompilable;
       }
     }
 
@@ -1873,7 +1807,7 @@ namespace Microsoft.Dafny {
               } else {
                 // m should not be null, unless an error has been reported
                 // (e.g. function-by-method and method with the same name) 
-                Contract.Assert(reporter.ErrorCount > 0);
+                Contract.Assert(reporter.HasErrors);
               }
             }
 
@@ -1932,226 +1866,6 @@ namespace Microsoft.Dafny {
       var start = cycle[0];
       var cy = Util.Comma(" -> ", cycle, toString);
       reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
-    }
-
-    private void FigureOutNativeType(NewtypeDecl dd) {
-      Contract.Requires(dd != null);
-
-      // Look at the :nativeType attribute, if any, to determine preferences.
-      // A return of false means: don't use native type. (nativeTypes returns as null)
-      // A return of null means: no preference. (nativeTypes returns as null)
-      // A return of true means: make sure a native type is used. Furthermore,
-      //   * if nativeTypes is null, then no particular preference about which native type is picked
-      //   * if nativeTypes is non-null, then the choices of native types are restricted to those.
-      bool? ReadAttributesForNativePreferences(Attributes attributes, [CanBeNull] out List<NativeType> nativeTypes) {
-        nativeTypes = null;
-        var args = Attributes.FindExpressions(attributes, "nativeType");
-        if (args == null) {
-          // There was no :nativeType attribute
-          return null;
-        }
-        if (args.Count == 0) {
-          // {:nativeType}
-          return true;
-        }
-        if (args[0] is LiteralExpr { Value: bool and var boolValue }) {
-          return boolValue;
-        }
-
-        var choices = new List<NativeType>();
-        foreach (var arg in args) {
-          if (arg is LiteralExpr { Value: string s }) {
-            // Get the NativeType for "s"
-            var nativeType = NativeTypes.Find(nativeType => nativeType.Name == s);
-            if (nativeType == null) {
-              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
-              return false;
-            }
-            choices.Add(nativeType);
-          } else {
-            reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
-            return false;
-          }
-        }
-        nativeTypes = choices;
-        return true;
-      }
-
-      // Look at the :nativeType attribute, if any
-      var hasNativeTypePreference = ReadAttributesForNativePreferences(dd.Attributes, out var nativeTypeChoices);
-      if (hasNativeTypePreference == false) {
-        // don't use native type
-        return;
-      }
-      if (hasNativeTypePreference == true && dd.BaseType.NormalizeToAncestorType() is not (IntType or BitvectorType)) {
-        reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on a newtype based on integers or bitvectors");
-        return;
-      }
-
-      // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
-      // in the case .Var is null, these can be computed from the .BaseType recursively.
-      var ddVar = dd.Var;
-      var ddConstraint = dd.Constraint;
-      for (var ddWhereConstraintsAre = dd; ddVar == null;) {
-        ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
-        if (ddWhereConstraintsAre == null) {
-          break;
-        }
-        ddVar = ddWhereConstraintsAre.Var;
-        ddConstraint = ddWhereConstraintsAre.Constraint;
-      }
-
-      List<(NativeType, bool coversEntireIntegerRange)> bigEnoughNativeTypes;
-      var detectedRange = "";
-      if (dd.BaseType.NormalizeToAncestorType() is BitvectorType bitvectorAncestorType) {
-        bigEnoughNativeTypes = FigureOutNativeTypeForBitvectorNewtype(dd, bitvectorAncestorType, ddVar == null,
-          nativeTypeChoices ?? NativeTypes, nativeTypeChoices != null);
-      } else if (dd.BaseType.NormalizeToAncestorType() is IntType) {
-        bigEnoughNativeTypes = FigureOutNativeTypeForIntegerNewtype(dd, ddVar, ddConstraint,
-          nativeTypeChoices ?? NativeTypes, nativeTypeChoices != null, out detectedRange);
-      } else {
-        // No native type available
-        bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
-      }
-      if (bigEnoughNativeTypes == null) {
-        // An error occurred while computing "bigEnoughNativeTypes"
-        return;
-      }
-
-      // Finally, of the big-enough native types, pick the first one that is supported by the selected target compiler.
-      foreach (var (nativeT, coversEntireIntegerRange) in bigEnoughNativeTypes) {
-        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
-          // Pick this one!
-          dd.NativeType = nativeT;
-          if (coversEntireIntegerRange && nativeT.Sel != NativeType.Selection.Number) {
-            dd.TargetTypeCoversAllBitPatterns = true;
-          }
-
-          // Give an info message saying which type was selected--unless the user requested
-          // one particular native type, in which case that must have been the one picked.
-          if (nativeTypeChoices is { Count: 1 }) {
-            Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
-            if (dd.TargetTypeCoversAllBitPatterns) {
-              reporter.Info(MessageSource.Resolver, dd.tok,
-                $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
-            }
-          } else {
-            var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
-            reporter.Info(MessageSource.Resolver, dd.tok,
-              $"newtype {dd.Name} resolves as {targetComplete}{{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
-          }
-
-          return;
-        }
-      }
-      // Among the choices available to us, we did not find a native type that is big enough and supported by the compiler.
-      if (nativeTypeChoices != null) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
-      } else if (hasNativeTypePreference == true) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "Dafny's heuristics cannot find a compatible native type. " +
-          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.");
-      }
-    }
-
-    /// <summary>
-    /// Returns a list of (n, b) pairs, where "n" is a big enough native type to hold "dd" and "b" says whether or not
-    /// all bit patterns of "n" are possible values for "dd".
-    /// Returns null if a failure is detected and reported.
-    /// </summary>
-    [CanBeNull]
-    private List<(NativeType, bool coversEntireIntegerRange)> FigureOutNativeTypeForBitvectorNewtype(NewtypeDecl dd,
-      BitvectorType bitvectorAncestorType, bool noFurtherConstraints,
-      List<NativeType> nativeTypesUnderConsideration, bool reportErrorIfTUCDoesNotFit) {
-
-      var bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
-      foreach (var nativeType in nativeTypesUnderConsideration) {
-        if (nativeType.Bitwidth != 0 && bitvectorAncestorType.Width <= nativeType.Bitwidth) {
-          bigEnoughNativeTypes.Add((nativeType, noFurtherConstraints && bitvectorAncestorType.Width == nativeType.Bitwidth));
-        } else if (reportErrorIfTUCDoesNotFit && nativeType.Bitwidth == 0) {
-          var hint = "";
-          if (nativeType.UnsignedCounterpart() is not null and var unsignedCounterpart) {
-            var counterpart = NativeTypes.Find(nativeT => nativeT.Sel == unsignedCounterpart);
-            Contract.Assert(counterpart != null);
-            hint = $" Hint: Try using the unsigned native type '{counterpart.Name}'.";
-          }
-          reporter.Error(MessageSource.Resolver, dd,
-            $"A newtype based on a bitvector type ({bitvectorAncestorType.Name}) cannot use a native type that admits negative values ('{nativeType.Name}').{hint}");
-          return null;
-        } else if (reportErrorIfTUCDoesNotFit) {
-          var hint = noFurtherConstraints ? "" : " Note: constraints of bitvector-based newtypes are not considered when determining native types.";
-          reporter.Error(MessageSource.Resolver, dd,
-            $"The width of bitvector type {bitvectorAncestorType.Name} cannot fit into native type '{nativeType.Name}'.{hint}");
-          return null;
-        }
-      }
-
-      return bigEnoughNativeTypes;
-    }
-
-    /// <summary>
-    /// Returns a list of (n, b) pairs, where "n" is a big enough native type to hold "dd" and "b" says whether or not
-    /// all bit patterns of "n" are possible values for "dd".
-    /// Returns null if a failure is detected and reported.
-    /// </summary>
-    [CanBeNull]
-    private List<(NativeType, bool coversEntireIntegerRange)> FigureOutNativeTypeForIntegerNewtype(NewtypeDecl dd,
-      [CanBeNull] BoundVar ddVar, [CanBeNull] Expression ddConstraint,
-      List<NativeType> nativeTypesUnderConsideration, bool reportErrorIfTUCDoesNotFit,
-      out string detectedRange) {
-      Contract.Requires((ddVar == null) == (ddConstraint == null));
-
-      bool constraintConsistsSolelyOfRangeConstraints;
-      BigInteger? lowBound = null;
-      BigInteger? highBound = null;
-      if (ddVar == null) {
-        constraintConsistsSolelyOfRangeConstraints = true;
-      } else {
-        var bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
-
-        foreach (var bound in bounds) {
-          void UpdateBounds(BigInteger? lo, BigInteger? hi) {
-            if (lo != null && (lowBound == null || lowBound < lo)) {
-              lowBound = lo; // we found a more restrictive lower bound
-            }
-            if (hi != null && (highBound == null || hi < highBound)) {
-              highBound = hi; // we found a more restrictive lower bound
-            }
-          }
-
-          if (bound is ComprehensionExpr.IntBoundedPool range) {
-            if (range.LowerBound != null && ConstantFolder.TryFoldInteger(range.LowerBound) is not null and var lo) {
-              UpdateBounds(lo, null);
-            }
-            if (range.UpperBound != null && ConstantFolder.TryFoldInteger(range.UpperBound) is not null and var hi) {
-              UpdateBounds(null, hi);
-            }
-          } else if (bound is ComprehensionExpr.ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
-            UpdateBounds(value, value + 1);
-          }
-        }
-      }
-
-      var emptyRange = lowBound != null && highBound != null && highBound <= lowBound;
-      detectedRange = lowBound == null || highBound == null ? "" : emptyRange ? "empty" : $"{lowBound} .. {highBound}";
-
-      var bigEnoughNativeTypes = new List<(NativeType, bool coversEntireIntegerRange)>();
-      foreach (var nativeT in nativeTypesUnderConsideration) {
-        bool lowerOk = emptyRange || (lowBound != null && nativeT.LowerBound <= lowBound);
-        bool upperOk = emptyRange || (highBound != null && nativeT.UpperBound >= highBound);
-        if (lowerOk && upperOk) {
-          var coversAllBitPatterns = constraintConsistsSolelyOfRangeConstraints && lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound;
-          bigEnoughNativeTypes.Add((nativeT, coversAllBitPatterns));
-        } else if (reportErrorIfTUCDoesNotFit) {
-          var hint =
-            " Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'.";
-          reporter.Error(MessageSource.Resolver, dd,
-            $"Dafny's heuristics failed to confirm '{nativeT.Name}' to be a compatible native type.{hint}");
-          return null;
-        }
-      }
-      return bigEnoughNativeTypes;
     }
 
     /// <summary>
@@ -3647,15 +3361,23 @@ namespace Microsoft.Dafny {
       return GetSignatureExt(sig);
     }
 
-    public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
-      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
+    public static Expression GetImpliedTypeConstraint(IVariable bv, Type type) {
+      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), type);
     }
 
-    public static Expression GetImpliedTypeConstraint(Expression e, Type ty) {
+    /// <summary>
+    /// Collects the constraints of all subset types and newtypes in "type" and applies these to "e".
+    /// For example, given
+    ///     type Even = x: int | x % 2 == 0
+    ///     newtype Div6 = y: Even | y % 3 == 0
+    /// GetImpliedTypeConstraint(e, Div6) returns
+    ///     true && ((e as Even) % 2 == 0) && e % 3 == 0
+    /// </summary>
+    public static Expression GetImpliedTypeConstraint(Expression e, Type type) {
       Contract.Requires(e != null);
-      Contract.Requires(ty != null);
-      ty = ty.NormalizeExpandKeepConstraints();
-      if (ty is UserDefinedType udt) {
+      Contract.Requires(type != null);
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is UserDefinedType udt) {
         Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
           var c = GetImpliedTypeConstraint(e, baseType);
           if (boundVar != null) {

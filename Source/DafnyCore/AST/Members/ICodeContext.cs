@@ -174,5 +174,5 @@ public interface RedirectingTypeDecl : ICallable {
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
   FreshIdGenerator IdGenerator { get; }
 
-  [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; } // should not be used before it's set and not set twice
+  [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }
