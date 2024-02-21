@@ -23,14 +23,14 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
+  [FilledInDuringResolution] public List<BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
   [FilledInDuringResolution] public List<IVariable> MissingBounds;  // remains "null" if bounds can be found
   // invariant Bounds == null || MissingBounds == null;
-  public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
+  public class WiggleWaggleBound : BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 1;
-    public override ComprehensionExpr.BoundedPool Clone(Cloner cloner) {
+    public override BoundedPool Clone(Cloner cloner) {
       return this;
     }
   }

@@ -3345,7 +3345,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_assign_such_that_forbidden, s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
         var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
         if (missingBounds.Count != 0) {
           foreach (var bv in missingBounds) {
             Error(ErrorId.c_assign_such_that_is_too_complex, s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
@@ -3774,7 +3774,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, ConcreteSyntaxTree wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
       for (int i = 0; i < n; i++) {
@@ -3812,9 +3812,9 @@ namespace Microsoft.Dafny.Compilers {
     /// Note that, while the values returned bny the enumeration have the target representation of "bv.Type", they may
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
-    Type CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+    Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
         Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
-        List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
+        List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
 
@@ -3823,14 +3823,14 @@ namespace Microsoft.Dafny.Compilers {
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-      if (bound is ComprehensionExpr.BoolBoundedPool) {
+      if (bound is BoolBoundedPool) {
         collectionWriter = (wr) => EmitBoolBoundedPool(inLetExprBody, wr, wStmts);
         return new BoolType();
-      } else if (bound is ComprehensionExpr.CharBoundedPool) {
+      } else if (bound is CharBoundedPool) {
         collectionWriter = (wr) => EmitCharBoundedPool(inLetExprBody, wr, wStmts);
         return new CharType();
-      } else if (bound is ComprehensionExpr.IntBoundedPool) {
-        var b = (ComprehensionExpr.IntBoundedPool)bound;
+      } else if (bound is IntBoundedPool) {
+        var b = (IntBoundedPool)bound;
         var res = EmitIntegerRange(bv.Type, wLo => {
           if (b.LowerBound == null) {
             EmitNull(bv.Type, wLo);
@@ -3857,41 +3857,41 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         collectionWriter = (wr) => EmitWiggleWaggleBoundedPool(inLetExprBody, wr, wStmts);
         return bv.Type;
-      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-        var b = (ComprehensionExpr.ExactBoundedPool)bound;
+      } else if (bound is ExactBoundedPool) {
+        var b = (ExactBoundedPool)bound;
         collectionWriter = (wr) => EmitSingleValueGenerator(su.Substitute(b.E), inLetExprBody, TypeName(b.E.Type, wr, b.E.tok), wr, wStmts);
         return b.E.Type;
-      } else if (bound is ComprehensionExpr.SetBoundedPool setBoundedPool) {
+      } else if (bound is SetBoundedPool setBoundedPool) {
         collectionWriter = (wr) => {
           EmitSetBoundedPool(su.Substitute(setBoundedPool.Set), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return setBoundedPool.CollectionElementType;
-      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-        var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+      } else if (bound is MultiSetBoundedPool) {
+        var b = (MultiSetBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitMultiSetBoundedPool(su.Substitute(b.MultiSet), includeDuplicates, propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+      } else if (bound is SubSetBoundedPool) {
+        var b = (SubSetBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitSubSetBoundedPool(su.Substitute(b.UpperBound), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.UpperBound.Type;
-      } else if (bound is ComprehensionExpr.MapBoundedPool) {
-        var b = (ComprehensionExpr.MapBoundedPool)bound;
+      } else if (bound is MapBoundedPool) {
+        var b = (MapBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitMapBoundedPool(su.Substitute(b.Map), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-        var b = (ComprehensionExpr.SeqBoundedPool)bound;
+      } else if (bound is SeqBoundedPool) {
+        var b = (SeqBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitSeqBoundedPool(su.Substitute(b.Seq), includeDuplicates, propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-        var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
+      } else if (bound is DatatypeBoundedPool) {
+        var b = (DatatypeBoundedPool)bound;
         collectionWriter = (wr) => EmitDatatypeBoundedPool(bv, propertySuffix, inLetExprBody, wr, wStmts);
         return new UserDefinedType(bv.Tok, new NameSegment(bv.Tok, b.Decl.Name, new())) {
           ResolvedClass = b.Decl
@@ -3943,7 +3943,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, wr, bv.Tok, null), propertySuffix);
     }
 
-    private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
+    private Expression SubstituteBound(IntBoundedPool b, List<BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
       Contract.Requires(b != null);
       Contract.Requires((lowBound ? b.LowerBound : b.UpperBound) != null);
       Contract.Requires(bounds != null);
@@ -3956,8 +3956,8 @@ namespace Microsoft.Dafny.Compilers {
       var sm = new Dictionary<IVariable, Expression>();
       for (int i = index + 1; i < boundVars.Count; i++) {
         var bound = bounds[i];
-        if (bound is ComprehensionExpr.IntBoundedPool) {
-          var ib = (ComprehensionExpr.IntBoundedPool)bound;
+        if (bound is IntBoundedPool) {
+          var ib = (IntBoundedPool)bound;
           var bv = boundVars[i];
           sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
         }
@@ -3977,7 +3977,7 @@ namespace Microsoft.Dafny.Compilers {
       TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
     }
 
-    private bool CanSequentializeForall(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
+    private bool CanSequentializeForall(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
       // Given a statement
       //
       //   forall i, ... | R {
@@ -4101,7 +4101,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -4139,7 +4139,7 @@ namespace Microsoft.Dafny.Compilers {
       var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
       var iterLimit = "_iterLimit_" + c;
 
-      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
+      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0);
       var currentBlock = wr.Fork();
       wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
@@ -4150,7 +4150,7 @@ namespace Microsoft.Dafny.Compilers {
 
       for (int i = 0; i < n; i++) {
         var bound = bounds[i];
-        Contract.Assert((bound.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
+        Contract.Assert((bound.Virtues & BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit) {
           DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, currentBlock, Type.Int);
@@ -5483,7 +5483,7 @@ namespace Microsoft.Dafny.Compilers {
           //        return E;
           //      })
           Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
-          var missingBounds = ComprehensionExpr.BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+          var missingBounds = BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, BoundedPool.PoolVirtues.Enumerable);
           if (missingBounds.Count != 0) {
             foreach (var bv in missingBounds) {
               Error(ErrorId.c_let_such_that_is_too_complex, e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);

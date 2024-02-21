@@ -79,7 +79,7 @@ public class MapType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMap;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MapBoundedPool(source, Domain, Domain, Finite);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new MapBoundedPool(source, Domain, Domain, Finite);
   }
 }

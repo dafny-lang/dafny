@@ -621,7 +621,7 @@ public partial class BoogieGenerator {
   }
 
 
-  private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<ComprehensionExpr.BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+  private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(bvars != null);
     Contract.Requires(bounds != null);
@@ -644,7 +644,7 @@ public partial class BoogieGenerator {
       }
       body = BplAnd(typeConstraints, body);
       if (undetermined.Count != 0) {
-        List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+        List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
         var bvs = new List<Variable>();
         var typeAntecedent = etran.TrBoundVariables(undetermined, bvs, false, freeOfAlloc);
         body = new Bpl.ExistsExpr(tok, bvs, triggers, BplAnd(typeAntecedent, body));
@@ -753,8 +753,8 @@ public partial class BoogieGenerator {
 
     var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
     foreach (var bound in bounds) {
-      if (bound is ComprehensionExpr.IntBoundedPool) {
-        var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+      if (bound is IntBoundedPool) {
+        var bnd = (IntBoundedPool)bound;
         if (bnd.LowerBound != null) {
           yield return bnd.LowerBound;
         }
@@ -762,14 +762,14 @@ public partial class BoogieGenerator {
         if (bnd.UpperBound != null) {
           yield return Expression.CreateDecrement(bnd.UpperBound, 1);
         }
-      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-        var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
+      } else if (bound is SubSetBoundedPool) {
+        var bnd = (SubSetBoundedPool)bound;
         yield return bnd.UpperBound;
-      } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
-        var bnd = (ComprehensionExpr.SuperSetBoundedPool)bound;
+      } else if (bound is SuperSetBoundedPool) {
+        var bnd = (SuperSetBoundedPool)bound;
         yield return bnd.LowerBound;
-      } else if (bound is ComprehensionExpr.SetBoundedPool) {
-        var st = ((ComprehensionExpr.SetBoundedPool)bound).Set.Resolved;
+      } else if (bound is SetBoundedPool) {
+        var st = ((SetBoundedPool)bound).Set.Resolved;
         if (st is DisplayExpression) {
           var display = (DisplayExpression)st;
           foreach (var el in display.Elements) {
@@ -781,8 +781,8 @@ public partial class BoogieGenerator {
             yield return maplet.A;
           }
         }
-      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-        var st = ((ComprehensionExpr.MultiSetBoundedPool)bound).MultiSet.Resolved;
+      } else if (bound is MultiSetBoundedPool) {
+        var st = ((MultiSetBoundedPool)bound).MultiSet.Resolved;
         if (st is DisplayExpression) {
           var display = (DisplayExpression)st;
           foreach (var el in display.Elements) {
@@ -794,16 +794,16 @@ public partial class BoogieGenerator {
             yield return maplet.A;
           }
         }
-      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-        var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
+      } else if (bound is SeqBoundedPool) {
+        var sq = ((SeqBoundedPool)bound).Seq.Resolved;
         var display = sq as DisplayExpression;
         if (display != null) {
           foreach (var el in display.Elements) {
             yield return el;
           }
         }
-      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-        yield return ((ComprehensionExpr.ExactBoundedPool)bound).E;
+      } else if (bound is ExactBoundedPool) {
+        yield return ((ExactBoundedPool)bound).E;
       }
     }
   }
