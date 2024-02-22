@@ -1,11 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -28,22 +27,20 @@ public static class VerifyCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
-      if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
-        options.TrackVerificationCoverage = true;
-      }
-
-      if (options.Get(CommonOptionBag.VerificationLogFormat).Any() || options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
-        // --log-format and --verification-coverage-report are not yet supported by CliCompilation
-        options.Compile = false;
-        return await SynchronousCliCompilation.Run(options);
-      }
-      var compilation = CliCompilation.Create(options);
-      compilation.Start();
-      await compilation.VerifyAllAndPrintSummary();
-      return compilation.ExitCode;
-    });
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => await HandleVerification(options));
     return result;
+  }
+
+  public static async Task<int> HandleVerification(DafnyOptions options) {
+    if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+      options.TrackVerificationCoverage = true;
+    }
+
+    var compilation = CliCompilation.Create(options);
+    compilation.Start();
+    await compilation.VerifyAllAndPrintSummary();
+
+    return compilation.ExitCode;
   }
 
   private static IReadOnlyList<Option> Options =>
