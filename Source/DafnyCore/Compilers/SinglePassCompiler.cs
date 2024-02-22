@@ -2674,24 +2674,25 @@ namespace Microsoft.Dafny.Compilers {
             accVar = new LocalVariable(f.RangeToken, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
+            var resultType = f.ResultType.NormalizeToAncestorType();
             Expression unit;
-            if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Int) || f.ResultType.IsBigOrdinalType) {
+            if (resultType.IsNumericBased(Type.NumericPersuasion.Int) || resultType.IsBigOrdinalType) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Real)) {
+            } else if (resultType.IsNumericBased(Type.NumericPersuasion.Real)) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsBitVectorType) {
+            } else if (resultType.IsBitVectorType) {
               var n = f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0;
               unit = new LiteralExpr(f.tok, n);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsSetType != null) {
-              unit = new SetDisplayExpr(f.tok, !f.ResultType.IsISetType, new List<Expression>());
+            } else if (resultType.AsSetType != null) {
+              unit = new SetDisplayExpr(f.tok, !resultType.IsISetType, new List<Expression>());
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsMultiSetType != null) {
+            } else if (resultType.AsMultiSetType != null) {
               unit = new MultiSetDisplayExpr(f.tok, new List<Expression>());
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsSeqType != null) {
+            } else if (resultType.AsSeqType != null) {
               unit = new SeqDisplayExpr(f.tok, new List<Expression>());
               unit.Type = f.ResultType;
             } else {
