@@ -84,7 +84,7 @@ echo ">>>> GENERIC"
 echo ">>>> COMPILER"
 
 csfiles="$D/Compilers/*.cs $D/Compilers/*/*.cs"
-./check-errors-a Errors-Compiler.md $D/Compilers/CompilerErrors.cs "$csfiles"
+./check-errors-a Errors-Compiler.md $D/Backends/GeneratorErrors.cs "$csfiles"
 
 echo ">>>> REFINEMENT"
 

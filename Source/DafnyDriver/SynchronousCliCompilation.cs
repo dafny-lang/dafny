@@ -303,7 +303,7 @@ namespace Microsoft.Dafny {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny {
 
       var compiler = options.Backend;
 
-      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = SinglePassCodeGenerator.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
