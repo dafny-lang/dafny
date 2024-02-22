@@ -3199,7 +3199,7 @@ namespace Microsoft.Dafny.Compilers {
         codeGenerator = c;
         this.wr = wr;
       }
-      
+
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
