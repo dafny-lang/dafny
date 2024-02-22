@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
       using var driver = new SynchronousCliCompilation(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
-      if (options.Get(CommonOptionBag.VerificationLogFormat).Any()) {
+      if (options.Get(CommonOptionBag.VerificationLogFormat)?.Any() == true) {
         try {
           LegacyVerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
         } catch (ArgumentException ae) {
