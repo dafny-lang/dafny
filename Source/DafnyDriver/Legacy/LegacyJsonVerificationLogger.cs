@@ -37,7 +37,7 @@ public class LegacyJsonVerificationLogger {
 
   private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VCResultLogEntry vcResult) {
     var runResult = VCResultLogEntryToPartialVerificationRunResult(vcResult);
-    return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies.ToList(), runResult);
+    return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies?.ToList(), runResult);
   }
 
   public static VerificationRunResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
