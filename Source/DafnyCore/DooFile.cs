@@ -230,7 +230,9 @@ public class DooFile {
       return true;
     }
 
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin,
+      $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, " +
+      $"but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -238,7 +240,7 @@ public class DooFile {
   /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
   /// Generally the right check for options that weaken guarantees.
   public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, libraryValue, localValue)) {
+    if (OptionValuesImplied(libraryValue, localValue)) {
       return true;
     }
 
@@ -250,11 +252,15 @@ public class DooFile {
   /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
   /// Generally the right check for options that strengthen guarantees.
   public static bool CheckOptionLocalImpliesLibrary(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, localValue, libraryValue)) {
+    if (OptionValuesImplied(localValue, libraryValue)) {
       return true;
     }
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin, LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue));
     return false;
+  }
+
+  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue) {
+    return $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
 
   private static bool OptionValuesEqual(Option option, object first, object second) {
@@ -269,10 +275,12 @@ public class DooFile {
     return false;
   }
 
-  private static bool OptionValuesImplied(Option option, object first, object second) {
-    var lhs = (bool)first;
-    var rhs = (bool)second;
-    return !lhs || rhs;
+  public static bool OptionValuesImplied(object first, object second) {
+    try {
+      return !(bool)first || (bool)second;
+    } catch (NullReferenceException) {
+      throw new Exception("Comparing options of Doo files created by different Dafny versions");
+    }
   }
 
   private static string OptionValueToString(Option option, object value) {
@@ -281,6 +289,9 @@ public class DooFile {
       return $"[{string.Join(',', values)}]";
     }
 
+    if (value == null) {
+      return "a version of Dafny that does not have this option";
+    }
     return value.ToString();
   }
 

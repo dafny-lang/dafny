@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Pos = x | 0 < x witness 1

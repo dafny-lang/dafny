@@ -3,10 +3,23 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Serilog.Events;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public static void EnsureStaticConstructorHasRun() { }
+
+  public static readonly Option<string> LogLocation =
+    new("--log-location", "Sets the directory where to store log files") {
+      IsHidden = true
+    };
+
+  public static readonly Option<LogEventLevel> LogLevelOption =
+    new("--log-level", () => LogEventLevel.Error, "Sets the level at which events are logged") {
+      IsHidden = true
+    };
 
   public static readonly Option<bool> ManualTriggerOption =
     new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
@@ -46,10 +59,10 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.");
+      "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
-    "Warn about the use of deprecated features (default true).") {
+  public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
+    "Do not warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -179,6 +192,10 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
+    "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
+  };
+
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
@@ -203,7 +220,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
   public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
     @"
 false - A newtype can only be based on numeric types or another newtype.
-true - (requires --type-system-refresh to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
 
@@ -229,8 +246,10 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
-    "Treat warnings as errors.");
+
+  public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
+    "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
+
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
@@ -331,6 +350,7 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
     });
@@ -374,7 +394,7 @@ datatype - A trait is a reference type only if it or one of its ancestor traits 
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
-1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
+1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -463,7 +483,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -505,7 +525,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
-    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
+    DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
@@ -539,9 +559,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
+        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+            if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
+              return true;
+            }
+            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
+            return false;
+          }
+        }
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      LogLocation,
+      LogLevelOption,
       ManualTriggerOption,
       ShowInference,
       Check,
@@ -551,7 +583,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prelude,
       Target,
       Verbose,
-      WarnDeprecation,
+      AllowDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
@@ -566,7 +598,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,

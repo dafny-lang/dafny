@@ -67,7 +67,7 @@ public class ProgramParser {
         dafnyFile.Origin,
         dafnyFile.Uri,
         cancellationToken);
-      if (parseResult.ErrorReporter.ErrorCount != 0) {
+      if (parseResult.ErrorReporter.HasErrors) {
         logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
       }
 
@@ -89,14 +89,14 @@ public class ProgramParser {
       dependencyMap.PrintMap(options);
     }
 
-    if (errorReporter.ErrorCount == 0) {
+    if (!errorReporter.HasErrors) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
 
       // Capture the original program text before resolution
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.
       if (program.Options.Backend is LibraryBackend libBackend) {
-        libBackend.DooFile = new DooFile(program);
+        libBackend.ProgramAfterParsing = new Program(new Cloner(true), program);
       }
     }
 

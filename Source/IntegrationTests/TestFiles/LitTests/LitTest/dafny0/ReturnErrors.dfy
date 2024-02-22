@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class N

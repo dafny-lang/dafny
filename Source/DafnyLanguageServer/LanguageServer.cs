@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static async Task Start(DafnyOptions dafnyOptions) {
       var configuration = CreateConfiguration();
-      InitializeLogger(configuration);
+      InitializeLogger(dafnyOptions, configuration);
 
       dafnyOptions = new DafnyOptions(dafnyOptions, true);
       try {
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer {
         await server.WaitForExit;
       }
       finally {
-        Log.CloseAndFlush();
+        await Log.CloseAndFlushAsync();
       }
     }
 
@@ -83,11 +83,14 @@ namespace Microsoft.Dafny.LanguageServer {
         .Build();
     }
 
-    private static void InitializeLogger(IConfiguration configuration) {
+    private static void InitializeLogger(DafnyOptions options, IConfiguration configuration) {
       // The environment variable is used so a log file can be explicitly created in the application dir.
-      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+      var logLevel = options.Get(CommonOptionBag.LogLevelOption);
+      var logLocation = options.Get(CommonOptionBag.LogLocation) ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", logLocation);
       Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(configuration)
+        .MinimumLevel.Override("Microsoft.Dafny", logLevel)
         .CreateLogger();
     }
 

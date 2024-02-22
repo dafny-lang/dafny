@@ -22,13 +22,17 @@ namespace Microsoft.Dafny {
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
 
+  public interface ICanResolveNewAndOld {
+    void GenResolve(INewOrOldResolver resolver, ResolutionContext context);
+  }
+
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
-  public partial class ModuleResolver {
+  public partial class ModuleResolver : INewOrOldResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     public readonly SystemModuleManager SystemModuleManager;
@@ -37,6 +41,8 @@ namespace Microsoft.Dafny {
     public ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
+    public Scope<IVariable> Scope => scope;
+
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
 
     private bool RevealedInScope(Declaration d) {
@@ -87,7 +93,7 @@ namespace Microsoft.Dafny {
 
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
-      enclosingStatementLabels = new Scope<Statement>(Options);
+      EnclosingStatementLabels = new Scope<Statement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
       SystemModuleManager = programResolver.SystemModuleManager;
@@ -1162,43 +1168,33 @@ namespace Microsoft.Dafny {
         CallGraphBuilder.Build(declarations, reporter);
       }
 
+      // The call graph hasn't been completely constructed, because it's missing the edges having to do with
+      // extreme predicates/lemmas. However, figuring out whether or not constraints are compilable depends on
+      // there being no cycles in the call graph. Therefore, we do an initial check for cycles at this time.
+      var cycleErrorHasBeenReported = new HashSet<ICallable>();
+      foreach (var decl in declarations) {
+        if (decl is RedirectingTypeDecl dd) {
+          CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
+        }
+      }
+
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
-          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
-            var constraintIsCompilable = true;
-
-            // Check base type
-            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
-            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
-              CheckIfCompilable(baseDecl);
-              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
-            }
-
-            // Check the type's constraint
-            if (declWithConstraint.Constraint != null) {
-              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
-            }
-
-            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
-          }
-
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
             if (iter.Body != null) {
-              ComputeGhostInterest(iter.Body, false, null, iter);
               CheckExpression(iter.Body, this, iter);
             }
 
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
-              CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              CheckExpression(subsetTypeDecl.Witness, this,
+                new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
                 var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
                 ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
@@ -1210,7 +1206,6 @@ namespace Microsoft.Dafny {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
             }
-            CheckIfCompilable(newtypeDecl);
 
             if (newtypeDecl.Witness != null) {
               CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1220,7 +1215,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            FigureOutNativeType(newtypeDecl);
+            new NativeTypeAnalysis(reporter).FigureOutNativeType(newtypeDecl, Options);
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
@@ -1244,7 +1239,16 @@ namespace Microsoft.Dafny {
               CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
             }
           }
+        }
 
+        AnalyzeTypeConstraints.AssignConstraintIsCompilable(declarations, Options);
+
+        // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
+        // visit iterator bodies and members (which will make calls to CheckIsCompilable).
+        foreach (TopLevelDecl d in declarations) {
+          if (d is IteratorDecl { Body: { } iterBody } iter) {
+            ComputeGhostInterest(iter.Body, false, null, iter);
+          }
           if (d is TopLevelDeclWithMembers cl) {
             ResolveClassMembers_Pass1(cl);
           }
@@ -1380,7 +1384,6 @@ namespace Microsoft.Dafny {
         // check that greatest lemmas are not recursive with non-greatest-lemma methods.
         // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
-        var cycleErrorHasBeenReported = new HashSet<ICallable>();
         foreach (var d in declarations) {
           if (d is TopLevelDeclWithMembers { Members: var members }) {
             foreach (var member in members) {
@@ -1423,16 +1426,7 @@ namespace Microsoft.Dafny {
           }
 
           if (d is RedirectingTypeDecl dd) {
-            if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
-              var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
-              if (cycleErrorHasBeenReported.Contains(r)) {
-                // An error has already been reported for this cycle, so don't report another.
-                // Note, the representative, "r", may itself not be a const.
-              } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
-                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
-                cycleErrorHasBeenReported.Add(r);
-              }
-            }
+            CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
           }
         }
       }
@@ -1580,6 +1574,20 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
         new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
+    }
+
+    private void CheckForCyclesAmongRedirectingTypes(RedirectingTypeDecl dd, HashSet<ICallable> cycleErrorHasBeenReported) {
+      var enclosingModule = dd.EnclosingModule;
+      if (enclosingModule.CallGraph.GetSCCSize(dd) != 1) {
+        var r = enclosingModule.CallGraph.GetSCCRepresentative(dd);
+        if (cycleErrorHasBeenReported.Contains(r)) {
+          // An error has already been reported for this cycle, so don't report another.
+          // Note, the representative, "r", may itself not be a const.
+        } else if (dd is NewtypeDecl or SubsetTypeDecl) {
+          ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
+          cycleErrorHasBeenReported.Add(r);
+        }
       }
     }
 
@@ -1805,7 +1813,7 @@ namespace Microsoft.Dafny {
               } else {
                 // m should not be null, unless an error has been reported
                 // (e.g. function-by-method and method with the same name) 
-                Contract.Assert(reporter.ErrorCount > 0);
+                Contract.Assert(reporter.HasErrors);
               }
             }
 
@@ -1864,156 +1872,6 @@ namespace Microsoft.Dafny {
       var start = cycle[0];
       var cy = Util.Comma(" -> ", cycle, toString);
       reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
-    }
-
-    private void FigureOutNativeType(NewtypeDecl dd) {
-      Contract.Requires(dd != null);
-
-      // Look at the :nativeType attribute, if any
-      bool mustUseNativeType;
-      List<NativeType> nativeTypeChoices = null;  // null means "no preference"
-      var args = Attributes.FindExpressions(dd.Attributes, "nativeType");
-      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on integral types");
-        return;
-      } else if (args == null) {
-        // There was no :nativeType attribute
-        mustUseNativeType = false;
-      } else if (args.Count == 0) {
-        mustUseNativeType = true;
-      } else {
-        var arg0Lit = args[0] as LiteralExpr;
-        if (arg0Lit != null && arg0Lit.Value is bool) {
-          if (!(bool)arg0Lit.Value) {
-            // {:nativeType false} says "don't use native type", so our work here is done
-            return;
-          }
-          mustUseNativeType = true;
-        } else {
-          mustUseNativeType = true;
-          nativeTypeChoices = new List<NativeType>();
-          foreach (var arg in args) {
-            if (arg is LiteralExpr lit && lit.Value is string s) {
-              // Get the NativeType for "s"
-              foreach (var nativeT in NativeTypes) {
-                if (nativeT.Name == s) {
-                  nativeTypeChoices.Add(nativeT);
-                  goto FoundNativeType;
-                }
-              }
-              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
-              return;
-            FoundNativeType:;
-            } else {
-              reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
-              return;
-            }
-          }
-        }
-      }
-
-      // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
-      // in the case .Var is null, these can be computed from the .BaseType recursively.
-      var ddVar = dd.Var;
-      var ddConstraint = dd.Constraint;
-      for (var ddWhereConstraintsAre = dd; ddVar == null;) {
-        ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
-        if (ddWhereConstraintsAre == null) {
-          break;
-        }
-        ddVar = ddWhereConstraintsAre.Var;
-        ddConstraint = ddWhereConstraintsAre.Constraint;
-      }
-      List<ComprehensionExpr.BoundedPool> bounds;
-      bool constraintConsistsSolelyOfRangeConstraints;
-      if (ddVar == null) {
-        // There are no bounds at all
-        bounds = new List<ComprehensionExpr.BoundedPool>();
-        constraintConsistsSolelyOfRangeConstraints = true;
-      } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
-      }
-
-      // Find which among the allowable native types can hold "dd". Give an
-      // error for any user-specified native type that's not big enough.
-      var bigEnoughNativeTypes = new List<NativeType>();
-      BigInteger? lowBound = null;
-      BigInteger? highBound = null;
-      foreach (var bound in bounds) {
-        void UpdateBounds(BigInteger? lo, BigInteger? hi) {
-          if (lo != null && (lowBound == null || lowBound < lo)) {
-            lowBound = lo; // we found a more restrictive lower bound
-          }
-          if (hi != null && (highBound == null || hi < highBound)) {
-            highBound = hi; // we found a more restrictive lower bound
-          }
-        }
-
-        if (bound is ComprehensionExpr.IntBoundedPool range) {
-          if (range.LowerBound != null && ConstantFolder.TryFoldInteger(range.LowerBound) is not null and var lo) {
-            UpdateBounds(lo, null);
-          }
-          if (range.UpperBound != null && ConstantFolder.TryFoldInteger(range.UpperBound) is not null and var hi) {
-            UpdateBounds(null, hi);
-          }
-        } else if (bound is ComprehensionExpr.ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
-          UpdateBounds(value, value + 1);
-        }
-      }
-
-      var emptyRange = lowBound != null && highBound != null && highBound <= lowBound;
-      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = emptyRange || (lowBound != null && nativeT.LowerBound <= lowBound);
-        bool upperOk = emptyRange || (highBound != null && nativeT.UpperBound >= highBound);
-        if (lowerOk && upperOk) {
-          bigEnoughNativeTypes.Add(nativeT);
-        } else if (nativeTypeChoices != null) {
-          reporter.Error(MessageSource.Resolver, dd,
-            "Dafny's heuristics failed to confirm '{0}' to be a compatible native type.  " +
-            "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'",
-            nativeT.Name);
-          return;
-        }
-      }
-
-      // Finally, of the big-enough native types, pick the first one that is
-      // supported by the selected target compiler.
-      foreach (var nativeT in bigEnoughNativeTypes) {
-        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
-          dd.NativeType = nativeT;
-          if (constraintConsistsSolelyOfRangeConstraints) {
-            dd.NativeTypeRangeImpliesAllConstraints = true;
-          }
-          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
-              lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound) {
-            dd.TargetTypeCoversAllBitPatterns = true;
-          }
-          break;
-        }
-      }
-      if (dd.NativeType != null) {
-        // Give an info message saying which type was selected--unless the user requested
-        // one particular native type, in which case that must have been the one picked.
-        if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
-          Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
-          if (dd.TargetTypeCoversAllBitPatterns) {
-            reporter.Info(MessageSource.Resolver, dd.tok,
-              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
-          }
-        } else {
-          var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
-          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
-          reporter.Info(MessageSource.Resolver, dd.tok,
-            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
-        }
-      } else if (nativeTypeChoices != null) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
-      } else if (mustUseNativeType) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "Dafny's heuristics cannot find a compatible native type.  " +
-          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'");
-      }
     }
 
     /// <summary>
@@ -2586,9 +2444,7 @@ namespace Microsoft.Dafny {
       type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
       if (type is UserDefinedType { ResolvedClass: var cl } udt) {
         Contract.Assert(cl != null);
-        if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
-          return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);
-        } else if (cl is SubsetTypeDecl subsetTypeDecl) {
+        if (cl is SubsetTypeDecl subsetTypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
         } else if (cl is NewtypeDecl newtypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
@@ -3511,34 +3367,40 @@ namespace Microsoft.Dafny {
       return GetSignatureExt(sig);
     }
 
-    public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
-      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
+    public static Expression GetImpliedTypeConstraint(IVariable bv, Type type) {
+      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), type);
     }
 
-    public static Expression GetImpliedTypeConstraint(Expression e, Type ty) {
+    /// <summary>
+    /// Collects the constraints of all subset types and newtypes in "type" and applies these to "e".
+    /// For example, given
+    ///     type Even = x: int | x % 2 == 0
+    ///     newtype Div6 = y: Even | y % 3 == 0
+    /// GetImpliedTypeConstraint(e, Div6) returns
+    ///     true && ((e as Even) % 2 == 0) && e % 3 == 0
+    /// </summary>
+    public static Expression GetImpliedTypeConstraint(Expression e, Type type) {
       Contract.Requires(e != null);
-      Contract.Requires(ty != null);
-      ty = ty.NormalizeExpandKeepConstraints();
-      var udt = ty as UserDefinedType;
-      if (udt != null) {
-        if (udt.ResolvedClass is NewtypeDecl) {
-          var dd = (NewtypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.BaseType);
-          if (dd.Var != null) {
-            Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-            substMap.Add(dd.Var, e);
-            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-            c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
+      Contract.Requires(type != null);
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is UserDefinedType udt) {
+        Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
+          var c = GetImpliedTypeConstraint(e, baseType);
+          if (boundVar != null) {
+            var ee = new ConversionExpr(e.tok, e, boundVar.Type) { Type = boundVar.Type };
+            var substMap = new Dictionary<IVariable, Expression> { { boundVar, ee } };
+            var typeMap = TypeParameter.SubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
+            var substituter = new Substituter(null, substMap, typeMap);
+            c = Expression.CreateAnd(c, substituter.Substitute(constraint));
           }
           return c;
-        } else if (udt.ResolvedClass is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-          substMap.Add(dd.Var, e);
-          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-          c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
-          return c;
+        }
+
+        if (udt.ResolvedClass is NewtypeDecl newtypeDecl) {
+          return CombineConstraints(newtypeDecl.BaseType, newtypeDecl.Var, newtypeDecl.Constraint);
+        }
+        if (udt.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
+          return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
         }
       }
       return Expression.CreateBoolLiteral(e.tok, true);
@@ -3669,8 +3531,8 @@ namespace Microsoft.Dafny {
     public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type leftOperandType, Type operandType) {
       Contract.Requires(leftOperandType != null);
       Contract.Requires(operandType != null);
-      leftOperandType = leftOperandType.NormalizeExpand();
-      operandType = operandType.NormalizeExpand();
+      leftOperandType = leftOperandType.NormalizeToAncestorType();
+      operandType = operandType.NormalizeToAncestorType();
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;
         case BinaryExpr.Opcode.Imp: return BinaryExpr.ResolvedOpcode.Imp;

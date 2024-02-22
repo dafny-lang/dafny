@@ -896,6 +896,7 @@ namespace Microsoft.Dafny {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case BinaryExpr binaryExpr: {
@@ -939,13 +940,12 @@ namespace Microsoft.Dafny {
                         Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
                   }
                 }
-                CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
                 break;
               case BinaryExpr.ResolvedOpcode.Div:
               case BinaryExpr.ResolvedOpcode.Mod: {
                   Bpl.Expr zero;
-                  if (e.E1.Type.IsBitVectorType) {
-                    zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
+                  if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
+                    zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, bitvectorType);
                   } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
@@ -953,18 +953,17 @@ namespace Microsoft.Dafny {
                   }
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                   builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(e.E1), wfOptions.AssertKv));
-                  CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.LeftShift:
               case BinaryExpr.ResolvedOpcode.RightShift: {
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                  var w = e.Type.AsBitVectorType.Width;
-                  var upperDesc = new PODesc.ShiftUpperBound(w);
-                  if (e.E1.Type.IsBitVectorType) {
+                  var w = e.Type.NormalizeToAncestorType().AsBitVectorType.Width;
+                  var upperDesc = new PODesc.ShiftUpperBound(w, true);
+                  if (e.E1.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
                     // Known to be non-negative, so we don't need to check lower bound.
                     // Check upper bound, that is, check "E1 <= w"
-                    var e1Width = e.E1.Type.AsBitVectorType.Width;
+                    var e1Width = bitvectorType.Width;
                     if (w < (BigInteger.One << e1Width)) {
                       // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
                       var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);
@@ -982,7 +981,7 @@ namespace Microsoft.Dafny {
                       // already holds, so there is no reason to check it.
                     }
                   } else {
-                    var positiveDesc = new PODesc.ShiftLowerBound();
+                    var positiveDesc = new PODesc.ShiftLowerBound(true);
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, wfOptions.AssertKv));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, wfOptions.AssertKv));
                   }
@@ -1025,6 +1024,7 @@ namespace Microsoft.Dafny {
                 break;
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case TernaryExpr ternaryExpr: {
@@ -1044,6 +1044,7 @@ namespace Microsoft.Dafny {
                 break;
             }
 
+            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             break;
           }
         case LetExpr letExpr:
@@ -1352,17 +1353,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
-                               BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckWellformedSpecialFunction(FunctionCallExpr expr, WFOptions options, Bpl.Expr result, Type resultType,
+      List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(expr.Function is SpecialFunction);
 
-      string name = expr.Function.Name;
       CheckWellformed(expr.Receiver, options, locals, builder, etran);
-      if (name == "RotateLeft" || name == "RotateRight") {
+      foreach (var arg in expr.Args.Where(arg => arg is not DefaultValueExpression)) {
+        CheckWellformed(arg, options, locals, builder, etran);
+      }
+      if (expr.Function.Name is "RotateLeft" or "RotateRight") {
         var w = expr.Type.AsBitVectorType.Width;
-        Expression arg = expr.Args[0];
-        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new PODesc.ShiftLowerBound(), options.AssertKv));
-        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new PODesc.ShiftUpperBound(w), options.AssertKv));
+        var arg = expr.Args[0];
+        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new PODesc.ShiftLowerBound(false), options.AssertKv));
+        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new PODesc.ShiftUpperBound(w, false),
+          options.AssertKv));
       }
     }
 
@@ -1408,7 +1412,7 @@ namespace Microsoft.Dafny {
           var ifCmd = new Bpl.IfCmd(e.tok, typeAntecedent, wellFormednessBuilder.Collect(e.tok), null, null);
           builder.Add(ifCmd);
 
-          var bounds = lhsVars.ConvertAll(_ => (ComprehensionExpr.BoundedPool)new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
+          var bounds = lhsVars.ConvertAll(_ => (BoundedPool)new SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
           GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
         }
         // assume typeAntecedent(b);

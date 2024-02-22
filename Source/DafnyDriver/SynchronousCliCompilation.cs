@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
-            if (consoleErrorReporter.HasErrors) {
+            if (consoleErrorReporter.FailCompilation) {
               return ExitValue.PREPROCESSING_ERROR;
             }
           } else {
@@ -282,7 +282,8 @@ namespace Microsoft.Dafny {
           await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+        var (verified, outcome, moduleStats) =
+          await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 
         if (options.TrackVerificationCoverage) {
           ProofDependencyWarnings.WarnAboutSuspiciousDependencies(options, dafnyProgram.Reporter, depManager);
@@ -302,11 +303,18 @@ namespace Microsoft.Dafny {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, Compilers.CompilerErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 
-        exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        if (!verified) {
+          exitValue = ExitValue.VERIFICATION_ERROR;
+        } else if (!compiled) {
+          exitValue = ExitValue.COMPILE_ERROR;
+        } else if (failBecauseOfDiagnostics) {
+          exitValue = ExitValue.DAFNY_ERROR;
+        }
       }
 
       if (err == null && dafnyProgram != null && options.PrintStats) {
@@ -375,18 +383,27 @@ namespace Microsoft.Dafny {
     }
 
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      BoogieAsync(DafnyOptions options,
+      BoogieAsync(
+        ErrorReporter errorReporter,
+        DafnyOptions options,
         string baseName,
         IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
-
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
+
+      if (options.Verify) {
+        var before = errorReporter.ErrorCount;
+        options.ProcessSolverOptions(errorReporter, Token.Cli);
+        if (before != errorReporter.ErrorCount) {
+          return (false, PipelineOutcome.FatalError, concurrentModuleStats);
+        }
+      }
 
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure
         var result = await Task.Run(() =>
-          BoogieOnceWithTimerAsync(moduleWriter, options, baseName, programId, program.Item1, program.Item2));
+          BoogieOnceWithTimerAsync(errorReporter, moduleWriter, options, baseName, programId, program.Item1, program.Item2));
         concurrentModuleStats.TryAdd(program.Item1, result.Stats);
         return result;
       }).ToList();
@@ -397,11 +414,12 @@ namespace Microsoft.Dafny {
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t =>
-        Dafny.DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
+        DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
     private async Task<(PipelineOutcome Outcome, PipelineStatistics Stats)> BoogieOnceWithTimerAsync(
+      ErrorReporter errorReporter,
       TextWriter output,
       DafnyOptions options,
       string baseName, string programId,
@@ -414,7 +432,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
@@ -639,7 +657,7 @@ namespace Microsoft.Dafny {
 
       var compiler = options.Backend;
 
-      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = SinglePassCodeGenerator.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
@@ -653,7 +671,6 @@ namespace Microsoft.Dafny {
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
         output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
-        var filesCopy = files.ToList();
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
@@ -674,17 +691,22 @@ namespace Microsoft.Dafny {
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
-      // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
+      if (dafnyProgram.Reporter.FailCompilation) {
+        return false;
+      }
+      // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       if (options.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
           (invokeCompiler && compiler.TextualTargetIsExecutable && !options.RunAfterCompile)) {
         compiler.CleanSourceDirectory(targetPaths.SourceDirectory);
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      if (targetProgramHasErrors || !compiler.OnPostCompile(dafnyProgramName, targetPaths.SourceDirectory, outputWriter)) {
+      var postGenerateFailed = !compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      if (postGenerateFailed) {
         return false;
       }
+
       // If we got here, compilation succeeded
       if (!invokeCompiler) {
         return true; // If we're not asked to invoke the target compiler, we can report success
