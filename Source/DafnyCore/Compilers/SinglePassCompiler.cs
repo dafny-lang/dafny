@@ -5590,7 +5590,8 @@ namespace Microsoft.Dafny.Compilers {
 
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var collectionName = ProtectedFreshId("_coll");
-        var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr, wStmts);
+        var setType = e.Type.NormalizeToAncestorType().AsSetType;
+        var bwr = CreateIIFE0(setType, e.tok, wr, wStmts);
         wr = bwr;
         EmitSetBuilder_New(wr, e, collectionName);
         var n = e.BoundVars.Count;
@@ -5606,8 +5607,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
+        EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, thn);
+        var s = GetCollectionBuilder_Build(setType, e.tok, collectionName, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is MapComprehension) {
@@ -5632,10 +5633,11 @@ namespace Microsoft.Dafny.Compilers {
         e = (MapComprehension)su.Substitute(e);
 
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
-        var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
+        var mapType = e.Type.NormalizeToAncestorType().AsMapType;
+        var domtypeName = TypeName(mapType.Domain, wr, e.tok);
+        var rantypeName = TypeName(mapType.Range, wr, e.tok);
         var collection_name = ProtectedFreshId("_coll");
-        var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr, wStmts);
+        var bwr = CreateIIFE0(mapType, e.tok, wr, wStmts);
         wr = bwr;
         EmitMapBuilder_New(wr, e, collection_name);
         var n = e.BoundVars.Count;
@@ -5651,7 +5653,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
+        var termLeftWriter = EmitMapBuilder_Add(mapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
           Contract.Assert(e.BoundVars.Count == 1);
           EmitIdentifier(IdName(e.BoundVars[0]), termLeftWriter);
@@ -5659,7 +5661,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
 
-        var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
+        var s = GetCollectionBuilder_Build(mapType, e.tok, collection_name, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {

@@ -2627,11 +2627,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
-      wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
+      wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.NormalizeToAncestorType().AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
-      var mt = e.Type.AsMapType;
+      var mt = e.Type.NormalizeToAncestorType().AsMapType;
       var domType = mt.Domain;
       var ranType = mt.Range;
       wr.WriteLine($"java.util.HashMap<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new java.util.HashMap<>();");
@@ -2726,11 +2726,12 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".not()");
           }
           break;
-        case ResolvedUnaryOp.Cardinality:
-          if (expr.Type.AsCollectionType is MultiSetType) {
+        case ResolvedUnaryOp.Cardinality: {
+          var collectionType = expr.Type.NormalizeToAncestorType().AsCollectionType;
+          if (collectionType is MultiSetType) {
             TrParenExpr("", expr, wr, inLetExprBody, wStmts);
             wr.Write(".cardinality()");
-          } else if (expr.Type.AsCollectionType is SetType || expr.Type.AsCollectionType is MapType) {
+          } else if (collectionType is SetType or MapType) {
             TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody, wStmts);
             wr.Write(".size())");
           } else if (expr.Type.IsArrayType) {
@@ -2741,6 +2742,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".length())");
           }
           break;
+        }
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
       }
