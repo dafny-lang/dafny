@@ -41,30 +41,11 @@ namespace Microsoft.Dafny {
 
     public VerificationResultLogger(DafnyOptions options, ProofDependencyManager depManager) {
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
-      // Provide just enough configuration for the loggers to work
-      var parameters = new Dictionary<string, string> {
-        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
-      };
 
       events = new LocalTestLoggerEvents();
       events.EnableEvents();
       foreach (var loggerConfig in loggerConfigs) {
-        string loggerName;
-        int semiColonIndex = loggerConfig.IndexOf(";", StringComparison.Ordinal);
-        if (semiColonIndex >= 0) {
-          loggerName = loggerConfig[..semiColonIndex];
-          var parametersList = loggerConfig[(semiColonIndex + 1)..];
-          foreach (string s in parametersList.Split(",")) {
-            var equalsIndex = s.IndexOf("=", StringComparison.Ordinal);
-            if (equalsIndex >= 0) {
-              parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
-            } else {
-              throw new ArgumentException($"unknown parameter to `/verificationLogger:csv`: {s}");
-            }
-          }
-        } else {
-          loggerName = loggerConfig;
-        }
+        ParseParametersAndLoggerName(loggerConfig, out var parameters, out var loggerName);
 
         if (loggerName == "trx") {
           var logger = new TrxLogger();
@@ -87,6 +68,29 @@ namespace Microsoft.Dafny {
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
         }
+      }
+    }
+
+    public static void ParseParametersAndLoggerName(string loggerConfig, out Dictionary<string, string> parameters, out string loggerName) {
+      // Provide just enough configuration for the loggers to work
+      parameters = new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      };
+
+      int semiColonIndex = loggerConfig.IndexOf(";", StringComparison.Ordinal);
+      if (semiColonIndex >= 0) {
+        loggerName = loggerConfig[..semiColonIndex];
+        var parametersList = loggerConfig[(semiColonIndex + 1)..];
+        foreach (string s in parametersList.Split(",")) {
+          var equalsIndex = s.IndexOf("=", StringComparison.Ordinal);
+          if (equalsIndex >= 0) {
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          } else {
+            throw new ArgumentException($"unknown parameter to `/verificationLogger:csv`: {s}");
+          }
+        }
+      } else {
+        loggerName = loggerConfig;
       }
     }
 
@@ -115,7 +119,7 @@ namespace Microsoft.Dafny {
       ));
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {
+    public static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {
       var testResults = new List<TestResult>();
 
       var verificationScope = result.Scope;

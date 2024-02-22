@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using DafnyCore.Verifier;
+using DafnyServer;
 using Microsoft.Boogie;
 using VC;
 
@@ -23,44 +24,28 @@ public class LegacyJsonVerificationLogger {
     tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
-  private static JsonNode SerializeAssertion(Microsoft.Boogie.IToken tok, string description) {
-    return new JsonObject {
-      ["filename"] = tok.filename,
-      ["line"] = tok.line,
-      ["col"] = tok.col,
-      ["description"] = description
-    };
+  class DummyProofObligationDescription : Boogie.ProofObligationDescription {
+    public DummyProofObligationDescription(string success) {
+      SuccessDescription = success;
+    }
+
+    public override string SuccessDescription { get; }
+
+    public override string ShortDescription => throw new NotSupportedException();
   }
 
-  private JsonNode SerializeProofDependency(ProofDependency dependency) {
-    return new JsonObject {
-      ["startFile"] = dependency.Range.StartToken.Filepath,
-      ["startLine"] = dependency.Range.StartToken.line,
-      ["startCol"] = dependency.Range.StartToken.col,
-      ["endFile"] = dependency.Range.EndToken.Filepath,
-      ["endLine"] = dependency.Range.EndToken.line,
-      ["endCol"] = dependency.Range.EndToken.col,
-      ["description"] = dependency.Description,
-      ["originalText"] = dependency.OriginalString()
-    };
-  }
 
   private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VCResultLogEntry vcResult) {
-    var result = new JsonObject {
-      ["vcNum"] = vcResult.VCNum,
-      ["outcome"] = SerializeOutcome(vcResult.Outcome),
-      ["runTime"] = SerializeTimeSpan(vcResult.RunTime),
-      ["resourceCount"] = vcResult.ResourceCount,
-      ["assertions"] = new JsonArray(vcResult.Asserts.Select(x => SerializeAssertion(x.Tok, x.Description)).ToArray()),
-    };
-    if (potentialDependencies is not null) {
-      var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
-      var fullDependencySet = fullDependencies.ToHashSet();
-      var unusedDependencies = potentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
-      result["coveredElements"] = new JsonArray(fullDependencies.Select(SerializeProofDependency).ToArray());
-      result["uncoveredElements"] = new JsonArray(unusedDependencies.Select(SerializeProofDependency).ToArray());
-    }
-    return result;
+    var runResult = VCResultLogEntryToPartialVerificationRunResult(vcResult);
+    return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies.ToList(), runResult);
+  }
+
+  public static VerificationRunResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
+    var mockNumber = 42;
+    var mockAsserts = vcResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
+    var runResult = new VerificationRunResult(vcResult.VCNum, mockNumber, vcResult.StartTime, vcResult.Outcome, vcResult.RunTime, mockNumber, null!,
+      mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null);
+    return runResult;
   }
 
   private static JsonNode SerializeTimeSpan(TimeSpan timeSpan) {
@@ -89,7 +74,7 @@ public class LegacyJsonVerificationLogger {
       ["vcResults"] = new JsonArray(verificationResult.VCResults.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
-      result["programElements"] = new JsonArray(potentialDependencies.Select(SerializeProofDependency).ToArray());
+      result["programElements"] = new JsonArray(potentialDependencies.Select(JsonVerificationLogger.SerializeProofDependency).ToArray());
     }
     return result;
   }

@@ -12,7 +12,7 @@ namespace DafnyCore;
 public class Snippets {
   public static readonly Option<bool> ShowSnippets = new("--show-snippets", () => true,
     "Show a source code snippet for each Dafny message.");
-  
+
   static Snippets() {
     DooFile.RegisterNoChecksNeeded(ShowSnippets);
   }

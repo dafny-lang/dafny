@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using DafnyCore.Verifier;
-using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using VC;
 
@@ -14,10 +13,10 @@ namespace Microsoft.Dafny;
 public class JsonVerificationLogger : IVerificationResultFormatLogger {
   private TextWriter output;
   private readonly TextWriter fallbackOutput;
-  private readonly ProofDependencyManager depManager;
+  private readonly ProofDependencyManager dependencyManager;
 
-  public JsonVerificationLogger(ProofDependencyManager depManager, TextWriter fallbackOutput) {
-    this.depManager = depManager;
+  public JsonVerificationLogger(ProofDependencyManager dependencyManager, TextWriter fallbackOutput) {
+    this.dependencyManager = dependencyManager;
     this.fallbackOutput = fallbackOutput;
   }
 
@@ -34,7 +33,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     };
   }
 
-  private JsonNode SerializeProofDependency(ProofDependency dependency) {
+  public static JsonNode SerializeProofDependency(ProofDependency dependency) {
     return new JsonObject {
       ["startFile"] = dependency.Range.StartToken.Filepath,
       ["startLine"] = dependency.Range.StartToken.line,
@@ -47,7 +46,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     };
   }
 
-  private JsonNode SerializeVcResult(IReadOnlyList<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
+  public static JsonNode SerializeVcResult(ProofDependencyManager dependencyManager, IReadOnlyList<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
     var result = new JsonObject {
       ["vcNum"] = vcResult.VcNum,
       ["outcome"] = SerializeOutcome(vcResult.Outcome),
@@ -56,7 +55,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
       ["assertions"] = new JsonArray(vcResult.Asserts.Select(SerializeAssertion).ToArray()),
     };
     if (potentialDependencies is not null) {
-      var fullDependencySet = depManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToHashSet();
+      var fullDependencySet = dependencyManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToHashSet();
       var unusedDependencies = potentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
       result["coveredElements"] = new JsonArray(fullDependencySet.Select(SerializeProofDependency).ToArray());
       result["uncoveredElements"] = new JsonArray(unusedDependencies.Select(SerializeProofDependency).ToArray());
@@ -80,13 +79,13 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
       results.All(o => o.Outcome == SolverOutcome.Valid) &&
       results.Any(vcResult => vcResult.CoveredElements.Any());
     var potentialDependencies =
-      trackProofDependencies ? depManager.GetPotentialDependenciesForDefinition(scope.Name).ToList() : null;
+      trackProofDependencies ? dependencyManager.GetPotentialDependenciesForDefinition(scope.Name).ToList() : null;
     var result = new JsonObject {
       ["name"] = scope.Name,
       ["outcome"] = SerializeOutcome(results.Aggregate(VcOutcome.Correct, (o, r) => MergeOutcomes(o, r.Outcome))),
       ["runTime"] = SerializeTimeSpan(TimeSpan.FromSeconds(results.Sum(r => r.RunTime.Seconds))),
       ["resourceCount"] = results.Sum(r => r.ResourceCount),
-      ["vcResults"] = new JsonArray(results.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
+      ["vcResults"] = new JsonArray(results.Select(r => SerializeVcResult(dependencyManager, potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
       result["programElements"] = new JsonArray(potentialDependencies.Select(SerializeProofDependency).ToArray());

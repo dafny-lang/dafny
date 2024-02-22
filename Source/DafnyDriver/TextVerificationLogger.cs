@@ -22,52 +22,56 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
   }
 
   public void LogScopeResults(VerificationScopeResult scopeResult) {
+    LogResults(depManager, output, scopeResult);
+  }
+
+  public static void LogResults(ProofDependencyManager proofDependencyManager, TextWriter textWriter, VerificationScopeResult scopeResult) {
     var verificationScope = scopeResult.Scope;
     var results = scopeResult.Results.Select(t => t.Result).ToList();
     var outcome = results.Aggregate(VcOutcome.Correct, (o, r) => JsonVerificationLogger.MergeOutcomes(o, r.Outcome));
     var runtime = TimeSpan.FromSeconds(results.Sum(r => r.RunTime.Seconds));
-    output.WriteLine("");
-    output.WriteLine($"Results for {verificationScope.Name}");
-    output.WriteLine($"  Overall outcome: {outcome}");
-    output.WriteLine($"  Overall time: {runtime}");
-    output.WriteLine($"  Overall resource count: {results.Sum(r => r.ResourceCount)}");
+    textWriter.WriteLine("");
+    textWriter.WriteLine($"Results for {verificationScope.Name}");
+    textWriter.WriteLine($"  Overall outcome: {outcome}");
+    textWriter.WriteLine($"  Overall time: {runtime}");
+    textWriter.WriteLine($"  Overall resource count: {results.Sum(r => r.ResourceCount)}");
     // It doesn't seem possible to get a result with zero VCResults, but being careful with nulls just in case :)
     var maximumTime = results.MaxBy(r => r.RunTime).RunTime.ToString() ?? "N/A";
     var maximumResourceCount = results.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";
-    output.WriteLine($"  Maximum assertion batch time: {maximumTime}");
-    output.WriteLine($"  Maximum assertion batch resource count: {maximumResourceCount}");
+    textWriter.WriteLine($"  Maximum assertion batch time: {maximumTime}");
+    textWriter.WriteLine($"  Maximum assertion batch resource count: {maximumResourceCount}");
     foreach (var vcResult in results.OrderBy(r => r.VcNum)) {
-      output.WriteLine("");
-      output.WriteLine($"  Assertion batch {vcResult.VcNum}:");
-      output.WriteLine($"    Outcome: {vcResult.Outcome}");
-      output.WriteLine($"    Duration: {vcResult.RunTime}");
-      output.WriteLine($"    Resource count: {vcResult.ResourceCount}");
-      output.WriteLine("");
-      output.WriteLine("    Assertions:");
+      textWriter.WriteLine("");
+      textWriter.WriteLine($"  Assertion batch {vcResult.VcNum}:");
+      textWriter.WriteLine($"    Outcome: {vcResult.Outcome}");
+      textWriter.WriteLine($"    Duration: {vcResult.RunTime}");
+      textWriter.WriteLine($"    Resource count: {vcResult.ResourceCount}");
+      textWriter.WriteLine("");
+      textWriter.WriteLine("    Assertions:");
       foreach (var cmd in vcResult.Asserts) {
-        output.WriteLine(
+        textWriter.WriteLine(
           $"      {cmd.tok.filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
       }
 
       if (vcResult.CoveredElements.Any() && vcResult.Outcome == SolverOutcome.Valid) {
-        output.WriteLine("");
-        output.WriteLine("    Proof dependencies:");
-        var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToList();
+        textWriter.WriteLine("");
+        textWriter.WriteLine("    Proof dependencies:");
+        var fullDependencies = proofDependencyManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToList();
         foreach (var dep in fullDependencies) {
-          output.WriteLine($"      {dep.RangeString()}: {dep.Description}");
+          textWriter.WriteLine($"      {dep.RangeString()}: {dep.Description}");
         }
-        var allPotentialDependencies = depManager.GetPotentialDependenciesForDefinition(verificationScope.Name);
+        var allPotentialDependencies = proofDependencyManager.GetPotentialDependenciesForDefinition(verificationScope.Name);
         var fullDependencySet = fullDependencies.ToHashSet();
         var unusedDependencies = allPotentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
-        output.WriteLine("");
-        output.WriteLine("    Unused by proof:");
+        textWriter.WriteLine("");
+        textWriter.WriteLine("    Unused by proof:");
         foreach (var dep in unusedDependencies) {
-          output.WriteLine($"      {dep.RangeString()}: {dep.Description}");
+          textWriter.WriteLine($"      {dep.RangeString()}: {dep.Description}");
         }
       }
 
     }
-    output.Flush();
+    textWriter.Flush();
   }
 
   public void Flush() {

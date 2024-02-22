@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Boogie;
+using DafnyDriver.Commands;
 
 namespace Microsoft.Dafny;
 
@@ -21,47 +21,9 @@ public class LegacyTextVerificationLogger {
 
   public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
     foreach (var (implementation, result) in verificationResults.OrderBy(vr => (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col))) {
-      tw.WriteLine("");
-      tw.WriteLine($"Results for {implementation.Name}");
-      tw.WriteLine($"  Overall outcome: {result.Outcome}");
-      tw.WriteLine($"  Overall time: {result.RunTime}");
-      tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
-      // It doesn't seem possible to get a result with zero VCResults, but being careful with nulls just in case :)
-      var maximumTime = result.VCResults.MaxBy(r => r.RunTime).RunTime.ToString() ?? "N/A";
-      var maximumRC = result.VCResults.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";
-      tw.WriteLine($"  Maximum assertion batch time: {maximumTime}");
-      tw.WriteLine($"  Maximum assertion batch resource count: {maximumRC}");
-      foreach (var vcResult in result.VCResults.OrderBy(r => r.VCNum)) {
-        tw.WriteLine("");
-        tw.WriteLine($"  Assertion batch {vcResult.VCNum}:");
-        tw.WriteLine($"    Outcome: {vcResult.Outcome}");
-        tw.WriteLine($"    Duration: {vcResult.RunTime}");
-        tw.WriteLine($"    Resource count: {vcResult.ResourceCount}");
-        tw.WriteLine("");
-        tw.WriteLine("    Assertions:");
-        foreach (var cmd in vcResult.Asserts) {
-          tw.WriteLine(
-            $"      {cmd.Tok.filename}({cmd.Tok.line},{cmd.Tok.col}): {cmd.Description}");
-        }
-
-        if (vcResult.CoveredElements.Any() && vcResult.Outcome == SolverOutcome.Valid) {
-          tw.WriteLine("");
-          tw.WriteLine("    Proof dependencies:");
-          var fullDependencies = depManager.GetOrderedFullDependencies(vcResult.CoveredElements);
-          foreach (var dep in fullDependencies) {
-            tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
-          }
-          var allPotentialDependencies = depManager.GetPotentialDependenciesForDefinition(implementation.Name);
-          var fullDependencySet = fullDependencies.ToHashSet();
-          var unusedDependencies = allPotentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
-          tw.WriteLine("");
-          tw.WriteLine("    Unused by proof:");
-          foreach (var dep in unusedDependencies) {
-            tw.WriteLine($"      {dep.RangeString()}: {dep.Description}");
-          }
-        }
-
-      }
+      var taskResults = result.VCResults.Select(r => new VerificationTaskResult(null!, LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult(r))).ToList();
+      var scopeResult = new VerificationScopeResult(new VerificationScope(implementation.Name, implementation.Tok), taskResults);
+      TextVerificationLogger.LogResults(depManager, outWriter, scopeResult);
     }
     tw.Flush();
   }
