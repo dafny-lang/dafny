@@ -28,7 +28,6 @@ public class GeneratorErrors {
     c_test_function_must_be_compilable,
     c_invalid_synthesize_method,
     c_method_has_no_body,
-    c_assume_statement_may_not_be_compiled,
     c_forall_statement_has_no_body,
     c_loop_has_no_body,
     c_nondeterminism_forbidden,
@@ -124,7 +123,7 @@ Programs containing iterators without bodies can be verified.
 However, a body-less iterator is an unchecked assumption (even if it is ghost).
 Consequently, like body-less functions and loops, dafny will not
 compile a program containing an iterator without a body.
-Furthermore, if the iterator is non-ghost, it cannot be executed if it does not have a body.
+Furthermore, if the iterator is non-ghost, it cannot be compiled if it does not have a body.
 ".TrimStart());
 
     Add(ErrorId.c_constructorless_class_forbidden,
@@ -226,17 +225,6 @@ See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-syn
 To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
-".TrimStart());
-
-    Add(ErrorId.c_assume_statement_may_not_be_compiled,
-    @"
-A method may be parsed and verified even if an [assume statement](../DafnyRef/DafnyRef#sec-assume-statement) is present. 
-However, the assume statement is an explicit, unchecked assumption.
-Dafny does not allow programs with unchecked assumptions, that is, incompletely verified programs, to be compiled.
-The `{:axiom}` attribute can be used to tell Dafny that the assumption is to be considered an
-externally verified _axiom_, with the program author taking responsibility for its validity.
-
-If the assumption marked with `{:axiom}` is not actually valid, then the validity of the entire program is in question.
 ".TrimStart());
 
     Add(ErrorId.c_forall_statement_has_no_body,

@@ -180,7 +180,7 @@ public class InferDecreasesClause {
         var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bvDecl }, bvInE, bv,
           new Attributes("trigger", new List<Expression> { bvInE }, null)) {
           Type = resolver.SystemModuleManager.ObjectSetType(),
-          Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
+          Bounds = new List<BoundedPool>() { boundedPool }
         };
         sets.Add(s);
 

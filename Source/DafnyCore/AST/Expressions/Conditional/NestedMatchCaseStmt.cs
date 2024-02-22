@@ -36,16 +36,16 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     ResolutionContext resolutionContext,
     Dictionary<TypeParameter, Type> subst,
     Type sourceType) {
-    var beforeResolveErrorCount = resolver.reporter.ErrorCount;
+    var beforeResolveErrorCount = resolver.Reporter.ErrorCount;
 
     Pat.Resolve(resolver, resolutionContext, sourceType, resolutionContext.IsGhost, true, false, false);
 
     // In Dafny, any bound variables introduced in a pattern are in scope throughout the case body, and cannot be shadowed at the top-level
     // of the case body. Because the machinery above creates, for each bound variable, a local variable with the same name and declares that
     // local variable in the case body, we introduce a new scope boundary around the body.
-    resolver.scope.PushMarker();
+    resolver.Scope.PushMarker();
     resolver.ResolveAttributes(this, resolutionContext);
-    var afterResolveErrorCount = resolver.reporter.ErrorCount;
+    var afterResolveErrorCount = resolver.Reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.DominatingStatementLabels.PushMarker();
       foreach (Statement ss in Body) {
@@ -53,6 +53,6 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
       }
       resolver.DominatingStatementLabels.PopMarker();
     }
-    resolver.scope.PopMarker();
+    resolver.Scope.PopMarker();
   }
 }
