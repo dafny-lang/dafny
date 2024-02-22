@@ -192,7 +192,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   public override string GetCompileName(DafnyOptions options) {
     var nm = base.GetCompileName(options);
-    if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
+    if (nm == Dafny.Compilers.SinglePassCodeGenerator.DefaultNameMain && IsStatic && !IsEntryPoint) {
       // for a static method that is named "Main" but is not a legal "Main" method,
       // change its name.
       nm = EnclosingClass.Name + "_" + nm;
