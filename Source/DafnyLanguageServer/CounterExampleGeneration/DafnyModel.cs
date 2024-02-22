@@ -1,7 +1,7 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,10 +40,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     // This set is used by GetDafnyType to prevent infinite recursion
     private HashSet<Model.Element> exploredElements = new();
 
-    private Dictionary<Model.Element, LiteralExpr> concretizedValues = new();
+    private readonly Dictionary<Model.Element, LiteralExpr> concretizedValues = new();
 
     public DafnyModel(Model model, DafnyOptions options) {
-      LoopGuards = new List<string>();
       Model = model;
       this.options = options;
       var tyArgMultiplier = options.TypeEncodingMethod switch {
@@ -87,14 +86,14 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
       InitDataTypes();
       RegisterReservedBitVectors();
+      LoopGuards = new List<string>();
       foreach (var s in model.States) {
         var sn = new PartialState(this, s);
         States.Add(sn);
-        sn.loopGuards = LoopGuards.ToList();
-        if (sn.FullStateName.Contains("after some loop iterations")) {
-          LoopGuards.Add("loopGuard" + LoopGuards.Count);
-          sn.isGuard = LoopGuards.Last();
+        if (sn.IsLoopEntryState) {
+          LoopGuards.Add("counterexampleLoopGuard" + LoopGuards.Count);
         }
+        sn.LoopGuards = LoopGuards.ToList();
       }
     }
 
@@ -113,37 +112,37 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           }
           continue;
         }
-        if ((type is not IntType && type is not RealType && type is not CharType &&
-            type is not BitvectorType) || GetLiteralExpression(element, type) != null) {
+        if (GetLiteralExpression(element, type) != null) {
           continue;
         }
-        ModelFuncWrapper otherValuesFunction = null;
+        ModelFuncWrapper? otherValuesFunction = null;
         switch (type) {
           case BitvectorType bitvectorType: {
-              var funcName = "U_2_bv" + bitvectorType.Width;
-              if (Model.HasFunc(funcName)) {
-                otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
-              }
-              break;
+            var funcName = "U_2_bv" + bitvectorType.Width;
+            if (Model.HasFunc(funcName)) {
+              otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
             }
+            break;
+          }
           case CharType:
             otherValuesFunction = fCharToInt;
             break;
           case RealType:
             otherValuesFunction = fU2Real;
             break;
-          case IntType: {
-              otherValuesFunction = fU2Int;
-              break;
-            }
+          case IntType: 
+            otherValuesFunction = fU2Int;
+            break;
+          default:
+            continue;
         }
-        var reservedValues = otherValuesFunction.Apps
+        var reservedValues = otherValuesFunction!.Apps
           .Select(app => GetLiteralExpression(app.Result, type))
-          .Where(literal => literal != null)
+          .OfType<Expression>()
           .Select(literal => literal.ToString()).ToHashSet();
         reservedValues.UnionWith(concretizedValues.Values.Select(literal => literal.ToString()));
         int numericalValue = -1;
-        LiteralExpr literal = null;
+        LiteralExpr? literal = null;
         bool literalIsReserved = true;
         while (literalIsReserved) {
           numericalValue++;
@@ -160,11 +159,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               literal = new LiteralExpr(Token.NoToken, BigDec.FromString(numericalValue.ToString()));
               break;
           }
-          if (!reservedValues.Contains(literal.ToString())) {
+          if (!reservedValues.Contains(literal!.ToString())) {
             literalIsReserved = false;
           }
         }
-        concretizedValues[element] = literal;
+        concretizedValues[element] = literal!;
       }
     }
 
@@ -207,8 +206,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Escaped character, for the cases specified in Dafny manual,
     /// Or escaped UTF code otherwise
     /// </summary>
-    private string PrettyPrintChar(int UTFCode) {
-      switch (UTFCode) {
+    private static string PrettyPrintChar(int utfCode) {
+      switch (utfCode) {
         case 0:
           return "\\0";
         case 9:
@@ -224,10 +223,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         case 92:
           return "\\\\";
         default:
-          if ((UTFCode >= 32) && (UTFCode <= 126)) {
-            return $"{Convert.ToChar(UTFCode)}";
+          if (utfCode is >= 32 and <= 126) {
+            return $"{Convert.ToChar(utfCode)}";
           }
-          return $"\\u{UTFCode:X4}";
+          return $"\\u{utfCode:X4}";
       }
     }
 
@@ -246,8 +245,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Return the name of a 0-arity type function that maps to the element if such
     /// a function exists and is unique. Return null otherwise.
     /// </summary>
-    private static string GetTrueTypeName(Model.Element element) {
-      return element?.Names.FirstOrDefault(funcTuple => funcTuple.Func.Arity == 0)?.Func.Name;
+    private static string? GetTrueTypeName(Model.Element element) {
+      return element.Names.FirstOrDefault(funcTuple => funcTuple.Func.Arity == 0)?.Func.Name;
     }
 
     /// <summary> Get the Dafny type of an element </summary>
@@ -260,7 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var typeElement in GetIsResults(partialValue.Element)) {
         var reconstructedType = DafnyModelTypeUtils.GetInDafnyFormat(ReconstructType(typeElement));
         if (reconstructedType.ToString() != partialValue.Type.ToString()) {
-          new TypeTestConstraint(partialValue, reconstructedType);
+          var _ = new TypeTestConstraint(partialValue, reconstructedType);
         }
       }
     }
@@ -281,7 +280,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         case Model.ElementKind.BitVector:
           return new BitvectorType(options, ((Model.BitVector)element).Size);
         case Model.ElementKind.Uninterpreted:
-          return GetDafnyType(element as Model.Uninterpreted);
+          return GetDafnyType((element as Model.Uninterpreted)!);
         case Model.ElementKind.DataValue:
           if (((Model.DatatypeValue)element).ConstructorName is "-" or "/") {
             return GetDafnyType(
@@ -306,12 +305,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       return result;
     }
 
-    private Expression GetLiteralExpression(Model.Element element, Type type) {
+    private Expression? GetLiteralExpression(Model.Element element, Type type) {
       var result = GetLiteralExpressionHelper(element, type);
       if (concretizedValues.ContainsKey(element) && result == null) {
         result = concretizedValues[element];
       }
-      if (result != null && type != null) {
+      if (result != null) {
         result.Type = type;
       }
       return result;
@@ -321,8 +320,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// If the provided <param name="element"></param> represents a literal in Dafny, return that literal.
     /// Otherwise, return null.
     /// </summary>
-    private Expression GetLiteralExpressionHelper(Model.Element element, Type type) {
-      if (element == fNull.GetConstant()) {
+    private Expression? GetLiteralExpressionHelper(Model.Element element, Type type) {
+      if (Equals(element, fNull.GetConstant())) {
         return new LiteralExpr(Token.NoToken);
       }
 
@@ -358,17 +357,17 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         return GetLiteralExpression(unboxedValue, type);
       }
 
-      if (fCharToInt.OptEval(element) != null) {
-        if (int.TryParse(((Model.Integer)fCharToInt.OptEval(element)).Numeral,
-              out var UTFCode) && UTFCode is <= char.MaxValue and >= 0) {
-          return new CharLiteralExpr(Token.NoToken, PrettyPrintChar(UTFCode));
+      if (fCharToInt.OptEval(element) is Model.Integer literalCharValue) {
+        if (int.TryParse(literalCharValue.Numeral,
+              out var utfCode) && utfCode is <= char.MaxValue and >= 0) {
+          return new CharLiteralExpr(Token.NoToken, PrettyPrintChar(utfCode));
         }
       }
 
       foreach (var bitvectorFunction in bitvectorFunctions) {
-        if (bitvectorFunction.OptEval(element) != null) {
+        if (bitvectorFunction.OptEval(element) is Model.Number literalBitVectorValur) {
           return new LiteralExpr(Token.NoToken,
-            BigInteger.Parse((bitvectorFunction.OptEval(element) as Model.Number)?.Numeral));
+            BigInteger.Parse(literalBitVectorValur.Numeral));
         }
       }
 
@@ -378,20 +377,20 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     public void GetExpansion(PartialState state, PartialValue value) {
       var literalExpr = GetLiteralExpression(value.Element, value.Type);
       if (literalExpr != null) {
-        new LiteralExprConstraint(value, literalExpr);
+        var _ = new LiteralExprConstraint(value, literalExpr);
         return;
       }
 
       if (value.Nullable) {
-        new NotNullConstraint(value);
+        var _ = new NotNullConstraint(value);
       }
 
       if (value.Type is BitvectorType || value.Type is CharType || value.Type is RealType || value.Type is BoolType || value.Type is IntType) {
-        foreach (var element in Model.Elements.Where(element => element != value.Element)) {
+        foreach (var element in Model.Elements.Where(element => !Equals(element, value.Element))) {
           var elementType = GetFormattedDafnyType(element);
           if (elementType.ToString() == value.Type.ToString()) {
             var partialValue = PartialValue.Get(element, state);
-            new NeqConstraint(value, partialValue);
+            var _ = new NeqConstraint(value, partialValue);
           }
         }
         return;
@@ -404,42 +403,41 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       foreach (var functionApplication in functionApplications) {
         var result = PartialValue.Get(functionApplication.Result, state);
         var args = functionApplication.Args.Select(arg => PartialValue.Get(arg, state)).ToList();
-        if (functionApplication.Args[0] == heap) {
-          args = args.Skip(2).ToList();
-        } else {
-          args = args.Skip(1).ToList();
-        }
-        new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last(), !valueIsDatatype);
+        args = Equals(functionApplication.Args[0], heap) ? args.Skip(2).ToList() : args.Skip(1).ToList();
+        var _ = new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last(), !valueIsDatatype);
       }
 
       if (valueIsDatatype) {
-        new DatatypeConstructorCheckConstraint(value, fnTuple.Func.Name.Split(".").Last());
+        var __ = new DatatypeConstructorCheckConstraint(value, fnTuple!.Func.Name.Split(".").Last());
         // Elt is a datatype value
         var destructors = GetDestructorFunctions(value.Element).OrderBy(f => f.Name).ToList();
         if (destructors.Count > fnTuple.Args.Length) {
           // Try to filter out predicate functions
           // (that follow a format very similar to that of destructor names)
           destructors = destructors.Where(destructor =>
-              fnTuple.Args.Any(arg => destructor.OptEval(value.Element) == arg))
+              fnTuple.Args.Any(arg => Equals(destructor.OptEval(value.Element), arg)))
             .ToList();
         }
 
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {
-            var element = PartialValue.Get(Unbox(func.OptEval(value.Element)), state);
+            if (func.OptEval(value.Element) is not { } modelElement) {
+              continue;
+            }
+            var element = PartialValue.Get(UnboxNotNull(modelElement), state);
             var elementName = UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_");
-            new MemberSelectExprDatatypeConstraint(element, value, elementName);
+            var _ = new MemberSelectExprDatatypeConstraint(element, value, elementName);
           }
         } else {
           // we don't know destructor names, so we use indices instead
           var elements = new List<PartialValue>();
           for (int i = 0; i < fnTuple.Args.Length; i++) {
-            var element = PartialValue.Get(Unbox(fnTuple.Args[i]), state);
+            var element = PartialValue.Get(UnboxNotNull(fnTuple.Args[i]), state);
             elements.Add(element);
           }
 
-          new DatatypeValueConstraint(value, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(), elements);
+          var _ = new DatatypeValueConstraint(value, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(), elements);
         }
 
         return;
@@ -448,30 +446,34 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       switch (value.Type) {
         case SeqType: {
             if (fSeqEmpty.AppWithResult(value.Element) != null) {
-              new LiteralExprConstraint(value, new SeqDisplayExpr(Token.NoToken, new List<Expression>()));
+              var _ = new LiteralExprConstraint(value, new SeqDisplayExpr(Token.NoToken, new List<Expression>()));
               return;
             }
             var lenghtTuple = fSeqLength.AppWithArg(0, value.Element);
             BigNum seqLength = BigNum.MINUS_ONE;
             if (lenghtTuple != null) {
               var lengthValue = PartialValue.Get(lenghtTuple.Result, state);
-              BigNum.TryParse(GetLiteralExpression(lengthValue.Element, lengthValue.Type).ToString(), out seqLength);
-              new CardinalityConstraint(lengthValue, value);
+              var lengthValueLiteral = GetLiteralExpression(lengthValue.Element, lengthValue.Type);
+              if (lengthValueLiteral != null) {
+                BigNum.TryParse(lengthValueLiteral.ToString(), out seqLength);
+              }
+              var _ = new CardinalityConstraint(lengthValue, value);
             }
 
             // Sequences can be constructed with the build operator:
             List<PartialValue> elements = new();
 
-            var substring = value.Element;
+            Model.Element substring = value.Element;
             while (fSeqBuild.AppWithResult(substring) != null) {
-              elements.Insert(0, PartialValue.Get(Unbox(fSeqBuild.AppWithResult(substring).Args[1]), state));
-              substring = fSeqBuild.AppWithResult(substring).Args[0];
+              elements.Insert(0, PartialValue.Get(UnboxNotNull(fSeqBuild.AppWithResult(substring)!.Args[1]), state));
+              substring = fSeqBuild.AppWithResult(substring)!.Args[0];
             }
 
             for (int i = 0; i < elements.Count; i++) {
-              var index = new LiteralExpr(Token.NoToken, i);
-              index.Type = Type.Int;
-              new SeqSelectExprWithLiteralConstraint(elements[i], value, index);
+              var index = new LiteralExpr(Token.NoToken, i) {
+                Type = Type.Int
+              };
+              var _ = new SeqSelectExprWithLiteralConstraint(elements[i], value, index);
             }
 
             if (elements.Count == 0) {
@@ -481,16 +483,16 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                 if (elementIdTry != null && elementIdTry.ToString().Contains("-")) {
                   continue;
                 }
-                if (BigNum.TryParse(elementIdTry.ToString(), out var elementIdTryBigNum)) {
+                if (elementIdTry != null && BigNum.TryParse(elementIdTry.ToString(), out var elementIdTryBigNum)) {
                   if (!seqLength.Equals(BigNum.MINUS_ONE) && !(elementIdTryBigNum - seqLength).IsNegative) {
                     continue; // element out of bounds for sequence
                   }
                 }
-                var element = PartialValue.Get(Unbox(funcTuple.Result), state);
-                new SeqSelectExprConstraint(element, value, elementId);
+                var element = PartialValue.Get(UnboxNotNull(funcTuple.Result), state);
+                var _ = new SeqSelectExprConstraint(element, value, elementId);
               }
             } else {
-              new SeqDisplayConstraint(value, elements);
+              var _ = new SeqDisplayConstraint(value, elements);
             }
 
             return;
@@ -499,28 +501,27 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             if (fMapDomain.AppsWithResult(value.Element).Any()) {
               foreach (var map in fMapDomain.AppsWithResult(value.Element)) {
                 var mapValue = PartialValue.Get(map.Args[0], state);
-                new MemberSelectExprDatatypeConstraint(value, mapValue, "Keys");
+                var _ = new MemberSelectExprDatatypeConstraint(value, mapValue, "Keys");
               }
               return;
             }
             if (fMapValues.AppsWithResult(value.Element).Any()) {
               foreach (var map in fMapValues.AppsWithResult(value.Element)) {
                 var mapValue = PartialValue.Get(map.Args[0], state);
-                new MemberSelectExprDatatypeConstraint(value, mapValue, "Values");
+                var _ = new MemberSelectExprDatatypeConstraint(value, mapValue, "Values");
               }
             }
             if (fSetEmpty.AppWithResult(value.Element) != null) {
-              new LiteralExprConstraint(value, new SetDisplayExpr(Token.NoToken, true, new List<Expression>()));
+              var _ = new LiteralExprConstraint(value, new SetDisplayExpr(Token.NoToken, true, new List<Expression>()));
               return;
             }
 
             foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
-              var setElement = PartialValue.Get(Unbox(tpl.Args[1]), state);
+              var setElement = PartialValue.Get(UnboxNotNull(tpl.Args[1]), state);
               var containment = tpl.Result;
-              if (containment.Kind != Model.ElementKind.Boolean) {
-                continue;
+              if (containment is Model.Boolean boolean) {
+                var _ = new ContainmentConstraint(setElement, value, boolean.Value);
               }
-              new ContainmentConstraint(setElement, value, (containment as Model.Boolean).Value);
             }
 
             return;
@@ -532,7 +533,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var mapBuilds = fMapBuild.AppsWithResult(current).ToList();
             var result = new List<PartialValue>();
             while (mapBuilds.Count != 0) {
-              foreach (var mapBuild in mapBuilds.Where(m => m.Args[0] == current)) {
+              foreach (var mapBuild in mapBuilds.Where(m => Equals(m.Args[0], current))) {
                 result.AddRange(AddMappingHelper(
                   state,
                   value,
@@ -562,18 +563,22 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var mapElements = fMapElements.OptEval(current);
             if (mapDomain != null && mapElements != null) {
               foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+                var valueElement = fSetSelect.OptEval(mapElements, app.Args[1]);
+                if (valueElement != null) {
+                  valueElement = Unbox(valueElement);
+                }
                 result.AddRange(AddMappingHelper(
                   state,
                   value,
                   Unbox(app.Args[1]),
-                  Unbox(fSetSelect.OptEval(mapElements, app.Args[1])),
+                  valueElement,
                   mapKeysAdded, !((Model.Boolean)app.Result).Value));
               }
             }
 
 
             if (!result.Any() && fMapEmpty.AppWithResult(value.Element) != null) {
-              new LiteralExprConstraint(value, new MapDisplayExpr(Token.NoToken, true, new List<ExpressionPair>()));
+              var _ = new LiteralExprConstraint(value, new MapDisplayExpr(Token.NoToken, true, new List<ExpressionPair>()));
             }
 
             return;
@@ -589,9 +594,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var fields = fSetSelect.AppsWithArgs(0, heap, 1, value.Element).ToList();
 
             foreach (var fieldFunc in constantFields) {
-              var field = PartialValue.Get(Unbox(fieldFunc.OptEval(value.Element)), state);
+              if (fieldFunc.OptEval(value.Element) is not { } modelElement) {
+                continue;
+              }
+              var field = PartialValue.Get(UnboxNotNull(modelElement), state);
               var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
-              new MemberSelectExprClassConstraint(field, value, fieldName);
+              var _ = new MemberSelectExprClassConstraint(field, value, fieldName);
             }
 
             if (!fields.Any()) {
@@ -601,12 +609,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
               foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
                 if (fieldName != "alloc") {
-                  var field = PartialValue.Get(Unbox(tpl.Result), state);
-                  // TODO: WellFormedNess of arrays!
-                  if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
-                    new SeqSelectExprArrayConstraint(field, value, fieldName[1..^1]);
-                  } else {
-                    new MemberSelectExprClassConstraint(field, value, fieldName);
+                  var field = PartialValue.Get(UnboxNotNull(tpl.Result), state);
+                  // make sure the field in quetion is not an array index
+                  if (!fieldName.StartsWith('[') && !fieldName.EndsWith(']')) {
+                    var _ = new MemberSelectExprClassConstraint(field, value, fieldName);
                   }
 
                 }
@@ -620,7 +626,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <summary>
     /// Get the Dafny type of the value indicated by <param name="element"></param>
     /// This is in contrast to ReconstructType, which returns the type indicated by the element itself.
-    /// This method tries to extract the base type (so seq<char> instead of string)
+    /// This method tries to extract the base type (so sequence of characters instead of string)
     /// </summary>
     private Type GetDafnyType(Model.Uninterpreted element) {
       var finalResult = UnknownType;
@@ -642,9 +648,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       seqOperation = fSeqUpdate.AppWithResult(element);
       if (seqOperation != null && !exploredElements.Contains(seqOperation.Args[0])) { return GetDafnyType(seqOperation.Args[0]); }
       seqOperation = fSeqBuild.AppWithResult(element);
-      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args[1]))) { return new SeqType(GetDafnyType(Unbox(seqOperation.Args[1]))); }
+      if (seqOperation != null && !exploredElements.Contains(UnboxNotNull(seqOperation.Args[1]))) { return new SeqType(GetDafnyType(UnboxNotNull(seqOperation.Args[1]))); }
       seqOperation = fSeqCreate.AppWithResult(element);
-      if (seqOperation != null && !exploredElements.Contains(Unbox(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
+      if (seqOperation != null && !exploredElements.Contains(UnboxNotNull(seqOperation.Args.First()))) { return new SeqType(ReconstructType(seqOperation.Args.First())); }
       if (fSeqEmpty.AppWithResult(element) != null) { return new SeqType(null); }
       var setOperation = fSetUnion.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
@@ -653,11 +659,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       setOperation = fSetDifference.AppWithResult(element);
       if (setOperation != null && !exploredElements.Contains(setOperation.Args[0])) { return GetDafnyType(setOperation.Args[0]); }
       setOperation = fSetUnionOne.AppWithResult(element);
-      if (setOperation != null && !exploredElements.Contains(setOperation.Args[1])) { return new SetType(true, GetDafnyType(Unbox(setOperation.Args[1]))); }
+      if (setOperation != null && !exploredElements.Contains(setOperation.Args[1])) { return new SetType(true, GetDafnyType(UnboxNotNull(setOperation.Args[1]))); }
       if (fSetEmpty.AppWithResult(element) != null) { return new SetType(true, null); }
       var mapOperation = fMapBuild.AppWithResult(element);
       if (mapOperation != null) {
-        return new MapType(true, GetDafnyType(Unbox(mapOperation.Args[1])), GetDafnyType(Unbox(mapOperation.Args[2])));
+        return new MapType(true, GetDafnyType(UnboxNotNull(mapOperation.Args[1])), GetDafnyType(UnboxNotNull(mapOperation.Args[2])));
       }
       var unboxedTypes = fIsBox.AppsWithArg(0, element)
         .Where(tuple => ((Model.Boolean)tuple.Result).Value)
@@ -685,12 +691,12 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <summary>
     /// Reconstruct Dafny type from an element that represents a type in Z3
     /// </summary>
-    private Type ReconstructType(Model.Element typeElement) {
+    private Type ReconstructType(Model.Element? typeElement) {
       if (typeElement == null) {
         return UnknownType;
       }
       var fullName = GetTrueTypeName(typeElement);
-      if (fullName != null && fullName.Length > 7 && fullName[..7].Equals("Tclass.")) {
+      if (fullName is { Length: > 7 } && fullName[..7].Equals("Tclass.")) {
         return new UserDefinedType(new Token(), fullName[7..], null);
       }
       switch (fullName) {
@@ -703,8 +709,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         case "TChar":
           return Type.Char;
       }
-      if (fBv.AppWithResult(typeElement) != null) {
-        return new BitvectorType(options, ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+      if (fBv.AppWithResult(typeElement) is { } tupleWrapper) {
+        return new BitvectorType(options, ((Model.Integer)tupleWrapper.Args[0]).AsInt());
       }
 
       Type fallBackType = UnknownType; // to be returned in the event all else fails
@@ -752,17 +758,17 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Perform operations necessary to add a mapping to a map variable,
     /// return newly created PartialValue objects
     /// </summary>
-    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue mapVariable, Model.Element keyElement, Model.Element valueElement, HashSet<Model.Element> keySet, bool keyNotPresent = false) {
-      if (mapVariable == null || keySet.Contains(keyElement)) {
+    private IEnumerable<PartialValue> AddMappingHelper(PartialState state, PartialValue? mapVariable, Model.Element? keyElement, Model.Element? valueElement, HashSet<Model.Element> keySet, bool keyNotPresent = false) {
+      if (mapVariable == null || keyElement == null || keySet.Contains(keyElement)) {
         yield break;
       }
       var key = PartialValue.Get(keyElement, state);
       var opcode = keyNotPresent ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
-      new ContainmentConstraint(key, mapVariable, opcode == BinaryExpr.Opcode.In);
+      var _ = new ContainmentConstraint(key, mapVariable, opcode == BinaryExpr.Opcode.In);
       // Note that it is possible for valueElement to not be null while the element is not present in the set!
       if (valueElement != null && !keyNotPresent) {
         var value = PartialValue.Get(valueElement, state);
-        new MapSelectExprConstraint(value, mapVariable, key);
+        var __ =  new MapSelectExprConstraint(value, mapVariable, key);
         yield return value;
       }
       keySet.Add(keyElement);
@@ -778,17 +784,17 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private List<Model.Func> GetDestructorFunctions(Model.Element element) {
       var possibleTypeIdentifiers = GetIsResults(element);
       if (fDtype.OptEval(element) != null) {
-        possibleTypeIdentifiers.Add(fDtype.OptEval(element));
+        possibleTypeIdentifiers.Add(fDtype.OptEval(element)!);
       }
       var possiblyNullableTypes = possibleTypeIdentifiers
-        .Select(isResult => ReconstructType(isResult) as UserDefinedType)
-        .Where(type => type != null && type.Name != UnknownType.Name);
-      var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
+        .Select(ReconstructType).OfType<UserDefinedType>()
+        .Where(type => type.Name != UnknownType.Name);
+      var types = possiblyNullableTypes.Select(DafnyModelTypeUtils.GetNonNullable).OfType<UserDefinedType>().ToList();
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
       var canCallFunctions = new HashSet<string>();
       foreach (var app in element.References) {
-        if (app.Func.Arity != 1 || app.Args[0] != element ||
+        if (app.Func.Arity != 1 || !Equals(app.Args[0], element) ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
             builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last()) ||
             app.Func.Name.Split(".").Last().StartsWith("_")) {
@@ -810,23 +816,23 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private List<Model.FuncTuple> GetFunctionConstants(Model.Element element, Model.Element heap) {
       var possibleTypeIdentifiers = GetIsResults(element);
       if (fDtype.OptEval(element) != null) {
-        possibleTypeIdentifiers.Add(fDtype.OptEval(element));
+        possibleTypeIdentifiers.Add(fDtype.OptEval(element)!);
       }
       var possiblyNullableTypes = possibleTypeIdentifiers
-        .Select(isResult => ReconstructType(isResult) as UserDefinedType)
-        .Where(type => type != null && type.Name != UnknownType.Name);
-      var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
+        .Select(ReconstructType).OfType<UserDefinedType>()
+        .Where(type => type.Name != UnknownType.Name);
+      var types = possiblyNullableTypes.Select(DafnyModelTypeUtils.GetNonNullable).OfType<UserDefinedType>().ToList();
       List<Model.FuncTuple> applications = new();
       List<Model.FuncTuple> wellFormed = new();
       foreach (var app in element.References) {
-        if (app.Args.Length == 0 || (app.Args[0] != element && (heap == null || app.Args[0] != heap || app.Args.Length == 1 || app.Args[1] != element)) ||
+        if (app.Args.Length == 0 || (!Equals(app.Args[0], element) && (heap == null || !Equals(app.Args[0], heap) || app.Args.Length == 1 || !Equals(app.Args[1], element))) ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
             app.Func.Name.Split(".").Last().StartsWith("_")) {
           continue;
         }
 
         if (app.Func.Name.EndsWith("#canCall")) {
-          if (app.Result is Model.Boolean modelBoolean && modelBoolean.Value) {
+          if (app.Result is Model.Boolean { Value: true }) {
             wellFormed.Add(app);
           }
         } else {
@@ -846,7 +852,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// Return the name of the field represented by the given element.
     /// Special care is required if the element represents an array index
     /// </summary>
-    private List<string> GetFieldNames(Model.Element elt) {
+    private List<string> GetFieldNames(Model.Element? elt) {
       if (elt == null) {
         return new List<string>();
       }
@@ -859,9 +865,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
           .ToList();
       }
       // Reaching this code means elt is an index into an array
-      var indices = new Model.Element[(int)dims];
+      var indices = new Model.Element?[(int)dims];
       for (int i = (int)dims; 0 <= --i;) {
-        ModelFuncWrapper.ModelFuncTupleWrapper dimTuple;
+        ModelFuncWrapper.ModelFuncTupleWrapper? dimTuple;
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
           if (dimTuple == null) {
@@ -884,16 +890,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     /// <summary> Unboxes an element, if possible </summary>
-    private Model.Element Unbox(Model.Element elt) {
-      if (elt == null) {
-        return null;
-      }
+    private Model.Element? Unbox(Model.Element? elt) {
+      return elt == null ? null : UnboxNotNull(elt);
+    }
+    
+    /// <summary> Unboxes an element, if possible </summary>
+    private Model.Element UnboxNotNull(Model.Element elt) {
       var unboxed = fBox.AppWithResult(elt);
       if (unboxed != null) {
-        return Unbox(unboxed.Args[0]);
+        return UnboxNotNull(unboxed.Args[0]);
       }
       unboxed = fUnbox.AppWithArg(1, elt);
-      return unboxed != null ? Unbox(unboxed.Result) : elt;
+      return unboxed != null ? UnboxNotNull(unboxed.Result) : elt;
     }
   }
 }

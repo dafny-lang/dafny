@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,8 +19,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 /// objects in Boogie is tied to updates to various fields in the Model itself (see MkFunc method)
 /// </summary>
 class ModelFuncWrapper {
-
-  public readonly Model.Func func;
+  
+  private readonly Model.Func func;
   private readonly int argsToSkip;
 
   public ModelFuncWrapper(DafnyModel model, string name, int arity, int argsToSkip) {
@@ -34,25 +33,25 @@ class ModelFuncWrapper {
     this.argsToSkip = argsToSkip;
   }
 
-  private ModelFuncTupleWrapper ConvertFuncTuple(Model.FuncTuple tuple) {
-    return tuple == null ? null : new ModelFuncTupleWrapper(func, tuple.Result, tuple.Args[argsToSkip..]);
+  private ModelFuncTupleWrapper? ConvertFuncTuple(Model.FuncTuple? tuple) {
+    return tuple == null ? null : new ModelFuncTupleWrapper(tuple.Result, tuple.Args[argsToSkip..]);
   }
 
-  public ModelFuncTupleWrapper AppWithResult(Model.Element element) {
+  public ModelFuncTupleWrapper? AppWithResult(Model.Element element) {
     return ConvertFuncTuple(func.AppWithResult(element));
   }
 
   public IEnumerable<ModelFuncTupleWrapper> AppsWithResult(Model.Element element) {
-    return func.AppsWithResult(element).Select(ConvertFuncTuple);
+    return func.AppsWithResult(element).Select(ConvertFuncTuple).OfType<ModelFuncTupleWrapper>();
   }
 
-  public IEnumerable<ModelFuncTupleWrapper> Apps => func.Apps.Select(ConvertFuncTuple);
+  public IEnumerable<ModelFuncTupleWrapper> Apps => func.Apps.Select(ConvertFuncTuple).OfType<ModelFuncTupleWrapper>();
 
   public Model.Element GetConstant() {
     return func.GetConstant();
   }
 
-  public Model.Element OptEval(Model.Element element) {
+  public Model.Element? OptEval(Model.Element? element) {
     if (element == null) {
       return null;
     }
@@ -60,11 +59,11 @@ class ModelFuncWrapper {
     return app?.Result;
   }
 
-  public ModelFuncTupleWrapper AppWithArg(int index, Model.Element element) {
+  public ModelFuncTupleWrapper? AppWithArg(int index, Model.Element element) {
     return ConvertFuncTuple(func.AppWithArg(argsToSkip + index, element));
   }
 
-  public Model.Element OptEval(Model.Element first, Model.Element second) {
+  public Model.Element? OptEval(Model.Element? first, Model.Element? second) {
     if (first == null || second == null) {
       return null;
     }
@@ -73,11 +72,11 @@ class ModelFuncWrapper {
   }
 
   public IEnumerable<ModelFuncTupleWrapper> AppsWithArg(int i, Model.Element element) {
-    return func.AppsWithArg(i + argsToSkip, element).Select(ConvertFuncTuple);
+    return func.AppsWithArg(i + argsToSkip, element).Select(ConvertFuncTuple).OfType<ModelFuncTupleWrapper>();
   }
 
   public IEnumerable<ModelFuncTupleWrapper> AppsWithArgs(int i0, Model.Element element0, int i1, Model.Element element1) {
-    return func.AppsWithArgs(i0 + argsToSkip, element0, i1 + argsToSkip, element1).Select(ConvertFuncTuple);
+    return func.AppsWithArgs(i0 + argsToSkip, element0, i1 + argsToSkip, element1).Select(ConvertFuncTuple).OfType<ModelFuncTupleWrapper>();
   }
 
   /// <summary>
@@ -113,13 +112,11 @@ class ModelFuncWrapper {
 
     static readonly Model.Element[] EmptyArgs = Array.Empty<Model.Element>();
 
-    public readonly Model.Func Func;
-    public Model.Element Result;
+    public readonly Model.Element Result;
     public readonly Model.Element[] Args;
 
-    public ModelFuncTupleWrapper(Model.Func func, Model.Element res, Model.Element[] args) {
+    public ModelFuncTupleWrapper(Model.Element res, Model.Element[] args) {
       Args = args ?? EmptyArgs;
-      Func = func;
       Result = res;
     }
   }

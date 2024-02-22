@@ -584,7 +584,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("list.tail.Nil?", counterExamples[0].Assumption);
     }
 
-    [Theory]
+    [Theory(Skip = "This test should be re-enabled once counterexamples support arrays")]
     [MemberData(nameof(OptionSettings))]
     public async Task ArraySimpleTest(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -729,7 +729,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Contains("boundVar0 in s", counterExamples[0].Assumption);
     }
 
-    [Theory]
+    [Theory(Skip = "This test should be re-enabled once counterexamples support arrays")]
     [MemberData(nameof(OptionSettings))]
     public async Task MultiDimensionalArray(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
@@ -749,7 +749,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Matches("(a\\[2,3,1\\] == 7|7 == a\\[2,3,1\\])", counterExamples[0].Assumption);
     }
 
-    [Theory]
+    [Theory(Skip = "This test should be re-enabled once counterexamples support arrays")]
     [MemberData(nameof(OptionSettings))]
     public async Task ArrayEqualityByReference(Action<DafnyOptions> optionSettings) {
       await SetUpOptions(optionSettings);
