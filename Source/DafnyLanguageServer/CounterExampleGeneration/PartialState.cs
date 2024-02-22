@@ -142,9 +142,12 @@ public class PartialState {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
     }
 
-    if (LoopGuards.Count != 0) {
+    if ((LoopGuards.Count != 0 && !IsLoopEntryState) || LoopGuards.Count > 1) {
       Expression loopGuard = new IdentifierExpr(Token.NoToken, LoopGuards[0]);
       for (int i = 1; i < LoopGuards.Count; i++) {
+        if (i == LoopGuards.Count - 1 && IsLoopEntryState) {
+          continue;
+        }
         loopGuard = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loopGuard,
           new IdentifierExpr(Token.NoToken, LoopGuards[i]));
       }
@@ -290,7 +293,7 @@ public class PartialState {
     if (par <= 0) {
       return null;
     }
-    var res = new SourceLocation { Filename = name[..par] };
+    // var res = new SourceLocation { Filename = name[..par] };
     var words = name[(par + 1)..]
       .Split(',', ')', ':')
       .Where(x => x != "")
@@ -298,20 +301,31 @@ public class PartialState {
     if (words.Length < 2) {
       return null;
     }
-    if (!int.TryParse(words[0], out res.Line) ||
-        !int.TryParse(words[1], out res.Column)) {
+    if (!int.TryParse(words[0], out var line) ||
+        !int.TryParse(words[1], out var column)) {
       return null;
     }
     int colon = name.IndexOf(':', par);
-    res.AddInfo = colon > 0 ? name[(colon + 1)..].Trim() : "";
+    var res = new SourceLocation(
+      name[..par],
+      colon > 0 ? name[(colon + 1)..].Trim() : "",
+      line,
+      column);
     return res;
   }
 
   private class SourceLocation {
-    public string Filename;
-    public string AddInfo;
-    public int Line;
-    public int Column;
+    public readonly string Filename;
+    public readonly string AddInfo;
+    public readonly int Line;
+    public readonly int Column;
+
+    public SourceLocation(string filename, string addInfo, int line, int column) {
+      Filename = filename;
+      AddInfo = addInfo;
+      Line = line;
+      Column = column;
+    }
   }
 
 }

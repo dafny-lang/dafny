@@ -4,12 +4,12 @@ counterexample_commandline.dfy(18,22): Related location: this is the postconditi
 Dafny program verifier finished with 1 verified, 1 error
 Counterexample for first failing assertion: 
 Temporary variables to describe counterexamples: 
-ghost var loopGuard0 : bool := false;
+ghost var counterexampleLoopGuard0 : bool := false;
 counterexample_commandline.dfy(21,8): initial state:
 assume exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && 1 == |this.p| && '?' == this.p[0] && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
 counterexample_commandline.dfy(22,22):
 assume exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && 0 == i && '?' == this.p[0] && 1 == |this.p| && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
 counterexample_commandline.dfy(23,12): after some loop iterations:
-loopGuard0 := exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && 0 == i && '?' == this.p[0] && 1 == |this.p| && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
+counterexampleLoopGuard0 := exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && 0 == i && '?' == this.p[0] && 1 == |this.p| && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
 counterexample_commandline.dfy(30,32):
-assume loopGuard0 ==> exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && false == b && 0 == i && '?' == this.p[0] && 1 == |this.p| && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
+assume counterexampleLoopGuard0 ==> exists boundVar0: char, boundVar1: char :: this != null && |this.p| > 0 && |s| > 0 && s[0] != '?' && 1 == |s| && false == b && 0 == i && '?' == this.p[0] && 1 == |this.p| && s[0] != boundVar0 && s[0] != boundVar1 && boundVar0 != s[0] && boundVar1 != s[0] && boundVar0 != '?' && boundVar1 != '?' && boundVar0 != boundVar1 && boundVar1 != boundVar0;
