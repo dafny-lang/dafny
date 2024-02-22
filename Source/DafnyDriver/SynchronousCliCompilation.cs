@@ -130,6 +130,7 @@ namespace Microsoft.Dafny {
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
             if (consoleErrorReporter.FailCompilation) {
+              options.OutputWriter.WriteLine("Compilation halted because ");
               return ExitValue.PREPROCESSING_ERROR;
             }
           } else {
@@ -693,6 +694,7 @@ namespace Microsoft.Dafny {
 
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (dafnyProgram.Reporter.FailCompilation) {
+        await dafnyProgram.Options.OutputWriter.WriteLineAsync($"Translation was aborted because {dafnyProgram.Reporter.FailCompilationMessage}");
         return false;
       }
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
