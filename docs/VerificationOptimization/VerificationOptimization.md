@@ -1,3 +1,7 @@
+---
+title: Verification Optimization
+---
+
 # Overview
 
 Dafny verifies your program using a type of theorem prover known as a Satisfiability Modulo Theories (SMT) solver. More specifically, it uses the [Z3](https://github.com/Z3Prover/z3) solver. In many cases, it's possible to state only the final properties you want your program to have, with annotations such as `requires` and `ensures` clauses, and let the prover do the rest for you, automatically.

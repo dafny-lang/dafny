@@ -24,7 +24,7 @@ namespace Microsoft.Dafny {
     public readonly PreType PreType;
     public readonly Target What;
 
-    public string WhatString => What == Target.Object ? "object?" : What.ToString().ToLower();
+    public string WhatString => What == Target.Object ? PreType.TypeNameObjectQ : What.ToString().ToLower();
 
     public Advice(PreType preType, Target advice) {
       PreType = preType;

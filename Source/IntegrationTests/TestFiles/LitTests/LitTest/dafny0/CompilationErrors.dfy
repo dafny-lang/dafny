@@ -1,10 +1,10 @@
-// RUN: %exits-with 3 %dafny "%s" > "%t"
+// RUN: %exits-with 3 %dafny /allowAxioms:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type MyType  // compile error: abstract type
 iterator Iter()  // compile error: body-less iterator
-ghost method M()  // compile error: body-less ghost method
-method P()  // compile error: body-less method
+ghost method M() ensures false  // compile error: body-less ghost method
+method P() ensures false  // compile error: body-less method
 class TestClass {
   method Q()
   {
@@ -16,8 +16,8 @@ class TestClass {
   ghost var g: int
 }
 
-ghost function F(): int  // compile error: body-less ghost function
-function H(): int  // compile error: body-less function method
+ghost function F(): int ensures false // compile error: body-less ghost function
+function H(): int ensures false // compile error: body-less function method
 
 lemma Lemma() {
   assume false;  // compile error: assume

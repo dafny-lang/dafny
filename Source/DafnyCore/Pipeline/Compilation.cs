@@ -11,10 +11,12 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
+using Diagnostic = OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -119,6 +121,7 @@ public class Compilation : IDisposable {
 
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
+
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
   }
@@ -183,7 +186,7 @@ public class Compilation : IDisposable {
     }
 
     if (!HasErrors && !result.Any()) {
-      errorReporter.Error(MessageSource.Project, CompilerErrors.ErrorId.None, Project.StartingToken,
+      errorReporter.Error(MessageSource.Project, GeneratorErrors.ErrorId.None, Project.StartingToken,
         "no Dafny source files were specified as input");
     }
 
@@ -221,6 +224,8 @@ public class Compilation : IDisposable {
     try {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
+
+      Options.ProcessSolverOptions(errorReporter, Options.DafnyProject.StartingToken);
 
       updates.OnNext(new FinishedResolution(
         resolution,
@@ -281,6 +286,7 @@ public class Compilation : IDisposable {
 
   public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     bool onlyPrepareVerificationForGutterTests = false) {
+
     var resolution = await Resolution;
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {

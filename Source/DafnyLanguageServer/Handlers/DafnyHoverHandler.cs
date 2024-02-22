@@ -441,7 +441,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private static string AddAssertionBatchDocumentation(string batchReference) {
-      return $"[{batchReference}](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements)";
+      return $"[{batchReference}](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches)";
     }
 
     private static Hover CreateMarkdownHover(string information) {

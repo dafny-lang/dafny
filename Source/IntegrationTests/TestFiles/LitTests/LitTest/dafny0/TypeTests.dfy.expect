@@ -29,9 +29,7 @@ TypeTests.dfy(198,10): Error: incorrect argument type for datatype constructor p
 TypeTests.dfy(204,10): Error: incorrect argument type for datatype constructor parameter (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter at index 0 expects ? <: Dt<?>)
 TypeTests.dfy(211,10): Error: incorrect argument type for function parameter 'x' (expected ?, found set<?>)
 TypeTests.dfy(222,9): Error: assignment to array element is not allowed in this context, because this is a ghost method
-TypeTests.dfy(229,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'A' can be constructed
-TypeTests.dfy(230,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'B' can be constructed
-TypeTests.dfy(232,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'Cycle' can be constructed
+TypeTests.dfy(229,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(233,7): Error: recursive constraint dependency involving a subset type: Cyc -> Cycle -> Cyc
 TypeTests.dfy(237,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(238,20): Error: using the type being defined ('B') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
@@ -39,12 +37,12 @@ TypeTests.dfy(243,20): Error: using the type being defined ('E') here would caus
 TypeTests.dfy(244,20): Error: using the type being defined ('F') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(245,20): Error: using the type being defined ('G') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(251,7): Error: recursive constraint dependency involving a subset type: CycW -> W -> CycleW -> CycW
-TypeTests.dfy(257,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'CycleW' can be constructed
 TypeTests.dfy(258,7): Error: recursive constraint dependency involving a subset type: CycW -> W -> CycleW -> CycW
-TypeTests.dfy(264,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'CycleW' can be constructed
 TypeTests.dfy(265,7): Error: recursive constraint dependency involving a subset type: CycW -> W -> CycleW -> CycW
-TypeTests.dfy(272,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'CycleW' can be constructed
 TypeTests.dfy(273,7): Error: recursive constraint dependency involving a subset type: CycW -> W -> CycleW -> CycW
 TypeTests.dfy(278,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'NeverendingList' can be constructed
 TypeTests.dfy(279,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'Growing' can be constructed
-41 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(286,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'C' can be constructed
+TypeTests.dfy(284,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(288,20): Error: using the type being defined ('E') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+44 resolution/type errors detected in TypeTests.dfy
