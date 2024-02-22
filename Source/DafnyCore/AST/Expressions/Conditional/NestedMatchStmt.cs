@@ -36,7 +36,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
     UsesOptionalBraces = original.UsesOptionalBraces;
     if (cloner.CloneResolvedFields) {
-      Flattened = cloner.CloneStmt(original.Flattened);
+      Flattened = cloner.CloneStmt(original.Flattened, false);
     }
   }
 

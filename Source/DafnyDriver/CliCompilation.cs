@@ -103,8 +103,7 @@ public class CliCompilation {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
           options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
         }
-      }
-      else if (ev is InternalCompilationException internalCompilationException) {
+      } else if (ev is InternalCompilationException internalCompilationException) {
         if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
           options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
         }
@@ -217,6 +216,7 @@ public class CliCompilation {
           if (line != null) {
             results.TaskFilter = t => KeepVerificationTask(t, line.Value);
           }
+
 
           await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
         }
