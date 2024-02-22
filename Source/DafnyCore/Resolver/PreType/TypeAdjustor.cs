@@ -146,27 +146,27 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
       foreach (var element in multiSetDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
       }
 
     } else if (expr is SeqDisplayExpr seqDisplayExpr) {
       foreach (var element in seqDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
       }
 
     } else if (expr is MapDisplayExpr mapDisplayExpr) {
       foreach (var element in mapDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite,
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapDisplayExpr.Finite,
             AdjustableType.NormalizeSansBottom(element.A), AdjustableType.NormalizeSansBottom(element.B)),
           "map display"));
       }
 
     } else if (expr is SetComprehension setComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
         "set comprehension"));
 
     } else if (expr is MapComprehension mapComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => {
         Type keyType;
         if (mapComprehension.TermLeft != null) {
           keyType = AdjustableType.NormalizeSansBottom(mapComprehension.TermLeft);

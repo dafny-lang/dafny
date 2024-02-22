@@ -769,16 +769,16 @@ namespace Microsoft.Dafny {
                 case UnaryOpExpr.ResolvedOpcode.BoolNot:
                   return Boogie.Expr.Unary(GetToken(opExpr), UnaryOperator.Opcode.Not, arg);
                 case UnaryOpExpr.ResolvedOpcode.SeqLength:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is SeqType);
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is SeqType);
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SeqLength, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.SetCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is SetType { Finite: true });
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is SetType { Finite: true });
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SetCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.MultiSetCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is MultiSetType);
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is MultiSetType);
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MultiSetCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.MapCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is MapType { Finite: true });
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is MapType { Finite: true });
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MapCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.Fresh:
                   var freshLabel = ((FreshExpr)e).AtLabel;
@@ -1136,9 +1136,10 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.NotInSet:
                   Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
                 case BinaryExpr.ResolvedOpcode.Union: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
+                    bool finite = setType.Finite;
                     var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
-                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type.AsSetType.Arg), e0, e1);
+                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.Intersection: {
                     bool finite = e.E1.Type.AsSetType.Finite;

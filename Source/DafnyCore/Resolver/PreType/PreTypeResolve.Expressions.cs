@@ -663,7 +663,27 @@ namespace Microsoft.Dafny {
 
         ResolveAttributes(e, resolutionContext, false);
         scope.PopMarker();
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(e.Finite)), new List<PreType>() { e.Term.PreType });
+
+        expr.PreType = CreatePreTypeProxy("set comprehension");
+        var plainOlSetType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(e.Finite)), new List<PreType>() { e.Term.PreType });
+        Constraints.AddDefaultAdvice(e.PreType, plainOlSetType);
+        Constraints.AddGuardedConstraint(() => {
+          if (e.PreType.UrAncestor(this) is DPreType dPreType) {
+            if (dPreType.Decl.Name == PreType.SetTypeName(e.Finite)) {
+              AddSubtypeConstraint(dPreType.Arguments[0], e.Term.PreType, e.tok,
+                "element type of set display expected to be {0} (got {1})");
+            } else {
+              ReportError(e, "set comprehension used as if it had type {0}", e.PreType);
+            }
+            return true;
+          }
+          return false;
+        });
+        var check = e.Finite
+          ? PreTypeConstraints.CommonConfirmationBag.InSetFamily
+          : PreTypeConstraints.CommonConfirmationBag.InIsetFamily;
+        AddConfirmation(check, e.PreType, e.tok, "set comprehension used as if it had type {0}");
+
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
