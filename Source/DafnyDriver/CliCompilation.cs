@@ -79,6 +79,7 @@ public class CliCompilation {
       _ => throw new ArgumentOutOfRangeException()
     };
 
+    var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
@@ -101,6 +102,11 @@ public class CliCompilation {
         if (errorCount > 0) {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
           options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
+        }
+      }
+      else if (ev is InternalCompilationException internalCompilationException) {
+        if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
+          options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
         }
       }
 
@@ -138,6 +144,11 @@ public class CliCompilation {
 
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.SetResult();
+        }
+      }
+      if (ev is InternalCompilationException) {
+        foreach (var state in canVerifyResults.Values) {
+          state.Finished.TrySetCanceled();
         }
       }
 
@@ -218,12 +229,14 @@ public class CliCompilation {
             if (timeLimitSeconds.Seconds != 0) {
               tasks.Add(Task.Delay(timeLimitSeconds));
             }
+
             await Task.WhenAny(tasks);
             if (!results.Finished.Task.IsCompleted) {
               Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
                 "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
               break;
             }
+
             await results.Finished.Task;
 
             // We use an intermediate reporter so we can sort the diagnostics from all parts by token
@@ -233,7 +246,8 @@ public class CliCompilation {
             }
 
             foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-              Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+              Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+                diagnostic.Message);
             }
 
             var parts = results.CompletedParts;
@@ -243,6 +257,7 @@ public class CliCompilation {
           } catch (ProverException e) {
             Interlocked.Increment(ref statistics.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+          } catch (OperationCanceledException) {
           } catch (Exception e) {
             Interlocked.Increment(ref statistics.SolverExceptionCount);
             Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
