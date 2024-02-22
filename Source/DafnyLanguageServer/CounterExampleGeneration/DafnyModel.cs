@@ -118,19 +118,19 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
         ModelFuncWrapper? otherValuesFunction = null;
         switch (type) {
           case BitvectorType bitvectorType: {
-            var funcName = "U_2_bv" + bitvectorType.Width;
-            if (Model.HasFunc(funcName)) {
-              otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+              var funcName = "U_2_bv" + bitvectorType.Width;
+              if (Model.HasFunc(funcName)) {
+                otherValuesFunction = new ModelFuncWrapper(Model.GetFunc(funcName), 0);
+              }
+              break;
             }
-            break;
-          }
           case CharType:
             otherValuesFunction = fCharToInt;
             break;
           case RealType:
             otherValuesFunction = fU2Real;
             break;
-          case IntType: 
+          case IntType:
             otherValuesFunction = fU2Int;
             break;
           default:
@@ -768,7 +768,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       // Note that it is possible for valueElement to not be null while the element is not present in the set!
       if (valueElement != null && !keyNotPresent) {
         var value = PartialValue.Get(valueElement, state);
-        var __ =  new MapSelectExprConstraint(value, mapVariable, key);
+        var __ = new MapSelectExprConstraint(value, mapVariable, key);
         yield return value;
       }
       keySet.Add(keyElement);
@@ -893,7 +893,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     private Model.Element? Unbox(Model.Element? elt) {
       return elt == null ? null : UnboxNotNull(elt);
     }
-    
+
     /// <summary> Unboxes an element, if possible </summary>
     private Model.Element UnboxNotNull(Model.Element elt) {
       var unboxed = fBox.AppWithResult(elt);

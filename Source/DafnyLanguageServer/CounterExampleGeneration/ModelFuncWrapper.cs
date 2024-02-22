@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 /// objects in Boogie is tied to updates to various fields in the Model itself (see MkFunc method)
 /// </summary>
 class ModelFuncWrapper {
-  
+
   private readonly Model.Func func;
   private readonly int argsToSkip;
 

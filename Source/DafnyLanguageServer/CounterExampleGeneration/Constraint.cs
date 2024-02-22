@@ -11,10 +11,10 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 /// A constraint is a Boolean expression over partial values.
 /// </summary>
 public abstract class Constraint {
-  
+
   // We cannot add a constraint to the counterexample assumption until we know how to refer to each of the
   // partial values referenced by the constraint:
-  private readonly List<PartialValue> referencedValues; 
+  private readonly List<PartialValue> referencedValues;
   public IEnumerable<PartialValue> ReferencedValues => referencedValues.AsEnumerable();
 
   protected Constraint(IEnumerable<PartialValue> referencedValues) {
@@ -63,8 +63,7 @@ public abstract class Constraint {
   public static List<Constraint> ResolveAndOrder(
     Dictionary<PartialValue, Expression> knownDefinitions,
     List<Constraint> constraints,
-    bool allowNewIdentifiers) 
-  {
+    bool allowNewIdentifiers) {
     Constraint? newConstraint = null;
     var oldConstraints = new List<Constraint>();
     oldConstraints.AddRange(constraints.Where(constraint =>
@@ -129,10 +128,9 @@ public abstract class DefinitionConstraint : Constraint {
   public readonly List<Constraint> WellFormed;
 
   protected DefinitionConstraint(
-    IEnumerable<PartialValue> referencedValues, 
+    IEnumerable<PartialValue> referencedValues,
     PartialValue definedValue,
-    List<Constraint> wellFormed) : base(referencedValues) 
-  {
+    List<Constraint> wellFormed) : base(referencedValues) {
     DefinedValue = definedValue;
     DefinedValue.Constraints.Add(this);
     WellFormed = wellFormed;
@@ -153,7 +151,7 @@ public abstract class DefinitionConstraint : Constraint {
 public class IdentifierExprConstraint : DefinitionConstraint {
   private readonly string name;
 
-  public IdentifierExprConstraint(PartialValue definedValue, string name) 
+  public IdentifierExprConstraint(PartialValue definedValue, string name)
     : base(new List<PartialValue>(), definedValue, new List<Constraint>()) {
     this.name = name;
   }
@@ -166,7 +164,7 @@ public class IdentifierExprConstraint : DefinitionConstraint {
 public class LiteralExprConstraint : DefinitionConstraint {
 
   public readonly Expression LiteralExpr;
-  public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr) 
+  public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr)
     : base(new List<PartialValue>(), definedValue, new List<Constraint>()) {
     LiteralExpr = literalExpr;
   }
@@ -182,9 +180,9 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
   public readonly string MemberName;
 
   protected MemberSelectExprConstraint(
-    PartialValue definedValue, 
-    PartialValue obj, 
-    string memberName, 
+    PartialValue definedValue,
+    PartialValue obj,
+    string memberName,
     List<Constraint> constraint) : base(new List<PartialValue> { obj }, definedValue, constraint) {
     Obj = obj;
     MemberName = memberName;
@@ -196,12 +194,12 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
 }
 
 public class MemberSelectExprDatatypeConstraint : MemberSelectExprConstraint {
-  public MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName) 
+  public MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName)
     : base(definedValue, obj, memberName, new List<Constraint>()) { }
 }
 
 public class MemberSelectExprClassConstraint : MemberSelectExprConstraint {
-  public MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName) 
+  public MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName)
     : base(definedValue, obj, memberName, new List<Constraint> { new NotNullConstraint(obj) }) {
   }
 }
@@ -214,9 +212,9 @@ public class DatatypeValueConstraint : DefinitionConstraint {
 
   public DatatypeValueConstraint(
     PartialValue definedValue,
-    string datatypeName, 
-    string constructorName, 
-    IReadOnlyCollection<PartialValue> unnamedDestructors) 
+    string datatypeName,
+    string constructorName,
+    IReadOnlyCollection<PartialValue> unnamedDestructors)
     : base(unnamedDestructors, definedValue, new List<Constraint>()) {
     UnnamedDestructors = unnamedDestructors;
     this.constructorName = constructorName;
@@ -245,11 +243,11 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new SeqSelectExpr(
-      Token.NoToken, 
-      true, 
-      definitions[Seq], 
-      definitions[Index], 
-      null, 
+      Token.NoToken,
+      true,
+      definitions[Seq],
+      definitions[Index],
+      null,
       Token.NoToken);
   }
 }
@@ -280,7 +278,7 @@ public class SeqSelectExprWithLiteralConstraint : DefinitionConstraint {
 
 
   public SeqSelectExprWithLiteralConstraint(PartialValue definedValue, PartialValue seq, LiteralExpr index) : base(
-    new List<PartialValue> { seq }, definedValue, 
+    new List<PartialValue> { seq }, definedValue,
     new List<Constraint> { new CardinalityGtThanLiteralConstraint(seq, index) }) {
     Seq = seq;
     Index = index;
@@ -358,7 +356,7 @@ public class FunctionCallRequiresConstraint : Constraint {
   private readonly string functionName;
 
 
-  public FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName) 
+  public FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName)
     : base(args.Append(receiver)) {
     this.args = args;
     this.receiver = receiver;
@@ -380,7 +378,7 @@ public class ContainmentConstraint : Constraint {
 
   public readonly PartialValue Element, Set;
   private readonly bool isIn;
-  public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn) 
+  public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn)
     : base(new List<PartialValue> { element, set }) {
     Element = element;
     Set = set;
@@ -418,7 +416,7 @@ public class DatatypeConstructorCheckConstraint : Constraint {
   private readonly PartialValue obj;
   public readonly string ConstructorName;
 
-  public DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName) 
+  public DatatypeConstructorCheckConstraint(PartialValue obj, string constructorName)
     : base(new List<PartialValue> { obj }) {
     this.obj = obj;
     ConstructorName = constructorName;
@@ -433,7 +431,7 @@ public class CardinalityGtThanConstraint : Constraint {
   private readonly PartialValue collection;
   private readonly PartialValue bound;
 
-  public CardinalityGtThanConstraint(PartialValue collection, PartialValue bound) 
+  public CardinalityGtThanConstraint(PartialValue collection, PartialValue bound)
     : base(new List<PartialValue> { collection, bound }) {
     this.collection = collection;
     this.bound = bound;
@@ -451,7 +449,7 @@ public class CardinalityGtThanLiteralConstraint : Constraint {
   private readonly PartialValue collection;
   private readonly LiteralExpr bound;
 
-  public CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound) 
+  public CardinalityGtThanLiteralConstraint(PartialValue collection, LiteralExpr bound)
     : base(new List<PartialValue> { collection }) {
     this.collection = collection;
     this.bound = bound;

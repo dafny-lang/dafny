@@ -13,7 +13,7 @@ public class PartialState {
 
   public bool IsLoopEntryState => FullStateName.Contains("after some loop iterations");
   // ghost variables introduced by the counterexample whose values must be true for the counterexample to hold:
-  public List<string> LoopGuards = new(); 
+  public List<string> LoopGuards = new();
   public readonly Dictionary<PartialValue, List<string>> KnownVariableNames = new();
   private readonly List<PartialValue> initialPartialValues;
   internal readonly DafnyModel Model;
@@ -97,7 +97,7 @@ public class PartialState {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
     var variables = ExpandedVariableSet(-1).ToArray();
     var constraintSet = new HashSet<Constraint>();
-    
+
     // Collect all constraints into one list:
     foreach (var variable in variables) {
       foreach (var constraint in variable.Constraints) {
@@ -141,7 +141,7 @@ public class PartialState {
     if (constraintsAsExpressions.Count > 0 && boundVars.Count > 0) {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
     }
-    
+
     if (LoopGuards.Count != 0) {
       Expression loopGuard = new IdentifierExpr(Token.NoToken, LoopGuards[0]);
       for (int i = 1; i < LoopGuards.Count; i++) {
