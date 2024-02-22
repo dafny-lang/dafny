@@ -12,7 +12,7 @@ public class DocumentationCommand {
   private static readonly Argument<FileInfo> FileInfoArgument = new();
 
   static DocumentationCommand() {
-    CompilerErrors.RunStaticConstructor();
+    GeneratorErrors.RunStaticConstructor();
     ResolutionErrors.RunStaticConstructor();
     ParseErrors.RunStaticConstructor();
   }
