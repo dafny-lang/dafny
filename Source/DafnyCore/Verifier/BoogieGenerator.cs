@@ -14,6 +14,7 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using System.Threading;
+using DafnyCore;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
@@ -76,7 +77,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
-          ReportRanges = options.Get(DafnyConsolePrinter.ShowSnippets)
+          ReportRanges = options.Get(Snippets.ShowSnippets)
         };
       }
       this.flags = flags;

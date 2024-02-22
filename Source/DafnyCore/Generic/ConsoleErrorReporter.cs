@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -42,9 +43,9 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
-    if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+    if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
       var tw = new StringWriter();
-      DafnyConsolePrinter.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
+      Snippets.WriteSourceCodeSnippet(Options, tok.ToRange(), tw);
       errorLine += tw.ToString();
     }
 
@@ -65,9 +66,9 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       }
 
       errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
-      if (Options.Get(DafnyConsolePrinter.ShowSnippets) && tok.Uri != null) {
+      if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
         var tw = new StringWriter();
-        DafnyConsolePrinter.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
+        Snippets.WriteSourceCodeSnippet(Options, innerToken.ToRange(), tw);
         errorLine += tw.ToString();
       }
     }

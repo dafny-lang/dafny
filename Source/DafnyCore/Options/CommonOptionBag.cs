@@ -80,7 +80,7 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
-  public static readonly Option<List<string>> VerificationLogFormat = new("--log-format", $@"
+  public static readonly Option<IList<string>> VerificationLogFormat = new("--log-format", $@"
 Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
 
 The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
@@ -376,6 +376,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
+    DafnyOptions.RegisterLegacyUi(VerificationLogFormat, DafnyOptions.ParseStringElement, "Verification options", "verificationLogger");
     DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
@@ -408,7 +409,7 @@ Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.PrintOption, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
 
-    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+    DafnyOptions.RegisterLegacyUi(Snippets.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
 1 - Show a source code snippet for each Dafny message.".TrimStart());
 
