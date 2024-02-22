@@ -104,5 +104,6 @@ public static class DafnyCommands {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
+    CommonOptionBag.AllowAxioms,
   }).Concat(ParserOptions).ToList();
 }

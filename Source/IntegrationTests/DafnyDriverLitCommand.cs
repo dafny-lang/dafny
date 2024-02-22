@@ -12,7 +12,6 @@ class MainWithWritersCommand : ILitCommand {
   private readonly MainWithWriters main;
   public string[] Arguments { get; }
 
-
   public MainWithWritersCommand(string name, IEnumerable<string> arguments, MainWithWriters main) {
     this.name = name;
     this.main = main;

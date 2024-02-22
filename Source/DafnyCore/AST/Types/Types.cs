@@ -1998,7 +1998,7 @@ public abstract class CollectionType : NonProxyType {
   /// For a given "source", denoting an expression of this CollectionType, return the BoundedPool corresponding
   /// to an expression "x in source".
   /// </summary>
-  public abstract ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source);
+  public abstract CollectionBoundedPool GetBoundedPool(Expression source);
 }
 
 public class SetType : CollectionType {
@@ -2039,8 +2039,8 @@ public class SetType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSet;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.SetBoundedPool(source, Arg, Arg, Finite);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new SetBoundedPool(source, Arg, Arg, Finite);
   }
 }
 
@@ -2073,8 +2073,8 @@ public class MultiSetType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMultiSet;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MultiSetBoundedPool(source, Arg, Arg);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new MultiSetBoundedPool(source, Arg, Arg);
   }
 }
 
@@ -2107,8 +2107,8 @@ public class SeqType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.SeqBoundedPool(source, Arg, Arg);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new SeqBoundedPool(source, Arg, Arg);
   }
 }
 

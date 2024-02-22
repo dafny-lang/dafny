@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using System.Numerics;
 using System.IO;
@@ -2229,25 +2230,12 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (member is Function) {
           var f = (Function)member;
-          if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
-            // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (Attributes.Contains(f.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
-              // suppress error message
-            } else {
-              Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body", errorWr, f.FullName);
-            }
-          } else if (f.IsGhost) {
-            // nothing to compile, but we do check for assumes
-            if (f.Body == null) {
-              Contract.Assert((c is TraitDecl && !f.IsStatic) || Attributes.Contains(f.Attributes, "extern"));
-            }
-
+          if (f.IsGhost) {
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(ErrorId.c_test_function_must_be_compilable, f.tok,
                 "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
-          } else if (c is TraitDecl && !f.IsStatic) {
+          } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
               Contract.Assert(w == null); // since we requested no body
@@ -2257,6 +2245,12 @@ namespace Microsoft.Dafny.Compilers {
             if (f.Body != null) {
               CompileFunction(f, classWriter, true);
             }
+          } else if (f.IsExtern(Options)) {
+            if (IncludeExternMembers) {
+              CompileFunction(f, classWriter, false);
+            }
+          } else if (f.Body == null) {
+            Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body so it cannot be compiled", errorWr, f.FullName);
           } else if (c is NewtypeDecl && f != f.Original) {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
@@ -2275,19 +2269,8 @@ namespace Microsoft.Dafny.Compilers {
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 errorWr, m.FullName);
             }
-          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
-            // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (Attributes.Contains(m.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
-              // suppress error message
-            } else {
-              Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body", errorWr, m.FullName);
-            }
           } else if (m.IsGhost) {
-            if (m.Body == null) {
-              Contract.Assert(c is TraitDecl && !m.IsStatic);
-            }
-          } else if (c is TraitDecl && !m.IsStatic) {
+          } else if (m.IsVirtual) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
               Contract.Assert(w == null); // since we requested no body
@@ -2297,6 +2280,12 @@ namespace Microsoft.Dafny.Compilers {
             if (m.Body != null) {
               CompileMethod(program, m, classWriter, true);
             }
+          } else if (m.IsExtern(Options)) {
+            if (IncludeExternMembers) {
+              CompileMethod(program, m, classWriter, false);
+            }
+          } else if (m.Body == null) {
+            Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
@@ -2738,8 +2727,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          // Is this feasible? -- note the expression m.Body.Tok above
-          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body", w, m.FullName);
+          Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body so it cannot be compiled", w, m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -3212,17 +3200,9 @@ namespace Microsoft.Dafny.Compilers {
         compiler = c;
         this.wr = wr;
       }
-      private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
-        if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(ErrorId.c_assume_statement_may_not_be_compiled, tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
-        }
-      }
+
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is AssumeStmt) {
-          RejectAssume(stmt.Tok, stmt.Attributes, wr);
-        } else if (stmt is AssignSuchThatStmt { AssumeToken: { Attrs: var attrs } }) {
-          RejectAssume(stmt.Tok, attrs, wr);
-        } else if (stmt is ForallStmt) {
+        if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
             compiler.Error(ErrorId.c_forall_statement_has_no_body, stmt.Tok, "a forall statement without a body cannot be compiled", wr);
@@ -3345,7 +3325,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_assign_such_that_forbidden, s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
         var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
-        var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+        var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
         if (missingBounds.Count != 0) {
           foreach (var bv in missingBounds) {
             Error(ErrorId.c_assign_such_that_is_too_complex, s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
@@ -3774,7 +3754,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, ConcreteSyntaxTree wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
       for (int i = 0; i < n; i++) {
@@ -3812,9 +3792,9 @@ namespace Microsoft.Dafny.Compilers {
     /// Note that, while the values returned bny the enumeration have the target representation of "bv.Type", they may
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
-    Type CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+    Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
         Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
-        List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
+        List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
 
@@ -3823,14 +3803,14 @@ namespace Microsoft.Dafny.Compilers {
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-      if (bound is ComprehensionExpr.BoolBoundedPool) {
+      if (bound is BoolBoundedPool) {
         collectionWriter = (wr) => EmitBoolBoundedPool(inLetExprBody, wr, wStmts);
         return new BoolType();
-      } else if (bound is ComprehensionExpr.CharBoundedPool) {
+      } else if (bound is CharBoundedPool) {
         collectionWriter = (wr) => EmitCharBoundedPool(inLetExprBody, wr, wStmts);
         return new CharType();
-      } else if (bound is ComprehensionExpr.IntBoundedPool) {
-        var b = (ComprehensionExpr.IntBoundedPool)bound;
+      } else if (bound is IntBoundedPool) {
+        var b = (IntBoundedPool)bound;
         var res = EmitIntegerRange(bv.Type, wLo => {
           if (b.LowerBound == null) {
             EmitNull(bv.Type, wLo);
@@ -3857,41 +3837,41 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         collectionWriter = (wr) => EmitWiggleWaggleBoundedPool(inLetExprBody, wr, wStmts);
         return bv.Type;
-      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-        var b = (ComprehensionExpr.ExactBoundedPool)bound;
+      } else if (bound is ExactBoundedPool) {
+        var b = (ExactBoundedPool)bound;
         collectionWriter = (wr) => EmitSingleValueGenerator(su.Substitute(b.E), inLetExprBody, TypeName(b.E.Type, wr, b.E.tok), wr, wStmts);
         return b.E.Type;
-      } else if (bound is ComprehensionExpr.SetBoundedPool setBoundedPool) {
+      } else if (bound is SetBoundedPool setBoundedPool) {
         collectionWriter = (wr) => {
           EmitSetBoundedPool(su.Substitute(setBoundedPool.Set), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return setBoundedPool.CollectionElementType;
-      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-        var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+      } else if (bound is MultiSetBoundedPool) {
+        var b = (MultiSetBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitMultiSetBoundedPool(su.Substitute(b.MultiSet), includeDuplicates, propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+      } else if (bound is SubSetBoundedPool) {
+        var b = (SubSetBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitSubSetBoundedPool(su.Substitute(b.UpperBound), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.UpperBound.Type;
-      } else if (bound is ComprehensionExpr.MapBoundedPool) {
-        var b = (ComprehensionExpr.MapBoundedPool)bound;
+      } else if (bound is MapBoundedPool) {
+        var b = (MapBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitMapBoundedPool(su.Substitute(b.Map), propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-        var b = (ComprehensionExpr.SeqBoundedPool)bound;
+      } else if (bound is SeqBoundedPool) {
+        var b = (SeqBoundedPool)bound;
         collectionWriter = (wr) => {
           EmitSeqBoundedPool(su.Substitute(b.Seq), includeDuplicates, propertySuffix, inLetExprBody, wr, wStmts);
         };
         return b.CollectionElementType;
-      } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-        var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
+      } else if (bound is DatatypeBoundedPool) {
+        var b = (DatatypeBoundedPool)bound;
         collectionWriter = (wr) => EmitDatatypeBoundedPool(bv, propertySuffix, inLetExprBody, wr, wStmts);
         return new UserDefinedType(bv.Tok, new NameSegment(bv.Tok, b.Decl.Name, new())) {
           ResolvedClass = b.Decl
@@ -3943,7 +3923,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, wr, bv.Tok, null), propertySuffix);
     }
 
-    private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
+    private Expression SubstituteBound(IntBoundedPool b, List<BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
       Contract.Requires(b != null);
       Contract.Requires((lowBound ? b.LowerBound : b.UpperBound) != null);
       Contract.Requires(bounds != null);
@@ -3956,8 +3936,8 @@ namespace Microsoft.Dafny.Compilers {
       var sm = new Dictionary<IVariable, Expression>();
       for (int i = index + 1; i < boundVars.Count; i++) {
         var bound = bounds[i];
-        if (bound is ComprehensionExpr.IntBoundedPool) {
-          var ib = (ComprehensionExpr.IntBoundedPool)bound;
+        if (bound is IntBoundedPool) {
+          var ib = (IntBoundedPool)bound;
           var bv = boundVars[i];
           sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
         }
@@ -3977,7 +3957,7 @@ namespace Microsoft.Dafny.Compilers {
       TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
     }
 
-    private bool CanSequentializeForall(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
+    private bool CanSequentializeForall(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
       // Given a statement
       //
       //   forall i, ... | R {
@@ -4101,7 +4081,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -4139,7 +4119,7 @@ namespace Microsoft.Dafny.Compilers {
       var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
       var iterLimit = "_iterLimit_" + c;
 
-      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
+      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0);
       var currentBlock = wr.Fork();
       wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
@@ -4150,7 +4130,7 @@ namespace Microsoft.Dafny.Compilers {
 
       for (int i = 0; i < n; i++) {
         var bound = bounds[i];
-        Contract.Assert((bound.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
+        Contract.Assert((bound.Virtues & BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit) {
           DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, currentBlock, Type.Int);
@@ -5483,7 +5463,7 @@ namespace Microsoft.Dafny.Compilers {
           //        return E;
           //      })
           Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
-          var missingBounds = ComprehensionExpr.BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+          var missingBounds = BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, BoundedPool.PoolVirtues.Enumerable);
           if (missingBounds.Count != 0) {
             foreach (var bv in missingBounds) {
               Error(ErrorId.c_let_such_that_is_too_complex, e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
