@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "valueSet()";
           break;
         case SpecialField.ID.Items:
-          var mapType = receiverType.AsMapType;
+          var mapType = receiverType.NormalizeToAncestorType().AsMapType;
           Contract.Assert(mapType != null);
           var errorWr = new ConcreteSyntaxTree();
           compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Token.NoToken)}>entrySet()";
@@ -1694,22 +1694,22 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
-      if (source.Type.AsMultiSetType != null) {
+      if (source.Type.NormalizeToAncestorType().AsMultiSetType is {} multiSetType) {
         wr = EmitCoercionIfNecessary(from: NativeObjectType, to: Type.Int, tok: source.tok, wr: wr);
-        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(multiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(", ");
         wr.Append(Expr(index, inLetExprBody, wStmts));
         wr.Write(")");
-      } else if (source.Type.AsMapType != null) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsMapType.Range, tok: source.tok, wr: wr);
+      } else if (source.Type.NormalizeToAncestorType().AsMapType is {} mapType) {
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: mapType.Range, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".get(");
-        var coercedWr = EmitCoercionIfNecessary(from: source.Type.AsMapType.Domain, to: NativeObjectType, tok: source.tok, wr: wr);
+        var coercedWr = EmitCoercionIfNecessary(from: mapType.Domain, to: NativeObjectType, tok: source.tok, wr: wr);
         EmitExpr(index, inLetExprBody, coercedWr, wStmts);
         wr.Write(")");
       } else {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.AsCollectionType.Arg, tok: source.tok, wr: wr);
+        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: source.Type.NormalizeToAncestorType().AsCollectionType.Arg, tok: source.tok, wr: wr);
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".select");
         TrParenExprAsInt(index, wr, inLetExprBody, wStmts);
@@ -1729,14 +1729,14 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         TrExprAsInt(index, wr, inLetExprBody, wStmts);
-      } else if (source.Type.AsMapType != null) {
+      } else if (source.Type.NormalizeToAncestorType().AsMapType != null) {
         var mapType = (MapType)resultCollectionType;
         wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         wr.Append(Expr(index, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(source.Type.AsMultiSetType != null);
+        Contract.Assert(source.Type.NormalizeToAncestorType().AsMultiSetType != null);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
@@ -2968,7 +2968,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          callString = $"<{BoxedTypeName(e1.Type.AsCollectionType.Arg, errorWr, tok)}>disjoint";
+          callString = $"<{BoxedTypeName(e1.Type.NormalizeToAncestorType().AsCollectionType.Arg, errorWr, tok)}>disjoint";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
@@ -3866,7 +3866,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool NeedsCastFromTypeParameter => true;
 
     protected override bool TargetSubtypingRequiresEqualTypeArguments(Type type) {
-      return type.AsCollectionType == null;
+      return type.NormalizeToAncestorType().AsCollectionType == null;
     }
 
     protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
@@ -4035,7 +4035,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnySeqClass}.Create({TypeDescriptor(expr.Type.AsCollectionType.Arg, wr, expr.tok)}, ");
+      wr.Write($"{DafnySeqClass}.Create({TypeDescriptor(expr.Type.NormalizeToAncestorType().AsCollectionType.Arg, wr, expr.tok)}, ");
       var size = expr.N;
       if (AsJavaNativeType(size.Type) is { }) {
         size = new ConversionExpr(expr.N.tok, size, new IntType());

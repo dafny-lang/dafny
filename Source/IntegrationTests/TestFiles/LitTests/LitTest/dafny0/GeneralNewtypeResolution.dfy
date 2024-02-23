@@ -536,3 +536,16 @@ module ForallStatementRegression {
     print a[..], "\n";
   }
 }
+
+module Collections {
+  newtype IntSet = s: set<int> | true
+
+  method TestSet() {
+    var s: IntSet := {};
+    var u: set<int> := {};
+    u := s; // error: needs "as"
+    s := u; // error: needs "as"
+    u := s as set<int>; // like this!
+    s := u as IntSet; // like this!
+  }
+}

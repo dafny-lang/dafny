@@ -1,0 +1,5 @@
+{} 2 4 true 4 false
+[false, true, true] {} true
+0 0 true true
+true true false true
+false true

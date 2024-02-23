@@ -527,7 +527,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (lexpr is SeqSelectExpr selectExpr) {
             string targetArray = EmitAssignmentLhs(selectExpr.Seq, wr);
             string targetIndex = EmitAssignmentLhs(selectExpr.E0, wr);
-            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
+            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
             ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => EmitIdentifier(targetIndex, wIndex) }, lhsTypes[i]);
@@ -4211,7 +4211,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
       var index = StabilizeExpr(ll.E0, "_index", wr, wStmts);
-      if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
+      if (ll.Seq.Type.IsArrayType || ll.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
         index = ArrayIndexToNativeInt(index, ll.E0.Type);
       }
       return new ArrayLvalueImpl(this, arr, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(index) }, ll.Type);
@@ -5286,7 +5286,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        var collectionType = e.Type.AsCollectionType;
+        var collectionType = e.Type.NormalizeToAncestorType().AsCollectionType;
         Contract.Assert(collectionType != null);
         EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
       } else if (expr is DatatypeUpdateExpr) {

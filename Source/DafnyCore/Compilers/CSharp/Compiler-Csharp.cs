@@ -1639,7 +1639,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public string TypeHelperName(Type type, ConcreteSyntaxTree wr, IToken tok, Type/*?*/ otherType = null) {
-      var xType = type.NormalizeExpand();
+      var xType = type.NormalizeToAncestorType();
       if (xType is SeqType seqType) {
         return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
       } else if (xType is SetType setType) {
