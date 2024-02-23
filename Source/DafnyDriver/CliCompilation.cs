@@ -85,7 +85,6 @@ public class CliCompilation {
       _ => throw new ArgumentOutOfRangeException()
     };
 
-    var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
@@ -108,10 +107,6 @@ public class CliCompilation {
         if (errorCount > 0) {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
           options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
-        }
-      } else if (ev is InternalCompilationException internalCompilationException) {
-        if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
-          options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
         }
       }
 
@@ -149,11 +144,6 @@ public class CliCompilation {
 
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.SetResult();
-        }
-      }
-      if (ev is InternalCompilationException) {
-        foreach (var state in canVerifyResults.Values) {
-          state.Finished.TrySetCanceled();
         }
       }
 
