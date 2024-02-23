@@ -1,0 +1,11 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+blie says howdy
+Argument --blie is not a Dafny option so it was interpreted as an argument to the user program, even though it starts with '--'. Move this argument to after a `--` token to silence this message.
+Argument --2 is not a Dafny option so it was interpreted as an argument to the user program, even though it starts with '--'. Move this argument to after a `--` token to silence this message.
+
+Dafny program verifier finished with 1 verified, 0 errors
+--blie says --2
+
+Dafny program verifier finished with 1 verified, 0 errors
+--bla says --2
