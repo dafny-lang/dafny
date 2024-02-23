@@ -1,8 +1,8 @@
 using System.IO;
 using System.Threading.Tasks;
-using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
+
 
 public class ExitCommand : ILitCommand {
   private readonly int expectedExitCode;

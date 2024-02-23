@@ -94,17 +94,19 @@ namespace XUnitExtensions.Lit {
 
     public async Task<int> Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };
+      var writersToClose = new List<StreamWriter>();
       var errorWriters = new List<TextWriter> { errWriter };
       if (OutputFile != null) {
-        var writer = new StreamWriter(OutputFile, Append);
-        outputWriters.Add(writer);
-        if (ErrorFile == OutputFile) {
-          errorWriters.Add(writer);
+        var outputStreamWriter = new StreamWriter(OutputFile, Append);
+        writersToClose.Add(outputStreamWriter);
+        outputWriters.Add(outputStreamWriter);
+        if (OutputFile == ErrorFile) {
+          errorWriters.Add(outputStreamWriter);
         }
-      } else {
-        if (ErrorFile != null) {
-          errorWriters.Add(new StreamWriter(ErrorFile, Append));
-        }
+      } else if (ErrorFile != null) {
+        var errorStreamWriter = new StreamWriter(ErrorFile, Append);
+        writersToClose.Add(errorStreamWriter);
+        errorWriters.Add(errorStreamWriter);
       }
       inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
 
@@ -112,7 +114,7 @@ namespace XUnitExtensions.Lit {
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
       inputReader.Close();
-      foreach (var writer in outputWriters.Concat(errorWriters)) {
+      foreach (var writer in writersToClose) {
         writer.Close();
       }
       return result;
