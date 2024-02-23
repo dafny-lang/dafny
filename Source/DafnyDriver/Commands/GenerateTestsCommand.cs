@@ -119,7 +119,7 @@ Path - Generate tests targeting path-coverage.");
     dafnyOptions.UseBaseNameForFileName = false;
     dafnyOptions.VerifyAllModules = true;
     dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
-    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
+    dafnyOptions.Set(Snippets.ShowSnippets, false);
     dafnyOptions.TestGenOptions.Mode = mode;
   }
 

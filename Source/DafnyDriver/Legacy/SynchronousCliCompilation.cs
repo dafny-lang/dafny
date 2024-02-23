@@ -60,17 +60,16 @@ namespace Microsoft.Dafny {
       using var driver = new SynchronousCliCompilation(options);
       ProofDependencyManager depManager = new();
       var exitValue = await driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), options, depManager);
-
-      options.XmlSink?.Close();
-
-      if (options.VerificationLoggerConfigs.Any()) {
+      if (options.Get(CommonOptionBag.VerificationLogFormat)?.Any() == true) {
         try {
-          VerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
+          LegacyVerificationResultLogger.RaiseTestLoggerEvents(options, depManager);
         } catch (ArgumentException ae) {
           options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: {ae.Message}");
           exitValue = ExitValue.PREPROCESSING_ERROR;
         }
       }
+
+      options.XmlSink?.Close();
 
       if (options.Wait) {
         Console.WriteLine("Press Enter to exit.");
