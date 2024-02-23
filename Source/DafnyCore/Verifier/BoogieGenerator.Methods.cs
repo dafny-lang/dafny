@@ -588,7 +588,7 @@ namespace Microsoft.Dafny {
           }
 
           var parBoundVars = new List<BoundVar>();
-          var parBounds = new List<ComprehensionExpr.BoundedPool>();
+          var parBounds = new List<BoundedPool>();
           var substMap = new Dictionary<IVariable, Expression>();
           Expression receiverSubst = null;
           foreach (var iv in inductionVars) {
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
-            parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
+            parBounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
           }
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
