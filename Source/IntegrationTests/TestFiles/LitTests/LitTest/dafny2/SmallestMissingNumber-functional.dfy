@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --allow-warnings --relax-definite-assignment
 
 // Smallest missing number problem, functional version without duplicates.
 // A purely functional solution to the programming problem in Richard Bird's
