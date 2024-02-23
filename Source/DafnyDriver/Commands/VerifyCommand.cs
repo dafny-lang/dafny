@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
@@ -38,7 +39,12 @@ public static class VerifyCommand {
 
     var compilation = CliCompilation.Create(options);
     compilation.Start();
-    await compilation.VerifyAllAndPrintSummary();
+
+    var resolution = await compilation.Resolution;
+    compilation.ReportVerificationDiagnostics();
+    compilation.ReportVerificationSummary();
+    compilation.RecordProofDependencies(resolution);
+    compilation.VerifyAll();
 
     return compilation.ExitCode;
   }
