@@ -130,7 +130,6 @@ namespace Microsoft.Dafny {
           var df = DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
           if (df == null) {
             if (consoleErrorReporter.FailCompilation) {
-              options.OutputWriter.WriteLine("Compilation halted because ");
               return ExitValue.PREPROCESSING_ERROR;
             }
           } else {
