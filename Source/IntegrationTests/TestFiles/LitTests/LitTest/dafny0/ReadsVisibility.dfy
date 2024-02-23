@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
 
 
 // Test that the export-provided type `T` is not recognized as a reference type in Client.
