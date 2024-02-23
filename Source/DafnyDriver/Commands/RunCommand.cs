@@ -73,7 +73,7 @@ public static class RunCommand {
 
   /// <summary>
   /// This check tries to determine if users tried to use a Dafny option but mistyped the option name.
-  /// This check uses the position of a `--` token is a way that is not compliant with POSIX conventions,
+  /// This check uses the position of a `--` token in a way that is not compliant with POSIX conventions,
   /// but we believe this is worth the improved feedback.
   /// </summary>
   private static async Task CheckForMistypedDafnyOption(InvocationContext context, DafnyOptions options) {
