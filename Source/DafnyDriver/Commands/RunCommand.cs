@@ -79,7 +79,7 @@ public static class RunCommand {
   private static async Task CheckForMistypedDafnyOption(InvocationContext context, DafnyOptions options) {
     var userProgramArgumentTokens = context.ParseResult.FindResultFor(UserProgramArguments)!.Tokens.Select(t => t.Value).ToHashSet();
     foreach (var token in context.ParseResult.Tokens) {
-      // This check may lead to false positives if given the same value twice,
+      // This check may lead to false positives if CLI is given the same value twice,
       // once as a Dafny option and once as a user program argument
       // The problem is that the tokens in context.ParseResult.FindResultFor(UserProgramArguments)!.Tokens
       // are not aware of their position in the argument list,
