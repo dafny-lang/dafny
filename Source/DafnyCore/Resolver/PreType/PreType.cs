@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       var pt = this;
       while (true) {
         pt = pt.Normalize();
-        if (pt is DPreType preType && preType.Decl is NewtypeDecl newtypeDecl) {
+        if (pt is DPreType { Decl: NewtypeDecl newtypeDecl } preType) {
           // expand the newtype into its base type
           var subst = PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
           var basePreType = ptResolver.Type2PreType(newtypeDecl.BaseType);
