@@ -13,7 +13,7 @@ public abstract class ErrorReporter {
   public bool ErrorsOnly { get; set; }
 
   public bool FailCompilation => FailCompilationMessage != null;
-  
+
   public string FailCompilationMessage {
     get {
       if (HasErrors) {
