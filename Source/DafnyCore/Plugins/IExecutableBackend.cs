@@ -110,6 +110,9 @@ public abstract class IExecutableBackend {
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;
 
+  // The following lists are the Options supported by the backend.
+  protected virtual IEnumerable<Option<string>> SupportedOptions => new List<Option<string>>();
+
   protected IExecutableBackend(DafnyOptions options) {
     Options = options;
   }
@@ -196,7 +199,11 @@ public abstract class IExecutableBackend {
   }
 
   public virtual Command GetCommand() {
-    return new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+    var cmd = new Command(TargetId, $"Translate Dafny sources to {TargetName} source and build files.");
+    foreach (var supportedOption in SupportedOptions) {
+      cmd.AddOption(supportedOption);
+    }
+    return cmd;
   }
 
   public virtual void PopulateCoverageReport(CoverageReport coverageReport) {

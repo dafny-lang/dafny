@@ -17,8 +17,16 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCompiler : SinglePassCompiler {
+    private bool GoModuleMode;
+    private string GoModuleName;
     public GoCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      Options.Options.OptionArguments.TryGetValue(CommonOptionBag.BackendModuleName, out var goModuleName);
+      GoModuleMode = goModuleName != null;
+      if (GoModuleMode) {
+        GoModuleName = goModuleName.ToString();
+      }
       if (Options?.CoverageLegendFile != null) {
+        //TODO: What's the module name for this?
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
@@ -46,7 +54,6 @@ namespace Microsoft.Dafny.Compilers {
     private string MainModuleName;
     private static List<Import> StandardImports =
       new List<Import> {
-        new Import { Name = "_dafny", Path = "dafny" },
         new Import { Name = "os", Path = "os" },
       };
     private static string DummyTypeName = "Dummy__";
@@ -63,15 +70,20 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
-      // Keep the import writers so that we can import subsequent modules into the main one
-      EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
+        var path = GoModuleMode ? GoModuleName + "/" : "";
+        Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+      } else {
+        Imports.Add(new Import { Name = "_dafny", Path = "github.com/ShubhamChaturvedi7/DafnyRuntimeGo/dafny" });
       }
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
       }
+
+      // Keep the import writers so that we can import subsequent modules into the main one
+      EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
@@ -167,8 +179,12 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      if (GoModuleMode) {
+        import.Path = GoModuleName + "/" + import.Path;
+      }
 
-      var filename = string.Format("{0}/{0}.go", import.Path);
+      var packageName = import.Name;
+      var filename = string.Format("{0}/{0}.go", packageName);
       var w = wr.NewFile(filename);
       ModuleName = moduleName;
       EmitModuleHeader(w);

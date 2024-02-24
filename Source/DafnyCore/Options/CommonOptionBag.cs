@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Compilers;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;
@@ -345,6 +346,9 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
+  public static readonly Option<string> BackendModuleName = new("--module-name",
+    @"If supported by the backend, this Option is used to create the top level module/project/package name".TrimStart()) {
+  };
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
@@ -609,7 +613,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      BackendModuleName
       );
   }
 
