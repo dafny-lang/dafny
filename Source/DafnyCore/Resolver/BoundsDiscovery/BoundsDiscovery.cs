@@ -408,13 +408,13 @@ namespace Microsoft.Dafny {
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0) {
-              var setType = e1.Type.AsSetType;
+              var setType = e1.Type.NormalizeToAncestorType().AsSetType;
               bounds.Add(new SetBoundedPool(e1, e0.Type, setType.Arg, setType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
             if (whereIsBv == 0) {
-              var setType = e1.Type.AsSetType;
+              var setType = e1.Type.NormalizeToAncestorType().AsSetType;
               bounds.Add(new SubSetBoundedPool(e1, setType.Finite));
             } else {
               bounds.Add(new SuperSetBoundedPool(e0));

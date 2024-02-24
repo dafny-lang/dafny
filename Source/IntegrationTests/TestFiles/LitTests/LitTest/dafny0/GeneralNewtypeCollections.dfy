@@ -5,6 +5,7 @@ method Main() {
   var dt := Dt;
   print |dt.FFF(15)|, "\n"; // 15
   Frames.CallEm();
+  Decreases.Test();
 }
 
 newtype IntSet = s: set<int> | true
@@ -126,5 +127,67 @@ module Frames {
     reads R
   {
     true
+  }
+}
+
+module Decreases {
+  newtype MyInt = int
+  newtype BoundedInt = x: int | 0 <= x < 10_000
+  newtype BoolSet = s: set<bool> | true
+
+  method Test() {
+    A(100);
+    K({true, true});
+  }
+
+  method A(x: int)
+    requires x < 10_000
+    decreases x
+  {
+    if 0 < x {
+      B((x - 1) as MyInt);
+    } else if x == 0 {
+      print "Ends in A\n";
+    }
+  }
+
+  method B(y: MyInt)
+    requires y < 10_000
+    decreases y
+  {
+    if 0 < y {
+      C((y - 1) as BoundedInt);
+    } else if y == 0 {
+      print "Ends in B\n";
+    }
+  }
+
+  method C(z: BoundedInt)
+    decreases z
+  {
+    if 0 < z {
+      A((z - 1) as int);
+    } else if z == 0 {
+      print "Ends in C\n";
+    }
+  }
+
+  method K(s: set<bool>)
+    decreases s
+  {
+    if s == {} {
+      print "K is done\n";
+    } else {
+      L(s as BoolSet);
+    }
+  }
+
+  method L(t: BoolSet)
+    requires t != {}
+    decreases t, 0 as MyInt
+  {
+    var b :| b in t;
+    var t' := t - {b};
+    K(t' as set<bool>);
   }
 }
