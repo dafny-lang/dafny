@@ -537,6 +537,7 @@ namespace Microsoft.Dafny {
       IntOrORDINAL,
       IntOrBitvectorOrORDINAL,
       Plussable,
+      Minusable,
       Mullable,
       Disjointable,
       OrderableLess,
@@ -604,6 +605,21 @@ namespace Microsoft.Dafny {
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSeq:
+            case PreType.TypeNameSet:
+            case PreType.TypeNameIset:
+            case PreType.TypeNameMultiset:
+            case PreType.TypeNameMap:
+            case PreType.TypeNameImap:
+              return true;
+            default:
+              return PreTypeResolver.IsBitvectorName(familyDeclName);
+          }
+        case CommonConfirmationBag.Minusable:
+          switch (familyDeclName) {
+            case PreType.TypeNameInt:
+            case PreType.TypeNameReal:
+            case PreType.TypeNameORDINAL:
+            case PreType.TypeNameChar:
             case PreType.TypeNameSet:
             case PreType.TypeNameIset:
             case PreType.TypeNameMultiset:

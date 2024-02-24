@@ -923,6 +923,8 @@ namespace Microsoft.Dafny {
             return false;
           });
           ConstrainOperandTypes(tok, opString, e0, null, resultPreType);
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Minusable, resultPreType, tok,
+            "type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got {0})");
           break;
 
         case BinaryExpr.Opcode.Mul:
