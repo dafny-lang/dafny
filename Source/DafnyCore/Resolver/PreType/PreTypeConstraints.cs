@@ -527,6 +527,7 @@ namespace Microsoft.Dafny {
       InSeqFamily,
       InSetFamily,
       InIsetFamily,
+      InMultisetFamily,
       IsNullableRefType,
       IsBitvector,
       IntLikeOrBitvector,
@@ -572,6 +573,8 @@ namespace Microsoft.Dafny {
           return familyDeclName == PreType.TypeNameSet;
         case CommonConfirmationBag.InIsetFamily:
           return familyDeclName == PreType.TypeNameIset;
+        case CommonConfirmationBag.InMultisetFamily:
+          return familyDeclName == PreType.TypeNameMultiset;
         case CommonConfirmationBag.InSeqFamily:
           return familyDeclName == PreType.TypeNameSeq;
         case CommonConfirmationBag.IsNullableRefType:
@@ -664,8 +667,7 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
           return pt.Decl is NewtypeDecl || pt.Decl.Name is PreType.TypeNameInt or PreType.TypeNameReal;
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
-          if (familyDeclName is PreType.TypeNameSeq or PreType.TypeNameMultiset or PreType.TypeNameMap
-                or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
+          if (familyDeclName is PreType.TypeNameSeq or PreType.TypeNameMap or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
             // These base types are not yet supported, but they will be soon.
             return false;
           }

@@ -57,13 +57,14 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType, identifierExpr.Name));
 
     } else if (expr is SeqSelectExpr selectExpr) {
-      var seqType = selectExpr.Seq.UnnormalizedType;
+      var unnormalizedSeqType = selectExpr.Seq.UnnormalizedType;
+      var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(seqType.NormalizeExpand().TypeArgs[0])));
+        flows.Add(new FlowFromComputedType(expr, () => new SeqType(seqType.TypeArgs[0])));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 0));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 1));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 1));
       } else {
         Contract.Assert(seqType.AsMultiSetType != null);
         // type is fixed, so no flow to set up

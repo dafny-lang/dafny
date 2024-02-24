@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
-      if (source.Type.NormalizeExpand() is SeqType) {
+      if (source.Type.NormalizeToAncestorType() is SeqType) {
         // seq
         wr.Write(".select(");
         wr.Append(Expr(index, inLetExprBody, wStmts));
@@ -2013,8 +2013,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(resultTok, Feature.LetSuchThatExpressions);
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);

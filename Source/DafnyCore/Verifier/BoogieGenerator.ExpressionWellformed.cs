@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
           }
         case SeqSelectExpr selectExpr: {
             SeqSelectExpr e = selectExpr;
-            var eSeqType = e.Seq.Type.NormalizeExpand();
+            var eSeqType = e.Seq.Type.NormalizeToAncestorType();
             bool isSequence = eSeqType is SeqType;
             CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
             Bpl.Expr seq = etran.TrExpr(e.Seq);
@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr seq = etran.TrExpr(e.Seq);
             Bpl.Expr index = etran.TrExpr(e.Index);
             Bpl.Expr value = etran.TrExpr(e.Value);
-            var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+            var collectionType = (CollectionType)e.Seq.Type.NormalizeToAncestorType();
             // validate index
             CheckWellformed(e.Index, wfOptions, locals, builder, etran);
             if (collectionType is SeqType) {

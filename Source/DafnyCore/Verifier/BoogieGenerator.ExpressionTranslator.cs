@@ -521,7 +521,7 @@ namespace Microsoft.Dafny {
           case SeqSelectExpr selectExpr: {
               SeqSelectExpr e = selectExpr;
               Boogie.Expr seq = TrExpr(e.Seq);
-              var seqType = e.Seq.Type.NormalizeExpand();
+              var seqType = e.Seq.Type.NormalizeToAncestorType();
               Type elmtType = null;
               Type domainType = null;
               Contract.Assert(seqType != null);  // the expression has been successfully resolved
@@ -592,7 +592,7 @@ namespace Microsoft.Dafny {
           case SeqUpdateExpr updateExpr: {
               SeqUpdateExpr e = updateExpr;
               Boogie.Expr seq = TrExpr(e.Seq);
-              var seqType = e.Seq.Type.NormalizeExpand();
+              var seqType = e.Seq.Type.NormalizeToAncestorType();
               if (seqType is SeqType) {
                 Boogie.Expr index = TrExpr(e.Index);
                 index = BoogieGenerator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
