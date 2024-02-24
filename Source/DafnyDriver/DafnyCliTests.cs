@@ -48,6 +48,7 @@ public static class DafnyCliTests {
 
     // Also include a time limit, because we do care about using too much time.
     "/timeLimit:300",
+    "/allowAxioms:1",
 
     // test results do not include source code snippets
     "/showSnippets:0"
@@ -63,6 +64,7 @@ public static class DafnyCliTests {
     // Set a default resource limit, to catch cases where verification runs off the rails
     "--resource-limit:50e6",
 
+    "--allow-axioms",
     // Also include a time limit, because we do care about using too much time.
     "--verification-time-limit:300",
 

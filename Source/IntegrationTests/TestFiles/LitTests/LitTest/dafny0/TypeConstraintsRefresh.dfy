@@ -527,3 +527,35 @@ module SameSCC {
   datatype G5 = G5(G6)
   codatatype G6 = G6(array<G0>)
 }
+
+module UnderspecifiedTypeConversions0 {
+  class Cell<X> { }
+  type UCell<U, V> = Cell<U>
+
+  method M(c: Cell<int>) {
+    if c is UCell { // error: type is underspecified
+      print "yes";
+    }
+  }
+
+  method N(c: object) {
+    if c is Cell { // error: type is underspecified
+      print "yes";
+    }
+  }
+}
+
+module UnderspecifiedTypeConversions1 {
+  class Cell<X> { }
+  type UCell<U, V> = Cell<U>
+
+  method M(c: Cell<int>) {
+    var d: Cell<int>;
+    d := c as UCell; // error: type is underspecified
+  }
+
+  method N(c: object) {
+    var d: object;
+    d := c as Cell; // error: type is underspecified
+  }
+}

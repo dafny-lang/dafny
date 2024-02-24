@@ -1131,7 +1131,7 @@ colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
-<!-- %check-verify -->
+<!-- %check-verify %options --allow-axioms -->
 ```dafny
 method m(s: seq<int>) {
   var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
@@ -1775,7 +1775,7 @@ type BaseType
 predicate RHS(x: BaseType)
 type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
 
-function MySubsetWitness(): BaseType
+function {:axiom} MySubsetWitness(): BaseType
   ensures RHS(MySubsetWitness())
 ```
 Here the type is given a ghost witness: the result of the expression

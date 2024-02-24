@@ -11,12 +11,12 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  class EqualityConstraint : PreTypeConstraint {
+  class EqualityConstraint : OptionalErrorPreTypeConstraint {
     public PreType A;
     public PreType B;
 
-    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null)
-      : base(tok, msgFormat, baseError) {
+    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true)
+      : base(tok, msgFormat, baseError, reportErrors) {
       A = a;
       B = b;
     }
@@ -44,9 +44,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);
         for (var i = 0; i < da.Arguments.Count; i++) {
           // TODO: should the error message in the following line be more specific?
-          yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString);
+          yield return new EqualityConstraint(da.Arguments[i], db.Arguments[i], tok, ErrorFormatString, null, ReportErrors);
         }
-      } else {
+      } else if (ReportErrors) {
         constraints.PreTypeResolver.ReportError(tok, ErrorFormatString, a, b);
       }
     }

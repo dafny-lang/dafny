@@ -475,7 +475,9 @@ module FunctionByMethod {
   } by method {
     return 150;
   }
+}
 
+module FunctionByMethodMore {
   type SW3 = x: int | true witness SWitness3()  // error: recursive dependency
   function SWitness3(): int {
     150
@@ -484,7 +486,6 @@ module FunctionByMethod {
   }
 
   // constants
-
   ghost const c0 := R0()  // error: recursive dependency
   function R0(): int {
     2 + c0

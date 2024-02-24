@@ -21,8 +21,10 @@ namespace Microsoft.Dafny {
 
     public static async Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       var options = DafnyOptions.Create(outputWriter);
+      options.Set(CommonOptionBag.AllowAxioms, true);
       Console.SetError(outputWriter);
       ServerUtils.ApplyArgs(args, options);
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Token.NoToken);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
 
       // read the optional flag (only one flag is allowed)

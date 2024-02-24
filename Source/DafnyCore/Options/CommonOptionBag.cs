@@ -59,7 +59,7 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.");
+      "Print additional information such as which files are emitted where.");
 
   public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
     "Do not warn about the use of deprecated features.") {
@@ -80,7 +80,7 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
-  public static readonly Option<List<string>> VerificationLogFormat = new("--log-format", $@"
+  public static readonly Option<IList<string>> VerificationLogFormat = new("--log-format", $@"
 Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
 
 The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
@@ -192,6 +192,10 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
+    "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
+  };
+
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
@@ -216,7 +220,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
   public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
     @"
 false - A newtype can only be based on numeric types or another newtype.
-true - (requires --type-system-refresh to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
 
@@ -346,6 +350,7 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
     });
@@ -376,6 +381,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
+    DafnyOptions.RegisterLegacyUi(VerificationLogFormat, DafnyOptions.ParseStringElement, "Verification options", "verificationLogger");
     DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
@@ -389,7 +395,7 @@ datatype - A trait is a reference type only if it or one of its ancestor traits 
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
-1 - (requires /typeSystemRefresh:1 to have any effect) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
+1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -408,7 +414,7 @@ Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.PrintOption, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
 
-    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+    DafnyOptions.RegisterLegacyUi(Snippets.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
 1 - Show a source code snippet for each Dafny message.".TrimStart());
 
@@ -522,7 +528,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
     DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
-    DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
@@ -554,6 +559,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
               return true;

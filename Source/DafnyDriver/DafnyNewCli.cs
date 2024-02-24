@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
 using Command = System.CommandLine.Command;
@@ -42,6 +43,7 @@ public static class DafnyNewCli {
     AddCommand(DeadCodeCommand.Create());
     AddCommand(AuditCommand.Create());
     AddCommand(CoverageReportCommand.Create());
+    AddCommand(DocumentationCommand.Create());
 
     // Check that the .doo file format is aware of all options,
     // and therefore which have to be saved to safely support separate verification/compilation.
