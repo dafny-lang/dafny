@@ -871,7 +871,7 @@ namespace Microsoft.Dafny {
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
           ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, null);
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableGreater, e0.PreType, tok,
-            "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0} and {1})");
+            "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0})");
           break;
 
         case BinaryExpr.Opcode.Add:

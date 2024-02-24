@@ -262,3 +262,10 @@ module MinusRegression {
     var u := s - s; // error: - is not for seq
   }
 }
+
+module GreaterRegression {
+  method M(s: seq<int>, b: bool) {
+    var w := b > b; // error: > is not for bool
+    var u := s >= s; // error: >= is not for seq
+  }
+}
