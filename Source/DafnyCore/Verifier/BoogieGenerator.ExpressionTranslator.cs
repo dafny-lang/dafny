@@ -782,7 +782,7 @@ namespace Microsoft.Dafny {
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MapCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.Fresh:
                   var freshLabel = ((FreshExpr)e).AtLabel;
-                  var eeType = e.E.Type.NormalizeExpand();
+                  var eeType = e.E.Type.NormalizeToAncestorType();
                   if (eeType is SetType) {
                     // generate:  (forall $o: ref :: { $o != null } X[Box($o)] ==> $o != null) &&
                     //            (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> !old($Heap)[$o,alloc])

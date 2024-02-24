@@ -1,7 +1,10 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-newtypes
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-newtypes --general-traits=datatype --reads-clauses-on-methods
 
 method Main() {
   TestSet();
+  var dt := Dt;
+  print |dt.FFF(15)|, "\n"; // 15
+  Frames.CallEm();
 }
 
 newtype IntSet = s: set<int> | true
@@ -51,5 +54,77 @@ method TestSet() {
 trait Trait {
   function FFF(n: nat): IntSet {
     if n == 0 then {} else {n} + FFF(n - 1)
+  }
+}
+
+datatype Dt extends Trait = Dt
+
+module Frames {
+  method CallEm() {
+    var o := new object;
+    label Recently:
+    M({o}, iset{o}, multiset{o, o}, [o, o, o]);
+    var u := F({o}, iset{o}, multiset{o, o}, [o, o, o]);
+    ghost var b := P2@Recently({o}, iset{o}, multiset{o, o}, [o, o, o]);
+  }
+  
+  newtype ObjectSet = s: set<object> | true
+  newtype ObjectISet = ss: iset<object> | true
+  /*new*/type ObjectMultiset = m: multiset<object> | true
+  /*new*/type ObjectSeq = q: seq<object> | true
+
+  function R(x: int): ObjectSet {
+    {}
+  }
+
+  method M(s: ObjectSet, ss: ObjectISet, m: ObjectMultiset, q: ObjectSeq)
+    modifies s
+    modifies ss
+    modifies m
+    modifies q
+    reads s
+    reads ss
+    reads m
+    reads q
+  {
+    assert unchanged(s);
+    assert unchanged(ss);
+    assert unchanged(m);
+    assert unchanged(q);
+    modify s;
+    modify ss;
+    modify m;
+    modify q;
+    for i := 0 to 100
+      modifies s
+      modifies ss
+      modifies m
+      modifies q
+    {
+    }
+    ghost var g: bool;
+    g := fresh(s);
+    g := fresh(ss);
+    g := fresh(q);
+  }
+
+  function F(s: ObjectSet, ss: ObjectISet, m: ObjectMultiset, q: ObjectSeq): int
+    reads s
+    reads ss
+    reads m
+    reads q
+    reads R
+  {
+    6
+  }
+
+  twostate predicate P2(s: ObjectSet, ss: ObjectISet, m: ObjectMultiset, q: ObjectSeq)
+    reads s
+    reads ss
+    reads m
+    reads q
+    reads R
+  {
+    true
   }
 }

@@ -129,8 +129,8 @@ namespace Microsoft.Dafny {
         if (arrowType == null) {
           return e;
         }
-        var collectionType = arrowType.Result.AsCollectionType;
-        if (collectionType == null || collectionType.NormalizeExpand() is MapType) {
+        var collectionType = arrowType.Result.NormalizeToAncestorType().AsCollectionType;
+        if (collectionType == null || collectionType is MapType) {
           return e;
         }
         var elementType = collectionType.Arg; // "elementType" is called "Y" in the description of this method, above
@@ -408,29 +408,32 @@ namespace Microsoft.Dafny {
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0) {
-              bounds.Add(new SetBoundedPool(e1, e0.Type, e1.Type.AsSetType.Arg, e1.Type.AsSetType.Finite));
+              var setType = e1.Type.AsSetType;
+              bounds.Add(new SetBoundedPool(e1, e0.Type, setType.Arg, setType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
             if (whereIsBv == 0) {
-              bounds.Add(new SubSetBoundedPool(e1, e1.Type.AsSetType.Finite));
+              var setType = e1.Type.AsSetType;
+              bounds.Add(new SubSetBoundedPool(e1, setType.Finite));
             } else {
               bounds.Add(new SuperSetBoundedPool(e0));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new MultiSetBoundedPool(e1, e0.Type, e1.Type.AsMultiSetType.Arg));
+              bounds.Add(new MultiSetBoundedPool(e1, e0.Type, e1.Type.NormalizeToAncestorType().AsMultiSetType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
-            if (whereIsBv == 0 && e1.Type.AsSeqType is { } seqType) {
+            if (whereIsBv == 0 && e1.Type.NormalizeToAncestorType().AsSeqType is { } seqType) {
               bounds.Add(new SeqBoundedPool(e1, e0.Type, seqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0) {
-              bounds.Add(new MapBoundedPool(e1, e0.Type, e1.Type.AsMapType.Arg, e1.Type.AsMapType.Finite));
+              var mapType = e1.Type.NormalizeToAncestorType().AsMapType;
+              bounds.Add(new MapBoundedPool(e1, e0.Type, mapType.Arg, mapType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:

@@ -1458,9 +1458,12 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
+
+        if (dp.UrAncestor(this) is DPreType {
+              Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
+            } dpAncestor) {
           hasCollectionType = true;
-          var elementType = dp.Arguments[0].Normalize();
+          var elementType = dpAncestor.Arguments[0].Normalize();
           dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
