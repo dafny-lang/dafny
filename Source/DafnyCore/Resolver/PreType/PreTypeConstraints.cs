@@ -669,8 +669,16 @@ namespace Microsoft.Dafny {
             // These base types are not yet supported, but they will be soon.
             return false;
           }
-          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != PreType.TypeNameORDINAL);
-
+          if (pt.Decl is NewtypeDecl) {
+            return true;
+          }
+          if (DPreType.IsReferenceTypeDecl(pt.Decl) || pt.Decl is TraitDecl) {
+            return false;
+          }
+          if (ArrowType.IsArrowTypeName(familyDeclName) || pt.Decl.Name == PreType.TypeNameORDINAL) {
+            return false;
+          }
+          return true;
         default:
           Contract.Assert(false); // unexpected case
           throw new cce.UnreachableException();

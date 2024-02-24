@@ -29,7 +29,7 @@ module VariousBaseTypes {
   newtype NotNumeric1 = b | !b // error: cannot base newtype on bool
   newtype NotNumeric2 = b: bool | true // error: cannot base newtype on bool
 
-  // The following are always errors
+  // The following are always errors (more tests like these in ArrowBaseTypes below)
 
   newtype MyOrdinal = ORDINAL // error: cannot base newtype on ORDINAL
 
@@ -548,4 +548,20 @@ module Collections {
     u := s as set<int>; // like this!
     s := u as IntSet; // like this!
   }
+}
+
+module ArrowBaseTypes {
+  newtype GeneralArrow = f: int ~> real | true // error: cannot base newtype on arrow type
+  newtype PartialArrow = f: (bv8, bv9, char) ~> (ghost int, ghost bv2) | true // error: cannot base newtype on arrow type
+  newtype TotalArrow = f: () -> bool | true // error: cannot base newtype on arrow type
+
+  type ArrowSubsetType = f: (int) --> int | true
+  newtype NewtypeOnArrowSubsetType = g: ArrowSubsetType | true // error: cannot base newtype on any arrow type
+
+  trait Trait { const u: int }
+  type SmallTrait = t: Trait | t.u == 18
+  newtype NewSmallTrait = st: SmallTrait | true // error: cannot base newtype on any kind of trait
+
+  type RestrictedOrdinal = o: ORDINAL | true
+  newtype NewRestrictedOrdinal = st: SmallTrait | true // error: cannot base newtype on any kind of ORDINAL
 }
