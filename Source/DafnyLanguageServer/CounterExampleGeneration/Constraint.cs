@@ -321,6 +321,20 @@ public class SeqDisplayConstraint : DefinitionConstraint {
   }
 }
 
+public class SetDisplayConstraint : DefinitionConstraint {
+  private readonly List<PartialValue> elements;
+
+
+  public SetDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue,
+    new List<Constraint>()) {
+    this.elements = elements;
+  }
+
+  public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
+    return new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+  }
+}
+
 public class FunctionCallConstraint : DefinitionConstraint {
   private readonly List<PartialValue> args;
   private readonly PartialValue receiver;
