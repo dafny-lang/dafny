@@ -16,7 +16,7 @@ public class PartialValue {
 
   public readonly Model.Element Element; // the element in the counterexample model associated with the value
   public readonly List<Constraint> Constraints; // constraints describing this value
-  private readonly PartialState state; // corresponding state in the counterexample model
+  public readonly PartialState state; // corresponding state in the counterexample model
   private readonly Type type; // Dafny type associated with the value
   private bool haveExpanded;
 
@@ -24,7 +24,7 @@ public class PartialValue {
   /// This factory method ensures we don't create duplicate partial value objects for the same element and state in the
   /// counterexample model
   /// </summary>
-  internal static PartialValue Get(Model.Element element, PartialState state) {
+  public static PartialValue Get(Model.Element element, PartialState state) {
     if (state.AllPartialValues.TryGetValue(element, out var value)) {
       return value;
     }

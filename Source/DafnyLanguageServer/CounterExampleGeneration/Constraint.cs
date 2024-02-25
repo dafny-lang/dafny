@@ -82,6 +82,7 @@ public abstract class Constraint {
         .FirstOrDefault(definition => !knownDefinitions.ContainsKey(definition.DefinedValue));
       if (litConstraint != null) {
         knownDefinitions[litConstraint.DefinedValue] = litConstraint.RightHandSide(knownDefinitions);
+        knownDefinitions[litConstraint.DefinedValue].Type = litConstraint.DefinedValue.Type;
         newConstraint = litConstraint;
         continue;
       }
@@ -102,6 +103,7 @@ public abstract class Constraint {
       if (definition != null) {
         newConstraints.AddRange(definition.WellFormed);
         knownDefinitions[definition.DefinedValue] = definition.RightHandSide(knownDefinitions);
+        knownDefinitions[definition.DefinedValue].Type = definition.DefinedValue.Type;
         newConstraint = definition;
         continue;
       }
@@ -321,17 +323,39 @@ public class SeqDisplayConstraint : DefinitionConstraint {
   }
 }
 
-public class SetDisplayConstraint : DefinitionConstraint {
+public class SetDisplayConstraint : Constraint {
   private readonly List<PartialValue> elements;
+  private readonly PartialValue set;
 
 
-  public SetDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue,
-    new List<Constraint>()) {
+  public SetDisplayConstraint(PartialValue set, List<PartialValue> elements) : base(elements.Append(set)) {
     this.elements = elements;
+    this.set = set;
   }
 
-  public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
-    return new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+  protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
+    var setDisplayExpr = new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+    setDisplayExpr.Type = set.Type;
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, definitions[set], setDisplayExpr);
+  }
+}
+
+public class MapKeysDisplayConstraint : Constraint {
+  private readonly List<PartialValue> elements;
+  private readonly PartialValue map;
+
+
+  public MapKeysDisplayConstraint(PartialValue map, List<PartialValue> elements) : base(elements.Append(map)) {
+    this.elements = elements;
+    this.map = map;
+  }
+
+  protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
+    var setDisplayExpr = new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+    setDisplayExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
+    var memberSelectExpr = new MemberSelectExpr(Token.NoToken, definitions[map], "Keys");
+    memberSelectExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, memberSelectExpr, setDisplayExpr);
   }
 }
 
