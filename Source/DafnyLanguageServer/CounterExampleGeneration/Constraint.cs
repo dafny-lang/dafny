@@ -394,18 +394,18 @@ public class FunctionCallRequiresConstraint : Constraint {
 public class ContainmentConstraint : Constraint {
 
   public readonly PartialValue Element, Set;
-  private readonly bool isIn;
+  public readonly bool IsIn;
   public ContainmentConstraint(PartialValue element, PartialValue set, bool isIn)
     : base(new List<PartialValue> { element, set }) {
     Element = element;
     Set = set;
-    this.isIn = isIn;
+    this.IsIn = isIn;
   }
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     return new BinaryExpr(
       Token.NoToken,
-      isIn ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn,
+      IsIn ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn,
       definitions[Element],
       definitions[Set]);
   }
