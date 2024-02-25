@@ -517,9 +517,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             }
 
             foreach (var tpl in fSetSelect.AppsWithArg(0, value.Element)) {
-              if (tpl.Args[1].References.Any(tuple => tuple.Func.Name.Contains("@@") && tuple.Result == tpl.Args[1] && value.Element == tuple.Args[0])) {
+              /*if (tpl.Args[1].References.Any(tuple => tuple.Func.Name.Contains("@@") && tuple.Result == tpl.Args[1] && value.Element == tuple.Args.Last())) {
                 continue;
-              }
+              }*/
               var setElement = PartialValue.Get(UnboxNotNull(tpl.Args[1]), state);
               var containment = tpl.Result;
               if (containment is Model.Boolean boolean) {
@@ -566,9 +566,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             var mapElements = fMapElements.OptEval(current);
             if (mapDomain != null && mapElements != null) {
               foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
-                if (app.Args[1].References.Any(tuple => tuple.Func.Name.Contains("@@") && tuple.Result == app.Args[1] && mapDomain == tuple.Args[0])) {
+                /*if (app.Args[1].References.Any(tuple => tuple.Func.Name.Contains("@@") && tuple.Result == app.Args[1] && mapDomain == tuple.Args.Last())) {
                   continue;
-                }
+                }*/
                 var valueElement = fSetSelect.OptEval(mapElements, app.Args[1]);
                 if (valueElement != null) {
                   valueElement = Unbox(valueElement);
