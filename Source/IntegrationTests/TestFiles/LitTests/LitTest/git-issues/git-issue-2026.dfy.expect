@@ -4,16 +4,16 @@ git-issue-2026.dfy(18,18): Related message: loop invariant violation
 Dafny program verifier finished with 0 verified, 1 error
 Counterexample for first failing assertion: 
 Temporary variables to describe counterexamples: 
-ghost var loopGuard0 : bool := false;
+ghost var counterexampleLoopGuard0 : bool := false;
 git-issue-2026.dfy(12,0): initial state:
-assume 2 == n;
+assume ret != null && 2 == n;
 git-issue-2026.dfy(13,24):
-assume ret != null && |ret[(- 1)]| > 0 && |ret[(- 1)]| > 1 && |ret[(- 1)]| > 2 && |ret[(- 1)]| > 3 && |ret[0]| > 0 && |ret[0]| > 1 && |ret[0]| > 2 && 2 == n && 2 == ret.Length && 4 == |ret[(- 1)]| && 'e' == ret[(- 1)][0] && 'v' == ret[(- 1)][1] && 'e' == ret[(- 1)][2] && 'n' == ret[(- 1)][3] && ret[(- 1)] == ['e', 'v', 'e', 'n'] && 3 == |ret[0]| && 'o' == ret[0][0] && 'd' == ret[0][1] && 'd' == ret[0][2] && ret[0] == ['o', 'd', 'd'];
+assume ret != null && 2 == n && 2 == ret.Length;
 git-issue-2026.dfy(15,14):
-assume ret != null && |ret[(- 1)]| > 0 && |ret[(- 1)]| > 1 && |ret[(- 1)]| > 2 && |ret[(- 1)]| > 3 && |ret[0]| > 0 && |ret[0]| > 1 && |ret[0]| > 2 && 2 == n && 2 == ret.Length && 0 == i && 4 == |ret[(- 1)]| && 'e' == ret[(- 1)][0] && 'v' == ret[(- 1)][1] && 'e' == ret[(- 1)][2] && 'n' == ret[(- 1)][3] && ret[(- 1)] == ['e', 'v', 'e', 'n'] && 3 == |ret[0]| && 'o' == ret[0][0] && 'd' == ret[0][1] && 'd' == ret[0][2] && ret[0] == ['o', 'd', 'd'];
+assume ret != null && 2 == n && 2 == ret.Length && 0 == i;
 git-issue-2026.dfy(16,4): after some loop iterations:
-loopGuard0 := ret != null && |ret[(- 1)]| > 0 && |ret[(- 1)]| > 1 && |ret[(- 1)]| > 2 && |ret[(- 1)]| > 3 && 2 == n && 2 == ret.Length && 0 == i && 4 == |ret[(- 1)]| && 'e' == ret[(- 1)][0] && 'v' == ret[(- 1)][1] && 'e' == ret[(- 1)][2] && 'n' == ret[(- 1)][3] && ret[(- 1)] == ['e', 'v', 'e', 'n'];
+counterexampleLoopGuard0 := ret != null && 2 == n && 2 == ret.Length && 0 == i;
 git-issue-2026.dfy(22,27):
-assume loopGuard0 ==> ret != null && |ret[(- 1)]| > 0 && |ret[(- 1)]| > 1 && |ret[(- 1)]| > 2 && |ret[(- 1)]| > 3 && |ret[0]| > 0 && |ret[0]| > 1 && |ret[0]| > 2 && 2 == n && 2 == ret.Length && 0 == i && 4 == |ret[(- 1)]| && 'e' == ret[(- 1)][0] && 'v' == ret[(- 1)][1] && 'e' == ret[(- 1)][2] && 'n' == ret[(- 1)][3] && ret[(- 1)] == ['e', 'v', 'e', 'n'] && 3 == |ret[0]| && 'o' == ret[0][0] && 'd' == ret[0][1] && 'd' == ret[0][2] && ret[0] == ['o', 'd', 'd'];
+assume counterexampleLoopGuard0 ==> ret != null && 2 == n && 2 == ret.Length && 0 == i;
 git-issue-2026.dfy(26,18):
-assume loopGuard0 ==> ret != null && |ret[(- 1)]| > 0 && |ret[(- 1)]| > 1 && |ret[(- 1)]| > 2 && |ret[(- 1)]| > 3 && |ret[0]| > 0 && |ret[0]| > 1 && |ret[0]| > 2 && 2 == n && 2 == ret.Length && 1 == i && 4 == |ret[(- 1)]| && 'e' == ret[(- 1)][0] && 'v' == ret[(- 1)][1] && 'e' == ret[(- 1)][2] && 'n' == ret[(- 1)][3] && ret[(- 1)] == ['e', 'v', 'e', 'n'] && 3 == |ret[0]| && 'o' == ret[0][0] && 'd' == ret[0][1] && 'd' == ret[0][2] && ret[0] == ['o', 'd', 'd'];
+assume counterexampleLoopGuard0 ==> ret != null && 2 == n && 2 == ret.Length && 1 == i;

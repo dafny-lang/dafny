@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +11,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class PartialState {
 
-  public string isGuard = null;
-  public List<string> loopGuards = new();
-  public Dictionary<PartialValue, List<string>> knownVariableNames = new();
-  private readonly List<PartialValue> initialPartialValues = new();
+  public bool IsLoopEntryState => FullStateName.Contains("after some loop iterations");
+  // ghost variables introduced by the counterexample whose values must be true for the counterexample to hold:
+  public List<string> LoopGuards = new();
+  public readonly Dictionary<PartialValue, List<string>> KnownVariableNames = new();
+  private readonly List<PartialValue> initialPartialValues;
   internal readonly DafnyModel Model;
   internal readonly Model.CapturedState State;
   private const string InitialStateName = "<initial>";
@@ -23,7 +23,7 @@ public class PartialState {
     @".*\((?<line>\d+),(?<character>\d+)\)",
     RegexOptions.IgnoreCase | RegexOptions.Singleline
   );
-  internal readonly Dictionary<Model.Element, PartialValue> allPartialValues = new();
+  internal readonly Dictionary<Model.Element, PartialValue> AllPartialValues = new();
 
   private const string BoundVarPrefix = "boundVar";
 
@@ -75,7 +75,7 @@ public class PartialState {
   /// stackoverflow errors that occur if multiple conjuncts are joined in a linked list fashion.
   /// </summary>
   /// <returns></returns>
-  private Expression GetCompactConjunction(IEnumerable<Expression> conjuncts) {
+  private Expression GetCompactConjunction(List<Expression> conjuncts) {
     if (!conjuncts.Any()) {
       return new LiteralExpr(Token.NoToken, true);
     }
@@ -85,26 +85,32 @@ public class PartialState {
     }
 
     var middle = conjuncts.Count() / 2;
-    var left = GetCompactConjunction(conjuncts.Take(middle));
-    var right = GetCompactConjunction(conjuncts.Skip(middle));
+    var left = GetCompactConjunction(conjuncts.Take(middle).ToList());
+    var right = GetCompactConjunction(conjuncts.Skip(middle).ToList());
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, left, right);
   }
 
+  /// <summary>
+  /// Convert this counterexample state into an assumption that could be inserted in Dafny source code
+  /// </summary>
   public Statement AsAssumption() {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
     var variables = ExpandedVariableSet(-1).ToArray();
     var constraintSet = new HashSet<Constraint>();
+
+    // Collect all constraints into one list:
     foreach (var variable in variables) {
       foreach (var constraint in variable.Constraints) {
         constraintSet.Add(constraint);
       }
     }
 
+    // Ignore TypeTest constraints because they make the counterexample too verbose
     var constraints = constraintSet.Where(constraint => constraint is not TypeTestConstraint).ToList();
-    Constraint.FindDefinitions(allVariableNames, constraints, true);
+    constraints = Constraint.ResolveAndOrder(allVariableNames, constraints, true);
 
+    // Create a bound variable for every partial value that we cannot otherwise refer to using variables in scope
     var boundVars = new List<BoundVar>();
-    // TODO: make sure bound variable identifiers are not already taken
     for (int i = 0; i < variables.Length; i++) {
       if (!allVariableNames.ContainsKey(variables[i])) {
         boundVars.Add(new BoundVar(Token.NoToken, BoundVarPrefix + boundVars.Count, variables[i].Type));
@@ -112,10 +118,11 @@ public class PartialState {
       }
     }
 
+    // Translate all constraints to Dafny expressions, removing any duplicates:
     var constraintsAsExpressions = new List<Expression>();
     var constraintsAsStrings = new HashSet<String>();
     foreach (var constraint in constraints) {
-      var constraintAsExpression = constraint.AsExpression(allVariableNames, true);
+      var constraintAsExpression = constraint.AsExpression(allVariableNames);
       if (constraintAsExpression == null) {
         continue;
       }
@@ -128,25 +135,29 @@ public class PartialState {
       constraintsAsExpressions.Add(constraintAsExpression);
     }
 
+    // Convert the constraints into one conjunction
     Expression expression = GetCompactConjunction(constraintsAsExpressions);
 
     if (constraintsAsExpressions.Count > 0 && boundVars.Count > 0) {
       expression = new ExistsExpr(Token.NoToken, RangeToken.NoToken, boundVars, null, expression, null);
     }
 
-    if (loopGuards.Count != 0) {
-      Expression loopGuard = new IdentifierExpr(Token.NoToken, loopGuards[0]);
-      for (int i = 1; i < loopGuards.Count; i++) {
+    if ((LoopGuards.Count != 0 && !IsLoopEntryState) || LoopGuards.Count > 1) {
+      Expression loopGuard = new IdentifierExpr(Token.NoToken, LoopGuards[0]);
+      for (int i = 1; i < LoopGuards.Count; i++) {
+        if (i == LoopGuards.Count - 1 && IsLoopEntryState) {
+          continue;
+        }
         loopGuard = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loopGuard,
-          new IdentifierExpr(Token.NoToken, loopGuards[i]));
+          new IdentifierExpr(Token.NoToken, LoopGuards[i]));
       }
       expression = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, loopGuard, expression);
     }
 
-    if (isGuard == null) {
+    if (!IsLoopEntryState) {
       return new AssumeStmt(RangeToken.NoToken, expression, null);
     }
-    return new UpdateStmt(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, isGuard) },
+    return new UpdateStmt(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
         new List<AssignmentRhs>() { new ExprRhs(expression) });
   }
 
@@ -161,10 +172,7 @@ public class PartialState {
     }
     names = names.Concat(State.Variables).Distinct().ToList();
     var notDefinitelyAssigned = new HashSet<string>();
-    foreach (var name in names) {
-      if (!name.StartsWith("defass#")) {
-        continue;
-      }
+    foreach (var name in names.Where(name => name.StartsWith("defass#"))) {
       var val = State.TryGet(name);
       if (val == null) {
         continue;
@@ -184,11 +192,11 @@ public class PartialState {
 
       var value = PartialValue.Get(val, this);
       initialPartialValues.Add(value);
-      new IdentifierExprConstraint(value, v.Split("#").First());
-      if (!knownVariableNames.ContainsKey(value)) {
-        knownVariableNames[value] = new List<string>();
+      var _ = new IdentifierExprConstraint(value, v.Split("#").First());
+      if (!KnownVariableNames.ContainsKey(value)) {
+        KnownVariableNames[value] = new List<string>();
       }
-      knownVariableNames[value].Add(v.Split("#").First());
+      KnownVariableNames[value].Add(v.Split("#").First());
     }
   }
 
@@ -218,11 +226,11 @@ public class PartialState {
 
       var value = PartialValue.Get(f.GetConstant(), this);
       initialPartialValues.Add(value);
-      new IdentifierExprConstraint(value, name);
-      if (!knownVariableNames.ContainsKey(value)) {
-        knownVariableNames[value] = new();
+      var _ = new IdentifierExprConstraint(value, name);
+      if (!KnownVariableNames.ContainsKey(value)) {
+        KnownVariableNames[value] = new();
       }
-      knownVariableNames[value].Add(name);
+      KnownVariableNames[value].Add(name);
     }
   }
 
@@ -280,12 +288,12 @@ public class PartialState {
   /// @"c:\users\foo\bar.c(12,10) : random string"
   /// The ": random string" part is optional.
   /// </summary>
-  private static SourceLocation TryParseSourceLocation(string name) {
+  private static SourceLocation? TryParseSourceLocation(string name) {
     int par = name.LastIndexOf('(');
     if (par <= 0) {
       return null;
     }
-    var res = new SourceLocation { Filename = name[..par] };
+    // var res = new SourceLocation { Filename = name[..par] };
     var words = name[(par + 1)..]
       .Split(',', ')', ':')
       .Where(x => x != "")
@@ -293,20 +301,31 @@ public class PartialState {
     if (words.Length < 2) {
       return null;
     }
-    if (!int.TryParse(words[0], out res.Line) ||
-        !int.TryParse(words[1], out res.Column)) {
+    if (!int.TryParse(words[0], out var line) ||
+        !int.TryParse(words[1], out var column)) {
       return null;
     }
     int colon = name.IndexOf(':', par);
-    res.AddInfo = colon > 0 ? name[(colon + 1)..].Trim() : "";
+    var res = new SourceLocation(
+      name[..par],
+      colon > 0 ? name[(colon + 1)..].Trim() : "",
+      line,
+      column);
     return res;
   }
 
   private class SourceLocation {
-    public string Filename;
-    public string AddInfo;
-    public int Line;
-    public int Column;
+    public readonly string Filename;
+    public readonly string AddInfo;
+    public readonly int Line;
+    public readonly int Column;
+
+    public SourceLocation(string filename, string addInfo, int line, int column) {
+      Filename = filename;
+      AddInfo = addInfo;
+      Line = line;
+      Column = column;
+    }
   }
 
 }

@@ -1,7 +1,6 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-#nullable disable
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -9,21 +8,27 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
+/// <summary>
+/// Each PartialValue corresponds to an Element in the counterexample model returned by Boogie and represents a
+/// Dafny value about which we might have limited information (e.g. a sequence of which we only know one element)
+/// </summary>
 public class PartialValue {
 
   public readonly Model.Element Element; // the element in the counterexample model associated with the value
-  public readonly List<Constraint> Constraints;
+  public readonly List<Constraint> Constraints; // constraints describing this value
   private readonly PartialState state; // corresponding state in the counterexample model
-  private readonly Type type;
+  private readonly Type type; // Dafny type associated with the value
   private bool haveExpanded;
 
-  private bool nullable = false; // TODO: reenable this!
-  public bool Nullable => nullable;
-
+  /// <summary>
+  /// This factory method ensures we don't create duplicate partial value objects for the same element and state in the
+  /// counterexample model
+  /// </summary>
   internal static PartialValue Get(Model.Element element, PartialState state) {
-    if (state.allPartialValues.TryGetValue(element, out var value)) {
+    if (state.AllPartialValues.TryGetValue(element, out var value)) {
       return value;
     }
+
     return new PartialValue(element, state);
   }
 
@@ -32,18 +37,22 @@ public class PartialValue {
     this.state = state;
     Constraints = new();
     haveExpanded = false;
-    state.allPartialValues[element] = this;
+    state.AllPartialValues[element] = this;
     type = state.Model.GetFormattedDafnyType(element);
-    new TypeTestConstraint(this, type);
+    var _ = new TypeTestConstraint(this, type);
     state.Model.AddTypeConstraints(this);
   }
 
+  /// <summary>
+  /// Return all partial values that appear in any of the constraints describing this element
+  /// </summary>
   public IEnumerable<PartialValue> GetRelatedValues() {
     var relatedValues = new HashSet<PartialValue>() { this };
     if (!haveExpanded) {
       state.Model.GetExpansion(state, this);
       haveExpanded = true;
     }
+
     foreach (var constraint in Constraints) {
       foreach (var value in constraint.ReferencedValues) {
         if (!relatedValues.Contains(value)) {
@@ -60,7 +69,8 @@ public class PartialValue {
     }
   }
 
-  public string ShortName => ""; // TODO
+  public bool Nullable => Constraints.OfType<TypeTestConstraint>()
+    .Any(test => test.Type is UserDefinedType userDefinedType && userDefinedType.Name.EndsWith("?"));
 
   public Type Type => type;
 
@@ -73,14 +83,17 @@ public class PartialValue {
 
   public Dictionary<string, PartialValue> Fields() {
     var fields = new Dictionary<string, PartialValue>();
-    foreach (var memberSelectExpr in Constraints.OfType<MemberSelectExprConstraint>().Where(constraint => constraint.Obj == this)) {
+    foreach (var memberSelectExpr in Constraints.OfType<MemberSelectExprConstraint>()
+               .Where(constraint => Equals(constraint.Obj, this))) {
       fields[memberSelectExpr.MemberName] = memberSelectExpr.DefinedValue;
     }
+
     return fields;
   }
 
   public IEnumerable<PartialValue> UnnamedDestructors() {
-    var datatypeValue = Constraints.OfType<DatatypeValueConstraint>().FirstOrDefault(constraint => constraint.DefinedValue == this);
+    var datatypeValue = Constraints.OfType<DatatypeValueConstraint>()
+      .FirstOrDefault(constraint => Equals(constraint.DefinedValue, this));
     if (datatypeValue != null) {
       foreach (var destructor in datatypeValue.UnnamedDestructors) {
         yield return destructor;
@@ -90,7 +103,7 @@ public class PartialValue {
 
   public IEnumerable<PartialValue> SetElements() {
     return Constraints.OfType<ContainmentConstraint>()
-      .Where(containment => containment.Set == this)
+      .Where(containment => Equals(containment.Set, this))
       .Select(containment => containment.Element);
   }
 
@@ -100,26 +113,32 @@ public class PartialValue {
   }
 
   public IEnumerable<(PartialValue Key, PartialValue Value)> Mappings() {
-    foreach (var mapping in Constraints.OfType<MapSelectExprConstraint>().Where(constraint => constraint.Map == this)) {
+    foreach (var mapping in Constraints.OfType<MapSelectExprConstraint>().Where(constraint => Equals(constraint.Map, this))) {
       yield return new(mapping.Key, mapping.DefinedValue);
     }
   }
 
   public int? Cardinality() {
-    if (Constraints.OfType<LiteralExprConstraint>().Any(constraint => (constraint.LiteralExpr is DisplayExpression displayExpression && !displayExpression.SubExpressions.Any()) || (constraint.LiteralExpr is MapDisplayExpr mapDisplayExpr && !mapDisplayExpr.Elements.Any()))) {
+    if (Constraints.OfType<LiteralExprConstraint>().Any(constraint =>
+          (constraint.LiteralExpr is DisplayExpression displayExpression && !displayExpression.SubExpressions.Any()) ||
+          (constraint.LiteralExpr is MapDisplayExpr mapDisplayExpr && !mapDisplayExpr.Elements.Any()))) {
       return 0;
     }
 
-    var cardinality = Constraints.OfType<CardinalityConstraint>().FirstOrDefault(constraint => constraint.Collection == this)?.DefinedValue;
+    var cardinality = Constraints.OfType<CardinalityConstraint>()
+      .FirstOrDefault(constraint => Equals(constraint.Collection, this))?.DefinedValue;
     if (cardinality == null) {
       return -1;
     }
-    var cardinalityLiteral = cardinality.Constraints.OfType<LiteralExprConstraint>().FirstOrDefault()?.LiteralExpr as LiteralExpr;
+
+    var cardinalityLiteral =
+      cardinality.Constraints.OfType<LiteralExprConstraint>().FirstOrDefault()?.LiteralExpr as LiteralExpr;
     if (cardinalityLiteral == null) {
       return -1;
     }
+
     if (cardinalityLiteral.Value is not BigInteger bigInteger ||
-      !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
+        !bigInteger.LessThanOrEquals(new BigInteger(int.MaxValue))) {
       return -1;
     }
 
@@ -127,26 +146,29 @@ public class PartialValue {
   }
 
 
-  public PartialValue this[int i] {
+  public PartialValue? this[int i] {
     get {
       foreach (var seqSelectConstraint in Constraints.OfType<SeqSelectExprWithLiteralConstraint>()
-                 .Where(constraint => constraint.Seq == this)) {
+                 .Where(constraint => Equals(constraint.Seq, this))) {
         if (seqSelectConstraint.Index.ToString() == i.ToString()) {
           return seqSelectConstraint.DefinedValue;
         }
       }
+
       foreach (var seqSelectConstraint in Constraints.OfType<SeqSelectExprConstraint>()
-                 .Where(constraint => constraint.Seq == this)) {
-        var indexLiteral = seqSelectConstraint.Index.Constraints.OfType<LiteralExprConstraint>().FirstOrDefault()?.LiteralExpr;
+                 .Where(constraint => Equals(constraint.Seq, this))) {
+        var indexLiteral = seqSelectConstraint.Index.Constraints.OfType<LiteralExprConstraint>().FirstOrDefault()
+          ?.LiteralExpr;
         if (indexLiteral != null && indexLiteral.ToString() == i.ToString()) {
           return seqSelectConstraint.DefinedValue;
         }
       }
+
       return null;
     }
   }
 
-  public override bool Equals(object obj) {
+  public override bool Equals(object? obj) {
     return obj is PartialValue other && other.Element == Element && other.state == state;
   }
 

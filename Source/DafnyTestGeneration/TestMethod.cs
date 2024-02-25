@@ -61,8 +61,8 @@ namespace DafnyTestGeneration {
       argumentNames.RemoveAt(0);
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
       constraintContext = new Dictionary<PartialValue, Expression>();
-      foreach (var partialValue in dafnyModel.States.First().knownVariableNames.Keys) {
-        constraintContext[partialValue] = new Microsoft.Dafny.IdentifierExpr(Token.NoToken, dafnyModel.States.First().knownVariableNames[partialValue].First());
+      foreach (var partialValue in dafnyModel.States.First().KnownVariableNames.Keys) {
+        constraintContext[partialValue] = new Microsoft.Dafny.IdentifierExpr(Token.NoToken, dafnyModel.States.First().KnownVariableNames[partialValue].First());
         constraintContext[partialValue].Type = partialValue.Type;
       }
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
@@ -155,7 +155,7 @@ namespace DafnyTestGeneration {
         }
       }
       var constraints = constraintSet.ToList();
-      Constraint.FindDefinitions(constraintContext, constraints, false);
+      constraints = Constraint.ResolveAndOrder(constraintContext, constraints, false);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
       for (var i = 0; i < printOutput.Count; i++) {
         if (types[i] == "Ty") {
