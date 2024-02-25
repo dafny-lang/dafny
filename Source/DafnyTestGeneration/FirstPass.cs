@@ -273,7 +273,7 @@ public class FirstPass {
         }
         isSupported = TypeIsSupported(userDefinedType.AsNewtype.BaseType, testEntry);
       } else if (userDefinedType.AsSubsetType != null) {
-        if (userDefinedType.AsSubsetType.Witness == null) {
+        if (userDefinedType.AsSubsetType.Witness == null && userDefinedType.Name != "nat") {
           diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
             MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));

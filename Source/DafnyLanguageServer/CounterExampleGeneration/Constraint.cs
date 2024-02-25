@@ -17,8 +17,11 @@ public abstract class Constraint {
   private readonly List<PartialValue> referencedValues;
   public IEnumerable<PartialValue> ReferencedValues => referencedValues.AsEnumerable();
 
-  protected Constraint(IEnumerable<PartialValue> referencedValues) {
+  protected Constraint(IEnumerable<PartialValue> referencedValues, bool isWellFormedNessConstraint=false) {
     this.referencedValues = referencedValues.ToList();
+    if (isWellFormedNessConstraint) {
+      return;
+    }
     foreach (var partialValue in this.referencedValues) {
       partialValue.Constraints.Add(this);
     }
@@ -357,7 +360,7 @@ public class FunctionCallRequiresConstraint : Constraint {
 
 
   public FunctionCallRequiresConstraint(PartialValue receiver, List<PartialValue> args, string functionName)
-    : base(args.Append(receiver)) {
+    : base(args.Append(receiver), true) {
     this.args = args;
     this.receiver = receiver;
     this.functionName = functionName;

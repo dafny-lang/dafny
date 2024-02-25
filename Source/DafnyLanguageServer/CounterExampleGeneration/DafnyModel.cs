@@ -599,6 +599,9 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               }
               var field = PartialValue.Get(UnboxNotNull(modelElement), state);
               var fieldName = UnderscoreRemovalRegex.Replace(fieldFunc.Name.Split(".").Last(), "_");
+              if (fieldName.Contains("#")) {
+                continue;
+              }
               var _ = new MemberSelectExprClassConstraint(field, value, fieldName);
             }
 
@@ -611,7 +614,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                 if (fieldName != "alloc") {
                   var field = PartialValue.Get(UnboxNotNull(tpl.Result), state);
                   // make sure the field in quetion is not an array index
-                  if (!fieldName.StartsWith('[') && !fieldName.EndsWith(']')) {
+                  if (!fieldName.StartsWith('[') && !fieldName.EndsWith(']') && !fieldName.Contains("#")) {
                     var _ = new MemberSelectExprClassConstraint(field, value, fieldName);
                   }
 
