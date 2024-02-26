@@ -862,9 +862,9 @@ namespace Microsoft.Dafny.Compilers {
 
     private class BuilderLvalue : ILvalue {
       readonly string name;
-      private readonly DafnyCompiler compiler;
+      private readonly DafnyCodeGenerator compiler;
 
-      public BuilderLvalue(string name, DafnyCompiler compiler) {
+      public BuilderLvalue(string name, DafnyCodeGenerator compiler) {
         this.name = name;
         this.compiler = compiler;
       }
@@ -887,9 +887,9 @@ namespace Microsoft.Dafny.Compilers {
     private class ExprLvalue : ILvalue {
       readonly DAST.Expression expr;
       readonly DAST.AssignLhs assignExpr;
-      private readonly DafnyCompiler compiler;
+      private readonly DafnyCodeGenerator compiler;
 
-      public ExprLvalue(DAST.Expression expr, DAST.AssignLhs assignExpr, DafnyCompiler compiler) {
+      public ExprLvalue(DAST.Expression expr, DAST.AssignLhs assignExpr, DafnyCodeGenerator compiler) {
         this.expr = expr;
         this.assignExpr = assignExpr;
         this.compiler = compiler;
@@ -1405,9 +1405,7 @@ namespace Microsoft.Dafny.Compilers {
         var range = NativeTypeToNewtypeRange(newType.NativeType);
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
           GenType(EraseNewtypeLayers(topLevel)), range, true);
-      } else if (topLevel is SubsetTypeDecl subsetType) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)));
-      } else if (topLevel is TypeSynonymDecl typeSynonym) {
+      } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
         ThrowSpecificUnsupported(Token.NoToken, Feature.Traits);
