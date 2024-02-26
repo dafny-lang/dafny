@@ -306,13 +306,14 @@ namespace Microsoft.Dafny {
           compiled = false;
         }
 
-        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
         if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
-        } else if (failBecauseOfDiagnostics) {
+        } else if (failBecauseOfDiagnostics != null) {
           exitValue = ExitValue.DAFNY_ERROR;
+          await options.OutputWriter.WriteLineAsync($"Returning exit code {exitValue} because {failBecauseOfDiagnostics}");
         }
       }
 
