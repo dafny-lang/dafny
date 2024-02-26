@@ -27,7 +27,7 @@ public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
     IsContinue = original.IsContinue;
     BreakAndContinueCount = original.BreakAndContinueCount;
     if (cloner.CloneResolvedFields) {
-      TargetStmt = cloner.CloneStmt(original.TargetStmt);
+      TargetStmt = cloner.CloneStmt(original.TargetStmt, true);
     }
   }
 
