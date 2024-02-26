@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -306,16 +305,20 @@ public class CliCompilation {
         if (timeLimitSeconds.Seconds != 0) {
           tasks.Add(Task.Delay(timeLimitSeconds));
         }
+
         await Task.WhenAny(tasks);
         if (!results.Finished.Task.IsCompleted) {
           Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
             "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
           break;
         }
+
         await results.Finished.Task;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
         throw;
+      } catch (OperationCanceledException) {
+        
       } catch (Exception e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
           $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");

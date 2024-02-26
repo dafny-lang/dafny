@@ -21,7 +21,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   }
 
   private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.tok, original.Pat) {
-    this.Body = original.Body.Select(cloner.CloneStmt).ToList();
+    this.Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     this.Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
