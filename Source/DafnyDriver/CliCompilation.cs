@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -224,8 +225,13 @@ public class CliCompilation {
   public IObservable<CanVerifyResult> VerificationResults => verificationResults;
   private readonly Subject<CanVerifyResult> verificationResults = new();
 
-  public void VerifyAll() {
+  public Task VerifyAll() {
+    var task = new TaskCompletionSource();
+    verificationResults.Subscribe(_ => { }, e =>
+      task.TrySetException(e), () =>
+      task.TrySetResult());
     VerifyAllLazily().ToObservable().Subscribe(verificationResults);
+    return task.Task;
   }
 
   private async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily() {
@@ -307,7 +313,6 @@ public class CliCompilation {
           break;
         }
         await results.Finished.Task;
-
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
         throw;
@@ -316,6 +321,7 @@ public class CliCompilation {
           $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
         throw;
       }
+      yield return new CanVerifyResult(canVerify, results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
 
       canVerifyResults.Remove(canVerify); // Free memory
     }
