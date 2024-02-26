@@ -1184,7 +1184,7 @@ method m ()
 
 Here Dafny has all the ingredients it needs to prove
 termination. The variable `i` gets smaller each loop iteration and is bounded
-below by zero. This is fine, except the loop is backwards from most loops,
+below by zero. This is fine, except the loop is backwards compared to most loops,
 which tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:

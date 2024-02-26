@@ -340,9 +340,9 @@ namespace Microsoft.Dafny {
         // add the conjunct:  _yieldCount == |this.ys|
         wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
-            ReadHeap(iter.tok, etran.HeapExpr,
+            ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
               new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
-              new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
+              new Bpl.IdentifierExpr(iter.tok, GetField(ys))), TrType(ys.Type)))));
       }
       return wh;
     }

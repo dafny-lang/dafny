@@ -10,7 +10,7 @@
 <body onload="window['PR_TAB_WIDTH']=4">
 <div class="menu" id="menu">
     <a href="./index_combined.html">Index</a>
-    <a href="ProofDependencies.dfy_tests_expected_2.html" class="el_report">Expected Test Coverage (coverage_testing)</a><a href="ProofDependencies.dfy_verification_3.html" class="el_report">Verification coverage (coverage_verification)</a>
+    <a href="ProofDependencies.dfy_tests_expected.html" class="el_report">Expected Test Coverage (coverage_testing)</a><a href="ProofDependencies.dfy_verification.html" class="el_report">Verification coverage (coverage_verification)</a>
 </div>
 <h1>ProofDependencies.dfy, Combined Coverage Report</h1>
 

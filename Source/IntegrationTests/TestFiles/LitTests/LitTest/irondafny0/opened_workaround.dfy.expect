@@ -1,3 +1,3 @@
+opened_workaround.dfy(6,32): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
-Dafny program verifier finished with 0 verified, 0 errors
-opened_workaround.dfy(6,20): Error: Function A._default.P has no body
+Dafny program verifier finished with 1 verified, 0 errors

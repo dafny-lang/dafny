@@ -233,7 +233,7 @@ implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
+   - `--allow-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
@@ -356,8 +356,7 @@ the `--input` option on the command-line.
 is an argument to the program being run (and not to dafny itself).
 - If the `--` option is used, then anything after that option is a command-line argument to the program being run.
 
-If more complex build configurations are required, then use `dafny build` and then execute the compiled program, as two separate steps. 
-`dafny run` is primarily intended as a convenient way to run relatively simple Dafny programs.
+During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
 
 Here are some examples:
   - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments
@@ -369,6 +368,9 @@ then runs it with the four command-line arguments `1 2 3 B.dfy`
 then runs it with the three command-line arguments `1 2 3`
   - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
 
+Each time `dafny run` is invoked, the input Dafny program is compiled before it is executed.
+If a Dafny program should be run more than once, it can be faster to use `dafny build`,
+which enables compiling a Dafny program once and then running it multiple times.
 
 **Note:** `dafny run` will typically produce the same results as the executables produced by `dafny build`.  The only expected differences are these:
 - performance --- `dafny run` may not optimize as much as `dafny build`
@@ -1402,7 +1404,7 @@ We can also classify the assertions extracted by Dafny in a few categories:
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
-* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
+* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, it also yields `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`.
 * Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
 * Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
 * Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
@@ -1528,7 +1530,7 @@ and `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
-### 13.7.6. Debugging brittle verification
+### 13.7.6. Debugging brittle verification {#sec-brittle-verification}
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a

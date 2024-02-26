@@ -191,3 +191,16 @@ module NewtypeBuiltinMembers1 {
     x := ano.H();
   }
 }
+
+module ValueTraitIs {
+  trait A {}
+
+  trait B extends A {}
+
+  predicate Test(x: A) {
+    // The following gives an error with general traits under the *legacy* type system. That's
+    // a bug, but supporting the combination legacy-type-system + general-traits is not a priority.
+    // It is allowed (as desired) with general traits underthe type system refresh (which we do care about).
+    x is B
+  }
+}
