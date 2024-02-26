@@ -163,7 +163,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       }
 
     } else if (expr is SetComprehension setComprehension) {
-      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
         "set comprehension"));
 
     } else if (expr is MapComprehension mapComprehension) {
