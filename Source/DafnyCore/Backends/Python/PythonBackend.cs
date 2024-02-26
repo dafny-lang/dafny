@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -86,34 +87,35 @@ public class PythonBackend : ExecutableBackend {
     }
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
-      string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    compilationResult = null;
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".py") {
-        outputWriter.WriteLine($"Unrecognized file as extra input for Python compilation: {otherFileName}");
-        return false;
+        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Python compilation: {otherFileName}");
+        return (false, null);
       }
       if (!CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
-        return false;
+        return (false, null);
       }
     }
     if (!runAfterCompile) {
       var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
-      return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files.");
+      return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files."), null);
     }
-    return true;
+    return (true, null);
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, /*?*/
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == await RunProcess(psi, outputWriter, errorWriter);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {

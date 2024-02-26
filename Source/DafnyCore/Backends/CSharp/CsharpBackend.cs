@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -33,10 +34,10 @@ public class CsharpBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => true;
   public override bool TextualTargetIsExecutable => false;
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-
-    compilationResult = null;
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
 
     // .NET Core does not allow C# compilation on all platforms using System.CodeDom. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
     var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
@@ -78,8 +79,8 @@ public class CsharpBackend : ExecutableBackend {
         if (File.Exists(normalizedPath)) {
           otherSourceFiles.Add(normalizedPath);
         } else {
-          outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
-          return false;
+          await outputWriter.WriteLineAsync($"Errors compiling program: Could not find {file}");
+          return (false, null);
         }
       } else if (extension == ".dll") {
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.GetFullPath(file)));
@@ -115,31 +116,30 @@ public class CsharpBackend : ExecutableBackend {
               }
             }
           }, new JsonSerializerOptions() { WriteIndented = true });
-        File.WriteAllText(outputJson, configuration + Environment.NewLine);
+        await File.WriteAllTextAsync(outputJson, configuration + Environment.NewLine);
       } catch (Exception e) {
-        outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
-        return false;
+        await outputWriter.WriteLineAsync($"Error trying to write '{outputJson}': {e.Message}");
+        return (false, null);
       }
     } else {
-      outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
+      await outputWriter.WriteLineAsync($"Errors compiling program into {compilation.AssemblyName}");
       var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
       foreach (var ce in errors) {
-        outputWriter.WriteLine(ce.ToString());
-        outputWriter.WriteLine();
+        await outputWriter.WriteLineAsync(ce.ToString());
+        await outputWriter.WriteLineAsync();
       }
 
-      return false;
+      return (false, null);
     }
 
-    compilationResult = tempCompilationResult;
-    return true;
+    return (true, tempCompilationResult);
   }
 
   private class CSharpCompilationResult {
     public Assembly CompiledAssembly;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
@@ -156,7 +156,7 @@ public class CsharpBackend : ExecutableBackend {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
-    return RunProcess(psi, outputWriter, errorWriter) == 0;
+    return await RunProcess(psi, outputWriter, errorWriter) == 0;
   }
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {
