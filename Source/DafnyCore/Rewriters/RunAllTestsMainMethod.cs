@@ -235,7 +235,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
+    var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
     mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
   }

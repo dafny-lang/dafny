@@ -404,7 +404,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Tok(stmt.RangeToken), stmt.Body.ConvertAll(CloneStmt));
+        return new BlockStmt(Tok(stmt.RangeToken), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
 
@@ -412,18 +412,23 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(CloneStmt),
-          stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
+        return new DividedBlockStmt(Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
+          stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
 
-    public virtual Statement CloneStmt(Statement stmt) {
+    public virtual Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt == null) {
         return null;
       }
 
+
       if (statementClones.TryGetValue(stmt, out var cachedResult)) {
         return cachedResult;
+      }
+
+      if (isReference) {
+        return stmt;
       }
 
       if (stmt is ICloneable<Statement> cloneable) {
@@ -444,7 +449,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(c.Arguments != null);
       return new MatchCaseStmt(Tok(c.RangeToken), c.Ctor, c.FromBoundVar,
         c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
-        c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+        c.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -463,7 +468,7 @@ namespace Microsoft.Dafny {
 
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
       Contract.Requires(c != null);
-      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt),
+      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(stmt => CloneStmt(stmt, false)),
         CloneAttributes(c.Attributes));
     }
 
@@ -493,7 +498,7 @@ namespace Microsoft.Dafny {
 
     public GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
       return new GuardedAlternative(Tok(alt.Tok), alt.IsBindingGuard, CloneExpr(alt.Guard),
-        alt.Body.ConvertAll(CloneStmt), CloneAttributes(alt.Attributes));
+        alt.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(alt.Attributes));
     }
 
     public virtual Field CloneField(Field f) {

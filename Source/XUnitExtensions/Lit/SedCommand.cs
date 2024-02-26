@@ -40,16 +40,16 @@ namespace XUnitExtensions.Lit {
       return new SedCommand(regexp, replaceBy, file);
     }
 
-    public Task<int> Execute(TextReader inputReader,
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var fileContent = File.ReadAllText(file);
+      var fileContent = await File.ReadAllTextAsync(file);
       try {
         var stdOutput = Regex.Replace(fileContent, "(?m)" + regexp, replaceBy);
-        outputWriter.Write(stdOutput);
-        return Task.FromResult(0);
+        await outputWriter.WriteAsync(stdOutput);
+        return 0;
       } catch (Exception e) {
-        outputWriter.WriteLine(e.ToString());
-        return Task.FromResult(1);
+        await outputWriter.WriteLineAsync(e.ToString());
+        return 1;
       }
     }
 

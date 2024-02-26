@@ -65,12 +65,12 @@ public class CoverageReporter {
         .GetAllPotentialDependencies()
         .OrderBy(dep => dep.Range.StartToken);
     var coverageReport = new CoverageReport("Verification coverage", "Proof Dependencies", "_verification", dafnyProgram);
-    foreach (var dep in allDependencies) {
-      if (dep is FunctionDefinitionDependency) {
+    foreach (var proofDependency in allDependencies) {
+      if (proofDependency is FunctionDefinitionDependency) {
         continue;
       }
-      coverageReport.LabelCode(dep.Range,
-        usedDependencies.Contains(dep)
+      coverageReport.LabelCode(proofDependency.Range,
+        usedDependencies.Contains(proofDependency)
           ? CoverageLabel.FullyCovered
           : CoverageLabel.NotCovered);
     }

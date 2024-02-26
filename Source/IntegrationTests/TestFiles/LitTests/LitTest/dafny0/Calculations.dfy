@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --print "%t.dprint.dfy" "%s" > "%t"
-// RUN: %resolve "%t.dprint.dfy" >> "%t"
+// RUN: %exits-with 4 %verify --allow-axioms --print "%t.dprint.dfy" "%s" > "%t"
+// RUN: %resolve --allow-axioms "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method CalcTest0(s: seq<int>) {

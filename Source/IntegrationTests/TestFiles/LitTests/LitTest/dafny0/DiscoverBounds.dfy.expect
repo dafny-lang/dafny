@@ -7,3 +7,7 @@
 {} [] map[198 := 200] multiset{} {} map[]
 3
 3
+true false
+false false
+true
+true
