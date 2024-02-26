@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -16,14 +17,14 @@ public class CppBackend : ExecutableBackend {
     return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
-    string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
     var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Contract.Assert(assemblyLocation != null);
     var codebase = Path.GetDirectoryName(assemblyLocation);
     Contract.Assert(codebase != null);
-    compilationResult = null;
     var psi = PrepareProcessStartInfo("g++", new List<string> {
       "-Wall",
       "-Wextra",
@@ -39,14 +40,15 @@ public class CppBackend : ExecutableBackend {
       "-o", ComputeExeName(targetFilename),
       targetFilename
     });
-    return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling C++ files.");
+    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling C++ files."), null);
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == await RunProcess(psi, outputWriter, errorWriter);
   }
 
   public override Command GetCommand() {
