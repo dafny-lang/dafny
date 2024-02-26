@@ -701,7 +701,7 @@ namespace Microsoft.Dafny {
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      var postGenerateFailed = !compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      var postGenerateFailed = !await compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
       if (postGenerateFailed) {
         return false;
       }
@@ -712,8 +712,8 @@ namespace Microsoft.Dafny {
       }
 
       // compile the program into an assembly
-      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
-        hasMain && options.RunAfterCompile, outputWriter, out var compilationResult);
+      var (compiledCorrectly, compilationResult) = await compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
+        hasMain && options.RunAfterCompile, outputWriter);
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.Verbose) {
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
             await outputWriter.WriteLineAsync();
           }
 
-          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
+          compiledCorrectly = await compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
             targetPaths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
 
           if (compiledCorrectly) {

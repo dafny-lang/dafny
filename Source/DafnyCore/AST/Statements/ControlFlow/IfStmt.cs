@@ -23,7 +23,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     IsBindingGuard = original.IsBindingGuard;
     Guard = cloner.CloneExpr(original.Guard);
     Thn = cloner.CloneBlockStmt(original.Thn);
-    Els = cloner.CloneStmt(original.Els);
+    Els = cloner.CloneStmt(original.Els, false);
   }
 
   public IfStmt(RangeToken rangeToken, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
