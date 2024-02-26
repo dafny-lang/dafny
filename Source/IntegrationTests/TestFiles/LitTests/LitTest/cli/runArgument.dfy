@@ -1,3 +1,4 @@
+// NONUNIFORM: This tests front-end behavior, and is back-end independent.
 // RUN: %run %s blie 2 &> %t
 // RUN: %run %s --blie --2 &>> %t
 // RUN: %run %s -- --bla --2 &>> %t
