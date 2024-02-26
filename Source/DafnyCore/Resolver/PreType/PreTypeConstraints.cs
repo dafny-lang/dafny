@@ -393,16 +393,25 @@ namespace Microsoft.Dafny {
         yield break;
       }
       visited.Add(proxy);
+      var foundSomething = false;
       foreach (var constraint in unnormalizedSubtypeConstraints) {
         if (constraint.Super.Normalize() == proxy) {
           var sub = constraint.Sub.Normalize();
           if (sub is PreTypeProxy subProxy) {
             foreach (var pt in AllSubBounds(subProxy, visited)) {
+              foundSomething = true;
               yield return pt;
             }
           } else {
+            foundSomething = true;
             yield return (DPreType)sub;
           }
+        }
+      }
+      if (!foundSomething) {
+        TryApplyDefaultAdviceFor(proxy);
+        if (proxy.Normalize() is DPreType defaultType) {
+          yield return defaultType;
         }
       }
     }
@@ -685,7 +694,7 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
           return pt.Decl is NewtypeDecl || pt.Decl.Name is PreType.TypeNameInt or PreType.TypeNameReal;
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
-          if (familyDeclName is PreType.TypeNameSeq or PreType.TypeNameMap or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
+          if (familyDeclName is PreType.TypeNameMap or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
             // These base types are not yet supported, but they will be soon.
             return false;
           }
