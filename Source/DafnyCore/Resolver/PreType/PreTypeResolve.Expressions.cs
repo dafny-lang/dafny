@@ -657,7 +657,7 @@ namespace Microsoft.Dafny {
           if (e.PreType.UrAncestor(this) is DPreType dPreType) {
             if (dPreType.Decl.Name == PreType.SetTypeName(e.Finite)) {
               AddSubtypeConstraint(dPreType.Arguments[0], e.Term.PreType, e.tok,
-                "element type of set display expected to be {0} (got {1})");
+                "element type of set comprehension expected to be {0} (got {1})");
             } else {
               ReportError(e, "set comprehension used as if it had type {0}", e.PreType);
             }
