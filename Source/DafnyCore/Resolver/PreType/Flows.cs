@@ -422,7 +422,7 @@ class FlowFromTypeArgument : FlowIntoExpr {
   }
 
   protected override Type GetSourceType() {
-    var sourceType = source.NormalizeExpand();
+    var sourceType = source.NormalizeToAncestorType();
     Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
     return sourceType.TypeArgs[argumentIndex];
   }

@@ -179,6 +179,15 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         return new MapType(mapComprehension.Finite, keyType, AdjustableType.NormalizeSansBottom(mapComprehension.Term));
       }, "map comprehension"));
 
+    } else if (expr is SeqConstructionExpr seqConstructionExpr) {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => {
+          var arrowType = (ArrowType)seqConstructionExpr.Initializer.Type.NormalizeToAncestorType();
+          Contract.Assert(arrowType.TypeArgs.Count == 2);
+          return new SeqType(AdjustableType.NormalizeSansBottom(arrowType.TypeArgs[1]));
+        },
+        "seq constructor"));
+
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Iff:

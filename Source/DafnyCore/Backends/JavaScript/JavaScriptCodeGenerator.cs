@@ -1138,10 +1138,9 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.IsStringType;
+      bool isString = arg.Type.NormalizeToAncestorType().IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
-      bool isGeneric = arg.Type.AsSeqType != null &&
-                       arg.Type.AsSeqType.Arg.IsTypeParameter;
+      bool isGeneric = arg.Type.NormalizeToAncestorType().AsSeqType is { Arg.IsTypeParameter: true };
       var wStmts = wr.Fork();
       if (isStringLiteral && !UnicodeCharEnabled) {
         // process.stdout.write(_dafny.toString(x));

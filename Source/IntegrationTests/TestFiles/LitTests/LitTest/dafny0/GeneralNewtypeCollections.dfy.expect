@@ -18,3 +18,11 @@ multiset{} true
 0 0 true true
 true true false true
 false true
+[] 3 false true
+6 19 6
+0 3 1
+6 [0, 3, 1, 0, 3, 1]
+6 6 3 true true
+false false true true
+false true
+[3, 11, 19, 27]

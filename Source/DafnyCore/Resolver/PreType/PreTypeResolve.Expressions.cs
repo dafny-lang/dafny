@@ -390,7 +390,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Initializer, resolutionContext);
         var intPreType = Type2PreType(resolver.SystemModuleManager.Nat());
         var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), new List<PreType>() { intPreType, elementPreType });
-        var resultPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), new List<PreType>() { elementPreType });
         Constraints.AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.tok,
           () => {
             var strFormat = "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}')";
@@ -400,7 +399,7 @@ namespace Microsoft.Dafny {
             }
             return strFormat;
           });
-        expr.PreType = resultPreType;
+        ResolveCollectionComprehension(PreType.TypeNameSeq, expr, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
@@ -650,26 +649,9 @@ namespace Microsoft.Dafny {
         ResolveAttributes(e, resolutionContext, false);
         scope.PopMarker();
 
-        expr.PreType = CreatePreTypeProxy("set comprehension");
-        var plainOlSetType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(e.Finite)), new List<PreType>() { e.Term.PreType });
-        Constraints.AddDefaultAdvice(e.PreType, plainOlSetType);
-        Constraints.AddGuardedConstraint(() => {
-          if (e.PreType.UrAncestor(this) is DPreType dPreType) {
-            if (dPreType.Decl.Name == PreType.SetTypeName(e.Finite)) {
-              AddSubtypeConstraint(dPreType.Arguments[0], e.Term.PreType, e.tok,
-                "element type of set comprehension expected to be {0} (got {1})");
-            } else {
-              ReportError(e, "set comprehension used as if it had type {0}", e.PreType);
-            }
-            return true;
-          }
-          return false;
-        });
-        var check = e.Finite
-          ? PreTypeConstraints.CommonConfirmationBag.InSetFamily
-          : PreTypeConstraints.CommonConfirmationBag.InIsetFamily;
-        AddConfirmation(check, e.PreType, e.tok, "set comprehension used as if it had type {0}");
-
+        ResolveCollectionComprehension(PreType.SetTypeName(e.Finite), expr, e.Term.PreType,
+          e.Finite ? PreTypeConstraints.CommonConfirmationBag.InSetFamily : PreTypeConstraints.CommonConfirmationBag.InIsetFamily
+        );
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -782,6 +764,28 @@ namespace Microsoft.Dafny {
       });
 
       AddConfirmation(confirmationFamily, displayExpr.PreType, displayExpr.tok, $"{typeName} display used as if it had type {{0}}");
+    }
+
+    private void ResolveCollectionComprehension(string typeName, Expression expr, PreType elementPreType,
+      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
+      Contract.Requires(expr is SetComprehension or SeqConstructionExpr);
+      var exprKind = $"{typeName} {(expr is SeqConstructionExpr ? "constructor" : "comprehension")}";
+      expr.PreType = CreatePreTypeProxy($"{exprKind}");
+      var defaultType = new DPreType(BuiltInTypeDecl(typeName), new List<PreType>() { elementPreType });
+      Constraints.AddDefaultAdvice(expr.PreType, defaultType);
+      Constraints.AddGuardedConstraint(() => {
+        if (expr.PreType.UrAncestor(this) is DPreType dPreType) {
+          if (dPreType.Decl.Name == typeName) {
+            AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, expr.tok,
+              $"element type of {exprKind} expected to be {{0}} (got {{1}})");
+          } else {
+            ReportError(expr, $"{exprKind} used as if it had type {{0}}", expr.PreType);
+          }
+          return true;
+        }
+        return false;
+      });
+      AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
     private PreType ResolveBinaryExpr(IToken tok, BinaryExpr.Opcode opcode, Expression e0, Expression e1, ResolutionContext resolutionContext) {

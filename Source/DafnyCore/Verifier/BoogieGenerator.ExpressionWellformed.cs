@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
-            var eType = e.Type.AsSeqType.Arg;
+            var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
             CheckElementInit(e.tok, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
             break;
           }

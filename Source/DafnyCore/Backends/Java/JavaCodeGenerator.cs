@@ -2326,11 +2326,11 @@ namespace Microsoft.Dafny.Compilers {
             throw new cce.UnreachableException();
         }
       } else {
-        bool isGeneric = type.AsSeqType is { Arg: { IsTypeParameter: true } };
-        if (type.IsStringType) {
+        bool isGeneric = type.NormalizeToAncestorType().AsSeqType is { Arg: { IsTypeParameter: true } };
+        if (type.NormalizeToAncestorType().IsStringType) {
           argumentWriter = wr.ForkInParens();
           wr.Write(".verbatimString()");
-        } else if (type.IsCharType && UnicodeCharEnabled) {
+        } else if (type.NormalizeToAncestorType().IsCharType && UnicodeCharEnabled) {
           wr.Write($"{DafnyHelpersClass}.ToCharLiteral(");
           argumentWriter = wr.Fork();
           wr.Write(")");

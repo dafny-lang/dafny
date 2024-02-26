@@ -2790,7 +2790,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(lam.BoundVars.Count == 1);
         EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Body, inLetExprBody, wr);
       } else {
-        wr.Write($"{DafnySeqClass}<{TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok)}>.Create");
+        wr.Write($"{DafnySeqClass}<{TypeName(expr.Type.NormalizeToAncestorType().AsSeqType.Arg, wr, expr.tok)}>.Create");
         wr.Append(ParensList(Expr(expr.N, inLetExprBody, wStmts), Expr(expr.Initializer, inLetExprBody, wStmts)));
       }
     }

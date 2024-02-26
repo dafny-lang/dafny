@@ -7,6 +7,7 @@ method Main() {
   Frames.CallEm();
   Decreases.Test();
   Multiset.Test();
+  Seq.Test();
 }
 
 module Set {
@@ -112,16 +113,16 @@ module Iset {
 module Frames {
   method CallEm() {
     var o := new object;
-//    label Recently:
-//    M({o}, iset{o}, multiset{o, o}, [o, o, o]);
-//    var u := F({o}, iset{o}, multiset{o, o}, [o, o, o]);
-//    ghost var b := P2@Recently({o}, iset{o}, multiset{o, o}, [o, o, o]);
+    label Recently:
+    M({o}, iset{o}, multiset{o, o}, [o, o, o]);
+    var u := F({o}, iset{o}, multiset{o, o}, [o, o, o]);
+    ghost var b := P2@Recently({o}, iset{o}, multiset{o, o}, [o, o, o]);
   }
   
   newtype ObjectSet = s: set<object> | true
   newtype ObjectISet = ss: iset<object> | true
   newtype ObjectMultiset = m: multiset<object> | true
-  /*new*/type ObjectSeq = q: seq<object> | true
+  newtype ObjectSeq = q: seq<object> | true
 
   function R(x: int): ObjectSet {
     {}
@@ -284,5 +285,47 @@ module Multiset {
     b0 := s == t;
     b1 := s != t;
     print b0, " ", b1, "\n"; // false true
+  }
+}
+
+module Seq {
+  newtype IntSeq = s: seq<int> | true
+
+  method Test() {
+    var s: IntSeq;
+    s := [];
+    print s, " "; // []
+    s := [6, 19, 6];
+    print |s|, " "; // 3
+    print 7 in s, " ", 6 in s, "\n"; // false true
+    print s[0], " ", s[1], " ", s[2], "\n"; // 6 19 6
+    s := s[1 := 3][0 := 0][2 := 1];
+    print s[0], " ", s[1], " ", s[2], "\n"; // 0 3 1
+
+    var t: IntSeq := s;
+
+    s := s + t;
+    print |s|, " ", s, "\n"; // 6 [0, 3, 1, 0, 3, 1]
+
+    var u: seq<int>;
+    u := s as seq<int>;
+    s := u as IntSeq;
+    var b0 := s is seq<int>;
+    var b1 := u is IntSeq;
+
+    print |s|, " ", |u|, " ", |t|, " ", b0, " ", b1, "\n"; // 6 6 3 true true
+
+    b0 := s <= t;
+    b1 := s < t;
+    var b2 := s <= s;
+    var b3 := t < s;
+    print b0, " ", b1, " ", b2, " ", b3, "\n"; // false false true true
+
+    b0 := s == t;
+    b1 := s != t;
+    print b0, " ", b1, "\n"; // false true
+
+    s := seq(4, i => 8 * i + 3);
+    print s, "\n"; // [3, 11, 19, 27]
   }
 }
