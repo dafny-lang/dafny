@@ -287,7 +287,7 @@ namespace Microsoft.Dafny {
               ? null
               : fromSubBounds
                 ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
-                : MeetHeads(previousBest, bound.Decl);
+                : MeetHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager);
             if (combined != null || !ignoreUnknowns) {
               candidateHeads[proxy] = combined;
             }
@@ -331,13 +331,15 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b) {
+    TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
       var aAncestors = new HashSet<TopLevelDecl>();
+      PreTypeResolver.ComputeAncestors(a, aAncestors, systemModuleManager);
       if (aAncestors.Contains(b)) {
         // that's good enough; let's pick a
         return a;
       }
       var bAncestors = new HashSet<TopLevelDecl>();
+      PreTypeResolver.ComputeAncestors(b, bAncestors, systemModuleManager);
       if (bAncestors.Contains(a)) {
         // that's good enough; let's pick b
         return b;
