@@ -17,6 +17,9 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCompiler : SinglePassCompiler {
+    //TODO: Update this to point to public module than the private one owned by ShubhamChaturvedi7 user.
+    private string DafnyRuntimeGoModule = "github.com/ShubhamChaturvedi7/DafnyRuntimeGo/";
+
     private bool GoModuleMode;
     private string GoModuleName;
     public GoCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
@@ -71,13 +74,15 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
 
+      string path;
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
-        var path = GoModuleMode ? GoModuleName + "/" : "";
-        Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+        path = GoModuleMode ? GoModuleName + "/" : "";
       } else {
-        Imports.Add(new Import { Name = "_dafny", Path = "github.com/ShubhamChaturvedi7/DafnyRuntimeGo/dafny" });
+        path = GoModuleMode ? DafnyRuntimeGoModule : "";
       }
+      Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
       }
@@ -164,6 +169,14 @@ namespace Microsoft.Dafny.Compilers {
         }
         while (pkgName.StartsWith("_")) {
           pkgName = pkgName.Substring(1) + "_";
+        }
+      }
+
+      if (moduleName.Equals("_System")) {
+        if (Options.IncludeRuntime) {
+          pkgName = GoModuleMode ? GoModuleName + "/" + pkgName : pkgName;
+        } else {
+          pkgName = GoModuleMode ? DafnyRuntimeGoModule + pkgName : pkgName;
         }
       }
 
