@@ -358,14 +358,14 @@ public class FirstPass {
       return base.CloneExpr(expr);
     }
 
-    public override Statement CloneStmt(Statement stmt) {
+    public override Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt is CallStmt callStmt) {
         if (!Edges.ContainsKey(currentlyVisited)) {
           Edges[currentlyVisited] = new();
         }
         Edges[currentlyVisited].Add(callStmt.Method);
       }
-      return base.CloneStmt(stmt);
+      return base.CloneStmt(stmt, isReference);
     }
   }
 }

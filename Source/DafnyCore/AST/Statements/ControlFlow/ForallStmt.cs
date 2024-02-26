@@ -53,7 +53,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     BoundVars = original.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     Range = cloner.CloneExpr(original.Range);
     Ens = original.Ens.Select(cloner.CloneAttributedExpr).ToList();
-    Body = cloner.CloneStmt(original.Body);
+    Body = cloner.CloneStmt(original.Body, false);
     Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
