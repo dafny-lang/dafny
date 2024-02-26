@@ -239,12 +239,14 @@ public class CliCompilation {
           if (timeLimitSeconds.Seconds != 0) {
             tasks.Add(Task.Delay(timeLimitSeconds));
           }
+
           await Task.WhenAny(tasks);
           if (!results.Finished.Task.IsCompleted) {
             Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
               "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
             break;
           }
+
           await results.Finished.Task;
 
           // We use an intermediate reporter so we can sort the diagnostics from all parts by token
@@ -254,15 +256,17 @@ public class CliCompilation {
           }
 
           foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-            Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+            Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+              diagnostic.Message);
           }
 
           var parts = results.CompletedParts;
           ProofDependencyWarnings.ReportSuspiciousDependencies(options, parts,
             resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
 
-          verificationResultLogger?.Report(new CanVerifyResult(canVerify, results.CompletedParts.Select(t => new VerificationTaskResult(t.Task, t.Result.Result)).
-            OrderBy(t => t.Result.VcNum).ToList()));
+          verificationResultLogger?.Report(new CanVerifyResult(canVerify,
+            results.CompletedParts.Select(t => new VerificationTaskResult(t.Task, t.Result.Result))
+              .OrderBy(t => t.Result.VcNum).ToList()));
 
           foreach (var used in results.CompletedParts.SelectMany(part => part.Result.Result.CoveredElements)) {
             usedDependencies.Add(used);
@@ -272,7 +276,7 @@ public class CliCompilation {
         } catch (ProverException e) {
           Interlocked.Increment(ref statistics.SolverExceptionCount);
           Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-        } catch (Exception e) {
+        } catch (OperationCanceledException) { } catch (Exception e) {
           Interlocked.Increment(ref statistics.SolverExceptionCount);
           Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
             $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
