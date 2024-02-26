@@ -427,9 +427,9 @@ namespace Microsoft.Dafny {
         return cachedResult;
       }
 
-      // if (isReference) {
-      //   return stmt;
-      // }
+      if (isReference) {
+        return stmt;
+      }
 
       if (stmt is ICloneable<Statement> cloneable) {
         var r = cloneable.Clone(this);
