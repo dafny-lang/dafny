@@ -32,6 +32,8 @@ public abstract class IExecutableBackend {
   public abstract string TargetName { get; }
   /// <summary>
   /// Is this a stable, supported backend (should it be run in integration tests).
+  /// Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
+  /// such as empty constructors with ensures clauses, generated from iterators
   /// </summary>
   public abstract bool IsStable { get; }
   /// <summary>

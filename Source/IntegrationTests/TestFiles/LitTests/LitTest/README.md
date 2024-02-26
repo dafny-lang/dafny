@@ -110,11 +110,11 @@ If you set the static field `DiffCommand.UpdateExpectFile` to true instead of fa
 To update compiler-specific error-aware output files for tests running with `%forEachDafnyCompiler`,
 do the following:
 
-1. Set the environment variable `DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE` to `true` (See the Debugging Tests section above on how to set the environment variables)
+1. Set the environment variable `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` to `true` (See the Debugging Tests section above on how to set the environment variables)
 2. Set the environment variable `DAFNY_INTEGRATION_TESTS_ROOT_DIR` to the path to the  `dafny\Source\IntegrationTests` folder
 3. To additionally run only the foreach compiler tests, and specifically on one single compiler:
   * Set the environment variable `DAFNY_INTEGRATION_TESTS_MODE` to `only-multi-backend`
   * Set the environment variable `DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS` to `rs` for rust for example. It's a comma-separated list of compiler IDs for which the tests should run
 
 With 1. and 2. every time a compiler encounters errors on a `file.dfy`, it will emit a `file.dfy.ID.error.expect` next to that file so that we know what this file is not supported by the compiler.
-Make sure you set `DAFNY_INTEGRATION_TESTS_UPDATE_TARGET_EXPECT_FILE` back to false when you don't need to update these files!
+Make sure you set `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` back to false when you don't need to update these files!
