@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+using DafnyDriver.Commands;
 
 namespace Microsoft.Dafny;
 
@@ -37,10 +39,7 @@ static class MeasureComplexityCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
-      options.Compile = false;
-      return SynchronousCliCompilation.Run(options);
-    });
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => VerifyCommand.HandleVerification(options));
     return result;
   }
 }

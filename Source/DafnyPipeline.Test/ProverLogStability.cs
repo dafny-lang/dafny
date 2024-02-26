@@ -127,9 +127,11 @@ type ImapSimulator<!A, B> =
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       options.ProverLogFilePath = temp1;
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Microsoft.Dafny.Token.NoToken);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await DafnyMain.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
+            options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {
