@@ -1075,7 +1075,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
 
-      var dReceiver = Constraints.ApproximateReceiverType(tok, receiverPreType, memberName);
+      var dReceiver = Constraints.ApproximateReceiverType(receiverPreType, memberName);
       if (dReceiver == null) {
         ReportError(tok, "type of the receiver is not fully determined at this program point");
         return (null, null);
@@ -2085,7 +2085,7 @@ namespace Microsoft.Dafny {
     PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
       var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = Constraints.ApproximateReceiverType(tok, collectionPreType, null);
+        var sourcePreType = Constraints.ApproximateReceiverType(collectionPreType, null);
         if (sourcePreType != null) {
           var ancestorPreType = AncestorPreType(sourcePreType);
           var familyDeclName = ancestorPreType.Decl.Name;

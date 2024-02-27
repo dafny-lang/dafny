@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
     /// The "memberName" is allowed to be passed in as "null", in which case the supertype search does not consider any trait.
     /// </summary>
     [CanBeNull]
-    public DPreType ApproximateReceiverType(IToken tok, PreType preType, [CanBeNull] string memberName) {
+    public DPreType ApproximateReceiverType(PreType preType, [CanBeNull] string memberName) {
       PartiallySolveTypeConstraints();
 
       preType = preType.Normalize();
