@@ -60,7 +60,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       var unnormalizedSeqType = selectExpr.Seq.UnnormalizedType;
       var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(seqType.TypeArgs[0])));
+        var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
+        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.tok));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
         flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {

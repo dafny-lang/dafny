@@ -565,3 +565,80 @@ module ArrowBaseTypes {
   type RestrictedOrdinal = o: ORDINAL | true
   newtype NewRestrictedOrdinal = st: SmallTrait | true // error: cannot base newtype on any kind of ORDINAL
 }
+
+module SubSequences {
+  newtype MySequence = s: seq<int> | true
+  newtype AnotherSequence = s: seq<int> | true
+
+  method FromSeqToMySequence(s: seq<int>) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[2..]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[1..3]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[..]; // error: cannot assign seq to MySequence (without a cast)
+  }
+
+  method FromSeqToMySequenceWithCasts(s: seq<int>) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2] as MySequence;
+    r := s[2..] as MySequence;
+    r := s[1..3] as MySequence;
+    r := s[..] as MySequence;
+  }
+
+  method FromAnotherSequenceToMySequence(s: AnotherSequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[2..]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[1..3]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[..]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+  }
+
+  method FromAnotherSequenceToMySequenceWithCasts(s: AnotherSequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2] as MySequence;
+    r := s[2..] as MySequence;
+    r := s[1..3] as MySequence;
+    r := s[..] as MySequence;
+  }
+
+  method FromMySequenceToMySequence(s: MySequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2];
+    r := s[2..];
+    r := s[1..3];
+    r := s[..];
+  }
+
+  method FromMySequenceToSeq(s: MySequence) returns (r: seq<int>)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[2..]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[1..3]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[..]; // error: cannot assign MySequence to seq (without a cast)
+  }
+
+  method FromMySequenceToSeqWithCasts(s: MySequence) returns (r: seq<int>)
+    requires |s| == 4
+  {
+    r := s[..2] as seq<int>;
+    r := s[2..] as seq<int>;
+    r := s[1..3] as seq<int>;
+    r := s[..] as seq<int>;
+  }
+
+  method FromArrayToMySequence(arr: array<int>) returns (r: MySequence)
+    requires arr.Length == 4
+  {
+    r := arr[..2];
+    r := arr[2..];
+    r := arr[1..3];
+    r := arr[..];
+  }
+}

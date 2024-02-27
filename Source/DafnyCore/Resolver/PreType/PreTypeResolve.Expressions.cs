@@ -132,11 +132,12 @@ namespace Microsoft.Dafny {
           var confirmationFamily = setDisplayExpr.Finite
             ? PreTypeConstraints.CommonConfirmationBag.InSetFamily
             : PreTypeConstraints.CommonConfirmationBag.InIsetFamily;
-          ResolveDisplayExpression(PreType.SetTypeName(setDisplayExpr.Finite), setDisplayExpr, elementPreType, confirmationFamily);
+          ResolveCollectionProducingExpr(PreType.SetTypeName(setDisplayExpr.Finite), "display", setDisplayExpr, elementPreType, confirmationFamily);
         } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
-          ResolveDisplayExpression(PreType.TypeNameMultiset, e, elementPreType, PreTypeConstraints.CommonConfirmationBag.InMultisetFamily);
+          ResolveCollectionProducingExpr(PreType.TypeNameMultiset, "display", e, elementPreType,
+            PreTypeConstraints.CommonConfirmationBag.InMultisetFamily);
         } else {
-          ResolveDisplayExpression(PreType.TypeNameSeq, e, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
+          ResolveCollectionProducingExpr(PreType.TypeNameSeq, "display", e, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
         }
 
       } else if (expr is MapDisplayExpr) {
@@ -250,7 +251,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.E1 == null);
           e.PreType = ResolveSingleSelectionExpr(e.tok, e.Seq.PreType, e.E0);
         } else {
-          e.PreType = ResolveRangeSelectionExpr(e.tok, e.Seq.PreType, e.E0, e.E1);
+          ResolveRangeSelectionExpr(e.tok, e.Seq.PreType, e, e.E0, e.E1);
         }
 
       } else if (expr is MultiSelectExpr) {
@@ -399,7 +400,7 @@ namespace Microsoft.Dafny {
             }
             return strFormat;
           });
-        ResolveCollectionComprehension(PreType.TypeNameSeq, expr, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
+        ResolveCollectionProducingExpr(PreType.TypeNameSeq, "constructor", expr, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
@@ -649,9 +650,8 @@ namespace Microsoft.Dafny {
         ResolveAttributes(e, resolutionContext, false);
         scope.PopMarker();
 
-        ResolveCollectionComprehension(PreType.SetTypeName(e.Finite), expr, e.Term.PreType,
-          e.Finite ? PreTypeConstraints.CommonConfirmationBag.InSetFamily : PreTypeConstraints.CommonConfirmationBag.InIsetFamily
-        );
+        ResolveCollectionProducingExpr(PreType.SetTypeName(e.Finite), "comprehension", expr, e.Term.PreType,
+          e.Finite ? PreTypeConstraints.CommonConfirmationBag.InSetFamily : PreTypeConstraints.CommonConfirmationBag.InIsetFamily);
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -743,36 +743,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveDisplayExpression(string typeName, DisplayExpression displayExpr, PreType elementPreType,
+    private void ResolveCollectionProducingExpr(string typeName, string exprKindSuffix, Expression expr, PreType elementPreType,
       PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
-      displayExpr.PreType = CreatePreTypeProxy($"{typeName} display");
-
-      var defaultType = new DPreType(BuiltInTypeDecl(typeName), new List<PreType>() { elementPreType });
-      Constraints.AddDefaultAdvice(displayExpr.PreType, defaultType);
-
-      Constraints.AddGuardedConstraint(() => {
-        if (displayExpr.PreType.UrAncestor(this) is DPreType dPreType) {
-          if (dPreType.Decl.Name == typeName) {
-            AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, displayExpr.tok,
-              $"element type of {typeName} display expected to be {{0}} (got {{1}})");
-          } else {
-            ReportError(displayExpr, $"{typeName} display used as if it had type {{0}}", displayExpr.PreType);
-          }
-          return true;
-        }
-        return false;
-      });
-
-      AddConfirmation(confirmationFamily, displayExpr.PreType, displayExpr.tok, $"{typeName} display used as if it had type {{0}}");
+      var exprKind = $"{typeName} {exprKindSuffix}";
+      SetupCollectionProducingExpr(typeName, exprKind, expr, elementPreType);
+      AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
-    private void ResolveCollectionComprehension(string typeName, Expression expr, PreType elementPreType,
-      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
-      Contract.Requires(expr is SetComprehension or SeqConstructionExpr);
-      var exprKind = $"{typeName} {(expr is SeqConstructionExpr ? "constructor" : "comprehension")}";
+    private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType) {
       expr.PreType = CreatePreTypeProxy($"{exprKind}");
+
       var defaultType = new DPreType(BuiltInTypeDecl(typeName), new List<PreType>() { elementPreType });
       Constraints.AddDefaultAdvice(expr.PreType, defaultType);
+
       Constraints.AddGuardedConstraint(() => {
         if (expr.PreType.UrAncestor(this) is DPreType dPreType) {
           if (dPreType.Decl.Name == typeName) {
@@ -785,7 +768,6 @@ namespace Microsoft.Dafny {
         }
         return false;
       });
-      AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
     private PreType ResolveBinaryExpr(IToken tok, BinaryExpr.Opcode opcode, Expression e0, Expression e1, ResolutionContext resolutionContext) {
@@ -2115,9 +2097,10 @@ namespace Microsoft.Dafny {
       return resultPreType;
     }
 
-    PreType ResolveRangeSelectionExpr(IToken tok, PreType collectionPreType, Expression e0, Expression e1) {
-      var resultElementPreType = CreatePreTypeProxy("multi-index selection");
-      var resultPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), new List<PreType>() { resultElementPreType });
+    void ResolveRangeSelectionExpr(IToken tok, PreType sourceCollectionPreType, Expression expr, Expression e0, Expression e1) {
+      var resultElementPreType = CreatePreTypeProxy("index-range selection elements");
+      SetupCollectionProducingExpr(PreType.TypeNameSeq, "index-range selection", expr, resultElementPreType);
+
       if (e0 != null) {
         ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
@@ -2126,23 +2109,31 @@ namespace Microsoft.Dafny {
         ConstrainToIntFamilyOrBitvector(e1.PreType, e1.tok,
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
       }
+
+      // In the expression s[e0..e1], correlate the type of s with the result type.
+      //   - If s is a sequence type, then the result must be of the same seq or newtype-seq type, with a co-variant element pre-type
+      //   - If s is an array type, then the result is allowed to be any seq or newtype-seq with a co-variant element pre-type
       Constraints.AddGuardedConstraint(() => {
-        if (collectionPreType.NormalizeWrtScope() is DPreType sourcePreType) {
+        if (sourceCollectionPreType.NormalizeWrtScope() is DPreType sourcePreType) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
             case PreType.TypeNameSeq:
+              // TODO: do more
+              AddSubtypeConstraint(expr.PreType, sourceCollectionPreType, tok,
+                "resulting sequence ({0}) type does not agree with source sequence type ({1})");
+              break;
             case PreType.TypeNameArray:
-              AddSubtypeConstraint(resultElementPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
+              AddSubtypeConstraint(resultElementPreType, AncestorPreType(sourcePreType).Arguments[0], tok,
+                "type does not agree with element type {1} (got {0})");
               break;
             default:
-              ReportError(tok, "multi-selection of elements requires a sequence or array (got {0})", collectionPreType);
+              ReportError(tok, "multi-selection of elements requires a sequence or array (got {0})", sourceCollectionPreType);
               break;
           }
           return true;
         }
         return false;
       });
-      return resultPreType;
     }
 
     /// <summary>
