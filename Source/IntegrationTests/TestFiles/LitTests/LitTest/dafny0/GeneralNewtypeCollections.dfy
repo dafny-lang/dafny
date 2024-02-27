@@ -377,12 +377,11 @@ module SeqToMultisetConversion {
     m1 := multiset(s');
     assert m0 == m1;
     print m0 == m1, " ", |m0|, "\n"; // true 3
-/*
+
     m0' := multiset(s);
     m1' := multiset(s');
     assert m0' == m1';
     print m0' == m1', " ", |m0'|, "\n"; // true 3
-*/
   }
 
   method TestFromSeq() {
@@ -401,11 +400,10 @@ module SeqToMultisetConversion {
     m1 := multiset(s');
     assert m0 == m1;
     print m0 == m1, " ", |m0|, "\n"; // true 4
-/*
+
     m0' := multiset(s);
     m1' := multiset(s');
     assert m0' == m1';
     print m0' == m1', " ", |m0'|, "\n"; // true 4
-*/
   }
 }

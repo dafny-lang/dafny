@@ -421,7 +421,8 @@ namespace Microsoft.Dafny {
           }
           return false;
         });
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameMultiset), new List<PreType>() { targetElementPreType });
+        ResolveCollectionProducingExpr(PreType.TypeNameMultiset, "conversion", expr, targetElementPreType,
+          PreTypeConstraints.CommonConfirmationBag.InMultisetFamily);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
