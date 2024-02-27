@@ -2127,8 +2127,7 @@ namespace Microsoft.Dafny {
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
       }
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = collectionPreType.NormalizeWrtScope() as DPreType;
-        if (sourcePreType != null) {
+        if (collectionPreType.NormalizeWrtScope() is DPreType sourcePreType) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
             case PreType.TypeNameSeq:
