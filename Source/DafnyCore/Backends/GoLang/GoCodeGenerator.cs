@@ -3098,7 +3098,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var eeType = expr.E.Type.NormalizeExpand();
+      var eeType = expr.E.Type.NormalizeToAncestorType();
       if (eeType is SeqType) {
         TrParenExpr("_dafny.MultiSetFromSeq", expr.E, wr, inLetExprBody, wStmts);
       } else if (eeType is SetType) {

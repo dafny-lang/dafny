@@ -2853,8 +2853,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
         ConcreteSyntaxTree wStmts) {
-      wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(expr.E.Type.AsCollectionType.Arg, wr, expr.tok));
-      var eeType = expr.E.Type.NormalizeExpand();
+      wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(expr.E.Type.NormalizeToAncestorType().AsCollectionType.Arg, wr, expr.tok));
+      var eeType = expr.E.Type.NormalizeToAncestorType();
       if (eeType is SeqType) {
         TrParenExpr(".FromSeq", expr.E, wr, inLetExprBody, wStmts);
       } else if (eeType is SetType) {
@@ -2933,7 +2933,7 @@ namespace Microsoft.Dafny.Compilers {
       if (IsTargetSupertype(from, to, true)) {
         return $"Dafny.Helpers.Id<{TypeName(to, errorWr, tok)}>";
       }
-      if (from.AsCollectionType != null) {
+      if (from.NormalizeToAncestorType().AsCollectionType != null) {
         var sTo = TypeName(to, errorWr, tok);
         // (from x) => { return x.DowncastClone<A, B, ...>(aConverter, bConverter, ...); }
         var wr = new ConcreteSyntaxTree();

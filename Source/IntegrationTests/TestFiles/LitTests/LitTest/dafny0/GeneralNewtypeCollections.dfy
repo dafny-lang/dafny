@@ -8,6 +8,7 @@ method Main() {
   Decreases.Test();
   Multiset.Test();
   Seq.Test();
+  SeqToMultisetConversion.Test();
 }
 
 module Set {
@@ -348,5 +349,63 @@ module Seq {
 
   method Print(s: IntSeq, suffix: string) {
     print s, suffix;
+  }
+}
+
+module SeqToMultisetConversion {
+  newtype XSet = s: set<int> | true
+  newtype XSeq = s: seq<int> | true
+  newtype XMultiset = s: multiset<int> | true
+
+  method Test() {
+    TestFromSet();
+    TestFromSeq();
+  }
+
+  method TestFromSet() {
+    var s: set<int>;
+    var s': XSet;
+    var m0: multiset<int>;
+    var m1: multiset<int>;
+    var m0': XMultiset;
+    var m1': XMultiset;
+
+    s := {37, 43, 37, 47};
+    s' := {47, 43, 37};
+
+    m0 := multiset(s);
+    m1 := multiset(s');
+    assert m0 == m1;
+    print m0 == m1, " ", |m0|, "\n"; // true 3
+/*
+    m0' := multiset(s);
+    m1' := multiset(s');
+    assert m0' == m1';
+    print m0' == m1', " ", |m0'|, "\n"; // true 3
+*/
+  }
+
+  method TestFromSeq() {
+    var s: seq<int>;
+    var s': XSeq;
+    var m0: multiset<int>;
+    var m1: multiset<int>;
+    var m0': XMultiset;
+    var m1': XMultiset;
+
+    s := [37, 43, 37, 47];
+    s' := s as XSeq;
+    s' := s'[0 := s'[1]][1 := s'[0]]; // swap elements 0 and 1, just to be a little different
+
+    m0 := multiset(s);
+    m1 := multiset(s');
+    assert m0 == m1;
+    print m0 == m1, " ", |m0|, "\n"; // true 4
+/*
+    m0' := multiset(s);
+    m1' := multiset(s');
+    assert m0' == m1';
+    print m0' == m1', " ", |m0'|, "\n"; // true 4
+*/
   }
 }

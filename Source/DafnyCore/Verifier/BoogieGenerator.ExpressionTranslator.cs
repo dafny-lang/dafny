@@ -735,11 +735,11 @@ namespace Microsoft.Dafny {
             }
           case MultiSetFormingExpr formingExpr: {
               MultiSetFormingExpr e = formingExpr;
-              var eType = e.E.Type.NormalizeExpand();
-              if (eType is SetType) {
-                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSet, BoogieGenerator.TrType(cce.NonNull((SetType)eType).Arg), TrExpr(e.E));
-              } else if (eType is SeqType) {
-                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSeq, BoogieGenerator.TrType(cce.NonNull((SeqType)eType).Arg), TrExpr(e.E));
+              var eType = e.E.Type.NormalizeToAncestorType();
+              if (eType is SetType setType) {
+                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSet, BoogieGenerator.TrType(setType.Arg), TrExpr(e.E));
+              } else if (eType is SeqType seqType) {
+                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSeq, BoogieGenerator.TrType(seqType.Arg), TrExpr(e.E));
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();
               }

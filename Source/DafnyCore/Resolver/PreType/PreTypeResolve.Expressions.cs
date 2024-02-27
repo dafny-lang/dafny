@@ -408,9 +408,11 @@ namespace Microsoft.Dafny {
         var targetElementPreType = CreatePreTypeProxy("multiset conversion element type");
         Constraints.AddGuardedConstraint(() => {
           if (e.E.PreType.NormalizeWrtScope() is DPreType dp) {
-            if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameSeq) {
-              Contract.Assert(dp.Arguments.Count == 1);
-              var sourceElementPreType = dp.Arguments[0];
+            var familyDeclName = AncestorName(dp);
+            if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameSeq) {
+              var ancestorPreType = AncestorPreType(dp);
+              Contract.Assert(ancestorPreType.Arguments.Count == 1);
+              var sourceElementPreType = ancestorPreType.Arguments[0];
               AddSubtypeConstraint(targetElementPreType, sourceElementPreType, e.E.tok, "expecting element type {0} (got {1})");
             } else {
               ReportError(e.E.tok, "can only form a multiset from a seq or set (got {0})", e.E.PreType);
