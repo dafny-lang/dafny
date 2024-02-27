@@ -35,7 +35,7 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
   }
 
   public SkeletonStatement(Cloner cloner, SkeletonStatement original) : base(cloner, original) {
-    S = original.S == null ? null : cloner.CloneStmt(original.S);
+    S = original.S == null ? null : cloner.CloneStmt(original.S, false);
     ConditionEllipsis = original.ConditionEllipsis;
     BodyEllipsis = original.BodyEllipsis;
   }

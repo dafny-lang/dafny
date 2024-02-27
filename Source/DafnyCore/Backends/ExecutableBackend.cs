@@ -84,9 +84,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     CodeGenerator.Coverage.WriteLegendFile();
-    return true;
+    return Task.FromResult(true);
   }
 
   protected abstract SinglePassCodeGenerator CreateCodeGenerator();
@@ -111,38 +111,32 @@ public abstract class ExecutableBackend : IExecutableBackend {
     return psi;
   }
 
-  public int RunProcess(ProcessStartInfo psi,
+  public Task<int> RunProcess(ProcessStartInfo psi,
     TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
     return StartProcess(psi, outputWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorWriter, errorMessage) : -1;
+      WaitForExit(process, outputWriter, errorWriter, errorMessage) : Task.FromResult(-1);
   }
 
-  public int WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
+  public async Task<int> WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
 
-    var errorProcessing = Task.Run(() => {
-      PassthroughBuffer(process.StandardError, errorWriter);
-    });
-    PassthroughBuffer(process.StandardOutput, outputWriter);
-    process.WaitForExit();
+    await PassthroughBuffer(process.StandardError, errorWriter);
+    await PassthroughBuffer(process.StandardOutput, outputWriter);
+    await process.WaitForExitAsync();
     if (process.ExitCode != 0 && errorMessage != null) {
-      outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+      await outputWriter.WriteLineAsync($"{errorMessage} Process exited with exit code {process.ExitCode}");
     }
 
-#pragma warning disable VSTHRD002
-    errorProcessing.Wait();
-#pragma warning restore VSTHRD002
     return process.ExitCode;
   }
 
 
-  // We read character by character because we did not find a way to ensure
-  // final newlines are kept when reading line by line
-  protected static void PassthroughBuffer(TextReader input, TextWriter output) {
-    int current;
-    while ((current = input.Read()) != -1) {
-      output.Write((char)current);
+  protected static async Task PassthroughBuffer(TextReader input, TextWriter output) {
+    char[] buffer = new char[256];
+    int readCount;
+    while ((readCount = await input.ReadBlockAsync(buffer)) > 0) {
+      await output.WriteAsync(buffer, 0, readCount);
     }
   }
 
@@ -162,9 +156,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     return null;
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename,
+  public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename, /*?*/
     ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+    bool runAfterCompile, TextWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
@@ -173,11 +169,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Contract.Requires(!runAfterCompile || callToMain != null);
     Contract.Requires(outputWriter != null);
 
-    compilationResult = null;
-    return true;
+    return Task.FromResult((true, (object)null));
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     Contract.Requires(dafnyProgramName != null);
@@ -185,7 +181,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Contract.Requires(otherFileNames != null);
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
     Contract.Requires(outputWriter != null);
-    return true;
+    return Task.FromResult(true);
   }
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
@@ -201,7 +197,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
-  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
+  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -223,7 +219,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       .Prepend("run")
       .Prepend(dafny);
     var psi = PrepareProcessStartInfo("dotnet", args);
-    Console.Out.WriteLine(string.Join(", ", psi.ArgumentList));
+    await Console.Out.WriteLineAsync(string.Join(", ", psi.ArgumentList));
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
      * This is a problem for this specific compiler and the integration tests because the second
@@ -244,26 +240,26 @@ public abstract class ExecutableBackend : IExecutableBackend {
       process.Start();
       process.BeginOutputReadLine();
       process.BeginErrorReadLine();
-      process.WaitForExit();
+      await process.WaitForExitAsync();
       process.CancelOutputRead();
       process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        outputWriter.WriteLine(outputBuilder[i]);
+        await outputWriter.WriteLineAsync(outputBuilder[i]);
       }
 
       for (int i = 0; i < errorBuilder.Count - 1; i++) {
-        errorWriter.WriteLine(errorBuilder[i]);
+        await errorWriter.WriteLineAsync(errorBuilder[i]);
       }
 
       if (process.ExitCode != 0) {
-        outputWriter.WriteLine("{0} Process exited with exit code {1}", "", process.ExitCode);
+        await outputWriter.WriteLineAsync($"Process exited with exit code {process.ExitCode}");
         return false;
       }
 
     } catch (System.ComponentModel.Win32Exception e) {
       string additionalInfo = $": {e.Message}";
-      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      await outputWriter.WriteLineAsync($"Error: Unable to start {psi.FileName}{additionalInfo}");
       return false;
     }
 

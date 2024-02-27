@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -23,11 +24,11 @@ public class GoBackend : ExecutableBackend {
     return new GoCodeGenerator(Options, Reporter);
   }
 
-  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
-    return base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter) && OptimizeImports(targetDirectory, outputWriter);
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+    return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter) && await OptimizeImports(targetDirectory, outputWriter);
   }
 
-  private bool OptimizeImports(string targetFilename, TextWriter outputWriter) {
+  private async Task<bool> OptimizeImports(string targetFilename, TextWriter outputWriter) {
     var goArgs = new List<string> {
       "-w",
       targetFilename
@@ -37,39 +38,41 @@ public class GoBackend : ExecutableBackend {
 
     var psi = PrepareProcessStartInfo("goimports", goArgs);
 
-    var result = RunProcess(psi, writer, writer);
+    var result = await RunProcess(psi, writer, writer);
     if (result != 0) {
-      outputWriter.WriteLine("Error occurred while invoking goimports:");
-      outputWriter.Write(writer.ToString());
+      await outputWriter.WriteLineAsync("Error occurred while invoking goimports:");
+      await outputWriter.WriteAsync(writer.ToString());
     }
     return 0 == result;
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,
-    string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    compilationResult = null;
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain, /*?*/
+    string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
     if (runAfterCompile) {
       Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
       // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
       // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'go run'
       // will run the program.
-      return true;
+      return (true, null);
     } else {
       // compile now
-      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames,
-        outputWriter, outputWriter, callToMain != null, run: false);
+      return (await SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames,
+        outputWriter, outputWriter, callToMain != null, run: false), null);
     }
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
     return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, errorWriter, hasMain: true, run: true);
   }
 
-  private bool SendToNewGoProcess(string dafnyProgramName, string targetFilename,
+  private async Task<bool> SendToNewGoProcess(string dafnyProgramName, string targetFilename,
     ReadOnlyCollection<string> otherFileNames,
     TextWriter outputWriter, TextWriter errorWriter, bool hasMain, bool run) {
     Contract.Requires(targetFilename != null);
@@ -137,7 +140,7 @@ public class GoBackend : ExecutableBackend {
     // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
     psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == await RunProcess(psi, outputWriter, errorWriter);
   }
 
   static string GoPath(string filename) {

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using DafnyCore;
 
 namespace Microsoft.Dafny.Compilers;
@@ -57,9 +58,9 @@ public class LibraryBackend : ExecutableBackend {
     return null;
   }
 
-  public override bool OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     // Not calling base.OnPostCompile() since it references `compiler`
-    return true;
+    return Task.FromResult(true);
   }
 
   public override string PublicIdProtect(string name) {
@@ -90,8 +91,10 @@ public class LibraryBackend : ExecutableBackend {
     return Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".doo"));
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+  public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText, string callToMain,
+    string targetFilename,
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
 
     var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     var dooPath = DooFilePath(dafnyProgramName);
@@ -99,12 +102,13 @@ public class LibraryBackend : ExecutableBackend {
     File.Delete(dooPath);
     ZipFile.CreateFromDirectory(targetDirectory, dooPath);
 
-    compilationResult = null;
-    return true;
+    return Task.FromResult((true, (object)null));
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+    string targetFilename,
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     var dooPath = DooFilePath(dafnyProgramName);
     return RunTargetDafnyProgram(dooPath, outputWriter, errorWriter, true);
   }
