@@ -52,7 +52,8 @@ namespace Microsoft.Dafny {
       var proxy = (PreTypeProxy)preType;
 
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-      foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+      var subProxies = new HashSet<PreTypeProxy>();
+      foreach (var sub in AllSubBounds(proxy, subProxies)) {
         return sub;
       }
 
@@ -64,6 +65,15 @@ namespace Microsoft.Dafny {
           } else if (memberName == null && md is not TraitDecl) {
             return super;
           }
+        }
+      }
+
+      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
+      // associated default advice.
+      foreach (var subProxy in subProxies) {
+        TryApplyDefaultAdviceFor(subProxy);
+        if (proxy.Normalize() is DPreType defaultType) {
+          return defaultType;
         }
       }
 
@@ -81,7 +91,7 @@ namespace Microsoft.Dafny {
 
       preType = preType.Normalize();
       if (preType is PreTypeProxy proxy) {
-        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
+        // We're looking up a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
         // program is legal at all, then) that sub- or super-type must be the type we're looking for.
         foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
           return sub;
@@ -393,25 +403,16 @@ namespace Microsoft.Dafny {
         yield break;
       }
       visited.Add(proxy);
-      var foundSomething = false;
       foreach (var constraint in unnormalizedSubtypeConstraints) {
         if (constraint.Super.Normalize() == proxy) {
           var sub = constraint.Sub.Normalize();
           if (sub is PreTypeProxy subProxy) {
             foreach (var pt in AllSubBounds(subProxy, visited)) {
-              foundSomething = true;
               yield return pt;
             }
           } else {
-            foundSomething = true;
             yield return (DPreType)sub;
           }
-        }
-      }
-      if (!foundSomething) {
-        TryApplyDefaultAdviceFor(proxy);
-        if (proxy.Normalize() is DPreType defaultType) {
-          yield return defaultType;
         }
       }
     }
