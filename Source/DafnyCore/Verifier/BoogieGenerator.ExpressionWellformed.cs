@@ -311,7 +311,7 @@ namespace Microsoft.Dafny {
               CheckWellformed(el, wfOptions, locals, builder, etran);
               CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
             }
-
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case MapDisplayExpr displayExpr: {
@@ -326,7 +326,7 @@ namespace Microsoft.Dafny {
               CheckWellformed(p.B, wfOptions, locals, builder, etran);
               CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
             }
-
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case MemberSelectExpr selectExpr: {
@@ -449,6 +449,9 @@ namespace Microsoft.Dafny {
               }
             }
 
+            if (!e.SelectOne) {
+              CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
+            }
             break;
           }
         case MultiSelectExpr selectExpr: {
@@ -849,6 +852,7 @@ namespace Microsoft.Dafny {
         case MultiSetFormingExpr formingExpr: {
             MultiSetFormingExpr e = formingExpr;
             CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case OldExpr oldExpr: {
@@ -1055,10 +1059,9 @@ namespace Microsoft.Dafny {
           break;
         case ComprehensionExpr comprehensionExpr: {
             var e = comprehensionExpr;
-            var q = e as QuantifierExpr;
             var lam = e as LambdaExpr;
             var mc = e as MapComprehension;
-            if (mc != null && !mc.IsGeneralMapComprehension) {
+            if (mc is { IsGeneralMapComprehension: false }) {
               mc = null;  // mc will be non-null when "e" is a general map comprehension
             }
 
@@ -1155,6 +1158,7 @@ namespace Microsoft.Dafny {
                 nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
               }
             });
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
             break;
           }
