@@ -1,0 +1,2 @@
+// CHECK-L: error[E0308]: mismatched types
+// CHECK-L: error[E0308]: mismatched types

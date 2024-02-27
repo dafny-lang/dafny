@@ -17,7 +17,7 @@ dfyprod: dfyprodformat dfyprodinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 dfydevinit:
-	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
 
 dfydev: dfydevinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser

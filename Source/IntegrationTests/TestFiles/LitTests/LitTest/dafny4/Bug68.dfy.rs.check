@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `Set<DafnyInt>: DafnyTypeEq` is not satisfied

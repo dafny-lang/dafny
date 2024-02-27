@@ -1,0 +1,2 @@
+// CHECK-L: error[E0277]: the trait bound `Sequence<_R>: Default` is not satisfied
+// CHECK-L: error[E0277]: the trait bound `Sequence<_R>: Default` is not satisfied

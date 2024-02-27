@@ -1,8 +1,8 @@
 repos:
 -   repo: local
-    hooks:
-    -   id: dotnet-format
-        name: dotnet-format
-        language: system
-        entry: dotnet format whitespace Source/Dafny.sln --include
-        types_or: ["c#"]
+#    hooks:
+#    -   id: dotnet-format
+#        name: dotnet-format
+#        language: system
+#        entry: dotnet format whitespace Source/Dafny.sln -v:d --exclude Source/DafnyCore/GeneratedFromDafny.cs --include 
+#        types_or: ["c#"]

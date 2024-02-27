@@ -1,0 +1,2 @@
+// CHECK-L: error[E0277]: the trait bound `Rc<Bot>: DafnyType` is not satisfied
+// CHECK-L: error[E0277]: the trait bound `Rc<Bot>: DafnyType` is not satisfied
