@@ -327,5 +327,26 @@ module Seq {
 
     s := seq(4, i => 8 * i + 3);
     print s, "\n"; // [3, 11, 19, 27]
+
+    SubSequences(s);
+  }
+
+  method SubSequences(s: IntSeq)
+    requires |s| == 4
+  {
+    Print(s[..2], " "); // [3, 11]
+    Print(s[2..], " "); // [19, 27]
+    Print(s[1..3], " "); // [11, 19]
+    Print(s[..], "\n"); // [3, 11, 19, 27]
+
+    var arr := new int[4] [11, 13, 17, 19];
+    Print(arr[..2], " "); // [11, 13]
+    Print(arr[2..], " "); // [17, 19]
+    Print(arr[1..3], " "); // [13, 17]
+    Print(arr[..], "\n"); // [11, 13, 17, 19];
+  }
+
+  method Print(s: IntSeq, suffix: string) {
+    print s, suffix;
   }
 }
