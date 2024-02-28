@@ -148,7 +148,7 @@ public class CliCompilation {
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }
-      }, e => { },
+    }, e => { },
       () => {
         verificationResultLogger?.Finish();
 
@@ -178,6 +178,8 @@ public class CliCompilation {
       }
     });
   }
+
+  public IList<Task> OutputTasks = new List<Task>();
 
   public void ReportVerificationSummary() {
     var statistics = new VerificationStatistics();
@@ -217,7 +219,7 @@ public class CliCompilation {
     }, e => {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
     }, () => {
-      WriteTrailer(options, options.OutputWriter, verifiedAssertions, statistics);
+      OutputTasks.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
     });
   }
 
@@ -318,7 +320,7 @@ public class CliCompilation {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
         throw;
       } catch (OperationCanceledException) {
-        
+
       } catch (Exception e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
           $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
@@ -367,45 +369,50 @@ public class CliCompilation {
     return task.ScopeToken.line == line || task.Token.line == line;
   }
 
-  static void WriteTrailer(DafnyOptions options, TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
+  async Task WriteTrailer(TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
     if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
       return;
     }
 
-    output.WriteLine();
+    try {
+      var resolution = await Compilation.Resolution;
+      if (resolution.ResolvedProgram.Reporter.ErrorCountUntilResolver > 0) {
+        return;
+      }
+    } catch (TaskCanceledException) {
+      return;
+    }
+
+    await output.WriteLineAsync();
 
     if (reportAssertions) {
-      output.Write("{0} finished with {1} assertions verified, {2} error{3}", options.DescriptiveToolName,
-        statistics.VerifiedAssertions, statistics.ErrorCount,
-        Util.Plural(statistics.ErrorCount));
+      await output.WriteAsync($"{options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
 
     } else {
-      output.Write("{0} finished with {1} verified, {2} error{3}", options.DescriptiveToolName,
-        statistics.VerifiedSymbols, statistics.ErrorCount,
-        Util.Plural(statistics.ErrorCount));
+      await output.WriteAsync($"{options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
     };
     if (statistics.InconclusiveCount != 0) {
-      output.Write(", {0} inconclusive{1}", statistics.InconclusiveCount, Util.Plural(statistics.InconclusiveCount));
+      await output.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
     }
 
     if (statistics.TimeoutCount != 0) {
-      output.Write(", {0} time out{1}", statistics.TimeoutCount, Util.Plural(statistics.TimeoutCount));
+      await output.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
     }
 
     if (statistics.OutOfMemoryCount != 0) {
-      output.Write(", {0} out of memory", statistics.OutOfMemoryCount);
+      await output.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
     }
 
     if (statistics.OutOfResourceCount != 0) {
-      output.Write(", {0} out of resource", statistics.OutOfResourceCount);
+      await output.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
     }
 
     if (statistics.SolverExceptionCount != 0) {
-      output.Write(", {0} solver exceptions", statistics.SolverExceptionCount);
+      await output.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
     }
 
-    output.WriteLine();
-    output.Flush();
+    await output.WriteLineAsync();
+    await output.FlushAsync();
   }
 }
 
