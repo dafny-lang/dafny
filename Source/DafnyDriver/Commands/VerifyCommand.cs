@@ -41,11 +41,14 @@ public static class VerifyCommand {
     var compilation = CliCompilation.Create(options);
     compilation.Start();
 
-    var resolution = await compilation.Resolution;
-    compilation.ReportVerificationDiagnostics();
-    compilation.ReportVerificationSummary();
-    compilation.RecordProofDependencies(resolution);
-    await compilation.VerifyAll();
+    try {
+      var resolution = await compilation.Resolution;
+      compilation.ReportVerificationDiagnostics();
+      compilation.ReportVerificationSummary();
+      compilation.RecordProofDependencies(resolution);
+      await compilation.VerifyAll();
+    } catch (TaskCanceledException) {
+    }
 
     return compilation.ExitCode;
   }
