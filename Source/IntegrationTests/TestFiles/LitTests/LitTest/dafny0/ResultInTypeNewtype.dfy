@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /typeSystemRefresh:1 /generalNewtypes:1 "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --general-newtypes "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests that the results of operations that create values of a newtype satisfy the newtype constraint.
