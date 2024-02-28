@@ -27,7 +27,9 @@ public class CliCompilation {
   private Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
-  private bool verifiedAssertions = false;
+  private bool verifiedAssertions;
+
+  public IList<Task> OutputTasks = new List<Task>();
 
   private CliCompilation(
     CreateCompilation createCompilation,
@@ -72,6 +74,22 @@ public class CliCompilation {
 
   public Task<ResolutionResult> Resolution => Compilation.Resolution;
 
+  public static CliCompilation Create(DafnyOptions options) {
+    var fileSystem = OnDiskFileSystem.Instance;
+    ILoggerFactory factory = new LoggerFactory();
+    var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
+    return new CliCompilation(CreateCompilation, options);
+
+    Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>
+      new(factory.CreateLogger<Compilation>(), fileSystem,
+        new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
+          new DafnyLangParser(options, fileSystem, telemetryPublisher,
+            factory.CreateLogger<DafnyLangParser>(),
+            factory.CreateLogger<CachingParser>()),
+          new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), factory.CreateLogger<CachingResolver>(), telemetryPublisher)),
+        new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
+  }
+
   public void Start() {
     if (Compilation.Started) {
       throw new InvalidOperationException("Compilation was already started");
@@ -110,117 +128,6 @@ public class CliCompilation {
 
     });
     Compilation.Start();
-  }
-
-  public static CliCompilation Create(DafnyOptions options) {
-    var fileSystem = OnDiskFileSystem.Instance;
-    ILoggerFactory factory = new LoggerFactory();
-    var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
-    return new CliCompilation(CreateCompilation, options);
-
-    Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>
-      new(factory.CreateLogger<Compilation>(), fileSystem,
-        new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
-          new DafnyLangParser(options, fileSystem, telemetryPublisher,
-            factory.CreateLogger<DafnyLangParser>(),
-            factory.CreateLogger<CachingParser>()),
-          new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), factory.CreateLogger<CachingResolver>(), telemetryPublisher)),
-        new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
-  }
-
-  public void RecordProofDependencies(ResolutionResult resolution) {
-    var usedDependencies = new HashSet<TrackedNodeComponent>();
-    var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
-    VerificationResultLogger? verificationResultLogger = null;
-    try {
-      verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
-    } catch (ArgumentException e) {
-      Compilation.Reporter.Error(MessageSource.Verifier, Compilation.Project.StartingToken, e.Message);
-    }
-
-    verificationResults.Subscribe(result => {
-
-      ProofDependencyWarnings.ReportSuspiciousDependencies(options, result.Results,
-        resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
-
-      verificationResultLogger?.Report(result);
-
-      foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
-        usedDependencies.Add(used);
-      }
-    }, e => { },
-      () => {
-        verificationResultLogger?.Finish();
-
-        var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
-        if (coverageReportDir != null) {
-          new CoverageReporter(options).SerializeVerificationCoverageReport(
-            proofDependencyManager, resolution.ResolvedProgram,
-            usedDependencies,
-            coverageReportDir);
-        }
-      });
-  }
-
-  public void ReportVerificationDiagnostics() {
-    VerificationResults.Subscribe(result => {
-      // We use an intermediate reporter so we can sort the diagnostics from all parts by token
-      var batchReporter = new BatchErrorReporter(options);
-      foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
-          (uint)completed.Result.RunTime.Seconds,
-          completed.Result, batchReporter);
-      }
-
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
-      }
-    });
-  }
-
-  public IList<Task> OutputTasks = new List<Task>();
-
-  public void ReportVerificationSummary() {
-    var statistics = new VerificationStatistics();
-
-    VerificationResults.Subscribe(result => {
-      foreach (var taskResult in result.Results) {
-        var runResult = taskResult.Result;
-
-        switch (runResult.Outcome) {
-          case SolverOutcome.Valid:
-          case SolverOutcome.Bounded:
-            Interlocked.Increment(ref statistics.VerifiedSymbols);
-            Interlocked.Add(ref statistics.VerifiedAssertions, runResult.Asserts.Count);
-            break;
-          case SolverOutcome.Invalid:
-            var total = runResult.Asserts.Count;
-            var errors = runResult.CounterExamples.Count;
-            Interlocked.Add(ref statistics.VerifiedAssertions, total - errors);
-            Interlocked.Add(ref statistics.ErrorCount, errors);
-            break;
-          case SolverOutcome.TimeOut:
-            Interlocked.Increment(ref statistics.TimeoutCount);
-            break;
-          case SolverOutcome.OutOfMemory:
-            Interlocked.Increment(ref statistics.OutOfMemoryCount);
-            break;
-          case SolverOutcome.OutOfResource:
-            Interlocked.Increment(ref statistics.OutOfResourceCount);
-            break;
-          case SolverOutcome.Undetermined:
-            Interlocked.Increment(ref statistics.InconclusiveCount);
-            break;
-          default:
-            throw new ArgumentOutOfRangeException();
-        }
-      }
-    }, e => {
-      Interlocked.Increment(ref statistics.SolverExceptionCount);
-    }, () => {
-      OutputTasks.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
-    });
   }
 
   public IObservable<CanVerifyResult> VerificationResults => verificationResults;
@@ -370,6 +277,65 @@ public class CliCompilation {
     return task.ScopeToken.line == line || task.Token.line == line;
   }
 
+  public void ReportVerificationDiagnostics() {
+    VerificationResults.Subscribe(result => {
+      // We use an intermediate reporter so we can sort the diagnostics from all parts by token
+      var batchReporter = new BatchErrorReporter(options);
+      foreach (var completed in result.Results) {
+        Compilation.ReportDiagnosticsInResult(options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
+          (uint)completed.Result.RunTime.Seconds,
+          completed.Result, batchReporter);
+      }
+
+      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+        Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+          diagnostic.Message);
+      }
+    });
+  }
+
+  public void ReportVerificationSummary() {
+    var statistics = new VerificationStatistics();
+
+    VerificationResults.Subscribe(result => {
+      foreach (var taskResult in result.Results) {
+        var runResult = taskResult.Result;
+
+        switch (runResult.Outcome) {
+          case SolverOutcome.Valid:
+          case SolverOutcome.Bounded:
+            Interlocked.Increment(ref statistics.VerifiedSymbols);
+            Interlocked.Add(ref statistics.VerifiedAssertions, runResult.Asserts.Count);
+            break;
+          case SolverOutcome.Invalid:
+            var total = runResult.Asserts.Count;
+            var errors = runResult.CounterExamples.Count;
+            Interlocked.Add(ref statistics.VerifiedAssertions, total - errors);
+            Interlocked.Add(ref statistics.ErrorCount, errors);
+            break;
+          case SolverOutcome.TimeOut:
+            Interlocked.Increment(ref statistics.TimeoutCount);
+            break;
+          case SolverOutcome.OutOfMemory:
+            Interlocked.Increment(ref statistics.OutOfMemoryCount);
+            break;
+          case SolverOutcome.OutOfResource:
+            Interlocked.Increment(ref statistics.OutOfResourceCount);
+            break;
+          case SolverOutcome.Undetermined:
+            Interlocked.Increment(ref statistics.InconclusiveCount);
+            break;
+          default:
+            throw new ArgumentOutOfRangeException();
+        }
+      }
+    }, e => {
+      Interlocked.Increment(ref statistics.SolverExceptionCount);
+    }, () => {
+      OutputTasks.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
+    });
+  }
+
   private async Task WriteTrailer(TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
     if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
       return;
@@ -409,6 +375,40 @@ public class CliCompilation {
 
     await output.WriteLineAsync();
     await output.FlushAsync();
+  }
+
+  public void RecordProofDependencies(ResolutionResult resolution) {
+    var usedDependencies = new HashSet<TrackedNodeComponent>();
+    var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
+    VerificationResultLogger? verificationResultLogger = null;
+    try {
+      verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
+    } catch (ArgumentException e) {
+      Compilation.Reporter.Error(MessageSource.Verifier, Compilation.Project.StartingToken, e.Message);
+    }
+
+    verificationResults.Subscribe(result => {
+      ProofDependencyWarnings.ReportSuspiciousDependencies(options, result.Results,
+        resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
+
+      verificationResultLogger?.Report(result);
+
+      foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
+        usedDependencies.Add(used);
+      }
+    },
+      e => { },
+      () => {
+        verificationResultLogger?.Finish();
+
+        var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+        if (coverageReportDir != null) {
+          new CoverageReporter(options).SerializeVerificationCoverageReport(
+            proofDependencyManager, resolution.ResolvedProgram,
+            usedDependencies,
+            coverageReportDir);
+        }
+      });
   }
 }
 
