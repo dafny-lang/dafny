@@ -148,7 +148,7 @@ public class CliCompilation {
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }
-    }, e => { },
+      }, e => { },
       () => {
         verificationResultLogger?.Finish();
 
@@ -167,7 +167,7 @@ public class CliCompilation {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
       var batchReporter = new BatchErrorReporter(options);
       foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(options, result.CanVerify.NameToken.val, result.CanVerify.NameToken,
+        Compilation.ReportDiagnosticsInResult(options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
           (uint)completed.Result.RunTime.Seconds,
           completed.Result, batchReporter);
       }
