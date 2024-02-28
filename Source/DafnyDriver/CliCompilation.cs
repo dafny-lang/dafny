@@ -225,6 +225,7 @@ public class CliCompilation {
 
   public IObservable<CanVerifyResult> VerificationResults => verificationResults;
   private readonly Subject<CanVerifyResult> verificationResults = new();
+  private bool didVerification;
 
   public Task VerifyAll() {
     var task = new TaskCompletionSource();
@@ -255,14 +256,12 @@ public class CliCompilation {
         canVerifyResult.Finished.SetException(boogieException.Exception);
       }
 
-      if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.VerificationTask, completed));
+      if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
+        var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+        canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
-            canVerifyResult.Finished.TrySetResult();
-          }
+        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+          canVerifyResult.Finished.TrySetResult();
         }
       }
     });
@@ -276,6 +275,7 @@ public class CliCompilation {
     }
 
     if (errorCount > 0) {
+      didVerification = false;
       yield break;
     }
 
@@ -369,17 +369,12 @@ public class CliCompilation {
     return task.ScopeToken.line == line || task.Token.line == line;
   }
 
-  async Task WriteTrailer(TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
+  private async Task WriteTrailer(TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
     if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
       return;
     }
 
-    try {
-      var resolution = await Compilation.Resolution;
-      if (resolution.ResolvedProgram.Reporter.ErrorCountUntilResolver > 0) {
-        return;
-      }
-    } catch (TaskCanceledException) {
+    if (!didVerification) {
       return;
     }
 
