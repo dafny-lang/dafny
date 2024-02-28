@@ -21,7 +21,7 @@ namespace DafnyDriver.Commands;
 
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
-public class CliCompilation {
+public class CliCompilation : IDisposable {
   private readonly DafnyOptions options;
 
   private Compilation Compilation { get; }
@@ -29,7 +29,7 @@ public class CliCompilation {
   private int errorCount;
   private bool verifiedAssertions;
 
-  public IList<Task> OutputTasks = new List<Task>();
+  private readonly List<IDisposable> disposables = new();
 
   private CliCompilation(
     CreateCompilation createCompilation,
@@ -332,7 +332,7 @@ public class CliCompilation {
     }, e => {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
     }, () => {
-      OutputTasks.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
+      disposables.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
     });
   }
 
@@ -409,6 +409,12 @@ public class CliCompilation {
             coverageReportDir);
         }
       });
+  }
+
+  public void Dispose() {
+    foreach (var disposable in disposables) {
+      disposable.Dispose();
+    }
   }
 }
 

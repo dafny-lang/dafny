@@ -34,7 +34,7 @@ public static class VerifyCommand {
       options.TrackVerificationCoverage = true;
     }
 
-    var compilation = CliCompilation.Create(options);
+    using var compilation = CliCompilation.Create(options);
     compilation.Start();
 
     try {
@@ -43,7 +43,6 @@ public static class VerifyCommand {
       compilation.ReportVerificationSummary();
       compilation.RecordProofDependencies(resolution);
       await compilation.VerifyAll();
-      await Task.WhenAll(compilation.OutputTasks);
     } catch (TaskCanceledException) {
     }
 
