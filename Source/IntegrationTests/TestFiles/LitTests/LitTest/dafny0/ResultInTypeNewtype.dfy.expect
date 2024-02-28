@@ -45,6 +45,7 @@ ResultInTypeNewtype.dfy(107,10): Error: cannot find witness that shows type is i
 ResultInTypeNewtype.dfy(107,26): Related location
 ResultInTypeNewtype.dfy(156,9): Error: result of operation might violate newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(162,13): Error: result of operation might violate newtype constraint for 'Char'
+ResultInTypeNewtype.dfy(164,13): Error: char subtraction might underflow
 ResultInTypeNewtype.dfy(164,13): Error: result of operation might violate newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(168,11): Error: result of operation might violate newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(153,10): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
@@ -89,4 +90,4 @@ ResultInTypeNewtype.dfy(314,12): Error: result of operation might violate newtyp
 ResultInTypeNewtype.dfy(316,12): Error: result of operation might violate newtype constraint for 'Seq'
 ResultInTypeNewtype.dfy(269,10): Error: cannot find witness that shows type is inhabited (only tried []); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
-Dafny program verifier finished with 3 verified, 86 errors
+Dafny program verifier finished with 3 verified, 87 errors

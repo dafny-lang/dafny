@@ -161,7 +161,7 @@ module Char {
     case true =>
       r := x + y; // error: RHS not a Char
     case true =>
-      r := x - y; // error: RHS not a Char
+      r := x - y; // error (x2): possible underflow, and RHS not a Char
   }
 
   method As(x: char) returns (r: Char) {
