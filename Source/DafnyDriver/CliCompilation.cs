@@ -275,9 +275,10 @@ public class CliCompilation {
     }
 
     if (errorCount > 0) {
-      didVerification = false;
       yield break;
     }
+
+    didVerification = true;
 
     var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
