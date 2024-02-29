@@ -7,7 +7,7 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel=null, bool useRange = true) {
+  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
@@ -24,7 +24,7 @@ public static class ErrorReporterExtensions {
         }
       }
     }
-    
+
     if (counterexampleModel != null) {
       error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
@@ -60,7 +60,7 @@ public static class ErrorReporterExtensions {
         message = $"this postcondition might not hold: {postcondition}";
       } else if (message == null || message == RelatedLocationMessage) {
         message = FormatRelated(rangeToken.PrintOriginal());
-      } 
+      }
     }
 
     yield return new DafnyRelatedInformation(token, message);
