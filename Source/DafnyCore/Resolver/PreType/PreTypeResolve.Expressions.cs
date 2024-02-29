@@ -2121,7 +2121,6 @@ namespace Microsoft.Dafny {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
             case PreType.TypeNameSeq:
-              // TODO: do more
               AddSubtypeConstraint(expr.PreType, sourceCollectionPreType, tok,
                 "resulting sequence ({0}) type does not agree with source sequence type ({1})");
               break;
