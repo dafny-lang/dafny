@@ -2148,7 +2148,9 @@ namespace Microsoft.Dafny {
       if (keyword != null) {
         if (memberIsFailure == null || (memberExtract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          var requiredMembers = expectExtract ? "members IsFailure() and Extract()" : "member IsFailure(), but not Extract()";
+          var requiredMembers = expectExtract
+            ? "members IsFailure() and Extract()"
+            : "member IsFailure(), but not Extract()";
           ReportError(tok, $"right-hand side of ':- {keyword}', which is of type '{burritoPreType}', must have {requiredMembers}");
         }
       } else {
