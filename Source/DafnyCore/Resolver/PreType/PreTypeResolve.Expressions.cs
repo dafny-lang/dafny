@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
           } else if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
-            ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+            ReportMemberNotFoundError(tok, memberName, members, receiverDecl, resolutionContext);
           }
           return (null, null);
         } else if (resolver.VisibleInScope(member)) {
@@ -1050,9 +1050,14 @@ namespace Microsoft.Dafny {
         }
       }
       if (reportErrorOnMissingMember) {
-        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        ReportMemberNotFoundError(tok, memberName, null, receiverDecl, resolutionContext);
       }
       return (null, null);
+    }
+
+    private void ReportMemberNotFoundError(IToken tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
+      TopLevelDecl receiverDecl, ResolutionContext resolutionContext) {
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
     }
 
     /// <summary>
@@ -1456,7 +1461,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          ReportError(expr.tok, $"member '{name}' does not exist in {ri.Decl.WhatKind} '{ri.Decl.Name}'");
+          ReportMemberNotFoundError(expr.tok, name, null, ri.Decl, resolutionContext);
         }
 
       } else if (lhs != null) {

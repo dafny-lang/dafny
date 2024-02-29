@@ -4550,7 +4550,7 @@ namespace Microsoft.Dafny {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
-            reporter.Error(MessageSource.Resolver, tok, "member '{0}' does not exist in {2} '{1}'", memberName, cd.Name, cd.WhatKind);
+            ReportMemberNotFoundError(tok, memberName, cd);
           }
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
@@ -4565,6 +4565,10 @@ namespace Microsoft.Dafny {
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
       tentativeReceiverType = null;
       return null;
+    }
+
+    private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
+        reporter.Error(MessageSource.Resolver, tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
     }
 
     /// <summary>
@@ -5735,7 +5739,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.Decl.Name, ri.Decl.WhatKind);
+          ReportMemberNotFoundError(expr.tok, name, ri.Decl);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
