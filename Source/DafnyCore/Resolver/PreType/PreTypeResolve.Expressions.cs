@@ -10,13 +10,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using DafnyCore;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver {
     // ---------------------------------------- Expressions ----------------------------------------
 
-    void ResolveExpression(Expression expr, ResolutionContext resolutionContext) {
+    public void ResolveExpression(Expression expr, ResolutionContext resolutionContext) {
       Contract.Requires(expr != null);
       Contract.Requires(resolutionContext != null);
 
@@ -949,7 +950,7 @@ namespace Microsoft.Dafny {
       return resultPreType;
     }
 
-    private void ConstrainTypeExprBool(Expression e, string msgFormat) {
+    public void ConstrainTypeExprBool(Expression e, string msgFormat) {
       Contract.Requires(e != null);
       Contract.Requires(msgFormat != null);  // may have a {0} part
       if (e.PreType != null) {
@@ -1583,10 +1584,10 @@ namespace Microsoft.Dafny {
       return rr;
     }
 
-    ModuleResolver.MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
+    public MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);
-      Contract.Ensures(Contract.Result<ModuleResolver.MethodCallInformation>() == null || allowMethodCall);
+      Contract.Ensures(Contract.Result<MethodCallInformation>() == null || allowMethodCall);
 
       if (e.MethodCallInfo != null) {
         return e.MethodCallInfo;
@@ -1683,8 +1684,8 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = resolver.Options.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
-                e.MethodCallInfo = new ModuleResolver.MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
+                var tok = resolver.Options.Get(Snippets.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                e.MethodCallInfo = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return e.MethodCallInfo;
               } else {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);

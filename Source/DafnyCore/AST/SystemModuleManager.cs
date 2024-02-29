@@ -207,8 +207,8 @@ public class SystemModuleManager {
     return new Attributes("compile", new List<Expression>() { flse }, null);
   }
 
-  public static Attributes AxiomAttribute() {
-    return new Attributes("axiom", new List<Expression>(), null);
+  public static Attributes AxiomAttribute(Attributes prev = null) {
+    return new Attributes("axiom", new List<Expression>(), prev);
   }
 
   /// <summary>
@@ -355,12 +355,12 @@ public class SystemModuleManager {
     // forall x0,x1,x2 :: f.requires(x0,x1,x2)
     var bvs = new List<BoundVar>();
     var args = new List<Expression>();
-    var bounds = new List<ComprehensionExpr.BoundedPool>();
+    var bounds = new List<BoundedPool>();
     for (int i = 0; i < tps.Count - 1; i++) {
       var bv = new BoundVar(tok, "x" + i, new UserDefinedType(tps[i]));
       bvs.Add(bv);
       args.Add(new IdentifierExpr(tok, bv));
-      bounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());
+      bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
     var fn = new MemberSelectExpr(tok, f, member.Name) {
       Member = member,

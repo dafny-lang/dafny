@@ -27,7 +27,11 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext context) {
+  public virtual void Resolve(ModuleResolver resolver, ResolutionContext context) {
+    GenResolve(resolver, context);
+  }
+
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
     foreach (var lhs in Lhss) {
       var ec = resolver.Reporter.Count(ErrorLevel.Error);
       resolver.ResolveExpression(lhs, context);
@@ -38,6 +42,6 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
       }
     }
 
-    base.Resolve(resolver, context);
+    base.GenResolve(resolver, context);
   }
 }

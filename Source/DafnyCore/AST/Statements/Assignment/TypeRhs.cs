@@ -80,7 +80,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     }
 
     if (cloner.CloneResolvedFields) {
-      InitCall = cloner.CloneStmt(original.InitCall) as CallStmt;
+      InitCall = cloner.CloneStmt(original.InitCall, false) as CallStmt;
       Type = cloner.CloneType(original.Type);
     }
   }

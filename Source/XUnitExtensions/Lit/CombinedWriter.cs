@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace XUnitExtensions.Lit;
 
 class CombinedWriter : TextWriter {
-  private IEnumerable<TextWriter> writers;
+  private readonly IEnumerable<TextWriter> writers;
 
   public CombinedWriter(Encoding encoding, IEnumerable<TextWriter> writers) {
     this.Encoding = encoding;
