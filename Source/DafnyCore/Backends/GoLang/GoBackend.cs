@@ -79,7 +79,7 @@ public class GoBackend : ExecutableBackend {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".go") {
-        outputWriter.WriteLine("Unrecognized file as extra input for Go compilation: {0}", otherFileName);
+        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Go compilation: {otherFileName}");
         return false;
       }
 
