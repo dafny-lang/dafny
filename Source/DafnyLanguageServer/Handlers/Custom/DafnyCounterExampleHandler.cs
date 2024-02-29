@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {

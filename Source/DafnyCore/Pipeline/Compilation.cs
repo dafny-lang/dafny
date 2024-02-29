@@ -478,7 +478,9 @@ public class Compilation : IDisposable {
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
+      var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+      var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
+      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
     // This reports problems that are not captured by counter-examples, like a time-out
@@ -486,7 +488,7 @@ public class Compilation : IDisposable {
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
     var implementation = task.Split.Implementation;
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       implementation.VerboseName, implementation.tok, null, TextWriter.Null,
       implementation.GetTimeLimit(options), result.CounterExamples);
   }
