@@ -2956,7 +2956,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(", ");
         wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
         wr.Write(")");
-      } else if (resultCollectionType.AsMapType is {} mapType) {
+      } else if (resultCollectionType.AsMapType is { } mapType) {
         EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
         TrParenExpr(source, wSource, inLetExprBody, wSource);
         wIndex.Append(CoercedExpr(index, mapType.Domain, inLetExprBody, wSource));
