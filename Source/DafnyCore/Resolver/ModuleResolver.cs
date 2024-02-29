@@ -2952,7 +2952,7 @@ namespace Microsoft.Dafny {
       return id;
     }
 
-    public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
+    public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, [CanBeNull] string keyword) {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = reporter;
@@ -2962,23 +2962,22 @@ namespace Microsoft.Dafny {
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);
       var extract = ResolveMember(tok, tp, "Extract", out _);
 
-      if (hasKeywordToken) {
+      if (keyword != null) {
         if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()' and 'Extract()'"
+            : "function 'IsFailure()', but not 'Extract()'";
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have function{1}", tp,
-            expectExtract
-              ? "s 'IsFailure()' and 'Extract()'"
-              : " 'IsFailure()', but not 'Extract()'");
+            $"The right-hand side of ':- {keyword}', which is of type '{tp}', with a keyword token must have {requiredMembers}");
         }
       } else {
         if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have function{1}", tp,
-            expectExtract
-              ? "s 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
-              : "s 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'");
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
+            : "functions 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'";
+          origReporter.Error(MessageSource.Resolver, tok, $"The right-hand side of ':-', which is of type '{tp}', must have {requiredMembers}");
         }
       }
 
@@ -2998,7 +2997,7 @@ namespace Microsoft.Dafny {
       }
 
       CheckIsFunction(isFailure, false);
-      if (!hasKeywordToken) {
+      if (keyword == null) {
         CheckIsFunction(propagateFailure, true);
       }
       if (expectExtract) {
@@ -3148,7 +3147,7 @@ namespace Microsoft.Dafny {
       ResolveExpression(expr.ResolvedExpression, resolutionContext);
       expr.Type = expr.ResolvedExpression.Type;
       bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
+      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, null);
     }
 
     public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, SystemModuleManager systemModuleManager) {
