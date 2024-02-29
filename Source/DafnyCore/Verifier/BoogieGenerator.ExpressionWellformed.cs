@@ -1158,7 +1158,25 @@ namespace Microsoft.Dafny {
                 nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
               }
             });
-            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
+
+            bool needTypeConstraintCheck;
+            if (lam == null) {
+              needTypeConstraintCheck = true;
+            } else {
+              // omit constraint check if the type is according to the syntax of the expression
+              var arrowType = (UserDefinedType)e.Type.NormalizeExpandKeepConstraints();
+              if (ArrowType.IsPartialArrowTypeName(arrowType.Name)) {
+                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0;
+              } else if (ArrowType.IsTotalArrowTypeName(arrowType.Name)) {
+                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0 || lam.Range != null;
+              } else {
+                needTypeConstraintCheck = true;
+              }
+            }
+            if (needTypeConstraintCheck) {
+              CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
+            }
+
             builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
             break;
           }
