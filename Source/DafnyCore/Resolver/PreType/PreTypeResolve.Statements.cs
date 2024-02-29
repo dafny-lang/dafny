@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
             if (expr is ApplySuffix applySuffix) {
               var methodCallInfo = ResolveApplySuffix(applySuffix, revealResolutionContext, true);
               if (methodCallInfo == null) {
-                ReportError(expr.tok, "expression has no reveal lemma");
+                // error has already been reported
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
                 ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {

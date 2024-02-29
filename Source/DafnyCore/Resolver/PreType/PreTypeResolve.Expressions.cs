@@ -1059,7 +1059,33 @@ namespace Microsoft.Dafny {
 
     private void ReportMemberNotFoundError(IToken tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
       TopLevelDecl receiverDecl, ResolutionContext resolutionContext) {
+      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+        if (members == null) {
+          if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
+            // try this instead:
+            members = resolver.GetClassMembers(receiverDeclWithMembers);
+          }
+        }
+        if (members == null) {
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (member is not (ConstantField or Function)) {
+          Contract.Assert(!member.IsOpaque);
+          ReportError(tok,
+            $"a {member.WhatKind} ('{nameToBeRevealed}') cannot be revealed; only opaque constants and functions can be revealed");
+        } else if (!member.IsOpaque) {
+          ReportError(tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
+        } else if (member is Function { Body: null }) {
+          ReportError(tok,
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else {
+          ReportError(tok, $"cannot reveal '{nameToBeRevealed}'");
+        }
+      } else {
         ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
     }
 
     /// <summary>
@@ -1216,7 +1242,14 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          ReportError(expr.tok, "unresolved identifier: {0}", name);
+          if (resolutionContext.InReveal) {
+            var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+            ReportError(expr.tok,
+              "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+              nameToReport);
+          } else {
+            ReportError(expr.tok, "unresolved identifier: {0}", name);
+          }
         } else {
           expr.ResolvedExpression = null;
           return null;

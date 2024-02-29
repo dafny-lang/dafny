@@ -91,7 +91,7 @@ module StayOpaque {
   }
 
   method TestA(a: A) {
-    reveal a.Valid(); // error: nothing to reveal
+    reveal a.Valid(); // error: cannot reveal (no body)
   }
 
   method TestB(b: B) {
@@ -100,5 +100,48 @@ module StayOpaque {
 
   method TestC(c: C) {
     reveal c.Valid();
+  }
+}
+
+module RevealErrorMessages {
+  trait A {
+    opaque predicate Valid()
+    function TransparentFunction(): int { 3 }
+    const m: int := 10
+    opaque const n: int := 10
+    opaque const o: int
+    method Method() { }
+    opaque function WithBody(x: int): int { x }
+
+    method TestReveal() {
+      reveal UnknownFunction(); // error: UnknownFunction unresolved
+      reveal UnknownFunction; // error: UnknownFunction unresolved
+      reveal Method(); // error: Method unresolved
+      reveal Method; // error: Method unresolved
+      reveal m; // error: m unresolved
+      reveal n;
+      reveal o;
+      reveal Valid(); // error: Valid unresolved
+      reveal Valid; // error: Valid unresolved
+      reveal WithBody();
+      reveal WithBody; // error: missing parens
+    }
+  }
+
+  method TestA(a: A) {
+    reveal x.Valid(); // error: 'x' is unresolved
+    reveal a.UnknownFunction(); // error: UnknownFunction unresolved
+    reveal a.UnknownFunction; // error: UnknownFunction unresolved
+    reveal a.Method(); // error: cannot reveal a method
+    reveal a.Method;
+    reveal a.m; // error: cannot reveal (not opaque)
+    reveal a.n;
+    reveal a.o;
+    reveal a.Valid(); // error: cannot reveal (no body)
+    reveal a.Valid; // error: cannot reveal (no body)
+    reveal a.WithBody();
+    reveal a.WithBody; // error: missing parens
+
+    reveal A.WithBody(); // error: WithBody not found (as static member) in A
   }
 }
