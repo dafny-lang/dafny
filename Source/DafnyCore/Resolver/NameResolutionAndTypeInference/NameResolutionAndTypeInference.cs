@@ -5422,13 +5422,7 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          if (resolutionContext.InReveal) {
-            reporter.Error(MessageSource.Resolver, expr.tok,
-              "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
-              expr.Name);
-          } else {
-            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
-          }
+          ReportUnresolvedIdentifierError(expr.tok, expr.Name, resolutionContext);
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -5445,6 +5439,17 @@ namespace Microsoft.Dafny {
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+      if (resolutionContext.InReveal) {
+        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        reporter.Error(MessageSource.Resolver, tok,
+          "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+          nameToReport);
+      } else {
+        reporter.Error(MessageSource.Resolver, tok, "unresolved identifier: {0}", name);
+      }
     }
 
     public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
@@ -5720,7 +5725,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {

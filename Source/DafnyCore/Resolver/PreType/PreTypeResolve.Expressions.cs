@@ -1242,14 +1242,7 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          if (resolutionContext.InReveal) {
-            var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
-            ReportError(expr.tok,
-              "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
-              nameToReport);
-          } else {
-            ReportError(expr.tok, "unresolved identifier: {0}", name);
-          }
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -1268,6 +1261,17 @@ namespace Microsoft.Dafny {
         expr.PreType = r.PreType;
       }
       return rWithArgs;
+    }
+
+    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+      if (resolutionContext.InReveal) {
+        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        ReportError(tok,
+          "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+          nameToReport);
+      } else {
+        ReportError(tok, "unresolved identifier: {0}", name);
+      }
     }
 
     private Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
@@ -1454,7 +1458,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          ReportError(expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
       } else if (lhs != null && lhs.PreType is PreTypePlaceholderType) {
