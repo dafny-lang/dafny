@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using DafnyCore;
+using JetBrains.Annotations;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
@@ -604,7 +605,7 @@ namespace Microsoft.Dafny {
         Constraints.AddGuardedConstraint(() => {
           if (e.Rhs.PreType.NormalizeWrtScope() is DPreType receiverPreType) {
             bool expectExtract = e.Lhs != null;
-            EnsureSupportsErrorHandling(e.tok, receiverPreType, expectExtract);
+            EnsureSupportsErrorHandling(e.tok, receiverPreType, expectExtract, resolutionContext, null);
             return true;
           }
           return false;
@@ -1018,7 +1019,8 @@ namespace Microsoft.Dafny {
     /// "receiverPreType" is an unresolved proxy type and that, after solving more type constraints, "receiverPreType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, bool reportErrorOnMissingMember = true) {
+    (MemberDecl /*?*/, DPreType /*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, ResolutionContext resolutionContext,
+      bool reportErrorOnMissingMember = true) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
@@ -1466,7 +1468,7 @@ namespace Microsoft.Dafny {
 
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name);
+        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name, resolutionContext);
         if (member != null) {
           if (!member.IsStatic) {
             var receiver = expr.Lhs;
@@ -2135,13 +2137,13 @@ namespace Microsoft.Dafny {
             : resolver.LetPatIn(expr.tok, expr.Lhs, resolver.VarDotFunction(expr.tok, burrito, "Extract"), expr.Body)));
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, DPreType burritoPreType, bool expectExtract, string keyword = null) {
+    private void EnsureSupportsErrorHandling(IToken tok, DPreType burritoPreType, bool expectExtract, ResolutionContext resolutionContext, [CanBeNull] string keyword) {
       Contract.Requires(tok != null);
       Contract.Requires(burritoPreType != null);
 
-      var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure");
-      var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure");
-      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", reportErrorOnMissingMember: expectExtract);
+      var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure", resolutionContext);
+      var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure", resolutionContext);
+      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", resolutionContext, reportErrorOnMissingMember: expectExtract);
 
       if (keyword != null) {
         if (memberIsFailure == null || (memberExtract != null) != expectExtract) {

@@ -1433,7 +1433,8 @@ namespace Microsoft.Dafny {
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(fe.E, new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
+      var resolutionContext = new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged);
+      ResolveExpression(fe.E, resolutionContext);
       Constraints.AddGuardedConstraint(() => {
         DPreType dp = fe.E.PreType.NormalizeWrtScope() as DPreType;
         if (dp == null) {
@@ -1486,7 +1487,7 @@ namespace Microsoft.Dafny {
         }
 
         if (fe.FieldName != null) {
-          var (member, tentativeReceiverType) = FindMember(fe.E.tok, dp, fe.FieldName);
+          var (member, tentativeReceiverType) = FindMember(fe.E.tok, dp, fe.FieldName, resolutionContext);
           Contract.Assert((member == null) == (tentativeReceiverType == null)); // follows from contract of FindMember
           if (member == null) {
             // error has already been reported by FindMember
