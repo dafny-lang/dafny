@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       Tuple<DatatypeCtor, bool> pair;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       var v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -1357,7 +1357,7 @@ namespace Microsoft.Dafny {
       Expression r = null;  // the resolved expression, if successful
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
         var ri = (Resolver_IdentifierExpr)lhs;
