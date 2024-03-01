@@ -1,0 +1,77 @@
+ResolutionErrors8.dfy(3429,7): Error: ghost variables such as p are allowed only in specification contexts. p was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors8.dfy(3443,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors8.dfy(3450,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors8.dfy(3479,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got multiset<object>)
+ResolutionErrors8.dfy(3480,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<object, int>)
+ResolutionErrors8.dfy(3481,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got map<int, object>)
+ResolutionErrors8.dfy(3482,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got imap<object, object>)
+ResolutionErrors8.dfy(3487,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int)
+ResolutionErrors8.dfy(3488,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<bool>)
+ResolutionErrors8.dfy(3489,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got iset<bv8>)
+ResolutionErrors8.dfy(3490,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got seq<int>)
+ResolutionErrors8.dfy(3495,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> int)
+ResolutionErrors8.dfy(3496,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> object)
+ResolutionErrors8.dfy(3497,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> set<object>)
+ResolutionErrors8.dfy(3498,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got int -> seq<object>)
+ResolutionErrors8.dfy(3499,9): Error: the argument of a fresh expression must denote an object or a set or sequence of objects (instead got set<object> -> int)
+ResolutionErrors8.dfy(3518,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors8.dfy(3519,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors8.dfy(3520,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors8.dfy(3525,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors8.dfy(3526,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors8.dfy(3527,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors8.dfy(3528,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors8.dfy(3537,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors8.dfy(3538,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors8.dfy(3539,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
+ResolutionErrors8.dfy(3540,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
+ResolutionErrors8.dfy(3541,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
+ResolutionErrors8.dfy(3542,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors8.dfy(3543,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
+ResolutionErrors8.dfy(3544,19): Error: an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors8.dfy(3559,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors8.dfy(3560,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors8.dfy(3561,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors8.dfy(3566,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors8.dfy(3567,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors8.dfy(3568,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors8.dfy(3569,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors8.dfy(3577,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors8.dfy(3578,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors8.dfy(3579,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> set<object>)
+ResolutionErrors8.dfy(3580,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> iset<object>)
+ResolutionErrors8.dfy(3581,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int -> seq<object>)
+ResolutionErrors8.dfy(3582,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors8.dfy(3583,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> multiset<object>)
+ResolutionErrors8.dfy(3584,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors8.dfy(3600,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<object, int>)
+ResolutionErrors8.dfy(3601,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got map<int, object>)
+ResolutionErrors8.dfy(3602,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got imap<object, object>)
+ResolutionErrors8.dfy(3608,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors8.dfy(3609,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<bool>)
+ResolutionErrors8.dfy(3610,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got iset<bv8>)
+ResolutionErrors8.dfy(3611,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got seq<int>)
+ResolutionErrors8.dfy(3620,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> int)
+ResolutionErrors8.dfy(3621,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> object)
+ResolutionErrors8.dfy(3625,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<object> -> int)
+ResolutionErrors8.dfy(3627,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
+ResolutionErrors8.dfy(3646,12): Error: a 'break break break continue' statement is allowed only in contexts with 4 enclosing loops, but the current context only has 3
+ResolutionErrors8.dfy(3683,27): Error: continue label must designate a loop: X
+ResolutionErrors8.dfy(3685,27): Error: continue label must designate a loop: Y0
+ResolutionErrors8.dfy(3687,27): Error: continue label must designate a loop: Y1
+ResolutionErrors8.dfy(3689,27): Error: continue label must designate a loop: Z
+ResolutionErrors8.dfy(3699,4): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors8.dfy(3703,4): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors8.dfy(3709,19): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors8.dfy(3710,19): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors8.dfy(3712,28): Error: continue label must designate a loop: X
+ResolutionErrors8.dfy(3729,21): Error: a non-labeled 'break' statement is allowed only in loops
+ResolutionErrors8.dfy(3730,21): Error: a non-labeled 'continue' statement is allowed only in loops
+ResolutionErrors8.dfy(3731,27): Error: break label is undefined or not in scope: L
+ResolutionErrors8.dfy(3732,30): Error: continue label is undefined or not in scope: L
+ResolutionErrors8.dfy(3745,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors8.dfy(3754,8): Error: ghost-context break statement is not allowed to break out of non-ghost loop
+ResolutionErrors8.dfy(3762,8): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors8.dfy(3777,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+ResolutionErrors8.dfy(3800,10): Error: ghost-context continue statement is not allowed to continue out of non-ghost loop
+76 resolution/type errors detected in ResolutionErrors8.dfy
