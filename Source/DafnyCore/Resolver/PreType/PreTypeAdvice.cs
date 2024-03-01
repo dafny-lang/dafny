@@ -8,6 +8,32 @@
 using System.Collections.Generic;
 
 namespace Microsoft.Dafny {
+  /// <summary>
+  /// A piece of "Advice" is information about a default type.
+  ///
+  /// A "newtype" of a base type "B" defines a new type that is distinct from "B", with the constructors, operators, and members of "B"
+  /// cloned for the new type. For example,
+  ///     newtype MyInt = int
+  /// defines the type "MyInt". It has the same constructors of "int" (for example, the constructors "7" and "19") and the same operators
+  /// as "int" (for example, "+"). As another example,
+  ///     newtype MyIntSet = set<int>
+  /// defines the type "MyIntSet", and thus set displays (like "{2, 3}"), set comprehensions (like "set x | 0 <= x < 10 :: 2 * x"),
+  /// and set operators (like "+") are cloned for the new type.
+  ///
+  /// Consequently, built-in constructors (like "7" and "{2, 3}") are overloaded. Type inference can therefore not immediately
+  /// the type of these constructors. Using the examples above, the type of "7" could be either "int" or "MyInt". (For numeric constructors
+  /// like "7", the type could also be the bitvector type of any width as well as the type "ORDINAL".) During type inference,
+  /// if any of these constructors is used with specific types, then the overloading can be resolved. But if there are other such types,
+  /// as for example in this program:
+  ///     method Main() {
+  ///       var x := 7 + 19;
+  ///       print x, "\n";
+  ///     }
+  /// then the "Advice" kicks in.
+  ///
+  /// So, a piece of "Advice" is saying that a given "PreType" should have a specific type *if* the program does not have any other
+  /// specific type for it.
+  /// </summary>
   public abstract class Advice {
     public readonly PreType PreType;
 
