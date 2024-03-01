@@ -22,7 +22,7 @@ vars:
 	echo $(EXECS)
 
 %.cpp: %.dfy $(DAFNY) $(DAFNY_DEPS)
-	$(DAFNY) /timeLimit:10 /compile:0 /spillTargetCode:3 /compileTarget:cpp ExternDefs.h $<
+	$(DAFNY) /timeLimit:10 /rlimit:200000 /compile:0 /spillTargetCode:3 /compileTarget:cpp ExternDefs.h $<
 
 %.cs: %.dfy $(DAFNY) $(DAFNY_DEPS)
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cs $<

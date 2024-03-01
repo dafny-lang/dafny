@@ -6,6 +6,15 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
+static class AttributeBearingDeclaration {
+
+  public static bool IsExtern(this IAttributeBearingDeclaration me, DafnyOptions options) =>
+    options.AllowExterns && Attributes.Contains(me.Attributes, "extern");
+
+  public static bool IsExplicitAxiom(this IAttributeBearingDeclaration me) =>
+    Attributes.Contains(me.Attributes, "axiom");
+}
+
 public class Attributes : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -235,7 +244,7 @@ public interface IAttributeBearingDeclaration {
   Attributes Attributes { get; }
 }
 
-public static class IAttributeBearingDeclarationExtensions {
+public static class AttributeBearingDeclarationExtensions {
   public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
     if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
       attribute = attr;

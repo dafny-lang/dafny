@@ -48,7 +48,7 @@ public class FirstPass {
     var errorReporter = new ConsoleErrorReporter(options);
     var program = Utils.Parse(errorReporter, source, true, uri);
     diagnostics = new();
-    if (errorReporter.HasErrors) {
+    if (errorReporter.FailCompilation) {
       NonZeroExitCode = true;
       return false;
     }
@@ -61,7 +61,7 @@ public class FirstPass {
     CheckVerificationTimeLimit(program);
     PrintWarningsAndErrors(errorReporter, program);
     NonZeroExitCode = Errors.Count() != 0;
-    return !Errors.Any() && (!Warnings.Any() || !options.WarningsAsErrors);
+    return !Errors.Any() && (!Warnings.Any() || !options.FailOnWarnings);
   }
 
   /// <summary>
@@ -358,14 +358,14 @@ public class FirstPass {
       return base.CloneExpr(expr);
     }
 
-    public override Statement CloneStmt(Statement stmt) {
+    public override Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt is CallStmt callStmt) {
         if (!Edges.ContainsKey(currentlyVisited)) {
           Edges[currentlyVisited] = new();
         }
         Edges[currentlyVisited].Add(callStmt.Method);
       }
-      return base.CloneStmt(stmt);
+      return base.CloneStmt(stmt, isReference);
     }
   }
 }

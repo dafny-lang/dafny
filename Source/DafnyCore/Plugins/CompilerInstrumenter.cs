@@ -20,6 +20,6 @@ public abstract class CompilerInstrumenter : ErrorReportingBase {
   /// and downcast to interface with them,
   /// possibly reporting an error if they don't recognize the compiler.
   /// </summary>
-  public virtual void Instrument(IExecutableBackend backend, SinglePassCompiler compiler, Program program) {
+  public virtual void Instrument(IExecutableBackend backend, SinglePassCodeGenerator codeGenerator, Program program) {
   }
 }

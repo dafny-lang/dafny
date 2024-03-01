@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 method FindZero(a: array<int>) returns (r: int)

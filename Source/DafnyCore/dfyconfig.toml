@@ -1,4 +1,5 @@
-includes = ["Compilers/**/*.dfy","AST/Formatting.dfy"]
+includes = ["Backends/**/*.dfy","AST/Formatting.dfy"]
 excludes = []
 
 [options]
+standard-libraries=true

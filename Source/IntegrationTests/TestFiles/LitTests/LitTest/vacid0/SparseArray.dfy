@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false --relax-definite-assignment "%s" > "%t"
+// RUN: %verify --allow-deprecation --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file was created in the early stages of Dafny, when the

@@ -29,7 +29,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     Exprs = original.Exprs.Select(cloner.CloneExpr).ToList();
     if (cloner.CloneResolvedFields) {
       LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 

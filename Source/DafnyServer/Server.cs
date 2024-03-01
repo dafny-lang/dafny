@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using DafnyServer;
 using Microsoft.Boogie;
 
@@ -11,12 +12,20 @@ namespace Microsoft.Dafny {
   public class Server : IDisposable {
     private bool running;
     private readonly ExecutionEngine engine;
+    private readonly TextReader input;
+    private readonly TextWriter outputWriter;
 
     public static void Main(string[] args) {
-      var options = DafnyOptions.Create(Console.Out);
+      _ = MainWithWriters(Console.Out, Console.Error, Console.In, args);
+    }
+
+    public static async Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
+      var options = DafnyOptions.Create(outputWriter);
+      options.Set(CommonOptionBag.AllowAxioms, true);
+      Console.SetError(outputWriter);
       ServerUtils.ApplyArgs(args, options);
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Token.NoToken);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      Server server = new Server(engine);
 
       // read the optional flag (only one flag is allowed)
       bool plaintext = false;
@@ -41,18 +50,19 @@ namespace Microsoft.Dafny {
 
       if (selftest) {
         VerificationTask.SelfTest(options, engine);
-        return;
+        return 0;
       }
 
       if (n < args.Length) {
         var inputFilename = args[n];
         if (File.Exists(inputFilename)) {
-          Console.WriteLine("# Reading from {0}", Path.GetFileName(inputFilename));
-          Console.SetIn(new StreamReader(inputFilename, Encoding.UTF8));
+          await outputWriter.WriteLineAsync($"# Reading from {Path.GetFileName(inputFilename)}");
+          inputReader = new StreamReader(inputFilename, Encoding.UTF8);
         } else {
-          Console.WriteLine("Error: file '{0}' does not exist", inputFilename);
+          await outputWriter.WriteLineAsync($"Error: file '{inputFilename}' does not exist");
         }
       }
+      var server = new Server(engine, inputReader, outputWriter);
 
       if (decode) {
         server.Decode();
@@ -61,6 +71,7 @@ namespace Microsoft.Dafny {
       } else {
         server.Loop(options, plaintext);
       }
+      return 0;
     }
 
     private void SetupConsole() {
@@ -68,14 +79,16 @@ namespace Microsoft.Dafny {
       Console.OutputEncoding = new UTF8Encoding(false, true);
     }
 
-    public Server(ExecutionEngine engine) {
+    public Server(ExecutionEngine engine, TextReader input, TextWriter outputWriter) {
       this.engine = engine;
+      this.input = input;
+      this.outputWriter = outputWriter;
       this.running = true;
       SetupConsole();
     }
 
     bool EndOfPayload(out string line) {
-      line = Console.ReadLine();
+      line = input.ReadLine();
       return line == null || line == Interaction.CLIENT_EOM_TAG;
     }
 
@@ -97,16 +110,16 @@ namespace Microsoft.Dafny {
     /// </summary>
     void Decode() {
       while (true) {
-        var line = Console.ReadLine();
+        var line = input.ReadLine();
         if (line == null) {
           return;
         }
-        Console.WriteLine(line);
+        outputWriter.WriteLine(line);
         if (line != String.Empty && !line.StartsWith("#")) {
           // assume the line to be a command
           var vt = ReadVerificationTask(line == "marshal");
-          Console.WriteLine(vt.ProgramSource);
-          Console.WriteLine(Interaction.CLIENT_EOM_TAG);
+          outputWriter.WriteLine(vt.ProgramSource);
+          outputWriter.WriteLine(Interaction.CLIENT_EOM_TAG);
         }
       }
     }
@@ -117,11 +130,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     void Encode() {
       while (true) {
-        var line = Console.ReadLine();
+        var line = input.ReadLine();
         if (line == null) {
           return;
         }
-        Console.WriteLine(line);
+        outputWriter.WriteLine(line);
         if (line != String.Empty && !line.StartsWith("#")) {
           // assume the line to be a command
           var vt = ReadVerificationTask(line != "unmarshal");
@@ -130,9 +143,9 @@ namespace Microsoft.Dafny {
             WriteAcrossLines(b64Repr, 76);
           } else {
             // for unmarshal, pass the line through unchanged
-            Console.WriteLine(vt.ProgramSource);
+            outputWriter.WriteLine(vt.ProgramSource);
           }
-          Console.WriteLine(Interaction.CLIENT_EOM_TAG);
+          outputWriter.WriteLine(Interaction.CLIENT_EOM_TAG);
         }
       }
     }
@@ -144,17 +157,17 @@ namespace Microsoft.Dafny {
     /// </summary>
     /// <param name="s">assumed not to contain any newline characters</param>
     /// <param name="width">assumed to be positive</param>
-    static void WriteAcrossLines(string s, int width) {
+    void WriteAcrossLines(string s, int width) {
       var len = s.Length;
       for (var n = 0; n < len; n += width) {
         var next = n + width <= len ? s.Substring(n, width) : s.Substring(n);
-        Console.WriteLine(next);
+        outputWriter.WriteLine(next);
       }
     }
 
     void Loop(DafnyOptions options, bool inputIsPlaintext) {
       for (int cycle = 0; running; cycle++) {
-        var line = Console.ReadLine() ?? "quit";
+        var line = input.ReadLine() ?? "quit";
         if (line != String.Empty && !line.StartsWith("#")) {
           var command = line.Split();
           Respond(options, command, inputIsPlaintext);
@@ -193,12 +206,12 @@ namespace Microsoft.Dafny {
         } else if (verb == "unmarshal") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(false);
-          vt.Unmarshal(command);
+          vt.Unmarshal(outputWriter, command);
           msg = null;
         } else if (verb == "marshal") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(true);
-          vt.Marshal(command);
+          vt.Marshal(outputWriter, command);
           msg = null;
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
@@ -208,11 +221,11 @@ namespace Microsoft.Dafny {
           throw new ServerException("Unknown verb '{0}'", verb);
         }
 
-        Interaction.EOM(Interaction.SUCCESS, msg);
+        Interaction.Eom(outputWriter, Interaction.SUCCESS, msg);
       } catch (ServerException ex) {
-        Interaction.EOM(Interaction.FAILURE, ex);
+        Interaction.Eom(outputWriter, Interaction.FAILURE, ex);
       } catch (Exception ex) {
-        Interaction.EOM(Interaction.FAILURE, ex, "[FATAL]");
+        Interaction.Eom(outputWriter, Interaction.FAILURE, ex, "[FATAL]");
         running = false;
       }
     }

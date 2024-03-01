@@ -5,31 +5,17 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
-  public class Advice {
-    public enum Target {
-      Bool,
-      Char,
-      Int,
-      Real,
-      String,
-      Object
-    }
-
+  public abstract class Advice {
     public readonly PreType PreType;
-    public readonly Target What;
 
-    public string WhatString => What == Target.Object ? "object?" : What.ToString().ToLower();
-
-    public Advice(PreType preType, Target advice) {
-      PreType = preType;
-      What = advice;
+    public Advice(PreType pretype) {
+      PreType = pretype;
     }
+
+    public abstract string WhatString { get; }
 
     public bool Apply(PreTypeResolver preTypeResolver) {
       if (PreType.Normalize() is PreTypeProxy proxy) {
@@ -52,12 +38,53 @@ namespace Microsoft.Dafny {
       // during what is only a partial constraint solving round.
       preTypeResolver.Constraints.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
 
+      var adviceType = GetAdviceType(preTypeResolver);
+      proxy.Set(adviceType);
+    }
+
+    protected abstract PreType GetAdviceType(PreTypeResolver preTypeResolver);
+  }
+
+  public class TypeAdvice : Advice {
+    private readonly PreType adviceType;
+    public TypeAdvice(PreType preType, PreType adviceType)
+      : base(preType) {
+      this.adviceType = adviceType;
+    }
+
+    public override string WhatString => adviceType.ToString();
+
+    protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
+      return adviceType;
+    }
+  }
+
+  public class CommonAdvice : Advice {
+    public enum Target {
+      Bool,
+      Char,
+      Int,
+      Real,
+      String,
+      Object
+    }
+
+    private readonly Target what;
+
+    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : what.ToString().ToLower();
+
+    public CommonAdvice(PreType preType, Target advice)
+      : base(preType) {
+      what = advice;
+    }
+
+    protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
       Type StringDecl() {
         var s = preTypeResolver.resolver.moduleInfo.TopLevels["string"];
         return new UserDefinedType(s.tok, s.Name, s, new List<Type>());
       }
 
-      var target = What switch {
+      var target = what switch {
         Target.Bool => preTypeResolver.Type2PreType(Type.Bool),
         Target.Char => preTypeResolver.Type2PreType(Type.Char),
         Target.Int => preTypeResolver.Type2PreType(Type.Int),
@@ -66,7 +93,7 @@ namespace Microsoft.Dafny {
         Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
         _ => throw new cce.UnreachableException() // unexpected case
       };
-      proxy.Set(target);
+      return target;
     }
   }
 }

@@ -1,2 +1,14 @@
-git-issue-1545.dfy(8,11): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
-1 resolution/type errors detected in git-issue-1545.dfy
+git-issue-1545.dfy(5,33): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
+git-issue-1545.dfy(15,42): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
+git-issue-1545.dfy(17,43): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
+git-issue-1545.dfy(19,42): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'Not3')
+git-issue-1545.dfy(21,42): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'Not3')
+git-issue-1545.dfy(35,47): Error: a type test to 'Not3' must be from a compatible type (got 'nat')
+git-issue-1545.dfy(44,47): Error: a non-trivial type test is allowed only for reference types (tried to test if 'int' is a 'nat')
+git-issue-1545.dfy(46,48): Error: a type test to 'nat' must be from a compatible type (got 'Not3')
+git-issue-1545.dfy(50,51): Error: a type test to 'Not3' must be from a compatible type (got 'Not3Or5')
+git-issue-1545.dfy(56,52): Error: a type test to 'Not5Either' must be from a compatible type (got 'Not3Or5')
+git-issue-1545.dfy(58,55): Error: a type test to 'Not3Or5' must be from a compatible type (got 'Not5Either')
+git-issue-1545.dfy(60,49): Error: a non-trivial type test is allowed only for reference types (tried to test if 'Not3' is a 'Not5Either')
+git-issue-1545.dfy(62,52): Error: a type test to 'Not5Either' must be from a compatible type (got 'Not3Or5')
+13 resolution/type errors detected in git-issue-1545.dfy
