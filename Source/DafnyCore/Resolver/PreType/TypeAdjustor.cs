@@ -57,13 +57,15 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType, identifierExpr.Name));
 
     } else if (expr is SeqSelectExpr selectExpr) {
-      var seqType = selectExpr.Seq.UnnormalizedType;
+      var unnormalizedSeqType = selectExpr.Seq.UnnormalizedType;
+      var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(seqType.NormalizeExpand().TypeArgs[0])));
+        var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
+        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.tok));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 0));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 1));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 1));
       } else {
         Contract.Assert(seqType.AsMultiSetType != null);
         // type is fixed, so no flow to set up
@@ -141,32 +143,33 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is SetDisplayExpr setDisplayExpr) {
       foreach (var element in setDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
       }
 
     } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
       foreach (var element in multiSetDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
       }
 
     } else if (expr is SeqDisplayExpr seqDisplayExpr) {
       foreach (var element in seqDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
       }
 
     } else if (expr is MapDisplayExpr mapDisplayExpr) {
       foreach (var element in mapDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite,
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapDisplayExpr.Finite,
             AdjustableType.NormalizeSansBottom(element.A), AdjustableType.NormalizeSansBottom(element.B)),
           "map display"));
       }
 
     } else if (expr is SetComprehension setComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
         "set comprehension"));
 
     } else if (expr is MapComprehension mapComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => {
         Type keyType;
         if (mapComprehension.TermLeft != null) {
           keyType = AdjustableType.NormalizeSansBottom(mapComprehension.TermLeft);
@@ -176,6 +179,15 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         }
         return new MapType(mapComprehension.Finite, keyType, AdjustableType.NormalizeSansBottom(mapComprehension.Term));
       }, "map comprehension"));
+
+    } else if (expr is SeqConstructionExpr seqConstructionExpr) {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => {
+          var arrowType = (ArrowType)seqConstructionExpr.Initializer.Type.NormalizeToAncestorType();
+          Contract.Assert(arrowType.TypeArgs.Count == 2);
+          return new SeqType(AdjustableType.NormalizeSansBottom(arrowType.TypeArgs[1]));
+        },
+        "seq constructor"));
 
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {

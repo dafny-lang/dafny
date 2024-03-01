@@ -5,7 +5,6 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -423,7 +422,7 @@ class FlowFromTypeArgument : FlowIntoExpr {
   }
 
   protected override Type GetSourceType() {
-    var sourceType = source.NormalizeExpand();
+    var sourceType = source.NormalizeToAncestorType();
     Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);
     return sourceType.TypeArgs[argumentIndex];
   }
@@ -452,6 +451,19 @@ class FlowFromComputedType : FlowIntoExpr {
 
   public FlowFromComputedType(Expression sink, System.Func<Type> getType, string description = "")
     : base(sink, sink.tok, description) {
+    this.getType = getType;
+  }
+
+  protected override Type GetSourceType() {
+    return getType();
+  }
+}
+
+class FlowFromComputedTypeIgnoreHeadTypes : FlowIntoExpr {
+  private readonly System.Func<Type> getType;
+
+  public FlowFromComputedTypeIgnoreHeadTypes(Expression sink, System.Func<Type> getType, string description = "")
+    : base(sink.Type.NormalizeToAncestorType(), sink.tok, description) {
     this.getType = getType;
   }
 

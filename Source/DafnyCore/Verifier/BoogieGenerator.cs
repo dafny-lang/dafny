@@ -1132,6 +1132,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
 
+      type = type.NormalizeToAncestorType();
       if (type.AsSetType != null) {
         var finite = type.AsSetType.Finite;
         return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
@@ -2238,7 +2239,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr disjunct;
-        var eType = e.Type.NormalizeExpand();
+        var eType = e.Type.NormalizeToAncestorType();
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2647,10 +2648,11 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var isSetType = e.Type.AsSetType != null;
-      var isMultisetType = e.Type.AsMultiSetType != null;
-      Contract.Assert(isSetType || isMultisetType || e.Type.AsSeqType != null);
-      var sType = e.Type.AsCollectionType;
+      var eType = e.Type.NormalizeToAncestorType();
+      var isSetType = eType.AsSetType != null;
+      var isMultisetType = eType.AsMultiSetType != null;
+      Contract.Assert(isSetType || isMultisetType || eType.AsSeqType != null);
+      var sType = eType.AsCollectionType;
       Contract.Assert(sType != null);
       type = sType.Arg;
       // var $x

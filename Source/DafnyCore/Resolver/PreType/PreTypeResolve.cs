@@ -836,7 +836,7 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got {0})",
+            "a newtype must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {0})",
             onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
@@ -1459,13 +1459,16 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
+
+        if (dp.UrAncestor(this) is DPreType {
+          Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
+        } dpAncestor) {
           hasCollectionType = true;
-          var elementType = dp.Arguments[0].Normalize();
+          var elementType = dpAncestor.Arguments[0].Normalize();
           dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, Advice.Target.Object);
+            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
             return false;
           }
         }

@@ -57,27 +57,27 @@ namespace Microsoft.Dafny {
         } else {
           if (e.Value == null) {
             e.PreType = CreatePreTypeProxy("literal 'null'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Object);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Object);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.PreType, e.tok, "type of 'null' is a reference type, but it is used as {0}");
           } else if (e.Value is BigInteger) {
             e.PreType = CreatePreTypeProxy($"integer literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Int);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Int);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrBitvectorOrORDINAL, e.PreType, e.tok, "integer literal used as if it had type {0}");
           } else if (e.Value is BaseTypes.BigDec) {
             e.PreType = CreatePreTypeProxy($"real literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Real);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Real);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.tok, "type of real literal is used as {0}"); // TODO: make this error message have the same form as the one for integers above
           } else if (e.Value is bool) {
             e.PreType = CreatePreTypeProxy($"boolean literal '{e.Value.ToString().ToLower()}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, e.PreType, e.tok, "boolean literal used as if it had type {0}");
           } else if (e is CharLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"character literal '{e.Value}'");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Char);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Char);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, e.PreType, e.tok, "character literal used as if it had type {0}");
           } else if (e is StringLiteralExpr) {
             e.PreType = CreatePreTypeProxy($"string literal \"{e.Value}\"");
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.String);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.String);
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSeqFamily, e.PreType, e.tok, "string literal used as if it had type {0}");
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
@@ -129,13 +129,16 @@ namespace Microsoft.Dafny {
           AddSubtypeConstraint(elementPreType, ee.PreType, ee.tok,
             "All elements of display must have some common supertype (got {1}, but needed type or type of previous elements is {0})");
         }
-        var argTypes = new List<PreType>() { elementPreType };
         if (expr is SetDisplayExpr setDisplayExpr) {
-          expr.PreType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(setDisplayExpr.Finite)), argTypes);
-        } else if (expr is MultiSetDisplayExpr) {
-          expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameMultiset), argTypes);
+          var confirmationFamily = setDisplayExpr.Finite
+            ? PreTypeConstraints.CommonConfirmationBag.InSetFamily
+            : PreTypeConstraints.CommonConfirmationBag.InIsetFamily;
+          ResolveCollectionProducingExpr(PreType.SetTypeName(setDisplayExpr.Finite), "display", setDisplayExpr, elementPreType, confirmationFamily);
+        } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
+          ResolveCollectionProducingExpr(PreType.TypeNameMultiset, "display", e, elementPreType,
+            PreTypeConstraints.CommonConfirmationBag.InMultisetFamily);
         } else {
-          expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), argTypes);
+          ResolveCollectionProducingExpr(PreType.TypeNameSeq, "display", e, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
         }
 
       } else if (expr is MapDisplayExpr) {
@@ -249,7 +252,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.E1 == null);
           e.PreType = ResolveSingleSelectionExpr(e.tok, e.Seq.PreType, e.E0);
         } else {
-          e.PreType = ResolveRangeSelectionExpr(e.tok, e.Seq.PreType, e.E0, e.E1);
+          ResolveRangeSelectionExpr(e.tok, e.Seq.PreType, e, e.E0, e.E1);
         }
 
       } else if (expr is MultiSelectExpr) {
@@ -275,23 +278,24 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Value, resolutionContext);
         Constraints.AddGuardedConstraint(() => {
           var sourcePreType = e.Seq.PreType.NormalizeWrtScope() as DPreType;
-          var familyDeclName = sourcePreType == null ? null : AncestorName(sourcePreType);
+          var ancestorPreType = sourcePreType == null ? null : AncestorPreType(sourcePreType);
+          var familyDeclName = ancestorPreType?.Decl.Name;
           if (familyDeclName == PreType.TypeNameSeq) {
-            var elementPreType = sourcePreType.Arguments[0];
+            var elementPreType = ancestorPreType.Arguments[0];
             ConstrainToIntFamilyOrBitvector(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {0})");
             AddSubtypeConstraint(elementPreType, e.Value.PreType, e.Value.tok,
               "sequence update requires the value to have the element type of the sequence (got {0})");
             return true;
           } else if (familyDeclName is PreType.TypeNameMap or PreType.TypeNameImap) {
-            var domainPreType = sourcePreType.Arguments[0];
-            var rangePreType = sourcePreType.Arguments[1];
+            var domainPreType = ancestorPreType.Arguments[0];
+            var rangePreType = ancestorPreType.Arguments[1];
             AddSubtypeConstraint(domainPreType, e.Index.PreType, e.Index.tok,
               familyDeclName + " update requires domain element to be of type {0} (got {1})");
             AddSubtypeConstraint(rangePreType, e.Value.PreType, e.Value.tok,
               familyDeclName + " update requires the value to have the range type {0} (got {1})");
             return true;
           } else if (familyDeclName == PreType.TypeNameMultiset) {
-            var elementPreType = sourcePreType.Arguments[0];
+            var elementPreType = ancestorPreType.Arguments[0];
             AddSubtypeConstraint(elementPreType, e.Index.PreType, e.Index.tok,
               "multiset update requires domain element to be of type {0} (got {1})");
             ConstrainToIntFamily(e.Value.PreType, e.Value.tok, "multiset update requires integer-based numeric value (got {0})");
@@ -388,7 +392,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Initializer, resolutionContext);
         var intPreType = Type2PreType(resolver.SystemModuleManager.Nat());
         var arrowPreType = new DPreType(BuiltInArrowTypeDecl(1), new List<PreType>() { intPreType, elementPreType });
-        var resultPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), new List<PreType>() { elementPreType });
         Constraints.AddSubtypeConstraint(arrowPreType, e.Initializer.PreType, e.Initializer.tok,
           () => {
             var strFormat = "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}')";
@@ -398,7 +401,7 @@ namespace Microsoft.Dafny {
             }
             return strFormat;
           });
-        expr.PreType = resultPreType;
+        ResolveCollectionProducingExpr(PreType.TypeNameSeq, "constructor", expr, elementPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily);
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
@@ -406,9 +409,11 @@ namespace Microsoft.Dafny {
         var targetElementPreType = CreatePreTypeProxy("multiset conversion element type");
         Constraints.AddGuardedConstraint(() => {
           if (e.E.PreType.NormalizeWrtScope() is DPreType dp) {
-            if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameSeq) {
-              Contract.Assert(dp.Arguments.Count == 1);
-              var sourceElementPreType = dp.Arguments[0];
+            var familyDeclName = AncestorName(dp);
+            if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameSeq) {
+              var ancestorPreType = AncestorPreType(dp);
+              Contract.Assert(ancestorPreType.Arguments.Count == 1);
+              var sourceElementPreType = ancestorPreType.Arguments[0];
               AddSubtypeConstraint(targetElementPreType, sourceElementPreType, e.E.tok, "expecting element type {0} (got {1})");
             } else {
               ReportError(e.E.tok, "can only form a multiset from a seq or set (got {0})", e.E.PreType);
@@ -417,7 +422,8 @@ namespace Microsoft.Dafny {
           }
           return false;
         });
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameMultiset), new List<PreType>() { targetElementPreType });
+        ResolveCollectionProducingExpr(PreType.TypeNameMultiset, "conversion", expr, targetElementPreType,
+          PreTypeConstraints.CommonConfirmationBag.InMultisetFamily);
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
@@ -448,7 +454,7 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Not:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.BooleanBits, e.E.PreType, expr.tok, "logical/bitwise negation expects a boolean or bitvector argument (instead got {0})");
             expr.PreType = e.E.PreType;
-            Constraints.AddDefaultAdvice(e.PreType, Advice.Target.Bool);
+            Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
             break;
           case UnaryOpExpr.Opcode.Cardinality:
             AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Sizeable, e.E.PreType, expr.tok, "size operator expects a collection argument (instead got {0})");
@@ -647,7 +653,9 @@ namespace Microsoft.Dafny {
 
         ResolveAttributes(e, resolutionContext, false);
         scope.PopMarker();
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.SetTypeName(e.Finite)), new List<PreType>() { e.Term.PreType });
+
+        ResolveCollectionProducingExpr(PreType.SetTypeName(e.Finite), "comprehension", expr, e.Term.PreType,
+          e.Finite ? PreTypeConstraints.CommonConfirmationBag.InSetFamily : PreTypeConstraints.CommonConfirmationBag.InIsetFamily);
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -739,6 +747,33 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void ResolveCollectionProducingExpr(string typeName, string exprKindSuffix, Expression expr, PreType elementPreType,
+      PreTypeConstraints.CommonConfirmationBag confirmationFamily) {
+      var exprKind = $"{typeName} {exprKindSuffix}";
+      SetupCollectionProducingExpr(typeName, exprKind, expr, elementPreType);
+      AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
+    }
+
+    private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType) {
+      expr.PreType = CreatePreTypeProxy($"{exprKind}");
+
+      var defaultType = new DPreType(BuiltInTypeDecl(typeName), new List<PreType>() { elementPreType });
+      Constraints.AddDefaultAdvice(expr.PreType, defaultType);
+
+      Constraints.AddGuardedConstraint(() => {
+        if (expr.PreType.UrAncestor(this) is DPreType dPreType) {
+          if (dPreType.Decl.Name == typeName) {
+            AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, expr.tok,
+              $"element type of {exprKind} expected to be {{0}} (got {{1}})");
+          } else {
+            ReportError(expr, $"{exprKind} used as if it had type {{0}}", expr.PreType);
+          }
+          return true;
+        }
+        return false;
+      });
+    }
+
     private PreType ResolveBinaryExpr(IToken tok, BinaryExpr.Opcode opcode, Expression e0, Expression e1, ResolutionContext resolutionContext) {
       var opString = BinaryExpr.OpcodeString(opcode);
       PreType resultPreType;
@@ -826,7 +861,7 @@ namespace Microsoft.Dafny {
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
           ConstrainToCommonSupertype(tok, opString, e0.PreType, e1.PreType, null);
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.OrderableGreater, e0.PreType, tok,
-            "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0} and {1})");
+            "arguments to " + opString + " must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0})");
           break;
 
         case BinaryExpr.Opcode.Add:
@@ -878,6 +913,8 @@ namespace Microsoft.Dafny {
             return false;
           });
           ConstrainOperandTypes(tok, opString, e0, null, resultPreType);
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Minusable, resultPreType, tok,
+            "type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got {0})");
           break;
 
         case BinaryExpr.Opcode.Mul:
@@ -913,7 +950,7 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.Div:
           resultPreType = CreatePreTypeProxy("result of / operation");
-          Constraints.AddDefaultAdvice(resultPreType, Advice.Target.Int);
+          Constraints.AddDefaultAdvice(resultPreType, CommonAdvice.Target.Int);
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
           ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
           break;
@@ -968,24 +1005,24 @@ namespace Microsoft.Dafny {
 
     private PreType ConstrainResultToBoolFamily(IToken tok, string proxyDescription, string errorFormat) {
       var pt = CreatePreTypeProxy(proxyDescription);
-      Constraints.AddDefaultAdvice(pt, Advice.Target.Bool);
+      Constraints.AddDefaultAdvice(pt, CommonAdvice.Target.Bool);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, pt, tok, errorFormat);
       return pt;
     }
 
     private void ConstrainExpressionToBoolFamily(Expression expr, string errorFormat) {
       Contract.Assert(expr.PreType != null);
-      Constraints.AddDefaultAdvice(expr.PreType, Advice.Target.Bool);
+      Constraints.AddDefaultAdvice(expr.PreType, CommonAdvice.Target.Bool);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, expr.PreType, expr.tok, errorFormat);
     }
 
     private void ConstrainToIntFamily(PreType preType, IToken tok, string errorFormat) {
-      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, preType, tok, errorFormat);
     }
 
     private void ConstrainToIntFamilyOrBitvector(PreType preType, IToken tok, string errorFormat) {
-      Constraints.AddDefaultAdvice(preType, Advice.Target.Int);
+      Constraints.AddDefaultAdvice(preType, CommonAdvice.Target.Int);
       AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntLikeOrBitvector, preType, tok, errorFormat);
     }
 
@@ -1025,7 +1062,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
 
-      var dReceiver = Constraints.ApproximateReceiverType(tok, receiverPreType, memberName);
+      var dReceiver = Constraints.ApproximateReceiverType(receiverPreType, memberName);
       if (dReceiver == null) {
         ReportError(tok, "type of the receiver is not fully determined at this program point");
         return (null, null);
@@ -2077,23 +2114,24 @@ namespace Microsoft.Dafny {
     PreType ResolveSingleSelectionExpr(IToken tok, PreType collectionPreType, Expression index) {
       var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = Constraints.ApproximateReceiverType(tok, collectionPreType, null);
+        var sourcePreType = Constraints.ApproximateReceiverType(collectionPreType, null);
         if (sourcePreType != null) {
-          var familyDeclName = AncestorName(sourcePreType);
+          var ancestorPreType = AncestorPreType(sourcePreType);
+          var familyDeclName = ancestorPreType.Decl.Name;
           switch (familyDeclName) {
             case PreType.TypeNameArray:
             case PreType.TypeNameSeq:
               ConstrainToIntFamilyOrBitvector(index.PreType, index.tok, "index expression must have an integer or bitvector type (got {0})");
-              AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
+              AddSubtypeConstraint(resultPreType, ancestorPreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
             case PreType.TypeNameMultiset:
-              AddSubtypeConstraint(sourcePreType.Arguments[0], index.PreType, index.tok, "type does not agree with element type {0} (got {1})");
+              AddSubtypeConstraint(ancestorPreType.Arguments[0], index.PreType, index.tok, "type does not agree with element type {0} (got {1})");
               ConstrainToIntFamily(resultPreType, tok, "multiset multiplicity must have an integer type (got {0})");
               break;
             case PreType.TypeNameMap:
             case PreType.TypeNameImap:
-              AddSubtypeConstraint(sourcePreType.Arguments[0], index.PreType, index.tok, "type does not agree with domain type {0} (got {1})");
-              AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[1], tok, "type does not agree with value type of {1} (got {0})");
+              AddSubtypeConstraint(ancestorPreType.Arguments[0], index.PreType, index.tok, "type does not agree with domain type {0} (got {1})");
+              AddSubtypeConstraint(resultPreType, ancestorPreType.Arguments[1], tok, "type does not agree with value type of {1} (got {0})");
               break;
             default:
               ReportError(tok, "element selection requires a sequence, array, multiset, or map (got {0})", sourcePreType);
@@ -2106,9 +2144,10 @@ namespace Microsoft.Dafny {
       return resultPreType;
     }
 
-    PreType ResolveRangeSelectionExpr(IToken tok, PreType collectionPreType, Expression e0, Expression e1) {
-      var resultElementPreType = CreatePreTypeProxy("multi-index selection");
-      var resultPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSeq), new List<PreType>() { resultElementPreType });
+    void ResolveRangeSelectionExpr(IToken tok, PreType sourceCollectionPreType, Expression expr, Expression e0, Expression e1) {
+      var resultElementPreType = CreatePreTypeProxy("index-range selection elements");
+      SetupCollectionProducingExpr(PreType.TypeNameSeq, "index-range selection", expr, resultElementPreType);
+
       if (e0 != null) {
         ConstrainToIntFamilyOrBitvector(e0.PreType, e0.tok,
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
@@ -2117,24 +2156,30 @@ namespace Microsoft.Dafny {
         ConstrainToIntFamilyOrBitvector(e1.PreType, e1.tok,
           "multi-element selection position expression must have an integer or bitvector type (got {0})");
       }
+
+      // In the expression s[e0..e1], correlate the type of s with the result type.
+      //   - If s is a sequence type, then the result must be of the same seq or newtype-seq type, with a co-variant element pre-type
+      //   - If s is an array type, then the result is allowed to be any seq or newtype-seq with a co-variant element pre-type
       Constraints.AddGuardedConstraint(() => {
-        var sourcePreType = collectionPreType.NormalizeWrtScope() as DPreType;
-        if (sourcePreType != null) {
+        if (sourceCollectionPreType.NormalizeWrtScope() is DPreType sourcePreType) {
           var familyDeclName = AncestorName(sourcePreType);
           switch (familyDeclName) {
             case PreType.TypeNameSeq:
+              AddSubtypeConstraint(expr.PreType, sourceCollectionPreType, tok,
+                "resulting sequence ({0}) type does not agree with source sequence type ({1})");
+              break;
             case PreType.TypeNameArray:
-              AddSubtypeConstraint(resultElementPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
+              AddSubtypeConstraint(resultElementPreType, AncestorPreType(sourcePreType).Arguments[0], tok,
+                "type does not agree with element type {1} (got {0})");
               break;
             default:
-              ReportError(tok, "multi-selection of elements requires a sequence or array (got {0})", collectionPreType);
+              ReportError(tok, "multi-selection of elements requires a sequence or array (got {0})", sourceCollectionPreType);
               break;
           }
           return true;
         }
         return false;
       });
-      return resultPreType;
     }
 
     /// <summary>
