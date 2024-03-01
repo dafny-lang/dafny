@@ -698,7 +698,7 @@ method Testing() {
   method `Abs` to make use of `abs`. After confirming the method still
   verifies, change the body of `Abs` to also use `abs`. (After doing
   this, you will realize there is not much point in having a method
-  that does exactly the same thing as a function method.)*
+  that does exactly the same thing as a function.)*
 
 <!-- %check-verify -->
 ```dafny
