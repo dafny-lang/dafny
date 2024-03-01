@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
     /// The "memberName" is allowed to be passed in as "null", in which case the supertype search does not consider any trait.
     /// </summary>
     [CanBeNull]
-    public DPreType ApproximateReceiverType(IToken tok, PreType preType, [CanBeNull] string memberName) {
+    public DPreType ApproximateReceiverType(PreType preType, [CanBeNull] string memberName) {
       PartiallySolveTypeConstraints();
 
       preType = preType.Normalize();
@@ -52,7 +52,8 @@ namespace Microsoft.Dafny {
       var proxy = (PreTypeProxy)preType;
 
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-      foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
+      var subProxies = new HashSet<PreTypeProxy>();
+      foreach (var sub in AllSubBounds(proxy, subProxies)) {
         return sub;
       }
 
@@ -64,6 +65,15 @@ namespace Microsoft.Dafny {
           } else if (memberName == null && md is not TraitDecl) {
             return super;
           }
+        }
+      }
+
+      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
+      // associated default advice.
+      foreach (var subProxy in subProxies) {
+        TryApplyDefaultAdviceFor(subProxy);
+        if (proxy.Normalize() is DPreType defaultType) {
+          return defaultType;
         }
       }
 
@@ -81,7 +91,7 @@ namespace Microsoft.Dafny {
 
       preType = preType.Normalize();
       if (preType is PreTypeProxy proxy) {
-        // We're looking a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
+        // We're looking up a type with concerns for traits, so if the proxy has any sub- or super-type, then (if the
         // program is legal at all, then) that sub- or super-type must be the type we're looking for.
         foreach (var sub in AllSubBounds(proxy, new HashSet<PreTypeProxy>())) {
           return sub;
@@ -287,7 +297,7 @@ namespace Microsoft.Dafny {
               ? null
               : fromSubBounds
                 ? JoinHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager)
-                : MeetHeads(previousBest, bound.Decl);
+                : MeetHeads(previousBest, bound.Decl, PreTypeResolver.resolver.SystemModuleManager);
             if (combined != null || !ignoreUnknowns) {
               candidateHeads[proxy] = combined;
             }
@@ -331,13 +341,15 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b) {
+    TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
       var aAncestors = new HashSet<TopLevelDecl>();
+      PreTypeResolver.ComputeAncestors(a, aAncestors, systemModuleManager);
       if (aAncestors.Contains(b)) {
         // that's good enough; let's pick a
         return a;
       }
       var bAncestors = new HashSet<TopLevelDecl>();
+      PreTypeResolver.ComputeAncestors(b, bAncestors, systemModuleManager);
       if (bAncestors.Contains(a)) {
         // that's good enough; let's pick b
         return b;
@@ -458,8 +470,12 @@ namespace Microsoft.Dafny {
       return anythingChanged;
     }
 
-    public void AddDefaultAdvice(PreType preType, Advice.Target advice) {
-      defaultAdvice.Add(new Advice(preType, advice));
+    public void AddDefaultAdvice(PreType preType, CommonAdvice.Target advice) {
+      defaultAdvice.Add(new CommonAdvice(preType, advice));
+    }
+
+    public void AddDefaultAdvice(PreType preType, PreType adviceType) {
+      defaultAdvice.Add(new TypeAdvice(preType, adviceType));
     }
 
     bool TryApplyDefaultAdvice() {
@@ -521,6 +537,9 @@ namespace Microsoft.Dafny {
       InBoolFamily,
       InCharFamily,
       InSeqFamily,
+      InSetFamily,
+      InIsetFamily,
+      InMultisetFamily,
       IsNullableRefType,
       IsBitvector,
       IntLikeOrBitvector,
@@ -530,6 +549,7 @@ namespace Microsoft.Dafny {
       IntOrORDINAL,
       IntOrBitvectorOrORDINAL,
       Plussable,
+      Minusable,
       Mullable,
       Disjointable,
       OrderableLess,
@@ -562,6 +582,12 @@ namespace Microsoft.Dafny {
           return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
           return familyDeclName == PreType.TypeNameChar;
+        case CommonConfirmationBag.InSetFamily:
+          return familyDeclName == PreType.TypeNameSet;
+        case CommonConfirmationBag.InIsetFamily:
+          return familyDeclName == PreType.TypeNameIset;
+        case CommonConfirmationBag.InMultisetFamily:
+          return familyDeclName == PreType.TypeNameMultiset;
         case CommonConfirmationBag.InSeqFamily:
           return familyDeclName == PreType.TypeNameSeq;
         case CommonConfirmationBag.IsNullableRefType:
@@ -591,6 +617,21 @@ namespace Microsoft.Dafny {
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSeq:
+            case PreType.TypeNameSet:
+            case PreType.TypeNameIset:
+            case PreType.TypeNameMultiset:
+            case PreType.TypeNameMap:
+            case PreType.TypeNameImap:
+              return true;
+            default:
+              return PreTypeResolver.IsBitvectorName(familyDeclName);
+          }
+        case CommonConfirmationBag.Minusable:
+          switch (familyDeclName) {
+            case PreType.TypeNameInt:
+            case PreType.TypeNameReal:
+            case PreType.TypeNameORDINAL:
+            case PreType.TypeNameChar:
             case PreType.TypeNameSet:
             case PreType.TypeNameIset:
             case PreType.TypeNameMultiset:
@@ -654,13 +695,20 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
           return pt.Decl is NewtypeDecl || pt.Decl.Name is PreType.TypeNameInt or PreType.TypeNameReal;
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
-          if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset or PreType.TypeNameMap
-                or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
+          if (familyDeclName is PreType.TypeNameMap or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
             // These base types are not yet supported, but they will be soon.
             return false;
           }
-          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != PreType.TypeNameORDINAL);
-
+          if (pt.Decl is NewtypeDecl) {
+            return true;
+          }
+          if (DPreType.IsReferenceTypeDecl(pt.Decl) || pt.Decl is TraitDecl) {
+            return false;
+          }
+          if (ArrowType.IsArrowTypeName(familyDeclName) || pt.Decl.Name == PreType.TypeNameORDINAL) {
+            return false;
+          }
+          return true;
         default:
           Contract.Assert(false); // unexpected case
           throw new cce.UnreachableException();

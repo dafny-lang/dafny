@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         UnsupportedFeatureError(tok, Feature.UnboundedIntegers);
         return "new BigNumber(0)";
       } else if (xType is RealType) {
@@ -1029,7 +1029,7 @@ namespace Microsoft.Dafny.Compilers {
       var udt = (UserDefinedType)xType;
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is TypeParameter || cl is AbstractTypeDecl) {
+      if (cl is TypeParameter or AbstractTypeDecl) {
         var hasCompiledValue = (cl is TypeParameter ? ((TypeParameter)cl).Characteristics : ((AbstractTypeDecl)cl).Characteristics).HasCompiledValue;
         if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
           // Assume the external definition includes a default value
@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
-      if (source.Type.NormalizeExpand() is SeqType) {
+      if (source.Type.NormalizeToAncestorType() is SeqType) {
         // seq
         wr.Write(".select(");
         wr.Append(Expr(index, inLetExprBody, wStmts));
@@ -2013,8 +2013,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(resultTok, Feature.LetSuchThatExpressions);
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
@@ -2433,7 +2432,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
-      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok, null, false));
+      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.NormalizeToAncestorType().AsSetType.Arg, wrVarInit, e.tok, null, false));
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {

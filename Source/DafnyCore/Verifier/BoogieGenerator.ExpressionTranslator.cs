@@ -521,7 +521,7 @@ namespace Microsoft.Dafny {
           case SeqSelectExpr selectExpr: {
               SeqSelectExpr e = selectExpr;
               Boogie.Expr seq = TrExpr(e.Seq);
-              var seqType = e.Seq.Type.NormalizeExpand();
+              var seqType = e.Seq.Type.NormalizeToAncestorType();
               Type elmtType = null;
               Type domainType = null;
               Contract.Assert(seqType != null);  // the expression has been successfully resolved
@@ -592,7 +592,7 @@ namespace Microsoft.Dafny {
           case SeqUpdateExpr updateExpr: {
               SeqUpdateExpr e = updateExpr;
               Boogie.Expr seq = TrExpr(e.Seq);
-              var seqType = e.Seq.Type.NormalizeExpand();
+              var seqType = e.Seq.Type.NormalizeToAncestorType();
               if (seqType is SeqType) {
                 Boogie.Expr index = TrExpr(e.Index);
                 index = BoogieGenerator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
@@ -730,16 +730,16 @@ namespace Microsoft.Dafny {
             }
           case SeqConstructionExpr constructionExpr: {
               var e = constructionExpr;
-              var eType = e.Type.AsSeqType.Arg.NormalizeExpand();
+              var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg.NormalizeExpand();
               return FunctionCall(GetToken(constructionExpr), "Seq#Create", predef.SeqType, BoogieGenerator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
             }
           case MultiSetFormingExpr formingExpr: {
               MultiSetFormingExpr e = formingExpr;
-              var eType = e.E.Type.NormalizeExpand();
-              if (eType is SetType) {
-                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSet, BoogieGenerator.TrType(cce.NonNull((SetType)eType).Arg), TrExpr(e.E));
-              } else if (eType is SeqType) {
-                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSeq, BoogieGenerator.TrType(cce.NonNull((SeqType)eType).Arg), TrExpr(e.E));
+              var eType = e.E.Type.NormalizeToAncestorType();
+              if (eType is SetType setType) {
+                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSet, BoogieGenerator.TrType(setType.Arg), TrExpr(e.E));
+              } else if (eType is SeqType seqType) {
+                return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSeq, BoogieGenerator.TrType(seqType.Arg), TrExpr(e.E));
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();
               }
@@ -769,20 +769,20 @@ namespace Microsoft.Dafny {
                 case UnaryOpExpr.ResolvedOpcode.BoolNot:
                   return Boogie.Expr.Unary(GetToken(opExpr), UnaryOperator.Opcode.Not, arg);
                 case UnaryOpExpr.ResolvedOpcode.SeqLength:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is SeqType);
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is SeqType);
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SeqLength, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.SetCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is SetType { Finite: true });
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is SetType { Finite: true });
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SetCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.MultiSetCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is MultiSetType);
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is MultiSetType);
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MultiSetCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.MapCard:
-                  Contract.Assert(e.E.Type.NormalizeExpand() is MapType { Finite: true });
+                  Contract.Assert(e.E.Type.NormalizeToAncestorType() is MapType { Finite: true });
                   return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MapCard, null, arg);
                 case UnaryOpExpr.ResolvedOpcode.Fresh:
                   var freshLabel = ((FreshExpr)e).AtLabel;
-                  var eeType = e.E.Type.NormalizeExpand();
+                  var eeType = e.E.Type.NormalizeToAncestorType();
                   if (eeType is SetType) {
                     // generate:  (forall $o: ref :: { $o != null } X[Box($o)] ==> $o != null) &&
                     //            (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> !old($Heap)[$o,alloc])
@@ -1115,19 +1115,19 @@ namespace Microsoft.Dafny {
                     return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.Subset: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
                     var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
                     return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.Superset: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
                     var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
                     return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e1, e0);
                   }
                 case BinaryExpr.ResolvedOpcode.ProperSuperset:
                   return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0);
                 case BinaryExpr.ResolvedOpcode.Disjoint: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    bool finite = e.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
                     var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
                     return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e0, e1);
                   }
@@ -1136,19 +1136,22 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.NotInSet:
                   Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
                 case BinaryExpr.ResolvedOpcode.Union: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
+                    bool finite = setType.Finite;
                     var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
-                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type.AsSetType.Arg), e0, e1);
+                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.Intersection: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
+                    bool finite = setType.Finite;
                     var f = finite ? BuiltinFunction.SetIntersection : BuiltinFunction.ISetIntersection;
-                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type.AsSetType.Arg), e0, e1);
+                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.SetDifference: {
-                    bool finite = e.E1.Type.AsSetType.Finite;
+                    var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
+                    bool finite = setType.Finite;
                     var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
-                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type.AsSetType.Arg), e0, e1);
+                    return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
                   return BoogieGenerator.ProperMultiset(GetToken(binaryExpr), e0, e1);
@@ -1165,11 +1168,14 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.NotInMultiSet:
                   Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
                 case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetUnion, BoogieGenerator.TrType(binaryExpr.Type.AsMultiSetType.Arg), e0, e1);
+                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetUnion,
+                    BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetIntersection, BoogieGenerator.TrType(binaryExpr.Type.AsMultiSetType.Arg), e0, e1);
+                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetIntersection,
+                    BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetDifference, BoogieGenerator.TrType(binaryExpr.Type.AsMultiSetType.Arg), e0, e1);
+                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetDifference,
+                    BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
 
                 case BinaryExpr.ResolvedOpcode.ProperPrefix:
                   return BoogieGenerator.ProperPrefix(GetToken(binaryExpr), e0, e1);
@@ -1181,7 +1187,8 @@ namespace Microsoft.Dafny {
                       BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
                   }
                 case BinaryExpr.ResolvedOpcode.Concat:
-                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend, BoogieGenerator.TrType(binaryExpr.Type.AsSeqType.Arg), e0, e1);
+                  return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend,
+                    BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsSeqType.Arg), e0, e1);
                 case BinaryExpr.ResolvedOpcode.InSeq:
                   return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
                     BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
@@ -1190,25 +1197,25 @@ namespace Microsoft.Dafny {
                     BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                   return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
                 case BinaryExpr.ResolvedOpcode.InMap: {
-                    bool finite = e.E1.Type.AsMapType.Finite;
+                    bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
                     return Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? predef.MapType : predef.IMapType, e1),
                       BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                   }
                 case BinaryExpr.ResolvedOpcode.NotInMap: {
-                    bool finite = e.E1.Type.AsMapType.Finite;
+                    bool finite = e.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
                     Boogie.Expr inMap = Boogie.Expr.SelectTok(GetToken(binaryExpr), BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? predef.MapType : predef.IMapType, e1),
                       BoxIfNecessary(GetToken(binaryExpr), e0, e.E0.Type));
                     return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, inMap);
                   }
                 case BinaryExpr.ResolvedOpcode.MapMerge: {
-                    bool finite = e0Type.AsMapType.Finite;
+                    bool finite = e0Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? "Map#Merge" : "IMap#Merge";
                     return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
                   }
                 case BinaryExpr.ResolvedOpcode.MapSubtraction: {
-                    bool finite = e0Type.AsMapType.Finite;
+                    bool finite = e0Type.NormalizeToAncestorType().AsMapType.Finite;
                     var f = finite ? "Map#Subtract" : "IMap#Subtract";
                     return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
                   }
