@@ -3535,7 +3535,7 @@ namespace Microsoft.Dafny {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
               if (methodCallInfo == null) {
-                reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
+                // error has already been reported
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
@@ -4550,7 +4550,7 @@ namespace Microsoft.Dafny {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
-            reporter.Error(MessageSource.Resolver, tok, "member '{0}' does not exist in {2} '{1}'", memberName, cd.Name, cd.WhatKind);
+            ReportMemberNotFoundError(tok, memberName, cd);
           }
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
@@ -4565,6 +4565,31 @@ namespace Microsoft.Dafny {
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
       tentativeReceiverType = null;
       return null;
+    }
+
+    private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
+      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+        var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
+        if (members == null) {
+          reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
+          reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (member is not (ConstantField or Function)) {
+          Contract.Assert(!member.IsOpaque);
+          reporter.Error(MessageSource.Resolver, tok,
+            $"a {member.WhatKind} ('{nameToBeRevealed}') cannot be revealed; only opaque constants and functions can be revealed");
+        } else if (!member.IsOpaque) {
+          reporter.Error(MessageSource.Resolver, tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
+        } else if (member is Function { Body: null }) {
+          reporter.Error(MessageSource.Resolver, tok,
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else {
+          reporter.Error(MessageSource.Resolver, tok, $"cannot reveal '{nameToBeRevealed}'");
+        }
+      } else {
+        reporter.Error(MessageSource.Resolver, tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
     }
 
     /// <summary>
@@ -5301,7 +5326,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       // For 3:
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -5397,11 +5422,7 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          if (resolutionContext.InReveal) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label, or requires label in the current scope is named '{0}'", expr.Name);
-          } else {
-            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
-          }
+          ReportUnresolvedIdentifierError(expr.tok, expr.Name, resolutionContext);
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -5418,6 +5439,17 @@ namespace Microsoft.Dafny {
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+      if (resolutionContext.InReveal) {
+        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        reporter.Error(MessageSource.Resolver, tok,
+          "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+          nameToReport);
+      } else {
+        reporter.Error(MessageSource.Resolver, tok, "unresolved identifier: {0}", name);
+      }
     }
 
     public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
@@ -5631,7 +5663,7 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }
@@ -5693,7 +5725,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
@@ -5735,7 +5767,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.Decl.Name, ri.Decl.WhatKind);
+          ReportMemberNotFoundError(expr.tok, name, ri.Decl);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
