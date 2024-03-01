@@ -6,9 +6,10 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
-namespace Microsoft.Dafny.Compilers;
+namespace Microsoft.Dafny;
 
 public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
