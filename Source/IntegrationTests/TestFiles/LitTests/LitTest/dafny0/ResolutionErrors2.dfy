@@ -1,697 +1,5 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ------------------------- statements in expressions ------------------------------
 
@@ -794,11 +102,11 @@ module GhostLetExpr {
     assert h == j;
   }
 
-  ghost function F(): int
-  { 5 }
+  ghost function F(): int {
+    5
+  }
 
-  function G(x: int, ghost y: int): int
-  {
+  function G(x: int, ghost y: int): int {
     assert y == x;
     y  // error: not allowed in non-ghost context
   }
@@ -815,8 +123,7 @@ module GhostLetExpr {
     }
   }
 
-  function FM(e: bool): int
-  {
+  function FM(e: bool): int {
     if e then
       G(5, F())
     else
@@ -846,7 +153,9 @@ module ObjectType {
     o := co;  // error
   }
 }
+
 // ------------------ modify statment ---------------------------
+
 module MiscModify {
   class ModifyStatementClass {
     var x: int
@@ -854,7 +163,9 @@ module MiscModify {
     method M() {
       modify x;  // error: type error
     }
-} }
+  }
+}
+
 module MiscModifiesGhost {
   class ModifyStatementClass {
     var x: int
@@ -862,17 +173,21 @@ module MiscModifiesGhost {
     ghost method G0()
       modifies `g
       modifies `x  // error: non-ghost field mentioned in ghost context
-} }
+  }
+}
+
 module ModifyStatementClass_More {
   class C {
     var x: int
     ghost var g: int
+
     ghost method G0()
       modifies `g
     {
       modify `g;
       modify `x;  // error: non-ghost field mentioned in ghost context
     }
+
     method G1()
       modifies this
     {
@@ -882,6 +197,7 @@ module ModifyStatementClass_More {
         modify `x;  // error: non-ghost field mentioned in ghost context
       }
     }
+
     method G2(y: nat)
       modifies this
     {
@@ -898,6 +214,7 @@ module ModifyStatementClass_More {
         }
       }
       modify `x;  // fine
+
       ghost var i := 0;
       while i < y
         modifies `x  // error: non-ghost field mentioned in ghost context
@@ -936,6 +253,7 @@ module LhsLvalue {
 }
 
 // ------------------- dirty loops -------------------
+
 module MiscEtc {
   method DirtyM(S: set<int>) {
     forall s | s in S ensures s < 0
@@ -1029,14 +347,17 @@ module BadTypeSynonyms {
 module CycleError0 {
   type A = A  // error: cycle: A -> A
 }
+
 module CycleError1 {
   type A = B  // error: cycle: A -> B -> A
   type B = A
 }
+
 module CycleError2 {
   type A = B  // error: cycle: A -> B -> A
   type B = set<A>
 }
+
 module CycleErrors3 {
   type A = (B, D<bool>)
   type B = C
@@ -1045,16 +366,19 @@ module CycleErrors3 {
   }
   datatype D<X> = Make(A, B, C)  // warning: D<X> is empty
 }
+
 module CycleError4 {
   type A = B  // error: cycle: A -> B -> A
   type B = C<A>
   class C<T> { }
 }
+
 module CycleError5 {
   type A = B  // error: cycle: A -> B -> A
   type B = Dt<A>
   datatype Dt<T> = Make(T)
 }
+
 module CycleError6 {
   type A = Dt<Dt<A>>  // error: cycle A -> A
   datatype Dt<T> = Make(T)
@@ -1145,6 +469,7 @@ module ObjectSetComprehensionsNever {
   ghost function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
   function B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 }
+
 module ObjectSetComprehensionsSometimes {
   // outside functions, the comprehension is permitted, but it cannot be compiled
   lemma C() { var x; x := set o : object | true :: o; }
