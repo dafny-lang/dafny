@@ -3,7 +3,9 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Plugins;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;

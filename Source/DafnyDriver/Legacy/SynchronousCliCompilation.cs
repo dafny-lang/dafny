@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
@@ -270,6 +271,11 @@ namespace Microsoft.Dafny {
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       var err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out var dafnyProgram);
+      foreach (var dafnyFile in dafnyFiles) {
+        if (dafnyFile.IsPrecompiled) {
+          var a = DooFile.Read(dafnyFile.FilePath);
+        }
+      }
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
@@ -628,6 +634,15 @@ namespace Microsoft.Dafny {
     public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
 
+      //This recursive call is to produce a doo artifact for every backend.
+      if (dafnyProgram.Options.Backend is not LibraryBackend) {
+        var b = dafnyProgram.Options.Backend;
+        var lib = new LibraryBackend(dafnyProgram.Options);
+        lib.ProgramAfterParsing = dafnyProgram.Options.Backend.ProgramAfterParsing;
+        dafnyProgram.Options.Backend = lib;
+        await CompileDafnyProgram(dafnyProgram, dafnyProgramName, otherFileNames, true);
+        dafnyProgram.Options.Backend = b;
+      }
       var rewriters = RewriterCollection.GetRewriters(dafnyProgram.Reporter, dafnyProgram);
       foreach (var rewriter in rewriters) {
         rewriter.PostVerification(dafnyProgram);

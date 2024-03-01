@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -11,6 +12,9 @@ namespace Microsoft.Dafny.Compilers;
 
 public class LibraryBackend : ExecutableBackend {
   public LibraryBackend(DafnyOptions options) : base(options) {
+    //var t = new Dictionary<Option, DooFile.OptionCheck>();
+    //t.Add(CommonOptionBag.BackendModuleName, DafnyCore.DooFile.CheckOptionMatches);
+    //DafnyCore.DooFile.RegisterLibraryChecks(t);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
@@ -52,7 +56,6 @@ public class LibraryBackend : ExecutableBackend {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
-  internal Program ProgramAfterParsing { get; set; }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;
