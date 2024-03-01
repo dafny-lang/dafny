@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Linq;
+using System.Reactive.Subjects;
+using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
 
@@ -39,7 +40,51 @@ static class MeasureComplexityCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => VerifyCommand.HandleVerification(options));
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => { return await Execute(options); });
     return result;
+  }
+
+  private static async Task<int> Execute(DafnyOptions options) {
+    if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
+      options.TrackVerificationCoverage = true;
+    }
+
+    var compilation = CliCompilation.Create(options);
+    compilation.Start();
+
+    try {
+      var resolution = await compilation.Resolution;
+
+      Subject<CanVerifyResult> verificationResults = new();
+
+      // TODO we should redesign the output of this command 
+      // It should start out with a summary that reports how many proofs are brittle, and shows statistical data,
+      // such as averages and stddevs, etc.
+      // For error diagnostics, we should group duplicates and say how often they occur.
+      // Performance data of individual verification tasks (VCs) should be grouped by original task, ignoring the task seed.
+      VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
+      using var _ = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
+      VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
+      VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
+
+      int iterationSeed = (int)options.Get(RandomSeed);
+      var random = new Random(iterationSeed);
+      foreach (var iteration in Enumerable.Range(0, (int)options.Get(Iterations))) {
+        await options.OutputWriter.WriteLineAsync(
+          $"Starting verification of iteration {iteration} with seed {iterationSeed}");
+        try {
+          await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
+            verificationResults.OnNext(result);
+          }
+        } catch (Exception e) {
+          verificationResults.OnError(e);
+        }
+        iterationSeed = random.Next();
+      }
+      verificationResults.OnCompleted();
+    } catch (TaskCanceledException) {
+    }
+
+    return compilation.ExitCode;
   }
 }

@@ -123,11 +123,11 @@ namespace Microsoft.Dafny {
       var testResults = new List<TestResult>();
 
       var verificationScope = result.Scope;
-      foreach (var vcResult in result.Results.OrderBy(r => r.Result.VcNum).
-                 Select(r => r.Result)) {
-        var name = result.Results.Count() > 1
+      foreach (var (task, vcResult) in result.Results.OrderBy(r => r.Result.VcNum).
+                 Select(r => r)) {
+        var name = (result.Results.Count > 1
           ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
-          : verificationScope.Name;
+          : verificationScope.Name) + $" (seed {task.Split.RandomSeed})";
         var testCase = new TestCase {
           FullyQualifiedName = name,
           ExecutorUri = new Uri("executor://dafnyverifier/v1"),

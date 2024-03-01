@@ -1,0 +1,8 @@
+Starting verification of iteration 0 with seed 1
+TestFiles/LitTests/LitTest/logger/VerificationLogger.dfy(20,39): Error: assertion might not hold
+Starting verification of iteration 1 with seed 534011718
+TestFiles/LitTests/LitTest/logger/VerificationLogger.dfy(20,39): Error: assertion might not hold
+Starting verification of iteration 2 with seed 237820880
+TestFiles/LitTests/LitTest/logger/VerificationLogger.dfy(20,39): Error: assertion might not hold
+
+Dafny program verifier finished with 18 verified, 3 errors
