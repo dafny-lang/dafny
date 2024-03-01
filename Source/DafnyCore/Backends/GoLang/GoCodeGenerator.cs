@@ -10,9 +10,10 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using JetBrains.Annotations;
+using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
@@ -156,7 +157,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName, string goModuleName = "") {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -175,13 +176,12 @@ namespace Microsoft.Dafny.Compilers {
 
       if (moduleName.Equals("_System")) {
         if (Options.IncludeRuntime) {
-          pkgName = GoModuleMode ? GoModuleName + "/" + pkgName : pkgName;
+          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
         } else {
-          pkgName = GoModuleMode ? DafnyRuntimeGoModule + pkgName : pkgName;
+          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
         }
       }
-
-      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
+      return new Import { Name = moduleName, Path = goModuleName + pkgName, ExternModule = externModule };
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
@@ -192,10 +192,7 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
-      if (GoModuleMode) {
-        import.Path = GoModuleName + "/" + import.Path;
-      }
+      var import = CreateImport(moduleName, isDefault, externModule, libraryName, GoModuleMode ? GoModuleName + "/" : "");
 
       var packageName = import.Name;
       var filename = string.Format("{0}/{0}.go", packageName);
@@ -208,9 +205,22 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      var goModuleName = "";
+      if (GoModuleMode && program.Compilation.AlreadyCompiledRoots.Contains(module.Tok.Uri)) {
+        var dooManifest = DooFile.Read(module.Tok.Uri.AbsolutePath).Manifest;
+        dooManifest.Options.TryGetValue(Options.Backend.TargetId, out var targetOptions);
+        object moduleName = null;
+        if (targetOptions is TomlTable tomlTable) {
+          tomlTable.TryGetValue(CommonOptionBag.BackendModuleName.Name, out moduleName);
+        }
+        goModuleName = moduleName is string name ? moduleName + "/" : "";
+        if (String.IsNullOrEmpty(goModuleName)) {
+          Options.ErrorWriter.WriteLine($"Go Module Name not found for the module {module.GetCompileName(Options)}");
+        }
+      }
+      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, goModuleName);
       AddImport(import);
     }
 

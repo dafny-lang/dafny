@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Compilers;
 using Tomlyn;
 
 namespace DafnyCore;
@@ -45,6 +46,15 @@ public class DooFile {
       foreach (var (option, _) in OptionChecks) {
         var optionValue = GetOptionValue(options, option);
         Options.Add(option.Name, optionValue);
+      }
+
+      // Persist Compiler Options, but in this case no check is required. We are not using backend option here
+      // since backend will always be LibraryBackend for DooFiles. Instead use the compilerName which is used by the CLI
+      var compiler = SinglePassCodeGenerator.Plugin.GetCompilers(options).LastOrDefault(c => c.TargetId.Equals(options.CompilerName));
+      foreach (var option in compiler.SupportedOptions) {
+        var optionValue = GetOptionValue(options, option);
+        var dictionary = new Dictionary<string, object> { { option.Name, optionValue } };
+        Options.Add(compiler.TargetId, dictionary);
       }
     }
 

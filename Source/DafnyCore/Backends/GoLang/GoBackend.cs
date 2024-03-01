@@ -32,7 +32,7 @@ public class GoBackend : ExecutableBackend {
   public bool GoModuleMode { get; set; } = true;
   public string GoModuleName;
 
-  protected override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { CommonOptionBag.BackendModuleName };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { CommonOptionBag.BackendModuleName };
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     Options.Options.OptionArguments.TryGetValue(CommonOptionBag.BackendModuleName, out var goModuleName);

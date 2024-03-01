@@ -12,9 +12,6 @@ namespace Microsoft.Dafny.Compilers;
 
 public class LibraryBackend : ExecutableBackend {
   public LibraryBackend(DafnyOptions options) : base(options) {
-    //var t = new Dictionary<Option, DooFile.OptionCheck>();
-    //t.Add(CommonOptionBag.BackendModuleName, DafnyCore.DooFile.CheckOptionMatches);
-    //DafnyCore.DooFile.RegisterLibraryChecks(t);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
