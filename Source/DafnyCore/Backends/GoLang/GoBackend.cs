@@ -36,10 +36,10 @@ public class GoBackend : ExecutableBackend {
   public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { CommonOptionBag.BackendModuleName };
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
-    Options.Options.OptionArguments.TryGetValue(CommonOptionBag.BackendModuleName, out var goModuleName);
+    var goModuleName = Options.Get(CommonOptionBag.BackendModuleName);
     GoModuleMode = goModuleName != null;
     if (GoModuleMode) {
-      GoModuleName = goModuleName.ToString();
+      GoModuleName = goModuleName;
     }
     return new GoCodeGenerator(Options, Reporter);
   }

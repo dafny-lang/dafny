@@ -51,10 +51,12 @@ public class DooFile {
       // Persist Compiler Options, but in this case no check is required. We are not using backend option here
       // since backend will always be LibraryBackend for DooFiles. Instead use the compilerName which is used by the CLI
       var compiler = SinglePassCodeGenerator.Plugin.GetCompilers(options).LastOrDefault(c => c.TargetId.Equals(options.CompilerName));
-      foreach (var option in compiler.SupportedOptions) {
-        var optionValue = GetOptionValue(options, option);
-        var dictionary = new Dictionary<string, object> { { option.Name, optionValue } };
-        Options.Add(compiler.TargetId, dictionary);
+      if (compiler != null) {
+        foreach (var option in compiler.SupportedOptions) {
+          var optionValue = GetOptionValue(options, option);
+          var dictionary = new Dictionary<string, object> { { option.Name, optionValue } };
+          Options.Add(compiler.TargetId, dictionary);
+        }
       }
     }
 
