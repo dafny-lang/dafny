@@ -1474,11 +1474,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.Cardinality:
-          var multiset = expr.Type.AsMultiSetType != null;
+          var multiset = expr.Type.NormalizeToAncestorType().AsMultiSetType != null;
           if (!multiset) { wr.Write("len"); }
           TrParenExpr(expr, wr, inLetExprBody, wStmts);
           if (multiset) { wr.Write(".cardinality"); }

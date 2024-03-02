@@ -1138,10 +1138,9 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.IsStringType;
+      bool isString = arg.Type.NormalizeToAncestorType().IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
-      bool isGeneric = arg.Type.AsSeqType != null &&
-                       arg.Type.AsSeqType.Arg.IsTypeParameter;
+      bool isGeneric = arg.Type.NormalizeToAncestorType().AsSeqType is { Arg.IsTypeParameter: true };
       var wStmts = wr.Fork();
       if (isStringLiteral && !UnicodeCharEnabled) {
         // process.stdout.write(_dafny.toString(x));
@@ -1845,7 +1844,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
-      if (source.Type.NormalizeExpand() is SeqType) {
+      if (source.Type.NormalizeToAncestorType() is SeqType) {
         // seq
         wr.Write("[");
         wr.Append(Expr(index, inLetExprBody, wStmts));
@@ -1860,7 +1859,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (source.Type.AsSeqType != null) {
+      if (resultCollectionType.AsSeqType != null) {
         wr.Write($"{DafnySeqClass}.update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
@@ -2028,7 +2027,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr("new BigNumber(", expr, wr, inLetExprBody, wStmts);
-          if (expr.Type.AsMultiSetType != null) {
+          if (expr.Type.NormalizeToAncestorType().AsMultiSetType != null) {
             wr.Write(".cardinality())");
           } else {
             wr.Write(".length)");

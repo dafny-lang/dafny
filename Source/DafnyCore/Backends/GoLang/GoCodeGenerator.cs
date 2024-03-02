@@ -2964,7 +2964,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var type = source.Type.NormalizeExpand();
+      var type = source.Type.NormalizeToAncestorType();
       if (type is SeqType seqType) {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Select(");
@@ -2987,7 +2987,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (source.Type.AsSeqType != null) {
+      if (resultCollectionType.AsSeqType != null) {
         wr.Write($"{DafnySequenceCompanion}.Update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
@@ -2995,13 +2995,13 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(", ");
         wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
         wr.Write(")");
-      } else if (source.Type.AsMapType != null) {
+      } else if (resultCollectionType.AsMapType is { } mapType) {
         EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
         TrParenExpr(source, wSource, inLetExprBody, wSource);
-        wIndex.Append(CoercedExpr(index, ((MapType)resultCollectionType).Domain, inLetExprBody, wSource));
-        wValue.Append(CoercedExpr(value, ((MapType)resultCollectionType).Range, inLetExprBody, wSource));
+        wIndex.Append(CoercedExpr(index, mapType.Domain, inLetExprBody, wSource));
+        wValue.Append(CoercedExpr(value, mapType.Range, inLetExprBody, wSource));
       } else {
-        Contract.Assert(source.Type.AsMultiSetType != null);
+        Contract.Assert(resultCollectionType.AsMultiSetType != null);
         EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
         TrParenExpr(source, wSource, inLetExprBody, wSource);
         wIndex.Append(CoercedExpr(index, resultCollectionType.Arg, inLetExprBody, wSource));
@@ -3137,7 +3137,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var eeType = expr.E.Type.NormalizeExpand();
+      var eeType = expr.E.Type.NormalizeToAncestorType();
       if (eeType is SeqType) {
         TrParenExpr("_dafny.MultiSetFromSeq", expr.E, wr, inLetExprBody, wStmts);
       } else if (eeType is SetType) {
@@ -3245,7 +3245,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case ResolvedUnaryOp.Cardinality:
-          if (expr.Type.AsSeqType != null) {
+          if (expr.Type.NormalizeToAncestorType().AsSeqType != null) {
             wr.Write($"{HelperModulePrefix}IntOfUint32(");
             TrParenExpr(expr, wr, inLetExprBody, wStmts);
             wr.Write(".Cardinality())");
@@ -3624,7 +3624,7 @@ namespace Microsoft.Dafny.Compilers {
               // Optimize .Count to avoid intermediate BigInteger
               wr.Write("{0}(", GetNativeTypeName(toNative));
               TrParenExpr(u.E, wr, inLetExprBody, wStmts);
-              wr.Write(u.E.Type.AsSeqType != null ? ".Cardinality())" : ".CardinalityInt())");
+              wr.Write(u.E.Type.NormalizeToAncestorType().AsSeqType != null ? ".Cardinality())" : ".CardinalityInt())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
               wr.Write("{0}(_dafny.ArrayLenInt(", GetNativeTypeName(toNative));

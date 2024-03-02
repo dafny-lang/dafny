@@ -6,8 +6,9 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Compilers;
 
-namespace Microsoft.Dafny.Compilers;
+namespace Microsoft.Dafny;
 
 public class GoBackend : ExecutableBackend {
 
@@ -98,7 +99,7 @@ public class GoBackend : ExecutableBackend {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".go") {
-        outputWriter.WriteLine("Unrecognized file as extra input for Go compilation: {0}", otherFileName);
+        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Go compilation: {otherFileName}");
         return false;
       }
 
@@ -216,7 +217,7 @@ public class GoBackend : ExecutableBackend {
 
   private static string FindPackageName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
-    while (rd.ReadLine() is string line) {
+    while (rd.ReadLine() is { } line) {
       var match = PackageLine.Match(line);
       if (match.Success) {
         return match.Groups[1].Value;
