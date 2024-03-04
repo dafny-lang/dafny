@@ -62,22 +62,20 @@ public static class VerifyCommand {
       Subject<CanVerifyResult> verificationResults = new();
 
       ReportVerificationDiagnostics(compilation, verificationResults);
-      ReportVerificationSummary(compilation, verificationResults);
+      var reportVerificationSummary = ReportVerificationSummary(compilation, verificationResults);
       ReportProofDependencies(compilation, resolution, verificationResults);
       LogVerificationResults(compilation, resolution, verificationResults);
       compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
-      await verificationResults.ToTask();
+      await reportVerificationSummary;
 
     } catch (TaskCanceledException) {
     }
 
     return compilation.ExitCode;
   }
-
-  public static IDisposable ReportVerificationSummary(
+  public static async Task ReportVerificationSummary(
     CliCompilation cliCompilation,
     IObservable<CanVerifyResult> verificationResults) {
-    var disposables = new CompositeDisposable();
     var statistics = new VerificationStatistics();
 
     verificationResults.Subscribe(result => {
@@ -114,10 +112,9 @@ public static class VerifyCommand {
       }
     }, e => {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
-    }, () => {
-      disposables.Add(WriteTrailer(cliCompilation, statistics));
     });
-    return disposables;
+    await verificationResults.ToTask();
+    await WriteTrailer(cliCompilation, statistics);
   }
 
   private static async Task WriteTrailer(CliCompilation cliCompilation,

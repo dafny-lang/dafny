@@ -63,7 +63,7 @@ static class MeasureComplexityCommand {
       // For error diagnostics, we should group duplicates and say how often they occur.
       // Performance data of individual verification tasks (VCs) should be grouped by original task, ignoring the task seed.
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
-      using var _ = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
+      var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
       VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
@@ -82,6 +82,7 @@ static class MeasureComplexityCommand {
         iterationSeed = random.Next();
       }
       verificationResults.OnCompleted();
+      await summaryReported;
     } catch (TaskCanceledException) {
     }
 
