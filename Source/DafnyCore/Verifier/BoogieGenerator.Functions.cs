@@ -477,7 +477,7 @@ public partial class BoogieGenerator {
       olderInParams.Add(bv);
       args.Add(formal);
       // add well-typedness conjunct to antecedent
-      Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
+      Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etran.Old : etranHeap, ISALLOC);
       if (wh != null) { ante = BplAnd(ante, wh); }
       wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, ISALLOC);
       if (wh != null) { anteIsAlloc = BplAnd(anteIsAlloc, wh); }
