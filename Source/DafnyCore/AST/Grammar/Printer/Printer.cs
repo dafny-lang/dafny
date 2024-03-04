@@ -1176,10 +1176,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (options.DafnyPrintResolvedFile != null) {
-        ty = AdjustableType.NormalizeSansAdjustableType(ty);
+        ty = TypeRefinementWrapper.NormalizeSansRefinementWrappers(ty);
       }
       string s = ty.TypeName(options, null, true);
-      if (ty is AdjustableType or not TypeProxy && !s.StartsWith("_")) {
+      if (ty is TypeRefinementWrapper or not TypeProxy && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }
