@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
                  Select(r => r)) {
         var name = (result.Results.Count > 1
           ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
-          : verificationScope.Name) + $" (seed {task.Split.RandomSeed})";
+          : verificationScope.Name) + (task == null ? "" : $" (seed {task.Split.RandomSeed})");
         var testCase = new TestCase {
           FullyQualifiedName = name,
           ExecutorUri = new Uri("executor://dafnyverifier/v1"),

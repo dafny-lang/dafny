@@ -216,7 +216,7 @@ public class CliCompilation {
         await results.Finished.Task;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-        throw;
+        yield break;
       } catch (OperationCanceledException) {
 
       } catch (Exception e) {
