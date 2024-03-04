@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using DafnyCore;
+using JetBrains.Annotations;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
@@ -610,7 +611,7 @@ namespace Microsoft.Dafny {
         Constraints.AddGuardedConstraint(() => {
           if (e.Rhs.PreType.NormalizeWrtScope() is DPreType receiverPreType) {
             bool expectExtract = e.Lhs != null;
-            EnsureSupportsErrorHandling(e.tok, receiverPreType, expectExtract);
+            EnsureSupportsErrorHandling(e.tok, receiverPreType, expectExtract, resolutionContext, null);
             return true;
           }
           return false;
@@ -1055,7 +1056,8 @@ namespace Microsoft.Dafny {
     /// "receiverPreType" is an unresolved proxy type and that, after solving more type constraints, "receiverPreType"
     /// eventually gets set to a type more specific than "tentativeReceiverType".
     /// </summary>
-    (MemberDecl/*?*/, DPreType/*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, bool reportErrorOnMissingMember = true) {
+    (MemberDecl /*?*/, DPreType /*?*/) FindMember(IToken tok, PreType receiverPreType, string memberName, ResolutionContext resolutionContext,
+      bool reportErrorOnMissingMember = true) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverPreType != null);
       Contract.Requires(memberName != null);
@@ -1077,7 +1079,7 @@ namespace Microsoft.Dafny {
           } else if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
-            ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+            ReportMemberNotFoundError(tok, memberName, members, receiverDecl, resolutionContext);
           }
           return (null, null);
         } else if (resolver.VisibleInScope(member)) {
@@ -1087,9 +1089,40 @@ namespace Microsoft.Dafny {
         }
       }
       if (reportErrorOnMissingMember) {
-        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        ReportMemberNotFoundError(tok, memberName, null, receiverDecl, resolutionContext);
       }
       return (null, null);
+    }
+
+    private void ReportMemberNotFoundError(IToken tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
+      TopLevelDecl receiverDecl, ResolutionContext resolutionContext) {
+      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+        if (members == null) {
+          if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
+            // try this instead:
+            members = resolver.GetClassMembers(receiverDeclWithMembers);
+          }
+        }
+        if (members == null) {
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (member is not (ConstantField or Function)) {
+          Contract.Assert(!member.IsOpaque);
+          ReportError(tok,
+            $"a {member.WhatKind} ('{nameToBeRevealed}') cannot be revealed; only opaque constants and functions can be revealed");
+        } else if (!member.IsOpaque) {
+          ReportError(tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
+        } else if (member is Function { Body: null }) {
+          ReportError(tok,
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else {
+          ReportError(tok, $"cannot reveal '{nameToBeRevealed}'");
+        }
+      } else {
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
     }
 
     /// <summary>
@@ -1140,7 +1173,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       Tuple<DatatypeCtor, bool> pair;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       var v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -1246,7 +1279,7 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          ReportError(expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -1265,6 +1298,17 @@ namespace Microsoft.Dafny {
         expr.PreType = r.PreType;
       }
       return rWithArgs;
+    }
+
+    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+      if (resolutionContext.InReveal) {
+        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        ReportError(tok,
+          "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+          nameToReport);
+      } else {
+        ReportError(tok, "unresolved identifier: {0}", name);
+      }
     }
 
     private Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
@@ -1394,7 +1438,7 @@ namespace Microsoft.Dafny {
       Expression r = null;  // the resolved expression, if successful
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
         var ri = (Resolver_IdentifierExpr)lhs;
@@ -1451,7 +1495,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          ReportError(expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
       } else if (lhs != null && lhs.PreType is PreTypePlaceholderType) {
@@ -1493,12 +1537,12 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          ReportError(expr.tok, $"member '{name}' does not exist in {ri.Decl.WhatKind} '{ri.Decl.Name}'");
+          ReportMemberNotFoundError(expr.tok, name, null, ri.Decl, resolutionContext);
         }
 
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name);
+        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name, resolutionContext);
         if (member != null) {
           if (!member.IsStatic) {
             var receiver = expr.Lhs;
@@ -2175,18 +2219,20 @@ namespace Microsoft.Dafny {
             : resolver.LetPatIn(expr.tok, expr.Lhs, resolver.VarDotFunction(expr.tok, burrito, "Extract"), expr.Body)));
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, DPreType burritoPreType, bool expectExtract, string keyword = null) {
+    private void EnsureSupportsErrorHandling(IToken tok, DPreType burritoPreType, bool expectExtract, ResolutionContext resolutionContext, [CanBeNull] string keyword) {
       Contract.Requires(tok != null);
       Contract.Requires(burritoPreType != null);
 
-      var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure");
-      var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure");
-      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", reportErrorOnMissingMember: expectExtract);
+      var (memberIsFailure, _) = FindMember(tok, burritoPreType, "IsFailure", resolutionContext);
+      var (memberPropagate, _) = FindMember(tok, burritoPreType, "PropagateFailure", resolutionContext);
+      var (memberExtract, _) = FindMember(tok, burritoPreType, "Extract", resolutionContext, reportErrorOnMissingMember: expectExtract);
 
       if (keyword != null) {
         if (memberIsFailure == null || (memberExtract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          var requiredMembers = expectExtract ? "members IsFailure() and Extract()" : "member IsFailure(), but not Extract()";
+          var requiredMembers = expectExtract
+            ? "members IsFailure() and Extract()"
+            : "member IsFailure(), but not Extract()";
           ReportError(tok, $"right-hand side of ':- {keyword}', which is of type '{burritoPreType}', must have {requiredMembers}");
         }
       } else {
