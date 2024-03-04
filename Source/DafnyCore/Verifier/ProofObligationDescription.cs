@@ -260,7 +260,7 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
