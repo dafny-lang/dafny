@@ -805,7 +805,7 @@ class DafnyDoc {
   }
 
   public static bool IsGeneratedName(string name) {
-    return (name.Length > 1 && name[0] == '_') || name.StartsWith("reveal_");
+    return (name.Length > 1 && name[0] == '_') || name.StartsWith(RevealStmt.RevealLemmaPrefix);
   }
 
   public string IndentedHtml(string docstring, bool nothingIfNull = false) {

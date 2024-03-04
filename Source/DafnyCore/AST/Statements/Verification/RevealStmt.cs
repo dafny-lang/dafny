@@ -5,6 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
+  public const string RevealLemmaPrefix = "reveal_";
+
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
