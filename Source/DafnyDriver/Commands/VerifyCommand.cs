@@ -113,7 +113,7 @@ public static class VerifyCommand {
     }, e => {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
     });
-    await verificationResults.ToTask();
+    await verificationResults.WaitForComplete();
     await WriteTrailer(cliCompilation, statistics);
   }
 
