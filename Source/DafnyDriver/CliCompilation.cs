@@ -26,6 +26,7 @@ public class CliCompilation {
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
+  public bool DidVerification { get; private set; }
 
   private CliCompilation(
     CreateCompilation createCompilation,
@@ -177,6 +178,8 @@ public class CliCompilation {
     if (canVerifies == null) {
       yield break;
     }
+
+    DidVerification = true;
 
     canVerifies = FilterCanVerifies(canVerifies, out var line);
     VerifiedAssertions = line != null;
