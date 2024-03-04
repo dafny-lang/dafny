@@ -185,6 +185,7 @@ namespace Microsoft.Dafny {
     private Method currentMethod;
     private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
+    private readonly Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new (); // populated by PreResolve
 
     internal override void PreResolve(ModuleDefinition m) {
 
@@ -202,26 +203,26 @@ namespace Microsoft.Dafny {
           return;
         }
         RefinedSig = refinementTarget.Sig;
-
-
         Contract.Assert(RefinedSig.ModuleDef != null);
         Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
+
+        foreach (var baseDecl in refinementTarget.Def.TopLevelDecls) {
+          refinedModuleTopLevelDecls.Add(baseDecl.Name, baseDecl);
+        }
+
         // check that the openness in the imports between refinement and its base matches
         var declarations = m.TopLevelDecls;
-        var baseDeclarations = refinementTarget.Def.TopLevelDecls.ToList();
-        foreach (var im in declarations) {
-          // TODO: this is a terribly slow algorithm; use the symbol table instead
-          var bim = baseDeclarations.FirstOrDefault(bim => bim.Name.Equals(im.Name));
-          if (bim != null) {
-            if (im is ModuleDecl mdecl && bim is ModuleDecl mbim && mdecl.Opened != mbim.Opened) {
-              if (mdecl.Opened) {
+        foreach (var mdecl in declarations.OfType<ModuleDecl>()) {
+          if (refinedModuleTopLevelDecls.TryGetValue(mdecl.Name, out var baseDecl)) {
+            if (baseDecl is ModuleDecl baseModuleDecl) {
+              if (mdecl.Opened && !baseModuleDecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
                   "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                  im.Name, m.Name, m.Implements.Target.ToString());
-              } else {
+                  mdecl.Name, m.Name, m.Implements.Target.ToString());
+              } else if (!mdecl.Opened && baseModuleDecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
                   "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                  im.Name, m.Name, m.Implements.Target.ToString());
+                  mdecl.Name, m.Name, m.Implements.Target.ToString());
               }
             }
           }
