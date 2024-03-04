@@ -225,8 +225,6 @@ public abstract class Type : TokenNode {
           if (rtd is ClassLikeDecl cl) {
             Contract.Assert(cl.NonNullTypeDecl != null);
             Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
-          } else {
-            Contract.Assert(rtd is AbstractTypeDecl);
           }
         }
 
