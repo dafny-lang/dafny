@@ -271,6 +271,11 @@ public class IsAllocated : ProofObligationDescription {
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
+  public static string HelperFormal(Formal formal) {
+    return $" -- if you add 'new' before the parameter declaration, like 'new {formal.Name}: {formal.Type.ToString()}',"
+           + " arguments can refer to expressions possibly unallocated in the previous state";
+  }
+
   public IsAllocated(string what, string when, bool plural = false) {
     this.what = what;
     this.when = when;

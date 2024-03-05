@@ -711,8 +711,9 @@ namespace Microsoft.Dafny {
                     Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                      var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'", "in the two-state function's previous state -- " +
-                        $"if you add 'new' before the parameter declaration, like 'new {formal.Name}: {formal.Type.ToString()}', you can refer to expressions possibly unallocated in the pre-state"
+                      var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'", 
+                        "in the two-state function's previous state" +
+                          PODesc.IsAllocated.HelperFormal(formal)
                         );
                       builder.Add(Assert(GetToken(ee), wh, desc));
                     }
