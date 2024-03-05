@@ -86,7 +86,7 @@ type ImapSimulator<!A, B> =
       this.testOutputHelper = testOutputHelper;
     }
 
-    private static bool updateProverLog = true; // Should always be false in committed code
+    private static bool updateProverLog = false; // Should always be false in committed code
 
     /// <summary>
     /// This test is meant to detect _any_ changes in Dafny's verification behavior.
