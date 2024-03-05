@@ -77,8 +77,7 @@ static class MeasureComplexityCommand {
   }
 
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,
-    IObserver<CanVerifyResult> verificationResultsObserver)
-  {
+    IObserver<CanVerifyResult> verificationResultsObserver) {
     int iterationSeed = (int)options.Get(RandomSeed);
     var random = new Random(iterationSeed);
     foreach (var iteration in Enumerable.Range(0, (int)options.Get(Iterations))) {
