@@ -226,7 +226,7 @@ public class CliCompilation {
       }
       yield return new CanVerifyResult(canVerify, results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
 
-      canVerifyResults.Remove(canVerify); //].CompletedParts.Clear(); // Free memory
+      canVerifyResults.Remove(canVerify); // Free memory
     }
   }
 

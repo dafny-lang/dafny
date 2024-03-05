@@ -225,8 +225,6 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
-      Options.ProcessSolverOptions(errorReporter, Options.DafnyProject.StartingToken);
-
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopy()));
