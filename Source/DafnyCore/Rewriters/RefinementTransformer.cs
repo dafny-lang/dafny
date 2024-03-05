@@ -348,57 +348,17 @@ namespace Microsoft.Dafny {
           Error(ErrorId.ref_module_must_refine_module_2, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
           var od = (AbstractTypeDecl)d;
-          if (nw is AbstractTypeDecl) {
-            if (od.SupportsEquality != ((AbstractTypeDecl)nw).SupportsEquality) {
-              Error(ErrorId.ref_mismatched_equality, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+          postTasks.Enqueue(() => {
+            // check that od's type characteristics are respected by nw's
+            var newType = UserDefinedType.FromTopLevelDecl(nw.tok,
+              nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
+            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsWrong, out var hint)) {
+              Error(ErrorId.ref_mismatched_type_characteristics, nw.tok,
+                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}', " +
+                $"{nw.WhatKind} '{m.Name}.{nw.Name}' must support the type characteristic \"{whatIsWrong}\"{hint}");
             }
-            if (od.Characteristics.HasCompiledValue != ((AbstractTypeDecl)nw).Characteristics.HasCompiledValue) {
-              Error(ErrorId.ref_mismatched_auto_init, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
-            } else if (od.Characteristics.IsNonempty != ((AbstractTypeDecl)nw).Characteristics.IsNonempty) {
-              Error(ErrorId.ref_mismatched_nonempty, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
-            }
-          } else {
-            if (od.SupportsEquality) {
-              if (nw is TraitDecl traitDecl) {
-                if (!traitDecl.IsReferenceTypeDecl) {
-                  Error(ErrorId.ref_trait_mismatched_equality, nw, "a type declaration that requires equality support cannot be replaced by this trait");
-                }
-              } else if (nw is ClassDecl || nw is NewtypeDecl) {
-                // fine
-              } else if (nw is CoDatatypeDecl) {
-                Error(ErrorId.ref_equality_support_precludes_codatatype, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
-              } else {
-                Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
-                // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
-                // taken place, so we defer it until the PostResolveIntermediate phase.
-                var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-                postTasks.Enqueue(() => {
-                  if (!udt.SupportsEquality) {
-                    Error(ErrorId.ref_mismatched_type_equality_support, udt.tok, "type '{0}', which does not support equality, is used to refine an abstract type with equality support", udt.Name);
-                  }
-                });
-              }
-            }
-            if (od.Characteristics.HasCompiledValue) {
-              // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-              postTasks.Enqueue(() => {
-                if (!udt.HasCompilableValue) {
-                  Error(ErrorId.ref_mismatched_type_auto_init, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization", udt.Name);
-                }
-              });
-            } else if (od.Characteristics.IsNonempty) {
-              // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-              postTasks.Enqueue(() => {
-                if (!udt.IsNonempty) {
-                  Error(ErrorId.ref_mismatched_type_nonempty, udt.tok, "type '{0}', which may be empty, is used to refine an abstract type expected to be nonempty", udt.Name);
-                }
-              });
-            }
-          }
+          });
+
           if (nw is TopLevelDeclWithMembers) {
             nwPointer.Set(MergeClass((TopLevelDeclWithMembers)nw, od));
           } else if (od.Members.Count != 0) {
