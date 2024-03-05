@@ -22,7 +22,7 @@ The new type system also fixes a number of bugs in the previous type system. Amo
 
 The rest of this document describes the implementation of the new type system.
 
-## Pre-types and type adjustments
+## Pre-types and type refinements
 
 The earlier parts of the resolver are tricky, because of cyclic dependencies among the information that is to be computed. For example, to determine the type of an expression `o.f`, it is necessary to know what `f` is, which in turn requires knowing the type of `o`. As a concrete example, consider
 
@@ -77,7 +77,7 @@ method Natural(m: nat, n: nat, s: seq<int>) returns (r: int) {
 
 The pre-type of `k` is `int`. With only that information about `k`, the operation `s[k]` could not be verified to be using a non-negative index. The proof would go through if one adds `invariant 0 <= k` to the loop. A simpler way to make the proof go through is if `k` can be inferred to have the subset type `nat`, in which case the non-negative index property follows directly from the types.
 
-Once names have been resolved and pre-types inferred, the type system converts the pre-types into types and then goes into a phase of _adjusting_ those types into types that involve subset types. For example, if a local variable `x` (without a user-supplied type) is inferred to have pre-type `int` and all assignments to `x` are from variables declared to have `nat`, then `x` will, at the end of the type adjustment phase, have type `nat`.
+Once names have been resolved and pre-types inferred, the type system converts the pre-types into types and then goes into a phase of _refining_ those types into types that involve subset types. For example, if a local variable `x` (without a user-supplied type) is inferred to have pre-type `int` and all assignments to `x` are from variables declared to have `nat`, then `x` will, at the end of the type-refinement phase, have type `nat`.
 
 ## Resolution phases
 
@@ -101,25 +101,25 @@ For the new type system, pass 0 consists of the following phases:
 
     The central operation in this phase is the `Combine` method, which combines whatever portions of the type may have been given explicitly in the program with the portions of the type inferred as a pre-type. In some cases, the pre-type may have more information; for example, when a local variable is declared without any type information. In other cases, the user-declared type may have more information; for example, if a variable is declared to have type `nat`, in which case pre-type inference would only have used the fact that this type has a pre-type of `int`. There are also cases where the two need to be combined; for example, with a declaration `class C<X>` in scope, the program may have declared a local variable `var c: C;` (where `C` is the subset type based on the nullable (pre-)type `C?`) and pre-type inference may have come up with `C?<int>`, so these will be combined into something that has both the subset type `C` and the type argument `int`.
 
-    Whenever this combination reaches a place where no user-supplied type is given, `Combine` will output an _adjustable type_. This will let the later type-adjustment phase change the type to take subset types into consideration. Such an adjustable type is a wrapper around another type, which is the "current approximation" of that type. At first, that approximation is a "bottom type" (see description below of the type-adjustment phase), which will be gradually adjusted in the next phase.
+    Whenever this combination reaches a place where no user-supplied type is given, `Combine` will output a _refinement-wrapper type_. This will let the later type-refinement phase change the type to take subset types into consideration. Such a refinement-wrapper type is a wrapper around another type, which is the "current approximation" of that type. At first, that approximation is a "bottom type" (see description below of the type-refinement phase), which will be gradually refined in the next phase.
 
-    The bottom type is also a kind of wrapper, since it keeps track of the base type for which it is a bottom type. At the moment, both the adjustable-type wrapper and the bottom-type wrapper are implemented as type proxies (that is, as subclasses of `TypeProxy`). This may not be the best representation. It means that the type-adjustment phase needs its own version of `.Normalize()`, or otherwise one would skip passed these two special wrappers, too. It also means that the `.Type` getter of `Expression` needs to have an `.UnnormalizedType` variation, since `.Type` (anticipates uses that occur after type inference and) normalizes the types it gets and sets. A property of these wrappers is that a bottom-type wrapper is only ever used as the type contained in an adjustable-type wrapper.
+    The bottom type is also a kind of wrapper, since it keeps track of the base type for which it is a bottom type. At the moment, both the refinement wrapper and the bottom-type wrapper are implemented as type proxies (that is, as subclasses of `TypeProxy`). This may not be the best representation. It means that the type-refinement phase needs its own version of `.Normalize()`, or otherwise one would skip passed these two special wrappers, too. It also means that the `.Type` getter of `Expression` needs to have an `.UnnormalizedType` variation, since `.Type` (anticipates uses that occur after type inference and) normalizes the types it gets and sets. A property of these wrappers is that a bottom-type wrapper is only ever used as the type contained in a refinement wrapper.
 
     This phase needs to start by processing `newtype`, subset type, and `const` declarations, because their type signatures are needed when converting other types. This may seem like the dependency issues that during pre-type inference necessitated an on-demand computation. Luckily, this phase is simpler, because all it needs to do is to combine any user-supplied type in the signatures of these declarations with any inferred pre-type. This `Combine` operation does not need to look at any other declarations. So, all that is needed in this phase is to process those three kinds of declarations first, and then process all the other declarations.
 
-* Adjust the initial user-supplied-type/inferred-pre-type combinations into types that take subset types into consideration.
+* Refine the initial user-supplied-type/inferred-pre-type combinations into types that take subset types into consideration.
 
-## Conversions of pre-types into types, and type adjustments
+## Conversions of pre-types into types, and type refinements
 
-Subset types form a hierarchy (a tree) rooted at a base type. Each subset type is declared with a predicate, but those predicates are not consulted during type adjustment. Instead, only the edges in the hierarchy are used. In other words, subset-type inference is done _nominally_, not semantically. For the purposes of type adjustments, we also use a "bottom type" for each base type. This bottom type is considered to be a subset of the base type and all its (transitive) subset types.
+Subset types form a hierarchy (a tree) rooted at a base type. Each subset type is declared with a predicate, but those predicates are not consulted during type refinement. Instead, only the edges in the hierarchy are used. In other words, subset-type inference is done _nominally_, not semantically. For the purposes of type refinements, we also use a "bottom type" for each base type. This bottom type is considered to be a subset of the base type and all its (transitive) subset types.
 
 This phase sets up "flows", where one or several types have an influence on another type. For example, there is a flow from the RHS of an assignment to the LHS of the assignment, and there is a flow from the `then` and `else` expressions of an `if-then-else` expression into the result of the expression. This phase defines a set of such flows for the module. The `Solve()` method then finds the more general types that satisfy these flows.
 
-The conversion from pre-types to types is coupled with the type-adjustment phase. The former needs to create adjustable types for the latter to adjust. Also, if there is a type that will not be adjusted, then the conversion phase should not set it to be a bottom type. For example, if the pre-types of expressions `x` and `y` are `int`, then the type of expression `x + y` is fixed to be `int`. That is, even if the types of `x` and `y` are eventually adjusted to, say, `nat`, the type of `x + y` is still defined to be `int`. For this situation, the type-adjustment phase does not define any flow from `x` and `y` to `x + y`, since it is not desirable to further adjust the type of `x + y`.
+The conversion from pre-types to types is coupled with the type-refinement phase. The former needs to create refinement wrapper for the latter to refine. Also, if there is a type that will not be refined, then the conversion phase should not set it to be a bottom type. For example, if the pre-types of expressions `x` and `y` are `int`, then the type of expression `x + y` is fixed to be `int`. That is, even if the types of `x` and `y` are eventually refined to, say, `nat`, the type of `x + y` is still defined to be `int`. For this situation, the type-refinement phase does not define any flow from `x` and `y` to `x + y`, since it is not desirable to further refine the type of `x + y`.
 
 ## Solving constraints
 
-Pre-type inference builds up constraints that are required to hold among the pre-types to be inferred, and the type-adjustment phase builds up flows that are used to compute the final types as fix-points. At the moment, the data structures used in those phases are simple lists. Surely, there are far better ways to organize these constraints and flows. These can be improved and suitably optimized in the future.
+Pre-type inference builds up constraints that are required to hold among the pre-types to be inferred, and the type-refinement phase builds up flows that are used to compute the final types as fix-points. At the moment, the data structures used in those phases are simple lists. Surely, there are far better ways to organize these constraints and flows. These can be improved and suitably optimized in the future.
 
 In the current implementation, pre-type constraints are built up and solved for each declaration, whereas the flows are built up and solved for the entire module. The flows in one declaration do not affect the flows of other declarations, so the flows could be changed to be solved after each declaration (and doing so would probably be more efficient, since it a set of smaller fix points would be faster to compute than one fix point for the whole module).
 
@@ -127,4 +127,4 @@ Saying that pre-type constraints built up and then solved for each declaration i
 
 ## Debugging
 
-The `/ntitrace:1` flag (for "New Type Inference TRACE") spills out information from pre-type inference and from type adjustment.
+The `/ntitrace:1` flag (for "New Type Inference TRACE") spills out information from pre-type inference and from type refinement.

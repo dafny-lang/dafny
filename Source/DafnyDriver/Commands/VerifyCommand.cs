@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
@@ -36,9 +34,17 @@ public static class VerifyCommand {
       options.TrackVerificationCoverage = true;
     }
 
-    var compilation = CliCompilation.Create(options);
+    using var compilation = CliCompilation.Create(options);
     compilation.Start();
-    await compilation.VerifyAllAndPrintSummary();
+
+    try {
+      var resolution = await compilation.Resolution;
+      compilation.ReportVerificationDiagnostics();
+      compilation.ReportVerificationSummary();
+      compilation.RecordProofDependencies(resolution);
+      await compilation.VerifyAll();
+    } catch (TaskCanceledException) {
+    }
 
     return compilation.ExitCode;
   }

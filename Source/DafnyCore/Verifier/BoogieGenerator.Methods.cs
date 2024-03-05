@@ -1263,9 +1263,7 @@ namespace Microsoft.Dafny {
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
       } else if (overridingFunction.IsOpaque || overridingFunction.IsMadeImplicitlyOpaque(options)) {
-        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
-        // Instead, we do the next best thing: use the literal false.
-        reveal = new Boogie.LiteralExpr(f.tok, false);
+        reveal = GetRevealConstant(overridingFunction);
       }
 
       // Add heap arguments

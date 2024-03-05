@@ -1637,7 +1637,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST._ICollKind collKind;
       if (source.Type.IsArrayType) {
         collKind = DAST.CollKind.create_Array();
-      } else if (source.Type.IsMapType) {
+      } else if (source.Type.NormalizeToAncestorType().IsMapType) {
         collKind = DAST.CollKind.create_Map();
       } else {
         collKind = DAST.CollKind.create_Seq();
@@ -1929,8 +1929,7 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (wr is BuilderSyntaxTree<ExprContainer> container) {
         var buf = new ExprBuffer(null);
         EmitExpr(expr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(buf), wStmts);

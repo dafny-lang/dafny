@@ -43,7 +43,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
     if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 

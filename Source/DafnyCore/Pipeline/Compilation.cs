@@ -462,17 +462,21 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, IVerificationTask task, VerificationRunResult result) {
+  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, ICanVerify canVerify,
+    IVerificationTask task, VerificationRunResult result) {
     var errorReporter = new ObservableErrorReporter(options, uri);
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, task, result, errorReporter);
+    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
+      task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, IVerificationTask task, VerificationRunResult result,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+    uint timeLimit,
+    VerificationRunResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
@@ -485,10 +489,9 @@ public class Compilation : IDisposable {
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    var implementation = task.Split.Implementation;
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
-      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
-      implementation.GetTimeLimit(options), result.CounterExamples);
+      name, token, null, TextWriter.Null,
+      timeLimit, result.CounterExamples);
   }
 
   public static VcOutcome GetOutcome(SolverOutcome outcome) {

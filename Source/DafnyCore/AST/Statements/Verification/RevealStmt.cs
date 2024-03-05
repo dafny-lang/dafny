@@ -5,6 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
+  public const string RevealLemmaPrefix = "reveal_";
+
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -29,7 +31,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     Exprs = original.Exprs.Select(cloner.CloneExpr).ToList();
     if (cloner.CloneResolvedFields) {
       LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 

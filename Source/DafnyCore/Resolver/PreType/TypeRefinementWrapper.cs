@@ -9,10 +9,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AdjustableType : TypeProxy {
+public class TypeRefinementWrapper : TypeProxy {
   private static int count = 0;
   public readonly int UniqueId = count++;
-  public AdjustableType(Type type) : base() {
+  public TypeRefinementWrapper(Type type) : base() {
     T = type;
   }
 
@@ -28,10 +28,10 @@ public class AdjustableType : TypeProxy {
   }
 
   /// <summary>
-  /// Normalize, but don't skip over any AdjustableType
+  /// Normalize, but don't skip over any TypeRefinementWrapper
   /// </summary>
-  public static Type NormalizeSansAdjustableType(Type ty) {
-    while (ty is not AdjustableType) {
+  public static Type NormalizeSansRefinementWrappers(Type ty) {
+    while (ty is not TypeRefinementWrapper) {
       if (ty is TypeProxy { T: { } proxyFor }) {
         ty = proxyFor;
       } else {
@@ -50,13 +50,13 @@ public class AdjustableType : TypeProxy {
   }
 
   public static Type NormalizeSansBottom(Type unnormalizedType) {
-    var normalizedType = AdjustableType.NormalizeSansAdjustableType(unnormalizedType);
-    return (normalizedType as AdjustableType)?.T ?? normalizedType;
+    var normalizedType = TypeRefinementWrapper.NormalizeSansRefinementWrappers(unnormalizedType);
+    return (normalizedType as TypeRefinementWrapper)?.T ?? normalizedType;
   }
 
-  public static string ToStringAsAdjustableType(Type type) {
-    type = NormalizeSansAdjustableType(type);
-    if (type is AdjustableType utp) {
+  public static string ToStringShowingWrapper(Type type) {
+    type = NormalizeSansRefinementWrappers(type);
+    if (type is TypeRefinementWrapper utp) {
       return $"%{utp.UniqueId}";
     }
     if (type is BasicType) {
@@ -73,7 +73,7 @@ public class AdjustableType : TypeProxy {
               : null
           : null;
       if (arrow != null) {
-        return $"({arrowType.Args.Comma(ToStringAsAdjustableType)}) {arrow} {ToStringAsAdjustableType(arrowType.Result)}";
+        return $"({arrowType.Args.Comma(ToStringShowingWrapper)}) {arrow} {ToStringShowingWrapper(arrowType.Result)}";
       }
     }
     string headName;
@@ -88,15 +88,15 @@ public class AdjustableType : TypeProxy {
     if (type.TypeArgs.Count == 0) {
       return headName;
     }
-    return $"{headName}<{type.TypeArgs.Comma(ToStringAsAdjustableType)}>";
+    return $"{headName}<{type.TypeArgs.Comma(ToStringShowingWrapper)}>";
   }
 
   public static string ToStringAsBottom(Type type) {
     if (type is BottomTypePlaceholder) {
       return "\\bot";
     }
-    type = NormalizeSansAdjustableType(type);
-    if (type is AdjustableType { IsBottomType: true }) {
+    type = NormalizeSansRefinementWrappers(type);
+    if (type is TypeRefinementWrapper { IsBottomType: true }) {
       return "\\bot";
     } else {
       return type.ToString();
@@ -108,8 +108,8 @@ public class AdjustableType : TypeProxy {
       return true;
     }
     while (true) {
-      type = NormalizeSansAdjustableType(type);
-      if (type is AdjustableType updatableTypeProxy) {
+      type = NormalizeSansRefinementWrappers(type);
+      if (type is TypeRefinementWrapper updatableTypeProxy) {
         if (updatableTypeProxy.IsBottomType) {
           return true;
         }
