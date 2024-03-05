@@ -32,7 +32,7 @@ namespace XUnitExtensions.Lit {
 
     public static string? Run(string expectedOutputFile, string actualOutput) {
       if (UpdateExpectFile) {
-        var path = Path.GetFullPath(expectedOutputFile).Replace("bin"+Path.DirectorySeparatorChar+"Debug"+Path.DirectorySeparatorChar+"net6.0"+Path.DirectorySeparatorChar, "");
+        var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net6.0" + Path.DirectorySeparatorChar, "");
         File.WriteAllText(path, actualOutput);
         return null;
       }

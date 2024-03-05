@@ -26,12 +26,12 @@ LabelsOldAt.dfy(268,15): Error: some sequence element might be null
 LabelsOldAt.dfy(274,15): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(275,15): Error: some set element could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(276,15): Error: some sequence element could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(281,15): Error: object might be null
 LabelsOldAt.dfy(281,15): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(286,15): Error: some set element might be null
+LabelsOldAt.dfy(281,15): Error: object might be null
 LabelsOldAt.dfy(286,15): Error: some set element could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(291,15): Error: some sequence element might be null
+LabelsOldAt.dfy(286,15): Error: some set element might be null
 LabelsOldAt.dfy(291,15): Error: some sequence element could not be proved to be allocated in the old-state of the 'unchanged' predicate
+LabelsOldAt.dfy(291,15): Error: some sequence element might be null
 LabelsOldAt.dfy(358,11): Error: assertion might not hold
 LabelsOldAt.dfy(367,11): Error: assertion might not hold
 LabelsOldAt.dfy(376,11): Error: assertion might not hold

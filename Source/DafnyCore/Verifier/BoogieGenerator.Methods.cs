@@ -1668,7 +1668,7 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
-            var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'", 
+            var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
               "in the two-state lemma's previous state" +
               PODesc.IsAllocated.HelperFormal(formal));
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
