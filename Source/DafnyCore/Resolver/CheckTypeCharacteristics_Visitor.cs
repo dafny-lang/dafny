@@ -342,7 +342,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     }
   }
 
-  bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext, out string whatIsWrong, out string hint) {
+  public static bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext, out string whatIsWrong, out string hint) {
     Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
     if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
       whatIsWrong = "equality";
@@ -374,7 +374,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     return true;
   }
 
-  string TypeEqualityErrorMessageHint(Type argType) {
+  static string TypeEqualityErrorMessageHint(Type argType) {
     Contract.Requires(argType != null);
     var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
