@@ -34,7 +34,7 @@ public static class VerifyCommand {
     foreach (var option in VerifyOptions) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => await HandleVerification(options));
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => HandleVerification(options));
     return result;
   }
 

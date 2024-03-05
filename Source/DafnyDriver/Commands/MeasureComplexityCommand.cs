@@ -40,7 +40,7 @@ static class MeasureComplexityCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => { return await Execute(options); });
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => Execute(options));
     return result;
   }
 
@@ -77,7 +77,7 @@ static class MeasureComplexityCommand {
   }
 
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,
-    Subject<CanVerifyResult> verificationResults)
+    IObserver<CanVerifyResult> verificationResultsObserver)
   {
     int iterationSeed = (int)options.Get(RandomSeed);
     var random = new Random(iterationSeed);
@@ -86,13 +86,13 @@ static class MeasureComplexityCommand {
         $"Starting verification of iteration {iteration} with seed {iterationSeed}");
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
-          verificationResults.OnNext(result);
+          verificationResultsObserver.OnNext(result);
         }
       } catch (Exception e) {
-        verificationResults.OnError(e);
+        verificationResultsObserver.OnError(e);
       }
       iterationSeed = random.Next();
     }
-    verificationResults.OnCompleted();
+    verificationResultsObserver.OnCompleted();
   }
 }
