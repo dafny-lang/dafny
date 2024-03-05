@@ -192,9 +192,10 @@ public class CliCompilation {
         results.TaskFilter = t => KeepVerificationTask(t, line.Value);
       }
 
-      // TODO USE RESULT
-      var r = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
-      Debug.Assert(r);
+      var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
+      if (!shouldVerify) {
+        orderedCanVerifies.Remove(canVerify);
+      }
     }
 
     foreach (var canVerify in orderedCanVerifies) {
