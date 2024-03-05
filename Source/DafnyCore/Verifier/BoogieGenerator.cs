@@ -1039,10 +1039,18 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
+
+        // If this is an override, generate:
+        //     axiom reveal_FunctionA ==> reveal_FunctionParent;
+        if (f.OverriddenFunction is { IsOpaque: true }) {
+          var revealParent = GetRevealConstant(f.OverriddenFunction);
+          var implication = BplImp(revealTrigger_expr, revealParent);
+          AddOtherDefinition(revealTrigger, new Axiom(f.tok, implication));
+        }
       }
     }
 
