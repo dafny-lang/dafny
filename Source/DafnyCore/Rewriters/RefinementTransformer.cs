@@ -185,7 +185,6 @@ namespace Microsoft.Dafny {
     private Method currentMethod;
     private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
-    private readonly Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new (); // populated by PreResolve
 
     internal override void PreResolve(ModuleDefinition m) {
 
@@ -206,11 +205,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(RefinedSig.ModuleDef != null);
         Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
 
+        // check that the openness in the imports between refinement and its base matches
+        Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new ();
         foreach (var baseDecl in refinementTarget.Def.TopLevelDecls) {
           refinedModuleTopLevelDecls.Add(baseDecl.Name, baseDecl);
         }
-
-        // check that the openness in the imports between refinement and its base matches
         var declarations = m.TopLevelDecls;
         foreach (var mdecl in declarations.OfType<ModuleDecl>()) {
           if (refinedModuleTopLevelDecls.TryGetValue(mdecl.Name, out var baseDecl)) {
