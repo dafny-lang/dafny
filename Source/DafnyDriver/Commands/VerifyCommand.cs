@@ -62,11 +62,12 @@ public static class VerifyCommand {
       Subject<CanVerifyResult> verificationResults = new();
 
       ReportVerificationDiagnostics(compilation, verificationResults);
-      var reportVerificationSummary = ReportVerificationSummary(compilation, verificationResults);
+      var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
       ReportProofDependencies(compilation, resolution, verificationResults);
-      LogVerificationResults(compilation, resolution, verificationResults);
+      var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
       compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
-      await reportVerificationSummary;
+      await verificationSummarized;
+      await verificationResultsLogged;
 
     } catch (TaskCanceledException) {
     }
@@ -178,7 +179,7 @@ public static class VerifyCommand {
   }
 
 
-  public static void LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
+  public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
     VerificationResultLogger? verificationResultLogger = null;
     var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
@@ -191,8 +192,9 @@ public static class VerifyCommand {
     verificationResults.Subscribe(result => verificationResultLogger?.Report(result),
       e => { },
       () => {
-        verificationResultLogger?.Finish();
       });
+    await verificationResults.WaitForComplete();
+    verificationResultLogger?.Finish();
   }
 
   public static void ReportProofDependencies(

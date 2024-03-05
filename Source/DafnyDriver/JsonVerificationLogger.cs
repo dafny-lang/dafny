@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using VC;
@@ -138,10 +139,10 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
 
   private readonly IList<JsonNode> verificationResultNode = new List<JsonNode>();
 
-  public void Flush() {
-    output.Write(new JsonObject {
+  public async Task Flush() {
+    await output.WriteLineAsync(new JsonObject {
       ["verificationResults"] = new JsonArray(verificationResultNode.ToArray())
     }.ToJsonString());
-    output.Flush();
+    await output.FlushAsync();
   }
 }

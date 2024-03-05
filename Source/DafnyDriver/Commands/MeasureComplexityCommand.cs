@@ -65,7 +65,7 @@ static class MeasureComplexityCommand {
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
       var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
       VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
-      VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
+      var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
       int iterationSeed = (int)options.Get(RandomSeed);
       var random = new Random(iterationSeed);
@@ -83,6 +83,7 @@ static class MeasureComplexityCommand {
       }
       verificationResults.OnCompleted();
       await summaryReported;
+      await verificationResultsLogged;
     } catch (TaskCanceledException) {
     }
 

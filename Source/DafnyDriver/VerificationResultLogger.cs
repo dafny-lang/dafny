@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
@@ -23,7 +24,7 @@ namespace Microsoft.Dafny {
 
   interface IVerificationResultFormatLogger {
     void LogScopeResults(VerificationScopeResult result);
-    void Flush();
+    Task Flush();
   }
 
   /// <summary>
@@ -109,9 +110,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void Finish() {
+    public async Task Finish() {
       foreach (var formatLogger in formatLoggers) {
-        formatLogger.Flush();
+        await formatLogger.Flush();
       }
       events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
         new TestRunStatistics(),
