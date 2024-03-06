@@ -194,7 +194,9 @@ public static class VerifyCommand {
       () => {
       });
     await verificationResults.WaitForComplete();
-    verificationResultLogger?.Finish();
+    if (verificationResultLogger != null) {
+      await verificationResultLogger.Finish();
+    }
   }
 
   public static void ReportProofDependencies(

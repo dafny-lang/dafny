@@ -6,3 +6,4 @@ Starting verification of iteration 2 with seed 237820880
 TestFiles/LitTests/LitTest/logger/VerificationLogger.dfy(20,39): Error: assertion might not hold
 
 Dafny program verifier finished with 18 verified, 3 errors
+Results File: /home/runner/work/dafny/dafny/dafny/Source/IntegrationTests/bin/Debug/net6.0/TestFiles/LitTests/LitTest/logger/Output/VerificationLogger.dfy.tmp.trx

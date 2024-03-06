@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
 
     private readonly ConcurrentBag<TestResult> results = new();
     private TextWriter writer;
-    private TextWriter logWriter;
+    private readonly TextWriter logWriter;
     private string writerFilename;
 
     public CSVTestLogger(TextWriter logWriter) {
