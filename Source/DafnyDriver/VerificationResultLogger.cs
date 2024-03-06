@@ -34,6 +34,7 @@ namespace Microsoft.Dafny {
   ///  * human-readable text output.
   /// </summary>
   public class VerificationResultLogger {
+    private readonly DafnyOptions options;
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
@@ -41,6 +42,7 @@ namespace Microsoft.Dafny {
     private readonly LocalTestLoggerEvents events;
 
     public VerificationResultLogger(DafnyOptions options, ProofDependencyManager depManager) {
+      this.options = options;
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
 
       events = new LocalTestLoggerEvents();
@@ -111,13 +113,14 @@ namespace Microsoft.Dafny {
     }
 
     public async Task Finish() {
-      foreach (var formatLogger in formatLoggers) {
-        await formatLogger.Flush();
-      }
       events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
         new TestRunStatistics(),
         false, false, null, null, new TimeSpan()
       ));
+      foreach (var formatLogger in formatLoggers) {
+        await formatLogger.Flush();
+      }
+      await options.OutputWriter.FlushAsync();
     }
 
     public static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {

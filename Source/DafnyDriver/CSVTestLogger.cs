@@ -76,8 +76,9 @@ namespace Microsoft.Dafny {
         writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
       }
 
-      writer.Close();
+      writer.Flush();
       logWriter.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
+      logWriter.Flush();
     }
   }
 }
