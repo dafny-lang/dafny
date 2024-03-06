@@ -635,8 +635,11 @@ namespace Microsoft.Dafny {
         var lib = new LibraryBackend(dafnyProgram.Options);
         lib.ProgramAfterParsing = dafnyProgram.Options.Backend.ProgramAfterParsing;
         dafnyProgram.Options.Backend = lib;
+        var runAfterCompile = dafnyProgram.Options.RunAfterCompile;
+        dafnyProgram.Options.RunAfterCompile = false;
         await CompileDafnyProgram(dafnyProgram, dafnyProgramName, otherFileNames, true);
         dafnyProgram.Options.Backend = b;
+        dafnyProgram.Options.RunAfterCompile = runAfterCompile;
       }
       var rewriters = RewriterCollection.GetRewriters(dafnyProgram.Reporter, dafnyProgram);
       foreach (var rewriter in rewriters) {
