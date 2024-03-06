@@ -1039,10 +1039,18 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
+
+        // If this is an override, generate:
+        //     axiom reveal_FunctionA ==> reveal_FunctionParent;
+        if (f.OverriddenFunction is { IsOpaque: true }) {
+          var revealParent = GetRevealConstant(f.OverriddenFunction);
+          var implication = BplImp(revealTrigger_expr, revealParent);
+          AddOtherDefinition(revealTrigger, new Axiom(f.tok, implication));
+        }
       }
     }
 
@@ -1124,6 +1132,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
 
+      type = type.NormalizeToAncestorType();
       if (type.AsSetType != null) {
         var finite = type.AsSetType.Finite;
         return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
@@ -2230,7 +2239,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr disjunct;
-        var eType = e.Type.NormalizeExpand();
+        var eType = e.Type.NormalizeToAncestorType();
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2639,10 +2648,11 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var isSetType = e.Type.AsSetType != null;
-      var isMultisetType = e.Type.AsMultiSetType != null;
-      Contract.Assert(isSetType || isMultisetType || e.Type.AsSeqType != null);
-      var sType = e.Type.AsCollectionType;
+      var eType = e.Type.NormalizeToAncestorType();
+      var isSetType = eType.AsSetType != null;
+      var isMultisetType = eType.AsMultiSetType != null;
+      Contract.Assert(isSetType || isMultisetType || eType.AsSeqType != null);
+      var sType = eType.AsCollectionType;
       Contract.Assert(sType != null);
       type = sType.Arg;
       // var $x

@@ -527,7 +527,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (lexpr is SeqSelectExpr selectExpr) {
             string targetArray = EmitAssignmentLhs(selectExpr.Seq, wr);
             string targetIndex = EmitAssignmentLhs(selectExpr.E0, wr);
-            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.AsSeqType != null) {
+            if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
             ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => EmitIdentifier(targetIndex, wIndex) }, lhsTypes[i]);
@@ -2662,24 +2662,25 @@ namespace Microsoft.Dafny.Compilers {
             accVar = new LocalVariable(f.RangeToken, "_accumulator", f.ResultType, false) {
               type = f.ResultType
             };
+            var resultType = f.ResultType.NormalizeToAncestorType();
             Expression unit;
-            if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Int) || f.ResultType.IsBigOrdinalType) {
+            if (resultType.IsNumericBased(Type.NumericPersuasion.Int) || resultType.IsBigOrdinalType) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Real)) {
+            } else if (resultType.IsNumericBased(Type.NumericPersuasion.Real)) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsBitVectorType) {
+            } else if (resultType.IsBitVectorType) {
               var n = f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0;
               unit = new LiteralExpr(f.tok, n);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsSetType != null) {
-              unit = new SetDisplayExpr(f.tok, !f.ResultType.IsISetType, new List<Expression>());
+            } else if (resultType.AsSetType != null) {
+              unit = new SetDisplayExpr(f.tok, !resultType.IsISetType, new List<Expression>());
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsMultiSetType != null) {
+            } else if (resultType.AsMultiSetType != null) {
               unit = new MultiSetDisplayExpr(f.tok, new List<Expression>());
               unit.Type = f.ResultType;
-            } else if (f.ResultType.AsSeqType != null) {
+            } else if (resultType.AsSeqType != null) {
               unit = new SeqDisplayExpr(f.tok, new List<Expression>());
               unit.Type = f.ResultType;
             } else {
@@ -4188,7 +4189,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arr = StabilizeExpr(ll.Seq, "_arr", wr, wStmts);
       var index = StabilizeExpr(ll.E0, "_index", wr, wStmts);
-      if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
+      if (ll.Seq.Type.IsArrayType || ll.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
         index = ArrayIndexToNativeInt(index, ll.E0.Type);
       }
       return new ArrayLvalueImpl(this, arr, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(index) }, ll.Type);
@@ -5158,19 +5159,19 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (expr is SetDisplayExpr) {
         var e = (SetDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MultiSetDisplayExpr) {
         var e = (MultiSetDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is SeqDisplayExpr) {
         var e = (SeqDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.AsSeqType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsSeqType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MapDisplayExpr) {
         var e = (MapDisplayExpr)expr;
-        EmitMapDisplay(e.Type.AsMapType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitMapDisplay(e.Type.NormalizeToAncestorType().AsMapType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
@@ -5263,7 +5264,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        var collectionType = e.Type.AsCollectionType;
+        var collectionType = e.Type.NormalizeToAncestorType().AsCollectionType;
         Contract.Assert(collectionType != null);
         EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
       } else if (expr is DatatypeUpdateExpr) {
@@ -5568,7 +5569,8 @@ namespace Microsoft.Dafny.Compilers {
 
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var collectionName = ProtectedFreshId("_coll");
-        var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr, wStmts);
+        var setType = e.Type.NormalizeToAncestorType().AsSetType;
+        var bwr = CreateIIFE0(setType, e.tok, wr, wStmts);
         wr = bwr;
         EmitSetBuilder_New(wr, e, collectionName);
         var n = e.BoundVars.Count;
@@ -5584,8 +5586,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
+        EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, thn);
+        var s = GetCollectionBuilder_Build(setType, e.tok, collectionName, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is MapComprehension) {
@@ -5610,10 +5612,11 @@ namespace Microsoft.Dafny.Compilers {
         e = (MapComprehension)su.Substitute(e);
 
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
-        var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
+        var mapType = e.Type.NormalizeToAncestorType().AsMapType;
+        var domtypeName = TypeName(mapType.Domain, wr, e.tok);
+        var rantypeName = TypeName(mapType.Range, wr, e.tok);
         var collection_name = ProtectedFreshId("_coll");
-        var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr, wStmts);
+        var bwr = CreateIIFE0(mapType, e.tok, wr, wStmts);
         wr = bwr;
         EmitMapBuilder_New(wr, e, collection_name);
         var n = e.BoundVars.Count;
@@ -5629,7 +5632,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
+        var termLeftWriter = EmitMapBuilder_Add(mapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
           Contract.Assert(e.BoundVars.Count == 1);
           EmitIdentifier(IdName(e.BoundVars[0]), termLeftWriter);
@@ -5637,7 +5640,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
 
-        var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
+        var s = GetCollectionBuilder_Build(mapType, e.tok, collection_name, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {
