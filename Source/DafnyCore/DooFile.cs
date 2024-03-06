@@ -39,7 +39,8 @@ public class DooFile {
       DafnyVersion = options.VersionNumber;
 
       SolverIdentifier = options.SolverIdentifier;
-      SolverVersion = options.SolverVersion.ToString();
+      // options.SolverVersion may be null (if --no-verify is used for example)
+      SolverVersion = options.SolverVersion?.ToString();
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
