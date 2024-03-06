@@ -271,11 +271,6 @@ namespace Microsoft.Dafny {
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       var err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out var dafnyProgram);
-      foreach (var dafnyFile in dafnyFiles) {
-        if (dafnyFile.IsPrecompiled) {
-          var a = DooFile.Read(dafnyFile.FilePath);
-        }
-      }
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
