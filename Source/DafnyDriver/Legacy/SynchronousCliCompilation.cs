@@ -306,13 +306,14 @@ namespace Microsoft.Dafny {
           compiled = false;
         }
 
-        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
         if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
-        } else if (failBecauseOfDiagnostics) {
+        } else if (failBecauseOfDiagnostics != null) {
           exitValue = ExitValue.DAFNY_ERROR;
+          await options.OutputWriter.WriteLineAsync($"Returning exit code {exitValue} because {failBecauseOfDiagnostics}");
         }
       }
 
@@ -692,6 +693,7 @@ namespace Microsoft.Dafny {
 
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (dafnyProgram.Reporter.FailCompilation) {
+        await dafnyProgram.Options.OutputWriter.WriteLineAsync($"Translation was aborted because {dafnyProgram.Reporter.FailCompilationMessage}");
         return false;
       }
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
