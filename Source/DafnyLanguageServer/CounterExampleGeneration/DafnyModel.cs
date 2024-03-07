@@ -830,7 +830,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     }
 
     /// <summary>
-    /// Return all functions application relevant to an element. 
+    /// Return all function applications relevant to an element. 
     /// </summary>
     private List<Model.FuncTuple> GetFunctionConstants(Model.Element element, Model.Element heap) {
       var possibleTypeIdentifiers = GetIsResults(element);
