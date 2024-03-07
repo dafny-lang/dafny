@@ -67,15 +67,14 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
-    if (HasExternAttribute) {
+    if (HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
-      if (HasPostcondition && !HasAxiomAttribute) {
+      if (HasPostcondition) {
         yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
       }
-    }
-
-    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+      if (HasPrecondition) {
+        yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
+      }
     }
 
     foreach (var c in this.Descendants()) {

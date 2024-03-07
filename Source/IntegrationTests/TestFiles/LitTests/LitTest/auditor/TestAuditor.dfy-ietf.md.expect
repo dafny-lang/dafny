@@ -86,8 +86,6 @@
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
-* Function with `{:extern}` attribute. SHOULD use `method` with `modifies {}` instead.
-
 ## Type `T`
 
 * Trait method calls may not terminate (uses `{:termination false}`). MUST remove `{:termination false}` or justify.
