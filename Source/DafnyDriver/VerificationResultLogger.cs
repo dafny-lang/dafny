@@ -143,7 +143,9 @@ namespace Microsoft.Dafny {
           Duration = vcResult.RunTime
         };
         testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
-        testResult.SetPropertyValue(RandomSeedProperty, task?.Split.RandomSeed);
+        if (task != null && task.Split.RandomSeed != 0) {
+          testResult.SetPropertyValue(RandomSeedProperty, task.Split.RandomSeed);
+        }
         if (vcResult.Outcome == SolverOutcome.Valid) {
           testResult.Outcome = TestOutcome.Passed;
         } else {

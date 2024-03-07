@@ -51,12 +51,14 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     var vcResult = taskResult.Result;
     var result = new JsonObject {
       ["vcNum"] = vcResult.VcNum,
-      ["randomSeed"] = taskResult.Task.Split.RandomSeed,
       ["outcome"] = SerializeOutcome(vcResult.Outcome),
       ["runTime"] = SerializeTimeSpan(vcResult.RunTime),
       ["resourceCount"] = vcResult.ResourceCount,
       ["assertions"] = new JsonArray(vcResult.Asserts.Select(SerializeAssertion).ToArray()),
     };
+    if (taskResult.Task != null && taskResult.Task.Split.RandomSeed != 0) {
+      result["randomSeed"] = taskResult.Task.Split.RandomSeed.ToString();
+    }
     if (potentialDependencies is not null) {
       var fullDependencySet = dependencyManager.GetOrderedFullDependencies(vcResult.CoveredElements).ToHashSet();
       var unusedDependencies = potentialDependencies.Where(dep => !fullDependencySet.Contains(dep));
