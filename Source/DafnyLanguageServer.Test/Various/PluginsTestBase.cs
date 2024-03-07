@@ -38,13 +38,15 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
       "DafnyCore",
       "System",
       "netstandard",
+      "OmniSharp.Extensions.JsonRpc",
       "OmniSharp.Extensions.LanguageServer",
       "OmniSharp.Extensions.LanguageProtocol",
       "System.Console",
       "DafnyLanguageServer",
       "System.Runtime",
       "Boogie.Core",
-      "System.Collections"
+      "System.Collections",
+      "MediatR"
     };
     compilation = compilation.AddReferences(standardLibraries.Select(fileName =>
         MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)))
@@ -53,7 +55,7 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
       .WithOptions(
         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
       );
-    var syntaxTree = CSharpSyntaxTree.ParseText(code);
+    var syntaxTree = CSharpSyntaxTree.ParseText(code, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp9));
     compilation = compilation.AddSyntaxTrees(syntaxTree);
     var assemblyPath = $"{temp}.dll";
     var result = compilation.Emit(assemblyPath);
