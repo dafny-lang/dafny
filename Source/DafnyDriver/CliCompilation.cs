@@ -163,6 +163,13 @@ public class CliCompilation : IDisposable {
         canVerifyResult.Finished.SetException(boogieException.Exception);
       }
 
+      if (ev is InternalCompilationException compilationException) {
+        Compilation.Reporter.Error(MessageSource.Verifier, Token.NoToken,
+          $"Dafny encountered a compilation exception during verification.");
+        canVerifyResults.Values.ForEach(canVerifyResult =>
+          canVerifyResult.Finished.SetException(compilationException.Exception));
+      }
+
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
