@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
@@ -163,6 +164,25 @@ public class IdentifierExprConstraint : DefinitionConstraint {
 
   public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
     return new IdentifierExpr(Token.NoToken, name);
+  }
+}
+
+public class ArraySelectionConstraint : DefinitionConstraint {
+  public PartialValue Array;
+  public List<LiteralExpr> indices;
+
+  public ArraySelectionConstraint(PartialValue definedValue, PartialValue array, List<LiteralExpr> indices)
+    : base(new List<PartialValue>() {array}, definedValue, 
+      new List<Constraint>() {new ArrayLengthConstraint(array, indices)}) {
+    Array = array;
+    this.indices = indices;
+  }
+
+  public override Expression RightHandSide(Dictionary<PartialValue, Expression> definitions) {
+    if (indices.Count == 1) {
+      return new SeqSelectExpr(Token.NoToken, true, definitions[Array], indices.First(), null, Token.NoToken);
+    }
+    return new MultiSelectExpr(Token.NoToken, definitions[Array], indices.OfType<Expression>().ToList());
   }
 }
 
@@ -432,6 +452,34 @@ public class ContainmentConstraint : Constraint {
       IsIn ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.NotIn,
       definitions[Element],
       definitions[Set]);
+  }
+}
+
+public class ArrayLengthConstraint : Constraint {
+
+  public PartialValue Array;
+  public List<LiteralExpr> indices;
+  
+  public ArrayLengthConstraint(PartialValue array, List<LiteralExpr> indices)
+    : base(new List<PartialValue> { array }) {
+    Array = array;
+    this.indices = indices;
+  }
+
+  protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
+    var length0 = new MemberSelectExpr(Token.NoToken, definitions[Array], indices.Count == 1 ? "Length" : "Length0");
+    length0.Type = Type.Int;
+    var constraint =  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length0, indices.First());
+    constraint.Type = Type.Bool;
+    for (int i = 1; i < indices.Count; i++) {
+      var length = new MemberSelectExpr(Token.NoToken, definitions[Array], $"Length{i}");
+      length.Type = Type.Int;
+      var newConstraint = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length, indices[i]);
+      newConstraint.Type = Type.Bool;
+      constraint = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, constraint, newConstraint);
+      constraint.Type = Type.Bool;
+    }
+    return constraint;
   }
 }
 

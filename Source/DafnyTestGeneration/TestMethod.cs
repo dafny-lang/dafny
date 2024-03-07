@@ -147,7 +147,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     private List<string> ExtractInputs(PartialState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
-      var vars = state.ExpandedVariableSet(-1);
+      var vars = state.ExpandedVariableSet();
       var constraintSet = new List<Constraint>();
       foreach (var variable in vars) {
         foreach (var constraint in variable.Constraints) {
@@ -254,10 +254,6 @@ namespace DafnyTestGeneration {
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
       }
-
-      /*if (variable is DuplicateVariable duplicateVariable) {
-        return ExtractVariable(duplicateVariable.Original, asType);
-      }*/ // TODO: Is there any new form of duplication?
 
       List<string> elements = new();
       var variableType = DafnyModelTypeUtils.GetInDafnyFormat(

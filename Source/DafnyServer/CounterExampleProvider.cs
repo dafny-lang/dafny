@@ -13,7 +13,6 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace DafnyServer {
   public sealed class CounterExampleProvider {
-    private const int MaximumCounterexampleDepth = 5;
     public readonly string ModelBvd;
 
     public CounterExampleProvider() {
@@ -69,7 +68,7 @@ namespace DafnyServer {
           };
           AddLineInformation(counterExampleState, state.FullStateName);
 
-          var vars = state.ExpandedVariableSet(MaximumCounterexampleDepth);
+          var vars = state.ExpandedVariableSet();
 
           foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {

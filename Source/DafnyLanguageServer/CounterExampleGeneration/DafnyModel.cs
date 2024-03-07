@@ -614,10 +614,26 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                 if (fieldName != "alloc") {
                   var field = PartialValue.Get(UnboxNotNull(tpl.Result), state);
                   // make sure the field in quetion is not an array index
-                  if (!fieldName.StartsWith('[') && !fieldName.EndsWith(']') && !fieldName.Contains("#")) {
+                  if (fieldName.Contains("#")) {
+                    continue;
+                  } 
+                  if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
+                    var indexStrings = fieldName.TrimStart('[').TrimEnd(']').Split(",");
+                    var indices = new List<LiteralExpr>();
+                    foreach (var indexString in indexStrings) {
+                      if (BigInteger.TryParse(indexString, out var index)) {
+                        var indexLiteral = new LiteralExpr(Token.NoToken, index);
+                        indexLiteral.Type = Type.Int;
+                        indices.Add(indexLiteral);
+                      }
+                    }
+                    if (indices.Count != indexStrings.Length) {
+                      continue;
+                    }
+                    var _ = new ArraySelectionConstraint(field, value, indices);
+                  } else {
                     var _ = new MemberSelectExprClassConstraint(field, value, fieldName);
                   }
-
                 }
               }
             }

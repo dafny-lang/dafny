@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 public class PartialState {
 
-  public bool IsLoopEntryState => FullStateName.Contains("after some loop iterations");
+  public bool IsLoopEntryState => FullStateName.Contains(CaptureStateExtensions.AfterLoopIterationsStateMarker);
   // ghost variables introduced by the counterexample whose values must be true for the counterexample to hold:
   public List<string> LoopGuards = new();
   public readonly Dictionary<PartialValue, List<string>> KnownVariableNames = new();
@@ -37,15 +37,10 @@ public class PartialState {
 
   /// <summary>
   /// Start with the union of vars and boundVars and expand the set by adding 
-  /// variables that represent fields of any object in the original set or
-  /// elements of any sequence in the original set, etc. This is done
-  /// recursively in breadth-first order and only up to a certain maximum
-  /// depth.
+  /// all partial values that are necessary to fully constrain the counterexample.
   /// </summary>
-  /// <param name="maxDepth">The maximum depth up to which to expand the
-  /// variable set.</param>
-  /// <returns>Set of variables</returns>
-  public HashSet<PartialValue> ExpandedVariableSet(int maxDepth) {
+  /// <returns>Set of partial values</returns>
+  public HashSet<PartialValue> ExpandedVariableSet() {
     HashSet<PartialValue> expandedSet = new();
     // The following is the queue for elements to be added to the set. The 2nd
     // element of a tuple is the depth of the variable w.r.t. the original set
@@ -56,9 +51,6 @@ public class PartialState {
       varsToAdd.RemoveAt(0);
       if (expandedSet.Contains(next)) {
         continue;
-      }
-      if (depth == maxDepth) {
-        break;
       }
       expandedSet.Add(next);
       // fields of primitive types are skipped:
@@ -95,7 +87,7 @@ public class PartialState {
   /// </summary>
   public Statement AsAssumption() {
     var allVariableNames = new Dictionary<PartialValue, Expression>();
-    var variables = ExpandedVariableSet(-1).ToArray();
+    var variables = ExpandedVariableSet().ToArray();
     var constraintSet = new HashSet<Constraint>();
 
     // Collect all constraints into one list:
