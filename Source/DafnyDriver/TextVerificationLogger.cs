@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using VC;
 
@@ -74,6 +75,7 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     textWriter.Flush();
   }
 
-  public void Flush() {
+  public Task Flush() {
+    return Task.CompletedTask;
   }
 }
