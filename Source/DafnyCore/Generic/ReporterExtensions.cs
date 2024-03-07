@@ -1,13 +1,14 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using DafnyCore;
 using VCGeneration;
 
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
   public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, bool useRange = true) {
-    var usingSnippets = reporter.Options.Get(DafnyConsolePrinter.ShowSnippets);
+    var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
       if (auxiliaryInformation.Category == RelatedMessageCategory) {

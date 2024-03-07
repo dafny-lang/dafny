@@ -12,18 +12,16 @@ public abstract class ErrorReporter {
 
   public bool ErrorsOnly { get; set; }
 
-  public bool HasErrors => ErrorCount > 0;
+  public bool FailCompilation => HasErrors || (WarningCount > 0 && Options.FailOnWarnings);
   public int ErrorCount => Count(ErrorLevel.Error);
+
+  public bool HasErrors => ErrorCount > 0;
+  public int WarningCount => Count(ErrorLevel.Warning);
 
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
   public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-    if (Options.WarningsAsErrors && level == ErrorLevel.Warning) {
-      level = ErrorLevel.Error;
-    }
-
     return MessageCore(source, level, errorId, tok, msg);
-
   }
 
   protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
@@ -133,11 +131,7 @@ public abstract class ErrorReporter {
   public void Warning(MessageSource source, Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    if (Options.WarningsAsErrors) {
-      Error(source, errorId.ToString(), tok, msg);
-    } else {
-      Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
-    }
+    Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
   }
 
   public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
@@ -151,6 +145,8 @@ public abstract class ErrorReporter {
     Contract.Requires(msg != null);
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, msg);
+    } else {
+      Info(source, tok, msg, errorId);
     }
   }
 

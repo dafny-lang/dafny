@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyTestGeneration;
 using Microsoft.Boogie;
 
 // Copyright by the contributors to the Dafny Project
@@ -13,23 +15,26 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 static class GenerateTestsCommand {
-  public static IEnumerable<Option> Options =>
-    new Option[] {
-      LoopUnroll,
-      SequenceLengthLimit,
-      BoogieOptionBag.SolverLog,
-      BoogieOptionBag.SolverOption,
-      BoogieOptionBag.SolverOptionHelp,
-      BoogieOptionBag.SolverPath,
-      BoogieOptionBag.SolverPlugin,
-      BoogieOptionBag.SolverResourceLimit,
-      BoogieOptionBag.VerificationTimeLimit,
-      PrintBpl,
-      CoverageReport,
-      CommonOptionBag.NoTimeStampForCoverageReport,
-      ForcePrune
-    }.Concat(DafnyCommands.ConsoleOutputOptions).
-      Concat(DafnyCommands.ResolverOptions);
+  public static IEnumerable<Option> Options {
+    get {
+      return new Option[] {
+        LoopUnroll,
+        SequenceLengthLimit,
+        BoogieOptionBag.SolverLog,
+        BoogieOptionBag.SolverOption,
+        BoogieOptionBag.SolverOptionHelp,
+        BoogieOptionBag.SolverPath,
+        BoogieOptionBag.SolverPlugin,
+        BoogieOptionBag.SolverResourceLimit,
+        BoogieOptionBag.VerificationTimeLimit,
+        PrintBpl,
+        CoverageReport,
+        CommonOptionBag.NoTimeStampForCoverageReport,
+        ForcePrune,
+      }.Concat(DafnyCommands.ConsoleOutputOptions.Except(new[] { CommonOptionBag.AllowWarnings }).ToList()).
+        Concat(DafnyCommands.ResolverOptions);
+    }
+  }
 
   private enum Mode {
     Path,
@@ -86,18 +91,18 @@ Path - Generate tests targeting path-coverage.");
     var source = new StreamReader(dafnyFileNames[0]);
     var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
     if (options.TestGenOptions.WarnDeadCode) {
-      await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
+      await foreach (var line in TestGenerator.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
         await options.OutputWriter.WriteLineAsync(line);
       }
     } else {
-      await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(source, uri, options, coverageReport)) {
+      await foreach (var line in TestGenerator.GetTestClassForProgram(source, uri, options, coverageReport)) {
         await options.OutputWriter.WriteLineAsync(line);
       }
     }
     if (options.TestGenOptions.CoverageReport != null) {
       new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
     }
-    if (DafnyTestGeneration.Main.SetNonZeroExitCode) {
+    if (TestGenerator.SetNonZeroExitCode) {
       exitValue = ExitValue.DAFNY_ERROR;
     }
     return exitValue;
@@ -114,7 +119,7 @@ Path - Generate tests targeting path-coverage.");
     dafnyOptions.UseBaseNameForFileName = false;
     dafnyOptions.VerifyAllModules = true;
     dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
-    dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, false);
+    dafnyOptions.Set(Snippets.ShowSnippets, false);
     dafnyOptions.TestGenOptions.Mode = mode;
   }
 

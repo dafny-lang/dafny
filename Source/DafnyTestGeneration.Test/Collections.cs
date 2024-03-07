@@ -41,7 +41,7 @@ module SimpleTest {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.tuple"));
@@ -85,7 +85,7 @@ module C {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "C.compareStringLengthToOne"));

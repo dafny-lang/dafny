@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
+      CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 
@@ -153,12 +153,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static readonly List<LegacyUiForOption> legacyUis = new();
+    private static readonly List<LegacyUiForOption> LegacyUis = new();
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
       string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
-      legacyUis.Add(new LegacyUiForOption(
+      LegacyUis.Add(new LegacyUiForOption(
         option,
         (state, options) => parse(option, state, options),
         category,
@@ -188,14 +188,77 @@ namespace Microsoft.Dafny {
 
       try {
         if (i >= arguments.Length) {
-          return base.Parse(arguments);
+          return BaseParse(arguments);
         }
         MainArgs = arguments.Skip(i + 1).ToList();
-        return base.Parse(arguments.Take(i).ToArray());
+        return BaseParse(arguments.Take(i).ToArray());
       } catch (Exception e) {
         ErrorWriter.WriteLine("Invalid filename: " + e.Message);
         return false;
       }
+    }
+
+    protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+      return new TextWriterParseState(args, ToolName, ErrorWriter);
+    }
+
+    /// <summary>
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    class TextWriterParseState : Bpl.CommandLineParseState {
+      private readonly TextWriter errorWriter;
+
+      public TextWriterParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+        this.errorWriter = errorWriter;
+      }
+
+      public override void Error(string message, params string[] args) {
+        errorWriter.WriteLine("{0}: Error: {1}", ToolName, string.Format(message, args));
+        EncounteredErrors = true;
+      }
+    }
+
+    /// <summary>
+    /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    private bool BaseParse(string[] args) {
+      Environment = Environment + "Command Line Options: " + string.Join(" ", args);
+      args = cce.NonNull<string[]>((string[])args.Clone());
+      Bpl.CommandLineParseState state;
+      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
+        cce.LoopInvariant(state.args == args);
+        string file = args[state.i];
+        state.s = file.Trim();
+        bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");
+        int length = state.s.IndexOf(':');
+        if (0 <= length & flag) {
+          state.hasColonArgument = true;
+          args[state.i] = state.s.Substring(length + 1);
+          state.s = state.s.Substring(0, length);
+        } else {
+          ++state.i;
+          state.hasColonArgument = false;
+        }
+        state.nextIndex = state.i;
+        if (flag) {
+          if (!ParseOption(state.s.Substring(1), state)) {
+            if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
+              AddFile(file, state);
+            } else {
+              UnknownSwitch(state);
+            }
+          }
+        } else {
+          AddFile(file, state);
+        }
+      }
+      if (state.EncounteredErrors) {
+        ErrorWriter.WriteLine("Use /help for available options");
+        return false;
+      }
+      ApplyDefaultOptions();
+      return true;
     }
 
     public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
@@ -214,7 +277,7 @@ namespace Microsoft.Dafny {
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo
+        return FileVersionInfo
           .GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
@@ -273,6 +336,7 @@ namespace Microsoft.Dafny {
     public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
+    public bool AllowExterns => !DisallowExterns;
     public bool DisableNLarith = false;
     public int ArithMode = 1; // [0..10]
     public string AutoReqPrintFile = null;
@@ -311,10 +375,9 @@ namespace Microsoft.Dafny {
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public bool UseStdin = false;
-    public bool WarningsAsErrors = false;
+    public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
-    public List<string> VerificationLoggerConfigs = new();
 
     public bool AuditProgram = false;
 
@@ -324,7 +387,7 @@ namespace Microsoft.Dafny {
     public Version SolverVersion { get; set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
-      new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
+      new(new[] { SinglePassCodeGenerator.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
     public List<Plugin> AdditionalPlugins = new();
@@ -406,7 +469,7 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      foreach (var option in legacyUis.Where(o => o.Name == name)) {
+      foreach (var option in LegacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -419,7 +482,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
+      LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -724,22 +787,12 @@ namespace Microsoft.Dafny {
           }
 
         case "warningsAsErrors":
-          WarningsAsErrors = true;
+          FailOnWarnings = true;
           return true;
 
         case "extractCounterexample":
           ExtractCounterexample = true;
           EnhancedErrorMessages = 1;
-          return true;
-
-        case "verificationLogger":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text") || args[ps.i].StartsWith("json")) {
-              VerificationLoggerConfigs.Add(args[ps.i]);
-            } else {
-              InvalidArgumentError(name, ps);
-            }
-          }
           return true;
 
         case "testContracts":
@@ -776,7 +829,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var legacyUiOption in legacyUis) {
+      foreach (var legacyUiOption in LegacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
           Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
@@ -793,14 +846,6 @@ namespace Microsoft.Dafny {
       base.ApplyDefaultOptions();
 
       Backend ??= new CsharpBackend(this);
-
-      // expand macros in filenames, now that LogPrefix is fully determined
-
-      if (IsUsingZ3()) {
-        var z3Version = SetZ3ExecutablePath();
-        SetZ3Options(z3Version);
-      }
-
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
@@ -808,6 +853,13 @@ namespace Microsoft.Dafny {
 
     public bool IsUsingZ3() {
       return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
+    }
+
+    public void ProcessSolverOptions(ErrorReporter errorReporter, IToken token) {
+      if (IsUsingZ3()) {
+        var z3Version = SetZ3ExecutablePath(errorReporter, token);
+        SetZ3Options(z3Version);
+      }
     }
 
     public override string AttributeHelp =>
@@ -1038,14 +1090,15 @@ namespace Microsoft.Dafny {
       TODO".Replace("%SUPPORTED_OPTIONS%",
         string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
-    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new ConcurrentDictionary<string, Version>();
+    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private Version SetZ3ExecutablePath() {
+    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IToken token) {
       string confirmedProverPath = null;
+      string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
 
       // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
@@ -1056,6 +1109,7 @@ namespace Microsoft.Dafny {
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
+          errorReporter.Error(MessageSource.Verifier, token, $"Z3 not found at {proverPath}. " + nextStepsMessage);
           return null;
         }
 
@@ -1093,6 +1147,7 @@ namespace Microsoft.Dafny {
         return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
+      errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, "Z3 is not found. " + nextStepsMessage);
       return null;
     }
 
@@ -1310,30 +1365,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /separateModuleOutput
     Output verification results for each module separately, rather than
     aggregating them after they are all finished.
-
-/verificationLogger:<configuration string>
-    Logs verification results to the given test result logger. The
-    currently supported loggers are `trx`, `csv`, and `text`. These are
-    the XML-based format commonly used for test results for .NET
-    languages, a custom CSV schema, and a textual format meant for human
-    consumption. You can provide configuration using the same string
-    format as when using the --logger option for dotnet test, such as:
-
-        /verificationLogger:trx;LogFileName=<...>.
-
-    The exact mapping of verification concepts to these formats is
-    experimental and subject to change!
-
-    The `trx` and `csv` loggers automatically choose an output file name
-    by default, and print the name of this file to the console. The
-    `text` logger prints its output to the console by default, but can
-    send output to a file given the `LogFileName` option.
-
-    The `text` logger also includes a more detailed breakdown of what
-    assertions appear in each assertion batch. When combined with the
-    `/vcsSplitOnEveryAssert` option, it will provide approximate time
-    and resource use costs for each assertion, allowing identification
-    of especially expensive assertions.
 
 /noCheating:<n>
     0 (default) - Allow assume statements and free invariants.

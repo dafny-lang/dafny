@@ -4,6 +4,7 @@ import (
 	_dafny "dafny"
 	ioutil "io/ioutil"
 	filepath "path/filepath"
+	"os"
 )
 
 type Dummy__ struct{}

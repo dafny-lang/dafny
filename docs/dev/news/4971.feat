@@ -1,0 +1,8 @@
+- Flip the behavior of `--warn-deprecation` and change the name to `--allow-deprecation`, so the default is now false, which is standard for boolean options.
+- When using `--allow-deprecation`, deprecated code is shown using tooltips in the IDE, and on the CLI when using `--show-tooltips`.
+- Replace the option `--warn-as-error` with the option `--allow-warnings`. The new option, when false, the default value, causes Dafny to stop generating executable output and return a failure exit code, when warnings occur in the program. Contrary to the previous `--warn-as-error` option, warnings are always reported as warnings.
+  - During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
+  - If users have builds that were passing with warnings, they have to add `--allow-warnings` to allow them to still pass. 
+  - If users upgrade to a new Dafny version, and are not using `--allow-warnings`, and do not want to migrate off of deprecated features, they will have to use `--allow-deprecation`.
+- When using the legacy CLI, the option /warningsAsErrors now has the behavior of --allow-warnings=false
+- A doo file that was created using `--allow-warnings` causes a warning if used by a consumer that does not use it.

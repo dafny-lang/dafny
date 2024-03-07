@@ -146,7 +146,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
 
     Type.PopScope(tempVis);
 
-    if (!good || resolver.reporter.ErrorCount > 0) {
+    if (!good || resolver.reporter.HasErrors) {
       return sig;
     }
 
