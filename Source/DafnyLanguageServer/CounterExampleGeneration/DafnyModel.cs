@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne,
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fU2Real, fU2Bool, fU2Int,
-      fMapDomain, fMapElements, fMapValues, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox;
+      fMapDomain, fMapElements, fMapValues, fMapBuild, fMapEmpty, fIs, fIsBox, fUnbox, fLs, fLz;
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly List<Model.Func> bitvectorFunctions = new();
 
@@ -84,6 +84,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fTag = new ModelFuncWrapper(this, "Tag", 1, 0);
       fBv = new ModelFuncWrapper(this, "TBitvector", 1, 0);
       fUnbox = new ModelFuncWrapper(this, "$Unbox", 2, 0);
+      fLs = new ModelFuncWrapper(this, "$LS", 1, 0);
+      fLz = new ModelFuncWrapper(this, "$LZ", 0, 0);
       InitDataTypes();
       RegisterReservedBitVectors();
       LoopGuards = new List<string>();
@@ -398,12 +400,15 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
       var valueIsDatatype = datatypeValues.TryGetValue(value.Element, out var fnTuple);
 
-      var heap = state.State.TryGet("$Heap");
-      var functionApplications = GetFunctionConstants(value.Element, heap);
+      var layerValue = fLz.GetConstant();
+      while (layerValue != null && fLs.AppWithArg(0, layerValue) != null && !Equals(fLs.AppWithArg(0, layerValue)!.Result, fLz.GetConstant())) {
+        layerValue = fLs.AppWithArg(0, layerValue)!.Result;
+      }
+      var functionApplications = GetFunctionConstants(value.Element, layerValue);
       foreach (var functionApplication in functionApplications) {
         var result = PartialValue.Get(functionApplication.Result, state);
         var args = functionApplication.Args.Select(arg => PartialValue.Get(arg, state)).ToList();
-        args = Equals(functionApplication.Args[0], heap) ? args.Skip(2).ToList() : args.Skip(1).ToList();
+        args = Equals(functionApplication.Args[0], layerValue) ? args.Skip(2).ToList() : args.Skip(1).ToList();
         var _ = new FunctionCallConstraint(result, value, args, functionApplication.Func.Name.Split(".").Last(), !valueIsDatatype);
       }
 
@@ -585,6 +590,8 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
 
           }
         default: {
+
+            var heap = state.State.TryGet("$Heap");
             // Elt is an array or an object:
             if (heap == null) {
               return;
@@ -616,7 +623,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
                   // make sure the field in quetion is not an array index
                   if (fieldName.Contains("#")) {
                     continue;
-                  } 
+                  }
                   if (fieldName.StartsWith('[') && fieldName.EndsWith(']')) {
                     var indexStrings = fieldName.TrimStart('[').TrimEnd(']').Split(",");
                     var indices = new List<LiteralExpr>();
@@ -832,7 +839,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// <summary>
     /// Return all function applications relevant to an element. 
     /// </summary>
-    private List<Model.FuncTuple> GetFunctionConstants(Model.Element element, Model.Element heap) {
+    private List<Model.FuncTuple> GetFunctionConstants(Model.Element element, Model.Element? heap) {
       var possibleTypeIdentifiers = GetIsResults(element);
       if (fDtype.OptEval(element) != null) {
         possibleTypeIdentifiers.Add(fDtype.OptEval(element)!);
@@ -860,10 +867,11 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       }
 
       return applications.Where(application =>
-        wellFormed.Any(wellFormedTuple =>
-          wellFormedTuple.Args.Length == application.Args.Length &&
-          wellFormedTuple.Func.Name == application.Func.Name + "#canCall" &&
-          wellFormedTuple.Args.SequenceEqual(application.Args))
+        wellFormed.Any(wellFormedTuple => wellFormedTuple.Func.Name == application.Func.Name + "#canCall" &&
+                                          ((wellFormedTuple.Args.Length == application.Args.Length &&
+                                           wellFormedTuple.Args.SequenceEqual(application.Args)) ||
+                                          (wellFormedTuple.Args.Length == application.Args.Length - 1 &&
+                                           wellFormedTuple.Args.SequenceEqual(application.Args[1..]))))
       ).ToList();
     }
 

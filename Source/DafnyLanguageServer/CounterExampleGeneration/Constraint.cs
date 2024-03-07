@@ -18,7 +18,7 @@ public abstract class Constraint {
   private readonly List<PartialValue> referencedValues;
   public IEnumerable<PartialValue> ReferencedValues => referencedValues.AsEnumerable();
 
-  protected Constraint(IEnumerable<PartialValue> referencedValues, bool isWellFormedNessConstraint=false) {
+  protected Constraint(IEnumerable<PartialValue> referencedValues, bool isWellFormedNessConstraint = false) {
     this.referencedValues = referencedValues.ToList();
     if (isWellFormedNessConstraint) {
       return;
@@ -172,8 +172,8 @@ public class ArraySelectionConstraint : DefinitionConstraint {
   public List<LiteralExpr> indices;
 
   public ArraySelectionConstraint(PartialValue definedValue, PartialValue array, List<LiteralExpr> indices)
-    : base(new List<PartialValue>() {array}, definedValue, 
-      new List<Constraint>() {new ArrayLengthConstraint(array, indices)}) {
+    : base(new List<PartialValue>() { array }, definedValue,
+      new List<Constraint>() { new ArrayLengthConstraint(array, indices) }) {
     Array = array;
     this.indices = indices;
   }
@@ -354,7 +354,7 @@ public class SetDisplayConstraint : Constraint {
   }
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
-    var setDisplayExpr = new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+    var setDisplayExpr = new SetDisplayExpr(Token.NoToken, true, elements.ConvertAll(element => definitions[element]));
     setDisplayExpr.Type = set.Type;
     return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, definitions[set], setDisplayExpr);
   }
@@ -371,7 +371,7 @@ public class MapKeysDisplayConstraint : Constraint {
   }
 
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
-    var setDisplayExpr = new SetDisplayExpr(Token.NoToken,true, elements.ConvertAll(element => definitions[element]));
+    var setDisplayExpr = new SetDisplayExpr(Token.NoToken, true, elements.ConvertAll(element => definitions[element]));
     setDisplayExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
     var memberSelectExpr = new MemberSelectExpr(Token.NoToken, definitions[map], "Keys");
     memberSelectExpr.Type = new SetType(true, map.Type.TypeArgs[0]);
@@ -459,7 +459,7 @@ public class ArrayLengthConstraint : Constraint {
 
   public PartialValue Array;
   public List<LiteralExpr> indices;
-  
+
   public ArrayLengthConstraint(PartialValue array, List<LiteralExpr> indices)
     : base(new List<PartialValue> { array }) {
     Array = array;
@@ -469,7 +469,7 @@ public class ArrayLengthConstraint : Constraint {
   protected override Expression AsExpressionHelper(Dictionary<PartialValue, Expression> definitions) {
     var length0 = new MemberSelectExpr(Token.NoToken, definitions[Array], indices.Count == 1 ? "Length" : "Length0");
     length0.Type = Type.Int;
-    var constraint =  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length0, indices.First());
+    var constraint = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Gt, length0, indices.First());
     constraint.Type = Type.Bool;
     for (int i = 1; i < indices.Count; i++) {
       var length = new MemberSelectExpr(Token.NoToken, definitions[Array], $"Length{i}");
