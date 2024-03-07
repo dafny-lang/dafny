@@ -47,9 +47,11 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     };
   }
 
-  public static JsonNode SerializeVcResult(ProofDependencyManager dependencyManager, IReadOnlyList<ProofDependency> potentialDependencies, VerificationRunResult vcResult) {
+  public static JsonNode SerializeVcResult(ProofDependencyManager dependencyManager, IReadOnlyList<ProofDependency> potentialDependencies, VerificationTaskResult taskResult) {
+    var vcResult = taskResult.Result;
     var result = new JsonObject {
       ["vcNum"] = vcResult.VcNum,
+      ["randomSeed"] = taskResult.Task.Split.RandomSeed,
       ["outcome"] = SerializeOutcome(vcResult.Outcome),
       ["runTime"] = SerializeTimeSpan(vcResult.RunTime),
       ["resourceCount"] = vcResult.ResourceCount,
@@ -75,17 +77,17 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     return outcome.ToString();
   }
 
-  private JsonNode SerializeVerificationResult(VerificationScope scope, IReadOnlyList<VerificationRunResult> results) {
+  private JsonNode SerializeVerificationResult(VerificationScope scope, IReadOnlyList<VerificationTaskResult> results) {
     var trackProofDependencies =
-      results.All(o => o.Outcome == SolverOutcome.Valid) &&
-      results.Any(vcResult => vcResult.CoveredElements.Any());
+      results.All(o => o.Result.Outcome == SolverOutcome.Valid) &&
+      results.Any(vcResult => vcResult.Result.CoveredElements.Any());
     var potentialDependencies =
       trackProofDependencies ? dependencyManager.GetPotentialDependenciesForDefinition(scope.Name).ToList() : null;
     var result = new JsonObject {
       ["name"] = scope.Name,
-      ["outcome"] = SerializeOutcome(results.Aggregate(VcOutcome.Correct, (o, r) => MergeOutcomes(o, r.Outcome))),
-      ["runTime"] = SerializeTimeSpan(TimeSpan.FromSeconds(results.Sum(r => r.RunTime.Seconds))),
-      ["resourceCount"] = results.Sum(r => r.ResourceCount),
+      ["outcome"] = SerializeOutcome(results.Aggregate(VcOutcome.Correct, (o, r) => MergeOutcomes(o, r.Result.Outcome))),
+      ["runTime"] = SerializeTimeSpan(TimeSpan.FromSeconds(results.Sum(r => r.Result.RunTime.Seconds))),
+      ["resourceCount"] = results.Sum(r => r.Result.ResourceCount),
       ["vcResults"] = new JsonArray(results.Select(r => SerializeVcResult(dependencyManager, potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
@@ -134,7 +136,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
   }
 
   public void LogScopeResults(VerificationScopeResult scopeResult) {
-    verificationResultNode.Add(SerializeVerificationResult(scopeResult.Scope, scopeResult.Results.Select(r => r.Result).ToList()));
+    verificationResultNode.Add(SerializeVerificationResult(scopeResult.Scope, scopeResult.Results.ToList()));
   }
 
   private readonly IList<JsonNode> verificationResultNode = new List<JsonNode>();
