@@ -366,7 +366,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (ps.args[ps.i].Equals("NoGhost")) {
           options.Set(option, PrintModes.NoGhost);
         } else if (ps.args[ps.i].Equals("DllEmbed")) {
-          options.Set(option, PrintModes.DllEmbed);
+          options.Set(option, PrintModes.Serialization);
         } else {
           DafnyOptions.InvalidArgumentError(option.Name, ps);
         }

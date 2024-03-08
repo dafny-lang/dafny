@@ -1,5 +1,4 @@
-// RUN: %baredafny build %args -t:lib "%s" --output "%S/WithInclude" > "%t"
-// RUN: %exits-with 2 %baredafny run %args "%S/WithInclude.doo" >> "%t"
+// RUN: %exits-with 3 %baredafny build %args -t:lib "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "IncludedNotVerified.dfy"

@@ -1,4 +1,4 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
-WithInclude.doo(12,9): Error: module Library does not exist
-1 resolution/type errors detected in WithInclude.doo
+IncludedNotVerified.dfy(3,7): Error: Module Library was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.
+Wrote textual form of partial target program to WithInclude-lib/WithInclude.doo
