@@ -73,8 +73,9 @@ public class LibraryBackend : ExecutableBackend {
     }
 
     foreach (var module in dafnyProgram.Modules()) {
-      if (module.ShouldCompile(dafnyProgram.Compilation) && !module.ShouldVerify(dafnyProgram.Compilation)) {
-        Reporter.Error(MessageSource.Compiler, module.Tok, $"Module {module.Name} was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.");
+      if (module.ShouldCompile(dafnyProgram.Compilation) && module.NeverVerified(dafnyProgram.Compilation)) {
+        Reporter.Error(MessageSource.Compiler, module.Tok, 
+          $"Module {module.Name} was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.");
       }
     }
 

@@ -53,6 +53,15 @@ public static class ShouldCompileOrVerify {
 
     return !declaration.Tok.FromIncludeDirective(compilation);
   }
+  
+  // Returns true iff the declaration was not already verified and will not be verified by this compilation
+  public static bool NeverVerified(this INode declaration, CompilationData compilation) {
+    if (ShouldVerify(declaration, compilation)) {
+      return false;
+    }
+
+    return !compilation.AlreadyVerifiedRoots.Contains(declaration.Tok.Uri);
+  }
 
   public static bool FromIncludeDirective(this IToken token, CompilationData outerModule) {
     if (token is RefinementToken) {
