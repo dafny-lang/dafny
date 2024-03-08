@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 2 %verify --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Frames {
@@ -253,5 +253,19 @@ module NewMatchBehavior {
   method Colors(c: Color) {
     match c
     case Blue: int => // error: because of the ": int", Blue is interpreted as a bound variable, and its type doesn't match that of "c"
+  }
+}
+
+module MinusRegression {
+  method M(s: seq<int>, b: bool) {
+    var w := b - b; // error: - is not for bool
+    var u := s - s; // error: - is not for seq
+  }
+}
+
+module GreaterRegression {
+  method M(s: seq<int>, b: bool) {
+    var w := b > b; // error: > is not for bool
+    var u := s >= s; // error: >= is not for seq
   }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
@@ -24,8 +25,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
-    Exports = original.Exports;
-    Extends = original.Extends;
+    Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
+    Extends = original.Extends.Select(cloner.Tok).ToList();
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
     IsRefining = original.IsRefining;
@@ -34,10 +35,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
+  public ModuleExportDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, parent, false, isRefining, cloneId) {
+    : base(options, rangeToken, name, parent, false, isRefining, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
@@ -52,7 +53,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     Contract.Requires(this.Signature == null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this.EnclosingModuleDefinition;
-    sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
+    sig.IsAbstract = this.EnclosingModuleDefinition.ModuleKind == ModuleKindEnum.Abstract;
     sig.VisibilityScope = new VisibilityScope();
     sig.VisibilityScope.Augment(ThisScope);
     this.Signature = sig;

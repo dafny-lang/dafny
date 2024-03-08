@@ -47,28 +47,41 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "shift amount is always non-negative";
+public abstract class ShiftOrRotateBound : ProofObligationDescription {
+  protected readonly string shiftOrRotate;
 
-  public override string FailureDescription =>
-    "shift amount must be non-negative";
-
-  public override string ShortDescription => "shift lower bound";
+  public ShiftOrRotateBound(bool shift) {
+    shiftOrRotate = shift ? "shift" : "rotate";
+  }
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftLowerBound : ShiftOrRotateBound {
   public override string SuccessDescription =>
-    $"shift amount is always within the width of the result ({width})";
+    $"{shiftOrRotate} amount is always non-negative";
 
   public override string FailureDescription =>
-    $"shift amount must not exceed the width of the result ({width})";
+    $"{shiftOrRotate} amount must be non-negative";
 
-  public override string ShortDescription => "shift upper bound";
+  public override string ShortDescription => $"{shiftOrRotate} lower bound";
+
+  public ShiftLowerBound(bool shift)
+    : base(shift) {
+  }
+}
+
+public class ShiftUpperBound : ShiftOrRotateBound {
+  public override string SuccessDescription =>
+    $"{shiftOrRotate} amount is always within the width of the result ({width})";
+
+  public override string FailureDescription =>
+    $"{shiftOrRotate} amount must not exceed the width of the result ({width})";
+
+  public override string ShortDescription => $"{shiftOrRotate} upper bound";
 
   private readonly int width;
 
-  public ShiftUpperBound(int width) {
+  public ShiftUpperBound(int width, bool shift)
+    : base(shift) {
     this.width = width;
   }
 }
@@ -331,7 +344,7 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
   }
 }
 
-public class AssertStatement : ProofObligationDescriptionCustomMessages {
+public class AssertStatementDescription : ProofObligationDescriptionCustomMessages {
   public override string DefaultSuccessDescription =>
     "assertion always holds";
 
@@ -341,14 +354,20 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "assert statement";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return predicate;
+    return AssertStatement.Expr;
   }
 
-  private Expression predicate;
+  public AssertStmt AssertStatement { get; }
 
-  public AssertStatement(Expression predicate, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  // We provide a way to mark an assertion as an intentional element of a
+  // proof by contradiction with the `{:contradiction}` attribute. Dafny
+  // skips warning about such assertions being proved due to contradictory
+  // assumptions.
+  public bool IsIntentionalContradiction => Attributes.Contains(AssertStatement.Attributes, "contradiction");
+
+  public AssertStatementDescription(AssertStmt assertStmt, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
-    this.predicate = predicate;
+    this.AssertStatement = assertStmt;
   }
 
   public override bool IsImplicit => false;

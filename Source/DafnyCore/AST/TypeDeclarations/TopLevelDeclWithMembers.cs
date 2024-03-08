@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -223,7 +224,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
               new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
               cloner.CloneExpr(extremePredicate.Body),
-              null,
+              SystemModuleManager.AxiomAttribute(),
               extremePredicate);
             extraMember = extremePredicate.PrefixPredicate;
           } else {
@@ -249,7 +250,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
               new Specification<Expression>(decr, null),
               null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-              cloner.CloneAttributes(extremeLemma.Attributes), extremeLemma);
+              SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
             extraMember = extremeLemma.PrefixLemma;
           }
 
@@ -266,7 +267,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public virtual DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public virtual SymbolKind Kind => SymbolKind.Class;
   public virtual string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }

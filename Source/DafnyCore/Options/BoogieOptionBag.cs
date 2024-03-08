@@ -11,9 +11,10 @@ namespace Microsoft.Dafny;
 
 public static class BoogieOptionBag {
   public static readonly Option<IEnumerable<string>> BoogieFilter = new("--boogie-filter", @"
-(experimental) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names."
+(obsolete, use --filter-symbol instead) Only check proofs whose Boogie name is matched by pattern <p>. This option may be specified multiple times to match multiple patterns. The pattern <p> may contain * wildcards which match any character zero or more times. If you are unsure of how Boogie names are generated, please pre- and postfix your pattern with a wildcard to enable matching on Dafny proof names."
     .TrimStart()) {
     ArgumentHelpName = "pattern",
+    IsHidden = true,
   };
 
   public static readonly Option<IEnumerable<string>> BoogieArguments = new("--boogie",
@@ -63,7 +64,18 @@ public static class BoogieOptionBag {
     new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit",
-    @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof effort, which you can use to determine an appropriate limit for your program. Multiplied by 1000 before sending to Z3.");
+    result => {
+      var value = result.Tokens[^1].Value;
+
+      if (DafnyOptions.TryParseResourceCount(value, out var number)) {
+        return number;
+      }
+
+      result.ErrorMessage = $"Cannot parse resource limit: {value}";
+      return 0;
+    },
+    isDefault: false,
+    @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof effort, which you can use to determine an appropriate limit for your program.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin",
     @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/v2.16.3/Source/Provers/SMTLib/ProverUtil.cs#L316");
 
@@ -105,6 +117,7 @@ public static class BoogieOptionBag {
 
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (value != null) {
+        options.ProverOptions.RemoveAll(s => s.StartsWith("PROVER_PATH="));
         options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");
       }
     });
@@ -135,7 +148,6 @@ public static class BoogieOptionBag {
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck> {
         { BoogieArguments, DooFile.CheckOptionMatches },
-        { BoogieFilter, DooFile.CheckOptionMatches },
         { NoVerify, DooFile.CheckOptionLibraryImpliesLocal },
       }
     );
@@ -149,7 +161,8 @@ public static class BoogieOptionBag {
       SolverOptionHelp,
       SolverPath,
       SolverPlugin,
-      SolverResourceLimit
+      SolverResourceLimit,
+      BoogieFilter
     );
   }
 

@@ -54,12 +54,13 @@ public static class RunCommand {
     foreach (var option in Options) {
       result.AddOption(option);
     }
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, context) => {
       options.MainArgs = context.ParseResult.GetValueForArgument(UserProgramArguments).ToList();
       options.Compile = true;
       options.RunAfterCompile = true;
       options.ForceCompile = options.Get(BoogieOptionBag.NoVerify);
-      return CompilerDriver.RunCompiler(options);
+
+      return SynchronousCliCompilation.Run(options);
     });
     return result;
   }

@@ -5,19 +5,20 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-using System.Collections.Generic;
+
 using System.Linq;
-using System;
-using System.Diagnostics.Contracts;
-using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
   public class PrecedenceLinter : IRewriter {
-    private CompilationData compilation;
+    private readonly CompilationData compilation;
+    // Don't perform linting on doo files in general, since the source has already been processed.
     internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      if (moduleDefinition.tok.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
+        return;
+      }
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
           var visitor = new PrecedenceLinterVisitor(compilation, Reporter);
@@ -107,27 +108,27 @@ namespace Microsoft.Dafny {
       // that is, we inspect line and column information.
 
       if (expr is BinaryExpr bin && (bin.Op == BinaryExpr.Opcode.Imp || bin.Op == BinaryExpr.Opcode.Exp || bin.Op == BinaryExpr.Opcode.Iff)) {
+        // For
+        //   a)  LHS ==> RHS
+        //   b)  LHS ==>
+        //         RHS-somewhere-on-this-line
+        // use LHS.StartToken as the left margin.
+        // For
+        //   c)  LHS0 &&
+        //       LHS1 ==> RHS
+        // use expr.tok (that is, the location of ==>) as the left margin. This is bound to generate a warning.
+        // For
+        //   d)  LHS0 &&
+        //       LHS1 ==>
+        //         RHS-somewhere-on-this-line
+        //   e)  LHS0 &&
+        //       LHS1
+        //       ==>
+        //         RHS-somewhere-on-this-line
+        // use LHS.StartToken as the left margin.
         VisitLhsComponent(expr.tok, bin.E0,
-          // For
-          //   a)  LHS ==> RHS
-          //   b)  LHS ==>
-          //         RHS-somewhere-on-this-line
-          // use LHS.StartToken as the left margin.
           bin.E0.StartToken.line == expr.tok.line ? bin.E0.StartToken.col :
-          // For
-          //   c)  LHS0 &&
-          //       LHS1 ==> RHS
-          // use expr.tok (that is, the location of ==>) as the left margin. This is bound to generate a warning.
           bin.E1.StartToken.line == expr.tok.line ? expr.tok.col :
-          // For
-          //   d)  LHS0 &&
-          //       LHS1 ==>
-          //         RHS-somewhere-on-this-line
-          //   e)  LHS0 &&
-          //       LHS1
-          //       ==>
-          //         RHS-somewhere-on-this-line
-          // use LHS.StartToken as the left margin.
           bin.E0.StartToken.col,
           "left-hand operand of " + BinaryExpr.OpcodeString(bin.Op));
         VisitRhsComponent(expr.tok, bin.E1, "right-hand operand of " + BinaryExpr.OpcodeString(bin.Op));

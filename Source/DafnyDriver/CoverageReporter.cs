@@ -31,7 +31,22 @@ public class CoverageReporter {
 
   private readonly ErrorReporter reporter;
   private readonly DafnyOptions options;
+  private readonly Dictionary<(CoverageReport, string), string> paths = new();
 
+  public string GetPath(CoverageReport report, string desiredPath) {
+    return paths.GetOrCreate((report, desiredPath), () => {
+      var index = 0;
+      var extension = Path.GetExtension(desiredPath);
+      var withoutExtension = Path.GetFileNameWithoutExtension(desiredPath);
+      var actualPath = desiredPath;
+      while (File.Exists(actualPath)) {
+        actualPath = withoutExtension + "_" + index + extension;
+        index++;
+      }
+
+      return actualPath;
+    });
+  }
   public CoverageReporter(DafnyOptions options) {
     reporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
@@ -50,12 +65,12 @@ public class CoverageReporter {
         .GetAllPotentialDependencies()
         .OrderBy(dep => dep.Range.StartToken);
     var coverageReport = new CoverageReport("Verification coverage", "Proof Dependencies", "_verification", dafnyProgram);
-    foreach (var dep in allDependencies) {
-      if (dep is FunctionDefinitionDependency) {
+    foreach (var proofDependency in allDependencies) {
+      if (proofDependency is FunctionDefinitionDependency) {
         continue;
       }
-      coverageReport.LabelCode(dep.Range,
-        usedDependencies.Contains(dep)
+      coverageReport.LabelCode(proofDependency.Range,
+        usedDependencies.Contains(proofDependency)
           ? CoverageLabel.FullyCovered
           : CoverageLabel.NotCovered);
     }
@@ -160,39 +175,47 @@ public class CoverageReporter {
       sessionDirectory = Path.Combine(reportsDirectory, sessionName);
     }
     Directory.CreateDirectory(sessionDirectory);
-    HashSet<string> allFiles = new();
-    reports.ForEach(report => allFiles.UnionWith(report.AllFiles()));
-    if (allFiles.Count == 0) {
+    HashSet<Uri> allUris = new();
+    reports.ForEach(report => allUris.UnionWith(report.AllFiles()));
+    if (allUris.Count == 0) {
       reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
         "No coverage data found in the reports.");
       return;
     }
     CopyStyleFiles(sessionDirectory);
+    // TODO: Handle arbitrary Uris better
+    var allFiles = allUris.Select(uri => uri.ToString());
     var prefixLength = new string(
       allFiles.First()[..allFiles.Min(s => Path.GetDirectoryName(s)?.Length ?? 0)]
         .TakeWhile((c, i) => allFiles.All(s => s[i] == c)).ToArray()).Length;
-    var sourceFileToCoverageReport = new Dictionary<string, string>();
-    foreach (var fileName in allFiles) {
+    var sourceFileToCoverageReport = new Dictionary<Uri, string>();
+    foreach (var uri in allUris) {
+      // TODO: Handle arbitrary Uris better
+      var fileName = uri.ToString();
       var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..].TrimStart('/') ?? "");
+      sourceFileToCoverageReport[uri] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
       var pathToRoot = Path.GetRelativePath(directoryForFile, sessionDirectory);
       Directory.CreateDirectory(directoryForFile);
-      for (int i = 0; i < reports.Count; i++) {
-        var linksToOtherReports = GetHtmlLinksToOtherReports(reports[i], Path.GetFileName(fileName), reports);
-        var reportForFile = HtmlReportForFile(reports[i], fileName, pathToRoot, linksToOtherReports);
-        sourceFileToCoverageReport[fileName] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
-        File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueSuffix}.html", reportForFile);
+      foreach (var report in reports) {
+        var linksToOtherReports = GetHtmlLinksToOtherReports(report, fileName, reports);
+        var reportForFile = HtmlReportForFile(report, uri, pathToRoot, linksToOtherReports);
+        var desiredPath = Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{report.Suffix}.html";
+        File.WriteAllText(GetPath(report, desiredPath), reportForFile);
       }
     }
 
     foreach (var report in reports) {
-      var linksToOtherReports = GetHtmlLinksToOtherReports(report, "index", reports);
+      var linksToOtherReports = GetHtmlLinksToOtherReports(report, Path.Combine(sessionDirectory, "index"), reports);
       CreateIndexFile(report, sourceFileToCoverageReport, sessionDirectory, linksToOtherReports);
     }
   }
 
   private string MakeIndexFileTableRow(List<object> row) {
     var result = new StringBuilder("<tr>\n");
-    foreach (var cell in row) {
+    foreach (var cell in row.Take(2)) {
+      result.Append($"\t<td class=\"name\">{cell}</td>\n");
+    }
+    foreach (var cell in row.Skip(2)) {
       result.Append($"\t<td class=\"ctr2\">{cell}</td>\n");
     }
     result.Append("</tr>\n");
@@ -202,7 +225,7 @@ public class CoverageReporter {
   /// <summary>
   /// Creates an index file with program-wide statistics for a particular report
   /// </summary>
-  private void CreateIndexFile(CoverageReport report, Dictionary<string, string> sourceFileToCoverageReportFile, string baseDirectory, string linksToOtherReports) {
+  private void CreateIndexFile(CoverageReport report, Dictionary<Uri, string> sourceFileToCoverageReportFile, string baseDirectory, string linksToOtherReports) {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream(CoverageReportIndexTemplatePath);
     if (templateStream is null) {
@@ -211,24 +234,47 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File" };
+    List<object> header = new() { "File", "Module" };
     header.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
 
     List<List<object>> body = new();
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
-      var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+      var desiredPath = sourceFileToCoverageReportFile[sourceFile] + $"{report.Suffix}.html";
+      var relativePath = Path.GetRelativePath(baseDirectory, GetPath(report, desiredPath));
+      var linkName = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+
       body.Add(new() {
-        $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-        $"class = \"el_package\">{relativePath}</a>"
+        $"<a href = \"{relativePath}\"" +
+        $"class = \"el_package\">{linkName}</a>",
+        "All modules"
       });
+
       body.Last().AddRange(coverageLabels
         .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
-        .Select(label => report.CoverageSpansForFile(sourceFile).Count(span => span.Label == label)).OfType<object>());
+        .Select(label => report.CoverageSpansForFile(sourceFile)
+                               .Count(span => span.Label == label)).OfType<object>());
+
+      foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
+        body.Add(new() {
+          "",
+          module.FullName
+        });
+
+        var moduleRange = module.RangeToken.ToDafnyRange();
+        body.Last().AddRange(coverageLabels
+          .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
+          .Select(label => report.CoverageSpansForFile(sourceFile)
+                                 // span.Span.Intersects(module.RangeToken) would be cleaner,
+                                 // but unfortunately coverage span tokens don't currently always
+                                 // have Token.pos set correctly. :(
+                                 .Where(span => moduleRange.Contains(span.Span.ToDafnyRange().Start))
+                                 .Count(span => span.Label == label)).OfType<object>());
+      }
     }
 
-    List<object> footer = new() { "Total" };
+    List<object> footer = new() { "Total", "" };
     footer.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => report.AllFiles().Select(sourceFile =>
@@ -239,21 +285,21 @@ public class CoverageReporter {
     templateText = FileNameRegex.Replace(templateText, report.Name);
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"),
-      TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow))));
+    templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
+    File.WriteAllText(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html")), templateText);
   }
 
   /// <summary>
   /// Creates a set of links to be inserted in <param name="thisReport"></param> that point to corresponding
-  /// report files for the same <param name="sourceFileName"></param>
+  /// report files for the same <param name="reportAgnosticPath"></param>
   /// </summary>
-  private static string GetHtmlLinksToOtherReports(CoverageReport thisReport, string sourceFileName, List<CoverageReport> allReports) {
+  private string GetHtmlLinksToOtherReports(CoverageReport thisReport, string reportAgnosticPath, List<CoverageReport> allReports) {
     var result = new StringBuilder();
     foreach (var report in allReports) {
       if (report == thisReport) {
         continue;
       }
-      result.Append($"<a href=\"{sourceFileName}{report.UniqueSuffix}.html\" class=\"el_report\">{report.Name}</a>");
+      result.Append($"<a href=\"{Path.GetFileName(GetPath(thisReport, reportAgnosticPath + $"{report.Suffix}.html"))}\" class=\"el_report\">{report.Name}</a>");
     }
     return result.ToString();
   }
@@ -288,8 +334,9 @@ public class CoverageReporter {
     }
   }
 
-  private string HtmlReportForFile(CoverageReport report, string pathToSourceFile, string baseDirectory, string linksToOtherReports) {
-    var source = new StreamReader(pathToSourceFile).ReadToEnd();
+  private string HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
+    var dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
+    var source = dafnyFile.GetContent().ReadToEnd();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {
@@ -297,7 +344,7 @@ public class CoverageReporter {
       Array.Fill(characterLabels[i], CoverageLabel.None);
     }
     var labeledCodeBuilder = new StringBuilder(source.Length);
-    foreach (var span in report.CoverageSpansForFile(pathToSourceFile)) {
+    foreach (var span in report.CoverageSpansForFile(uri)) {
       var line = span.Span.StartToken.line - 1;
       var column = span.Span.StartToken.col - 1;
       while (true) {
@@ -344,9 +391,9 @@ public class CoverageReporter {
     var templateText = new StreamReader(templateStream).ReadToEnd();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
-    templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
-    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(pathToSourceFile)}, {report.Name}");
-    templateText = UriRegex.Replace(templateText, pathToSourceFile);
+    templateText = IndexLinkRegex.Replace(templateText, Path.GetFileName(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html"))));
+    templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(uri.LocalPath)}, {report.Name}");
+    templateText = UriRegex.Replace(templateText, uri.ToString());
     return LabeledCodeRegex.Replace(templateText, labeledCode);
   }
 

@@ -307,13 +307,13 @@ public class AutoRevealFunctionDependencies : IRewriter {
       args.Add(new IntType());
     }
 
-    ModuleDefinition.AccessibleMember accessibleMember = rootModule.AccessibleMembers[func];
+    AccessibleMember accessibleMember = rootModule.AccessibleMembers[func];
 
     var resolveExpr = ConstructExpressionFromPath(func, accessibleMember);
 
     var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
 
-    var callableName = "reveal_" + func.Name;
+    var callableName = RevealStmt.RevealLemmaPrefix + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
     Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
@@ -352,7 +352,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return revealStmt;
   }
 
-  private static Expression ConstructExpressionFromPath(Function func, ModuleDefinition.AccessibleMember accessibleMember) {
+  private static Expression ConstructExpressionFromPath(Function func, AccessibleMember accessibleMember) {
 
     var topLevelDeclsList = accessibleMember.AccessPath;
     var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").ToList();
@@ -366,7 +366,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return resolveExpr;
   }
 
-  public static bool IsRevealable(Dictionary<Declaration, ModuleDefinition.AccessibleMember> accessibleMembers,
+  public static bool IsRevealable(Dictionary<Declaration, AccessibleMember> accessibleMembers,
     Declaration decl) {
     if (accessibleMembers.TryGetValue(decl, out var member)) {
       return member.IsRevealed;

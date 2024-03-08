@@ -77,3 +77,31 @@ lemma MaxExists(ks: set<K>)
     MaxExists(ks - {k});
   }
 }
+
+predicate LessThanFour(x: int) {
+  x < 4
+}
+
+ghost function PlusOne(x: int): int {
+  x + 1
+}
+
+method EnumerateOverInfiniteCollections() {
+  var s := {3, 3, 3, 5};
+  var l;
+  // Once, the TermLeft of map comprehensions was not checked for ghost-ness. Thus, the following assignment
+  // had been allowed by the resolver, which caused the compiler to emit malformed target code. (Oddly enough,
+  // when using the same RHS as an initializing assignment, the ghost-ness was detected and caused the variable
+  // to become auto-ghost which means an error is reported about the print statement not being compilable.)
+  l := map x | x in s && LessThanFour(x) :: PlusOne(x) := x;
+  print l, "\n"; // map[3 := 3]
+}
+
+newtype MyInt = x: int | -0x8000_0000 <= x
+
+method Casts() {
+  // casts around just the variable is fine, but around any other expression is more complicated (so we don't handle it, for now)
+  print forall x: MyInt :: -12 <= x && (x as int - 2) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+  print forall x: MyInt :: 12 <= x && (x as int - 20) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+  print forall x: int :: 11 <= x && (x as real - 20.0) as int < 0 ==> LessThanFour(x as int); // error: dunno how to compile
+}

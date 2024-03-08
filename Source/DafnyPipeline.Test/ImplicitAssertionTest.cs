@@ -151,17 +151,17 @@ method Test(m: map<int, int>, x: int) {
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
     var dafnyProgram = new ProgramParser().Parse(program, uri, reporter);
-    if (reporter.ErrorCount > 0) {
+    if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
     DafnyMain.Resolve(dafnyProgram);
-    if (reporter.ErrorCount > 0) {
+    if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
 
-    var boogiePrograms = CompilerDriver.Translate(options, dafnyProgram).ToList();
+    var boogiePrograms = SynchronousCliCompilation.Translate(options, dafnyProgram).ToList();
     Assert.Single(boogiePrograms);
     var boogieProgram = boogiePrograms[0].Item2;
     var encountered = new List<string>();

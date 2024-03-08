@@ -44,7 +44,8 @@
 | [Converting values to strings](#sec-print-statement) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Legacy CLI without commands](#sec-dafny-commands) |  X  |  X  |  X  |  X  |  X  |  X  |  |
 | [Separate compilation](#sec-compilation) |  X  |  |  X  |  X  |  X  |  X  |  X  |
-| [All built-in types in runtime library](##sec-compilation-built-ins) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [All built-in types in runtime library](#sec-compilation-built-ins) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [Execution coverage report](#sec-dafny-test) |  X  |  |  |  |  |  |  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy

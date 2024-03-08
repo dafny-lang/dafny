@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(fc != null);
       } else {
         // const f: Field ty;
-        Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
+        Bpl.Type ty = predef.FieldName(f.tok);
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullSanitizedName, ty), false);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny {
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-      AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
+      AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
@@ -216,7 +216,7 @@ namespace Microsoft.Dafny {
         QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
         var implBody = builder.Collect(decl.tok);
 
-        AddImplementationWithVerboseName(GetToken(decl), proc, implInParams,
+        AddImplementationWithAttributes(GetToken(decl), proc, implInParams,
           new List<Variable>(), locals, implBody, kv);
       }
 

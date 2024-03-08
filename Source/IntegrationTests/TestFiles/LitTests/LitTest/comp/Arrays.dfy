@@ -625,7 +625,7 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
     a := new NonAutoInit[zero];
     s := s + a[..];
     // Note, "new NonAutoInit[five]" is not allowed for a non-auto-init type
-    s := s + [99, 99, 99, 99, 99];
+    s := s + [99, 99, 99, 99 as NonAutoInit, 99];
     a := new NonAutoInit[zero] []; // initialized as given (no elements)
     s := s + a[..];
     a := new NonAutoInit[] []; // initialized as given (no elements)

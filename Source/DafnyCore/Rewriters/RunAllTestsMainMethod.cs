@@ -1,12 +1,21 @@
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
 
 public class RunAllTestsMainMethod : IRewriter {
+
+  static RunAllTestsMainMethod() {
+    DooFile.RegisterNoChecksNeeded(IncludeTestRunner);
+  }
+
+  public static Option<bool> IncludeTestRunner = new("--include-test-runner",
+    "Include a program entry point that will run all methods marked with {:test}");
 
   /** The name used for Main when executing tests. Should be a name that cannot be a Dafny name,
       that Dafny will not use as a mangled Dafny name for any backend, and that is not likely
@@ -141,6 +150,12 @@ public class RunAllTestsMainMethod : IRewriter {
             continue;
           }
 
+          if (method.TypeArgs.Count != 0) {
+            ReportError(ErrorId.rw_test_methods_may_not_have_type_parameters, method.tok,
+              "Methods with the :test attribute may not have type parameters");
+            continue;
+          }
+
           Expression resultVarExpr = null;
           var lhss = new List<Expression>();
 
@@ -220,7 +235,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
+    var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
     mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
   }

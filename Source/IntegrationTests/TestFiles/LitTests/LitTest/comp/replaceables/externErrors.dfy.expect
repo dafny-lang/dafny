@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+externErrors.dfy(12,36): Error: inside a module that replaces another, {:extern} attributes may only be used without arguments
+Translation was aborted because errors were found

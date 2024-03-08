@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -16,9 +18,9 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
 class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProvider {
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
 
-  public ImplicitFailingAssertionCodeActionProvider(DafnyOptions options) {
+  public ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options) : base(logger) {
     this.options = options;
   }
 
@@ -46,7 +48,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
     public ExplicitAssertionDafnyCodeAction(
       DafnyOptions options,
-      Dafny.Program program,
+      Node program,
       Expression failingImplicitAssertion,
       Range selection
       ) : base("Insert explicit failing assertion") {
@@ -110,8 +112,8 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic diagnostic, Range selection) {
-    if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
+    Diagnostic diagnostic, Range selection) {
+    if (input.Program == null || diagnostic.Source != MessageSource.Verifier.ToString()) {
       return null;
     }
 

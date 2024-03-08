@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P1(a: int)

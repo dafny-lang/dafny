@@ -297,7 +297,11 @@ func (cp CodePoint) String() string {
   return fmt.Sprintf("'%s'", cp.Escape())
 }
 
-
+func IsCodePoint(i Int) bool {
+  return (
+    (i.Sign() != -1 && i.Cmp(IntOfInt32(0xD800)) < 0) ||
+    (IntOfInt32(0xE000).Cmp(i) <= 0 && i.Cmp(IntOfInt32(0x11_0000)) < 0))
+}
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
 func AllUnicodeChars() Iterator {
@@ -521,6 +525,14 @@ func SeqOfChars(values ...Char) Sequence {
   return SeqFromArray(arr, true)
 }
 
+func SeqOfBytes(values []byte) Sequence {
+  arr := make([]interface{}, len(values))
+  for i, v := range values {
+    arr[i] = v
+  }
+  return SeqFromArray(arr, false)
+}
+
 // SeqOfString converts the given string into a sequence of characters.
 // The given string must contain only ASCII characters!
 func SeqOfString(str string) Sequence {
@@ -670,6 +682,25 @@ func (seq *ConcatSequence) EqualsGeneric(x interface{}) bool {
 func (seq *LazySequence) EqualsGeneric(x interface{}) bool {
   other, ok := x.(Sequence)
   return ok && Companion_Sequence_.Equal(seq, other)
+}
+
+func (seq *ArraySequence) ToByteArray() []byte {
+  return ToByteArray(seq)
+}
+func (seq *ConcatSequence) ToByteArray() []byte {
+  return ToByteArray(seq)
+}
+func (seq *LazySequence) ToByteArray() []byte {
+  return ToByteArray(seq)
+}
+
+func ToByteArray(x Sequence) []byte {
+  nativeArray := x.ToArray().(GoNativeArray)
+  arr := make([]byte, len(nativeArray.contents))
+  for i, v := range nativeArray.contents {
+    arr[i] = v.(byte)
+  }
+  return arr
 }
 
 /******************************************************************************
@@ -2705,6 +2736,10 @@ func (x Real) Int() Int {
     a.Add(a, One.impl)
     return intOf(a.Quo(a, x.impl.Denom())) // note: *truncated* division
   }
+}
+
+func (x Real) IsInteger() bool {
+  return RealOfFrac(x.Int(), One).Cmp(x) == 0
 }
 
 // Num returns the given Real's numerator as an Int

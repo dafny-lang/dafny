@@ -1,4 +1,4 @@
-// RUN: %dafny /useBaseNameForFileName /compile:0 %S/git-issue-1838.dfy > "%t"
+// RUN: %verify %S/git-issue-1838.dfy > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A.B {

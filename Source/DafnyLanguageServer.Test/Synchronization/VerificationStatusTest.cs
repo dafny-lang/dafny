@@ -15,6 +15,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  /// <summary>
+  /// The client does not correctly migrate symbolStatus information,
+  /// so we have to republish it if the positions change.
+  /// </summary>
+  [Fact]
+  public async Task NoClientSideMigrationOfCanVerifies() {
+    var source = @"const x := 3".TrimStart();
+
+    var documentA = await CreateOpenAndWaitForResolve(source);
+    var status = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(1, status.NamedVerifiables.Count);
+    ApplyChange(ref documentA, new Range(0, 0, 0, 12), "");
+    var status2 = await WaitUntilAllStatusAreCompleted(documentA);
+    Assert.Equal(0, status2.NamedVerifiables.Count);
+  }
+
   [Fact]
   public async Task DoNotMigrateWrongUri() {
     var sourceA = @"
@@ -77,6 +93,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
         Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
@@ -89,6 +106,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     }
 
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Stale) > 1) {
         Assert.Fail("May not become stale after both being queued. ");
@@ -334,8 +352,11 @@ function fib(n: nat): nat {
     // Delete the end of the Foo range, so Foo() becomes F()
     ApplyChange(ref documentItem, new Range(0, 8, 0, 12), "()");
 
-    var translatedStatusAfter = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.Equal(1, translatedStatusAfter.NamedVerifiables.Count);
+    var translatedStatusAfter1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(0, translatedStatusAfter1.NamedVerifiables.Count);
+
+    var translatedStatusAfter2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.Equal(1, translatedStatusAfter2.NamedVerifiables.Count);
   }
 
   [Fact]
@@ -411,7 +432,7 @@ method Bar() { assert false; }";
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.True(successfulRun);
-    var range = new Range(0, 20, 0, 42);
+    var range = new Range(0, 31, 0, 53);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
 
@@ -634,7 +655,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [Fact]
-  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+  public async Task RefiningDeclarationStatusIsNotFoldedIntoTheBase() {
     var source = @"
 abstract module BaseModule {
   method Foo() returns (x: int) ensures x > 2 

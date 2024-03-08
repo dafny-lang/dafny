@@ -8,9 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Newtonsoft.Json;
-using NuGet.Frameworks;
 using Xunit.Abstractions;
 using Xunit;
 using Xunit.Sdk;
@@ -32,17 +29,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(13, 11, 13, 17) &&
-        diagnostic.Message == "proved using contradictory assumptions: assertion always holds"
+        diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(12, 11, 12, 17) &&
-        diagnostic.Message == "unnecessary assumption"
+        diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
     }
 
@@ -97,7 +94,7 @@ module Consumer {
       var project = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var producer = await CreateOpenAndWaitForResolve(producerSource, Path.Combine(directory, "producer.dfy"));
       var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "consumer.dfy"));
-      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint);
+      var diag1 = await GetLastDiagnostics(producer, DiagnosticSeverity.Hint, allowStale: true);
       Assert.Equal(DiagnosticSeverity.Hint, diag1[0].Severity);
       ApplyChange(ref consumer, new Range(0, 0, 0, 0), "//trigger change\n");
       await AssertNoDiagnosticsAreComing(CancellationToken, producer);
@@ -127,7 +124,7 @@ function HasResolutionError(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Contains("Verification out of resource", diagnostics[0].Message);
-      Assert.Equal(new Range(0, 20, 0, 42), diagnostics[0].Range);
+      Assert.Equal(new Range(0, 31, 0, 53), diagnostics[0].Range);
     }
 
     [Fact]
@@ -264,7 +261,7 @@ predicate P(i: int) {
   i <= 0
 }
 
-function Call(i: int): int
+function {:axiom} Call(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: int)
@@ -280,9 +277,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("Could not prove: P(i)", relatedInformation[0].Message);
-      Assert.Equal("Could not prove: i <= 0", relatedInformation[1].Message);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
+      Assert.Null(relatedInformation[0].Message);
     }
 
     [Fact]
@@ -326,9 +321,8 @@ module N refines M
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
-      Assert.Equal(
-        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
-        diagnostics[1].Message);
+      Assert.Contains(diagnostics, d => d.Message.Contains(
+        "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value"));
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -343,11 +337,12 @@ predicate {:opaque} m() {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
       ApplyChange(ref documentItem, ((0, 0), (3, 0)), "\n");
+
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(diagnostics);
       ApplyChange(ref documentItem, ((1, 0), (1, 0)), "const x := 1");
-      diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Empty(diagnostics);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.Empty(diagnostics2);
       await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
@@ -427,7 +422,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithMultipleSemanticErrorsReportsDiagnosticsWithAllSemanticErrors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
       Assert.Equal("Resolver", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -528,7 +523,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.Equal("This postcondition might not hold: product >= 0", relatedInformation.Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
       Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -718,7 +713,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal("Project", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -850,9 +845,9 @@ class Test {
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("This postcondition might not hold: Valid()", relatedInformation[0].Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Equal("Could not prove: b < c", relatedInformation[1].Message);
+      Assert.Null(relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -1064,10 +1059,11 @@ method test()
       client.OpenDocument(documentItem);
 
       var secondVerificationDiagnostics = await GetLastDiagnostics(documentItem);
-      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
+      AssertM.Equal(2, secondVerificationDiagnostics.Length, secondVerificationDiagnostics.Stringify());
+      var firstVerificationDiagnostics = diagnosticsReceiver.History[^2].Diagnostics.
+        Where(d => d.Severity <= DiagnosticSeverity.Warning).ToList();
 
       Assert.Single(firstVerificationDiagnostics);
-      Assert.Equal(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1173,7 +1169,7 @@ method test2() {
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
       AssertM.Equal(expected.Length, actual.Length, $"expected: {expected.Stringify()}, but was: {actual.Stringify()}");
       foreach (var t in expected.Zip(actual)) {
-        AssertM.Equal(CompilationAfterResolution.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
+        AssertM.Equal(IdeState.OutdatedPrefix + t.First.Message, t.Second.Message, t.Second.ToString());
       }
     }
 
@@ -1189,7 +1185,7 @@ method test()
       var documentItem = CreateTestDocument(source, "DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(2, diagnostics.Length);
+      AssertM.Equal(2, diagnostics.Length, diagnostics.Stringify());
     }
 
     [Fact]

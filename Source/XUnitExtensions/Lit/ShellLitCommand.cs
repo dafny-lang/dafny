@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
@@ -18,7 +19,7 @@ namespace XUnitExtensions.Lit {
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
@@ -103,23 +104,21 @@ namespace XUnitExtensions.Lit {
       // needed because that is also what C# will use to decode the output of `process`.
 
       process.Start();
-      if (inputReader != null) {
-        string input = inputReader.ReadToEnd();
-        inputReader.Close();
-        process.StandardInput.Write(input);
-        process.StandardInput.Close();
-      }
+      string input = await inputReader.ReadToEndAsync();
+      inputReader.Close();
+      await process.StandardInput.WriteAsync(input);
+      process.StandardInput.Close();
 
       // FIXME the code below will deadlock if process fills the stderr buffer.
-      string output = process.StandardOutput.ReadToEnd();
-      outputWriter?.Write(output);
-      outputWriter?.Close();
-      string error = process.StandardError.ReadToEnd();
-      errorWriter?.Write(error);
-      errorWriter?.Close();
-      process.WaitForExit();
+      string output = await process.StandardOutput.ReadToEndAsync();
+      await outputWriter.WriteAsync(output);
+      outputWriter.Close();
+      string error = await process.StandardError.ReadToEndAsync();
+      await errorWriter.WriteAsync(error);
+      errorWriter.Close();
+      await process.WaitForExitAsync();
 
-      return (process.ExitCode, output, error);
+      return process.ExitCode;
     }
 
     public override string ToString() {

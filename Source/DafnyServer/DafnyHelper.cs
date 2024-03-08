@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
@@ -44,10 +45,12 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, null, () => new StringReader(source)) },
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+      var program = new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
         reporter, CancellationToken.None);
 
-      var success = reporter.ErrorCount == 0;
+      var success = !reporter.HasErrors;
       if (success) {
         dafnyProgram = program;
       }
@@ -100,9 +103,9 @@ namespace Microsoft.Dafny {
       if (Parse() && Resolve()) {
         var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
-        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+        options.OutputWriter.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
-        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
+        options.OutputWriter.WriteLine("SYMBOLS_START [] SYMBOLS_END");
       }
     }
 
@@ -116,11 +119,11 @@ namespace Microsoft.Dafny {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
             var model = counterExampleProvider.LoadCounterModel(options);
-            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+            options.OutputWriter.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
-        Console.WriteLine("Error collection models: " + e.Message);
+        options.OutputWriter.WriteLine("Error collection models: " + e.Message);
       }
     }
 

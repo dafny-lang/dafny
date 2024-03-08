@@ -58,7 +58,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for requires clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for requires clauses are discussed in [Section 11.4](#sec-verification-attributes-on-assertions).
 
 A requires clause can have [custom error and success messages](#sec-error-attribute).
 
@@ -67,7 +67,7 @@ A requires clause can have [custom error and success messages](#sec-error-attrib
 Examples:
 <!-- %check-resolve -->
 ```dafny
-method m(i: int) returns (r: int)
+method {:axiom} m(i: int) returns (r: int)
   ensures r > 0
 ```
 
@@ -86,7 +86,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-The attributes recognized for ensures clauses are discussed in [Section 11.3](#sec-verification-attributes-on-assertions).
+The attributes recognized for ensures clauses are discussed in [Section 11.4](#sec-verification-attributes-on-assertions).
 
 An ensures clause can have [custom error and success messages](#sec-error-attribute).
 
@@ -914,7 +914,7 @@ method Test(a: array<int>) returns (j: int)
 Dafny will split the verification in two [assertion batches](#sec-assertion-batches)
 that will roughly look like the following lemmas:
 
-<!-- %check-verify -->
+<!-- %check-verify %options --allow-axioms -->
 ```dafny
 lemma Test_WellFormed(a: array?<int>)
 {

@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       logger.LogDebug("Completion params received");
-      var document = await projects.GetParsedDocumentNormalizeUri(request.TextDocument);
+      var document = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
@@ -76,9 +76,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
 
         if (logger.IsEnabled(LogLevel.Trace)) {
-          var program = (Program)state.Program;
+          var program = (Program)state.ResolvedProgram!;
           var writer = new StringWriter();
-          var printer = new Printer(writer, DafnyOptions.Default);
+          var printer = new Printer(writer, state.Input.Options);
           printer.PrintProgram(program, true);
           logger.LogTrace($"Program:\n{writer}");
         }

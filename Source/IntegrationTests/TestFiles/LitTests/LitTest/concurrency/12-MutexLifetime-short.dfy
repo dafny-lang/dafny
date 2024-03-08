@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This program models the ownership of a Rust-like MutexGuard using lifetimes to reason about allocation.
@@ -846,7 +846,7 @@ class MutexGuardU32 extends OwnedObject {
 
   ghost predicate volatileOwns() { false }
   ghost function objectUserFields(): set<Object> reads this {
-    { mutex, data }
+    { mutex as Object, data as Object }
   }
 
   twostate predicate unchangedNonvolatileUserFields() reads this {

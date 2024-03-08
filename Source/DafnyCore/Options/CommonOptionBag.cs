@@ -3,11 +3,33 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Dafny.Compilers;
+using Serilog.Events;
 
 namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
+
+  public static void EnsureStaticConstructorHasRun() { }
+
+  public static readonly Option<string> LogLocation =
+    new("--log-location", "Sets the directory where to store log files") {
+      IsHidden = true
+    };
+
+  public static readonly Option<LogEventLevel> LogLevelOption =
+    new("--log-level", () => LogEventLevel.Error, "Sets the level at which events are logged") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> ManualTriggerOption =
+    new("--manual-triggers", "Do not generate {:trigger} annotations for user-level quantifiers") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> ShowInference =
+    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+      IsHidden = true
+    };
 
   public enum AssertionShowMode { None, Implicit, All }
   public static readonly Option<AssertionShowMode> ShowAssertions = new("--show-assertions", () => AssertionShowMode.None,
@@ -37,10 +59,10 @@ true - In the compiled target code, transform any non-extern
     is transformed into just 'int' in the target code.".TrimStart());
 
   public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.");
+      "Print additional information such as which files are emitted where.");
 
-  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
-    "Warn about the use of deprecated features (default true).") {
+  public static readonly Option<bool> AllowDeprecation = new("--allow-deprecation",
+    "Do not warn about the use of deprecated features.") {
   };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
@@ -58,7 +80,7 @@ Results in more manual work, but also produces more predictable behavior.".TrimS
     "Allow variables to be read before they are assigned, but only if they have an auto-initializable type or if they are ghost and have a nonempty type.") {
   };
 
-  public static readonly Option<List<string>> VerificationLogFormat = new("--log-format", $@"
+  public static readonly Option<IList<string>> VerificationLogFormat = new("--log-format", $@"
 Logs verification results using the given test result format. The currently supported formats are `trx`, `csv`, and `text`. These are: the XML-based format commonly used for test results for .NET languages, a custom CSV schema, and a textual format meant for human consumption. You can provide configuration using the same string format as when using the --logger option for dotnet test, such as: --format ""trx;LogFileName=<...>"");
 
 The `trx` and `csv` formats automatically choose an output file name by default, and print the name of this file to the console. The `text` format prints its output to the console by default, but can send output to a file given the `LogFileName` option.
@@ -78,6 +100,23 @@ However, these contents are skipped during code generation and verification.
 This option is useful in a diamond dependency situation, 
 to prevent code from the bottom dependency from being generated more than once.
 The value may be a comma-separated list of files and folders.".TrimStart());
+
+  public static IEnumerable<string> SplitOptionValueIntoFiles(IEnumerable<string> inputs) {
+    var result = new HashSet<string>();
+    foreach (var input in inputs) {
+      var values = input.Split(',');
+      foreach (var slice in values) {
+        var name = slice.Trim();
+        if (Directory.Exists(name)) {
+          var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+          foreach (var file in files) { result.Add(file); }
+        } else {
+          result.Add(name);
+        }
+      }
+    }
+    return result;
+  }
 
   public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
     "Specify the filepath that determines where to place and how to name build files.") {
@@ -153,6 +192,10 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
+  public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
+    "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
+  };
+
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
@@ -171,6 +214,13 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
 legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
+    @"
+false - A newtype can only be based on numeric types or another newtype.
+true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
 
@@ -196,31 +246,38 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
-  public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
-    "Treat warnings as errors.");
+
+  public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
+    "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
+
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
     "Emits a warning when a constructor name in a case pattern is not followed by parentheses.");
   public static readonly Option<bool> WarnShadowing = new("--warn-shadowing",
     "Emits a warning if the name of a declared variable caused another variable to be shadowed.");
   public static readonly Option<bool> WarnContradictoryAssumptions = new("--warn-contradictory-assumptions", @"
 (experimental) Emits a warning if any assertions are proved based on contradictory assumptions (vacuously).
-May slow down verification slightly.
-May produce spurious warnings.") {
+May slow down verification slightly, or make it more brittle.
+May produce spurious warnings.
+Use the `{:contradiction}` attribute to mark any `assert` statement intended to be part of a proof by contradiction.") {
     IsHidden = true
   };
   public static readonly Option<bool> WarnRedundantAssumptions = new("--warn-redundant-assumptions", @"
 (experimental) Emits a warning if any `requires` clause or `assume` statement was not needed to complete verification.
-May slow down verification slightly.
+May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
-  public static readonly Option<string> VerificationCoverageReport = new("--coverage-report",
-    "Emit verification coverage report  to a given directory, in the same format as a test coverage report.") {
+  public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
+    "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
   };
   public static readonly Option<bool> NoTimeStampForCoverageReport = new("--no-timestamp-for-coverage-report",
     "Write coverage report directly to the specified folder instead of creating a timestamped subdirectory.") {
     IsHidden = true
+  };
+  public static readonly Option<string> ExecutionCoverageReport = new("--coverage-report",
+    "Emit execution coverage report to a given directory.") {
+    ArgumentHelpName = "directory"
   };
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
@@ -287,7 +344,21 @@ See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibrarie
 Not compatible with the --unicode-char:false option.
 ");
 
+  public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
+    @"
+If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
+  };
+
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
+    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+      options.PrintTooltips = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(ManualTriggerOption, (options, value) => {
+      options.AutoTriggers = !value;
+    });
+
     DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
 go - Compile to Go.
@@ -310,6 +381,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
 
+    DafnyOptions.RegisterLegacyUi(VerificationLogFormat, DafnyOptions.ParseStringElement, "Verification options", "verificationLogger");
     DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
     DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
@@ -321,6 +393,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+    DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
+0 (default) - A newtype can only be based on numeric types or another newtype.
+1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -337,9 +412,9 @@ Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false
 
     DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
     DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
-    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.Print, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
+    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.PrintOption, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
 
-    DafnyOptions.RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
+    DafnyOptions.RegisterLegacyUi(Snippets.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
 0 (default) - Don't show source code snippets for Dafny messages.
 1 - Show a source code snippet for each Dafny message.".TrimStart());
 
@@ -356,6 +431,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       defaultValue: PrintModes.Everything);
 
     DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
+
+    DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
+    DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -404,7 +482,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
-    DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
+    DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
@@ -441,14 +519,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(BuildFile, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
+      (options, value) => { options.LibraryFiles = SplitOptionValueIntoFiles(value.Select(fi => fi.FullName)).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.Verbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
-    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
+    DafnyOptions.RegisterLegacyBinding(AllowDeprecation, (o, v) => o.DeprecationNoise = v ? 0 : 1);
 
-    DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
@@ -469,15 +546,34 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       });
 
+    DafnyOptions.RegisterLegacyBinding(ExtractCounterexample, (options, value) => {
+      options.ExtractCounterexample = value;
+      options.EnhancedErrorMessages = 1;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
+        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+            if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
+              return true;
+            }
+            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
+            return false;
+          }
+        }
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      LogLocation,
+      LogLevelOption,
+      ManualTriggerOption,
+      ShowInference,
       Check,
       Libraries,
       Output,
@@ -485,7 +581,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Prelude,
       Target,
       Verbose,
-      WarnDeprecation,
+      AllowDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
@@ -496,10 +592,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ManualLemmaInduction,
       TypeInferenceDebug,
       GeneralTraits,
+      GeneralNewtypes,
       TypeSystemRefresh,
       VerificationLogFormat,
       VerifyIncludedFiles,
-      WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,
@@ -515,8 +611,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       UseStandardLibraries,
       OptimizeErasableDatatypeWrapper,
       AddCompileSuffix,
-      SystemModule
-    );
+      SystemModule,
+      ExecutionCoverageReport,
+      ExtractCounterexample
+      );
   }
 
   public static readonly Option<bool> FormatPrint = new("--print",

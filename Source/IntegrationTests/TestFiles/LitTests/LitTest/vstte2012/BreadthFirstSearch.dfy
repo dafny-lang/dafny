@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 class BreadthFirstSearch<Vertex(==)>
@@ -27,7 +27,7 @@ class BreadthFirstSearch<Vertex(==)>
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
   method
-    {:rlimit 8000}
+    {:resource_limit "8e6"}
     {:vcs_split_on_every_assert}
   BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)

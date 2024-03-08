@@ -1,17 +1,33 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class IndDatatypeDecl : DatatypeDecl {
   public override string WhatKind { get { return "datatype"; } }
-  public DatatypeCtor GroundingCtor;  // set during resolution
+  [FilledInDuringResolution] public DatatypeCtor GroundingCtor; // set during resolution (possibly to null)
 
   public override DatatypeCtor GetGroundingCtor() {
-    return GroundingCtor;
+    return GroundingCtor ?? Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
 
-  public bool[] TypeParametersUsedInConstructionByGroundingCtor;  // set during resolution; has same length as the number of type arguments
+  private bool[] typeParametersUsedInConstructionByGroundingCtor;
+
+  public bool[] TypeParametersUsedInConstructionByGroundingCtor {
+    get {
+      if (typeParametersUsedInConstructionByGroundingCtor == null) {
+        typeParametersUsedInConstructionByGroundingCtor = new bool[TypeArgs.Count];
+        for (var i = 0; i < typeParametersUsedInConstructionByGroundingCtor.Length; i++) {
+          typeParametersUsedInConstructionByGroundingCtor[i] = true;
+        }
+      }
+      return typeParametersUsedInConstructionByGroundingCtor;
+    }
+    set {
+      typeParametersUsedInConstructionByGroundingCtor = value;
+    }
+  }
 
   public enum ES { NotYetComputed, Never, ConsultTypeArguments }
   public ES EqualitySupport = ES.NotYetComputed;

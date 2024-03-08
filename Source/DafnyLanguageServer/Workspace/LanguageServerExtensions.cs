@@ -1,13 +1,9 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
-using System;
-using System.Reactive.Concurrency;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -32,9 +28,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<ProjectManager>>(),
           provider.GetRequiredService<CreateMigrator>(),
           provider.GetRequiredService<IFileSystem>(),
-          provider.GetRequiredService<INotificationPublisher>(),
-          provider.GetRequiredService<IGutterIconAndHoverVerificationDetailsManager>(),
-          provider.GetRequiredService<CreateCompilationManager>(),
+          provider.GetRequiredService<TelemetryPublisherBase>(),
+          provider.GetRequiredService<IProjectDatabase>(),
+          provider.GetRequiredService<CreateCompilation>(),
           provider.GetRequiredService<CreateIdeStateObserver>(),
           scheduler,
           cache,
@@ -44,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var options = serviceProvider.GetRequiredService<DafnyOptions>();
           return new DafnyLangParser(options,
             serviceProvider.GetRequiredService<IFileSystem>(),
-            serviceProvider.GetRequiredService<ITelemetryPublisher>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
             serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
             serviceProvider.GetRequiredService<ILogger<CachingParser>>());
         })
@@ -55,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           provider.GetRequiredService<ILogger<LegacySignatureAndCompletionTable>>(),
           changes, cancellationToken))
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
+        .AddSingleton<TelemetryPublisherBase, LspTelemetryPublisher>();
     }
   }
 }

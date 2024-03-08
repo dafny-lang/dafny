@@ -79,22 +79,27 @@ namespace XUnitExtensions.Lit {
       this.ErrorFile = errorFile;
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
+    public async Task<int> Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };
+      var writersToClose = new List<StreamWriter>();
       if (OutputFile != null) {
-        outputWriters.Add(new StreamWriter(OutputFile, Append));
+        var outputStreamWriter = new StreamWriter(OutputFile, Append);
+        writersToClose.Add(outputStreamWriter);
+        outputWriters.Add(outputStreamWriter);
       }
       inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
 
       var errorWriters = new List<TextWriter> { errWriter };
       if (ErrorFile != null) {
-        errorWriters.Add(new StreamWriter(ErrorFile, Append));
+        var errorStreamWriter = new StreamWriter(ErrorFile, Append);
+        writersToClose.Add(errorStreamWriter);
+        errorWriters.Add(errorStreamWriter);
       }
-      var result = Command.Execute(inputReader,
+      var result = await Command.Execute(inputReader,
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
       inputReader.Close();
-      foreach (var writer in outputWriters.Concat(errorWriters)) {
+      foreach (var writer in writersToClose) {
         writer.Close();
       }
       return result;

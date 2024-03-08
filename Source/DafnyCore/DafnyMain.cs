@@ -9,27 +9,23 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
-using DafnyCore.Verifier;
 using Microsoft.Boogie;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
-  public class IllegalDafnyFile : Exception {
-    public bool ProcessingError { get; }
-
-    public IllegalDafnyFile(bool processingError = false) {
-      this.ProcessingError = processingError;
-    }
-  }
-
   public class DafnyMain {
+    public static readonly Dictionary<string, Uri> StandardLibrariesDooUriTarget = new();
+    public static readonly Uri StandardLibrariesDooUri = DafnyFile.ExposeInternalUri("DafnyStandardLibraries.dfy",
+      new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
+
+    static DafnyMain() {
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+        StandardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
+          new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
+      }
+    }
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {
@@ -76,50 +72,43 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    private static readonly TaskScheduler largeThreadScheduler =
+    public static readonly CustomStackSizePoolTaskScheduler LargeThreadScheduler =
       CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
 
     public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None,
-      TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
+      TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, LargeThreadScheduler);
 
     public static string Resolve(Program program) {
       if (program.Options.NoResolve || program.Options.NoTypecheck) {
         return null;
       }
 
+      if (program.Options.Get(CommonOptionBag.GeneralNewtypes) && !program.Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        return "use of --general-newtypes requires --type-system-refresh";
+      }
+
       var programResolver = new ProgramResolver(program);
+#pragma warning disable VSTHRD002
       LargeStackFactory.StartNew(() => programResolver.Resolve(CancellationToken.None)).Wait();
+#pragma warning restore VSTHRD002
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (program.Reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error),
-          program.Name);
+      var errorCount = program.Reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error);
+      if (errorCount != 0) {
+        return $"{errorCount} resolution/type errors detected in {program.Name}";
       }
 
       return null; // success
     }
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
-      DafnyOptions options,
+      ErrorReporter errorReporter, DafnyOptions options,
       TextWriter output,
       ExecutionEngine engine,
       string baseFile,
       string moduleName,
-      Microsoft.Boogie.Program boogieProgram, string programId) {
+      Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
-      var z3NotFoundMessage = $@"
-Z3 not found. Please either provide a path to the `z3` executable using
-the `--solver-path <path>` option, manually place the `z3` directory
-next to the `dafny` executable you are using (this directory should
-contain `bin/z3-{DafnyOptions.DefaultZ3Version}` or `bin/z3-{DafnyOptions.DefaultZ3Version}.exe`), or set the PATH environment variable
-to also include a directory containing the `z3` executable.
-";
-
-      var proverPath = options.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
-      if (proverPath is null && options.Verify) {
-        options.OutputWriter.WriteLine(z3NotFoundMessage);
-        return (PipelineOutcome.FatalError, new PipelineStatistics());
-      }
 
       string bplFilename;
       if (options.PrintFile != null) {

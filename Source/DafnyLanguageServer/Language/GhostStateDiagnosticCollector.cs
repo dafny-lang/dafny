@@ -30,8 +30,8 @@ Send notifications that indicate which lines are ghost.".TrimStart());
     private const string GhostStatementMessage = "Ghost statement";
 
     private readonly DafnyOptions options;
-    private readonly ILogger<GhostStateDiagnosticCollector> logger;
-    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger<GhostStateDiagnosticCollector> logger) {
+    private readonly ILogger logger;
+    public GhostStateDiagnosticCollector(DafnyOptions options, ILogger logger) {
       this.options = options;
       this.logger = logger;
     }
@@ -42,7 +42,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
-      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.FailCompilation) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
       }
       try {

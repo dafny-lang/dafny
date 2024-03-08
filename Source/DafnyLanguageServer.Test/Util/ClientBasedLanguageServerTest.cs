@@ -62,10 +62,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return document;
   }
 
+  protected async Task AssertVerificationHoverMatches(TextDocumentItem documentItem, Position hoverPosition,
+    [CanBeNull] string expected) {
+    await WaitUntilAllStatusAreCompleted(documentItem, CancellationToken, false);
+    await AssertHoverMatches(documentItem, hoverPosition, expected);
+  }
+
   protected async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
-    if (expected != null && errorTests.Matches(expected).Count >= 2) {
-      Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
-    }
     var hover = await RequestHover(documentItem, hoverPosition);
     if (expected == null) {
       Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
@@ -91,16 +94,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   private void AssertMatchRegex(string expected, string value) {
     var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", "[\\s\\S]*");
     var matched = new Regex(regexExpected).Match(value).Success;
-    if (!matched) {
-      // A simple helper to determine what portion of the regex did not match
-      var helper = "";
-      foreach (var chunk in expected.Split("???")) {
-        if (!value.Contains(chunk)) {
-          helper += $"\nThe result string did not contain '{chunk}'";
-        }
-      }
-      Assert.Fail($"{value} did not match {regexExpected}." + helper);
+    if (matched) {
+      return;
     }
+
+    // A simple helper to determine what portion of the regex did not match
+    var helper = "";
+    foreach (var chunk in expected.Split("???")) {
+      if (!value.Contains(chunk)) {
+        helper += $"\nThe result string did not contain '{chunk}'";
+      }
+    }
+    Assert.Fail($"value '{value}' did not match {regexExpected}." + helper);
   }
 
   public async Task<NamedVerifiableStatus> WaitForStatus([CanBeNull] Range nameRange, PublishedVerificationStatus statusToFind,
@@ -166,39 +171,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return things.Select(t => t.DocumentSymbol!);
   }
 
-  protected async Task<ImmutableDictionary<DocumentUri, IReadOnlyList<Diagnostic>>> GetAllDiagnostics(CancellationToken? cancellationToken = null) {
-    cancellationToken ??= CancellationToken;
-
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken.Value);
-      } catch (TaskCanceledException) {
-
-      }
-    }
-
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken.Value);
-
-    var result = ImmutableDictionary<DocumentUri, IReadOnlyList<Diagnostic>>.Empty;
-    while (true) {
-      var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-      if (verificationDocumentItem.Uri.Equals(resolutionReport.Uri)) {
-        break;
-      }
-
-      result = result.Add(resolutionReport.Uri, resolutionReport.Diagnostics.ToList());
-    }
-    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-      TextDocument = verificationDocumentItem
-    });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-    AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
-      "2) Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
-    return result;
-  }
-
   protected async Task<FileVerificationStatus> WaitUntilAllStatusAreCompleted(TextDocumentItem documentId,
     CancellationToken? cancellationToken = null,
     bool allowStale = false) {
@@ -215,24 +187,42 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
-      while (fileVerificationStatus.NamedVerifiables.Any(method => !(allowStale && method.Status == PublishedVerificationStatus.Stale) && method.Status < PublishedVerificationStatus.Error)) {
+      while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-
       }
     }
 
     return fileVerificationStatus;
+
+    bool FinishedStatus(NamedVerifiableStatus method) {
+      if (allowStale && method.Status == PublishedVerificationStatus.Stale) {
+        return true;
+      }
+
+      return method.Status >= PublishedVerificationStatus.Error;
+    }
   }
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
+    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
     await Task.Delay(10);
-    var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
-    diagnosticsReceiver.ClearQueue();
-    return result;
+    try {
+      var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
+      diagnosticsReceiver.ClearQueue();
+      return result;
+    } catch (InvalidOperationException) {
+      await output.WriteLineAsync(
+        $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
+      var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      await output.WriteLineAsync(
+        $"After waiting for diagnostics, got: {diagnostic.Stringify()}");
+      throw;
+    }
   }
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning, CancellationToken? cancellationToken = null, bool allowStale = false) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,
+    CancellationToken? cancellationToken = null, bool allowStale = false) {
     var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
     return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
@@ -251,10 +241,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     cancellationSource = new();
     cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
 
-    diagnosticsReceiver = new();
-    compilationStatusReceiver = new();
-    verificationStatusReceiver = new();
-    ghostnessReceiver = new();
+    diagnosticsReceiver = new(logger);
+    compilationStatusReceiver = new(logger);
+    verificationStatusReceiver = new(logger);
+    ghostnessReceiver = new(logger);
     (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
   }
 
@@ -304,15 +294,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     });
   }
 
-  public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.GetLastDocumentAsync().WaitAsync(cancellationToken);
-      } catch (TaskCanceledException) {
-
-      }
-    }
-    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verification{fileIndex++}.dfy");
+  protected async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
+    var verificationDocumentItem = CreateTestDocument("method Foo() { assert false; }", $"verificationStatus{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     try {
@@ -324,28 +307,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       TextDocument = verificationDocumentItem
     });
     var emptyReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
-  }
-
-  public async Task AssertNoGhostnessIsComing(CancellationToken cancellationToken) {
-    foreach (var entry in Projects.Managers) {
-      try {
-        await entry.GetLastDocumentAsync();
-      } catch (TaskCanceledException) {
-
-      }
-    }
-    var verificationDocumentItem = CreateTestDocument(@"class X {does not parse", $"verification{fileIndex++}.dfy");
-    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
-      "Unexpected diagnostics were received whereas none were expected:\n" +
-      string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
-        diagnostic.ToString())));
-    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
-      TextDocument = verificationDocumentItem
-    });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
   protected async Task<Diagnostic[]> GetNextDiagnostics(TextDocumentItem documentItem, CancellationToken? cancellationToken = null, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
@@ -427,12 +388,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     ).AsTask();
   }
 
-  protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem,
+  protected Task ApplyChangesAndWaitCompletionAsync(ref TextDocumentItem documentItem,
     params TextDocumentContentChangeEvent[] changes) {
-    return ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
+    var result = ApplyChangesAndWaitCompletionAsync(new VersionedTextDocumentIdentifier() {
       Version = documentItem.Version!.Value,
       Uri = documentItem.Uri
     }, changes);
+    documentItem = documentItem with {
+      Version = documentItem.Version + 1
+    };
+    return result;
   }
 
   protected Task ApplyChangesAndWaitCompletionAsync(VersionedTextDocumentIdentifier documentItem, params TextDocumentContentChangeEvent[] changes) {
@@ -455,8 +420,24 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
     var documentItem = CreateTestDocument(source, Path.Combine(directory, filename));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var document = await Projects.GetLastDocumentAsync(documentItem);
-    Assert.NotNull(document);
     return documentItem;
+  }
+
+  /// <summary>
+  /// Given <paramref name="source"/> with N positions, for each K from 0 to N exclusive,
+  /// assert that a RequestDefinition at position K
+  /// returns either the Kth range, or the range with key K (as a string).
+  /// </summary>
+  protected async Task AssertPositionsLineUpWithRanges(string source, string filePath = null) {
+    MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
+      out var positions, out var ranges);
+
+    var documentItem = await CreateOpenAndWaitForResolve(cleanSource, filePath);
+    for (var index = 0; index < positions.Count; index++) {
+      var position = positions[index];
+      var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+      var result = (await RequestDefinition(documentItem, position)).Single();
+      Assert.Equal(range, result.Location!.Range);
+    }
   }
 }

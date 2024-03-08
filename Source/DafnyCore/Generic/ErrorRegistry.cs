@@ -46,7 +46,7 @@ public static class ErrorRegistry {
   public static string NoneId => "none";
 #nullable enable
   public static List<ActionSignature>? GetAction(string? errorId) {
-    return errorId != null && codeActionMap.ContainsKey(errorId) ? new List<ActionSignature> { codeActionMap[errorId] } : null;
+    return errorId != null && codeActionMap.TryGetValue(errorId, out var value) ? new List<ActionSignature> { value } : null;
   }
 #nullable disable
 
@@ -66,12 +66,12 @@ public static class ErrorRegistry {
   }
 
 
-  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) };
+  public static DafnyCodeActionEdit[] OneEdit(RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) };
   }
 
-  public static DafnyAction OneAction(string title, RangeToken range, string newcontent, bool includeTrailingWhitespace = false) {
-    return new(title, new[] { new DafnyCodeActionEdit(range, newcontent, includeTrailingWhitespace) });
+  public static DafnyAction OneAction(string title, RangeToken range, string newContent, bool includeTrailingWhitespace = false) {
+    return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
   public static RangeToken IncludeComma(RangeToken range) {
@@ -180,13 +180,7 @@ public static class ErrorRegistry {
 
 #nullable enable
   public static string? GetDetail(string? errorId) {
-    if (errorId == null) {
-      return null;
-    }
-    if (errorDetailMap.TryGetValue(errorId, out var result)) {
-      return result;
-    }
-    return null;
+    return errorId == null ? null : errorDetailMap.GetValueOrDefault(errorId);
   }
 #nullable disable
 }

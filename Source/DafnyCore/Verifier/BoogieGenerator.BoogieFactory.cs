@@ -198,8 +198,9 @@ namespace Microsoft.Dafny {
       return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
-    private Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, string comment = null, bool isAssumeStatement = false, Bpl.QKeyValue attributes = null) {
-      return TrAssumeCmdWithDependenciesAndExtend(etran, tok, dafnyExpr, e => e, comment, isAssumeStatement, attributes);
+    private Bpl.AssumeCmd TrAssumeCmdWithDependencies(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, string comment = null,
+      bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
+      return TrAssumeCmdWithDependenciesAndExtend(etran, tok, dafnyExpr, e => e, comment, warnWhenUnused, attributes);
     }
 
     // This method translates a Dafny expression to a Boogie expression,
@@ -208,10 +209,11 @@ namespace Microsoft.Dafny {
     // expressions, for instance), creates an assume statement in Boogie,
     // and then adds information to track that assumption as a potential
     // proof dependency.
-    private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr, string comment = null, bool isAssumeStatement = false, Bpl.QKeyValue attributes = null) {
+    private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
+      string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(isAssumeStatement, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 
@@ -293,30 +295,24 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
         case BuiltinFunction.SetEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.SetType(tok, true, typeInstantiation);
+            Bpl.Type resultType = predef.SetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SetUnionOne:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#UnionOne", predef.SetType(tok, true, typeInstantiation), args);
+          return FunctionCall(tok, "Set#UnionOne", predef.SetType, args);
         case BuiltinFunction.SetUnion:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Union", predef.SetType(tok, true, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Union", predef.SetType, args);
         case BuiltinFunction.SetIntersection:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Intersection", predef.SetType(tok, true, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Intersection", predef.SetType, args);
         case BuiltinFunction.SetDifference:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Set#Difference", predef.SetType(tok, true, typeInstantiation), args);
+          return FunctionCall(tok, "Set#Difference", predef.SetType, args);
         case BuiltinFunction.SetEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -331,148 +327,114 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.ISetEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.SetType(tok, false, typeInstantiation);
+            Bpl.Type resultType = predef.ISetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "ISet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.ISetUnionOne:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "ISet#UnionOne", predef.SetType(tok, false, typeInstantiation), args);
+          return FunctionCall(tok, "ISet#UnionOne", predef.ISetType, args);
         case BuiltinFunction.ISetUnion:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "ISet#Union", predef.SetType(tok, false, typeInstantiation), args);
+          return FunctionCall(tok, "ISet#Union", predef.ISetType, args);
         case BuiltinFunction.ISetIntersection:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "ISet#Intersection", predef.SetType(tok, false, typeInstantiation), args);
+          return FunctionCall(tok, "ISet#Intersection", predef.ISetType, args);
         case BuiltinFunction.ISetDifference:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "ISet#Difference", predef.SetType(tok, false, typeInstantiation), args);
+          return FunctionCall(tok, "ISet#Difference", predef.ISetType, args);
         case BuiltinFunction.ISetEqual:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "ISet#Equal", Bpl.Type.Bool, args);
         case BuiltinFunction.ISetSubset:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "ISet#Subset", Bpl.Type.Bool, args);
         case BuiltinFunction.ISetDisjoint:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "ISet#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);
         case BuiltinFunction.MultiSetEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.MultiSetType(tok, typeInstantiation);
+            Bpl.Type resultType = predef.MultiSetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "MultiSet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MultiSetUnionOne:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#UnionOne", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#UnionOne", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetUnion:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#Union", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#Union", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetIntersection:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#Intersection", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#Intersection", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetDifference:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#Difference", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#Difference", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetEqual:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiSet#Equal", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetSubset:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiSet#Subset", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetDisjoint:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "MultiSet#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetFromSet:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType, args);
         case BuiltinFunction.MultiSetFromSeq:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType, args);
         case BuiltinFunction.IsGoodMultiSet:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SeqLength:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
         case BuiltinFunction.SeqEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
+            Bpl.Type resultType = predef.SeqType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SeqBuild:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Build", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Build", predef.SeqType, args);
         case BuiltinFunction.SeqAppend:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Append", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Append", predef.SeqType, args);
         case BuiltinFunction.SeqIndex:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Index", typeInstantiation, args);
+          return FunctionCall(tok, "Seq#Index", predef.BoxType, args);
         case BuiltinFunction.SeqUpdate:
           Contract.Assert(args.Length == 3);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Update", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Update", predef.SeqType, args);
         case BuiltinFunction.SeqContains:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Contains", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqDrop:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Drop", predef.SeqType, args);
         case BuiltinFunction.SeqTake:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Take", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Take", predef.SeqType, args);
         case BuiltinFunction.SeqEqual:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Equal", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqSameUntil:
           Contract.Assert(args.Length == 3);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#SameUntil", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqFromArray:
           Contract.Assert(args.Length == 2);
-          Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "Seq#FromArray", typeInstantiation, args);
         case BuiltinFunction.SeqRank:
           Contract.Assert(args.Length == 1);
-          Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Rank", Bpl.Type.Int, args);
 
         case BuiltinFunction.MapEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.MapType(tok, true, typeInstantiation, typeInstantiation);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            Bpl.Type resultType = predef.MapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MapCard:
@@ -487,7 +449,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Map#Elements", typeInstantiation, args);
         case BuiltinFunction.MapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "Map#Glue", predef.MapType(tok, true, predef.BoxType, predef.BoxType), args);
+          return FunctionCall(tok, "Map#Glue", predef.MapType, args);
         case BuiltinFunction.MapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -503,8 +465,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.IMapEmpty: {
             Contract.Assert(args.Length == 0);
-            Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.MapType(tok, false, typeInstantiation, typeInstantiation);  // use 'typeInstantiation' (which is really always just BoxType anyway) as both type arguments
+            Bpl.Type resultType = predef.IMapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "IMap#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.IMapDomain:
@@ -515,7 +476,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "IMap#Elements", typeInstantiation, args);
         case BuiltinFunction.IMapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "IMap#Glue", predef.MapType(tok, false, predef.BoxType, predef.BoxType), args);
+          return FunctionCall(tok, "IMap#Glue", predef.IMapType, args);
         case BuiltinFunction.IMapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -524,11 +485,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.IndexField:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "IndexField", predef.FieldName(tok, predef.BoxType), args);
+          return FunctionCall(tok, "IndexField", predef.FieldName(tok), args);
         case BuiltinFunction.MultiIndexField:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok, predef.BoxType), args);
+          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok), args);
 
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
@@ -580,7 +541,7 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.FieldOfDecl:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation), args);
+          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok), args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
