@@ -356,7 +356,7 @@ public class MultiBackendTest {
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
+    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
       return 0;
     }
 
@@ -415,8 +415,11 @@ public class MultiBackendTest {
     return (exitCode, outputWriter.ToString(), errorWriter.ToString());
   }
 
-  private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
+  private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
+    if (output == "") {
+      return false;
+    }
     while (sr.ReadLine() is { } line) {
       if (!IsAllowedOutputLine(backend, line)) {
         return false;
@@ -433,7 +436,7 @@ public class MultiBackendTest {
     }
 
     // This is output if the compiler emits any errors
-    if (line.StartsWith("Wrote textual form of partial target program to")) {
+    if (line.StartsWith("Translation was aborted")) {
       return true;
     }
 
