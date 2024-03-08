@@ -353,7 +353,7 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   public static readonly Option<string> BackendModuleName = new("--module-name",
-    @"If supported by the backend, this Option is used to create the top level module/project/package name".TrimStart()) {
+    @"This Option is used to create the top level module/project/package name".TrimStart()) {
   };
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
