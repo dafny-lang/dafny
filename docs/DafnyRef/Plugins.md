@@ -14,10 +14,11 @@ Plugins are libraries linked to a `Dafny.dll` of the same version as the languag
 A plugin typically defines:
 
 * Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration`, which receives plugins arguments in its method `ParseArguments`, and
-  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when its method `GetRewriters()` is called by Dafny,
-  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when its method `GetCompilers()` is called by Dafny,
-  3) If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`,
-     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`s when its method `GetDafnyCodeActionProviders()` is called by the Dafny Language Server.
+  1. Can return a list of `Microsoft.Dafny.Plugins.Rewriter`s when its method `GetRewriters()` is called by Dafny,
+  2. Can return a list of `Microsoft.Dafny.Plugins.Compiler`s when its method `GetCompilers()` is called by Dafny,
+  3. If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`:
+      1. Can return a list of `Microsoft.Dafny.LanguageServer.Plugins.DafnyCodeActionProvider`s when its method `GetDafnyCodeActionProviders()` is called by the Dafny Language Server.
+      2. Can return a modified version of `OmniSharp.Extensions.LanguageServer.Server.LanguageServerOptions` when its method `WithPluginHandlers()` is called by the Dafny Language Server.
 
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
@@ -38,11 +39,12 @@ Plugins are typically used to report additional diagnostics such as unsupported 
 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
 
-## 15.1. Code actions plugin tutorial
+## 15.1. Language server plugin tutorial
 
-In this section, we will create a plugin to provide more code actions to Dafny.
-The code actions will be simple: Add a dummy comment in front of the first method name,
-if the selection is on the line of the method.
+In this section, we will create a plugin to extend the functionality of the Dafny language server.
+First we will show the steps needed to create a plugin, after which an example implementation will be shown for both providing more code actions and adding custom request handlers.
+
+### 15.1.1. Create plugin project
 
 Assuming the Dafny source code is installed in the folder `dafny/`
 start by creating an empty folder next to it, e.g. `PluginTutorial/`
@@ -57,7 +59,7 @@ dotnet new classlib
 ```
 It will create a file `Class1.cs` that you can rename
 ```bash
-mv Class1.cs PluginAddComment.cs
+mv Class1.cs MyPlugin.cs
 ```
 Open the newly created file `PluginTutorial.csproj`, and add the following after `</PropertyGroup>`:
 ```xml
@@ -66,7 +68,12 @@ Open the newly created file `PluginTutorial.csproj`, and add the following after
   </ItemGroup>
 ```
 
-Then, open the file `PluginAddComment.cs`, remove everything, and write the imports and a namespace:
+#### 15.1.2.1. Code actions plugin
+
+The code actions will be simple: Add a dummy comment in front of the first method name,
+if the selection is on the line of the method.
+
+Then, open the file `MyPlugin.cs`, remove everything, and write the imports and a namespace:
 
 ```csharp
 using Microsoft.Dafny;
@@ -76,7 +83,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using System.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace PluginAddComment;
+namespace MyPlugin;
 ```
 
 After that, add a `PluginConfiguration` that will expose all the quickfixers of your plugin.
@@ -147,6 +154,61 @@ In that case, we could return:
     new CustomDafnyCodeAction(firstTokenRange)
   };
 ```
+
+#### 15.1.2.2. Request handler plugin
+
+The request handler will be simple: the request will get a `TextDocumentIdentifier` as parameter and will return a `bool` value denoting whether the provided `DocumentUri` has any `LoopStmt`'s in it.
+
+Then, open the file `MyPlugin.cs`, remove everything, and write the imports and a namespace:
+
+```csharp
+using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.LanguageServer.Server;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace;
+using MediatR;
+using Microsoft.Dafny;
+
+namespace MyPlugin;
+```
+
+After that, add a `PluginConfiguration` that will add all the request handlers of your plugin.
+This class will be discovered and instantiated automatically by Dafny.
+```csharp
+public class TestConfiguration : PluginConfiguration {
+  public override LanguageServerOptions WithPluginHandlers(LanguageServerOptions options) {
+    return options.WithHandler<DummyHandler>();
+  }
+}
+```
+Note that you could also override the methods `GetRewriters()` and `GetCompilers()` for other purposes, but this is out of scope for this tutorial.
+
+Then, we need to create the request handler `DummyHandler` itself:
+
+```csharp
+[Parallel]
+[Method("dafny/request/dummy", Direction.ClientToServer)]
+public record DummyParams : TextDocumentIdentifier, IRequest<bool>;
+
+public class DummyHandler : IJsonRpcRequestHandler<DummyParams, bool> {
+  private readonly IProjectDatabase projects;
+  public DummyHandler(IProjectDatabase projects) {
+    this.projects = projects;
+  }
+  public async Task<bool> Handle(DummyParams request, CancellationToken cancellationToken) {
+    var state = await projects.GetParsedDocumentNormalizeUri(request);
+    if (state == null) {
+      return false;
+    }
+    return state.Program.Descendants().OfType<LoopStmt>().Any();
+  }
+}
+```
+
+For more advanced example implementations of request handlers look at `dafny/Source/DafnyLanguageServer/Handlers/*`.
+
+### 15.1.3. Building plugin
 
 That's it! Now, build your library while inside your folder:
 ```bash
