@@ -174,7 +174,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
     object tomlValue;
-    if (!Options.TryGetValue(option.Name, out tomlValue) && command != null && !(Options.TryGetValue(command.Name, out tomlValue) && tomlValue is TomlTable tomlTable && tomlTable.TryGetValue(option.Name, out tomlValue))) {
+    if (!Options.TryGetValue(option.Name, out tomlValue) && !(command != null && Options.TryGetValue(command.Name, out tomlValue) && tomlValue is TomlTable tomlTable && tomlTable.TryGetValue(option.Name, out tomlValue))) {
       value = null;
       return false;
     }
