@@ -14,10 +14,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     /// <param name="options">The language server where the handlers should be registered to.</param>
     /// <returns>The language server enriched with the dafny handlers.</returns>
     public static LanguageServerOptions WithDafnyHandlers(this LanguageServerOptions options, DafnyOptions dafnyOptions) {
-      dafnyOptions.Plugins.ForEach(plugin =>
+      foreach (var plugin in dafnyOptions.Plugins) {
         options = plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
-        configuration.WithPluginHandlers(options) : options
-      );
+          configuration.WithPluginHandlers(options) : options;
+      }
       return options
         .WithHandler<DafnyTextDocumentHandler>()
         .WithHandler<DafnyDocumentSymbolHandler>()
