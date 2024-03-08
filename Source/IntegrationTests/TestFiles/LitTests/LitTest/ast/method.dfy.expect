@@ -15,3 +15,4 @@ Dafny program verifier finished with 1 verified, 0 errors
 method.dfy(6,7): Error: Method _module._default.Compiled has no body so it cannot be compiled
 method.dfy(8,16): Error: Method _module._default.Axiom has no body so it cannot be compiled
 method.dfy(16,2): Error: a loop without a body cannot be compiled
+Translation was aborted because errors were found

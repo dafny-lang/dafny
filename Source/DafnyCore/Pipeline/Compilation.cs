@@ -57,7 +57,7 @@ public class Compilation : IDisposable {
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
 
-  private DafnyOptions Options => Input.Options;
+  public DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
   public DafnyProject Project => Input.Project;
   private readonly ExecutionEngine boogieEngine;
@@ -225,8 +225,6 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
-      Options.ProcessSolverOptions(errorReporter, Options.DafnyProject.StartingToken);
-
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopy()));
@@ -281,10 +279,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
   }
 
   public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+    int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
@@ -293,23 +292,23 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
       return false;
     }
 
     updates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter) {
+    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -345,7 +344,7 @@ public class Compilation : IDisposable {
         updated = true;
         return result;
       });
-      if (updated) {
+      if (updated || randomSeed != null) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
           tasksPerVerifiable[canVerify].ToList()));
       }
@@ -355,7 +354,8 @@ public class Compilation : IDisposable {
 
       if (!onlyPrepareVerificationForGutterTests) {
         foreach (var task in tasks.Where(taskFilter)) {
-          VerifyTask(canVerify, task);
+          var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
+          VerifyTask(canVerify, seededTask);
         }
       }
 
