@@ -72,10 +72,14 @@ public class LibraryBackend : ExecutableBackend {
       throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.LegacyCLI);
     }
 
-    foreach (var module in dafnyProgram.Modules()) {
-      if (module.ShouldCompile(dafnyProgram.Compilation) && module.NeverVerified(dafnyProgram.Compilation)) {
-        Reporter.Error(MessageSource.Compiler, module.Tok, 
-          $"Module {module.Name} was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.");
+    // Check for any modules that were not verified or preverified,
+    // unless we have --no-verify (which will be explicitly recorded in the doo file)
+    if (Options.Verify) {
+      foreach (var module in dafnyProgram.Modules()) {
+        if (module.ShouldCompile(dafnyProgram.Compilation) && module.NeverVerified(dafnyProgram.Compilation)) {
+          Reporter.Error(MessageSource.Compiler, module.Tok,
+            $"Module {module.Name} was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.");
+        }
       }
     }
 
