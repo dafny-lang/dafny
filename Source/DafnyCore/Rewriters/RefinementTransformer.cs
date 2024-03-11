@@ -206,7 +206,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
 
         // check that the openness in the imports between refinement and its base matches
-        Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new ();
+        Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new();
         foreach (var baseDecl in refinementTarget.Def.TopLevelDecls) {
           refinedModuleTopLevelDecls.Add(baseDecl.Name, baseDecl);
         }
