@@ -125,7 +125,7 @@ module BugReport0 {
     type T(!new, ==)
 
     twostate lemma L(new t: T)
-      ensures old(allocated(t)) // Uses the !new annotation on T
+      ensures old(allocated(t))
     {}
   }
 
