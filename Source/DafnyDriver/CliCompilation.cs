@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
@@ -21,20 +22,16 @@ namespace DafnyDriver.Commands;
 
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
-public class CliCompilation : IDisposable {
-  private readonly DafnyOptions options;
-
-  private Compilation Compilation { get; }
+public class CliCompilation {
+  public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
-  private bool verifiedAssertions;
-
-  private readonly List<IDisposable> disposables = new();
+  public bool DidVerification { get; private set; }
 
   private CliCompilation(
     CreateCompilation createCompilation,
     DafnyOptions options) {
-    this.options = options;
+    Options = options;
 
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
@@ -95,9 +92,9 @@ public class CliCompilation : IDisposable {
       throw new InvalidOperationException("Compilation was already started");
     }
 
-    ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
-      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
-      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
+    ErrorReporter consoleReporter = Options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(Options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
 
@@ -115,14 +112,14 @@ public class CliCompilation : IDisposable {
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.Program.Name;
-          options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
+          Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
-        DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
+        DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, Options.DafnyPrintResolvedFile, true);
 
         if (errorCount > 0) {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
-          options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
+          Options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
         }
       }
 
@@ -130,22 +127,13 @@ public class CliCompilation : IDisposable {
     Compilation.Start();
   }
 
-  public IObservable<CanVerifyResult> VerificationResults => verificationResults;
-  private readonly Subject<CanVerifyResult> verificationResults = new();
-  private bool didVerification;
+  public DafnyOptions Options { get; }
 
-  public Task VerifyAll() {
-    var task = new TaskCompletionSource();
-    verificationResults.Subscribe(_ => { }, e =>
-      task.TrySetException(e), () =>
-      task.TrySetResult());
-    VerifyAllLazily().ToObservable().Subscribe(verificationResults);
-    return task.Task;
-  }
+  public bool VerifiedAssertions { get; private set; }
 
-  private async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily() {
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
-    Compilation.Updates.Subscribe(ev => {
+    using var subscription = Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
@@ -181,11 +169,9 @@ public class CliCompilation : IDisposable {
       yield break;
     }
 
-    if (errorCount > 0) {
+    if (resolution.HasErrors) {
       yield break;
     }
-
-    didVerification = true;
 
     var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
 
@@ -193,8 +179,10 @@ public class CliCompilation : IDisposable {
       yield break;
     }
 
+    DidVerification = true;
+
     canVerifies = FilterCanVerifies(canVerifies, out var line);
-    verifiedAssertions = line != null;
+    VerifiedAssertions = line != null;
 
     var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
     foreach (var canVerify in orderedCanVerifies) {
@@ -204,13 +192,16 @@ public class CliCompilation : IDisposable {
         results.TaskFilter = t => KeepVerificationTask(t, line.Value);
       }
 
-      await Compilation.VerifyCanVerify(canVerify, results.TaskFilter);
+      var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
+      if (!shouldVerify) {
+        orderedCanVerifies.Remove(canVerify);
+      }
     }
 
     foreach (var canVerify in orderedCanVerifies) {
       var results = canVerifyResults[canVerify];
       try {
-        var timeLimitSeconds = TimeSpan.FromSeconds(options.Get(BoogieOptionBag.VerificationTimeLimit));
+        var timeLimitSeconds = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
         var tasks = new List<Task> { results.Finished.Task };
         if (timeLimitSeconds.Seconds != 0) {
           tasks.Add(Task.Delay(timeLimitSeconds));
@@ -226,7 +217,7 @@ public class CliCompilation : IDisposable {
         await results.Finished.Task;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-        throw;
+        yield break;
       } catch (OperationCanceledException) {
 
       } catch (Exception e) {
@@ -241,12 +232,12 @@ public class CliCompilation : IDisposable {
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
-    var symbolFilter = options.Get(VerifyCommand.FilterSymbol);
+    var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
     if (symbolFilter != null) {
       canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
     }
 
-    var filterPosition = options.Get(VerifyCommand.FilterPosition);
+    var filterPosition = Options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
       line = null;
       return canVerifies;
@@ -275,146 +266,6 @@ public class CliCompilation : IDisposable {
 
   private bool KeepVerificationTask(IVerificationTask task, int line) {
     return task.ScopeToken.line == line || task.Token.line == line;
-  }
-
-  public void ReportVerificationDiagnostics() {
-    VerificationResults.Subscribe(result => {
-      // We use an intermediate reporter so we can sort the diagnostics from all parts by token
-      var batchReporter = new BatchErrorReporter(options);
-      foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
-          (uint)completed.Result.RunTime.Seconds,
-          completed.Result, batchReporter);
-      }
-
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
-      }
-    });
-  }
-
-  public void ReportVerificationSummary() {
-    var statistics = new VerificationStatistics();
-
-    VerificationResults.Subscribe(result => {
-      foreach (var taskResult in result.Results) {
-        var runResult = taskResult.Result;
-
-        switch (runResult.Outcome) {
-          case SolverOutcome.Valid:
-          case SolverOutcome.Bounded:
-            Interlocked.Increment(ref statistics.VerifiedSymbols);
-            Interlocked.Add(ref statistics.VerifiedAssertions, runResult.Asserts.Count);
-            break;
-          case SolverOutcome.Invalid:
-            var total = runResult.Asserts.Count;
-            var errors = runResult.CounterExamples.Count;
-            Interlocked.Add(ref statistics.VerifiedAssertions, total - errors);
-            Interlocked.Add(ref statistics.ErrorCount, errors);
-            break;
-          case SolverOutcome.TimeOut:
-            Interlocked.Increment(ref statistics.TimeoutCount);
-            break;
-          case SolverOutcome.OutOfMemory:
-            Interlocked.Increment(ref statistics.OutOfMemoryCount);
-            break;
-          case SolverOutcome.OutOfResource:
-            Interlocked.Increment(ref statistics.OutOfResourceCount);
-            break;
-          case SolverOutcome.Undetermined:
-            Interlocked.Increment(ref statistics.InconclusiveCount);
-            break;
-          default:
-            throw new ArgumentOutOfRangeException();
-        }
-      }
-    }, e => {
-      Interlocked.Increment(ref statistics.SolverExceptionCount);
-    }, () => {
-      disposables.Add(WriteTrailer(options.OutputWriter, verifiedAssertions, statistics));
-    });
-  }
-
-  private async Task WriteTrailer(TextWriter output, bool reportAssertions, VerificationStatistics statistics) {
-    if (options.Verbosity <= CoreOptions.VerbosityLevel.Quiet) {
-      return;
-    }
-
-    if (!didVerification) {
-      return;
-    }
-
-    await output.WriteLineAsync();
-
-    if (reportAssertions) {
-      await output.WriteAsync($"{options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
-
-    } else {
-      await output.WriteAsync($"{options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
-    };
-    if (statistics.InconclusiveCount != 0) {
-      await output.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
-    }
-
-    if (statistics.TimeoutCount != 0) {
-      await output.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
-    }
-
-    if (statistics.OutOfMemoryCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
-    }
-
-    if (statistics.OutOfResourceCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
-    }
-
-    if (statistics.SolverExceptionCount != 0) {
-      await output.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
-    }
-
-    await output.WriteLineAsync();
-    await output.FlushAsync();
-  }
-
-  public void RecordProofDependencies(ResolutionResult resolution) {
-    var usedDependencies = new HashSet<TrackedNodeComponent>();
-    var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
-    VerificationResultLogger? verificationResultLogger = null;
-    try {
-      verificationResultLogger = new VerificationResultLogger(options, proofDependencyManager);
-    } catch (ArgumentException e) {
-      Compilation.Reporter.Error(MessageSource.Verifier, Compilation.Project.StartingToken, e.Message);
-    }
-
-    verificationResults.Subscribe(result => {
-      ProofDependencyWarnings.ReportSuspiciousDependencies(options, result.Results,
-        resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
-
-      verificationResultLogger?.Report(result);
-
-      foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
-        usedDependencies.Add(used);
-      }
-    },
-      e => { },
-      () => {
-        verificationResultLogger?.Finish();
-
-        var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
-        if (coverageReportDir != null) {
-          new CoverageReporter(options).SerializeVerificationCoverageReport(
-            proofDependencyManager, resolution.ResolvedProgram,
-            usedDependencies,
-            coverageReportDir);
-        }
-      });
-  }
-
-  public void Dispose() {
-    foreach (var disposable in disposables) {
-      disposable.Dispose();
-    }
   }
 }
 

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace XUnitExtensions.Lit;
@@ -43,7 +45,36 @@ class CombinedWriter : TextWriter {
     return Task.WhenAll(writers.Select(w => w.WriteAsync(value)));
   }
 
+  public override Task WriteAsync(string? value) {
+    return Task.WhenAll(writers.Select(w => w.WriteAsync(value)));
+  }
+
   public override Task WriteAsync(char[] buffer, int index, int count) {
     return Task.WhenAll(writers.Select(w => w.WriteAsync(buffer, index, count)));
+  }
+
+  public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = new()) {
+    return Task.WhenAll(writers.Select(w => w.WriteAsync(buffer, cancellationToken)));
+  }
+
+  public override Task WriteLineAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = new()) {
+    return Task.WhenAll(writers.Select(w => w.WriteLineAsync(buffer, cancellationToken)));
+  }
+
+  public override Task WriteLineAsync(char value) {
+    return Task.WhenAll(writers.Select(w => w.WriteLineAsync(value)));
+  }
+
+  public override Task WriteLineAsync(string? value) {
+    Console.WriteLine("WriteLineAsync from CombinedWriter called");
+    return Task.WhenAll(writers.Select(w => w.WriteLineAsync(value)));
+  }
+
+  public override Task WriteLineAsync(char[] buffer, int index, int count) {
+    return Task.WhenAll(writers.Select(w => w.WriteLineAsync(buffer, index, count)));
+  }
+
+  public override Task WriteLineAsync(StringBuilder? value, CancellationToken cancellationToken = new()) {
+    return Task.WhenAll(writers.Select(w => w.WriteLineAsync(value, cancellationToken)));
   }
 }

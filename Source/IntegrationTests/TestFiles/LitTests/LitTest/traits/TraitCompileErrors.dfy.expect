@@ -7,3 +7,4 @@ TraitCompileErrors.dfy(14,39): Warning: This ensures clause is part of a bodyles
 
 Dafny program verifier finished with 2 verified, 0 errors
 TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body so it cannot be compiled
+Translation was aborted because errors were found
