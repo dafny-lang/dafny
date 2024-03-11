@@ -352,10 +352,11 @@ namespace Microsoft.Dafny {
             // check that od's type characteristics are respected by nw's
             var newType = UserDefinedType.FromTopLevelDecl(nw.tok,
               nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
-            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsWrong, out var hint)) {
+            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint)) {
+              var typeCharacteristicsSyntax = od.Characteristics.ToString();
               Error(ErrorId.ref_mismatched_type_characteristics, nw.tok,
-                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}', " +
-                $"{nw.WhatKind} '{m.Name}.{nw.Name}' must support the type characteristic \"{whatIsWrong}\"{hint}");
+                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
+                $"{nw.WhatKind} '{m.Name}.{nw.Name}' must {whatIsNeeded}{hint}");
             }
           });
 
