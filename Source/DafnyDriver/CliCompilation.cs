@@ -2,10 +2,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reactive.Subjects;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +14,6 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Token = Microsoft.Dafny.Token;
-using Util = Microsoft.Dafny.Util;
 
 namespace DafnyDriver.Commands;
 
@@ -98,6 +95,7 @@ public class CliCompilation {
       _ => throw new ArgumentOutOfRangeException()
     };
 
+    var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
@@ -121,6 +119,10 @@ public class CliCompilation {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
           Options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
         }
+      } else if (ev is InternalCompilationException internalCompilationException) {
+        if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
+          Options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
+        }
       }
 
     });
@@ -143,6 +145,11 @@ public class CliCompilation {
 
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.SetResult();
+        }
+      }
+      if (ev is InternalCompilationException internalCompilationException) {
+        foreach (var state in canVerifyResults.Values) {
+          state.Finished.TrySetException(internalCompilationException.Exception);
         }
       }
 
