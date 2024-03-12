@@ -58,8 +58,8 @@ public class CliCompilation {
 
   public async Task<ExitValue> GetAndReportExitValue() {
     if (errorCount > 0) {
-      await Options.OutputWriter.WriteLineAsync(
-        "Failing compilation because errors were found");
+      // await Options.OutputWriter.WriteLineAsync(
+      //   "Compilation failed because errors were found");
       if (HasErrorsFromSource(MessageSource.Project)) {
         return ExitValue.PREPROCESSING_ERROR;
       }
@@ -71,8 +71,8 @@ public class CliCompilation {
     }
 
     if (warningCount > 0 && !Options.Get(CommonOptionBag.AllowWarnings)) {
-      await Options.OutputWriter.WriteLineAsync(
-        "Failing compilation because warnings were found and --allow-warning is false");
+      // await Options.OutputWriter.WriteLineAsync(
+      //   "Compilation failed because warnings were found and --allow-warning is false");
       return ExitValue.DAFNY_ERROR;
     }
 
