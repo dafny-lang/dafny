@@ -5066,8 +5066,7 @@ namespace Microsoft.Dafny {
           if (lax) {
             // we have to be careful about uses of the type being defined
             var cg = enclosingTypeDefinition.EnclosingModuleDefinition.CallGraph;
-            var t0 = resolvedClass as ICallable;
-            if (t0 != null && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative((ICallable)enclosingTypeDefinition)) {
+            if (resolvedClass is ICallable t0 && enclosingTypeDefinition is ICallable t1 && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative(t1)) {
               reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }
           }
