@@ -225,6 +225,9 @@ public class Compilation : IDisposable {
         return null;
       }
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
+      if (resolution == null) {
+        return null;
+      }
 
       updates.OnNext(new FinishedResolution(
         resolution,
