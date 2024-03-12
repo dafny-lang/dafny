@@ -40,10 +40,7 @@ public static class ShouldCompileOrVerify {
       // Required for DefaultModuleDefinition.
       return true;
     }
-    if (compilation.UrisToVerify == null) {
-      compilation.UrisToVerify = ComputeUrisToVerify(compilation);
-    }
-    if (!compilation.UrisToVerify.Contains(declaration.Tok.Uri)) {
+    if (!NotYetVerified(declaration, compilation)) {
       return false;
     }
 
@@ -53,14 +50,19 @@ public static class ShouldCompileOrVerify {
 
     return !declaration.Tok.FromIncludeDirective(compilation);
   }
-  
+
+  private static bool NotYetVerified(INode declaration, CompilationData compilation) {
+    compilation.UrisToVerify ??= ComputeUrisToVerify(compilation);
+    return compilation.UrisToVerify.Contains(declaration.Tok.Uri);
+  }
+
   // Returns true iff the declaration was not already verified and will not be verified by this compilation
   public static bool NeverVerified(this INode declaration, CompilationData compilation) {
     if (ShouldVerify(declaration, compilation)) {
       return false;
     }
 
-    return !compilation.AlreadyVerifiedRoots.Contains(declaration.Tok.Uri);
+    return NotYetVerified(declaration, compilation);
   }
 
   public static bool FromIncludeDirective(this IToken token, CompilationData outerModule) {
