@@ -94,8 +94,7 @@ ExportResolve.dfy(288,39): Error: member 'u' has not been imported in this scope
 ExportResolve.dfy(290,18): Error: type of corresponding source/RHS (G.Trait) does not match type of bound variable (object?)
 ExportResolve.dfy(290,46): Error: type of corresponding source/RHS (G.Klass) does not match type of bound variable (object?)
 ExportResolve.dfy(298,19): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(342,15): Error: unresolved identifier: reveal_OpaqueFunction
-ExportResolve.dfy(342,29): Error: expression has no reveal lemma
+ExportResolve.dfy(342,15): Error: cannot reveal 'OpaqueFunction' because no revealable constant, function, assert label, or requires label in the current scope is named 'OpaqueFunction'
 ExportResolve.dfy(414,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(410,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
 ExportResolve.dfy(411,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
@@ -118,4 +117,4 @@ ExportResolve.dfy(620,11): Error: new can be applied only to class types (got S.
 ExportResolve.dfy(624,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(634,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
 ExportResolve.dfy(637,10): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
-120 resolution/type errors detected in ExportResolve.dfy
+119 resolution/type errors detected in ExportResolve.dfy

@@ -45,7 +45,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     KeywordToken = cloner.AttributedTok(original.KeywordToken);
 
     if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
@@ -235,7 +235,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
 
     DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
-    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken != null);
+    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken?.Token.val);
   }
 
   public void ResolveKeywordToken(INewOrOldResolver resolver, ResolutionContext resolutionContext) {

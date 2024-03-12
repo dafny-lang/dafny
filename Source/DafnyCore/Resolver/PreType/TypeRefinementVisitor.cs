@@ -13,10 +13,10 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// The purpose of the TypeAdjustorVisitor is to incorporate subset types into the types that were inferred during
+/// The purpose of the TypeRefinementVisitor is to incorporate subset types into the types that were inferred during
 /// pre-type inference. The visitor collects constraints, which are solved by the Solve() method.
 /// </summary>
-public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
+public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
   private string moduleDescription;
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;
@@ -24,7 +24,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
   private readonly SystemModuleManager systemModuleManager;
 
-  public TypeAdjustorVisitor(string moduleDescription, SystemModuleManager systemModuleManager) {
+  public TypeRefinementVisitor(string moduleDescription, SystemModuleManager systemModuleManager) {
     this.moduleDescription = moduleDescription;
     this.systemModuleManager = systemModuleManager;
   }
@@ -32,11 +32,11 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
   private readonly List<Flow> flows = new();
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-adjustment flows, {moduleDescription}:");
+    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");
     foreach (var flow in flows) {
       flow.DebugPrint(systemModuleManager.Options.OutputWriter);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-adjustment flows, {moduleDescription})");
+    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
   }
 
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
@@ -57,13 +57,15 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
       flows.Add(new FlowFromType(expr, identifierExpr.Var.UnnormalizedType, identifierExpr.Name));
 
     } else if (expr is SeqSelectExpr selectExpr) {
-      var seqType = selectExpr.Seq.UnnormalizedType;
+      var unnormalizedSeqType = selectExpr.Seq.UnnormalizedType;
+      var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(seqType.NormalizeExpand().TypeArgs[0])));
+        var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
+        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.tok));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 0));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
-        flows.Add(new FlowFromTypeArgument(expr, seqType, 1));
+        flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 1));
       } else {
         Contract.Assert(seqType.AsMultiSetType != null);
         // type is fixed, so no flow to set up
@@ -112,7 +114,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = functionCallExpr.Args[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
-          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
+          return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
         }, functionCallExpr.tok, $"{functionCallExpr.Function.Name}({formal.Name} := ...)"));
       }
 
@@ -129,7 +131,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = datatypeValue.Arguments[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, datatypeValue.InferredTypeArgs);
-          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
+          return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
         }, datatypeValue.tok, $"{ctor.Name}({formal.Name} := ...)"));
       }
       flows.Add(new FlowFromComputedType(expr,
@@ -141,41 +143,51 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is SetDisplayExpr setDisplayExpr) {
       foreach (var element in setDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SetType(setDisplayExpr.Finite, AdjustableType.NormalizeSansBottom(element)), "set display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SetType(setDisplayExpr.Finite, TypeRefinementWrapper.NormalizeSansBottom(element)), "set display"));
       }
 
     } else if (expr is MultiSetDisplayExpr multiSetDisplayExpr) {
       foreach (var element in multiSetDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MultiSetType(AdjustableType.NormalizeSansBottom(element)), "multiset display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MultiSetType(TypeRefinementWrapper.NormalizeSansBottom(element)), "multiset display"));
       }
 
     } else if (expr is SeqDisplayExpr seqDisplayExpr) {
       foreach (var element in seqDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new SeqType(AdjustableType.NormalizeSansBottom(element)), "sequence display"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new SeqType(TypeRefinementWrapper.NormalizeSansBottom(element)), "sequence display"));
       }
 
     } else if (expr is MapDisplayExpr mapDisplayExpr) {
       foreach (var element in mapDisplayExpr.Elements) {
-        flows.Add(new FlowFromComputedType(expr, () => new MapType(mapDisplayExpr.Finite,
-            AdjustableType.NormalizeSansBottom(element.A), AdjustableType.NormalizeSansBottom(element.B)),
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapDisplayExpr.Finite,
+            TypeRefinementWrapper.NormalizeSansBottom(element.A), TypeRefinementWrapper.NormalizeSansBottom(element.B)),
           "map display"));
       }
 
     } else if (expr is SetComprehension setComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => new SetType(setComprehension.Finite, AdjustableType.NormalizeSansBottom(setComprehension.Term)),
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => new SetType(setComprehension.Finite, TypeRefinementWrapper.NormalizeSansBottom(setComprehension.Term)),
         "set comprehension"));
 
     } else if (expr is MapComprehension mapComprehension) {
-      flows.Add(new FlowFromComputedType(expr, () => {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => {
         Type keyType;
         if (mapComprehension.TermLeft != null) {
-          keyType = AdjustableType.NormalizeSansBottom(mapComprehension.TermLeft);
+          keyType = TypeRefinementWrapper.NormalizeSansBottom(mapComprehension.TermLeft);
         } else {
           Contract.Assert(mapComprehension.BoundVars.Count == 1);
-          keyType = AdjustableType.NormalizeSansBottom(mapComprehension.BoundVars[0]);
+          keyType = TypeRefinementWrapper.NormalizeSansBottom(mapComprehension.BoundVars[0]);
         }
-        return new MapType(mapComprehension.Finite, keyType, AdjustableType.NormalizeSansBottom(mapComprehension.Term));
+        return new MapType(mapComprehension.Finite, keyType, TypeRefinementWrapper.NormalizeSansBottom(mapComprehension.Term));
       }, "map comprehension"));
+
+    } else if (expr is SeqConstructionExpr seqConstructionExpr) {
+      flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+        () => {
+          var arrowType = (ArrowType)seqConstructionExpr.Initializer.Type.NormalizeToAncestorType();
+          Contract.Assert(arrowType.TypeArgs.Count == 2);
+          return new SeqType(TypeRefinementWrapper.NormalizeSansBottom(arrowType.TypeArgs[1]));
+        },
+        "seq constructor"));
 
     } else if (expr is BinaryExpr binaryExpr) {
       switch (binaryExpr.ResolvedOp) {
@@ -267,7 +279,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
         for (var i = 0; i < letExpr.LHSs.Count; i++) {
           var rhs = letExpr.RHSs[i];
-          VisitPattern(letExpr.LHSs[i], () => AdjustableType.NormalizeSansBottom(rhs), context);
+          VisitPattern(letExpr.LHSs[i], () => TypeRefinementWrapper.NormalizeSansBottom(rhs), context);
         }
       }
       flows.Add(new FlowBetweenExpressions(expr, letExpr.Body, "let"));
@@ -275,8 +287,8 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (expr is LambdaExpr lambdaExpr) {
       flows.Add(new FlowFromComputedType(expr, () => {
         return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
-          lambdaExpr.BoundVars.ConvertAll(v => AdjustableType.NormalizeSansBottom(v)),
-          AdjustableType.NormalizeSansBottom(lambdaExpr.Body),
+          lambdaExpr.BoundVars.ConvertAll(v => TypeRefinementWrapper.NormalizeSansBottom(v)),
+          TypeRefinementWrapper.NormalizeSansBottom(lambdaExpr.Body),
           lambdaExpr.Reads.Expressions.Count != 0, lambdaExpr.Range != null, systemModuleManager);
       }, lambdaExpr.WhatKind));
 
@@ -315,7 +327,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
 
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
-      VisitPattern(varDeclPattern.LHS, () => AdjustableType.NormalizeSansBottom(varDeclPattern.RHS), context);
+      VisitPattern(varDeclPattern.LHS, () => TypeRefinementWrapper.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
         flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
@@ -335,7 +347,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
         var actual = callStmt.Args[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
-          return (AdjustableType.NormalizeSansBottom(formal).Subst(typeMap), AdjustableType.NormalizeSansBottom(actual));
+          return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
         }, callStmt.tok, $"{callStmt.Method.Name}({formal.Name} := ...)"));
       }
 
@@ -345,7 +357,7 @@ public class TypeAdjustorVisitor : ASTVisitor<IASTVisitorContext> {
           var formal = callStmt.Method.Outs[i];
           flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
             var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
-            return AdjustableType.NormalizeSansBottom(formal).Subst(typeMap);
+            return TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap);
           }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
         }
       }

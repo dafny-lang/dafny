@@ -57,7 +57,7 @@ public class Compilation : IDisposable {
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
 
-  private DafnyOptions Options => Input.Options;
+  public DafnyOptions Options => Input.Options;
   public CompilationInput Input { get; }
   public DafnyProject Project => Input.Project;
   private readonly ExecutionEngine boogieEngine;
@@ -225,8 +225,6 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
-      Options.ProcessSolverOptions(errorReporter, Options.DafnyProject.StartingToken);
-
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopy()));
@@ -281,10 +279,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
   }
 
   public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+    int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
@@ -293,23 +292,23 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
+    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
       return false;
     }
 
     updates.OnNext(new ScheduledVerification(canVerify));
 
     if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
+      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
       return true;
     }
 
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter);
+    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
 
   private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter) {
+    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -345,7 +344,7 @@ public class Compilation : IDisposable {
         updated = true;
         return result;
       });
-      if (updated) {
+      if (updated || randomSeed != null) {
         updates.OnNext(new CanVerifyPartsIdentified(canVerify,
           tasksPerVerifiable[canVerify].ToList()));
       }
@@ -355,7 +354,8 @@ public class Compilation : IDisposable {
 
       if (!onlyPrepareVerificationForGutterTests) {
         foreach (var task in tasks.Where(taskFilter)) {
-          VerifyTask(canVerify, task);
+          var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
+          VerifyTask(canVerify, seededTask);
         }
       }
 
@@ -462,17 +462,21 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, IVerificationTask task, VerificationRunResult result) {
+  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, ICanVerify canVerify,
+    IVerificationTask task, VerificationRunResult result) {
     var errorReporter = new ObservableErrorReporter(options, uri);
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, task, result, errorReporter);
+    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
+      task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, IVerificationTask task, VerificationRunResult result,
+  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+    uint timeLimit,
+    VerificationRunResult result,
     ErrorReporter errorReporter) {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
@@ -485,10 +489,9 @@ public class Compilation : IDisposable {
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    var implementation = task.Split.Implementation;
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
-      implementation.VerboseName, implementation.tok, null, TextWriter.Null,
-      implementation.GetTimeLimit(options), result.CounterExamples);
+      name, token, null, TextWriter.Null,
+      timeLimit, result.CounterExamples);
   }
 
   public static VcOutcome GetOutcome(SolverOutcome outcome) {

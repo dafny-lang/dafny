@@ -306,13 +306,14 @@ namespace Microsoft.Dafny {
           compiled = false;
         }
 
-        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilation;
+        var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
         if (!verified) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
-        } else if (failBecauseOfDiagnostics) {
+        } else if (failBecauseOfDiagnostics != null) {
           exitValue = ExitValue.DAFNY_ERROR;
+          await options.OutputWriter.WriteLineAsync($"Returning exit code {exitValue} because {failBecauseOfDiagnostics}");
         }
       }
 
@@ -692,6 +693,7 @@ namespace Microsoft.Dafny {
 
       var targetPaths = GenerateTargetPaths(options, dafnyProgramName);
       if (dafnyProgram.Reporter.FailCompilation) {
+        await dafnyProgram.Options.OutputWriter.WriteLineAsync($"Translation was aborted because {dafnyProgram.Reporter.FailCompilationMessage}");
         return false;
       }
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
@@ -701,7 +703,7 @@ namespace Microsoft.Dafny {
         WriteDafnyProgramToFiles(options, targetPaths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      var postGenerateFailed = !compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
+      var postGenerateFailed = !await compiler.OnPostGenerate(dafnyProgramName, targetPaths.SourceDirectory, outputWriter);
       if (postGenerateFailed) {
         return false;
       }
@@ -712,8 +714,8 @@ namespace Microsoft.Dafny {
       }
 
       // compile the program into an assembly
-      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
-        hasMain && options.RunAfterCompile, outputWriter, out var compilationResult);
+      var (compiledCorrectly, compilationResult) = await compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
+        hasMain && options.RunAfterCompile, outputWriter);
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.Verbose) {
@@ -721,7 +723,7 @@ namespace Microsoft.Dafny {
             await outputWriter.WriteLineAsync();
           }
 
-          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
+          compiledCorrectly = await compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
             targetPaths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
 
           if (compiledCorrectly) {
