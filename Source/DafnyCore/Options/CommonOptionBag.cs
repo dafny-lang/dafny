@@ -199,7 +199,7 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
-true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+true - Use an updated type-inference engine.".TrimStart()) {
     IsHidden = true
   };
 
