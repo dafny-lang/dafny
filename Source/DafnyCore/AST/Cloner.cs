@@ -256,9 +256,9 @@ namespace Microsoft.Dafny {
         return inferredTypeProxy;
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
-      } else if (t is AdjustableType adjustableType) {
-        // don't bother keeping AdjustableType wrappers
-        return CloneType(adjustableType.T);
+      } else if (t is TypeRefinementWrapper typeRefinementWrapper) {
+        // don't bother keeping TypeRefinementWrapper wrappers
+        return CloneType(typeRefinementWrapper.T);
       } else {
         Contract.Assert(false); // unexpected type (e.g., no other type proxies are expected at this time)
         return null; // to please compiler

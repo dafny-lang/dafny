@@ -12,8 +12,8 @@ TypeInferenceRefreshErrors.dfy(64,8): Error: the type ('map<?8, ?9>') of this lo
 TypeInferenceRefreshErrors.dfy(65,8): Error: the type ('map<?10, ?11>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(66,8): Error: the type ('map<?18, ?19>') of this local variable is underspecified
 TypeInferenceRefreshErrors.dfy(67,11): Error: the type ('map<?16, ?17>') of this expression is underspecified
-TypeInferenceRefreshErrors.dfy(76,8): Error: the type ('Synonym<int, ?4>') of this variable is underspecified
-TypeInferenceRefreshErrors.dfy(85,8): Error: the type ('SubsetType<int, ?4>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(76,8): Error: the type ('Synonym<int, ?5>') of this variable is underspecified
+TypeInferenceRefreshErrors.dfy(85,8): Error: the type ('SubsetType<int, ?5>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(97,8): Error: the type ('Synonym<int, ?3>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(100,8): Error: the type ('Synonym<int, ?6>') of this variable is underspecified
 TypeInferenceRefreshErrors.dfy(109,13): Error: datatype constructor does not take any type parameters ('White')
@@ -41,4 +41,8 @@ TypeInferenceRefreshErrors.dfy(205,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(212,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(220,6): Warning: this branch is redundant
 TypeInferenceRefreshErrors.dfy(255,9): Error: pattern (of type int) cannot be used with source type Color
-40 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(261,15): Error: type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got bool)
+TypeInferenceRefreshErrors.dfy(262,15): Error: type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got seq<int>)
+TypeInferenceRefreshErrors.dfy(269,15): Error: arguments to >= must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got seq<int>)
+TypeInferenceRefreshErrors.dfy(268,15): Error: arguments to > must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got bool)
+44 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
