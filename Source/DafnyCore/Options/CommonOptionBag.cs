@@ -561,7 +561,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
+            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
               return true;
             }
             string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
