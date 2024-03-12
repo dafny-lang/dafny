@@ -72,8 +72,8 @@ public class Compilation : IDisposable {
   private bool disposed;
   private readonly ObservableErrorReporter errorReporter;
 
-  public Task<Program> ParsedProgram { get; }
-  public Task<ResolutionResult> Resolution { get; }
+  public Task<Program?> ParsedProgram { get; }
+  public Task<ResolutionResult?> Resolution { get; }
 
   public ErrorReporter Reporter => errorReporter;
 
@@ -194,11 +194,11 @@ public class Compilation : IDisposable {
     return result.DistinctBy(d => d.Uri).ToList();
   }
 
-  private async Task<Program> ParseAsync() {
+  private async Task<Program?> ParseAsync() {
     try {
       await started.Task;
       if (HasErrors) {
-        throw new OperationCanceledException();
+        return null;
       }
 
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
@@ -212,17 +212,18 @@ public class Compilation : IDisposable {
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
 
-    } catch (OperationCanceledException) {
-      throw;
     } catch (Exception e) {
       updates.OnNext(new InternalCompilationException(e));
       throw;
     }
   }
 
-  private async Task<ResolutionResult> ResolveAsync() {
+  private async Task<ResolutionResult?> ResolveAsync() {
     try {
       await ParsedProgram;
+      if (transformedProgram == null) {
+        return null;
+      }
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
 
       updates.OnNext(new FinishedResolution(
@@ -232,8 +233,6 @@ public class Compilation : IDisposable {
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
 
-    } catch (OperationCanceledException) {
-      throw;
     } catch (Exception e) {
       updates.OnNext(new InternalCompilationException(e));
       throw;
@@ -260,8 +259,8 @@ public class Compilation : IDisposable {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
-    if (resolution.HasErrors) {
-      throw new TaskCanceledException();
+    if (resolution == null || resolution.HasErrors) {
+      return false;
     }
 
     var canVerify = resolution.ResolvedProgram.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
@@ -287,6 +286,10 @@ public class Compilation : IDisposable {
     bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
+    if (resolution == null) {
+      return false;
+    }
+
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
@@ -398,6 +401,10 @@ public class Compilation : IDisposable {
 
   public async Task Cancel(FilePosition filePosition) {
     var resolution = await Resolution;
+    if (resolution == null) {
+      return;
+    }
+
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
@@ -425,6 +432,9 @@ public class Compilation : IDisposable {
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var program = await ParsedProgram;
+    if (program == null) {
+      return null;
+    }
 
     if (program.HasParseErrors) {
       return null;

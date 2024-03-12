@@ -56,9 +56,9 @@ public static class VerifyCommand {
     var compilation = CliCompilation.Create(options);
     compilation.Start();
 
-    try {
-      var resolution = await compilation.Resolution;
+    var resolution = await compilation.Resolution;
 
+    if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
       ReportVerificationDiagnostics(compilation, verificationResults);
@@ -68,8 +68,6 @@ public static class VerifyCommand {
       compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
       await verificationSummarized;
       await verificationResultsLogged;
-
-    } catch (TaskCanceledException) {
     }
 
     return compilation.ExitCode;

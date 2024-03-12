@@ -15,10 +15,7 @@ static class ResolveCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       var compilation = CliCompilation.Create(options);
       compilation.Start();
-      try {
-        await compilation.Resolution;
-      } catch (OperationCanceledException) {
-      }
+      await compilation.Resolution;
 
       if (compilation.ExitValue == ExitValue.SUCCESS) {
         await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
