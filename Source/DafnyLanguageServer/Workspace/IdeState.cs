@@ -467,7 +467,8 @@ public record IdeState(
       counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       var newDiagnostics =
-        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.VerificationTask, completed.Result);
+        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.CanVerify,
+          boogieUpdate.VerificationTask, completed.Result);
       diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
       logger.LogTrace(
         $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
@@ -487,7 +488,7 @@ public record IdeState(
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
 
       ProofDependencyWarnings.ReportSuspiciousDependencies(options,
-        scopeGroup.Select(s => (s.Task, (Completed)s.RawStatus)),
+        scopeGroup.Select(s => new VerificationTaskResult(s.Task, ((Completed)s.RawStatus).Result)),
         errorReporter, boogieUpdate.ProofDependencyManager);
 
       newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();

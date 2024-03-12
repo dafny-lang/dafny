@@ -588,7 +588,7 @@ namespace Microsoft.Dafny {
           }
 
           var parBoundVars = new List<BoundVar>();
-          var parBounds = new List<ComprehensionExpr.BoundedPool>();
+          var parBounds = new List<BoundedPool>();
           var substMap = new Dictionary<IVariable, Expression>();
           Expression receiverSubst = null;
           foreach (var iv in inductionVars) {
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
-            parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
+            parBounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
           }
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
@@ -1263,9 +1263,7 @@ namespace Microsoft.Dafny {
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
       } else if (overridingFunction.IsOpaque || overridingFunction.IsMadeImplicitlyOpaque(options)) {
-        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
-        // Instead, we do the next best thing: use the literal false.
-        reveal = new Boogie.LiteralExpr(f.tok, false);
+        reveal = GetRevealConstant(overridingFunction);
       }
 
       // Add heap arguments

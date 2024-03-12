@@ -15,3 +15,4 @@ ForbidNondeterminismCompile.dfy(64,16): Error: nondeterministic assignment forbi
 ForbidNondeterminismCompile.dfy(4,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(79,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(90,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
+Translation was aborted because errors were found

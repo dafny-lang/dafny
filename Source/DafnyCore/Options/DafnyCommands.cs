@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -68,7 +69,7 @@ public static class DafnyCommands {
   }.Concat(TranslationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
-    DafnyConsolePrinter.ShowSnippets,
+    Snippets.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
@@ -103,5 +104,6 @@ public static class DafnyCommands {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
+    CommonOptionBag.AllowAxioms,
   }).Concat(ParserOptions).ToList();
 }

@@ -886,7 +886,7 @@ Here is an example:
 predicate P(i: int)
 predicate Q(i: int)
 
-lemma PHoldEvenly()
+lemma {:axiom} PHoldEvenly()
   ensures  forall i {:trigger Q(i)} :: P(i) ==> P(i + 2) && Q(i)
 
 lemma PHoldsForTwo()

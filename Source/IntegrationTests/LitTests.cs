@@ -99,7 +99,7 @@ namespace IntegrationTests {
         }, {
           "%testDafnyForEachCompiler", (args, config) => {
             var fullArguments = new[] { "for-each-compiler" }.Concat(args);
-            return MainCommand(fullArguments,
+            return MainCommand("testDafnyForEachCompiler", fullArguments,
               (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
               TestDafnyAssembly,
               config);
@@ -107,13 +107,13 @@ namespace IntegrationTests {
         }, {
           "%testDafnyForEachResolver", (args, config) => {
             var fullArguments = new[] { "for-each-resolver" }.Concat(args);
-            return MainCommand(fullArguments,
+            return MainCommand("testDafnyForEachResolver", fullArguments,
               (output, error, input, a) => new MultiBackendTest(input, output, error).Start(a),
               TestDafnyAssembly,
               config);
           }
         }, {
-          "%server", (args, config) => MainCommand(args, Server.MainWithWriters, DafnyServerAssembly, config)
+          "%server", (args, config) => MainCommand("legacyServer", args, Server.MainWithWriters, DafnyServerAssembly, config)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -183,10 +183,10 @@ namespace IntegrationTests {
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyCliTests.ReferencedEnvironmentVariables);
     }
 
-    private static ILitCommand MainCommand(IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
+    private static ILitCommand MainCommand(string name, IEnumerable<string> args, MainWithWriters mainWithWriters, Assembly assembly,
       LitTestConfiguration config) {
       if (InvokeMainMethodsDirectly) {
-        return new MainWithWritersCommand(args, mainWithWriters);
+        return new MainWithWritersCommand(name, args, mainWithWriters);
       }
 
       var shellArguments = new[] { assembly.Location }.Concat(args);
@@ -195,7 +195,7 @@ namespace IntegrationTests {
 
     public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       if (invokeDirectly) {
-        return new MainWithWritersCommand(arguments, DafnyBackwardsCompatibleCli.MainWithWriters);
+        return new MainWithWritersCommand("dafny", arguments, DafnyBackwardsCompatibleCli.MainWithWriters);
       }
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
