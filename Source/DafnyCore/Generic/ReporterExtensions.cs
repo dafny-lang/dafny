@@ -50,7 +50,7 @@ public static class ErrorReporterExtensions {
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string? message, bool usingSnippets) {
     var (tokenForMessage, inner, newMessage) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-    if (!usingSnippets && dafnyToken is RangeToken rangeToken) {
+    if (dafnyToken is RangeToken rangeToken) {
       if (message == PostConditionFailingMessage) {
         var postcondition = rangeToken.PrintOriginal();
         message = $"this postcondition might not hold: {postcondition}";
