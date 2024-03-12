@@ -69,10 +69,10 @@ public static class VerifyCommand {
       await verificationSummarized;
       await verificationResultsLogged;
 
-    } catch (TaskCanceledException) {
+    } catch (OperationCanceledException) {
     }
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
   public static async Task ReportVerificationSummary(
     CliCompilation cliCompilation,
