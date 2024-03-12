@@ -61,10 +61,11 @@ public abstract class Expression : TokenNode {
   }
 
   /// <summary>
-  /// The new type inference includes a "type adjustment" phase, which determines the best subset types for a program. This phase works
-  /// by adjusting (mutating) types in place, using "AdjustableType" type proxies. During that phase, it is necessary to obtain the
+  /// The new type inference includes a "type refinement" phase, which determines the best subset types for a program. This phase works
+  /// by refining (mutating in the direction from bottom, meaning un ansatisfiable constraint, to top, meaning no constraint) types in place,
+  /// using "TypeRefinementWrapper" type proxies. During that phase, it is necessary to obtain the
   /// un-normalized type stored in each AST node, which is what the "UnnormalizedType" property does. This property should only be used
-  /// during the type adjustment phase. After type inference is complete, use ".Type" instead.
+  /// during the type refinement phase. After type inference is complete, use ".Type" instead.
   /// </summary>
   public Type UnnormalizedType {
     get {

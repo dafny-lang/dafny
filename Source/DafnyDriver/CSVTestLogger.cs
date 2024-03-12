@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
 
     private readonly ConcurrentBag<TestResult> results = new();
     private TextWriter writer;
-    private TextWriter logWriter;
+    private readonly TextWriter logWriter;
     private string writerFilename;
 
     public CSVTestLogger(TextWriter logWriter) {
@@ -76,8 +76,9 @@ namespace Microsoft.Dafny {
         writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
       }
 
-      writer.Close();
+      writer.Flush();
       logWriter.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
+      logWriter.Flush();
     }
   }
 }

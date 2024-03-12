@@ -1,0 +1,1 @@
+Allow newtype declarations to be based on set/iset/multiset/seq.

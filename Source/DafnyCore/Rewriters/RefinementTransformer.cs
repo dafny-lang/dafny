@@ -1126,7 +1126,7 @@ namespace Microsoft.Dafny {
                 var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
-                  var s = refinementCloner.CloneStmt(oldS);
+                  var s = refinementCloner.CloneStmt(oldS, false);
                   body.Add(s);
                   hoverTextA += sepA + Printer.StatementToString(Reporter.Options, s);
                   sepA = "\n";
@@ -1415,7 +1415,7 @@ namespace Microsoft.Dafny {
       var sep = "";
       for (; j < oldStmt.Count; j++) {
         var b = oldStmt[j];
-        body.Add(refinementCloner.CloneStmt(b));
+        body.Add(refinementCloner.CloneStmt(b, false));
         hoverText += sep + Printer.StatementToString(Reporter.Options, b);
         sep = "\n";
       }
@@ -1556,7 +1556,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt || oldStmt is SkeletonStatement);
 
       if (skeleton == null) {
-        return refinementCloner.CloneStmt(oldStmt);
+        return refinementCloner.CloneStmt(oldStmt, false);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
         skeleton = new BlockStmt(skeleton.RangeToken, new List<Statement>() { skeleton });

@@ -7,10 +7,10 @@ datatype Thing = Thing
 type Foo =  s: seq<uint8> | |s| < 10 witness *
 type Fii =  real 
 
-function Bar(t: Thing): Foo
-function Bii(t: Thing): Fii
+function {:axiom} Bar(t: Thing): Foo
+function {:axiom} Bii(t: Thing): Fii
 
-predicate Baz(f: Thing -> seq<uint8>)
+predicate {:axiom} Baz(f: Thing -> seq<uint8>)
 
 predicate compose() {
   Baz(Bar)

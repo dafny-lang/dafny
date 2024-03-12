@@ -313,7 +313,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
 
     var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
 
-    var callableName = "reveal_" + func.Name;
+    var callableName = RevealStmt.RevealLemmaPrefix + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
     Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);

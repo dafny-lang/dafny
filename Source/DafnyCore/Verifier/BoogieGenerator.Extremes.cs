@@ -307,7 +307,7 @@ public partial class BoogieGenerator {
         var smaller = Expression.CreateLess(kprime, k);
         limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<ComprehensionExpr.BoundedPool>() { new ComprehensionExpr.AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
       } else {
         // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
@@ -320,7 +320,7 @@ public partial class BoogieGenerator {
         };
         limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<ComprehensionExpr.BoundedPool>() { new ComprehensionExpr.AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
       }
       var a = Expression.CreateImplies(kIsPositive, body);

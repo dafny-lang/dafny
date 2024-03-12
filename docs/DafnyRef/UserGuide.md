@@ -1404,7 +1404,7 @@ We can also classify the assertions extracted by Dafny in a few categories:
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
-* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
+* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, it also yields `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`.
 * Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
 * Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
 * Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
@@ -1530,7 +1530,7 @@ and `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
-### 13.7.6. Debugging brittle verification
+### 13.7.6. Debugging brittle verification {#sec-brittle-verification}
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
