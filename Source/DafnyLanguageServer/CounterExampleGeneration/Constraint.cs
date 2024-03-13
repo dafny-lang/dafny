@@ -63,35 +63,45 @@ public abstract class Constraint {
   /// <param name="knownDefinitions"></param>
   /// <param name="constraints"></param>
   /// <param name="allowNewIdentifiers"></param> If false, do not allow new referring to partial values by identifiers
+  /// <param name="prune"></param> if True, remove constraints over literal values, since those should be self-evident
   /// that are not already in knownDefinitions map
   public static List<Constraint> ResolveAndOrder(
     Dictionary<PartialValue, Expression> knownDefinitions,
     List<Constraint> constraints,
-    bool allowNewIdentifiers) {
+    bool allowNewIdentifiers,
+    bool prune) {
     Constraint? newConstraint = null;
     var oldConstraints = new List<Constraint>();
     oldConstraints.AddRange(constraints.Where(constraint =>
       allowNewIdentifiers || constraint is not IdentifierExprConstraint));
     var newConstraints = new List<Constraint>();
+    var knownAsLiteral = new HashSet<PartialValue>();
     do {
       if (newConstraint != null) {
         oldConstraints.Remove(newConstraint);
       }
 
-      // Prioritize LiteralExprConstraints, which simple identify a partial value with a literal expression
-      var litConstraint = oldConstraints.OfType<LiteralExprConstraint>()
-        .FirstOrDefault(definition => !knownDefinitions.ContainsKey(definition.DefinedValue));
-      if (litConstraint != null) {
-        knownDefinitions[litConstraint.DefinedValue] = litConstraint.RightHandSide(knownDefinitions);
-        knownDefinitions[litConstraint.DefinedValue].Type = litConstraint.DefinedValue.Type;
-        newConstraint = litConstraint;
+      // Prioritize literals and display expressions
+      var displayConstraint = oldConstraints
+        .OfType<DefinitionConstraint>()
+        .Where(constraint => constraint is LiteralExprConstraint ||
+                             constraint is SeqDisplayConstraint ||
+                             constraint is DatatypeValueConstraint)
+        .FirstOrDefault(constraint => !knownDefinitions.ContainsKey(constraint.DefinedValue)
+                                      && constraint.ReferencedValues.All(knownDefinitions.ContainsKey));
+      if (displayConstraint != null) {
+        knownAsLiteral.Add(displayConstraint.DefinedValue);
+        knownDefinitions[displayConstraint.DefinedValue] = displayConstraint.RightHandSide(knownDefinitions);
+        knownDefinitions[displayConstraint.DefinedValue].Type = displayConstraint.DefinedValue.Type;
+        newConstraint = displayConstraint;
         continue;
       }
 
       // Add all constrains where we know how to refer to each referenced value
-      newConstraint = oldConstraints.FirstOrDefault(constraint =>
+      newConstraint = oldConstraints.Where(constraint =>
         constraint is not DefinitionConstraint &&
-        constraint.ReferencedValues.All(knownDefinitions.ContainsKey));
+        constraint.ReferencedValues.All(knownDefinitions.ContainsKey))
+        .FirstOrDefault(constraint => !prune || constraint is IdentifierExprConstraint || constraint.ReferencedValues.Any(value => !knownAsLiteral.Contains(value)));
       if (newConstraint != null) {
         newConstraints.Add(newConstraint);
         continue;
@@ -102,7 +112,10 @@ public abstract class Constraint {
         !knownDefinitions.ContainsKey(definition.DefinedValue) &&
         definition.ReferencedValues.All(knownDefinitions.ContainsKey));
       if (definition != null) {
-        newConstraints.AddRange(definition.WellFormed);
+        if (!prune || definition is FunctionCallConstraint ||
+            definition.referencedValues.Any(value => !knownAsLiteral.Contains(value))) {
+          newConstraints.AddRange(definition.WellFormed);
+        }
         knownDefinitions[definition.DefinedValue] = definition.RightHandSide(knownDefinitions);
         knownDefinitions[definition.DefinedValue].Type = definition.DefinedValue.Type;
         newConstraint = definition;
@@ -110,7 +123,7 @@ public abstract class Constraint {
       }
 
       // append all other constraints  to the end
-      newConstraint = oldConstraints.FirstOrDefault();
+      newConstraint = oldConstraints.FirstOrDefault(constraint => !prune || constraint is FunctionCallConstraint || constraint is IdentifierExprConstraint || constraint.referencedValues.Any(value => !knownAsLiteral.Contains(value)));
       if (newConstraint != null) {
         if (newConstraint is DefinitionConstraint definitionConstraint) {
           newConstraints.AddRange(definitionConstraint.WellFormed);

@@ -344,6 +344,7 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
+      model.AssignConcretePrimitiveValues();
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
       if (model.LoopGuards.Count > 0) {
         options.OutputWriter.WriteLine("Temporary variables to describe counterexamples: ");

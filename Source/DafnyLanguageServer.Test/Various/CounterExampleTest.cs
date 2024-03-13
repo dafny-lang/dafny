@@ -423,7 +423,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("b == B.A(5)", counterExamples[0].Assumption);
+      Assert.Contains("B.A(5) == b", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -442,10 +442,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("exists boundVar0: A ::", counterExamples[0].Assumption);
-      Assert.Contains("b == B.B(boundVar0)", counterExamples[0].Assumption);
-      Assert.Contains("boundVar0.A?", counterExamples[0].Assumption);
-      Assert.Matches("5 == boundVar0.i", counterExamples[0].Assumption);
+      Assert.Contains("B.B(A.A(5)) == b", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -463,9 +460,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("a.B?", counterExamples[0].Assumption);
       var realRegex = "-\\(?[0-9]+\\.[0-9]+ / [0-9]+\\.[0-9]+\\)";
-      Assert.Matches($"{realRegex} == a.x", counterExamples[0].Assumption);
+      Assert.Matches($"A.B\\({realRegex}\\) == a", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -484,16 +480,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("h0.Right?", counterExamples[0].Assumption);
-      Assert.Contains("h1.Left?", counterExamples[0].Assumption);
-      Assert.Contains("h0.a", counterExamples[0].Assumption);
-      Assert.Contains("h0.b", counterExamples[0].Assumption);
-      Assert.Contains("h1.x", counterExamples[0].Assumption);
-      Assert.Contains("h1.y", counterExamples[0].Assumption);
-      Assert.DoesNotContain("h1.a", counterExamples[0].Assumption);
-      Assert.DoesNotContain("h1.b", counterExamples[0].Assumption);
-      Assert.DoesNotContain("h0.x", counterExamples[0].Assumption);
-      Assert.DoesNotContain("h0.y", counterExamples[0].Assumption);
+      Assert.Matches("Hand\\.Right\\([0-9]+, [0-9]+\\) == h0", counterExamples[0].Assumption);
+      Assert.Matches("Hand\\.Left\\([0-9]+, [0-9]+\\) == h1", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -511,9 +499,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("h.Left?", counterExamples[0].Assumption);
-      Assert.Contains("3 == h.b", counterExamples[0].Assumption);
-      Assert.Contains("3 == h.a", counterExamples[0].Assumption);
+      Assert.Contains("Hand.Left(3, 3) == h", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -531,11 +517,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("a.C?", counterExamples[0].Assumption);
-      Assert.Contains("false == a.B_q", counterExamples[0].Assumption);
-      Assert.Contains("false == a.C_q", counterExamples[0].Assumption);
-      Assert.Contains("false == a.D_q", counterExamples[0].Assumption);
-      Assert.DoesNotContain("true", counterExamples[0].Assumption);
+      Assert.Contains("A.C(false, false, false) == a", counterExamples[0].Assumption);
     }
 
 
@@ -554,8 +536,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("a.One?", counterExamples[0].Assumption);
-      Assert.Contains("false == a.b", counterExamples[0].Assumption);
+      Assert.Contains("A<bool>.One(false) == a", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -575,8 +556,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("list.Cons?", counterExamples[0].Assumption);
-      Assert.Contains("list.tail.Nil?", counterExamples[0].Assumption);
+      Assert.Matches("List<int>\\.Cons\\([0-9]+, List<int>\\.Nil\\) == list", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -820,10 +800,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("'a' == s[0]", counterExamples[0].Assumption);
-      Assert.Contains("'b' == s[1]", counterExamples[0].Assumption);
-      Assert.Contains("'c' == s[2]", counterExamples[0].Assumption);
-      Assert.Contains("3 == |s|", counterExamples[0].Assumption);
+      Assert.Contains("['a', 'b', 'c'] == s", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -839,7 +816,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Contains("3 == |s1|", counterExamples[1].Assumption);
       Assert.Contains("3 == |s2|", counterExamples[1].Assumption);
       Assert.Contains("'a' == s2[0]", counterExamples[1].Assumption);
       Assert.Contains("'d' == s2[1]", counterExamples[1].Assumption);
@@ -860,8 +836,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Contains("1 == |s|", counterExamples[1].Assumption);
-      Assert.Contains("6 == s[0]", counterExamples[1].Assumption);
+      Assert.Contains("[6] == s", counterExamples[1].Assumption);
     }
 
     [Theory]
@@ -938,10 +913,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Contains("'c' == sSub[0]", counterExamples[1].Assumption);
-      Assert.Contains("'d' == sSub[1]", counterExamples[1].Assumption);
-      Assert.Contains("'e' == sSub[2]", counterExamples[1].Assumption);
-      Assert.Contains("3 == |sSub|", counterExamples[1].Assumption);
+      Assert.Contains("['c', 'd', 'e'] == sSub", counterExamples[1].Assumption);
     }
 
     [Theory]
@@ -1367,21 +1339,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         datatype D = C(i:int) {
           predicate p() {true}
         }
-
-        method test(d: D) {
+      }
+      method test(d: M.D) {
           if (d.p()) {
-            assert d.i != 123;
+              assert d.i != 123;
           }
-        }
       }".TrimStart();
       var documentItem = CreateTestDocument(source, "DatatypeWithPredicate.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("d.C?", counterExamples.First().Assumption);
-      Assert.Contains("true == d.p()", counterExamples.First().Assumption);
-      Assert.Contains("123 == d.i", counterExamples.First().Assumption);
+      Assert.Contains("M.D.C(123) == d", counterExamples.First().Assumption);
+      Assert.Contains("M.D.C(123).p.requires()", counterExamples.First().Assumption);
+      Assert.Contains("true == M.D.C(123).p()", counterExamples.First().Assumption);
     }
 
     /** Makes sure the counterexample lists the base type of a variable */

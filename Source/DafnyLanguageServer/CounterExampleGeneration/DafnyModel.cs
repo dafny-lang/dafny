@@ -424,6 +424,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
             .ToList();
         }
 
+        var elements = new List<PartialValue>();
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {
@@ -431,20 +432,18 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
               continue;
             }
             var element = PartialValue.Get(UnboxNotNull(modelElement), state);
+            elements.Add(element);
             var elementName = UnderscoreRemovalRegex.Replace(func.Name.Split(".").Last(), "_");
             var _ = new MemberSelectExprDatatypeConstraint(element, value, elementName);
           }
         } else {
           // we don't know destructor names, so we use indices instead
-          var elements = new List<PartialValue>();
           for (int i = 0; i < fnTuple.Args.Length; i++) {
             var element = PartialValue.Get(UnboxNotNull(fnTuple.Args[i]), state);
             elements.Add(element);
           }
-
-          var _ = new DatatypeValueConstraint(value, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(), elements);
         }
-
+        var ___ = new DatatypeValueConstraint(value, value.Type.ToString(), fnTuple.Func.Name.Split(".").Last(), elements);
         return;
       }
 

@@ -96,7 +96,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
-        return new(model, options);
+        var dafnyModel = new DafnyModel(model, options);
+        dafnyModel.AssignConcretePrimitiveValues();
+        return dafnyModel;
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {

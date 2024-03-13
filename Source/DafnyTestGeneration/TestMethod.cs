@@ -155,7 +155,7 @@ namespace DafnyTestGeneration {
         }
       }
       var constraints = constraintSet.ToList();
-      constraints = Constraint.ResolveAndOrder(constraintContext, constraints, false);
+      constraints = Constraint.ResolveAndOrder(constraintContext, constraints, false, false);
       var parameterIndex = DafnyInfo.IsStatic(MethodName) ? -1 : -2;
       for (var i = 0; i < printOutput.Count; i++) {
         if (types[i] == "Ty") {

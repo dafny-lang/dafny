@@ -99,7 +99,7 @@ public class PartialState {
 
     // Ignore TypeTest constraints because they make the counterexample too verbose
     var constraints = constraintSet.Where(constraint => constraint is not TypeTestConstraint).ToList();
-    constraints = Constraint.ResolveAndOrder(allVariableNames, constraints, true);
+    constraints = Constraint.ResolveAndOrder(allVariableNames, constraints, true, true);
 
     // Create a bound variable for every partial value that we cannot otherwise refer to using variables in scope
     var boundVars = new List<BoundVar>();
