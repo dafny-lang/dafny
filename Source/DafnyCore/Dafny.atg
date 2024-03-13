@@ -551,7 +551,7 @@ ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, 
          "to use them for verification only, use --general-traits=full");
      } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
        SemErr(ErrorId.p_general_traits_datatype, t,
-         $"{requiresNonReferenceTraitsFor} extending traits is not yet engaged by default; use --general-traits=datatype to engage");
+         $"{requiresNonReferenceTraitsFor} extending traits is not yet enabled by default; use --general-traits=datatype to enable it");
      }
     .)
   Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
