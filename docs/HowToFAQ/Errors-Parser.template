@@ -204,7 +204,7 @@ module N refines M { datatype D = ... Y | Z }
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_datatype}
+## **Error: datatype extending traits is not yet engaged by default; use --general-traits=datatype to engage** {#p_general_traits_datatype}
 
 ```dafny
 trait Trait { }
@@ -213,7 +213,7 @@ datatype D extends Trait = A | B
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_full}
+## **Error: newtype extending traits is not fully supported (specifically, compilation of such types is not support); to use them for verification only, use --general-traits=full** {#p_general_traits_full}
 
 ```dafny
 trait Trait { }
