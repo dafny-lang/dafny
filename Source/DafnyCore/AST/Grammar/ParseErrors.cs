@@ -163,7 +163,7 @@ Dafny to allow them in the input, but is not recommended.
     Add(ErrorId.p_general_traits_full,
       @"
 Use of traits as non-reference types is supported, but is not yet the default. Until it becomes the
-default, use --general--traits=datatype to engage.
+default, use --general--traits=datatype to enable it.
 ".TrimStart(), Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,
