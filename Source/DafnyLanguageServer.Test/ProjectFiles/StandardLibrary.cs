@@ -17,15 +17,16 @@ public class StandardLibrary : ClientBasedLanguageServerTest {
 standard-libraries=true
 ";
     var program = @"
-method Foo() ensures false { }";
+method Foo() ensures false { }
+".TrimStart();
     var path = Path.GetRandomFileName();
     var project = CreateAndOpenTestDocument(projectFile, Path.Combine(path, DafnyProject.FileName));
     var document = CreateAndOpenTestDocument(program, Path.Combine(path, "EditWhenUsingStandardLibrary.dfy"));
-    var status = await WaitUntilAllStatusAreCompleted(document);
     var diagnostics1 = await GetLastDiagnostics(document);
-    ApplyChange(ref document, new Range(0,0,0,0), "\n\nmethod Bar() ensures false { }");
+    Assert.Single(diagnostics1);
+    ApplyChange(ref document, new Range(0,0,1,0), "method Bar() ensures true { }");
     var diagnostics2 = await GetLastDiagnostics(document);
-    Assert.Equal(2, diagnostics2.Length);
+    Assert.Empty(diagnostics2);
   }
 
   public StandardLibrary(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
