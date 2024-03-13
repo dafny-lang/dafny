@@ -258,7 +258,7 @@ datatype D extends Trait = A | B
 A newtype extending a trait is not generally supported. The option --general-traits=full causes
 Dafny to allow them in the input, but is not recommended.
 
-## **Error: newtype extending traits is not fully supported (specifically, compilation of such types is not support); to use them for verification only, use --general-traits=full** {#p_general_traits_full}
+## **Error: newtype extending traits is not fully supported (specifically, compilation of such types is not supported); to use them for verification only, use --general-traits=full** {#p_general_traits_full}
 
 ```dafny
 trait Trait { }
