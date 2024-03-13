@@ -410,7 +410,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Matches("'.?' == c", counterExamples[0].Assumption);
+      Assert.Matches("'.+' == c", counterExamples[0].Assumption);
     }
 
     [Theory]
