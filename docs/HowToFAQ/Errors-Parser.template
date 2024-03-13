@@ -204,11 +204,20 @@ module N refines M { datatype D = ... Y | Z }
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_beta}
+## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_datatype}
 
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
+```
+
+<!-- INSERT-TEXT -->
+
+## **Error: datatype extending traits is a beta feature; use /generalTraits:datatype to engage** {#p_general_traits_full}
+
+```dafny
+trait Trait { }
+newtype N extends Trait = int
 ```
 
 <!-- INSERT-TEXT -->
