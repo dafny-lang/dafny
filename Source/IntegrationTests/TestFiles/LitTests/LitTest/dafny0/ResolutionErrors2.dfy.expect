@@ -36,7 +36,7 @@ ResolutionErrors2.dfy(302,19): Error: type of right argument to / (int) must agr
 ResolutionErrors2.dfy(330,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: array3
 ResolutionErrors2.dfy(331,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: C
 ResolutionErrors2.dfy(342,7): Error: duplicate name of top-level declaration: BadSyn2
-ResolutionErrors2.dfy(341,7): Related location: this expression could not be proved
+ResolutionErrors2.dfy(341,7): Related location
 ResolutionErrors2.dfy(339,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors2.dfy(340,17): Error: Type or type parameter is not declared in this scope: badName (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors2.dfy(341,22): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
