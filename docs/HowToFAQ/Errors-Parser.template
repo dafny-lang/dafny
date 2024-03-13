@@ -204,7 +204,7 @@ module N refines M { datatype D = ... Y | Z }
 
 <!-- INSERT-TEXT -->
 
-## **Error: datatype extending traits is not yet engaged by default; use --general-traits=datatype to engage** {#p_general_traits_datatype}
+## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
 ```dafny
 trait Trait { }
