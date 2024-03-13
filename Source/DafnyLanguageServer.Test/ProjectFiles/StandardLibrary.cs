@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.ProjectFiles;
 
 public class StandardLibrary : ClientBasedLanguageServerTest {
-  
+
   [Fact]
   public async Task EditWhenUsingStandardLibrary() {
     var projectFile = @"
@@ -24,12 +24,11 @@ method Foo() ensures false { }
     var document = CreateAndOpenTestDocument(program, Path.Combine(path, "EditWhenUsingStandardLibrary.dfy"));
     var diagnostics1 = await GetLastDiagnostics(document);
     Assert.Single(diagnostics1);
-    ApplyChange(ref document, new Range(0,0,1,0), "method Bar() ensures true { }");
+    ApplyChange(ref document, new Range(0, 0, 1, 0), "method Bar() ensures true { }");
     var diagnostics2 = await GetLastDiagnostics(document);
     Assert.Empty(diagnostics2);
   }
 
-  public StandardLibrary(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
-  {
+  public StandardLibrary(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {
   }
 }
