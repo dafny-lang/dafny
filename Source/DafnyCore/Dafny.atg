@@ -547,7 +547,7 @@ ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, 
   "extends"
     (. if (requiresNonReferenceTraitsFor == "newtype" && theOptions.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Full) {
        SemErr(ErrorId.p_general_traits_full, t,
-         $"{requiresNonReferenceTraitsFor} extending traits is not fully supported (specifically, compilation of such types is not support); " +
+         $"{requiresNonReferenceTraitsFor} extending traits is not fully supported (specifically, compilation of such types is not supported); " +
          "to use them for verification only, use --general-traits=full");
      } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
        SemErr(ErrorId.p_general_traits_datatype, t,
