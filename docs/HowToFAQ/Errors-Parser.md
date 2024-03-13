@@ -266,7 +266,7 @@ newtype N extends Trait = int
 ```
 
 Use of traits as non-reference types is supported, but is not yet the default. Until it becomes the
-default, use --general--traits=datatype to engage.
+default, use --general--traits=datatype to enable it.
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
 
