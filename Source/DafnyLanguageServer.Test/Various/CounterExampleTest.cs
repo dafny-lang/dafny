@@ -388,7 +388,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Matches("(c1 != c2|c2 != c1)", counterExamples[0].Assumption);
+      var charRegex = "(\'[^']+\')";
+      Assert.Matches(charRegex + " == c1", counterExamples[0].Assumption);
+      Assert.Matches(charRegex + " == c2", counterExamples[0].Assumption);
+      var c1 = Regex.Match(counterExamples[0].Assumption, charRegex + " == c1").Groups[1];
+      var c2 = Regex.Match(counterExamples[0].Assumption, charRegex + " == c2").Groups[1];
+      Assert.NotEqual(c1, c2);
     }
 
     [Theory]
@@ -405,7 +410,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Contains("c != '0'", counterExamples[0].Assumption);
+      Assert.Matches("'.?' == c", counterExamples[0].Assumption);
     }
 
     [Theory]
@@ -1277,8 +1282,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
-      Assert.Matches("exists.*boundVar[0-9]+: bv2", counterExamples[0].Assumption);
-      Assert.Matches("boundVar[0-9] in m", counterExamples[0].Assumption);
+      Assert.Matches("[0-9]+ in m", counterExamples[0].Assumption);
     }
 
     [Theory]
