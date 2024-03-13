@@ -215,6 +215,12 @@ public class ProgramResolver {
   }
 
   protected void InstantiateReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules()) {
+      // This is a workaround for the problem that the IDE caches resolved modules,
+      // So this field might still be set from a previous compilation.
+      // Better solution is described here: https://github.com/dafny-lang/dafny/issues/5188
+      compiledModule.Replacement = null;
+    }
     foreach (var compiledModule in dafnyProgram.Modules().OrderByDescending(m => m.Height)) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         var target = compiledModule.Implements.Target.Def;
