@@ -204,11 +204,17 @@ namespace Microsoft.Dafny {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
-          dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli));
+          var targetSpecificFile = DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli);
+          if (targetSpecificFile != null) {
+            dafnyFiles.Add(targetSpecificFile);
+          }
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        dafnyFiles.Add(DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli));
+        var targetAgnosticFile = DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli);
+        if (targetAgnosticFile != null) {
+          dafnyFiles.Add(targetAgnosticFile);
+        }
       }
 
       return ExitValue.SUCCESS;
