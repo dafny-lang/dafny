@@ -151,6 +151,12 @@ class SplitPartTriggerWriter {
     }
 
     if (!NeedsAutoTriggers()) {
+      var triggerAttribute = Attributes.Find(Comprehension.Attributes, "trigger");
+      if (triggerAttribute != null && triggerAttribute.Args.Count == 0) {
+        // Remove an empty trigger attribute, so it does not crash Boogie,
+        // and effectively becomes a way to silence a Dafny warning
+        triggerAttribute.Name = "deleted-trigger";
+      }
       return;
     }
 
