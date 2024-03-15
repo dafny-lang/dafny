@@ -220,11 +220,11 @@ public class MultiBackendTest {
       }
     }
 
-    // if (success) {
-    //   await output.WriteLineAsync(
-    //     "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
-    //   return 0;
-    // }
+    if (success) {
+      await output.WriteLineAsync(
+        "All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
+      return 0;
+    }
 
     return -1;
   }

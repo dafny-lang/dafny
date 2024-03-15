@@ -52,13 +52,7 @@ public class RustBackend : DafnyExecutableBackend {
     Directory.CreateDirectory(runtimeDirectory);
 
     var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
-    var runtimeFiles = assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyRuntimeRust"))
-      .ToList();
-    Console.Error.WriteLine("runtimeFiles:");
-    foreach (var runtimeFile in runtimeFiles) {
-      Console.Error.WriteLine(runtimeFile);
-    }
-    runtimeFiles.ToList().ForEach(f => {
+    assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyRuntimeRust")).ToList().ForEach(f => {
       var stream = assembly.GetManifestResourceStream(f);
       var dotToSlashPath = "";
       var parts = f.Replace("DafnyPipeline.DafnyRuntimeRust.", "").Split('.');
@@ -112,7 +106,7 @@ public class RustBackend : DafnyExecutableBackend {
 
     var args = new List<string> {
       "build",
-      // "--quiet"
+      "--quiet"
     };
 
     if (callToMain == null) {
