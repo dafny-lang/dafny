@@ -1,3 +1,0 @@
-Under the CLI option `--general-newtypes`, the base type of a `newtype` declaration can now be (`int` or `real`, as before, or) `bool`, `char`, or a bitvector type.
-
-`as` and `is` expressions now support more types than before. In addition, run-time type tests are supported for `is` expressions, provided type parameters are injective (as was already required) and provided the constraints of any subset type or newtype is compilable. Note, although both `as` and `is` allow many more useful cases than before, using `--general-newtypes` will also forbid some unusual cases that were previously allowed. Any such case that is now forbidden can still be done by doing the `as`/`is` via `int`.
