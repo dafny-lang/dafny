@@ -884,14 +884,14 @@ namespace Microsoft.Dafny {
           // bitvector types. That's now handled in a different way, which does not use SelfType.
         } else {
           ComputePreTypeFunction(function);
-          if (function is ExtremePredicate extremePredicate) {
-            ComputePreTypeFunction(extremePredicate.PrefixPredicate);
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+            ComputePreTypeFunction(prefixPredicate);
           }
         }
       } else if (declaration is Method method) {
         ComputePreTypeMethod(method);
-        if (method is ExtremeLemma extremeLemma) {
-          ComputePreTypeMethod(extremeLemma.PrefixLemma);
+        if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+          ComputePreTypeMethod(prefixLemma);
         }
       } else {
         Contract.Assert(false); // unexpected declaration
