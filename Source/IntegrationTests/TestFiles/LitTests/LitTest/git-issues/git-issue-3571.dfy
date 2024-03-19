@@ -14,6 +14,5 @@
 // RUN: %diff "%s.expect" "%t"
 // Crashes size x is nothing real
 // ## %verify --solver-plugin x --solver-plugin x  "%s" >> "%t"
-// Not testing --boogi, --boogie-filter
 
 module A {}
