@@ -1,6 +1,7 @@
-ResolutionErrors1.dfy(20,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors1.dfy(25,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
-ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
+ResolutionErrors1.dfy(20,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter 'T' would require B :> A)
+ResolutionErrors1.dfy(25,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter 'T' would require B :> A)
+ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 'A' would require _T0 :> _T1)
+ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 'B' would require _T1 :> _T0)
 ResolutionErrors1.dfy(51,30): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors1.dfy(66,20): Error: unresolved identifier: w
 ResolutionErrors1.dfy(85,8): Error: the type of this local variable is underspecified

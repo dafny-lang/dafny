@@ -3,14 +3,16 @@ ResolutionErrors4.dfy(43,19): Error: Type or type parameter is not declared in t
 ResolutionErrors4.dfy(51,44): Error: range of comprehension must be of type bool (instead got C)
 ResolutionErrors4.dfy(58,21): Error: Duplicate member name: P
 ResolutionErrors4.dfy(60,17): Error: Duplicate member name: L
-ResolutionErrors4.dfy(68,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors4.dfy(66,17): Error: Function body type mismatch (expected int, got bool)
-ResolutionErrors4.dfy(73,4): Error: second argument to && must be of type bool (instead got int)
-ResolutionErrors4.dfy(78,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors4.dfy(76,17): Error: Function body type mismatch (expected int, got bool)
-ResolutionErrors4.dfy(83,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors4.dfy(88,8): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors4.dfy(86,17): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors4.dfy(68,4): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(68,4): Error: type of && must be a boolean (got int)
+ResolutionErrors4.dfy(73,4): Error: type of right argument to && (int) must agree with the result type (bool)
+ResolutionErrors4.dfy(78,4): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(78,4): Error: type of || must be a boolean (got int)
+ResolutionErrors4.dfy(83,4): Error: type of right argument to || (int) must agree with the result type (bool)
 ResolutionErrors4.dfy(108,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors4.dfy(109,11): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors4.dfy(109,15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
@@ -47,5 +49,5 @@ ResolutionErrors4.dfy(320,7): Error: type declaration 'B0' is not allowed to cha
 ResolutionErrors4.dfy(322,7): Error: type declaration 'B2' is not allowed to change the requirement of supporting auto-initialization
 ResolutionErrors4.dfy(323,7): Error: type declaration 'C0' is not allowed to change the requirement of being nonempty
 ResolutionErrors4.dfy(324,7): Error: type declaration 'C1' is not allowed to change the requirement of supporting auto-initialization
-ResolutionErrors4.dfy(314,5): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
 49 resolution/type errors detected in ResolutionErrors4.dfy
+ResolutionErrors4.dfy(314,5): Error: type parameter (G) passed to method P must support auto-initialization (got XYZ)

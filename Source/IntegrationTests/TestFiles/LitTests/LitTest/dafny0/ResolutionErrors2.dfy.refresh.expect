@@ -1,38 +1,40 @@
 ResolutionErrors2.dfy(24,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors2.dfy(57,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors2.dfy(90,17): Error: the method returns 1 value but is assigned to 0 variable (all return values must be assigned)
+ResolutionErrors2.dfy(90,17): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors2.dfy(111,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors2.dfy(122,40): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors2.dfy(144,6): Error: RHS (of type B) not assignable to LHS (of type object)
-ResolutionErrors2.dfy(146,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors2.dfy(151,6): Error: RHS (of type G) not assignable to LHS (of type object)
 ResolutionErrors2.dfy(152,6): Error: RHS (of type Dt) not assignable to LHS (of type object)
 ResolutionErrors2.dfy(153,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
-ResolutionErrors2.dfy(145,6): Error: RHS (of type int) not assignable to LHS (of type object)
+ResolutionErrors2.dfy(146,6): Error: RHS (of type B) not assignable to LHS (of type object)
+ResolutionErrors2.dfy(145,9): Error: integer literal used as if it had type object?
 ResolutionErrors2.dfy(164,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
 ResolutionErrors2.dfy(175,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(188,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(197,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(208,20): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(220,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors2.dfy(236,4): Error: LHS of array assignment must denote an array element (found seq<int>)
 ResolutionErrors2.dfy(242,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors2.dfy(243,10): Error: LHS of assignment must denote a mutable field
-ResolutionErrors2.dfy(244,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors2.dfy(245,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors2.dfy(246,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors2.dfy(247,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors2.dfy(236,4): Error: LHS of array assignment must denote an array element (found seq<int>)
 ResolutionErrors2.dfy(237,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors2.dfy(244,4): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors2.dfy(244,4): Error: LHS of array assignment must denote an array element (found seq<int>)
+ResolutionErrors2.dfy(246,4): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors2.dfy(247,4): Error: cannot assign to a range of array elements (try the 'forall' statement)
+ResolutionErrors2.dfy(246,12): Error: RHS (of type int) not assignable to LHS (of type seq<int>)
 ResolutionErrors2.dfy(260,11): Error: unresolved identifier: s
+ResolutionErrors2.dfy(272,39): Error: RHS (of type (?17, ?18, ?19)) not assignable to LHS (of type (int, real, int, real))
+ResolutionErrors2.dfy(271,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 'T1' would require real :> int)
+ResolutionErrors2.dfy(271,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 'T2' would require int :> real)
 ResolutionErrors2.dfy(279,18): Error: member '3' does not exist in datatype '_tuple#3'
 ResolutionErrors2.dfy(279,28): Error: member 'x' does not exist in datatype '_tuple#2'
 ResolutionErrors2.dfy(278,18): Error: condition is expected to be of type bool, but is int
-ResolutionErrors2.dfy(272,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
-ResolutionErrors2.dfy(271,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)
-ResolutionErrors2.dfy(271,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 2 would require real <: int)
-ResolutionErrors2.dfy(303,12): Error: type of left argument to % (int) must agree with the result type (real)
-ResolutionErrors2.dfy(303,12): Error: arguments to % must be integer-numeric or bitvector types (got real)
-ResolutionErrors2.dfy(302,19): Error: type of right argument to / (int) must agree with the result type (real)
+ResolutionErrors2.dfy(302,21): Error: integer literal used as if it had type real
+ResolutionErrors2.dfy(303,9): Error: integer literal used as if it had type real
+ResolutionErrors2.dfy(303,12): Error: type of % must be integer-numeric or bitvector types (got real)
 ResolutionErrors2.dfy(330,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: array3
 ResolutionErrors2.dfy(331,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: C
 ResolutionErrors2.dfy(342,7): Error: duplicate name of top-level declaration: BadSyn2
@@ -56,10 +58,10 @@ ResolutionErrors2.dfy(400,21): Error: unresolved identifier: x
 ResolutionErrors2.dfy(403,21): Error: unresolved identifier: x
 ResolutionErrors2.dfy(410,35): Error: Wrong number of type arguments (2 instead of 1) passed to abstract type: P
 ResolutionErrors2.dfy(422,13): Error: Type or type parameter is not declared in this scope: BX (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
-ResolutionErrors2.dfy(432,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
-ResolutionErrors2.dfy(437,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
-ResolutionErrors2.dfy(442,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
-ResolutionErrors2.dfy(443,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter would require A = int)
+ResolutionErrors2.dfy(432,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter 'A' would require bool = int)
+ResolutionErrors2.dfy(437,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter 'A' would require B = A)
+ResolutionErrors2.dfy(442,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter 'A' would require int = A)
+ResolutionErrors2.dfy(443,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter 'A' would require A = int)
 ResolutionErrors2.dfy(448,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors2.dfy(449,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors2.dfy(450,13): Error: arguments must have comparable types (got P<int> and P<bool>)

@@ -72,10 +72,6 @@ ResolutionErrors5.dfy(464,19): Error: type parameter 'G' (passed in as 'ORDINAL'
 ResolutionErrors5.dfy(465,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(466,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(467,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(468,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(469,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors5.dfy(470,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
-ResolutionErrors5.dfy(471,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
 ResolutionErrors5.dfy(472,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
 ResolutionErrors5.dfy(473,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
 ResolutionErrors5.dfy(474,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
@@ -90,6 +86,10 @@ ResolutionErrors5.dfy(476,8): Error: an ORDINAL type is not allowed to be used a
 ResolutionErrors5.dfy(475,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(474,14): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(472,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors5.dfy(471,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(470,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(469,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors5.dfy(468,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(462,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(461,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(522,11): Error: no label 'L' in scope at this time
