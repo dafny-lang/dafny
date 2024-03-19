@@ -282,9 +282,9 @@ namespace Microsoft.Dafny {
           var familyDeclName = ancestorPreType?.Decl.Name;
           if (familyDeclName == PreType.TypeNameSeq) {
             var elementPreType = ancestorPreType.Arguments[0];
-            ConstrainToIntFamilyOrBitvector(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {0})");
+            ConstrainToIntFamilyOrBitvector(e.Index.PreType, e.Index.tok, "sequence update requires integer- or bitvector-based index (got {1})");
             AddSubtypeConstraint(elementPreType, e.Value.PreType, e.Value.tok,
-              "sequence update requires the value to have the element type of the sequence (got {0})");
+              "sequence update requires the value to have the element type of the sequence (got {1})");
             return true;
           } else if (familyDeclName is PreType.TypeNameMap or PreType.TypeNameImap) {
             var domainPreType = ancestorPreType.Arguments[0];
