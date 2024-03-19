@@ -49,7 +49,10 @@ namespace Microsoft.Dafny {
       if (preType is DPreType dPreType) {
         return dPreType;
       }
-      var proxy = (PreTypeProxy)preType;
+      if (preType is not PreTypeProxy proxy) {
+        // preType could be a PreTypePlaceholder, resulting from an error somewhere
+        return null;
+      }
 
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
       var subProxies = new HashSet<PreTypeProxy>();
