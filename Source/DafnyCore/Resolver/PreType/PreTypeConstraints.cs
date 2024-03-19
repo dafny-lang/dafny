@@ -51,8 +51,28 @@ namespace Microsoft.Dafny {
       }
       var proxy = (PreTypeProxy)preType;
 
+      var approximateReceiverType = ApproximateReceiverTypeViaBounds(proxy, memberName, out var subProxies);
+      if (approximateReceiverType != null) {
+        return approximateReceiverType;
+      }
+
+      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
+      // associated default advice.
+      foreach (var subProxy in subProxies) {
+        TryApplyDefaultAdviceFor(subProxy);
+        if (proxy.Normalize() is DPreType defaultType) {
+          return defaultType;
+        }
+      }
+
+      // Try once more, in case the application of default advice changed the situation
+      return ApproximateReceiverTypeViaBounds(proxy, memberName, out _);
+    }
+
+    [CanBeNull]
+    private DPreType ApproximateReceiverTypeViaBounds(PreTypeProxy proxy, [CanBeNull] string memberName, out HashSet<PreTypeProxy> subProxies) {
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-      var subProxies = new HashSet<PreTypeProxy>();
+      subProxies = new HashSet<PreTypeProxy>();
       foreach (var sub in AllSubBounds(proxy, subProxies)) {
         return sub;
       }
@@ -68,16 +88,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
-      // associated default advice.
-      foreach (var subProxy in subProxies) {
-        TryApplyDefaultAdviceFor(subProxy);
-        if (proxy.Normalize() is DPreType defaultType) {
-          return defaultType;
-        }
-      }
-
-      return null; // could not be determined
+      return null;
     }
 
     /// <summary>
