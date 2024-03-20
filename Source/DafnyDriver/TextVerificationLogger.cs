@@ -41,10 +41,14 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     var maximumResourceCount = results.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";
     textWriter.WriteLine($"  Maximum assertion batch time: {maximumTime}");
     textWriter.WriteLine($"  Maximum assertion batch resource count: {maximumResourceCount}");
-    foreach (var vcResult in results.OrderBy(r => r.VcNum)) {
+    foreach (var taskResult in scopeResult.Results.OrderBy(r => r.Result.VcNum)) {
+      var vcResult = taskResult.Result;
       textWriter.WriteLine("");
       textWriter.WriteLine($"  Assertion batch {vcResult.VcNum}:");
       textWriter.WriteLine($"    Outcome: {vcResult.Outcome}");
+      if (taskResult.Task != null && taskResult.Task.Split.RandomSeed != 0) {
+        textWriter.WriteLine($"    Random seed: {taskResult.Task.Split.RandomSeed}");
+      }
       textWriter.WriteLine($"    Duration: {vcResult.RunTime}");
       textWriter.WriteLine($"    Resource count: {vcResult.ResourceCount}");
       textWriter.WriteLine("");

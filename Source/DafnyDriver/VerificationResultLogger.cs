@@ -37,6 +37,7 @@ namespace Microsoft.Dafny {
     private readonly DafnyOptions options;
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
+    public static TestProperty RandomSeedProperty = TestProperty.Register("TestResult.RandomSeed", "TestResult.RandomSeed", typeof(int), typeof(TestResult));
 
     private readonly IList<IVerificationResultFormatLogger> formatLoggers = new List<IVerificationResultFormatLogger>();
     private readonly LocalTestLoggerEvents events;
@@ -131,7 +132,7 @@ namespace Microsoft.Dafny {
                  Select(r => r)) {
         var name = (result.Results.Count > 1
           ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
-          : verificationScope.Name) + (task == null ? "" : $" (seed {task.Split.RandomSeed})");
+          : verificationScope.Name);
         var testCase = new TestCase {
           FullyQualifiedName = name,
           ExecutorUri = new Uri("executor://dafnyverifier/v1"),
@@ -142,6 +143,9 @@ namespace Microsoft.Dafny {
           Duration = vcResult.RunTime
         };
         testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
+        if (task != null && task.Split.RandomSeed != 0) {
+          testResult.SetPropertyValue(RandomSeedProperty, task.Split.RandomSeed);
+        }
         if (vcResult.Outcome == SolverOutcome.Valid) {
           testResult.Outcome = TestOutcome.Passed;
         } else {
