@@ -333,6 +333,6 @@ method Bar() {
     Assert.Contains("not found", consumer3Diagnostics[0].Message);
   }
 
-  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output) {
+  public MultipleFilesProjectTest(ITestOutputHelper output) : base(output, LogLevel.Trace) {
   }
 }

@@ -393,11 +393,14 @@ Print effects are enforced only with `--track-print-effects`.
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 11.2.14. `{:rlimit}` {#sec-rlimit}
+### 11.2.14. `{:resource_limit}` and `{:rlimit}` {#sec-rlimit}
 
-`{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
-This is the per-method equivalent of the command-line flag `/rlimit:N`.
+`{:resource_limit N}` limits the verifier resource usage to verify the method or function to `N`.
+
+This is the per-method equivalent of the command-line flag `/rlimit:N` or `--resource-limit N`.
 If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+
+The attribute `{:rlimit N}` is also available, and limits the verifier resource usage to verify the method or function to `N * 1000`. This version is deprecated, however.
 
 To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
 
@@ -895,6 +898,10 @@ method Test()
 
 The success message is optional but is recommended if errorMessage is set.
 
+### 11.4.6. `{:contradiction}`
+
+Silences warnings about this assertion being involved in a proof using contradictory assumptions when `--warn-contradictory-assumptions` is enabled. This allows clear identification of intentional proofs by contradiction.
+
 ## 11.5. Attributes on variable declarations
 
 ### 11.5.1. `{:assumption}` {#sec-assumption}
@@ -926,7 +933,7 @@ Here is an example:
 predicate P(i: int)
 predicate Q(i: int)
 
-lemma PHoldEvenly()
+lemma {:axiom} PHoldEvenly()
   ensures  forall i {:trigger Q(i)} :: P(i) ==> P(i + 2) && Q(i)
 
 lemma PHoldsForTwo()

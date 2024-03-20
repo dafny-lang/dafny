@@ -232,9 +232,8 @@ namespace Microsoft.Dafny {
       } else if (t is MultiSetType) {
         var tt = (MultiSetType)t;
         return new MultiSetType(tt.HasTypeArg() ? CloneType(tt.Arg) : null);
-      } else if (t is MapType) {
-        var tt = (MapType)t;
-        return new MapType(tt.Finite, CloneType(tt.Domain), CloneType(tt.Range));
+      } else if (t is MapType mapType) {
+        return new MapType(this, mapType);
       } else if (t is ArrowType) {
         var tt = (ArrowType)t;
         return new ArrowType(Tok(tt.tok), tt.Args.ConvertAll(CloneType), CloneType(tt.Result));
@@ -257,9 +256,9 @@ namespace Microsoft.Dafny {
         return inferredTypeProxy;
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
-      } else if (t is AdjustableType adjustableType) {
-        // don't bother keeping AdjustableType wrappers
-        return CloneType(adjustableType.T);
+      } else if (t is TypeRefinementWrapper typeRefinementWrapper) {
+        // don't bother keeping TypeRefinementWrapper wrappers
+        return CloneType(typeRefinementWrapper.T);
       } else {
         Contract.Assert(false); // unexpected type (e.g., no other type proxies are expected at this time)
         return null; // to please compiler
@@ -270,7 +269,8 @@ namespace Microsoft.Dafny {
       return (Formal)clones.GetOrCreate(formal, () => isReference
        ? formal
        : new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-         CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
+         CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
+         formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
          RangeToken = formal.RangeToken,
          IsTypeExplicit = formal.IsTypeExplicit
        });
@@ -404,7 +404,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Tok(stmt.RangeToken), stmt.Body.ConvertAll(CloneStmt));
+        return new BlockStmt(Tok(stmt.RangeToken), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
 
@@ -412,18 +412,23 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(CloneStmt),
-          stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(CloneStmt));
+        return new DividedBlockStmt(Tok(stmt.RangeToken), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
+          stmt.SeparatorTok == null ? null : Tok(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
       }
     }
 
-    public virtual Statement CloneStmt(Statement stmt) {
+    public virtual Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt == null) {
         return null;
       }
 
+
       if (statementClones.TryGetValue(stmt, out var cachedResult)) {
         return cachedResult;
+      }
+
+      if (isReference) {
+        return stmt;
       }
 
       if (stmt is ICloneable<Statement> cloneable) {
@@ -444,7 +449,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(c.Arguments != null);
       return new MatchCaseStmt(Tok(c.RangeToken), c.Ctor, c.FromBoundVar,
         c.Arguments.ConvertAll(v => CloneBoundVar(v, false)),
-        c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+        c.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -463,7 +468,7 @@ namespace Microsoft.Dafny {
 
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
       Contract.Requires(c != null);
-      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt),
+      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(stmt => CloneStmt(stmt, false)),
         CloneAttributes(c.Attributes));
     }
 
@@ -493,7 +498,7 @@ namespace Microsoft.Dafny {
 
     public GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
       return new GuardedAlternative(Tok(alt.Tok), alt.IsBindingGuard, CloneExpr(alt.Guard),
-        alt.Body.ConvertAll(CloneStmt), CloneAttributes(alt.Attributes));
+        alt.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(alt.Attributes));
     }
 
     public virtual Field CloneField(Field f) {

@@ -102,7 +102,7 @@ See [Makefile](Makefile) and [src/Std/TargetSpecific/Makefile](src/Std/TargetSpe
 There are two sides to brittleness relevant to this project:
 
 **Brittleness of the standard libraries**: This project uses the current 
-[best known defense against brittleness](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-verification):
+[best known defense against brittleness](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-brittle-verification):
 enforcing a tight upper-bound on the resources needed to verify each batch of assertions.
 For simplicitly, this project just sets a direct `--resource-limit`,
 rather than relying on the second-pass approach of the `dafny-reportgenerator`.

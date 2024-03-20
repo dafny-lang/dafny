@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C<U(==)> {
@@ -252,7 +252,7 @@ ghost method ListLemma_T<T(!new)>(xs: List, ys: List)
 {
   assert Subset(xs, ys);
 }
-ghost method ammeLtsiL_T(xs: List, ys: List)
+ghost method ammeLtsiL_T<T(!new)>(xs: List, ys: List)
   requires Subset(xs, ys)
 {
   assert forall x :: InList(x, xs) ==> InList(x, ys);

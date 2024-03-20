@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 type array1<T> = array<T>  // array1 is not a pre-defined type; so we make it a synonym
 class A {

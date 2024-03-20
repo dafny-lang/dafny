@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
-static class FormatCommand {
+public static class FormatCommand {
 
   public static IEnumerable<Option> Options => DafnyCommands.FormatOptions;
 
@@ -23,7 +23,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
       result.AddOption(option);
     }
 
-    DafnyCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       options.AllowSourceFolders = true;
       var exitValue = await DoFormatting(options);
       return (int)exitValue;
@@ -33,7 +33,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
   }
 
   public static async Task<ExitValue> DoFormatting(DafnyOptions options) {
-    var code = DafnyCli.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
     if (code != 0) {
       return code;
     }
@@ -67,13 +67,14 @@ Use '--print' to output the content of the formatted files instead of overwritin
       string tempFileName = null;
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        CompilerDriver.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        SynchronousCliCompilation.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
         dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
           OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
       }
 
-      using var content = dafnyFile.GetContent();
+      var content = dafnyFile.GetContent();
       var originalText = await content.ReadToEndAsync();
+      content.Close(); // Manual closing because we want to overwrite
       dafnyFile.GetContent = () => new StringReader(originalText);
       // Might not be totally optimized but let's do that for now
       var err = DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
@@ -86,7 +87,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
         var result = originalText;
         if (firstToken != null) {
           result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram));
+            IndentationFormatter.ForProgram(dafnyProgram, file.Uri));
           if (result != originalText) {
             neededFormatting += 1;
             if (doCheck) {
@@ -94,14 +95,12 @@ Use '--print' to output the content of the formatted files instead of overwritin
             }
 
             if (doCheck && (!doPrint || options.Verbose)) {
-              await options.OutputWriter.WriteLineAsync("The file " +
-                                                        (options.UseBaseNameForFileName
-                                                          ? Path.GetFileName(dafnyFile.FilePath)
-                                                          : dafnyFile.FilePath) + " needs to be formatted");
+              await options.OutputWriter.WriteLineAsync(
+                $"The file {options.GetPrintPath(dafnyFile.FilePath)} needs to be formatted");
             }
 
             if (!doCheck && !doPrint) {
-              CompilerDriver.WriteFile(dafnyFile.FilePath, result);
+              SynchronousCliCompilation.WriteFile(dafnyFile.FilePath, result);
             }
           }
         } else {
@@ -110,9 +109,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
             await options.ErrorWriter.WriteLineAsync(dafnyFile.BaseName + " was empty.");
           }
 
-          emptyFiles.Add((options.UseBaseNameForFileName
-            ? Path.GetFileName(dafnyFile.FilePath)
-            : dafnyFile.FilePath));
+          emptyFiles.Add(options.GetPrintPath(dafnyFile.FilePath));
         }
         if (doPrint) {
           await options.OutputWriter.WriteAsync(result);

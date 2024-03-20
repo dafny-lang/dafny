@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -11,8 +12,20 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
   public readonly WKind WitnessKind;
   public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-  [FilledInDuringResolution] public bool ConstraintIsCompilable;
-  [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+
+  private bool? constraintIsCompilable = null;
+  [FilledInDuringResolution]
+  bool RedirectingTypeDecl.ConstraintIsCompilable {
+    get {
+      Contract.Assert(constraintIsCompilable != null);
+      return (bool)constraintIsCompilable;
+    }
+    set {
+      Contract.Assert(constraintIsCompilable == null);
+      constraintIsCompilable = value;
+    }
+  }
+
   public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
     BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
@@ -46,7 +59,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
-  public override DafnySymbolKind Kind => DafnySymbolKind.Class;
+  public override SymbolKind Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
   }

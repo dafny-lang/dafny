@@ -41,7 +41,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(2 <= methods.Count(m => m.MethodName == "M.b"));
       Assert.Equal(1, methods.Count(m => m.MethodName == "M.a"));
@@ -74,7 +74,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.a"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("M.a")));
@@ -103,7 +103,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
     }
 
@@ -125,7 +125,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
     }
 
@@ -144,7 +144,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
     }
 
@@ -171,7 +171,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 3);
     }
 
@@ -198,7 +198,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count < 3);
     }
 
@@ -223,7 +223,7 @@ module Paths {
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(8 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
@@ -264,7 +264,7 @@ module Paths {
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.InlinedBlock;
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 2 and <= 6);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
@@ -301,7 +301,7 @@ module Paths {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 1 and <= 2);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
@@ -344,7 +344,7 @@ module Objects {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 5);
       Assert.True(methods.All(m =>
         m.MethodName == "Objects.List.IsACircleOfTwoOrLessNodes"));
@@ -409,7 +409,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
     }
 
@@ -434,7 +434,7 @@ module DataTypes {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "DataTypes.List.Depth"));
@@ -471,7 +471,7 @@ module Module {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       var m = methods[0];
       Assert.Equal("Module.ignoreNonNullableObject", m.MethodName);
@@ -499,7 +499,7 @@ module M {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
+      var stats = await TestGenerator.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
       Assert.Equal(1, stats.Count(line => line.Contains("unreachable"))); // second is line with stats
     }
@@ -526,7 +526,7 @@ module M {
       options.TestGenOptions.WarnDeadCode = true;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.InlinedBlock;
       var coverageReport = new CoverageReport("", "", "", null);
-      await Main.GetDeadCodeStatistics(new StringReader(source), null, options, coverageReport).ToListAsync();
+      await TestGenerator.GetDeadCodeStatistics(new StringReader(source), null, options, coverageReport).ToListAsync();
       Assert.NotEmpty(coverageReport.AllFiles());
       var fileId = coverageReport.AllFiles().First();
       Assert.Equal(6, coverageReport.CoverageSpansForFile(fileId).Count());
@@ -553,7 +553,7 @@ method {:testEntry} m(a:int) returns (b:int)
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.WarnDeadCode = true;
-      var stats = await Main.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
+      var stats = await TestGenerator.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
       Assert.Single(stats); // the only line with stats
     }
 
@@ -575,7 +575,7 @@ module Test {
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.SeqLengthLimit = 1;
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Test.IsEvenLength"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
@@ -602,7 +602,7 @@ module Math {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Math.Min"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Math.Min")));
@@ -630,7 +630,7 @@ module ShortCircuit {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
@@ -660,7 +660,7 @@ module C {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.Exists(m => m.MethodName == "A.m" &&
                                         m.DafnyInfo.IsStatic("A.m") &&
@@ -701,7 +701,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       Assert.True(methods.All(m =>
         m.MethodName == "M.Instance.setI"));
@@ -731,7 +731,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      await Main.GetTestMethodsForProgram(program).ToListAsync();
+      await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
     }
 
     [Theory]
@@ -744,7 +744,7 @@ module M {
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
     }
 

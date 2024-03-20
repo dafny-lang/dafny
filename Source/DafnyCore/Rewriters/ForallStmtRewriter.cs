@@ -363,7 +363,7 @@ public class ForallStmtRewriter : IRewriter {
       return sub.Substitute(expr);
     }
 
-    List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list, IVariable v, Expression e) {
+    List<BoundedPool>/*?*/ SubstituteBoundedPoolList(List<BoundedPool>/*?*/ list, IVariable v, Expression e) {
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
       Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
       substMap.Add(v, e);

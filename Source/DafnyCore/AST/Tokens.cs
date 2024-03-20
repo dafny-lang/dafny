@@ -56,8 +56,8 @@ public interface IToken : Microsoft.Boogie.IToken, IComparable<IToken> {
 public class Token : IToken {
 
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
-  public static readonly Token NoToken = new Token();
-  public static readonly Token Cli = new Token();
+  public static readonly Token NoToken = new();
+  public static readonly Token Cli = new();
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {
@@ -107,6 +107,13 @@ public class Token : IToken {
       kind = kind,
       val = newVal
     };
+  }
+
+  public int CompareTo(Boogie.IToken other) {
+    if (line != other.line) {
+      return line.CompareTo(other.line);
+    }
+    return col.CompareTo(other.col);
   }
 
   public override int GetHashCode() {
@@ -189,6 +196,10 @@ public abstract class TokenWrapper : IToken {
   public int CompareTo(IToken other) {
     return WrappedToken.CompareTo(other);
   }
+
+  public int CompareTo(Boogie.IToken other) {
+    return WrappedToken.CompareTo(other);
+  }
 }
 
 public static class TokenExtensions {
@@ -217,6 +228,10 @@ public static class TokenExtensions {
   public static RangeToken ToRange(this IToken token) {
     if (token is BoogieRangeToken boogieRangeToken) {
       return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    }
+
+    if (token is NestedToken nestedToken) {
+      return ToRange(nestedToken.Outer);
     }
     return token as RangeToken ?? new RangeToken(token, token);
   }
