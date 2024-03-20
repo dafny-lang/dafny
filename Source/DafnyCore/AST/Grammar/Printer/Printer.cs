@@ -797,7 +797,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           Contract.Assert(false);  // unexpected VarianceSyntax
           throw new cce.UnreachableException();
       }
-      return variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      var paramString = variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      foreach (var typeBound in tp.TypeBounds) {
+        paramString += $" extends {typeBound.TypeName(options, null, true)}";
+      }
+      return paramString;
     }
 
     private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {

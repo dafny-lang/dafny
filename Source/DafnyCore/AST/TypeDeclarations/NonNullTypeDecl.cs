@@ -13,7 +13,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   /// in order to build values that depend on previously computed parameters.
   /// </summary>
   public NonNullTypeDecl(ClassLikeDecl cl)
-    : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics))) {
+    : this(cl, TypeParameter.CloneTypeParameters(cl.TypeArgs)) {
     Contract.Requires(cl != null);
   }
 

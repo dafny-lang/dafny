@@ -2890,7 +2890,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initiallyNoTypeArguments);
         Contract.Assert(iter.NonNullTypeDecl.TypeArgs.Count == 0);
         var nnt = iter.NonNullTypeDecl;
-        nnt.TypeArgs.AddRange(iter.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics)));
+        nnt.TypeArgs.AddRange(TypeParameter.CloneTypeParameters(iter.TypeArgs));
         var varUdt = (UserDefinedType)nnt.Var.Type;
         Contract.Assert(varUdt.TypeArgs.Count == 0);
         varUdt.TypeArgs = nnt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));

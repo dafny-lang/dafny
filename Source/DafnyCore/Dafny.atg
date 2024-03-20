@@ -1088,6 +1088,8 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
 = (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
      var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
      Name name;
+     Type typeBound;
+     var typeBounds = new List<Type>();
      var startToken = t.Next;
   .)
   [ Variance<out variance>
@@ -1098,7 +1100,11 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
   ]
   TypeVariableName<out name>
   { TypeParameterCharacteristics<ref characteristics> }
-  (. typeParameters.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
+  { "extends"
+    Type<out typeBound>
+    (. typeBounds.Add(typeBound); .)
+  }
+  (. typeParameters.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics, typeBounds)); .)
   .
 
 /*------------------------------------------------------------------------*/
