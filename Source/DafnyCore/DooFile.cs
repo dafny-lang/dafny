@@ -8,6 +8,7 @@ using System.Text;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Plugins;
 using Tomlyn;
 
 namespace DafnyCore;

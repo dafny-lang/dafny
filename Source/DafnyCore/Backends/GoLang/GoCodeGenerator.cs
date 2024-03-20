@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool GoModuleMode;
     private string GoModuleName;
     public GoCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
-      Options.Options.OptionArguments.TryGetValue(CommonOptionBag.BackendModuleName, out var goModuleName);
+      var goModuleName = Options.Get(CommonOptionBag.BackendModuleName);
       GoModuleMode = goModuleName != null;
       if (GoModuleMode) {
         GoModuleName = goModuleName.ToString();
