@@ -12,7 +12,7 @@ public class CommonOptionBag {
   public static void EnsureStaticConstructorHasRun() { }
 
   public static readonly Option<bool> ProgressOption =
-    new("--progress", "Records verification progress") {
+    new("--progress", "While verifying, output information that helps track progress") {
       IsHidden = true
     };
 
