@@ -168,3 +168,33 @@ module New {
     a := new [] [20, 50, 70];
   }
 }
+
+module BoundedPolymorphism {
+  trait Trait { }
+
+  datatype DT<W extends Trait> = Dt(w: W)
+
+  type Syn<X extends Trait> = DT<X>
+
+  class Class<Y extends Trait> {
+  }
+
+  trait AnotherTrait<Z extends Trait> {
+  }
+
+  type Abstract<V extends Trait extends AnotherTrait<Trait>>
+
+  trait Generic<Q> { }
+
+  codatatype Mutual<A extends Generic<B>, B extends Generic<A>> = More(Mutual)
+
+  function Function<K extends Trait>(k: K): int { 2 }
+
+  method Method<L extends Trait>(l: L) { }
+
+  least predicate Least<M extends Trait>(m: M) { true }
+
+  greatest lemma Greatest<N extends Trait>(n: N) { }
+
+  iterator Iter<O extends Trait>(o: O) { }
+}
