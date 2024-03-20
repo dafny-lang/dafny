@@ -338,7 +338,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
+    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "decl",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
     /// </summary>
     public static void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors, SystemModuleManager systemModuleManager) {
@@ -362,6 +362,16 @@ namespace Microsoft.Dafny {
     /// Note, if either "super" or "sub" contains a type proxy, then "false" is returned.
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
+      if (sub.Decl is TypeParameter typeParameter) {
+        foreach (var typeBound in typeParameter.TypeBounds) {
+          var preTypeBound = (DPreType)Type2PreType(typeBound);
+          if (IsSuperPreTypeOf(super, preTypeBound)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
       var subAncestors = new HashSet<TopLevelDecl>();
       ComputeAncestors(sub.Decl, subAncestors, resolver.SystemModuleManager);
       if (!subAncestors.Contains(super.Decl)) {
