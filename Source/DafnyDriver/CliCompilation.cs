@@ -162,6 +162,12 @@ public class CliCompilation {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
+        if (Options.Get(CommonOptionBag.ProgressOption)) {
+          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          Options.OutputWriter.WriteLine(
+            $"Verified part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
+            $", located at line {token.line}, using {completed.Result.ResourceCount:E1} resources");
+        }
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
         }
@@ -198,6 +204,7 @@ public class CliCompilation {
       }
     }
 
+    int done = 0;
     foreach (var canVerify in orderedCanVerifies) {
       var results = canVerifyResults[canVerify];
       try {
@@ -207,7 +214,11 @@ public class CliCompilation {
           tasks.Add(Task.Delay(timeLimitSeconds));
         }
 
+        if (Options.Get(CommonOptionBag.ProgressOption)) {
+          await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+        }
         await Task.WhenAny(tasks);
+        done++;
         if (!results.Finished.Task.IsCompleted) {
           Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
             "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
