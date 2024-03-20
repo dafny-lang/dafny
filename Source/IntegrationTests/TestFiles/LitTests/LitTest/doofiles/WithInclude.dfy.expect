@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+IncludedNotVerified.dfy(3,7): Error: Module Library was not verified and cannot be included in a doo file. Avoid include statements or use --verify-included-files.
+Translation was aborted because errors were found
