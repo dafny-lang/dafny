@@ -18,6 +18,7 @@ using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
+
 namespace Microsoft.Dafny {
   public enum FunctionSyntaxOptions {
     Version3,
@@ -271,8 +272,7 @@ namespace Microsoft.Dafny {
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
-      Printer = new DafnyConsolePrinter(this);
-      Printer.Options = this;
+      Printer = new NullPrinter();
     }
 
     public override string VersionNumber {

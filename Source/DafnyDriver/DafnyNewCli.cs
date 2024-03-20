@@ -153,7 +153,7 @@ public static class DafnyNewCli {
       dafnyOptions.ApplyBinding(option);
     } catch (Exception e) {
       context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-      dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+      dafnyOptions.OutputWriter.WriteLine(
         $"Invalid value for option {option.Name}: {e.Message}");
       return false;
     }
