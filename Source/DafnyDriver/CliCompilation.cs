@@ -66,7 +66,7 @@ public class CliCompilation {
     }
   }
 
-  public Task<ResolutionResult> Resolution => Compilation.Resolution;
+  public Task<ResolutionResult?> Resolution => Compilation.Resolution;
 
   public static CliCompilation Create(DafnyOptions options) {
     var fileSystem = OnDiskFileSystem.Instance;
@@ -168,15 +168,8 @@ public class CliCompilation {
       }
     });
 
-    ResolutionResult resolution;
-    try {
-      resolution = await Compilation.Resolution;
-    } catch (OperationCanceledException) {
-      // Failed to resolve the program due to a user error.
-      yield break;
-    }
-
-    if (resolution.HasErrors) {
+    var resolution = await Compilation.Resolution;
+    if (resolution == null || resolution.HasErrors) {
       yield break;
     }
 
