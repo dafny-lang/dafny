@@ -4,7 +4,7 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-class NullPrinter : OutputPrinter {
+public class NullPrinter : OutputPrinter {
   public void ErrorWriteLine(TextWriter tw, string s) {
   }
 

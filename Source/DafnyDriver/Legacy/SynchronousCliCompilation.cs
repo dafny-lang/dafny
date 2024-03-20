@@ -45,7 +45,6 @@ namespace Microsoft.Dafny {
 
     public static async Task<int> Run(DafnyOptions options) {
       options.RunningBoogieFromCommandLine = true;
-      options.Printer = new DafnyConsolePrinter(options);
 
       var backend = GetBackend(options);
       if (backend == null) {
@@ -83,6 +82,9 @@ namespace Microsoft.Dafny {
     public static ExitValue GetDafnyFiles(DafnyOptions options,
       out List<DafnyFile> dafnyFiles,
       out List<string> otherFiles) {
+      if (options.Printer is NullPrinter) {
+        options.Printer = new DafnyConsolePrinter(options);
+      }
 
       if (options.DafnyProject != null) {
         foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {

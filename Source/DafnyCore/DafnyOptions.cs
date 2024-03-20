@@ -18,7 +18,6 @@ using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
-
 namespace Microsoft.Dafny {
   public enum FunctionSyntaxOptions {
     Version3,
