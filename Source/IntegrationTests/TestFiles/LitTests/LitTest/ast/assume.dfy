@@ -1,4 +1,4 @@
-// RUN: ! %testDafnyForEachResolver "%s" -- --allow-axioms=false 
+// RUN: ! %testDafnyForEachResolver "%s" -- --allow-axioms=false
 // NONUNIFORM: warning will be the same for all back-end
 // RUN: ! %verify --standard-libraries --allow-axioms:false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
