@@ -180,6 +180,10 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache = null) {
+      if (program.Options.Printer is NullPrinter) {
+        program.Options.Printer = new DafnyConsolePrinter(program.Options);
+      }
+
       lock (program.Options.ProverOptions) {
         program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
       }
