@@ -718,8 +718,8 @@ public class MatchFlattener : IRewriter {
       var caseLet = new VarDeclPattern(caseLocal.RangeToken, casePattern, expr, false);
       caseLet.IsGhost = isGhost;
 
-      var substitutions = new Dictionary<IVariable, Expression>() {
-        { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, caseLocal)}
+      var substitutions = new Dictionary<IVariable, IVariable>() {
+        { var.BoundVar, caseLocal }
       };
 
       var cloner = new SubstitutingCloner(substitutions, true);
