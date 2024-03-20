@@ -711,12 +711,14 @@ public class MatchFlattener : IRewriter {
         return stmtPath;
       }
 
-      var caseLocal = new LocalVariable(var.RangeToken, name, type, isGhost);
-      caseLocal.type = type;
+      var caseLocal = new LocalVariable(var.RangeToken, name, type, isGhost) {
+        type = type
+      };
       var casePattern = new CasePattern<LocalVariable>(caseLocal.RangeToken.EndToken, caseLocal);
       casePattern.AssembleExpr(new List<Type>());
-      var caseLet = new VarDeclPattern(caseLocal.RangeToken, casePattern, expr, false);
-      caseLet.IsGhost = isGhost;
+      var caseLet = new VarDeclPattern(caseLocal.RangeToken, casePattern, expr, false) {
+        IsGhost = isGhost
+      };
 
       var substitutions = new Dictionary<IVariable, IVariable>() {
         { var.BoundVar, caseLocal }
