@@ -1,4 +1,4 @@
-// RUN: %verify --allow-axioms:false "%s" > "%t"
+// RUN: ! %verify --allow-axioms:false "%s" > "%t"
 // NONUNIFORM: warning will be the same for all back-end
 // RUN: ! %run --allow-axioms:false "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
