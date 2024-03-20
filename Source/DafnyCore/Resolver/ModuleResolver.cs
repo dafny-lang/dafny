@@ -961,6 +961,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
+        ResolveTypeParameterBounds(d.tok, d.TypeArgs, d as ICodeContext ?? new NoContext(d.EnclosingModuleDefinition));
         if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
@@ -1041,6 +1042,14 @@ namespace Microsoft.Dafny {
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
         ReportCycleError(reporter, cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
+      }
+    }
+
+    void ResolveTypeParameterBounds(IToken tok, List<TypeParameter> typeParameters, ICodeContext context) {
+      foreach (var typeParameter in typeParameters) {
+        foreach (var typeBound in typeParameter.TypeBounds) {
+          ResolveType(tok, typeBound, context, ResolveTypeOptionEnum.DontInfer, null);
+        }
       }
     }
 
@@ -2185,6 +2194,7 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(f.TypeArgs, true, f);
+          ResolveTypeParameterBounds(f.tok, f.TypeArgs, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
           if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
@@ -2193,6 +2203,7 @@ namespace Microsoft.Dafny {
               ff.EnclosingClass = cl;
               allTypeParameters.PushMarker();
               ResolveTypeParameters(ff.TypeArgs, true, ff);
+              ResolveTypeParameterBounds(ff.tok, ff.TypeArgs, ff);
               ResolveFunctionSignature(ff);
               allTypeParameters.PopMarker();
             }
@@ -2206,6 +2217,7 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(m.TypeArgs, true, m);
+          ResolveTypeParameterBounds(m.tok, m.TypeArgs, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
           if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
@@ -2214,6 +2226,7 @@ namespace Microsoft.Dafny {
             mm.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(mm.TypeArgs, true, mm);
+            ResolveTypeParameterBounds(mm.tok, mm.TypeArgs, mm);
             ResolveMethodSignature(mm);
             allTypeParameters.PopMarker();
           }
