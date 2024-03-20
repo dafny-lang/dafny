@@ -3853,6 +3853,11 @@ namespace Microsoft.Dafny {
         isAlloc = null;
       } else if (alloc == ISALLOC && etran.HeapExpr != null) {
         isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
+        if (normType.AsTypeParameter is { } typeParameter) {
+          foreach (var typeBound in typeParameter.TypeBounds) {
+            isAlloc = BplAnd(isAlloc, MkIsAllocBox(x, typeBound, etran.HeapExpr));
+          }
+        }
       } else {
         isAlloc = null;
       }
@@ -3864,7 +3869,7 @@ namespace Microsoft.Dafny {
       if (alwaysUseSymbolicName) {
         // go for the symbolic name
         isPred = MkIs(x, normType);
-      } else if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
+      } else if (normType is BoolType or IntType or RealType or BigOrdinalType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
@@ -3879,6 +3884,11 @@ namespace Microsoft.Dafny {
       } else {
         // go for the symbolic name
         isPred = MkIs(x, normType);
+        if (normType.AsTypeParameter is { } typeParameter) {
+          foreach (var typeBound in typeParameter.TypeBounds) {
+            isPred = BplAnd(isPred, MkIsBox(x, typeBound));
+          }
+        }
       }
       return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
     }

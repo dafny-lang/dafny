@@ -1,0 +1,8 @@
+BoundedPolymorphismVerification.dfy(13,28): Error: value of expression (of type 'Parent') is not known to be an instance of type 'TheOther'
+BoundedPolymorphismVerification.dfy(22,18): Error: value of expression (of type 'Trait') is not known to be an instance of type 'X'
+BoundedPolymorphismVerification.dfy(28,15): Error: value of expression (of type 'Z') is not known to be an instance of type 'object'
+BoundedPolymorphismVerification.dfy(49,11): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(60,13): Error: assertion might not hold
+BoundedPolymorphismVerification.dfy(68,11): Error: assertion might not hold
+
+Dafny program verifier finished with 3 verified, 6 errors
