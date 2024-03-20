@@ -267,58 +267,52 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
-    try {
-      var resolution = await compilation.Resolution;
-
-      var canVerifies = resolution.CanVerifies?.ToList();
-      if (canVerifies == null) {
-        return;
-      }
-
-      if (uri != null) {
-        canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
-      }
-
-      List<FilePosition> changedVerifiables;
-      lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
-      }
-
-      int GetPriorityAttribute(ISymbol symbol) {
-        if (symbol is IAttributeBearingDeclaration hasAttributes &&
-            hasAttributes.HasUserAttribute("priority", out var attribute) &&
-            attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
-          return (int)priority;
-        }
-        return 0;
-      }
-
-      int TopToBottomPriority(ISymbol symbol) {
-        return symbol.Tok.pos;
-      }
-      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = canVerifies
-        .OrderByDescending(GetPriorityAttribute)
-        .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
-        .ThenBy(TopToBottomPriority).ToList();
-      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
-
-      var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
-      if (GutterIconTesting) {
-        foreach (var canVerify in orderedVerifiableLocations) {
-          await compilation.VerifyLocation(canVerify, true);
-        }
-
-        logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
-      }
-
-      foreach (var canVerify in orderedVerifiableLocations) {
-        // Wait for each task to try and run, so the order is respected.
-        await compilation.VerifyLocation(canVerify);
-      }
+    var resolution = await compilation.Resolution;
+    var canVerifies = resolution?.CanVerifies?.ToList();
+    if (canVerifies == null) {
+      return;
     }
-    finally {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+
+    if (uri != null) {
+      canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
+    }
+
+    List<FilePosition> changedVerifiables;
+    lock (RecentChanges) {
+      changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
+    }
+
+    int GetPriorityAttribute(ISymbol symbol) {
+      if (symbol is IAttributeBearingDeclaration hasAttributes &&
+          hasAttributes.HasUserAttribute("priority", out var attribute) &&
+          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+        return (int)priority;
+      }
+      return 0;
+    }
+
+    int TopToBottomPriority(ISymbol symbol) {
+      return symbol.Tok.pos;
+    }
+    var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+    var orderedVerifiables = canVerifies
+      .OrderByDescending(GetPriorityAttribute)
+      .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
+      .ThenBy(TopToBottomPriority).ToList();
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
+
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
+    if (GutterIconTesting) {
+      foreach (var canVerify in orderedVerifiableLocations) {
+        await compilation.VerifyLocation(canVerify, true);
+      }
+
+      logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+    }
+
+    foreach (var canVerify in orderedVerifiableLocations) {
+      // Wait for each task to try and run, so the order is respected.
+      await compilation.VerifyLocation(canVerify);
     }
   }
 

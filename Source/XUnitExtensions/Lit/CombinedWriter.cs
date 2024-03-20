@@ -66,7 +66,6 @@ class CombinedWriter : TextWriter {
   }
 
   public override Task WriteLineAsync(string? value) {
-    Console.WriteLine("WriteLineAsync from CombinedWriter called");
     return Task.WhenAll(writers.Select(w => w.WriteLineAsync(value)));
   }
 
