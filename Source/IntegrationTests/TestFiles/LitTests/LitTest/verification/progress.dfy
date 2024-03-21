@@ -1,4 +1,5 @@
-// RUN: %verify --progress --isolate-assertions --cores=1 %s > %t
+// RUN: %verify --progress --isolate-assertions --cores=1 %s > %t.raw
+// RUN: %sed 's/time: \d*//g' "%t".raw > "%t
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() 
