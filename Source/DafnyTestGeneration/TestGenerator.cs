@@ -27,6 +27,9 @@ namespace DafnyTestGeneration {
       lock (program.Options.ProverOptions) {
         program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
       }
+      if (program.Options.Printer is NullPrinter) {
+        program.Options.Printer = new DafnyConsolePrinter(program.Options);
+      }
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
