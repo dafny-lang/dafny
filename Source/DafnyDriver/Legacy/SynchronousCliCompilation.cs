@@ -352,6 +352,7 @@ namespace Microsoft.Dafny {
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
       model.AssignConcretePrimitiveValues();
+      options.OutputWriter.WriteLine("WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#fn:smt-encoding.");
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
       if (model.LoopGuards.Count > 0) {
         options.OutputWriter.WriteLine("Temporary variables to describe counterexamples: ");
