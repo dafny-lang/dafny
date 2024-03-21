@@ -46,4 +46,8 @@ BoundedPolymorphismResolution.dfy(139,16): Error: type conversions are not suppo
 BoundedPolymorphismResolution.dfy(140,16): Error: type cast to trait type 'Trait' must be from an expression assignable to it (got 'X')
 BoundedPolymorphismResolution.dfy(141,16): Error: type cast to reference type 'Class' must be from an expression assignable to it (got 'X')
 BoundedPolymorphismResolution.dfy(142,16): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got X)
-48 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+BoundedPolymorphismResolution.dfy(156,11): Error: type bound must be a trait or a subset type based on a trait (got int)
+BoundedPolymorphismResolution.dfy(157,11): Error: type bound must be a trait or a subset type based on a trait (got array<Trait>)
+BoundedPolymorphismResolution.dfy(158,11): Error: type bound must be a trait or a subset type based on a trait (got Color)
+BoundedPolymorphismResolution.dfy(159,11): Error: type bound must be a trait or a subset type based on a trait (got Class?)
+52 resolution/type errors detected in BoundedPolymorphismResolution.dfy

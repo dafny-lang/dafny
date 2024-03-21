@@ -961,7 +961,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
-        ResolveTypeParameterBounds(d.tok, d.TypeArgs, d as ICodeContext ?? new NoContext(d.EnclosingModuleDefinition));
         if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
@@ -1022,6 +1021,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      // Now that non-null types and their base types are in place, resolve the bounds of type parameters
+      ResolveAllTypeParameterBounds(declarations);
+
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // Register the trait members in the classes that inherit them
         foreach (TopLevelDecl d in declarations) {
@@ -1045,10 +1048,55 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void ResolveAllTypeParameterBounds(List<TopLevelDecl> declarations) {
+      foreach (var decl in declarations) {
+        allTypeParameters.PushMarker();
+        ResolveTypeParameterBounds(decl.tok, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModuleDefinition));
+        if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          foreach (var member in topLevelDeclWithMembers.Members) {
+            if (member is Function function) {
+              var ec = reporter.Count(ErrorLevel.Error);
+              allTypeParameters.PushMarker();
+              ResolveTypeParameterBounds(function.tok, function.TypeArgs, function);
+              allTypeParameters.PopMarker();
+              if (reporter.Count(ErrorLevel.Error) == ec && function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+                allTypeParameters.PushMarker();
+                ResolveTypeParameterBounds(prefixPredicate.tok, prefixPredicate.TypeArgs, prefixPredicate);
+                allTypeParameters.PopMarker();
+              }
+            } else if (member is Method m) {
+              var ec = reporter.Count(ErrorLevel.Error);
+              allTypeParameters.PushMarker();
+              ResolveTypeParameterBounds(m.tok, m.TypeArgs, m);
+              allTypeParameters.PopMarker();
+              if (reporter.Count(ErrorLevel.Error) == ec && m is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+                allTypeParameters.PushMarker();
+                ResolveTypeParameterBounds(prefixLemma.tok, prefixLemma.TypeArgs, prefixLemma);
+                allTypeParameters.PopMarker();
+              }
+            }
+          }
+        }
+        allTypeParameters.PopMarker();
+      }
+    }
+
+    /// <summary>
+    /// This method pushes the typeParameters to "allTypeParameters" (reporting no errors for any duplicates) and then
+    /// type checks the type-bound types of each type parameter.
+    /// As a side effect, this method leaves "allTypeParameters" in the state after the pushes.
+    /// </summary>
     void ResolveTypeParameterBounds(IToken tok, List<TypeParameter> typeParameters, ICodeContext context) {
       foreach (var typeParameter in typeParameters) {
+        allTypeParameters.Push(typeParameter.Name, typeParameter);
+      }
+      foreach (var typeParameter in typeParameters) {
         foreach (var typeBound in typeParameter.TypeBounds) {
+          var prevErrorCount = reporter.ErrorCount;
           ResolveType(tok, typeBound, context, ResolveTypeOptionEnum.DontInfer, null);
+          if (reporter.ErrorCount == prevErrorCount && !typeBound.IsTraitType) {
+            reporter.Error(MessageSource.Resolver, tok, $"type bound must be a trait or a subset type based on a trait (got {typeBound})");
+          }
         }
       }
     }
@@ -2194,7 +2242,6 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(f.TypeArgs, true, f);
-          ResolveTypeParameterBounds(f.tok, f.TypeArgs, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
           if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
@@ -2203,7 +2250,6 @@ namespace Microsoft.Dafny {
               ff.EnclosingClass = cl;
               allTypeParameters.PushMarker();
               ResolveTypeParameters(ff.TypeArgs, true, ff);
-              ResolveTypeParameterBounds(ff.tok, ff.TypeArgs, ff);
               ResolveFunctionSignature(ff);
               allTypeParameters.PopMarker();
             }
@@ -2217,7 +2263,6 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(m.TypeArgs, true, m);
-          ResolveTypeParameterBounds(m.tok, m.TypeArgs, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
           if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
@@ -2226,7 +2271,6 @@ namespace Microsoft.Dafny {
             mm.EnclosingClass = cl;
             allTypeParameters.PushMarker();
             ResolveTypeParameters(mm.TypeArgs, true, mm);
-            ResolveTypeParameterBounds(mm.tok, mm.TypeArgs, mm);
             ResolveMethodSignature(mm);
             allTypeParameters.PopMarker();
           }

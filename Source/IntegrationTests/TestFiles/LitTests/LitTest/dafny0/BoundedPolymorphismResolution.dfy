@@ -142,3 +142,23 @@ module AsIsResolve4 {
     var a3 := x as int; // error
   }
 }
+
+module BoundMustBeTrait {
+  trait Trait extends object {
+    const n: int
+  }
+
+  datatype Color = Brown | Peach
+  class Class { }
+  type Synonym = Trait
+  type Subset = t: Trait | t.n == 8 witness *
+
+  datatype D0<W extends int> = Make(w: W) // error: bound must be a trait
+  datatype D1<W extends array<Trait>> = Make(w: W) // error: bound must be a trait
+  datatype D2<W extends Color> = Make(w: W) // error: bound must be a trait
+  datatype D3<W extends Class?> = Make(w: W) // error: bound must be a trait
+  datatype D4<W extends Synonym> = Make(w: W)
+  datatype D5<W extends Subset> = Make(w: W)
+  datatype D6<W extends Trait?> = Make(w: W)
+  datatype D7<W extends Trait> = Make(w: W)
+}
