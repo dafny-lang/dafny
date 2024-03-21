@@ -4,6 +4,7 @@ method Main() {
   As.Test();
   Is.Test();
   Basic.Test();
+  Bounds.Test();
 }
 
 module As {
@@ -117,5 +118,41 @@ module Basic {
     var c := new Class(18);
     var obj := TestMethod(c);
     print obj != null, "\n"; // true
+  }
+}
+
+module Bounds {
+  trait Trait<X> {
+    function Value(): X
+  }
+
+  datatype Dt extends Trait<string> = Dt(s: string)
+  {
+    function Value(): string { s }
+  }
+
+  method MyMethod<Y extends Trait<string>>(y: Y) {
+    var s := (y as Trait<string>).Value();
+    print "(", s, ")\n";
+  }
+
+  class RandomClass<R> extends Trait<R> {
+    const r: R
+    constructor (r: R) {
+      this.r := r;
+    }
+    function Value(): R { r }
+  }
+
+  method Test() {
+    var d := Dt("hello");
+    MyMethod(d);
+
+    var c := new RandomClass("you don't say");
+    MyMethod(c);
+
+    var v := *; // inferred to be of type string (pretty cool, huh!)
+    var i := new RandomClass(v);
+    MyMethod(i);
   }
 }

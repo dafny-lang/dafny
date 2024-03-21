@@ -221,3 +221,39 @@ module Refinement {
     method M1<A extends Trait>(u: int)
   }
 }
+
+module CheckArguments {
+  trait Trait<X> {
+    function Value(): X
+  }
+
+  datatype Dt extends Trait<string> = Dt(s: string)
+  {
+    function Value(): string { s }
+  }
+
+  class RandomClass<R> extends Trait<R> {
+    const r: R
+    constructor (r: R) {
+      this.r := r;
+    }
+    function Value(): R { r }
+  }
+
+  method MyMethod<Y extends Trait<string>>(y0: Y)
+  function MyFunction<Y extends Trait<string>>(y1: Y): int
+  class MyClass<Y extends Trait<string>> {
+    constructor (y2: Y)
+  }
+
+  method Test() {
+    var m := new RandomClass(3.14);
+    MyMethod(m); // error: type parameter is RandomClass<real>, which is not a Trait<string> as required by type bound
+
+    var n := new RandomClass('x');
+    var _ := MyFunction(n); // error: type parameter is RandomClass<char>, which is not a Trait<string> as required by type bound
+
+    var o := new RandomClass(500);
+    var oo := new MyClass(o); // error: type parameter is RandomClass<int>, which is not a Trait<string> as required by type bound
+  }
+}

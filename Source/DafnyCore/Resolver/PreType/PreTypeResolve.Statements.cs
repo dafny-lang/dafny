@@ -845,6 +845,8 @@ namespace Microsoft.Dafny {
 
       if (tryToResolve) {
         var typeMap = s.MethodSelect.PreTypeArgumentSubstitutionsAtMemberDeclaration();
+        AddTypeBoundConstraints(s.Tok, callee.EnclosingClass.TypeArgs, typeMap);
+        AddTypeBoundConstraints(s.Tok, callee.TypeArgs, typeMap);
         // resolve arguments
         ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, resolutionContext, typeMap,
           callee.IsStatic ? null : s.Receiver);
