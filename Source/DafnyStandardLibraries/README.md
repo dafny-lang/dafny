@@ -45,20 +45,20 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
-- [Std.Arithmetic](src/Std/Arithmetic) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
-- [Std.Base64](src/Std/Base64) -- base-64 encoding and decoding
-- [Std.BoundedInts](src/Std/BoundedInts) -- definitions of types and constants for fixed-bit-width integers
-- [Std.Collections](src/Std/Collections) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
+- [Std.Arithmetic](src/Std/Arithmetic/README.md) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
+- [Std.Base64](src/Std/Base64.md) -- base-64 encoding and decoding
+- [Std.BoundedInts](src/Std/BoundedInts.md) -- definitions of types and constants for fixed-bit-width integers
+- [Std.Collections](src/Std/Collections/Collections.md) -- properties of the built-in collection types (seq, set, iset, map, imap, array)
 - [Std.Concurrent](src/Std/TargetSpecific) -- types for using Dafny in concurrent environments
 - [Std.DynamicArray](src/Std/DynamicArray.dfy) -- an array that can grow and shrink
 - [Std.FileIO](src/Std/TargetSpecific) -- basic file I/O operations
-- [Std.Functions](src/Std/Functions) -- properties of functions
-- [Std.JSON](src/Std/JSON) -- JSON serialization and deserialization
-- [Std.Math](src/Std/Math) -- common mathematical functions, such as Min and Abs
-- [Std.Relations](src/Std/Relations) -- properties of relations
-- [Std.Strings](src/Std/Strings) -- utilities for strings, especially converting to and from string representations of common types
-- [Std.Unicode](src/Std/Unicode) -- implementations of basic algorithms from Unicode 15.0
-- [Std.Wrappers](src/Std/Wrappers) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
+- [Std.Functions](src/Std/Functions.md) -- properties of functions
+- [Std.JSON](src/Std/JSON/JSON.md) -- JSON serialization and deserialization
+- [Std.Math](src/Std/Math.md) -- common mathematical functions, such as Min and Abs
+- [Std.Relations](src/Std/Relations.md) -- properties of relations
+- [Std.Strings](src/Std/Strings.md) -- utilities for strings, especially converting to and from string representations of common types
+- [Std.Unicode](src/Std/Unicode/Unicode.md) -- implementations of basic algorithms from Unicode 15.0
+- [Std.Wrappers](src/Std/Wrappers.md) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 
 ## Backwards compatibility
 
