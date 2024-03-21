@@ -1603,9 +1603,6 @@ namespace Microsoft.Dafny {
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
         rr.PreType = field.PreType.Substitute(subst);
-#if SOON
-        resolver.AddCallGraphEdgeForField(resolutionContext, field, rr);
-#endif
       } else if (member is Function function) {
         if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
           ReportError(tok, "two-state function ('{0}') can only be called in a two-state context", member.Name);
@@ -1630,9 +1627,6 @@ namespace Microsoft.Dafny {
         var inParamTypes = function.Formals.ConvertAll(f => f.PreType.Substitute(subst));
         var resultType = Type2PreType(function.ResultType).Substitute(subst);
         rr.PreType = BuiltInArrowType(inParamTypes, resultType);
-#if SOON
-        AddCallGraphEdge(resolutionContext, function, rr, IsFunctionReturnValue(function, args, resolutionContext));
-#endif
       } else {
         // the member is a method
         var method = (Method)member;
