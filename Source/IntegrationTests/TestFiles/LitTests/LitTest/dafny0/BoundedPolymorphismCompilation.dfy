@@ -3,6 +3,7 @@
 method Main() {
   As.Test();
   Is.Test();
+  Basic.Test();
 }
 
 module As {
@@ -83,5 +84,38 @@ module Is {
   method P<Z extends object>(z: Z) {
     print z is object?, " "; // true
     print z is object, "\n"; // true
+  }
+}
+
+module Basic {
+  trait Parent extends object {
+    const k: int
+  }
+  trait Trait extends Parent { }
+  class Class extends Trait {
+    constructor (n: int) {
+      k := n;
+    }
+  }
+
+  method TestMethod<X extends Trait? extends Parent>(x: X) returns (obj: object?)
+    ensures obj != null
+  {
+    var b := x is Trait;
+    assert b;
+    print b, " "; // true
+
+    b := x is Parent;
+    assert b;
+    print b, " "; // true
+
+    var t: Trait := x as Trait;
+    obj := t;
+  }
+
+  method Test() {
+    var c := new Class(18);
+    var obj := TestMethod(c);
+    print obj != null, "\n"; // true
   }
 }
