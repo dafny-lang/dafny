@@ -136,13 +136,13 @@ public record IdeState(
     if (staticDiagnosticsPerFile == null) {
       staticDiagnosticsPerFile = StaticDiagnostics.GroupBy(f => f.Uri).
         ToImmutableDictionary(
-          kv => kv.Key, 
+          kv => kv.Key,
           kv => kv.Select(fd => fd.Diagnostic).ToImmutableList());
     }
 
     return staticDiagnosticsPerFile;
   }
-  
+
   public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
     var resolutionDiagnostics = StaticDiagnosticPerFile().GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
     var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
