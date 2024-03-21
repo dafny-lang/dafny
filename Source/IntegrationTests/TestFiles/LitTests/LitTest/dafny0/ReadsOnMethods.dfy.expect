@@ -29,7 +29,7 @@ ReadsOnMethods.dfy(484,24): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(494,35): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(499,9): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(505,9): Error: assertion might not hold
-ReadsOnMethods.dfy(516,11): Related location: this expression could not be proved
+ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proved
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field
 

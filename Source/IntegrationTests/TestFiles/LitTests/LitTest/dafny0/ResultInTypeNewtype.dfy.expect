@@ -11,7 +11,7 @@ ResultInTypeNewtype.dfy(40,9): Error: result of operation might violate newtype 
 ResultInTypeNewtype.dfy(44,9): Error: result of operation might violate newtype constraint for 'False'
 ResultInTypeNewtype.dfy(50,9): Error: result of operation might violate newtype constraint for 'False'
 ResultInTypeNewtype.dfy(55,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(55,27): Related location: this expression could not be proved
+ResultInTypeNewtype.dfy(55,27): Related location: this proposition could not be proved
 ResultInTypeNewtype.dfy(58,9): Error: result of operation might violate newtype constraint for 'Int'
 ResultInTypeNewtype.dfy(64,11): Error: result of operation might violate newtype constraint for 'Int'
 ResultInTypeNewtype.dfy(66,13): Error: result of operation might violate newtype constraint for 'Int'
@@ -20,7 +20,7 @@ ResultInTypeNewtype.dfy(70,13): Error: result of operation might violate newtype
 ResultInTypeNewtype.dfy(72,13): Error: result of operation might violate newtype constraint for 'Int'
 ResultInTypeNewtype.dfy(76,11): Error: result of operation might violate newtype constraint for 'Int'
 ResultInTypeNewtype.dfy(81,10): Error: cannot find witness that shows type is inhabited (only tried 0.0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(81,31): Related location: this expression could not be proved
+ResultInTypeNewtype.dfy(81,31): Related location: this proposition could not be proved
 ResultInTypeNewtype.dfy(84,9): Error: result of operation might violate newtype constraint for 'Real'
 ResultInTypeNewtype.dfy(90,11): Error: result of operation might violate newtype constraint for 'Real'
 ResultInTypeNewtype.dfy(92,13): Error: result of operation might violate newtype constraint for 'Real'
@@ -29,7 +29,7 @@ ResultInTypeNewtype.dfy(96,13): Error: result of operation might violate newtype
 ResultInTypeNewtype.dfy(98,13): Error: result of operation might violate newtype constraint for 'Real'
 ResultInTypeNewtype.dfy(102,11): Error: result of operation might violate newtype constraint for 'Real'
 ResultInTypeNewtype.dfy(107,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(107,26): Related location: this expression could not be proved
+ResultInTypeNewtype.dfy(107,26): Related location: this proposition could not be proved
 ResultInTypeNewtype.dfy(110,9): Error: result of operation might violate newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(116,11): Error: result of operation might violate newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(118,13): Error: result of operation might violate newtype constraint for 'Bv'
@@ -44,7 +44,7 @@ ResultInTypeNewtype.dfy(142,13): Error: result of operation might violate newtyp
 ResultInTypeNewtype.dfy(144,13): Error: result of operation might violate newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(148,11): Error: result of operation might violate newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(153,10): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(153,31): Related location: this expression could not be proved
+ResultInTypeNewtype.dfy(153,31): Related location: this proposition could not be proved
 ResultInTypeNewtype.dfy(156,9): Error: result of operation might violate newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(162,13): Error: result of operation might violate newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(164,13): Error: char subtraction might underflow

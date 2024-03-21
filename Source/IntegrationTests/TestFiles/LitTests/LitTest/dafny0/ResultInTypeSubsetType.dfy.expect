@@ -11,7 +11,7 @@ ResultInTypeSubsetType.dfy(40,9): Error: value does not satisfy the subset const
 ResultInTypeSubsetType.dfy(44,9): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(50,9): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(55,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeSubsetType.dfy(55,24): Related location: this expression could not be proved
+ResultInTypeSubsetType.dfy(55,24): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(58,9): Error: value does not satisfy the subset constraints of 'Int'
 ResultInTypeSubsetType.dfy(64,11): Error: value does not satisfy the subset constraints of 'Int'
 ResultInTypeSubsetType.dfy(66,13): Error: value does not satisfy the subset constraints of 'Int'
@@ -20,7 +20,7 @@ ResultInTypeSubsetType.dfy(70,13): Error: value does not satisfy the subset cons
 ResultInTypeSubsetType.dfy(72,13): Error: value does not satisfy the subset constraints of 'Int'
 ResultInTypeSubsetType.dfy(76,11): Error: result of operation might violate subset type constraint for 'Int'
 ResultInTypeSubsetType.dfy(81,7): Error: cannot find witness that shows type is inhabited (only tried 0.0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeSubsetType.dfy(81,28): Related location: this expression could not be proved
+ResultInTypeSubsetType.dfy(81,28): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(84,9): Error: value does not satisfy the subset constraints of 'Real'
 ResultInTypeSubsetType.dfy(90,11): Error: value does not satisfy the subset constraints of 'Real'
 ResultInTypeSubsetType.dfy(92,13): Error: value does not satisfy the subset constraints of 'Real'
@@ -29,7 +29,7 @@ ResultInTypeSubsetType.dfy(96,13): Error: value does not satisfy the subset cons
 ResultInTypeSubsetType.dfy(98,13): Error: value does not satisfy the subset constraints of 'Real'
 ResultInTypeSubsetType.dfy(102,11): Error: result of operation might violate subset type constraint for 'Real'
 ResultInTypeSubsetType.dfy(107,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeSubsetType.dfy(107,23): Related location: this expression could not be proved
+ResultInTypeSubsetType.dfy(107,23): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(110,9): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(116,11): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(118,13): Error: value does not satisfy the subset constraints of 'Bv'
@@ -44,7 +44,7 @@ ResultInTypeSubsetType.dfy(142,13): Error: value does not satisfy the subset con
 ResultInTypeSubsetType.dfy(144,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(148,11): Error: result of operation might violate subset type constraint for 'Bv'
 ResultInTypeSubsetType.dfy(153,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeSubsetType.dfy(153,28): Related location: this expression could not be proved
+ResultInTypeSubsetType.dfy(153,28): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(156,9): Error: value does not satisfy the subset constraints of 'Char'
 ResultInTypeSubsetType.dfy(162,13): Error: value does not satisfy the subset constraints of 'Char'
 ResultInTypeSubsetType.dfy(164,13): Error: char subtraction might underflow
