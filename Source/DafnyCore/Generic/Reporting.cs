@@ -6,7 +6,16 @@ using System.CommandLine;
 using System.Linq;
 
 namespace Microsoft.Dafny {
-  
+  public record ParsingPhase : IPhase {
+    public static readonly ParsingPhase Instance = new();
+
+    private ParsingPhase()
+    {
+    }
+
+    public IPhase? ParentPhase => null;
+  }
+
   public interface IPhase {
     IPhase? ParentPhase { get; }
   }

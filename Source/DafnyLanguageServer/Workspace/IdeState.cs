@@ -11,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -37,7 +38,7 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<Uri, ImmutableDictionary<IPhase, Diagnostic>> StaticDiagnostics,
+  ImmutableDictionary<Uri, ImmutableDictionary<IPhase, ImmutableList<Diagnostic>>> StaticDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -375,16 +376,28 @@ public record IdeState(
       .Where(d => d.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
-    previousState.StaticDiagnostics.ToImmutableDictionary(uri => {
-      
+    IPhase completedPhase = ParsingPhase.Instance;
+    ImmutableDictionary<Uri, ImmutableDictionary<IPhase, ImmutableList<Diagnostic>>> staticDiagnostics = previousState.StaticDiagnostics.ToImmutableDictionary(
+      kv => kv.Key, kv => {
+        var newDiagnostics = finishedParsing.Diagnostics.GetValueOrDefault(kv.Key) ?? ImmutableList<Diagnostic>.Empty;
+        ImmutableDictionary<IPhase, ImmutableList<Diagnostic>> migratedDiagnostics = kv.Value.Where(innerKv => {
+          IPhase? phase = innerKv.Key;
+          while (phase != null) {
+            if (phase == completedPhase) {
+              return false;
+            }
+
+            phase = phase.ParentPhase;
+          }
+
+          return true;
+        }).ToImmutableDictionary(innerKv => innerKv.Key, 
+          innerKv => innerKv.Value);
+        return migratedDiagnostics.Add(completedPhase, newDiagnostics);
     });
     return previousState with {
       Program = finishedParsing.Program,
-      StaticDiagnostics = status == CompilationStatus.ParsingFailed
-        ? finishedParsing.Diagnostics
-        : previousState.Status == CompilationStatus.ParsingFailed 
-          ? ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty
-          : previousState.StaticDiagnostics,
+      StaticDiagnostics = staticDiagnostics,
       Status = status,
       VerificationTrees = trees
     };
