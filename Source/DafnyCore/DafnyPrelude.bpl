@@ -394,7 +394,7 @@ axiom (forall d: DatatypeType :: {BoxRank($Box(d))} BoxRank($Box(d)) == DtRank(d
 // -- Big Ordinals -----------------------------------------------
 // ---------------------------------------------------------------
 
-type ORDINAL = Box;  // :| There are more big ordinals than boxes
+type ORDINAL;
 
 // The following two functions give an abstracton over all ordinals.
 // Function ORD#IsNat returns true when the ordinal is one of the natural
