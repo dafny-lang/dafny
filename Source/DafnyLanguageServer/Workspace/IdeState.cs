@@ -377,7 +377,9 @@ public record IdeState(
       Program = finishedParsing.Program,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed
         ? finishedParsing.Diagnostics
-        : previousState.StaticDiagnostics,
+        : previousState.Status == CompilationStatus.ParsingFailed 
+          ? ImmutableDictionary<Uri, ImmutableList<Diagnostic>>.Empty
+          : previousState.StaticDiagnostics,
       Status = status,
       VerificationTrees = trees
     };
