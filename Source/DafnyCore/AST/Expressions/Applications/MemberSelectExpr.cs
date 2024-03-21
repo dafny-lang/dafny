@@ -238,7 +238,6 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
     var receiverType = obj.Type.NormalizeExpand();
     this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
     this.TypeApplication_JustMember = new List<Type>();
-    this.ResolvedOutparameterTypes = new List<Type>();
 
     var typeMap = new Dictionary<TypeParameter, Type>();
     if (receiverType is UserDefinedType udt) {
@@ -291,8 +290,6 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
-
-  [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Member };
