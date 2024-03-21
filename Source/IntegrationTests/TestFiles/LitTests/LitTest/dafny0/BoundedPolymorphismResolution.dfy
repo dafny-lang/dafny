@@ -162,3 +162,62 @@ module BoundMustBeTrait {
   datatype D6<W extends Trait?> = Make(w: W)
   datatype D7<W extends Trait> = Make(w: W)
 }
+
+module Refinement {
+  module AA {
+    trait Trait { }
+    trait GenericTrait<X> { }
+
+    type SoonSubsetType0<A>
+    type SoonSubsetType1<A>
+    type SoonSubsetType2<A extends Trait>
+
+    type AbstractType0<A>
+    type AbstractType1<A extends Trait>
+    type AbstractType2<A>
+
+    type AbstractType3<A extends Trait extends object>
+    type AbstractType4<A extends Trait extends object>
+    type AbstractType5<A extends Trait extends object>
+    type AbstractType6<A extends Trait extends object>
+
+    type AbstractType7<A extends GenericTrait<B>, B extends GenericTrait<A>>
+
+    type ToBeReplaced0<A extends Trait>
+    type ToBeReplaced1<A extends Trait>
+    type ToBeReplaced2<A extends Trait>
+    type ToBeReplaced3<A extends Trait>
+    type ToBeReplaced4<A extends Trait>
+    type ToBeReplaced5<A extends Trait>
+
+    method M0<A extends Trait>(u: int)
+    method M1<A extends Trait>(u: int)
+  }
+
+  module BB refines AA {
+    type SoonSubsetType0<B> = int // here, the name is allowed to be changed
+    type SoonSubsetType1<B extends Trait> = int // error: name change not allowed
+    type SoonSubsetType2<B> = int // error: name change not allowed
+
+    type AbstractType0<B> // error: name change not allowed
+    type AbstractType1<B> // error: name change not allowed
+    type AbstractType2<B extends Trait> // error: name change not allowed
+
+    type AbstractType3<A extends Trait> // error: wrong number of type bounds
+    type AbstractType4<A extends Trait extends object>
+    type AbstractType5<A extends Trait extends Trait> // error: mismatched bound
+    type AbstractType6<A extends object extends Trait> // error (x2): the order has to be the same (because the checking is rather simplistic)
+
+    type AbstractType7<A extends GenericTrait<B>, B extends GenericTrait<A>>
+
+    datatype ToBeReplaced0<A extends Trait> = Record(a: A)
+    datatype ToBeReplaced1<A extends object> = Record(a: A) // error: mismatched bound
+    type ToBeReplaced2<A extends Trait> = int
+    type ToBeReplaced3<A> = int // error: mismatched bound
+    class ToBeReplaced4<A extends Trait> { }
+    class ToBeReplaced5<A extends object> { } // error: mismatched bound
+
+    method M0<A extends object>(u: int) // error: mismatched bound
+    method M1<A extends Trait>(u: int)
+  }
+}

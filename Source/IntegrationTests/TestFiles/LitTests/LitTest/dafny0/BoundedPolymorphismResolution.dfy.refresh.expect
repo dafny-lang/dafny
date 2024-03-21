@@ -28,4 +28,17 @@ BoundedPolymorphismResolution.dfy(156,11): Error: type bound must be a trait or 
 BoundedPolymorphismResolution.dfy(157,11): Error: type bound must be a trait or a subset type based on a trait (got array<Trait>)
 BoundedPolymorphismResolution.dfy(158,11): Error: type bound must be a trait or a subset type based on a trait (got Color)
 BoundedPolymorphismResolution.dfy(159,11): Error: type bound must be a trait or a subset type based on a trait (got Class?)
-30 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+BoundedPolymorphismResolution.dfy(220,11): Error: type bound for type parameter 'A' of method 'M0' is different from the corresponding type bound of the corresponding type parameter of the corresponding method in the module it refines (expected 'Trait', found 'object')
+BoundedPolymorphismResolution.dfy(199,25): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'A', found 'B')
+BoundedPolymorphismResolution.dfy(200,25): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'A', found 'B')
+BoundedPolymorphismResolution.dfy(202,23): Error: type parameters are not allowed to be renamed from the names given in the abstract type in the module being refined (expected 'A', found 'B')
+BoundedPolymorphismResolution.dfy(203,23): Error: type parameters are not allowed to be renamed from the names given in the abstract type in the module being refined (expected 'A', found 'B')
+BoundedPolymorphismResolution.dfy(204,23): Error: type parameters are not allowed to be renamed from the names given in the abstract type in the module being refined (expected 'A', found 'B')
+BoundedPolymorphismResolution.dfy(206,9): Error: type parameter 'A' of abstract type 'AbstractType3' is declared with a different number of type bounds (expected 2, found 1) than in the corresponding abstract type in the module it refines
+BoundedPolymorphismResolution.dfy(208,9): Error: type bound for type parameter 'A' of abstract type 'AbstractType5' is different from the corresponding type bound of the corresponding type parameter of the corresponding abstract type in the module it refines (expected 'object', found 'Trait')
+BoundedPolymorphismResolution.dfy(209,9): Error: type bound for type parameter 'A' of abstract type 'AbstractType6' is different from the corresponding type bound of the corresponding type parameter of the corresponding abstract type in the module it refines (expected 'Trait', found 'object')
+BoundedPolymorphismResolution.dfy(209,9): Error: type bound for type parameter 'A' of abstract type 'AbstractType6' is different from the corresponding type bound of the corresponding type parameter of the corresponding abstract type in the module it refines (expected 'object', found 'Trait')
+BoundedPolymorphismResolution.dfy(214,13): Error: type bound for type parameter 'A' of datatype 'ToBeReplaced1' is different from the corresponding type bound of the corresponding type parameter of the corresponding datatype in the module it refines (expected 'Trait', found 'object')
+BoundedPolymorphismResolution.dfy(216,9): Error: type parameter 'A' of type 'ToBeReplaced3' is declared with a different number of type bounds (expected 1, found 0) than in the corresponding type in the module it refines
+BoundedPolymorphismResolution.dfy(218,10): Error: type bound for type parameter 'A' of class 'ToBeReplaced5' is different from the corresponding type bound of the corresponding type parameter of the corresponding class in the module it refines (expected 'Trait', found 'object')
+43 resolution/type errors detected in BoundedPolymorphismResolution.dfy
