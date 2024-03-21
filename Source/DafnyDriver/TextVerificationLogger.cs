@@ -30,7 +30,7 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     var verificationScope = scopeResult.Scope;
     var results = scopeResult.Results.Select(t => t.Result).ToList();
     var outcome = results.Aggregate(VcOutcome.Correct, (o, r) => JsonVerificationLogger.MergeOutcomes(o, r.Outcome));
-    var runtime = TimeSpan.FromSeconds(results.Sum(r => r.RunTime.Seconds));
+    var runtime = results.Aggregate(TimeSpan.Zero, (a, r) => a + r.RunTime);
     textWriter.WriteLine("");
     textWriter.WriteLine($"Results for {verificationScope.Name}");
     textWriter.WriteLine($"  Overall outcome: {outcome}");
