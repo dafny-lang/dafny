@@ -55,8 +55,6 @@ public class CliCompilation {
 
   public async Task<ExitValue> GetAndReportExitValue() {
     if (errorCount > 0) {
-      // await Options.OutputWriter.WriteLineAsync(
-      //   "Compilation failed because errors were found");
       if (HasErrorsFromSource(MessageSource.Project)) {
         return ExitValue.PREPROCESSING_ERROR;
       }
