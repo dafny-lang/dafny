@@ -26,6 +26,7 @@ public static class DafnyNewCli {
 
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
+    RootCommand.TreatUnmatchedTokensAsErrors = false;
   }
 
   static DafnyNewCli() {
