@@ -196,7 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
-      var errors = state.StaticDiagnostics.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
+      var errors = state.StaticDiagnosticPerFile().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var tree = state.VerificationTrees.GetValueOrDefault(uri);
       if (tree == null) {

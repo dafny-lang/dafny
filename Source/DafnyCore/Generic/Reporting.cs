@@ -6,15 +6,15 @@ using System.CommandLine;
 using System.Linq;
 
 namespace Microsoft.Dafny {
-  public record ParsingPhase : IPhase {
-    public static readonly ParsingPhase Instance = new();
 
-    private ParsingPhase()
-    {
-    }
-
+  public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
     public IPhase? ParentPhase => null;
   }
+
+  public record SingletonPhase(IPhase Parent, DafnyDiagnostic Diagnostic) : IPhase {
+    public IPhase? ParentPhase => Parent;
+  }
+  
 
   public interface IPhase {
     IPhase? ParentPhase { get; }

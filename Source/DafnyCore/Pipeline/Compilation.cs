@@ -11,12 +11,9 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
-using Diagnostic = OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -126,9 +123,9 @@ public class Compilation : IDisposable {
     started.TrySetResult();
   }
 
-  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
-    return staticDiagnostics.ToImmutableDictionary(k => k.Key,
-      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+  private ImmutableList<FileDiagnostic> GetDiagnosticsCopy() {
+    return staticDiagnostics.SelectMany(k =>
+      k.Value.Select(v => new FileDiagnostic(k.Key, v.ToLspDiagnostic()))).ToImmutableList();
   }
 
   private IReadOnlyList<DafnyFile> DetermineRootFiles() {
@@ -213,7 +210,7 @@ public class Compilation : IDisposable {
       return programAfterParsing;
 
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
       throw;
     }
   }
@@ -237,7 +234,7 @@ public class Compilation : IDisposable {
       return resolution;
 
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
       throw;
     }
   }
@@ -336,7 +333,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(e));
+        updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Verifier), e));
         throw;
       }
 
