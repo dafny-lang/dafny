@@ -40,12 +40,12 @@ public class LegacyJsonVerificationLogger {
     return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies?.ToList(), runResult);
   }
 
-  public static VerificationRunResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
+  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
     var mockNumber = 42;
     var mockAsserts = vcResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
     var runResult = new VerificationRunResult(vcResult.VCNum, mockNumber, vcResult.StartTime, vcResult.Outcome, vcResult.RunTime, mockNumber, null!,
       mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null);
-    return runResult;
+    return new VerificationTaskResult(null, runResult);
   }
 
   private static JsonNode SerializeTimeSpan(TimeSpan timeSpan) {
