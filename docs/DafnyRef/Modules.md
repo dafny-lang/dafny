@@ -350,7 +350,7 @@ the module (without renaming).
 Examples:
 <!-- %no-check -->
 ```dafny
-export E extends M reveals f,g provides g,h
+export E extends F reveals f,g provides g,h
 export E reveals *
 export reveals f,g provides g,h
 export E
