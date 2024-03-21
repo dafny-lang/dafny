@@ -593,8 +593,8 @@ generating tests.
 
 ### 11.2.20. `{:testGenerators [parameter, generator]+}` {#sec-test-generators-attribute}
 
-This attribute instructs Dafny test generation to override an input parameter
-with a value obtained by calling the specified generator function or method.
+During test generation, this attribute instructs Dafny to use provided methods 
+and/or functions to construct values that are not constrained by the solver.
 A method annotated with `{:testGenerators}` must always be a test entry method.
 
 For example, consider the following Dafny code:
@@ -602,25 +602,44 @@ For example, consider the following Dafny code:
 <!-- %no-check -->
 ```dafny
 module M {
-  method {:extern} CoinFlip() returns (b:bool)
-  method {:testEntry} {:testGenerators "b", "M.CoinFlip"} ToTest(b: bool) {
-    // Do Something Here
-  }
+    datatype D = D1 | D2
+    datatype E = E(d:D)
+    method {:extern} DGenerator() returns (d:D)
+    method {:testEntry} {:testGenerators "M.DGenerator"} ToTest(e1:E, e2:E) {
+        if (e1.d.D1?) {
+            print "D1";
+        } else {
+            print "D2";
+        }
+    }
 }
 ```
 
 In the code snippet above, method `ToTest` is annotated with 
-`{:testGenerators "b", "M.CoinFlip"}` which means that Dafny test generation 
-will produce a test that calls the`M.CoinFlip` method to obtain a value for 
-the input parameter `b`. In particular, running 
-`dafny generate-tests Block FILE.dfy` on the file above, will produce the
-following:
+`{:testGenerators "M.DGenerator"}` which means that Dafny will call 
+`M.DGenerator` method whenever Dafny needs to obtain an arbitrary value of 
+type `D`. In particular, Dafny will use the generator to construct
+the argument `e2` but not `e1`, since`e1` determines the path that 
+the program takes during execution and cannot be set to an arbitrary value.
+Running `dafny generate-tests Block FILE.dfy` on the file above, 
+produces the following tests:
 
 <!-- %no-check -->
 ```dafny
+import M
 method {:test} Test0() {
-  var bool0 : bool := M.flipCoin();
-  M.m(bool0);
+  var d0 : M.D := M.D.D2;
+  var e0 : M.E := M.E.E(d:=d0);
+  var d1 : M.D := M.GenerateValue();
+  var e1 : M.E := M.E.E(d:=d1);
+  M.ToTest(e0, e1);
+}
+method {:test} Test1() {
+  var d0 : M.D := M.D.D1;
+  var e0 : M.E := M.E.E(d:=d0);
+  var d1 : M.D := M.GenerateValue();
+  var e1 : M.E := M.E.E(d:=d1);
+  M.ToTest(e0, e1);
 }
 ```
 

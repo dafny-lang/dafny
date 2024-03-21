@@ -184,28 +184,37 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Return a list generator methods that test generation should use to populate values for particular input
-    /// parameters when calling (<param name="callableName"/>). A null value in the list indicate that test generation
-    /// should use a value proposed by the counterexample.
+    /// Return the name of the generator method that should be used to construct a default unconstrained value
+    /// of type <param name="fullyQualifiedType"></param> when generating tests for method <param name="testEntryName"></param>.
+    /// Return null if no such generator method is specified by the user.
     /// </summary>
-    public List<string> GetGeneratorMethodsForArguments(string callableName) {
-      Attributes useGeneratorsAttribute = null;
-      List<string> parameterNames = new List<string>();
-      var generatorsMap = new Dictionary<string, string>();
-      if (methods.ContainsKey(callableName)) {
-        methods[callableName].HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out useGeneratorsAttribute);
-        parameterNames.AddRange(methods[callableName].Ins.ConvertAll(formal => formal.Name));
-      } else if (functions.ContainsKey(callableName)) {
-        functions[callableName].HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out useGeneratorsAttribute);
-        parameterNames.AddRange(functions[callableName].Formals.ConvertAll(formal => formal.Name));
+    public string GetGeneratorMethodForType(string testEntryName, Type fullyQualifiedType) {
+      Attributes testGeneratorsAttribute = null;
+      if (methods.TryGetValue(testEntryName, out var method)) {
+        method.HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out testGeneratorsAttribute);
+      } else if (functions.TryGetValue(testEntryName, out var function)) {
+        function.HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out testGeneratorsAttribute);
       }
-      if (useGeneratorsAttribute != null) {
-        for (int i = 0; i < useGeneratorsAttribute.Args.Count - 1; i += 2) {
-          generatorsMap[(useGeneratorsAttribute.Args[i] as StringLiteralExpr).Value.ToString()] =
-            (useGeneratorsAttribute.Args[i + 1] as StringLiteralExpr).Value.ToString();
+
+      if (testGeneratorsAttribute == null) {
+        return null;
+      }
+
+      foreach (var generatorName in testGeneratorsAttribute.Args.OfType<StringLiteralExpr>().Select(arg => arg.Value.ToString())) {
+        Type generatorReturnType = null;
+        if (methods.ContainsKey(generatorName)) {
+          generatorReturnType = Utils.UseFullName(methods[generatorName].Outs.First().Type);
+        } else if (functions.TryGetValue(generatorName, out var function)) {
+          generatorReturnType = Utils.UseFullName(function.ResultType);
+        } else {
+          continue;
+        }
+        if (generatorReturnType.ToString() == fullyQualifiedType.ToString()) {
+          return generatorName;
         }
       }
-      return parameterNames.ConvertAll(parameterName => generatorsMap.GetValueOrDefault(parameterName, null));
+
+      return null;
     }
 
     public IEnumerable<Expression> GetEnsures(List<string> ins, List<string> outs, string callableName, string receiver) {

@@ -754,12 +754,12 @@ module M {
       var source = @"
 module M {
   method {:extern} flipCoin() returns (b:bool)
-  method {:testEntry} {:testGenerators ""b"", ""M.flipCoin""} m(b: bool) {}
+  method {:testEntry} {:testGenerators ""M.flipCoin""} m(b: bool) {}
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
       var program = Utils.Parse(new BatchErrorReporter(options), source, false);
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       Assert.Single(methods.First().ValueCreation);
       Assert.True(methods.First().ValueCreation.First().value == "M.flipCoin()");

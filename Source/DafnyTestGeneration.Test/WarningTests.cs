@@ -131,7 +131,7 @@ function {:testGenerators} a(i:int):int { i+1 }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     // Should emit an error because a is not annotated with {:testEntry}
     Assert.Contains(FirstPass.MalformedAttributeError, outputString);
@@ -149,9 +149,9 @@ function {:testGenerators 3} {:testEntry} a(i:int):int { i+1 }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
-    // Should emit an error because :testGenerators must always have an even number of arguments
+    // Should emit an error because 3 is not a valid method name
     Assert.Contains(FirstPass.MalformedAttributeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
@@ -165,12 +165,12 @@ module B {
   function getI():int {4}
 }
 module A {
-  function {:testGenerators ""i"", ""B.getI""} {:testEntry} a(i:int):int { i+1 }
+  function {:testGenerators ""B.getI""} {:testEntry} a(i:int):int { i+1 }
 }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
