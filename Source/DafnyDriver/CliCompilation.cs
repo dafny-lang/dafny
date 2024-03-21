@@ -166,7 +166,7 @@ public class CliCompilation {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
           Options.OutputWriter.WriteLine(
             $"Verified part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", located at line {token.line}, using {completed.Result.ResourceCount:E1} resources");
+            $", on line {token.line} (time: {completed.Result.Duration}, resource count: {completed.Result.ResourceCount:E1})");
         }
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
