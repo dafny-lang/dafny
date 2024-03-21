@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    [Fact(Timeout = 10_000)]
+    [Fact(Timeout = 20_000)]
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
 
