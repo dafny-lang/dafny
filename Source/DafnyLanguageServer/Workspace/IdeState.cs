@@ -25,6 +25,8 @@ public record IdeCanVerifyState(VerificationPreparationState PreparationProgress
   ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks,
   IReadOnlyList<Diagnostic> Diagnostics);
 
+
+
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
@@ -35,7 +37,7 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
+  ImmutableDictionary<Uri, ImmutableDictionary<IPhase, Diagnostic>> StaticDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -373,6 +375,9 @@ public record IdeState(
       .Where(d => d.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
+    previousState.StaticDiagnostics.ToImmutableDictionary(uri => {
+      
+    });
     return previousState with {
       Program = finishedParsing.Program,
       StaticDiagnostics = status == CompilationStatus.ParsingFailed
