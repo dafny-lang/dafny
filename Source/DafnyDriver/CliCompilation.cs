@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -166,7 +167,8 @@ public class CliCompilation {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
           Options.OutputWriter.WriteLine(
             $"Verified part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line} (time: {completed.Result.RunTime.Milliseconds}ms, resource count: {completed.Result.ResourceCount:E1})");
+            $", on line {token.line} (time: {completed.Result.RunTime.Milliseconds}ms, " +
+            $"resource count: {completed.Result.ResourceCount.ToString("E1", CultureInfo.InvariantCulture)})");
         }
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
