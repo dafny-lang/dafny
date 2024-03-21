@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿#nullable enable
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny {
@@ -10,7 +11,7 @@ namespace Microsoft.Dafny {
 
     Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken);
 
-    Task<ResolutionResult> ResolveAsync(Compilation compilation,
+    Task<ResolutionResult?> ResolveAsync(Compilation compilation,
       Program program,
       CancellationToken cancellationToken);
   }
