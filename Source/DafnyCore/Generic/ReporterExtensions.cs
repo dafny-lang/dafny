@@ -59,9 +59,7 @@ public static class ErrorReporterExtensions {
       }
     }
 
-    if (message == null) {
-      message = "this expression could not be proved";
-    }
+    message ??= "this expression could not be proved";
 
     yield return new DafnyRelatedInformation(token, message);
     if (inner != null) {
