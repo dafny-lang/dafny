@@ -129,30 +129,9 @@ public record IdeState(
       ((IReadOnlyDictionary<Range, IdeCanVerifyState>)ImmutableDictionary<Range, IdeCanVerifyState>.Empty);
   }
 
-  public IEnumerable<Diagnostic> GetAllDiagnostics() {
-    return GetDiagnosticUris().SelectMany(GetDiagnosticsForUri);
-  }
-
-  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>>? staticDiagnosticsPerFile;
-
-  public ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnosticPerFile() {
-    if (staticDiagnosticsPerFile == null) {
-      staticDiagnosticsPerFile = StaticDiagnostics.Values.SelectMany(x => x).GroupBy(f => f.Uri).
-        ToImmutableDictionary(
-          kv => kv.Key,
-          kv => kv.Select(fd => fd.Diagnostic).ToImmutableList());
-    }
-
-    return staticDiagnosticsPerFile;
-  }
-
-  public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
-    var resolutionDiagnostics = StaticDiagnosticPerFile().GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
-    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
-      var taskDiagnostics = x.Value.VerificationTasks.Values.SelectMany(v => v.Diagnostics);
-      return x.Value.Diagnostics.Concat(taskDiagnostics.Concat(GetErrorLimitDiagnostics(x)));
-    });
-    return resolutionDiagnostics.Concat(verificationDiagnostics);
+  public IEnumerable<FileDiagnostic> GetAllDiagnostics() {
+    return StaticDiagnostics.Values.SelectMany(x => x).Concat(CanVerifyStates.SelectMany(s =>
+      s.Value.Values.SelectMany(cvs => cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
   }
 
   private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeCanVerifyState> x) {
@@ -173,10 +152,6 @@ public record IdeState(
     }
 
     return result;
-  }
-
-  public IEnumerable<Uri> GetDiagnosticUris() {
-    return StaticDiagnosticPerFile().Keys.Concat(CanVerifyStates.Keys);
   }
 
   public async Task<IdeState> UpdateState(DafnyOptions options,
@@ -405,7 +380,7 @@ public record IdeState(
   private ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> GetDiagnosticsAfterPhase(IPhase completedPhase,
     ImmutableList<FileDiagnostic> newDiagnostics)
   {
-    var staticDiagnostics = StaticDiagnostics.Where(
+    var result = StaticDiagnostics.Where(
       kv => {
         var phase = kv.Key;
         while (phase != null) {
@@ -418,8 +393,8 @@ public record IdeState(
 
         return true;
       }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
-    staticDiagnostics = staticDiagnostics.Add(completedPhase, newDiagnostics);
-    return staticDiagnostics;
+    result = result.Add(completedPhase, newDiagnostics);
+    return result;
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {

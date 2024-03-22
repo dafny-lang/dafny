@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using System.Collections.Immutable;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -35,11 +36,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      PublishDiagnostics(state);
+      var diagnosticsPerFile = state.GetAllDiagnostics().GroupBy(d => d.Uri).ToImmutableDictionary(
+        g => g.Key, 
+        g => g.Select(d => d.Diagnostic).ToImmutableList());
+      
+      PublishDiagnostics(state, diagnosticsPerFile);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
       foreach (var uri in state.OwnedUris) {
-        PublishGutterIcons(uri, state);
+        PublishGutterIcons(uri, state, diagnosticsPerFile);
       }
     }
 
@@ -129,13 +134,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly ConcurrentDictionary<Uri, IList<Diagnostic>> publishedDiagnostics = new();
 
-    private void PublishDiagnostics(IdeState state) {
+    private void PublishDiagnostics(IdeState state, ImmutableDictionary<Uri, ImmutableList<Diagnostic>> diagnosticsPerFile) {
       // All root uris are added because we may have to publish empty diagnostics for owned uris.
-      var sources = state.GetDiagnosticUris().Concat(state.OwnedUris).Distinct();
+      var sources = diagnosticsPerFile.Keys.Concat(state.OwnedUris).Distinct();
 
       var projectDiagnostics = new List<Diagnostic>();
       foreach (var uri in sources) {
-        var current = state.GetDiagnosticsForUri(uri);
+        var current = diagnosticsPerFile.GetValueOrDefault(uri) ?? ImmutableList<Diagnostic>.Empty;
         var ownedUri = state.OwnedUris.Contains(uri);
         if (ownedUri) {
           if (uri == state.Input.Project.Uri) {
@@ -185,7 +190,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Dictionary<Uri, VerificationStatusGutter> previouslyPublishedIcons = new();
 
-    private void PublishGutterIcons(Uri uri, IdeState state) {
+    private void PublishGutterIcons(Uri uri, IdeState state,
+      ImmutableDictionary<Uri, ImmutableList<Diagnostic>> diagnosticsPerFile) {
       if (!options.Get(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus)) {
         return;
       }
@@ -196,7 +202,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
-      var errors = state.StaticDiagnosticPerFile().GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
+      var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
         Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var tree = state.VerificationTrees.GetValueOrDefault(uri);
       if (tree == null) {
